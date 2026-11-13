@@ -14,6 +14,7 @@ Protocol.lua
 Peers.lua
 Store.lua
 Reports.lua
+HeadHunter.lua
 Adapters.lua
 Invite.lua
 Find.lua
