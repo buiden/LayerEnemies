@@ -1598,7 +1598,8 @@ end)
 test("guild L line without Bulo fills the host list",function()
     local N=loadAddon(); establish(N); advance(1)
     local function line(text,from,kind) deliver("CHAT_MSG_ADDON","LFSw",text,kind or "GUILD",from) end
-    line("L 8000|100|h","Bob"); line("L 9000|100|-","Dan Lee-OtherRealm"); line("L 8000|100|-","Me")
+    line("L 8000|100|h","Bob"); line("L 9000|100|-","Dan Lee-OtherRealm"); line("L 8000|100|-","Me"); line("L 8000|100|-","Me-TestRealm")
+    eq(N.Main.guildLines["Me"],nil); eq(N.Main.guildLines["Me-TestRealm"],nil); yes(N.Main.guildLines["Bob"])
     for _,bad in ipairs({"L 8000-3|100|h","L 8000|100|x","L 8000|100|h|x","L |100|h","L 8000|1a|h","Q","v 3.0.25"}) do line(bad,"Eve") end
     line("L 8000|100|h","Wes","WHISPER"); line("L 8000|100|h","Pat","PARTY")
     local list=N.Main.candidates(); eq(names(list),"Bob,Dan Lee")

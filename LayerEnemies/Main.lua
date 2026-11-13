@@ -236,8 +236,7 @@ end
 -- LFSw prefix: Bulo guild layer lines, GUILD only, read and never answered.
 function M.lfsw(text,kind,sender)
     if kind~="GUILD" or not S.str(sender,100) or S.call(IsInGuild)~=true then return end
-    local me=S.str((S.call(UnitName,"player")))
-    if me and N.Peers.key(sender)==N.Peers.key(me) then return end
+    if M.isMe(sender) then return end
     if A.ignored(sender) then return end
     if not N.HeadHunter.allow(M.lfswRate,sender,now()) then return end
     local wall=A.wall()
