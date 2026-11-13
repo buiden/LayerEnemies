@@ -10,7 +10,7 @@ function T.reset(t,now,zone,bulo,zoneUID)
 end
 function T.prune(t,now)
     for k,v in pairs(t.localSeen) do if now-v.at>=600 or v.at<t.epoch then t.localSeen[k]=nil end end
-    for k,v in pairs(t.reports) do if now-v.at>=600 or v.at<t.epoch then t.reports[k]=nil end end
+    for k,v in pairs(t.reports) do local at=v.record.heard; if now-at>=600 or at<t.epoch then t.reports[k]=nil end end
     -- Identity candidates expire with observations; never persist names from old epochs.
     for hash,set in pairs(t.identities) do
         for name,at in pairs(set) do if now-at>=600 or at<t.epoch then set[name]=nil end end
@@ -50,18 +50,22 @@ function T.possible(t,hash)
     table.sort(names)
     return #names>0 and ("possible identity: "..table.concat(names,", ")) or nil
 end
-function T.report(t,report,now)
-    -- Only the reducer supplies complete reports: strictly verified ones must
-    -- match our zoneUID; receipt-time ones only need our zone and stay labelled.
-    local receipt=report.freshness=="receipt"
-    if report.freshness~="verified" and not receipt then return false end
-    if not t.zone or report.zone~=t.zone or report.at<t.epoch or now-report.at>=600 then return false end
-    if not receipt and (not t.zoneUID or report.layer~=t.zoneUID) then return false end
-    local key=report.sender..":"..report.id
+-- Our side of a layer comparison: zone, own server key, and whether that key is ambiguous right now.
+function T.own(t,now)
+    local amb=type(t.ambiguous)=="function" and t.ambiguous(now) or false
+    return {zone=t.zone,server=N.Layer.key(t.bulo),ambiguous=amb}
+end
+-- record: from N.Record.new. A receipt-dated record (age nil) only needs our zone and stays labelled; a dated one
+-- must be on our server key (Record.relation "same").
+function T.report(t,record,now)
+    if not S.tab(record) or type(record.id)~="string" or not S.tab(record.layer) or not S.num(record.heard) then return false end
+    local receipt=record.age==nil
+    if not t.zone or record.zone~=t.zone or record.heard<t.epoch or now-record.heard>=600 then return false end
+    if not receipt and N.Record.relation(record,T.own(t,now))~="same" then return false end
+    local key=record.id
     if not room(t.reports,key,64) then return false end
-    report.epoch=t.serial; report.namespace="war-effort-zoneUID"
-    report.confidence=receipt and "reported, not confirmed" or "reported zoneUID match (unverified)"
-    t.reports[key]=report
+    t.reports[key]={record=record,epoch=t.serial,
+        confidence=receipt and "reported, not confirmed" or "reported server key match (unverified)"}
     return true
 end
 local function newest(a,b) if a.at==b.at then return a.key<b.key end; return a.at>b.at end
@@ -69,14 +73,16 @@ function T.rows(t,now,kind)
     T.prune(t,now)
     local out={}
     if kind=="reported" then
-        for key,r in pairs(t.reports) do
-            local receipt=r.freshness=="receipt"
-            if r.epoch==t.serial and r.zone==t.zone and (receipt or r.layer==t.zoneUID) then
-                local relation=not t.zoneUID and "unknown" or r.layer==t.zoneUID and "same" or "other"
+        local own=T.own(t,now)
+        for key,row in pairs(t.reports) do
+            local r=row.record
+            local receipt=r.age==nil
+            local relation=N.Record.relation(r,own)
+            if row.epoch==t.serial and r.zone==t.zone and (receipt or relation=="same") then
                 for i,e in ipairs(r.enemies) do
-                    out[#out+1]={key=key..":"..i,at=r.at,zone=r.zone,hash=e.hash,class=e.class,level=e.level,
-                        reporter=r.sender,relation=relation,reportLayer=r.layer,receipt=receipt,
-                        name="Unknown",possible=T.possible(t,e.hash),confidence=r.confidence,source="reported (War Effort)",namespace=r.namespace,x=r.x,y=r.y,positionKind="reported cluster position"}
+                    out[#out+1]={key=key..":"..i,at=r.heard,zone=r.zone,hash=e.hash,class=e.class,level=e.level,
+                        reporter=r.origin,relation=relation,reportLayer=r.layer.value,receipt=receipt,record=r,
+                        name="Unknown",possible=T.possible(t,e.hash),confidence=row.confidence,source="reported (War Effort)",namespace=r.layer.ns,x=r.x,y=r.y,positionKind="reported cluster position"}
                 end
             end
         end
@@ -93,10 +99,13 @@ end
 function T.reporters(t,now)
     T.prune(t,now)
     local bySender,out={},{}
-    for _,r in pairs(t.reports) do
-        if r.freshness=="receipt" and r.epoch==t.serial and r.zone==t.zone then
-            local cur=bySender[r.sender]
-            if not cur or cur.at<r.at then bySender[r.sender]={name=r.sender,at=r.at,match=t.zoneUID~=nil and r.layer==t.zoneUID} end
+    for _,row in pairs(t.reports) do
+        local r=row.record
+        if r.age==nil and row.epoch==t.serial and r.zone==t.zone then
+            local cur=bySender[r.origin]
+            -- (unchanged until the hop task: a War Effort 0.2.13 zoneUID equal to ours is taken as our layer)
+            local match=r.layer.ns=="zoneuid" and t.zoneUID~=nil and r.layer.value==t.zoneUID
+            if not cur or cur.at<r.heard then bySender[r.origin]={name=r.origin,at=r.heard,match=match} end
         end
     end
     for _,v in pairs(bySender) do out[#out+1]=v end

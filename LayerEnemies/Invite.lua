@@ -168,7 +168,7 @@ function I.tick(st,now,key,zone)
     if key and not L.same(key,w.from) then
         st.watch=nil
         local note=w.target and not L.same(key,w.target) and (w.name.." was listed on layer "..w.target..", not "..key..".") or nil
-        return "Moved to layer "..key.." - safe to leave the group.",note
+        return "Moved to layer "..key..". Whether leaving the group keeps you there is not confirmed - stay grouped if unsure.",note
     end
     if now<w.deadline then return nil end
     if key then st.watch=nil; return "Still on your layer - leave, wait a minute, try again." end
