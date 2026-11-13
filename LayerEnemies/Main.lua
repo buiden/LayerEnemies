@@ -36,6 +36,7 @@ function M.boundary(zone)
         L.forget(M.npcs)
         -- a new zone also drops a pending hop or ask (the layer watch ends itself on the zone change, with a note)
         if M.hop then N.Hop.clear(M.hop) end
+        M.hopList=nil                                  -- the numbers /le reports showed belong to the old zone
         if M.invite then
             M.invite.pending=nil
             -- the layer watch ends here too: a quick out-and-back before the next poll must not read as a move
