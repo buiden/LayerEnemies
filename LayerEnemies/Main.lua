@@ -87,12 +87,8 @@ function M.poll()
         end
     end
     T.prune(M.store,time); N.Reports.prune(M.receiver,time)
-    if not A.loaded("WarEffortScout") then
-        M.statusWE="not installed"
-    else
-        local ok,reason=A.policy("WEFF1","GUILD","LayerEnemiesPolicyProbe",nil)
-        M.statusWE=ok and "installed / listening (reports dated by time of receipt, not confirmed)" or ("installed / "..reason)
-    end
+    -- War Effort itself is not needed: its guild and group traffic is read either way.
+    M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
     M.groupCheck(); M.inviteTick()
     M.findAlerts()
@@ -144,31 +140,51 @@ function M.queueUnit(unit)
     end
     if not after(0,run) then run() end
 end
+-- Our own character, with or without a realm (compared the way the receive policy compares senders).
+function M.isMe(name)
+    name=S.str(name,100)
+    local me,realm=S.call(UnitName,"player"); me,realm=S.str(me),S.str(realm)
+    realm=realm or S.str(S.call(GetRealmName))
+    if not name or not me then return false end
+    local short,remote=name:match("^([^%-]+)%-(.+)$")
+    if not short then return name:lower()==me:lower() end
+    return realm~=nil and N.Hash.nameKey(short,remote)==N.Hash.nameKey(me,realm)
+end
 function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelName)
     -- Check every delivered value before comparing/indexing it.
     local args={prefix,text,kind,sender,target,zoneChannelID,localID,channelName}
     for i=1,8 do if S.secret(args[i]) then return end end
-    if (prefix~="WEFF1" and prefix~="ZRAD1") or type(text)~="string" or #text>255 or not S.str(sender,100) then return end
-    local allowed,reason=A.policy(prefix,kind,sender,channelName)
+    if prefix~="WEFF1" or type(text)~="string" or #text>255 or not S.str(sender,100) then return end
+    local allowed,reason=A.policy(prefix,kind,sender)
     if not allowed then M.lastDrop=reason; return end
-    local msg=N.Protocol.decode(text)
-    if not msg then M.lastDrop="invalid message"; return end
-    local server=S.num(S.call(GetServerTime))
-    if not N.Protocol.clockAge(msg.stamp,server,N.Protocol.AHEAD) then M.lastDrop="stale or clock unavailable"; return end
-    M.lastHeard=now()
-    -- War Effort sends live, so the time of receipt dates the report. The wire
-    -- stamp only proves "within 30 s of this second of some hour": a replayed
-    -- old packet can pass. Reports therefore stay in their own unconfirmed list.
-    local report,why=N.Reports.receive(M.receiver,text,sender,now(),server,A.zone,M.store.zone,M.store.zoneUID,M.store.epoch,N.Reports.RECEIPT,#M.find.names>0)
+    local msg,why=N.Protocol.decode(text)
+    if not msg then if why~="ignored" then M.lastDrop="invalid message" end; return end
+    if not A.WE_TYPES[kind][msg.type] then M.lastDrop=msg.type.." is not read on "..kind; return end
+    local time=now()
+    -- Over the per-sender limit: dropped without a note.
+    if not N.Reports.allow(M.receiver,sender,msg.type=="G" or msg.type=="X",time) then return end
+    local inner,origin=msg.inner or msg,msg.origin or sender
+    if msg.origin then
+        if M.isMe(origin) then M.lastDrop="own echo"; return end
+        -- a wrapper carries someone else's message; one naming its own sender is refused (as War Effort does)
+        -- same name: equal in full, or equal without realm when one of the two carries none
+        local function bare(n) return (n:match("^([^%-]+)") or n):lower() end
+        local whole=origin:lower()==sender:lower()
+        local partial=(not origin:find("-",1,true) or not sender:find("-",1,true)) and bare(origin)==bare(sender)
+        if whole or partial then M.lastDrop="wrapped by its own origin"; return end
+        local ignored,whyIgnored=A.ignored(origin)
+        if ignored then M.lastDrop=whyIgnored; return end
+    end
+    M.lastHeard=time
+    if inner.type=="H" then N.Peers.hello(M.peers,origin,inner.minor,time); return end
+    local record
+    record,why=N.Reports.receive(M.receiver,msg,{sender=sender,route=kind,now=time,
+        serverNow=S.num(S.call(GetServerTime)),zoneFn=A.zone,peers=M.peers})
     M.lastDrop=why
-    if report then
-        -- War Effort 0.2.13 sends its zoneUID as the layer: private per player, never compared with anything.
-        local record=N.Record.new({src="we",kind="group",origin=report.sender,via=sender,route=kind,rid=tostring(report.id),
-            zone=report.zone,x=report.x,y=report.y,count=#report.enemies,enemies=report.enemies,
-            layer={ns="zoneuid",value=report.layer},heard=report.at,age=report.freshness~="receipt" and 0 or nil,
-            share=kind=="GUILD" and "guild" or "public"})
-        if record then T.report(M.store,record,now()) end
-        N.Find.report(M.find,report,M.homeRealm())
+    if record then
+        local stored,whyNot=T.report(M.store,record,time)
+        if not stored then M.lastDrop=whyNot end
+        N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
         M.findAlerts()
         if N.UI then N.UI.refresh() end
     end
@@ -337,14 +353,14 @@ function M.text(command)
     say("Your server key: "..(L.key(M.store.bulo) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
         .." - zone-scoped; an equal key is not proof of the same layer")
     local kind=command=="reports" and "reported" or command=="unclassified" and "unclassified" or "local"
-    say(kind=="reported" and "Reported, not confirmed (War Effort, dated by time of receipt):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
+    say(kind=="reported" and "Reported, not confirmed (War Effort; age as the reporter's clock gives it):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
     local rows=T.rows(M.store,now(),kind)
     if #rows==0 then say(kind=="reported" and "No live reports for your zone." or "No eligible observations.") end
     for _,e in ipairs(rows) do
         local when=ago(now()-e.at)
         local extra=""
         if e.reporter then
-            extra=" | reported by "..e.reporter.." | "..(e.relation=="same" and "same server key as yours" or e.relation=="other" and ("other server key "..tostring(e.reportLayer)) or "layer unknown")
+            extra=" | reported by "..e.reporter..(e.age and e.age>0 and (" | claimed "..e.age.." s old") or "").." | "..(e.relation=="same" and "same server key as yours" or e.relation=="other" and ("other server key "..tostring(e.reportLayer)) or "layer unknown")
         end
         say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or ""))
     end
@@ -366,7 +382,7 @@ end
 function M.start()
     if M.started then return end
     M.started=true
-    M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new()
+    M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped()
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
@@ -377,7 +393,6 @@ function M.start()
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position)}
     if S.tab(C_ChatInfo) then
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WEFF1")
-        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"ZRAD1")
     end
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"

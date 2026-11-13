@@ -55,17 +55,18 @@ function T.own(t,now)
     local amb=type(t.ambiguous)=="function" and t.ambiguous(now) or false
     return {zone=t.zone,server=N.Layer.key(t.bulo),ambiguous=amb}
 end
--- record: from N.Record.new. A receipt-dated record (age nil) only needs our zone and stays labelled; a dated one
--- must be on our server key (Record.relation "same").
+-- record: from N.Record.new. Any record of our zone is kept, whatever its layer relation: the wire has no absolute
+-- time, so every report is "reported, not confirmed", and other-layer reports are the ones a hop needs.
+-- Storing the same record again (an enriched report) refreshes its row.
 function T.report(t,record,now)
-    if not S.tab(record) or type(record.id)~="string" or not S.tab(record.layer) or not S.num(record.heard) then return false end
-    local receipt=record.age==nil
-    if not t.zone or record.zone~=t.zone or record.heard<t.epoch or now-record.heard>=600 then return false end
-    if not receipt and N.Record.relation(record,T.own(t,now))~="same" then return false end
+    if not S.tab(record) or type(record.id)~="string" or not S.tab(record.layer) or not S.num(record.heard) then return false,"unreadable" end
+    if not t.zone or record.zone~=t.zone then return false,"another zone" end
+    -- heard at the boundary instant: it may have been sent before it, like a unit carried across
+    if record.heard<=t.epoch then return false,"before observation epoch" end
+    if now-record.heard>=600 then return false,"expired" end
     local key=record.id
-    if not room(t.reports,key,64) then return false end
-    t.reports[key]={record=record,epoch=t.serial,
-        confidence=receipt and "reported, not confirmed" or "reported server key match (unverified)"}
+    if not t.reports[key] and not room(t.reports,key,64) then return false,"report cap" end
+    t.reports[key]={record=record,epoch=t.serial,confidence="reported, not confirmed"}
     return true
 end
 local function newest(a,b) if a.at==b.at then return a.key<b.key end; return a.at>b.at end
@@ -76,14 +77,17 @@ function T.rows(t,now,kind)
         local own=T.own(t,now)
         for key,row in pairs(t.reports) do
             local r=row.record
-            local receipt=r.age==nil
             local relation=N.Record.relation(r,own)
-            if row.epoch==t.serial and r.zone==t.zone and (receipt or relation=="same") then
-                for i,e in ipairs(r.enemies) do
-                    out[#out+1]={key=key..":"..i,at=r.heard,zone=r.zone,hash=e.hash,class=e.class,level=e.level,
-                        reporter=r.origin,relation=relation,reportLayer=r.layer.value,receipt=receipt,record=r,
-                        name="Unknown",possible=T.possible(t,e.hash),confidence=row.confidence,source="reported (War Effort)",namespace=r.layer.ns,x=r.x,y=r.y,positionKind="reported cluster position"}
+            if row.epoch==t.serial and r.zone==t.zone then
+                local function add(k,e,name,possible)
+                    out[#out+1]={key=k,at=r.heard,zone=r.zone,hash=e.hash,class=e.class,level=e.level,
+                        reporter=r.origin,relation=relation,reportLayer=r.layer.value,age=r.age,record=r,
+                        name=name,possible=possible,confidence=row.confidence,source="reported (War Effort)",namespace=r.layer.ns,x=r.x,y=r.y,positionKind="reported cluster position"}
                 end
+                for i,e in ipairs(r.enemies) do add(key..":"..i,e,"Unknown",T.possible(t,e.hash)) end
+                -- the list may be partial or missing: the count is what the report said
+                local rest=(r.count or 0)-#r.enemies
+                if rest>0 then add(key..":rest",{},rest..(#r.enemies>0 and " more" or "").." not listed") end
             end
         end
     else
@@ -99,12 +103,12 @@ end
 function T.reporters(t,now)
     T.prune(t,now)
     local bySender,out={},{}
+    local own=T.own(t,now)
     for _,row in pairs(t.reports) do
         local r=row.record
-        if r.age==nil and row.epoch==t.serial and r.zone==t.zone then
+        if row.epoch==t.serial and r.zone==t.zone then
             local cur=bySender[r.origin]
-            -- (unchanged until the hop task: a War Effort 0.2.13 zoneUID equal to ours is taken as our layer)
-            local match=r.layer.ns=="zoneuid" and t.zoneUID~=nil and r.layer.value==t.zoneUID
+            local match=N.Record.relation(r,own)=="same"
             if not cur or cur.at<r.heard then bySender[r.origin]={name=r.origin,at=r.heard,match=match} end
         end
     end
