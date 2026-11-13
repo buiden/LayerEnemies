@@ -251,7 +251,9 @@ LayerEnemiesDB is SavedVariablesPerCharacter. It stores options, up to five
 explicitly entered tracked names, and window position. It never persists
 sightings, discovered identities, GUIDs, hashes, locations, report payloads,
 asked names, alert history or source settings. Reloading keeps your watchlist,
-not its locations. Epoch boundaries also clear locations.
+not its locations. Epoch boundaries also clear locations. Your own server key and its
+30-minute "ambiguous" window are not saved either: after /reload the window is
+gone until two NPC kinds confirm the layer again.
 
 Limits: 256 local observations/identity hash buckets, at most eight candidate
 names per hash, 64 reports, 64 senders, 32 incomplete reports (four per sender),

@@ -1170,6 +1170,38 @@ test("ambiguity lasts 1800 s",function()
     map=200; units.target={guid=npc(5,9),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain()
     no(L.ambiguous(N.Main.npcs,clock))
 end)
+test("an unreadable map does not end the zone epoch",function()
+    local function see(id,uid) units.target={guid=npc(id,uid),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1) end
+    local function ambiguousAddon()
+        local N=loadAddon(); establish(N); see(3,9); see(4,9)
+        yes(N.Layer.ambiguous(N.Main.npcs,clock)); eq(N.Layer.server(N.Main.npcs),"7086")
+        return N
+    end
+    -- same zone -> loading screen without a map -> same zone: raw id and ambiguity survive
+    local N=ambiguousAddon()
+    map=nil; deliver("PLAYER_ENTERING_WORLD"); drain(); eq(N.Main.store.zone,nil)
+    yes(N.Layer.ambiguous(N.Main.npcs,clock)); eq(N.Layer.server(N.Main.npcs),"7086")
+    map=100; deliver("ZONE_CHANGED_NEW_AREA"); drain(); eq(N.Main.store.zone,100)
+    yes(N.Layer.ambiguous(N.Main.npcs,clock)); eq(N.Layer.server(N.Main.npcs),"7086"); yes(N.Main.store.ambiguous(clock))
+    -- twice in a row changes nothing either
+    map=nil; deliver("PLAYER_ENTERING_WORLD"); drain(); deliver("SHARD_TRANSFER"); drain(); map=100; N.Main.poll()
+    yes(N.Layer.ambiguous(N.Main.npcs,clock))
+    -- zone A -> no map -> zone B: forgotten
+    N=ambiguousAddon()
+    map=nil; deliver("PLAYER_ENTERING_WORLD"); drain(); yes(N.Layer.ambiguous(N.Main.npcs,clock))
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    no(N.Layer.ambiguous(N.Main.npcs,clock)); eq(N.Layer.server(N.Main.npcs),nil)
+    -- zone A -> zone B (layer confirmed there) -> zone A: B's raw id is forgotten on the way back
+    N=ambiguousAddon(); map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain(); eq(N.Layer.server(N.Main.npcs),nil)
+    units.target={guid=npc(21,5,"8000"),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+    units.mouseover={guid=npc(22,5,"8000"),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
+    eq(N.Layer.server(N.Main.npcs),"8000")
+    map=100; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    no(N.Layer.ambiguous(N.Main.npcs,clock)); eq(N.Layer.server(N.Main.npcs),nil); no(N.Main.error)
+    -- the very first zone change after login, with no boundary before it, still ends the epoch
+    N=loadAddon(); establish(N); eq(N.Layer.server(N.Main.npcs),"7086")
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain(); eq(N.Layer.server(N.Main.npcs),nil)
+end)
 test("record rejects bad fields",function()
     local N=loadAddon()
     local function bad(over,why) local r,reason=rec(N,over); eq(r,nil,why); yes(reason,why) end

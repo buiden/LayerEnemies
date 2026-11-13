@@ -29,8 +29,11 @@ end
 function M.boundary(zone)
     captureStale()
     M.blockedBulo=M.store.bulo
-    -- a new zone ends the zone epoch (own raw id and ambiguity); inside one zone only the votes start again
-    if zone~=M.store.zone then L.forget(M.npcs) else L.reset(M.npcs) end
+    -- A readable zone that differs from the last readable one ends the zone epoch (own raw id and ambiguity);
+    -- otherwise only the votes start again. An unreadable map (a loading screen) is no evidence of a zone change.
+    -- Nothing of this is saved: /reload starts without the raw id and without the ambiguity window.
+    if zone~=nil and M.zoneSeen~=nil and zone~=M.zoneSeen then L.forget(M.npcs) else L.reset(M.npcs) end
+    if zone~=nil then M.zoneSeen=zone end
     M.subEpoch=now()
     T.reset(M.store,M.subEpoch,zone,nil,nil)
     N.Reports.clearPending(M.receiver)
@@ -366,7 +369,7 @@ function M.start()
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped()
-    M.layerSource="unknown"; M.store.zone=A.location()
+    M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
     local saved=LayerEnemiesDB
