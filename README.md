@@ -21,15 +21,19 @@ Every addon message goes through one file (Wire.lua), on exactly two routes:
   random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
   Guild membership, guild name and instance state are read when it is offered
   and again when it is due; not in a guild, another guild, in an instance, or
-  unreadable means it is dropped. Each report id is sent once per 120 seconds
-  while it is remembered (256 ids; a flood of more ids can let one repeat). At
+  unreadable means it is dropped. Each report id is sent about once per 120
+  seconds: the 120 seconds count from when it is offered, before the random
+  wait, and only while the id is remembered (256 ids; a flood of more ids can
+  let one repeat). At
   most 128 offers wait at once. A local budget allows 5 quick sends, then one
   per 2 seconds.
 
 Nothing is ever sent on WEFF1, HeadHunter or LFSw, and the addon never sends
 chat, joins channels, invites, accepts invites or leaves a group. HeadHunter
-and LEGW1 messages of an unknown version are ignored. A War Effort hello with
-an unknown version is accepted, but its reports keep an unknown layer.
+and LEGW1 messages of an unknown version are ignored. A War Effort hello is
+judged by its minor number, not its version text: a known minor (13 to 19)
+gives a server key even when the version string is unusual, and an unknown
+minor is accepted but its reports keep an unknown layer.
 
 ## Installation and commands
 
@@ -116,9 +120,9 @@ Your own key comes only from a confirmed reading (Bulo's full ID or two
 agreeing NPC kinds). When NPC readings show a new full ID with the same server
 key, two layers of this zone share it, and your key is ambiguous for 30
 minutes (a Bulo ID change does not start this window). While it is
-ambiguous, report rows show the relation as unknown, and Find, `/le hosts`
-and the layer check say "probably" where they would otherwise say "on your
-layer".
+ambiguous, a report on an equal key shows the relation as unknown (a
+different key still reads "other"), and Find, `/le hosts` and the layer
+check say "probably" where they would otherwise say "on your layer".
 
 The number after the "-" (the zoneUID) is private to each player and is never
 compared across sources. War Effort 1.6.x sends its own layer field;
@@ -234,16 +238,21 @@ button. The label says what a click will do; when the button is disabled, its
 tooltip gives the reason (you are grouped or that is unreadable, your map
 zone is unreadable or not the report's zone, its layer is unknown or yours
 already, or nobody on it is known). `/le reports` numbers the same rows for
-`/le hop <number>`.
+`/le hop <number>`; the numbers end after two minutes or at a zone change.
 
 Who is asked, in order: a Bulo host on that layer, a LayerSwap host, another
 Bulo user, then the report's War Effort origin (also the origin named inside a
-War Effort G or X wrapper). Each source ranks by its own host flag. Bulo and
-LayerSwap users get one LayerSwap-format request by addon whisper:
+War Effort G or X wrapper). When a player is in both Bulo's list and the
+LayerSwap book, each source ranks by its own host flag (a Bulo non-host who is
+a LayerSwap host ranks as a LayerSwap host); `/le hosts` marks the player as
+host if either source does. Bulo and LayerSwap users get one LayerSwap-format
+request by addon whisper:
 
     inv layer <LS <zone> want <server>-<uid> <x>,<y>>
 
-`<uid>` is the host's own zoneUID from the LayerSwap book, 0 otherwise; the
+`<uid>` is the host's own zoneUID when the player's freshest entry is a
+LayerSwap book entry, 0 otherwise (a fresher Bulo entry, which has none, wins
+the merge); the
 position is your map position in percent and is left out when unknown. That
 is one whisper per click, with no retry. A click acts only on the player and
 mode the row showed: if the pick has changed by then, nothing is sent ("hosts
