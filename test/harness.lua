@@ -18,6 +18,11 @@ function issecretvalue(v) return rawequal(v,secret) end
 local frames,timers,log,units,loaded,metadata
 local clock,map,server,channels,inGuild,clientIgnored
 local wall,grouped,opened
+local sent,sendResult
+-- The two routes the addon may send on (Wire.lua); anything else counts as forbidden.
+local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true}}
+-- Prefixes the addon may register. ZRAD1 stays until Task 3 removes the legacy decoder.
+local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,ZRAD1=true}
 local methods={}
 function methods:Hide() local old=self.shown; self.shown=false; if old and self.scripts.OnHide then self.scripts.OnHide(self) end end
 function methods:Show() local old=self.shown; self.shown=true; if not old and self.scripts.OnShow then self.scripts.OnShow(self) end end
@@ -84,6 +89,7 @@ local function loadAddon()
     frames,timers,log,units,loaded,metadata={},{},{},{},{},{}
     clock,map,server,channels,inGuild,clientIgnored=10,100,720100,{WarEffortPubA=7},true,false
     wall,grouped,opened,forbidden=1800000000,false,{},0
+    sent,sendResult={},0
     _G.BuloLayerForever=nil; _G.WarEffortScoutDB=nil; _G.LayerEnemiesDB=nil
     _G.LayerSwapDB=nil; _G.LE=nil; _G.ChatFrameUtil=nil; _G.ChatFrame_OpenChat=nil
     _G.time=function() return wall end
@@ -105,7 +111,27 @@ local function loadAddon()
     }
     _G.C_AddOns={IsAddOnLoaded=function(name) return loaded[name]==true end,GetAddOnMetadata=function(name,key) return metadata[name] end}
     _G.C_FriendList={IsIgnored=function() return clientIgnored end}
-    _G.C_ChatInfo=setmetatable({RegisterAddonMessagePrefix=function(prefix) yes(prefix=="WEFF1" or prefix=="ZRAD1"); return true end},
+    _G.C_ChatInfo=setmetatable({
+        RegisterAddonMessagePrefix=function(prefix)
+            if not PREFIXES[prefix] then forbidden=forbidden+1 end
+            return true
+        end,
+        -- records every call; a route outside the allowlist counts as forbidden
+        SendAddonMessage=function(prefix,text,kind,target)
+            sent[#sent+1]={prefix=prefix,text=text,kind=kind,target=target}
+            if not (ROUTES[prefix] and ROUTES[prefix][kind]) then forbidden=forbidden+1 end
+            -- the caller: the first Lua frame above this one (C frames such as pcall are skipped) must be Wire.lua
+            local level,caller=2,nil
+            while true do
+                local info=debug.getinfo(level,"S")
+                if not info then break end
+                if info.what~="C" then caller=info.source; break end
+                level=level+1
+            end
+            if caller~="@LayerEnemies/Wire.lua" then forbidden=forbidden+1 end
+            if type(sendResult)=="function" then return sendResult() end
+            return sendResult
+        end},
         {__index=function(_,key) forbidden=forbidden+1; error("must never use C_ChatInfo."..tostring(key)) end})
     _G.GetTime=function() return clock end
     _G.GetServerTime=function() return server end
@@ -128,7 +154,7 @@ local function loadAddon()
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
     _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
     local N={}
-    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Wire","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
@@ -916,7 +942,7 @@ test("ask from a War Effort report: reporter is the target, own layer unknown",f
     N=loadAddon(); warSettings(); WarEffortScoutDB.ignored.scout="Scout"; advance(1); report(1,9,"Scout-TestRealm")
     eq(#N.Main.candidates(),0)
 end)
-test("addon never sends, invites, accepts or leaves (source and runtime)",function()
+test("addon never chats, invites, accepts, leaves or joins; sends only through Wire",function()
     local N=loadAddon(); warSettings(); local b=friends(N,{Alice=there(),Bob=there({key="9000"})},{Cora=page()}); chatBox()
     advance(1); report(1,9,"Scout")
     SlashCmdList.LAYERENEMIES("hosts"); SlashCmdList.LAYERENEMIES("ask 1"); drain()
@@ -925,12 +951,16 @@ test("addon never sends, invites, accepts or leaves (source and runtime)",functi
     grouped=false; deliver("GROUP_ROSTER_UPDATE"); advance(10); LE.AskInvite("Bob"); drain()
     grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70)
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
-    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Wire","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
-        for _,word in ipairs({"SendChatMessage","SendAddonMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","JoinChannel"}) do
+        for _,word in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","JoinChannel"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
         end
+        -- SendAddonMessage only in Wire.lua
+        if file=="Wire" then yes(text:find("SendAddonMessage",1,true),"Wire sends")
+        else eq(text:find("SendAddonMessage",1,true),nil,file.." mentions SendAddonMessage") end
     end
+    eq(#sent,0)
     -- the only registered events are passive
     for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true)) end
     yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,11)
@@ -1079,6 +1109,73 @@ test("Forever surname whisper uses native target API, never malformed slash text
     yes(LE.AskInvite("First Surname")); drain(); eq(target,"First Surname"); eq(inserted,ASK); eq(#opened,0)
     advance(60); ChatFrameUtil=nil
     yes(LE.AskInvite("First Surname")); drain(); yes(logged("open a whisper to First Surname manually")); no(logged("/w First Surname")); eq(forbidden,0)
+end)
+-- Wire.lua: the only sender
+test("the send mock counts any caller but Wire.lua as forbidden",function()
+    local N=loadAddon()
+    -- a direct call, a pcall-wrapped call and a dynamically named call from outside Wire.lua all count
+    C_ChatInfo.SendAddonMessage("LayerSwap","x","WHISPER","Alice"); eq(forbidden,1)
+    pcall(function() C_ChatInfo["Send".."AddonMessage"]("LayerSwap","x","WHISPER","Alice") end); eq(forbidden,2)
+    pcall(C_ChatInfo.SendAddonMessage,"LEGW1","x","GUILD"); eq(forbidden,3)
+    -- the same routes through Wire.lua do not
+    forbidden=0; yes(N.Wire.send("LayerSwap","x","WHISPER","Alice")); yes(N.Wire.send("LEGW1","x","GUILD")); eq(forbidden,0); eq(#sent,5)
+end)
+test("wire routes cannot be opened from outside",function()
+    local N=loadAddon(); local Wr=N.Wire
+    if type(Wr.ROUTES)=="table" then
+        Wr.ROUTES.WEFF1={GUILD=true}; if type(Wr.ROUTES.LayerSwap)=="table" then Wr.ROUTES.LayerSwap.GUILD=true end
+        if type(Wr.ROUTES.LEGW1)=="table" then Wr.ROUTES.LEGW1.WHISPER=true end
+    end
+    Wr.ROUTES={WEFF1={GUILD=true},LayerSwap={GUILD=true,CHANNEL=true}}
+    for _,c in ipairs({{"WEFF1","x","GUILD"},{"LayerSwap","x","GUILD"},{"LEGW1","x","WHISPER","Bob"}}) do
+        local ok,why=Wr.send(c[1],c[2],c[3],c[4]); no(ok); eq(why,"blocked route")
+    end
+    eq(#sent,0); yes(Wr.send("LayerSwap","x","WHISPER","Alice")); eq(#sent,1)
+end)
+test("wire sends only on the two allowed routes",function()
+    local N=loadAddon(); local Wr=N.Wire
+    local function blocked(...) local ok,why=Wr.send(...); no(ok); eq(why,"blocked route") end
+    blocked("WEFF1","x","GUILD"); blocked("LayerSwap","x","GUILD"); blocked("LEGW1","x","WHISPER","Bob")
+    blocked("LayerSwap","x","CHANNEL","5"); blocked("HeadHunter","x","WHISPER","Bob"); blocked("LFSw","x","GUILD")
+    eq(#sent,0)
+    eq(Wr.ROUTES.LayerSwap.WHISPER,true); eq(Wr.ROUTES.LEGW1.GUILD,true)
+    local ok,why=Wr.send("LayerSwap","inv layer <LS 1429 want 7086-0 48.2,42.5>","WHISPER","Alice"); yes(ok); eq(why,"sent")
+    ok,why=Wr.send("LEGW1","R|1","GUILD"); yes(ok); eq(why,"sent")
+    eq(#sent,2); eq(sent[1].prefix,"LayerSwap"); eq(sent[1].kind,"WHISPER"); eq(sent[1].target,"Alice")
+    eq(sent[2].prefix,"LEGW1"); eq(sent[2].kind,"GUILD"); eq(sent[2].target,nil); eq(forbidden,0)
+end)
+test("wire rejects oversize and secret text",function()
+    local N=loadAddon(); local Wr=N.Wire
+    local function bad(...) local ok,why=Wr.send(...); no(ok); eq(why,"bad text") end
+    bad("LEGW1",string.rep("a",256),"GUILD"); bad("LEGW1","","GUILD"); bad("LEGW1",secret,"GUILD"); bad("LEGW1",42,"GUILD")
+    bad("LayerSwap","x","WHISPER",secret); bad("LayerSwap","x","WHISPER","B"); bad("LayerSwap","x","WHISPER",nil)
+    bad("LayerSwap","x","WHISPER","Bad|Name")
+    local ok,why=Wr.send(secret,"x","GUILD"); no(ok); eq(why,"bad text")
+    ok,why=Wr.send("LEGW1","x",secret); no(ok); eq(why,"bad text")
+    eq(#sent,0)
+    ok=Wr.send("LEGW1",string.rep("a",255),"GUILD"); yes(ok); eq(#sent,1)
+    ok=Wr.send("LayerSwap","x","WHISPER","First Surname"); yes(ok); eq(#sent,2)
+end)
+test("wire maps client results",function()
+    local N=loadAddon(); local Wr=N.Wire
+    local function try(r,want) sendResult=r; local ok,why=Wr.send("LayerSwap","x","WHISPER","Alice"); eq(why,want); eq(ok,want=="sent") end
+    try(0,"sent"); try(3,"throttled"); try(8,"refused"); try(1,"refused")
+    try(function() error("boom") end,"error")
+    eq(#sent,5); no(N.Main.error); eq(forbidden,0)
+    C_ChatInfo=nil; local ok,why=Wr.send("LayerSwap","x","WHISPER","Alice"); no(ok); eq(why,"error")
+end)
+test("wire guild bucket",function()
+    local N=loadAddon(); local Wr=N.Wire
+    local got={}
+    for i=1,6 do local ok,why=Wr.send("LEGW1","m"..i,"GUILD"); got[#got+1]=why end
+    eq(table.concat(got,","),"sent,sent,sent,sent,sent,throttled"); eq(#sent,5)
+    advance(1); local ok,why=Wr.send("LEGW1","m7","GUILD"); no(ok); eq(why,"throttled"); eq(#sent,5)
+    advance(1); ok,why=Wr.send("LEGW1","m8","GUILD"); yes(ok); eq(why,"sent"); eq(#sent,6)
+    -- the whisper route has no bucket
+    for i=1,8 do yes((Wr.send("LayerSwap","x","WHISPER","Alice"))) end
+    eq(#sent,14)
+    -- refill caps at 5
+    advance(100); for i=1,6 do Wr.send("LEGW1","r"..i,"GUILD") end; eq(#sent,19)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
