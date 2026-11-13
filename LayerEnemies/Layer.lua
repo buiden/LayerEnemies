@@ -14,6 +14,21 @@ function L.npc(guid)
     if not zone or zone < 1 or zone > 99999999 or not npc or npc < 1 then return nil end
     return zone,npc,server .. "-" .. tostring(zone)
 end
+-- The one layer comparison for every source. On Forever the layer is the server
+-- part of a creature GUID: the digits before "-" in a full id, or a bare key.
+function L.key(id)
+    id=S.clean(id)
+    if type(id)=="number" then
+        if id~=id or id<1 or id>=1e15 or id%1~=0 then return nil end
+        id=string.format("%.0f",id)
+    end
+    if type(id)~="string" or #id>32 then return nil end
+    return id:match("^(%d+)%-%d+$") or id:match("^%d+$")
+end
+function L.same(a,b)
+    a,b=L.key(a),L.key(b)
+    return a~=nil and a==b
+end
 function L.new() return { votes={}, current=nil, last=nil } end
 function L.reset(t) S.clear(t.votes); t.current=nil; t.last=nil end
 -- Five recent readings, distinct NPC kinds, never unbounded GUID history.

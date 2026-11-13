@@ -6,14 +6,18 @@ local function eq(a,b,msg)
 end
 local function yes(v,msg) eq(not not v,true,msg) end
 local function no(v,msg) eq(not not v,false,msg) end
+local forbidden
 local function test(name,fn)
     local ok,err=pcall(fn)
+    -- No test may reach an API that sends, invites, accepts or leaves.
+    if ok and (forbidden or 0)>0 then ok,err=false,"forbidden API reached "..forbidden.." time(s)" end
     if ok then passed=passed+1; print("PASS "..name) else failed=failed+1; print("FAIL "..name..": "..tostring(err)) end
 end
 local secret=setmetatable({}, {__tostring=function() error("secret stringify") end,__concat=function() error("secret concatenate") end,__lt=function() error("secret compare") end,__index=function() error("secret index") end})
 function issecretvalue(v) return rawequal(v,secret) end
 local frames,timers,log,units,loaded,metadata
 local clock,map,server,channels,inGuild,clientIgnored
+local wall,grouped,opened
 local methods={}
 function methods:Hide() self.shown=false end
 function methods:Show() self.shown=true end
@@ -40,11 +44,20 @@ local function drain()
     end
     error("timer loop")
 end
-local function advance(n) clock=clock+n; server=server+n; drain() end
+local function advance(n) clock=clock+n; server=server+n; wall=wall+n; drain() end
 local function loadAddon()
     frames,timers,log,units,loaded,metadata={},{},{},{},{},{}
     clock,map,server,channels,inGuild,clientIgnored=10,100,720100,{WarEffortPubA=7},true,false
+    wall,grouped,opened,forbidden=1800000000,false,{},0
     _G.BuloLayerForever=nil; _G.WarEffortScoutDB=nil; _G.LayerEnemiesDB=nil
+    _G.LayerSwapDB=nil; _G.LE=nil; _G.ChatFrameUtil=nil; _G.ChatFrame_OpenChat=nil
+    _G.time=function() return wall end
+    _G.IsInGroup=function() return grouped end
+    -- Anything that would act for the user counts as a failure, even under pcall.
+    for _,name in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","DeclineGroup","RunMacroText"}) do
+        _G[name]=function() forbidden=forbidden+1; error("must never call "..name) end
+    end
+    _G.C_PartyInfo=setmetatable({},{__index=function(_,key) forbidden=forbidden+1; error("must never use C_PartyInfo."..tostring(key)) end})
     _G.C_Timer={After=function(delay,fn) timers[#timers+1]={at=clock+delay,fn=fn} end}
     _G.C_Map={
         GetBestMapForUnit=function() return map end,
@@ -57,7 +70,8 @@ local function loadAddon()
     }
     _G.C_AddOns={IsAddOnLoaded=function(name) return loaded[name]==true end,GetAddOnMetadata=function(name,key) return metadata[name] end}
     _G.C_FriendList={IsIgnored=function() return clientIgnored end}
-    _G.C_ChatInfo={RegisterAddonMessagePrefix=function(prefix) yes(prefix=="WEFF1" or prefix=="ZRAD1"); return true end}
+    _G.C_ChatInfo=setmetatable({RegisterAddonMessagePrefix=function(prefix) yes(prefix=="WEFF1" or prefix=="ZRAD1"); return true end},
+        {__index=function(_,key) forbidden=forbidden+1; error("must never use C_ChatInfo."..tostring(key)) end})
     _G.GetTime=function() return clock end
     _G.GetServerTime=function() return server end
     _G.GetRealmName=function() return "Test Realm" end
@@ -76,10 +90,10 @@ local function loadAddon()
     _G.GetPlayerInfoByGUID=nil
     _G.DEFAULT_CHAT_FRAME={AddMessage=function(_,s) log[#log+1]=s end}
     _G.SlashCmdList={}; _G.WorldMapFrame=nil
-    _G.SendAddonMessage=function() error("must never send") end
-    _G.JoinChannelByName=function() error("must never join") end
+    _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
+    _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
     local N={}
-    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Main"}) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
@@ -356,17 +370,17 @@ test("approved public context only; legacy settings fail closed",function()
     no(N.Adapters.policy("ZRAD1","GUILD","Other"))
     loaded.WarEffortScout=false; no(N.Adapters.policy("WEFF1","GUILD","Other"))
 end)
-test("live guild C E and H heard but never bypass ambiguous freshness",function()
+test("live guild C E accepted by time of receipt, hello ignored",function()
     local N=loadAddon(); establish(N); warSettings()
-    -- Server time advanced with the fixture, keep stamp equal to the current second.
     local stamp=math.floor(server)%3600
     deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0|0|7|1|"..stamp,"GUILD","Other")
+    eq(N.Main.lastDrop,"pending"); eq(N.Safe.count(N.Main.store.reports),0)
     deliver("CHAT_MSG_ADDON","WEFF1","E|1|1|1|abc:H:60|"..stamp,"GUILD","Other")
-    eq(N.Main.lastDrop,"freshness unavailable: hour-relative timestamp"); eq(N.Safe.count(N.Main.store.reports),0)
+    eq(N.Main.lastDrop,"complete"); eq(N.Safe.count(N.Main.store.reports),1)
     eq(N.Safe.count(N.Main.receiver.pending),0); yes(N.Main.lastHeard)
     deliver("CHAT_MSG_ADDON","WEFF1","H|0.2.13|100|7|1|8|0|0|"..stamp.."|-|H|60","GUILD","Other")
-    eq(N.Main.lastDrop,"freshness unavailable: hour-relative timestamp")
-    SlashCmdList.LAYERENEMIES("reports"); yes(table.concat(log,"\n"):find("freshness unavailable",1,true)); no(N.Main.error)
+    eq(N.Main.lastDrop,"hello"); eq(N.Safe.count(N.Main.store.reports),1)
+    SlashCmdList.LAYERENEMIES("reports"); yes(table.concat(log,"\n"):find("Reported, not confirmed",1,true)); no(N.Main.error)
 end)
 test("reported reducer output stays separate with possible hash identities",function()
     local N=loadAddon(); local t=N.Store.new(0); t.zone=100; t.bulo="7086-7"; t.zoneUID=7
@@ -472,6 +486,420 @@ end)
 test("loaded Bulo with missing namespace reports unavailable rather than absent",function()
     local N=loadAddon(); loaded.BuloLayerForever=true; N.Main.poll()
     eq(N.Main.statusBulo,"Bulo data unavailable"); no(N.Main.error)
+end)
+-- ---------------------------------------------------------------------------
+-- War Effort reports dated by time of receipt, and the ask-for-invite flow.
+local ASK="Hi! Could you invite me to your layer please? I'll leave right after."
+local function logged(text) return table.concat(log,"\n"):find(text,1,true)~=nil end
+local function lines(text) local n=0; for _,l in ipairs(log) do if l:find(text,1,true) then n=n+1 end end; return n end
+local function names(list) local out={}; for i,c in ipairs(list) do out[i]=c.name end; return table.concat(out,",") end
+local function chatBox() ChatFrameUtil={OpenChat=function(text,frame) opened[#opened+1]={text=text,frame=frame} end} end
+local function friends(N,list,book)
+    local b=fakeBulo("7086-7"); b.Guild={list=list or {}}
+    if book then LayerSwapDB={book=book} end
+    N.Main.poll(); eq(N.Main.store.bulo,"7086-7")
+    return b
+end
+local function there(extra)
+    local e={key="8000",zone="100",host=false,at=wall}
+    for k,v in pairs(extra or {}) do e[k]=v end
+    return e
+end
+local function page(extra)
+    local e={layer="8000-13",zone="100",at=wall}
+    for k,v in pairs(extra or {}) do e[k]=v end
+    return e
+end
+local function report(id,layer,sender,map)
+    local stamp=math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","C|"..id.."|"..(map or 100).."|0.4|0.5|"..layer.."|1|"..stamp,"GUILD",sender or "Other")
+    deliver("CHAT_MSG_ADDON","WEFF1","E|"..id.."|1|1|abc:H:40|"..stamp,"GUILD",sender or "Other")
+end
+test("one layer key helper compares the server part only",function()
+    local N=loadAddon(); local L=N.Layer
+    eq(L.key("7086-7"),"7086"); eq(L.key("7086"),"7086"); eq(L.key(7086),"7086")
+    for _,bad in ipairs({"","x","7086-","-7","7086-7-1","70 86",0,-1,1.5,1e15,0/0,{},true,string.rep("1",33)}) do eq(L.key(bad),nil) end
+    eq(L.key(secret),nil); eq(L.key(nil),nil)
+    yes(L.same("7086-7","7086-99")); yes(L.same("7086","7086-1")); yes(L.same(7086,"7086"))
+    no(L.same("7086-7","7087-7")); no(L.same(nil,nil)); no(L.same(secret,secret)); no(L.same("7086",nil))
+end)
+test("receipt time dates a report; it stays reported, not confirmed",function()
+    local N=loadAddon(); establish(N); warSettings()
+    advance(1); local at=clock; report(1,7)
+    eq(N.Main.lastDrop,"complete")
+    local rows=N.Store.rows(N.Main.store,clock,"reported")
+    eq(#rows,1); eq(rows[1].at,at); eq(rows[1].name,"Unknown"); eq(rows[1].class,"MAGE"); eq(rows[1].level,40)
+    eq(rows[1].confidence,"reported, not confirmed"); eq(rows[1].reporter,"Other"); eq(rows[1].relation,"same"); yes(rows[1].receipt)
+    eq(rows[1].namespace,"war-effort-zoneUID")
+    eq(#N.Store.rows(N.Main.store,clock,"local"),0); eq(#N.Store.rows(N.Main.store,clock,"unclassified"),0)
+    eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
+    SlashCmdList.LAYERENEMIES("")
+    yes(logged("Reported, not confirmed: 1 more in /le reports")); no(logged("Unknown | MAGE"))
+    SlashCmdList.LAYERENEMIES("reports")
+    yes(logged("Reported, not confirmed (War Effort, dated by time of receipt):"))
+    yes(logged("Unknown | MAGE | 40 | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Other | same zoneUID as yours"))
+    yes(logged("Only players seen by you or reported by War Effort users.")); no(N.Main.error)
+end)
+test("receipt-time reports expire ten minutes after receipt",function()
+    local N=loadAddon(); establish(N); warSettings(); advance(1); report(1,7)
+    advance(598); eq(#N.Store.rows(N.Main.store,clock,"reported"),1); eq(#N.Store.reporters(N.Main.store,clock),1)
+    advance(3); eq(#N.Store.rows(N.Main.store,clock,"reported"),0); eq(N.Safe.count(N.Main.store.reports),0)
+    eq(#N.Store.reporters(N.Main.store,clock),0)
+end)
+test("receipt mode: replay tombstones hold for an hour, then the documented limit",function()
+    local N=loadAddon(); establish(N); warSettings(); advance(1); report(1,7)
+    report(1,7); eq(N.Main.lastDrop,"replayed report"); eq(N.Safe.count(N.Main.store.reports),1)
+    advance(20); report(1,7); eq(N.Main.lastDrop,"replayed report")
+    -- One hour later the second-of-hour stamp matches again: still tombstoned.
+    advance(3580); eq(N.Safe.count(N.Main.store.reports),0)
+    report(1,7); eq(N.Main.lastDrop,"replayed report"); eq(N.Safe.count(N.Main.store.reports),0)
+    -- KNOWN LIMIT: two hours later the tombstone is gone and the stamp matches,
+    -- so a replayed old packet is shown as a fresh unconfirmed report.
+    advance(3600); report(1,7); eq(N.Main.lastDrop,"complete"); eq(N.Safe.count(N.Main.store.reports),1)
+    eq(N.Store.rows(N.Main.store,clock,"reported")[1].confidence,"reported, not confirmed")
+end)
+test("receipt mode: stamp window, duplicates and conflicts still enforced",function()
+    local N=loadAddon(); establish(N); warSettings(); advance(1)
+    local stamp=math.floor(server)%3600
+    local function send(text,who) deliver("CHAT_MSG_ADDON","WEFF1",text,"GUILD",who or "Other") end
+    send("C|1|100|0|0|7|1|"..(stamp-31)%3600); eq(N.Main.lastDrop,"stale or clock unavailable")
+    send("C|1|100|0|0|7|1|"..(stamp+6)%3600); eq(N.Main.lastDrop,"stale or clock unavailable")
+    send("C|1|100|0|0|7|1|"..(stamp+1800)%3600); eq(N.Main.lastDrop,"stale or clock unavailable")
+    eq(N.Safe.count(N.Main.receiver.pending),0)
+    send("C|2|100|0|0|7|1|"..(stamp+5)%3600); eq(N.Main.lastDrop,"pending")
+    send("C|3|100|0|0|7|1|"..(stamp-30)%3600); eq(N.Main.lastDrop,"pending")
+    send("E|4|1|1|abc:H:60|"..stamp); send("E|4|1|1|abc:H:60|"..stamp); eq(N.Main.lastDrop,"duplicate fragment")
+    send("E|4|1|1|abc:A:40|"..stamp); eq(N.Main.lastDrop,"conflicting fragment")
+    send("C|4|100|0|0|7|1|"..stamp); eq(N.Main.lastDrop,"replayed report")
+    send("C|5|100|0|0|7|2|"..stamp); send("E|5|1|1|abc:H:60|"..stamp); eq(N.Main.lastDrop,"enemy count mismatch")
+    send("C|6|100|0|0|0|1|"..stamp); eq(N.Main.lastDrop,"zone/layer mismatch")
+    send("C|7|200|0|0|7|1|"..stamp); eq(N.Main.lastDrop,"zone/layer mismatch")
+    eq(N.Safe.count(N.Main.store.reports),0)
+    GetServerTime=function() return secret end
+    send("C|8|100|0|0|7|1|"..stamp); eq(N.Main.lastDrop,"stale or clock unavailable"); no(N.Main.error)
+end)
+test("receipt mode keeps privacy gates and caps",function()
+    local N=loadAddon(); establish(N); warSettings(); advance(1)
+    WarEffortScoutDB.silent=true; report(1,7); eq(N.Main.lastDrop,"unavailable: War Effort silent mode")
+    WarEffortScoutDB.silent=false; WarEffortScoutDB.ignored.other="Other"; report(1,7); eq(N.Main.lastDrop,"ignored sender")
+    WarEffortScoutDB.ignored={}; clientIgnored=true; report(1,7); eq(N.Main.lastDrop,"ignored sender")
+    clientIgnored=false; C_FriendList=nil; report(1,7); eq(N.Main.lastDrop,"client ignore policy unavailable")
+    C_FriendList={IsIgnored=function() return false end}
+    WarEffortScoutDB.guildOnly=true
+    local stamp=math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0|0|7|1|"..stamp,"CHANNEL","Other",nil,nil,7,"WarEffortPubA"); eq(N.Main.lastDrop,"channel disallowed")
+    deliver("CHAT_MSG_ADDON","ZRAD1","C|1|100|0|0|7|1|"..stamp,"GUILD","Other"); eq(N.Main.lastDrop,"legacy privacy unavailable")
+    loaded.WarEffortScout=false; report(1,7); eq(N.Main.lastDrop,"not installed")
+    eq(N.Safe.count(N.Main.store.reports),0); eq(N.Safe.count(N.Main.receiver.pending),0)
+    eq(#N.Main.candidates(),0)
+    loaded.WarEffortScout=true; WarEffortScoutDB.guildOnly=false
+    for i=1,400 do advance(.2); report(i%7+1,9,"Sender"..i) end
+    yes(N.Safe.count(N.Main.store.reports)<=64); yes(N.Safe.count(N.Main.store.reports)>0)
+    yes(N.Safe.count(N.Main.receiver.senders)<=64); yes(N.Safe.count(N.Main.receiver.pending)<=32)
+    yes(N.Safe.count(N.Main.receiver.tombstones)<=512); yes(#N.Main.candidates()<=40); no(N.Main.error)
+end)
+test("reports from another zoneUID in our zone are kept apart and labelled",function()
+    local N=loadAddon(); establish(N); warSettings(); advance(1)
+    report(1,9,"Scout-TestRealm"); eq(N.Main.lastDrop,"complete")
+    local rows=N.Store.rows(N.Main.store,clock,"reported")
+    eq(#rows,1); eq(rows[1].relation,"other"); eq(rows[1].reportLayer,9); eq(rows[1].confidence,"reported, not confirmed")
+    deliver("CHAT_MSG_ADDON","WEFF1","C|2|200|0|0|9|1|"..math.floor(server)%3600,"GUILD","Elsewhere"); eq(N.Main.lastDrop,"zone/layer mismatch")
+    report(2,9,"Elsewhere",200); eq(N.Main.lastDrop,"replayed report"); eq(N.Safe.count(N.Main.store.reports),1)
+    eq(#N.Store.reporters(N.Main.store,clock),1)
+    SlashCmdList.LAYERENEMIES("reports"); yes(logged("other zoneUID 9")); yes(logged("ask a reporter for an invite: /le hosts"))
+    -- Before our own zoneUID is known the relation is unknown, never "same".
+    N=loadAddon(); warSettings(); advance(1); report(1,7)
+    eq(N.Store.rows(N.Main.store,clock,"reported")[1].relation,"unknown")
+    -- A transfer wipes reports and reporters.
+    deliver("SHARD_TRANSFER"); drain(); eq(N.Safe.count(N.Main.store.reports),0); eq(#N.Store.reporters(N.Main.store,clock),0)
+    -- Same instant as the boundary: nothing is accepted. Later: still tombstoned.
+    report(2,7); eq(N.Main.lastDrop,"before observation epoch")
+    advance(1); report(1,7); eq(N.Main.lastDrop,"replayed report"); eq(N.Safe.count(N.Main.store.reports),0)
+end)
+test("candidates: every source absent",function()
+    local N=loadAddon(); establish(N)
+    local list,status=N.Main.candidates()
+    eq(#list,0); eq(status.bulo,"not installed"); eq(status.book,"not installed"); eq(status.reports,"0 on another zoneUID")
+    SlashCmdList.LAYERENEMIES("hosts"); yes(logged("No one to ask right now.")); yes(logged("Your layer: 7086"))
+    no(LE.AskInvite("Alice")); yes(logged("not a known friendly player")); eq(#opened,0); no(N.Main.error)
+end)
+test("candidates: Bulo guild list in wrong shapes is ignored whole",function()
+    local N=loadAddon(); local b=friends(N)
+    local function status() local list,st=N.Main.candidates(); eq(#list,0); return st.bulo end
+    eq(status(),"0 fresh in this zone")
+    b.Guild=nil; eq(status(),"data unavailable")
+    b.Guild="changed"; eq(status(),"data unavailable")
+    b.Guild={}; eq(status(),"data unavailable")
+    b.Guild={list="changed"}; eq(status(),"data unavailable")
+    b.Guild={list=secret}; eq(status(),"data unavailable")
+    b.Guild=secret; eq(status(),"data unavailable")
+    b.Guild=setmetatable({},{__index=function() error("foreign") end}); eq(status(),"data unavailable")
+    b.Guild={list={Alice=there(),Broken=setmetatable({},{__index=function() error("foreign field") end})}}
+    eq(status(),"data unavailable")
+    b.Guild={list={Alice="8000",Bob=42,Carl=true,Dora=secret,[7]=there(),[true]=there(),[{}]=there()}}
+    eq(status(),"0 fresh in this zone")
+    b.Guild={list={Alice={},Bob={key="8000"},Carl={key="8000",zone="100"},Dora={zone="100",at=wall},Erin={key="x",zone="100",at=wall},
+        Finn={key="8000",zone="100",at="now"},Gwen={key={},zone={},at={}},Hugo={key="8000-1-2",zone="100",at=wall},Ivan={key="8000",zone="",at=wall}}}
+    eq(status(),"0 fresh in this zone")
+    BuloLayerForever=secret; local _,st=N.Main.candidates(); eq(st.bulo,"data unavailable")
+    BuloLayerForever="changed"; _,st=N.Main.candidates(); eq(st.bulo,"data unavailable"); no(N.Main.error)
+end)
+test("candidates: Bulo secret, stale, other zone, same layer and self excluded",function()
+    local N=loadAddon()
+    friends(N,{
+        Good=there({at=wall-60}), Edge=there({at=wall-719}), Other=there({other=true,at=wall-30}),
+        Stale=there({at=wall-720}), Older=there({at=wall-86400}), Future=there({at=wall+60}),
+        Away=there({zone="200"}), ZoneName=there({zone="Elwynn Forest"}), NoZone=there({zone=false}),
+        Same=there({key="7086"}), SameFull=there({key="7086-99"}),
+        Me=there(), me=there(),
+        [secret]=there(), SecretKey=there({key=secret}), SecretZone=there({zone=secret}), SecretAt=there({at=secret}),
+        ["Bad Name"]=there(), ["Bad|Name"]=there(), ["Bad\nName"]=there(), ["/g"]=there(), Digit7=there(), X=there(),
+        [string.rep("a",61)]=there(), ["Name-Realm-Extra"]=there(), ["Name-"]=there(),
+    })
+    local list,status=N.Main.candidates()
+    eq(names(list),"Other,Good,Edge"); eq(status.bulo,"5 fresh in this zone")
+    eq(list[1].layer,"8000"); eq(list[1].age,30); eq(list[1].sources[1],"Bulo"); eq(#list[1].sources,1); no(list[1].host)
+    eq(list[3].age,719); no(N.Main.error)
+    -- Without a known own layer nobody can be called "another layer".
+    N=loadAddon(); local b=fakeBulo(nil); b.Guild={list={Good=there()}}; N.Main.poll()
+    list,status=N.Main.candidates(); eq(#list,0); eq(status.bulo,"your layer is not known yet")
+    -- Unknown own zone or own name: same.
+    N=loadAddon(); friends(N,{Good=there()}); eq(#N.Main.candidates(),1)
+    UnitName=function() return secret end; list,status=N.Main.candidates(); eq(#list,0); eq(status.bulo,"own name unreadable")
+    UnitName=function() return "Me","Test Realm" end; time=function() return secret end
+    list,status=N.Main.candidates(); eq(#list,0); eq(status.bulo,"clock or zone unavailable")
+    time=nil; eq(#N.Main.candidates(),0); no(N.Main.error)
+end)
+test("candidates: LayerSwap book absent, wrong shape, stale, gone, zone, same layer",function()
+    local N=loadAddon(); establish(N)
+    local function status() local list,st=N.Main.candidates(); eq(#list,0); return st.book end
+    eq(status(),"not installed")
+    LayerSwapDB="changed"; eq(status(),"data unavailable")
+    LayerSwapDB=secret; eq(status(),"data unavailable")
+    LayerSwapDB={}; eq(status(),"0 fresh in this zone")
+    LayerSwapDB={book="changed"}; eq(status(),"data unavailable")
+    LayerSwapDB={book=secret}; eq(status(),"data unavailable")
+    LayerSwapDB=setmetatable({},{__index=function() error("foreign") end}); eq(status(),"data unavailable")
+    LayerSwapDB={book={Alice=page(),Broken=setmetatable({},{__index=function() error("foreign field") end})}}
+    eq(status(),"data unavailable")
+    LayerSwapDB={book={Alice="8000-13",Bob=1,[1]=page(),Carl={},Dora={layer="8000-13"},Erin={layer="8000-13",zone="100"},Finn={layer="garbage",zone="100",at=wall}}}
+    eq(status(),"0 fresh in this zone")
+    LayerSwapDB={book={
+        Fresh=page({at=wall-100}), Host=page({host=true,at=wall-600}), Edge=page({at=wall-899}), Numeric=page({zone=100,layer="9000-4",at=wall-200}),
+        Stale=page({at=wall-900}), Week=page({at=wall-6*86400,host=true}), Future=page({at=wall+30}),
+        Gone=page({gone=wall-5}), GoneSecret=page({gone=secret}), Away=page({zone="200"}), NoZone=page({zone=false}),
+        Same=page({layer="7086-7"}), SameOtherZone=page({layer="7086-55"}), Me=page(),
+        [secret]=page(), SecretLayer=page({layer=secret}), SecretAt=page({at=secret}), SecretZone=page({zone=secret}),
+        ["Bad Name"]=page(), ["Bad|Name"]=page(),
+    }}
+    local list,st=N.Main.candidates()
+    -- hosts first, then newest
+    eq(names(list),"Host,Fresh,Numeric,Edge"); eq(st.book,"6 fresh in this zone")
+    yes(list[1].host); eq(list[1].layer,"8000"); eq(list[1].sources[1],"LayerSwap"); eq(list[3].layer,"9000"); eq(list[4].age,899)
+    -- nothing was written to the foreign table
+    eq(N.Safe.count(LayerSwapDB.book),20); eq(LayerSwapDB.book.Stale.at,wall-900); eq(LayerSwapDB.book.Gone.gone,wall-5); no(N.Main.error)
+end)
+test("candidates: host preference and one row per name across sources",function()
+    local N=loadAddon(); warSettings()
+    friends(N,{
+        Alice=there({at=wall-100}),                 -- same claim in both lists
+        Bob=there({at=wall-300}),                   -- LayerSwap has a fresher, different claim
+        Carl=there({at=wall-300}),                  -- LayerSwap says: now on our layer
+        Dora=there({key="7086",at=wall-10}),        -- Bulo says: on our layer, fresher than the book
+        Erin=there({host=true,at=wall-500}),
+        Finn=there({at=wall-5}),
+    },{
+        Alice=page({layer="8000-3",host=true,at=wall-50}),
+        Bob=page({layer="9000-1",at=wall-20}),
+        Carl=page({layer="7086-7",at=wall-10}),
+        Dora=page({layer="8000-3",at=wall-300}),
+        alice=page({layer="8000-3",at=wall-700}),   -- same player, other capitalisation
+    })
+    local list=N.Main.candidates()
+    eq(names(list),"Alice,Erin,Finn,Bob")
+    -- freshest source first
+    eq(list[1].age,50); yes(list[1].host); eq(table.concat(list[1].sources,"+"),"LayerSwap+Bulo")
+    eq(list[4].layer,"9000"); eq(table.concat(list[4].sources,"+"),"LayerSwap"); eq(list[4].age,20)
+    -- A War Effort reporter on another zoneUID goes first and merges by name.
+    units.target={guid=npc(1),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+    units.mouseover={guid=npc(2),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
+    eq(N.Main.store.zoneUID,7)
+    report(1,9,"Bob-TestRealm"); report(2,9,"Zed-TestRealm"); report(3,7,"Sam"); report(4,9,"Carl"); report(5,9,"Me-TestRealm")
+    advance(2); report(6,9,"Zed-TestRealm")
+    list=N.Main.candidates()
+    eq(names(list),"Zed-TestRealm,Bob,Alice,Erin,Finn")
+    yes(list[1].reporter); eq(list[1].layer,nil); eq(table.concat(list[1].sources,"+"),"War Effort"); eq(list[1].age,0)
+    yes(list[2].reporter); eq(list[2].layer,"9000"); eq(table.concat(list[2].sources,"+"),"LayerSwap+War Effort")
+    no(list[3].reporter)
+end)
+test("candidates: huge foreign lists stay bounded",function()
+    local N=loadAddon(); local list={}
+    local letters="abcdefghijklmnopqrstuvwxyz"
+    for i=1,3000 do
+        local a,b,c=i%26+1,math.floor(i/26)%26+1,math.floor(i/676)%26+1
+        list["P"..letters:sub(a,a)..letters:sub(b,b)..letters:sub(c,c)]=there({at=wall-(i%700)})
+    end
+    friends(N,list)
+    local out=N.Main.candidates(); yes(#out<=40); yes(#out>0); no(N.Main.error)
+end)
+test("ask: chat box opened one frame later with the exact line, never sent",function()
+    local N=loadAddon(); friends(N,{Alice=there({host=true})}); chatBox()
+    yes(LE==N); yes(LE.AskInvite("Alice")); eq(#opened,0)
+    drain(); eq(#opened,1)
+    eq(opened[1].text,"/w Alice Hi! Could you invite me to your layer please? I'll leave right after.")
+    eq(opened[1].text,"/w Alice "..ASK); eq(opened[1].frame,DEFAULT_CHAT_FRAME)
+    yes(logged("a whisper to Alice is in your chat box - press Enter to send it.")); eq(forbidden,0)
+    -- case-insensitive lookup still whispers the listed spelling
+    advance(60); yes(LE.AskInvite("alice")); drain(); eq(opened[2].text,"/w Alice "..ASK)
+end)
+test("ask: ChatFrame_OpenChat route and every print fallback",function()
+    local N=loadAddon(); friends(N,{Alice=there(),Bob=there(),Carl=there(),Dora=there(),Erin=there()})
+    ChatFrame_OpenChat=function(text,frame) opened[#opened+1]={text=text,frame=frame,legacy=true} end
+    yes(LE.AskInvite("Alice")); drain(); eq(#opened,1); yes(opened[1].legacy); eq(opened[1].text,"/w Alice "..ASK)
+    -- unusable ChatFrameUtil falls through to the legacy global
+    advance(10); ChatFrameUtil=setmetatable({},{__index=function() error("changed") end})
+    yes(LE.AskInvite("Bob")); drain(); eq(#opened,2); eq(opened[2].text,"/w Bob "..ASK)
+    advance(10); ChatFrameUtil={OpenChat=secret}
+    yes(LE.AskInvite("Carl")); drain(); eq(#opened,3)
+    -- neither function: the line is printed to copy
+    advance(10); ChatFrameUtil=nil; ChatFrame_OpenChat=nil
+    yes(LE.AskInvite("Dora")); drain(); eq(#opened,3)
+    yes(logged("type or copy this line to ask Dora:")); eq(log[#log],"/w Dora "..ASK)
+    -- the open call throws: printed afterwards
+    advance(10); ChatFrameUtil={OpenChat=function() error("blocked") end}
+    yes(LE.AskInvite("Erin")); drain(); yes(logged("the chat box did not open")); eq(log[#log],"/w Erin "..ASK)
+    -- no timer: printed at once
+    advance(60); C_Timer=nil; chatBox()
+    yes(LE.AskInvite("Alice")); eq(#opened,3); eq(log[#log],"/w Alice "..ASK); eq(forbidden,0)
+end)
+test("ask: 60 s per name and one ask per 10 s overall",function()
+    local N=loadAddon(); friends(N,{Alice=there(),Bob=there(),Carl=there()}); chatBox()
+    yes(LE.AskInvite("Alice")); drain(); eq(#opened,1)
+    no(LE.AskInvite("Alice")); yes(logged("Alice was asked 0 s ago; wait 60 s."))
+    no(LE.AskInvite("Bob")); yes(logged("one ask every 10 s; wait 10 s."))
+    advance(9.5); no(LE.AskInvite("Bob")); drain(); eq(#opened,1)
+    advance(.5); yes(LE.AskInvite("Bob")); drain(); eq(#opened,2)
+    advance(49.5); no(LE.AskInvite("Alice")); yes(logged("Alice was asked 59 s ago; wait 1 s."))
+    advance(.5); yes(LE.AskInvite("Alice")); drain(); eq(#opened,3)
+    no(LE.AskInvite("Bob")); yes(logged("Bob was asked 50 s ago; wait 10 s."))
+    no(LE.AskInvite("Carl")); eq(lines("one ask every 10 s"),3)
+    advance(10); yes(LE.AskInvite("Carl")); drain(); eq(#opened,4)
+    -- a refused ask reserves nothing, and expired names are dropped
+    eq(N.Safe.count(N.Main.invite.asked),2); eq(N.Main.invite.asked.bob,nil); eq(forbidden,0)
+end)
+test("ask: only listed, readable, ungrouped targets",function()
+    local N=loadAddon(); friends(N,{Alice=there(),Same=there({key="7086"}),Away=there({zone="200"})}); chatBox()
+    for _,bad in ipairs({"Nobody","Same","Away","Me","","Alice Smith","Alice|r","Alice\n/g hi","/g hi",42,{},true}) do no(LE.AskInvite(bad)) end
+    no(LE.AskInvite(secret)); no(LE.AskInvite(nil)); yes(logged("that player name is not readable."))
+    grouped=true; no(LE.AskInvite("Alice")); yes(logged("leave your current group first"))
+    IsInGroup=function() return secret end; yes(LE.AskInvite("Alice"))
+    drain(); eq(#opened,1); eq(N.Safe.count(N.Main.invite.asked),1); no(N.Main.error); eq(forbidden,0)
+end)
+test("/le hosts numbers the candidates and /le ask <n> asks one",function()
+    local N=loadAddon(); warSettings()
+    friends(N,{Alice=there({at=wall-90}),Bob=there({host=true,at=wall-200})},{Cora=page({layer="9000-2",at=wall-30})})
+    chatBox()
+    SlashCmdList.LAYERENEMIES("ask 1"); yes(logged("run /le hosts first")); eq(#opened,0)
+    advance(1); report(1,9,"Scout")
+    SlashCmdList.LAYERENEMIES("hosts")
+    yes(logged("1. Scout | layer unknown - saw reported enemies | War Effort | 0 s ago"))
+    yes(logged("2. Bob | layer 8000 | Bulo | host | 3 min ago"))
+    yes(logged("3. Cora | layer 9000 | LayerSwap | 31 s ago"))
+    yes(logged("4. Alice | layer 8000 | Bulo | 1 min ago"))
+    yes(logged("Bulo: 2 fresh in this zone / LayerSwap: 1 fresh in this zone / War Effort reporters: 1 on another zoneUID"))
+    SlashCmdList.LAYERENEMIES("ask 9"); yes(logged("no such number")); SlashCmdList.LAYERENEMIES("ask"); SlashCmdList.LAYERENEMIES("ask x")
+    drain(); eq(#opened,0)
+    SlashCmdList.LAYERENEMIES(" ASK 2 "); drain(); eq(#opened,1); eq(opened[1].text,"/w Bob "..ASK)
+    advance(10); SlashCmdList.LAYERENEMIES("ask 1"); drain(); eq(opened[2].text,"/w Scout "..ASK)
+    advance(121); SlashCmdList.LAYERENEMIES("ask 3"); drain(); eq(#opened,2); eq(lines("run /le hosts first"),2)
+    no(N.Main.error); eq(forbidden,0)
+end)
+test("after join: confirmed layer change is announced once (Bulo)",function()
+    local N=loadAddon(); local b=friends(N,{Alice=there({host=true})}); chatBox()
+    yes(LE.AskInvite("Alice")); drain()
+    deliver("GROUP_ROSTER_UPDATE"); eq(N.Main.invite.watch,nil)       -- not grouped yet
+    advance(20); grouped=true; deliver("GROUP_ROSTER_UPDATE")
+    yes(logged("you joined a group after asking - checking your layer for 60 s.")); yes(N.Main.invite.watch)
+    advance(5); no(logged("Moved to layer"))
+    b.current="8000-7"; b:Fire("LFS_LAYER",b.current); drain()
+    yes(logged("LayerEnemies: Moved to layer 8000 - safe to leave the group.")); eq(N.Main.invite.watch,nil)
+    advance(120); deliver("GROUP_ROSTER_UPDATE")
+    eq(lines("Moved to layer"),1); eq(lines("Still on your layer"),0); no(logged("was listed on layer"))
+    yes(grouped); eq(forbidden,0); no(N.Main.error)
+end)
+test("after join: change confirmed by two NPC kinds; other layer than listed is said",function()
+    local N=loadAddon(); establish(N); LayerSwapDB={book={Alice=page({host=true})}}; chatBox()
+    yes(LE.AskInvite("Alice")); drain(); grouped=true; deliver("GROUP_ROSTER_UPDATE"); yes(N.Main.invite.watch)
+    deliver("SHARD_TRANSFER"); drain(); eq(N.Main.store.bulo,nil)
+    units.target={guid=npc(3,9,"9000"),player=false}; advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
+    no(logged("Moved to layer"))                                      -- one NPC is not confirmation
+    units.mouseover={guid=npc(4,9,"9000"),player=false}; advance(1); deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
+    eq(N.Main.store.bulo,"9000-9")
+    yes(logged("LayerEnemies: Moved to layer 9000 - safe to leave the group."))
+    yes(logged("LayerEnemies: Alice was listed on layer 8000, not 9000.")); eq(forbidden,0)
+end)
+test("after join: unchanged after 60 s says so once; nothing is left for the user",function()
+    local N=loadAddon(); friends(N,{Alice=there()}); chatBox()
+    yes(LE.AskInvite("Alice")); drain(); advance(3); grouped=true; deliver("GROUP_ROSTER_UPDATE")
+    advance(59); eq(lines("Still on your layer"),0)
+    advance(2); yes(logged("LayerEnemies: Still on your layer - leave, wait a minute, try again."))
+    advance(300); deliver("GROUP_ROSTER_UPDATE"); eq(lines("Still on your layer"),1); eq(lines("Moved to layer"),0)
+    yes(grouped); eq(forbidden,0); eq(N.Main.invite.watch,nil)
+    -- same key with another zone suffix is still the same layer
+    N=loadAddon(); local b=friends(N,{Alice=there()}); yes(LE.AskInvite("Alice")); grouped=true; deliver("GROUP_ROSTER_UPDATE")
+    b.current="7086-55"; b:Fire("LFS_RAW",b.current); drain(); advance(61)
+    eq(lines("Moved to layer"),0); eq(lines("Still on your layer"),1)
+end)
+test("after join: no ask, late join, unknown layer and zone change",function()
+    local N=loadAddon(); friends(N,{Alice=there()}); chatBox()
+    grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70); eq(N.Main.invite.watch,nil); eq(lines("Still on your layer"),0)
+    grouped=false; deliver("GROUP_ROSTER_UPDATE")
+    yes(LE.AskInvite("Alice")); advance(301); grouped=true; deliver("GROUP_ROSTER_UPDATE")
+    eq(N.Main.invite.watch,nil); eq(N.Main.invite.pending,nil); advance(70); eq(lines("Still on your layer"),0)
+    -- layer never confirmed again: one hint, then the check ends without a claim
+    N=loadAddon(); establish(N); LayerSwapDB={book={Alice=page()}}
+    yes(LE.AskInvite("Alice")); grouped=true; deliver("GROUP_ROSTER_UPDATE"); deliver("SHARD_TRANSFER"); drain()
+    advance(61); eq(lines("Layer not confirmed yet - target or mouse over two different NPCs."),1)
+    advance(60); eq(lines("Layer not confirmed yet"),1); advance(65); eq(lines("Layer check ended - your layer could not be confirmed."),1)
+    eq(lines("Moved to layer"),0); eq(lines("Still on your layer"),0); eq(N.Main.invite.watch,nil)
+    -- zone change cancels
+    N=loadAddon(); friends(N,{Alice=there()}); yes(LE.AskInvite("Alice")); grouped=true; deliver("GROUP_ROSTER_UPDATE")
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain(); advance(61)
+    eq(lines("Zone changed - layer check cancelled."),1); eq(lines("Moved to layer"),0); eq(lines("Still on your layer"),0); eq(forbidden,0)
+end)
+test("ask from a War Effort report: reporter is the target, own layer unknown",function()
+    local N=loadAddon(); warSettings(); chatBox(); advance(1)
+    report(1,9,"Scout-TestRealm")
+    local list=N.Main.candidates(); eq(names(list),"Scout-TestRealm"); yes(list[1].reporter)
+    yes(LE.AskInvite("Scout-TestRealm")); drain(); eq(opened[1].text,"/w Scout-TestRealm "..ASK)
+    grouped=true; deliver("GROUP_ROSTER_UPDATE"); yes(N.Main.invite.watch)
+    units.target={guid=npc(1,9,"8000"),player=false}; advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
+    units.mouseover={guid=npc(2,9,"8000"),player=false}; advance(1); deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
+    yes(logged("Now on layer 8000 - your earlier layer was not known, so a move is not confirmed."))
+    eq(lines("Moved to layer"),0); eq(forbidden,0)
+    -- an ignored reporter is never offered
+    N=loadAddon(); warSettings(); WarEffortScoutDB.ignored.scout="Scout"; advance(1); report(1,9,"Scout-TestRealm")
+    eq(#N.Main.candidates(),0)
+end)
+test("addon never sends, invites, accepts or leaves (source and runtime)",function()
+    local N=loadAddon(); warSettings(); local b=friends(N,{Alice=there(),Bob=there({key="9000"})},{Cora=page()}); chatBox()
+    advance(1); report(1,9,"Scout")
+    SlashCmdList.LAYERENEMIES("hosts"); SlashCmdList.LAYERENEMIES("ask 1"); drain()
+    advance(10); LE.AskInvite("Alice"); drain(); grouped=true; deliver("GROUP_ROSTER_UPDATE")
+    b.current="8000-7"; b:Fire("LFS_LAYER",b.current); drain(); advance(70)
+    grouped=false; deliver("GROUP_ROSTER_UPDATE"); advance(10); LE.AskInvite("Bob"); drain()
+    grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70)
+    eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
+    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Main"}) do
+        local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
+        for _,word in ipairs({"SendChatMessage","SendAddonMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","SetText","JoinChannel"}) do
+            eq(text:find(word,1,true),nil,file.." mentions "..word)
+        end
+    end
+    -- the only registered events are passive
+    for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true)) end
+    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,1)
+    eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -1,5 +1,5 @@
 local _, N = ...
-local S,A,T,L=N.Safe,N.Adapters,N.Store,N.Layer
+local S,A,T,L,I=N.Safe,N.Adapters,N.Store,N.Layer,N.Invite
 local M={statusBulo="not installed",statusWE="not installed",pendingUnits={},staleGUIDs={},staleUnits={}}
 N.Main=M
 local function now() return S.num(S.call(GetTime)) or 0 end
@@ -85,9 +85,10 @@ function M.poll()
         M.statusWE="not installed"
     else
         local ok,reason=A.policy("WEFF1","GUILD","LayerEnemiesPolicyProbe",nil)
-        M.statusWE=ok and "installed / freshness unavailable (hour-relative timestamps)" or ("installed / "..reason)
+        M.statusWE=ok and "installed / listening (reports dated by time of receipt, not confirmed)" or ("installed / "..reason)
     end
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
+    M.groupCheck(); M.inviteTick()
 end
 function M.queuePoll()
     if M.pollQueued then return end
@@ -144,17 +145,96 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     local msg=N.Protocol.decode(text)
     if not msg then M.lastDrop="invalid message"; return end
     local server=S.num(S.call(GetServerTime))
-    if not N.Protocol.clockAge(msg.stamp,server) then M.lastDrop="stale or clock unavailable"; return end
+    if not N.Protocol.clockAge(msg.stamp,server,N.Protocol.AHEAD) then M.lastDrop="stale or clock unavailable"; return end
     M.lastHeard=now()
-    -- There is no authenticated absolute send time in either installed protocol.
-    -- Never infer freshness merely from arrival, hello, or the modulo clock.
-    local report,why=N.Reports.receive(M.receiver,text,sender,now(),server,A.zone,M.store.zone,M.store.zoneUID,M.store.epoch,nil)
+    -- War Effort sends live, so the time of receipt dates the report. The wire
+    -- stamp only proves "within 30 s of this second of some hour": a replayed
+    -- old packet can pass. Reports therefore stay in their own unconfirmed list.
+    local report,why=N.Reports.receive(M.receiver,text,sender,now(),server,A.zone,M.store.zone,M.store.zoneUID,M.store.epoch,N.Reports.RECEIPT)
     M.lastDrop=why
     if report then T.report(M.store,report,now()) end
 end
 local function say(text)
     if S.tab(DEFAULT_CHAT_FRAME) then S.call(DEFAULT_CHAT_FRAME.AddMessage,DEFAULT_CHAT_FRAME,text)
     elseif type(print)=="function" then print(text) end
+end
+M.say=say
+local function ago(seconds)
+    seconds=math.floor(math.max(0,seconds))
+    return seconds<60 and (seconds.." s") or (math.floor(seconds/60).." min")
+end
+function M.candidates()
+    local time=now()
+    local lists=A.friendLists()
+    local _,short=I.name((S.call(UnitName,"player")))
+    return I.collect({now=time,wall=A.wall(),zone=M.store.zone,ownKey=L.key(M.store.bulo),self=short,
+        reporters=T.reporters(M.store,time),bulo=lists.bulo,book=lists.book})
+end
+-- Puts the line into the chat box one frame later: a slash command runs inside
+-- the box's own send, which empties the box afterwards. The user presses Enter.
+function M.openChat(line)
+    local ok,open=pcall(function() return S.tab(ChatFrameUtil) and S.clean(ChatFrameUtil.OpenChat) or nil end)
+    if not ok or type(open)~="function" then open=S.clean(ChatFrame_OpenChat) end
+    if type(open)~="function" then return false end
+    return after(0,function()
+        if not pcall(open,line,S.tab(DEFAULT_CHAT_FRAME) and DEFAULT_CHAT_FRAME or nil) then
+            M.say("LayerEnemies: the chat box did not open. Type this line yourself:"); M.say(line)
+        end
+    end)
+end
+function M.askInvite(name)
+    local wanted,short=I.name(name)
+    if not wanted then M.say("LayerEnemies: that player name is not readable."); return false end
+    local found
+    for _,c in ipairs((M.candidates())) do if c.short==short then found=c; break end end
+    if not found then
+        M.say("LayerEnemies: "..wanted.." is not a known friendly player on another layer in your zone right now. See /le hosts.")
+        return false
+    end
+    local ok,line=I.ask(M.invite,found,now(),A.grouped(),L.key(M.store.bulo))
+    if not ok then M.say("LayerEnemies: "..line); return false end
+    if M.openChat(line) then
+        M.say("LayerEnemies: a whisper to "..found.name.." is in your chat box - press Enter to send it.")
+    else
+        M.say("LayerEnemies: type or copy this line to ask "..found.name..":"); M.say(line)
+    end
+    return true
+end
+function M.hosts()
+    guarded(M.poll)
+    local list,status=M.candidates()
+    local names={}
+    M.say("LayerEnemies - friendly players on other layers, your zone only. Your layer: "..(L.key(M.store.bulo) or "Unknown"))
+    if #list==0 then M.say("No one to ask right now.") end
+    for i,c in ipairs(list) do
+        names[i]=c.name
+        M.say(i..". "..c.name.." | "..(c.layer and ("layer "..c.layer) or "layer unknown - saw reported enemies").." | "..table.concat(c.sources," + ")..(c.host and " | host" or "").." | "..ago(c.age).." ago")
+    end
+    M.hostList={at=now(),names=names}
+    M.say("Bulo: "..status.bulo.." / LayerSwap: "..status.book.." / War Effort reporters: "..status.reports)
+    M.say("/le ask <number> puts a whisper in your chat box; you press Enter. Nothing is sent, accepted or left for you.")
+end
+function M.askIndex(index)
+    local list=M.hostList
+    if not list or now()-list.at>120 then M.say("LayerEnemies: run /le hosts first, then /le ask <number>."); return false end
+    local name=index and list.names[index]
+    if not name then M.say("LayerEnemies: no such number in the last /le hosts list."); return false end
+    return M.askInvite(name)
+end
+-- Only notices a join; invites are accepted and groups are left by the user.
+function M.groupCheck()
+    local grouped=A.grouped()
+    if grouped and not M.wasGrouped and I.joined(M.invite,now(),L.key(M.store.bulo),M.store.zone) then
+        M.say("LayerEnemies: you joined a group after asking - checking your layer for 60 s.")
+        after(I.WATCH+0.5,function() guarded(M.inviteTick) end)
+    end
+    M.wasGrouped=grouped
+end
+function M.inviteTick()
+    if not M.invite.watch then return end
+    local message,note=I.tick(M.invite,now(),L.key(M.store.bulo),M.store.zone)
+    if message then M.say("LayerEnemies: "..message) end
+    if note then M.say("LayerEnemies: "..note) end
 end
 function M.text(command)
     guarded(M.poll)
@@ -164,16 +244,24 @@ function M.text(command)
     if M.error then say("Runtime status: "..M.error) end
     say("War Effort zoneUID: "..tostring(M.store.zoneUID or "Unknown").." (separate namespace, not layer membership proof)")
     local kind=command=="reports" and "reported" or command=="unclassified" and "unclassified" or "local"
-    say(kind=="reported" and "Reported zoneUID matches (unverified):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
+    say(kind=="reported" and "Reported, not confirmed (War Effort, dated by time of receipt):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
     local rows=T.rows(M.store,now(),kind)
-    if #rows==0 then say("No eligible observations.") end
+    if #rows==0 then say(kind=="reported" and "No live reports for your zone." or "No eligible observations.") end
     for _,e in ipairs(rows) do
-        local age=math.floor(math.max(0,now()-e.at))
-        local when=age<60 and (age.." s") or (math.floor(age/60).." min")
-        say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | seen "..when.." ago | "..e.source.." | "..e.confidence..(e.possible and (" | "..e.possible) or ""))
+        local when=ago(now()-e.at)
+        local extra=""
+        if e.reporter then
+            extra=" | reported by "..e.reporter.." | "..(e.relation=="same" and "same zoneUID as yours" or e.relation=="other" and ("other zoneUID "..tostring(e.reportLayer)) or "your zoneUID unknown")
+        end
+        say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or ""))
+    end
+    if kind=="reported" and #rows>0 then say("To go there, ask a reporter for an invite: /le hosts") end
+    if kind=="local" then
+        local reported=#T.rows(M.store,now(),"reported")
+        if reported>0 then say("Reported, not confirmed: "..reported.." more in /le reports") end
     end
     say("Only players seen by you or reported by War Effort users.")
-    say("Headless build: /le, /le unclassified, /le reports. Window and map layout await approval.")
+    say("Headless build: /le, /le unclassified, /le reports, /le hosts, /le ask <number>. Window and map layout await approval.")
     if M.lastDrop and command=="reports" then say("Last report rejected: "..M.lastDrop) end
 end
 local function heartbeat()
@@ -186,6 +274,7 @@ function M.start()
     if M.started then return end
     M.started=true
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new()
+    M.invite=I.new(); M.wasGrouped=A.grouped()
     M.layerSource="unknown"; M.store.zone=A.location()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
@@ -196,13 +285,19 @@ function M.start()
     end
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"
-    SlashCmdList.LAYERENEMIES=function(command) guarded(M.text,S.str(command,30) or "") end
+    SlashCmdList.LAYERENEMIES=function(command)
+        command=(S.str(command,30) or ""):lower():match("^%s*(.-)%s*$")
+        local index=command:match("^ask%s+(%d%d?)$")
+        if command=="hosts" then guarded(M.hosts)
+        elseif index or command:match("^ask") then guarded(M.askIndex,tonumber(index))
+        else guarded(M.text,command) end
+    end
     heartbeat()
 end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -222,6 +317,14 @@ local function dispatch(_,event,...)
     elseif event=="PLAYER_TARGET_CHANGED" then M.queueUnit("target")
     elseif event=="UPDATE_MOUSEOVER_UNIT" then M.queueUnit("mouseover")
     elseif event=="NAME_PLATE_UNIT_ADDED" then M.queueUnit(...)
-    elseif event=="NAME_PLATE_UNIT_REMOVED" then M.releaseUnit(...) end
+    elseif event=="NAME_PLATE_UNIT_REMOVED" then M.releaseUnit(...)
+    elseif event=="GROUP_ROSTER_UPDATE" then guarded(M.groupCheck); guarded(M.inviteTick) end
 end
+-- Opens the chat box with a whisper for the user to send; never sends it.
+function N.AskInvite(name)
+    if not M.started then return false end
+    local ok,asked=pcall(M.askInvite,name)
+    return ok and asked==true
+end
+if _G.LE==nil then _G.LE=N end
 frame:SetScript("OnEvent",function(...) guarded(dispatch,...) end)

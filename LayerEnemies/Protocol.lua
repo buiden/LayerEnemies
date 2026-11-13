@@ -51,8 +51,12 @@ function P.decode(text)
     end
 end
 -- A necessary check, NOT sufficient freshness evidence: old hours alias.
-function P.clockAge(stamp,serverSeconds)
+-- ahead: seconds a stamp may run ahead of our clock and still count as just
+-- sent (receipt-time mode only; clients round the shared clock differently).
+function P.clockAge(stamp,serverSeconds,ahead)
     if not S.num(serverSeconds) then return nil end
     local age=(math.floor(serverSeconds)%3600-stamp)%3600
     if age<=30 then return age end
+    if ahead and age>=3600-ahead then return 0 end
 end
+P.AHEAD=5

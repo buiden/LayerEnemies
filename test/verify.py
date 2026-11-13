@@ -24,7 +24,8 @@ def main():
     assert '## Interface: 16001' in toc
     assert '## SavedVariablesPerCharacter: LayerEnemiesDB' in toc
     addon_text = '\n'.join(p.read_text() for p in (ROOT / 'LayerEnemies').glob('*.lua'))
-    for forbidden in ('SendAddonMessage', 'JoinChannelByName', 'SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED'):
+    for forbidden in ('SendAddonMessage', 'JoinChannelByName', 'SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED',
+                      'InviteUnit', 'LeaveParty', 'AcceptGroup', 'C_PartyInfo', 'RunMacroText', 'SetText'):
         assert forbidden not in addon_text, 'Unexpected outgoing/forbidden API: ' + forbidden
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
@@ -65,8 +66,10 @@ def main():
         'archive_members': len(expected),
         'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
         'real_client_verified': False,
-        'live_remote_reports': 'Unavailable: ambiguous hour-relative freshness',
-        'visual_design': 'Not applied; approval pending',
+        'live_remote_reports': 'On, dated by time of receipt; shown as reported, not confirmed; '
+                               'an old packet replayed in the same second-of-hour window can look fresh',
+        'ask_for_invite': 'Opens a prefilled whisper for the user to send; never sends, invites, accepts or leaves',
+        'visual_design': 'Not applied; two static previews in notes/ await approval',
     }
     (notes / 'verification.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))

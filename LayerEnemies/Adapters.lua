@@ -88,6 +88,32 @@ function A.bulo(epoch,now,known)
     if not ok then return {status="Bulo data unavailable"} end
     return result
 end
+-- Wall clock, the base of both foreign lists' "at" fields.
+function A.wall() return S.num(S.call(_G.time)) end
+function A.grouped() return S.call(IsInGroup)==true end
+-- Foreign friend lists, never written to. nil = addon absent, false = unreadable.
+-- Shapes read from Bulo Layer Forever 3.0.24 (Guild.lua) and LayerSwap 1.14.18.
+function A.friendLists()
+    local out={}
+    local ok,list=pcall(function()
+        local ns=_G.BuloLayerForever
+        if ns==nil then return nil end
+        if not S.tab(ns) or not S.tab(ns.Guild) or not S.tab(ns.Guild.list) then return false end
+        return ns.Guild.list
+    end)
+    if ok then out.bulo=list else out.bulo=false end
+    ok,list=pcall(function()
+        local db=_G.LayerSwapDB
+        if db==nil then return nil end
+        if not S.tab(db) then return false end
+        local book=db.book
+        if S.secret(book) then return false end
+        if book==nil then return {} end
+        return type(book)=="table" and book or false
+    end)
+    if ok then out.book=list else out.book=false end
+    return out
+end
 function A.policy(prefix,kind,sender,channel)
     -- Read the installed version's persisted settings; never mutate or join/send.
     local ok,allowed,reason=pcall(function()

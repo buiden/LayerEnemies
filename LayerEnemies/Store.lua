@@ -51,12 +51,16 @@ function T.possible(t,hash)
     return #names>0 and ("possible identity: "..table.concat(names,", ")) or nil
 end
 function T.report(t,report,now)
-    -- Only the reducer can supply a freshness-verified complete report.
-    if report.freshness~="verified" or not t.zoneUID or report.layer~=t.zoneUID or report.zone~=t.zone or report.at<t.epoch or now-report.at>=600 then return false end
+    -- Only the reducer supplies complete reports: strictly verified ones must
+    -- match our zoneUID; receipt-time ones only need our zone and stay labelled.
+    local receipt=report.freshness=="receipt"
+    if report.freshness~="verified" and not receipt then return false end
+    if not t.zone or report.zone~=t.zone or report.at<t.epoch or now-report.at>=600 then return false end
+    if not receipt and (not t.zoneUID or report.layer~=t.zoneUID) then return false end
     local key=report.sender..":"..report.id
     if not room(t.reports,key,64) then return false end
     report.epoch=t.serial; report.namespace="war-effort-zoneUID"
-    report.confidence="reported zoneUID match (unverified)"
+    report.confidence=receipt and "reported, not confirmed" or "reported zoneUID match (unverified)"
     t.reports[key]=report
     return true
 end
@@ -66,9 +70,12 @@ function T.rows(t,now,kind)
     local out={}
     if kind=="reported" then
         for key,r in pairs(t.reports) do
-            if r.epoch==t.serial and r.zone==t.zone and r.layer==t.zoneUID then
+            local receipt=r.freshness=="receipt"
+            if r.epoch==t.serial and r.zone==t.zone and (receipt or r.layer==t.zoneUID) then
+                local relation=not t.zoneUID and "unknown" or r.layer==t.zoneUID and "same" or "other"
                 for i,e in ipairs(r.enemies) do
                     out[#out+1]={key=key..":"..i,at=r.at,zone=r.zone,hash=e.hash,class=e.class,level=e.level,
+                        reporter=r.sender,relation=relation,reportLayer=r.layer,receipt=receipt,
                         name="Unknown",possible=T.possible(t,e.hash),confidence=r.confidence,source="reported (War Effort)",namespace=r.namespace,x=r.x,y=r.y,positionKind="reported cluster position"}
                 end
             end
@@ -80,6 +87,21 @@ function T.rows(t,now,kind)
         end
     end
     table.sort(out,newest); return out
+end
+-- Senders of live receipt-time reports in our zone, newest report per sender.
+-- match = their zoneUID equals ours (War Effort would call that our layer).
+function T.reporters(t,now)
+    T.prune(t,now)
+    local bySender,out={},{}
+    for _,r in pairs(t.reports) do
+        if r.freshness=="receipt" and r.epoch==t.serial and r.zone==t.zone then
+            local cur=bySender[r.sender]
+            if not cur or cur.at<r.at then bySender[r.sender]={name=r.sender,at=r.at,match=t.zoneUID~=nil and r.layer==t.zoneUID} end
+        end
+    end
+    for _,v in pairs(bySender) do out[#out+1]=v end
+    table.sort(out,function(a,b) if a.at==b.at then return a.name<b.name end; return a.at>b.at end)
+    return out
 end
 -- Data-only eligibility for a FUTURE approved map renderer. No frames or pins.
 function T.mapCandidates(t,now,shownZone)

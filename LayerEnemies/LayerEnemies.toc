@@ -1,10 +1,10 @@
 ## Interface: 16001
 ## Title: LayerEnemies
-## Notes: Local observations and separately labelled unverified zoneUID reports.
+## Notes: Enemy players seen by you or reported by War Effort users, and friendly players to ask for a layer invite.
 ## Author: buiden
 ## Version: 0.1.0
 ## SavedVariablesPerCharacter: LayerEnemiesDB
-## OptionalDeps: BuloLayerForever, WarEffortScout
+## OptionalDeps: BuloLayerForever, WarEffortScout, LayerSwap
 Safe.lua
 Hash.lua
 Layer.lua
@@ -12,4 +12,5 @@ Protocol.lua
 Store.lua
 Reports.lua
 Adapters.lua
+Invite.lua
 Main.lua

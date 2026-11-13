@@ -15,8 +15,12 @@ function R.prune(t,now)
     for k,v in pairs(t.tombstones) do if now-v>3660 then t.tombstones[k]=nil end end
     for k,v in pairs(t.senders) do if now-v>3660 then t.senders[k]=nil; t.rates[k]=nil end end
 end
--- freshnessEvidence must be independently trusted absolute send time. A wire stamp
--- or hello cannot supply it. Production has no such evidence and fails closed.
+-- freshnessEvidence is either an independently trusted absolute send time (strict
+-- reducer, exact zoneUID match) or R.RECEIPT: the time of receipt stands in for
+-- the sighting time. The wire stamp is seconds within the hour, so in receipt
+-- mode an old packet replayed inside the 30 s stamp window looks fresh. Such
+-- reports are only ever shown as "reported, not confirmed". No evidence = rejected.
+R.RECEIPT="receipt"
 function R.receive(t,text,sender,now,serverNow,zoneFn,currentZone,zoneUID,epoch,freshnessEvidence)
     if not S.str(sender,100) then return nil,"sender" end
     R.prune(t,now)
@@ -31,14 +35,17 @@ function R.receive(t,text,sender,now,serverNow,zoneFn,currentZone,zoneUID,epoch,
     rate.n=rate.n+1
     local msg=P.decode(text)
     if not msg then return nil,"invalid message" end
-    local age=P.clockAge(msg.stamp,serverNow)
+    local receipt=freshnessEvidence==R.RECEIPT
+    local age=P.clockAge(msg.stamp,serverNow,receipt and P.AHEAD or nil)
     if not age then return nil,"stale or clock unavailable" end
-    -- Ambiguous modulo-hour timestamps never unlock live data collection.
-    local sent=S.num(freshnessEvidence)
-    if not sent or not S.num(serverNow) or sent>serverNow or serverNow-sent>30 or math.floor(sent)%3600~=msg.stamp then
-        return nil,"freshness unavailable: hour-relative timestamp"
+    local at=now
+    if not receipt then
+        local sent=S.num(freshnessEvidence)
+        if not sent or not S.num(serverNow) or sent>serverNow or serverNow-sent>30 or math.floor(sent)%3600~=msg.stamp then
+            return nil,"freshness unavailable: hour-relative timestamp"
+        end
+        at=now-(serverNow-sent)
     end
-    local at=now-(serverNow-sent)
     if at<=epoch then return nil,"before observation epoch" end
     if msg.kind=="H" then return nil,"hello" end
     local key=sender..":"..msg.id
@@ -58,7 +65,9 @@ function R.receive(t,text,sender,now,serverNow,zoneFn,currentZone,zoneUID,epoch,
     if math.abs(p.at-at)>15 then return reject("inconsistent fragment time") end
     if msg.kind=="C" then
         local zone=zoneFn(msg.map)
-        if not currentZone or not zoneUID or msg.layer==0 or msg.layer~=zoneUID or zone~=currentZone then return reject("zone/layer mismatch") end
+        -- Receipt mode keeps same-zone reports from other zoneUIDs: those are the
+        -- ones whose sender can be asked for an invite. They stay labelled.
+        if not currentZone or zone~=currentZone or msg.layer==0 or (not receipt and (not zoneUID or msg.layer~=zoneUID)) then return reject("zone/layer mismatch") end
         if p.cluster then
             if p.cluster.raw~=text then return reject("conflicting cluster") end
             return nil,"duplicate fragment"
@@ -85,7 +94,7 @@ function R.receive(t,text,sender,now,serverNow,zoneFn,currentZone,zoneUID,epoch,
     end
     if #enemies~=p.cluster.count then return reject("enemy count mismatch") end
     local c=p.cluster
-    local result={sender=sender,id=p.id,at=p.at,zone=c.zone,map=c.map,layer=c.layer,x=c.x,y=c.y,enemies=enemies,freshness="verified"}
+    local result={sender=sender,id=p.id,at=p.at,zone=c.zone,map=c.map,layer=c.layer,x=c.x,y=c.y,enemies=enemies,freshness=receipt and "receipt" or "verified"}
     t.pending[key]=nil; t.tombstones[key]=now
     return result,"complete"
 end
