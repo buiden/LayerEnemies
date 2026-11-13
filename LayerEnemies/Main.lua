@@ -538,7 +538,7 @@ function M.text(command)
         local reported=#T.rows(M.store,now(),"reported")
         if reported>0 then say("Reported, not confirmed: "..reported.." more in /le reports") end
     end
-    say("Only players seen by you or reported by War Effort users.")
+    say("Only players seen by you or reported by other players' addons.")
     say("/le window; /le list; /le reports; /le hop <number>; /le hosts; /le ask <number>; /le find <name>.")
     if M.lastDrop and command=="reports" then say("Last report rejected: "..M.lastDrop) end
 end

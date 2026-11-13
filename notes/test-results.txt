@@ -102,6 +102,12 @@ PASS hop parses same
 PASS hop ignores inv layer requests and sends no heard
 PASS hop works while LayerSwap and Bulo are loaded
 PASS hop state clears on zone change and reload
+PASS hop acts on the shown candidate only (مانع T5 F1)
+PASS hop replies: same wording, ambiguity, full-name sender, route (مانع T5 F2, S2)
+PASS hop: grouping, live zone and per-source host rank (مانع T5 S1, S3)
+PASS hop: two zone boundaries before a poll end the layer watch (مانع T5 S4)
+PASS hop: a failed send keeps the cooldown
+PASS claims are keyed by full name; HeadHunter never compares (T3/T4 leftovers)
 PASS guild L line without Bulo fills the host list
 PASS hop: own layer is the confirmed one, never a stale server key (مانع T2 S2)
 PASS hop: an ambiguous own key is never a certain same layer (مانع T2 S3)
@@ -130,6 +136,10 @@ PASS hh E envelope fields are checked (مانع T4 S2)
 PASS hh bounds: base36 digits, allies, frame size, rate table (مانع T4 S3)
 PASS hh carrier ignore and secrets on every event argument (مانع T4 S3)
 PASS hh count is the number of enemy ids; rows show via <carrier>
+PASS relayed origins never become Find spotters (مانع T6 F1)
+PASS relay rechecks guild and instance at send time (مانع T6 S1)
+PASS relayed HeadHunter lives 300 s from origin time (مانع T6 S2)
+PASS relay rejects bad levels, self-relays, and caps pending offers (مانع T6 S3, S4)
 PASS relayed reporters are never invite candidates
 PASS relay receive limit: 12 per 10 s per sender
 PASS the send mock counts any caller but Wire.lua as forbidden
@@ -138,4 +148,4 @@ PASS wire sends only on the two allowed routes
 PASS wire rejects oversize and secret text
 PASS wire maps client results
 PASS wire guild bucket
-RESULT: 140 tests passed, 0 failed, 11312 assertions
+RESULT: 150 tests passed, 0 failed, 11751 assertions

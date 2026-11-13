@@ -41,6 +41,7 @@ def main():
     tests.check_returncode()
     counts = re.search(r'RESULT: (\d+) tests passed, (\d+) failed, (\d+) assertions', tests.stdout)
     assert counts and int(counts[2]) == 0
+    assert int(counts[1]) > 0, 'the harness ran no tests'
     subprocess.run(['git', 'diff', '--check'], cwd=ROOT, check=True)
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
