@@ -1934,7 +1934,8 @@ test("relay round-trips a we record and an hh record",function()
     local hh=assert(N.Record.new({src="hh",kind="fight",origin="Mira Vale",via="Carrier",route="WHISPER",rid="1800000000",zone=100,count=2,
         enemies={{name="Kora Reed",class="PALADIN",level=31},{name="Ann Lee",level=-1}},layer={ns="zoneuid",value=4},heard=100,age=0,share="public"}))
     r=R.decode(R.encode(hh,100),"Relayer",100)
-    yes(r); eq(r.label,"hh"); eq(r.kind,"fight"); eq(r.origin,"Mira Vale"); eq(r.x,nil); eq(r.layer.ns,"zoneuid"); eq(r.layer.value,4)
+    -- its zoneUID layer is not sent: a relayed HeadHunter record has no layer (r2)
+    yes(r); eq(r.label,"hh"); eq(r.kind,"fight"); eq(r.origin,"Mira Vale"); eq(r.x,nil); eq(r.layer.ns,"unknown"); eq(r.layer.value,nil)
     eq(r.enemies[1].name,"Kora Reed"); eq(r.enemies[1].class,"PALADIN"); eq(r.enemies[1].level,31); eq(r.enemies[2].name,"Ann Lee"); eq(r.enemies[2].level,-1)
     local outlaw=assert(N.Record.new({src="hh",kind="outlaw",origin="Spotter",route="PARTY",rid="abc:1800000000",zone=100,count=1,
         enemies={{name="Kora Reed"}},layer={ns="unknown"},heard=100,age=0,share="public"}))
@@ -2201,13 +2202,55 @@ test("relay rejects bad levels, self-relays, and caps pending offers (مانع T
     yes(R.decode(R.encode(weRec(N,{origin="Scout-RealmA",heard=clock,age=0}),clock),"Scout-RealmB",clock))
     deliver("CHAT_MSG_ADDON","LEGW1",good,"GUILD","Scout"); eq(N.Main.lastDrop,"relay origin is sender"); eq(N.Safe.count(N.Main.store.reports),0)
     -- a relayed HeadHunter copy claiming a server layer is still not comparable; a relayed War Effort one is
+    -- a relayed HeadHunter copy claiming any layer is refused (r2); a relayed War Effort one compares
     local crafted=good:gsub("|we|group|","|hh|fight|",1)
-    local hr=R.decode(crafted,"Guildie",clock); yes(hr); eq(hr.label,"hh"); eq(hr.layer.ns,"server")
-    eq(N.Record.relation(hr,{zone=100,server="7000"}),"unknown"); eq(N.Record.relation(R.decode(good,"Guildie",clock),{zone=100,server="7000"}),"other")
+    eq(select(2,R.decode(crafted,"Guildie",clock)),"invalid")
+    eq(select(2,R.decode(crafted:gsub("|s|8000|","|z|4|",1),"Guildie",clock)),"invalid")
+    yes(R.decode(crafted:gsub("|s|8000|","|u||",1),"Guildie",clock))
+    eq(N.Record.relation(R.decode(good,"Guildie",clock),{zone=100,server="7000"}),"other")
     -- 128 pending offers at most
     local st=R.new(); local ctx={inGuild=true,inInstance=false,guild="Test Guild"}
     for i=1,130 do R.offer(st,weRec(N,{rid=tostring(i)}),100,ctx) end
     local n=0; for _ in pairs(st.pending) do n=n+1 end; eq(n,128); no(R.offer(st,weRec(N,{rid="999"}),100,ctx))
+end)
+test("a stored relay replayed into Find stays unaskable (r2)",function()
+    for _,src in ipairs({"hh","we"}) do
+        for _,mode in ipairs({"slash","button","unrelated"}) do
+            local N=loadAddon(); chatBox(); establish(N); advance(2); local U=N.UI
+            local name=src=="hh" and "Kora Reed" or "Alice"
+            local enemy=src=="hh" and {name=name,class="PALADIN",level=31} or {hash=N.Hash.player(name,""),class="PALADIN",level=31}
+            local rec=assert(N.Record.new({src=src,kind=src=="hh" and "fight" or "group",origin="Stranger",route="PARTY",rid="1",zone=100,count=1,
+                enemies={enemy},layer={ns="unknown"},heard=clock,share="public"}))
+            if mode=="unrelated" then SlashCmdList.LAYERENEMIES("find "..name) end
+            deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(rec,clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relayed "..src,src..mode)
+            U.toggle(); U.tabs.find:Click()
+            if mode=="button" then U.input:SetText(name); U.add:Click()
+            else SlashCmdList.LAYERENEMIES("find "..(mode=="unrelated" and "Otherenemy" or name)); U.render() end
+            local row; for _,r in ipairs(N.Main.findRows()) do if r.name==name then row=r end end
+            yes(row and row.spotter,src..mode); no(row.canAsk,src..mode)
+            local i; for k,r in ipairs(U.pool) do if r.title.text==name then i=k end end
+            no(U.pool[i].ask:IsShown(),src..mode); U.pool[i].ask:Click(); no(LE.AskInvite("Stranger"),src..mode); drain(); eq(#opened,0,src..mode)
+        end
+    end
+end)
+test("a duplicate relay does not make a first-hand Find row unaskable (r2)",function()
+    local N=loadAddon(); chatBox(); establish(N); advance(2)
+    SlashCmdList.LAYERENEMIES("find Kora Reed")
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AP:2s;"..b36(server)..";dw;6y;a1;Kora Reed/P/31;4","PARTY","Mira Vale")
+    local function row() for _,r in ipairs(N.Main.findRows()) do if r.name=="Kora Reed" then return r end end end
+    yes(row().canAsk); eq(row().spotter,"Mira Vale")
+    -- a guildmate relays the same fight back to us: a duplicate, Find unchanged
+    local rec=assert(N.Record.new({src="hh",kind="fight",origin="Mira Vale",route="PARTY",rid=tostring(math.floor(server)),zone=100,count=1,
+        enemies={{name="Kora Reed",class="PALADIN",level=31}},layer={ns="unknown"},heard=clock,share="public"}))
+    advance(1); deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(rec,clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"duplicate")
+    yes(row().canAsk); eq(row().spotter,"Mira Vale")
+    -- another relayed fight with the name, newer: still the first-hand row while it is fresh
+    rec=assert(N.Record.new({src="hh",kind="fight",origin="Stranger",route="PARTY",rid="77",zone=100,count=1,
+        enemies={{name="Kora Reed"}},layer={ns="unknown"},heard=clock,share="public"}))
+    advance(1); deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(rec,clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relayed hh")
+    yes(row().canAsk); eq(row().spotter,"Mira Vale")
+    -- tracking again replays the store: the first-hand row still wins
+    SlashCmdList.LAYERENEMIES("find Other Name"); yes(row().canAsk); eq(row().spotter,"Mira Vale")
 end)
 test("relayed reporters are never invite candidates",function()
     local N=loadAddon(); establish(N); advance(20)

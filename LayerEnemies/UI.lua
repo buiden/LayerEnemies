@@ -60,7 +60,7 @@ local function rowFrame()
     end)
     r.ask:SetScript("OnLeave",function() local tip=_G.GameTooltip; if S.tab(tip) then pcall(tip.Hide,tip) end end)
     r.ask:SetPoint("BOTTOMLEFT",r,"BOTTOMLEFT",42,6)
-    r.hopRecord=false; r.hopShown=false; r.ask.reason=false
+    r.hopRecord=false; r.hopShown=false; r.spotter=false; r.ask.reason=false
     r.clear=button(r,42,18,"Clear",function() if r.tracked then N.Main.track(r.tracked,true); U.render() end end)
     r.clear:SetPoint("BOTTOMRIGHT",r,"BOTTOMRIGHT",-6,6)
     return r
@@ -72,14 +72,14 @@ function U.cooldown(name)
 end
 -- The Hop button of a report row: who will be asked and how; disabled with the reason.
 local function hopState(r,record)
-    r.spotter=nil; r.hopRecord=record
+    r.spotter=false; r.hopRecord=record
     local p=N.Main.hopPreview(record); r.hopShown=p
     r.ask:Show(); r.ask.label:SetText(p.label); r.ask.reason=p.enabled and p.detail or p.reason
     r.ask.bg:SetColorTexture(unpack(p.enabled and {.137,.227,.11} or {.11,.13,.16}))
     if p.enabled then r.ask:Enable() else r.ask:Disable() end
 end
 local function askState(r,name,label)
-    r.spotter=name; r.hopRecord=false; r.hopShown=false; r.ask.reason=false
+    r.spotter=name or false; r.hopRecord=false; r.hopShown=false; r.ask.reason=false
     if not name then r.ask:Hide(); return end
     r.ask:Show()
     local remaining=U.cooldown(name)
@@ -116,7 +116,7 @@ function U.render()
     local visible=math.floor((300-top)/height)
     local maximum=math.max(0,#rows-visible)
     U.offset=math.min(U.offset,maximum)
-    for _,r in ipairs(U.pool) do r:Hide(); r.spotter=nil; r.tracked=nil; r.hopRecord=false end
+    for _,r in ipairs(U.pool) do r:Hide(); r.spotter=false; r.tracked=nil; r.hopRecord=false end
     for index=1,math.min(visible,#rows-U.offset) do
         local e=rows[index+U.offset]
         local r=U.pool[index]

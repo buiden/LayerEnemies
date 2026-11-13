@@ -267,6 +267,8 @@ function M.relayIn(text,kind,sender)
     if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
     local stored,whyNot=T.report(M.store,record,time)
     M.lastDrop=stored and "relayed "..tostring(record.label) or whyNot
+    -- a copy of a report already held (first-hand or relayed) adds nothing to Find
+    if not stored and whyNot=="duplicate" then return end
     -- a relayed origin was in someone else's group: Find shows the report but never offers to ask them
     N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies,relayed=true},M.homeRealm())
     M.findAlerts()
@@ -333,7 +335,8 @@ function M.track(name,remove)
         for _,e in pairs(M.store.localSeen) do N.Find.own(M.find,e,M.store.zone,e.at) end
         for _,row in pairs(M.store.reports) do
             local r=row.record
-            N.Find.report(M.find,{sender=r.origin,zone=r.zone,at=r.heard,enemies=r.enemies},M.homeRealm())
+            -- a stored guild relay stays a relay when replayed into Find (never askable)
+            N.Find.report(M.find,{sender=r.origin,zone=r.zone,at=r.heard,enemies=r.enemies,relayed=r.src=="guild"},M.homeRealm())
         end
     else N.Find.remove(M.find) end
     LayerEnemiesDB.tracked=M.find.names

@@ -65,7 +65,9 @@ function F.report(st,r,home)
         for _,e in ipairs(r.enemies) do
             if (e.hash and hashes[e.hash]) or named(name,e) then
                 local old=st.locations[name]
-                if not old or (not old.own and old.at<=r.at) or r.at-old.at>=F.TTL then
+                -- a relayed report never replaces a fresh first-hand one (which can be asked)
+                local keep=old and r.relayed and not old.relayed and r.at-old.at<F.TTL
+                if not keep and (not old or (not old.own and old.at<=r.at) or r.at-old.at>=F.TTL) then
                     st.locations[name]={name=name,zone=r.zone,at=r.at,spotter=r.sender,class=e.class,level=e.level,possible=true,relayed=r.relayed==true}
                 end
             end

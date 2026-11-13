@@ -41,11 +41,13 @@ function Rl.encode(record, now)
     local function c3(v) return v and tostring(math.min(999, math.max(0, math.floor(v * 1000)))) or "" end
     local layer = record.layer and record.layer.value
     layer = layer ~= nil and tostring(layer) or ""
+    local ns = NS[record.layer.ns]
+    if record.src == "hh" then ns, layer = "u", "" end            -- HeadHunter never carries a usable layer
     if not layer:match("^[%w%-]*$") or #layer > 32 then return nil end
     local age = math.max(0, math.floor(now - record.heard)) + (record.age or 0)
     if age > 900 then return nil end                             -- too old for any receiver
     local head = table.concat({ "R", Rl.VERSION, record.src, record.kind, hex(record.origin), rid, tostring(record.zone),
-        c3(record.x), c3(record.y), record.count and tostring(record.count) or "", NS[record.layer.ns], layer, tostring(age) }, "|") .. "|"
+        c3(record.x), c3(record.y), record.count and tostring(record.count) or "", ns, layer, tostring(age) }, "|") .. "|"
     if #head > 255 then return nil end
     local items = {}
     local used = #head
@@ -83,6 +85,7 @@ function Rl.decode(text, sender, now)
     local x, okx = c3(f[8]); local y, oky = c3(f[9])
     local count = f[10] ~= "" and int(f[10], 0, 80) or nil
     local ns = NSBACK[f[11]]
+    if src == "hh" and ns ~= "unknown" then return nil, "invalid" end   -- HeadHunter never carries a usable layer
     local age = int(f[13], 0, 900)
     if age and age >= (Rl.TTL[src] or 0) then return nil, "too old" end
     if not (zone and okx and oky and (f[10] == "" or count) and ns and age) then return nil, "invalid" end
