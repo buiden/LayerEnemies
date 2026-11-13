@@ -120,7 +120,7 @@ function U.render()
             r.sub:SetText(className(e.class).." · "..M.zoneName(e.zone)); askState(r,nil)
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))
-            r.sub:SetText("reported by "..e.reporter)
+            r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or ""))
             local _,key=N.Invite.name(e.reporter)
             askState(r,key and eligible[key] and e.reporter or nil,"Ask "..e.reporter.." for invite")
         elseif U.tab=="friendly" then

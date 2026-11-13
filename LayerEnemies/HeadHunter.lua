@@ -74,7 +74,7 @@ local function P(f)
     if #f == 7 and f[7] ~= "" then
         layer = b36(f[7]); if not layer or layer < 1 then return nil end
     end
-    return { type = "P", map = map, t = t, x = x, y = y, count = math.max(enemies, #named), enemies = named, layer = layer }
+    return { type = "P", map = map, t = t, x = x, y = y, count = enemies, enemies = named, layer = layer }
 end
 -- L: outlawId;mapID;t;x;y
 local function L(f)
@@ -109,6 +109,11 @@ function HH.decode(text, sender, serverNow, ownFaction, ctx)
             local w, author, f2, server, hops, first, rest = rec:match("^([^;]*);([^;]*);([^;]*);([^;]*);([^;]*);([^;]*);(.+)$")
             innerKind = rest and rest:sub(1, 1)
             if not (rest and key(author) and (f2 == "A" or f2 == "H")) then innerKind = nil end
+            -- envelope fields: world 1..40 bytes without controls, server lower-case 1..10 ("0" is unknown),
+            -- hops base36 1..5, firstSent base36 up to 10 digits; anything else drops the record
+            local h = b36(hops)
+            if innerKind and not (#w >= 1 and #w <= 40 and not w:find("%c") and server:match("^[0-9a-z]+$") and #server <= 10
+                and h and h >= 1 and h <= 5 and b36(first)) then innerKind = nil end
             origin, side2, inner = author, f2, rest and rest:sub(2)
         end
         local d

@@ -196,6 +196,9 @@ function M.headhunter(text,kind,sender)
     local allowed,reason=A.hhPolicy(kind,sender)
     if not allowed then M.lastDrop=reason; return end
     local time=now()
+    -- only frames we read (P, L, E) count against the sender's 6 per 10 s; the rest are ignored uncounted
+    local frameType=text:match("^%d[AH](%u):")
+    if frameType~="P" and frameType~="L" and frameType~="E" then return end
     if not N.HeadHunter.allow(M.hh,sender,time) then return end
     local records,why=N.HeadHunter.decode(text,sender,S.num(S.call(GetServerTime)),S.str((S.call(UnitFactionGroup,"player")),20),
         {heard=time,route=kind,zoneFn=A.zone})
@@ -386,7 +389,7 @@ function M.text(command)
         local when=ago(now()-e.at)
         local extra=""
         if e.reporter then
-            extra=" | reported by "..e.reporter..(e.age and e.age>0 and (" | claimed "..e.age.." s old") or "").." | "..(e.relation=="same" and "same server key as yours" or e.relation=="other" and ("other server key "..tostring(e.reportLayer)) or "layer unknown")
+            extra=" | reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.age and e.age>0 and (" | claimed "..e.age.." s old") or "").." | "..(e.relation=="same" and "same server key as yours" or e.relation=="other" and ("other server key "..tostring(e.reportLayer)) or "layer unknown")
         end
         say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or ""))
     end

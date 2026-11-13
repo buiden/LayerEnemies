@@ -92,7 +92,7 @@ function T.rows(t,now,kind)
                 local source=r.src=="hh" and SOURCE[r.kind] or SOURCE.we
                 local function add(k,e,name,possible)
                     out[#out+1]={key=k,at=r.heard,zone=r.zone,hash=e.hash,class=e.class,level=e.level,
-                        reporter=r.origin,relation=relation,reportLayer=r.layer.value,age=r.age,record=r,
+                        reporter=r.origin,via=r.via and r.via:lower()~=r.origin:lower() and r.via or nil,relation=relation,reportLayer=r.layer.value,age=r.age,record=r,
                         name=name,possible=possible,confidence=row.confidence,source=source,namespace=r.layer.ns,x=r.x,y=r.y,
                         positionKind=r.src=="hh" and "reporter's position" or "reported cluster position"}
                 end

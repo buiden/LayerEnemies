@@ -1589,6 +1589,92 @@ test("hh routes, duplicates, ignore, rate, ttl and caps in the window",function(
     report(1,7,"Scout"); eq(N.Main.lastDrop,"enriched"); eq(N.Safe.count(N.Main.store.reports),65)
     eq(#sent,0); eq(forbidden,0); no(N.Main.error)
 end)
+test("hh only P, L and E frames count against the rate (مانع T4 S1)",function()
+    local N=loadAddon(); establish(N); advance(1); server=HHT
+    local function P() return "1AP:2s;"..b36(server)..";dw;6y;a1;Kora Reed/P/31;4" end
+    -- مانع's probe: six N frames from a party member, then a real P
+    for i=1,6 do deliver("CHAT_MSG_ADDON","HeadHunter","1AN:1.1.1;x"..i,"PARTY","Mira Vale") end
+    for i=1,6 do deliver("CHAT_MSG_ADDON","HeadHunter","garbage "..i,"PARTY","Mira Vale") end
+    deliver("CHAT_MSG_ADDON","HeadHunter",P(),"PARTY","Mira Vale")
+    eq(#N.Store.rows(N.Main.store,clock,"reported"),1); eq(N.Main.lastDrop,"headhunter fight")
+    -- P, L and E frames still count: five more, then the 7th is dropped
+    for i=1,5 do deliver("CHAT_MSG_ADDON","HeadHunter","1AL:Ann Lee"..string.char(96+i)..";2s;"..b36(server)..";dw;6y","PARTY","Mira Vale") end
+    eq(N.Safe.count(N.Main.store.reports),6)
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AL:Bo Ray;2s;"..b36(server)..";dw;6y","PARTY","Mira Vale"); eq(N.Safe.count(N.Main.store.reports),6)
+    eq(#sent,0); no(N.Main.error)
+end)
+test("hh E envelope fields are checked (مانع T4 S2)",function()
+    local N=loadAddon()
+    local function env(world,server,hops,first) return "1AE:"..world..";Mira Vale;A;"..server..";"..hops..";"..first..";P13k;tro8w0;dw;6y;a1" end
+    eq(#hh(N,env("eu-pvp","5cy","1","tro8w0"),"Carrier"),1)
+    eq(#hh(N,env(string.rep("w",40),"0","5","0"),"Carrier"),1)                       -- limits that pass
+    eq(#hh(N,env("eu-pvp","0123456789","1","tro8w0"),"Carrier"),1)
+    for _,bad in ipairs({
+        env("","5cy","1","tro8w0"), env(string.rep("w",41),"5cy","1","tro8w0"), env("eu\1pvp","5cy","1","tro8w0"), env("eu\npvp","5cy","1","tro8w0"),
+        env("eu-pvp","5CY","1","tro8w0"), env("eu-pvp","","1","tro8w0"), env("eu-pvp","5c-y","1","tro8w0"), env("eu-pvp","0123456789a","1","tro8w0"),
+        env("eu-pvp","5cy","0","tro8w0"), env("eu-pvp","5cy","6","tro8w0"), env("eu-pvp","5cy","10","tro8w0"), env("eu-pvp","5cy","","tro8w0"), env("eu-pvp","5cy","A","tro8w0"),
+        env("eu-pvp","5cy","1",""), env("eu-pvp","5cy","1","00000tro8w0"), env("eu-pvp","5cy","1","TRO8W0") }) do
+        eq(#hh(N,bad,"Carrier"),0,bad)
+    end
+    -- through the addon, a bad envelope leaves no row
+    N=loadAddon(); establish(N); advance(1); server=HHT
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AE:eu-pvp;Mira Vale;A;5CY;1;"..b36(server)..";P2s;"..b36(server)..";dw;6y;a1","WHISPER","Carrier")
+    eq(N.Safe.count(N.Main.store.reports),0); eq(N.Main.lastDrop,"invalid")
+end)
+test("hh bounds: base36 digits, allies, frame size, rate table (مانع T4 S3)",function()
+    local N=loadAddon()
+    eq(#hh(N,"1AP:13k;0000tro8w0;dw;6y;a1"),1); eq(#hh(N,"1AP:13k;00000tro8w0;dw;6y;a1"),0)      -- 10 digits pass, 11 fail
+    local ids={}; for i=1,12 do ids[#ids+1]="+a"..i end
+    eq(#hh(N,"1AP:13k;tro8w0;dw;6y;e1,"..table.concat(ids,",")),1)
+    eq(#hh(N,"1AP:13k;tro8w0;dw;6y;e1,"..table.concat(ids,",")..",+a13"),0)                    -- 13 allies
+    -- a 255-byte frame is read, 256 is not (decoder and addon): 12 long enemy ids, then a name padded to size
+    local function frame(n,map,t) local ids={}; for i=1,12 do ids[i]=string.format("e%015d",i) end
+        local head="1AP:"..map..";"..t..";dw;6y;"..table.concat(ids,",")..";"
+        local f=head..string.rep("k",n-#head-4).."//;4"; eq(#f,n); return f end
+    yes(hh(N,frame(255,"13k","tro8w0"))[1]); eq(#hh(N,frame(256,"13k","tro8w0")),0)
+    N=loadAddon(); establish(N); advance(1); server=HHT
+    deliver("CHAT_MSG_ADDON","HeadHunter",frame(255,"2s",b36(server)),"PARTY","Mira Vale"); eq(N.Safe.count(N.Main.store.reports),1)
+    deliver("CHAT_MSG_ADDON","HeadHunter",frame(256,"2s",b36(server)),"PARTY","Ann Lee"); eq(N.Safe.count(N.Main.store.reports),1)
+    -- the rate table holds 512 senders; the 513th waits for the window
+    local st=N.HeadHunter.new()
+    for i=1,512 do yes(N.HeadHunter.allow(st,"S"..i,0)) end
+    no(N.HeadHunter.allow(st,"S513",5)); eq(st.n,512); yes(N.HeadHunter.allow(st,"S513",10))
+end)
+test("hh carrier ignore and secrets on every event argument (مانع T4 S3)",function()
+    local N=loadAddon(); establish(N); advance(1); server=HHT
+    local E="1AE:eu-pvp;Mira Vale;A;5cy;1;"..b36(server)..";P2s;"..b36(server)..";dw;6y;a1"
+    local old=C_FriendList.IsIgnored; C_FriendList.IsIgnored=function(name) return name=="Carrier" end
+    deliver("CHAT_MSG_ADDON","HeadHunter",E,"WHISPER","Carrier"); eq(N.Main.lastDrop,"ignored sender"); eq(N.Safe.count(N.Main.store.reports),0)
+    C_FriendList.IsIgnored=old
+    for i=1,8 do
+        N=loadAddon(); establish(N); advance(1); server=HHT
+        local args={"HeadHunter","1AP:2s;"..b36(server)..";dw;6y;a1","PARTY","Mira Vale","Me",0,0,""}
+        args[i]=secret; N.Main.lastDrop="untouched"
+        deliver("CHAT_MSG_ADDON",args[1],args[2],args[3],args[4],args[5],args[6],args[7],args[8])
+        eq(N.Safe.count(N.Main.store.reports),0,i); eq(N.Main.lastDrop,"untouched",i); no(N.Main.error,i)
+    end
+    N=loadAddon(); establish(N); advance(1); server=HHT
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AP:2s;"..b36(server)..";dw;6y;a1","PARTY","Mira Vale","Me",0,0,""); eq(N.Safe.count(N.Main.store.reports),1)
+end)
+test("hh count is the number of enemy ids; rows show via <carrier>",function()
+    local N=loadAddon()
+    local r=hh(N,"1AP:13k;tro8w0;dw;6y;;Kora Reed/P/31;4")[1]; yes(r); eq(r.count,0); eq(#r.enemies,1)
+    eq(hh(N,"1AP:13k;tro8w0;dw;6y;a1,+b2,+c3;Ann Lee//,Bo Ray//;4")[1].count,1)
+    N=loadAddon(); establish(N); advance(1); server=HHT
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AE:eu-pvp;Mira Vale;A;5cy;1;"..b36(server)..";P2s;"..b36(server)..";dw;6y;a1","WHISPER","Carrier")
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AP:2s;"..b36(server-1)..";dw;6y;b2","PARTY","Ann Lee")
+    local rows=N.Store.rows(N.Main.store,clock,"reported"); local via={}
+    for _,row in ipairs(rows) do via[row.reporter]=row.via or "none" end
+    eq(via["Mira Vale"],"Carrier"); eq(via["Ann Lee"],"none")
+    SlashCmdList.LAYERENEMIES("reports"); yes(table.concat(log,"\n"):find("reported by Mira Vale via Carrier",1,true)); no(table.concat(log,"\n"):find("Ann Lee via",1,true))
+    -- War Effort G: the relaying guildmate is the carrier
+    N=loadAddon(); establish(N); advance(1)
+    local stamp=math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..hexOf("Scout").."||C|42|100|0.4|0.5|7086|4|"..stamp,"GUILD","Relay")
+    rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].reporter,"Scout"); eq(rows[1].via,"Relay")
+    -- the window line too
+    N.UI.toggle(); N.UI.select("reported"); eq(N.UI.pool[1].sub.text,"reported by Scout via Relay")
+end)
 -- Wire.lua: the only sender
 test("the send mock counts any caller but Wire.lua as forbidden",function()
     local N=loadAddon()
