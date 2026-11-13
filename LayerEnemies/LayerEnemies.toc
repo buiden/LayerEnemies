@@ -17,6 +17,7 @@ Reports.lua
 HeadHunter.lua
 Adapters.lua
 Invite.lua
+Hop.lua
 Find.lua
 UI.lua
 Main.lua

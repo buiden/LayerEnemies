@@ -74,7 +74,9 @@ function F.rows(st,now,zone,sameSpotter)
         if loc then
             for k,v in pairs(loc) do row[k]=v end
             row.age=now-loc.at
-            row.same=loc.own or (sameSpotter and sameSpotter(loc.spotter,loc.zone)) or false
+            local spot=not loc.own and sameSpotter and sameSpotter(loc.spotter,loc.zone)
+            row.same=loc.own or spot==true
+            row.probably=spot=="probably"         -- an equal key while ours is ambiguous: not a certain same layer
             row.travel=loc.zone~=zone
             row.status=loc.own and "is on YOUR layer" or "possible match, seen by "..loc.spotter
             row.canAsk=not row.same and not row.travel and loc.spotter~=nil
