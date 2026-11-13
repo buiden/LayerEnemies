@@ -1,5 +1,113 @@
 # LayerEnemies implementation summary
 
+## Current delivery — 0.2.0
+
+The sections below "Historical build-2 record" describe the earlier headless
+build and are retained as history; this section supersedes their version,
+window/approval, command, persistence, source-scan and test-count statements.
+
+- Local source: /opt/data/projects/layer-enemies/LayerEnemies
+- Local package: /opt/data/projects/layer-enemies/dist/LayerEnemies-0.2.0.zip
+- TOC 0.2.0, Interface 16001, SavedVariablesPerCharacter unchanged.
+- Added Find.lua and UI.lua; existing reducers/adapters/invite flow retained.
+- Milestone 54c2469: tracked-target feature, verified before starting UI.
+- No push, publish, upload, client install, or live-game run performed.
+
+### Finding enemies
+
+`/le find <name>` adds one of at most five persisted names; `/le find` clears
+all. Find tab adds individual Clear buttons. Only user-entered watchlist names
+and validated window position are saved; sightings, locations, alert history,
+GUIDs, reports and asks remain session-only.
+
+Direct readable opposite-faction target/mouseover/nameplate sightings match
+the name and show "is on YOUR layer", zone and age. War Effort matches compute
+the inspected detector's exact Hash3/NameKey algorithm, checking realm and
+empty-realm keys. Forever's two UnitName returns can be first/surname, while
+the detector passes those through its name/realm arguments: "First Surname"
+also checks first-surname. Source evidence and independently computed fixed
+vectors, including a real collision pair, are in API-EVIDENCE.md and tests.
+
+A three-character hash hit is always "possible match", with spotter, zone,
+class, level and receipt age, never confirmed identity. The target is only
+locatable if you or a War Effort user nearby actually saw him and you receive
+that permitted report. This is neither a global locator nor a complete roster.
+
+The existing privacy/replay/rate/assembly gates still run before matching.
+When names are tracked, complete other-zone reports may feed Find, not the
+current-zone report store. Those rows say travel to the zone first and do not
+offer an invite. Fresh same-layer Bulo/LayerSwap evidence or your own sighting
+says already on your layer instead. ZoneUID is never used as a server-layer
+key. Eligible spotter asks use the existing AskInvite path and cooldowns.
+
+Chat/sound alerts occur on first location and no more often than five minutes,
+except a new reported zone can alert immediately. Findings expire at ten
+minutes and clear on epoch boundaries. Only the newest possible spotter per
+tracked name is retained; a fresh direct sighting takes priority. Reload
+preserves names, not locations or alert history. Sound failures are harmless.
+
+Names with a Forever surname are accepted as friendly candidates. Their
+whisper uses native SendTell and the active edit box's Insert, or separate
+manual recipient/message instructions if unavailable. No send API is called.
+Real-client surname parsing remains unverified, despite source-level API
+checks at the pinned Blizzard UI mirror.
+
+### Approved B window
+
+`/le` toggles the movable 360 x 468 window; `/le list` keeps text output.
+Immediate Hide after creation. Four tabs: Seen by you, Reported, Friendly,
+Find. Layer/zone/source header, class colours, level strips, source/host/layer
+text and invite buttons. Button callbacks call the same AskInvite function;
+per-name cooldown reads "Asked · Ns". No map pins or minimap button.
+
+Six maximum pooled visible row frames, with mouse-wheel whole-row paging;
+only two larger Find cards are visible at once. No OnUpdate scripts. A
+shown-only one-second timer updates ages/data, and hiding invalidates its
+generation so queued callbacks cannot restart it. Position is whitelisted,
+bounded, copied without arbitrary extra fields, and saved per character.
+
+Differences from the original approved three-tab HTML concept:
+
+1. Required fourth Find tab; fixed four-tab widths and inline '(n)' counts
+   instead of circular badges. All active tabs use a gold underline.
+2. Fixed height and virtualized wheel paging rather than HTML content-height
+   cards; a row-range hint replaces a scroll thumb.
+3. Native Friz Quadrata and flat fills, not browser fonts/gradients/shadows.
+   Source and host tags are plain text rather than coloured badges.
+4. Short amber report notice; longer explanations remain in text output/docs.
+5. Preview B HTML now includes Find and describes these native differences.
+   The old preview PNG is archived concept art, not a final client screenshot.
+
+### Verification and remaining limits
+
+Lua harness: 78 tests, 0 failures, 7,952 assertions; includes 5,000 deterministic
+malformed protocol inputs. New tests cover realm/empty/surname hash keys,
+match/no-match/real collision, expiry, own sighting, other-zone privacy/travel,
+same-layer suppression, watchlist persistence/cap/clear, alert throttle/sound,
+hidden window construction, toggle/list semantics, tabs, pooled reuse and
+scrolling, both invite paths and cooldown, Find add/remove, validated dragging
+position and surname whisper fallback. Existing tests remain passing.
+
+`python3 test/verify.py` is the release gate: Lua syntax, TOC/file parity,
+version, no outgoing/group APIs, no OnUpdate, SetText confined to UI, strict
+mock harness, git whitespace check, ZIP integrity and byte-for-byte source
+parity. notes/verification.json and notes/test-results.txt are generated by
+that actual run, not synthesized test output.
+
+Latest offline Linux/Lua 5.1 microbenchmarks (not in-client timings):
+empty prune 0.000257 ms/call; full 256-entry prune 0.013982 ms/call;
+unchanged 256-entry Bulo snapshot 0.371680 ms/call; invalid wire rejection
+0.004193 ms/call. No in-client frame-rate or taint claim is made.
+
+Remaining real-client checks: native font fit/UI scales, moving/visibility in
+combat and after reload, sound, secret-value behaviour, surname whisper
+targeting, actual report reception, and paired-client layer transfers/GUID
+semantics. Offline tests cannot prove these. Existing receipt-time replay
+limitations still apply: modulo-hour stamps, expiring tombstones and empty
+replay memory after reload can make old packets look fresh.
+
+## Historical build-2 record
+
 ## Delivered
 
 - Addon folder: /opt/data/projects/layer-enemies/LayerEnemies

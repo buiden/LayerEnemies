@@ -39,3 +39,35 @@ Third-party reference inspection (not copied into the addon):
 
 The two NPC-GUID identifier methods remain source-author assumptions until
 paired-client transfer/zone tests establish their actual behavior.
+
+## Tracked-target wire names (build 0.2.0)
+
+Inspected WarEffortScout 0.2.13 source in the read-only reference cache:
+
+- Protocol.lua 86–110: Hash3 is DJB2 with unsigned 32-bit modulo and three
+  least-significant base-62 digits; NameKey lowercases name, appends '-',
+  then lowercases realm after removing spaces and hyphens. Empty realm is
+  valid and still leaves the trailing hyphen.
+- Detect.lua 56–62: ReadEnemy reads both UnitName returns as name/realm, falls
+  back to homeRealm if the second return is absent/empty, then hashes NameKey.
+  Detect.Init initializes homeRealm from GetNormalizedRealmName/GetRealmName.
+- Util.lua 50–57 and Probe.lua 685–687 explicitly describe Forever's second
+  UnitName return as surname and join readable parts with a space for display.
+  Comms.lua 1167 runs Ambiguate(sender, 'none'). The display convention does
+  not change the detector's actual name/second-return hashing behaviour.
+- Bulo Core.lua 138–168 and LayerSwap LayerSwap.lua 227–255 read the surname
+  separator constant with a space fallback; LayerSwap notes that the player's
+  own UnitName can already contain the full name in its first return.
+
+Independent Python-derived fixed vectors, asserted by the Lua harness:
+  alice-testrealm -> Zzm; alice- -> YNz.
+Real collision fixture: pfkmeclrzj- and cuhfvpbgza- both hash to Y8Y.
+These matches remain possible identities, never asserted identities.
+
+At the Blizzard UI mirror commit above, Shared/ChatFrameUtil.lua 383–386
+implements ChatFrameUtil.SendTell via SendTellWithMessage with empty text;
+GetActiveWindow at 496–498 returns ACTIVE_CHAT_EDIT_BOX. These are source
+checks only. SendTell itself formats and parses native whisper text. We have
+not proved Forever's surname targeting or Insert behaviour in a live client;
+missing/throwing APIs fall back to recipient/message instructions. No chat
+send API is invoked by LayerEnemies.

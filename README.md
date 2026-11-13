@@ -1,12 +1,13 @@
 # LayerEnemies
 
-Headless WoW Forever addon, Interface 16001, Lua 5.1.
+WoW Forever addon 0.2.0, Interface 16001, Lua 5.1.
 
-This build provides local observation adapters, conservative classification,
-bounded stores, a passive network gate, a manual ask-for-invite helper and
-slash-command text output. It has no window, minimap button, map pins, or
-applied visual design. Two static previews of the planned window are in
-notes/ and await approval. It is not a complete layer roster.
+Find a tracked enemy through your own sightings or possible War Effort hash
+matches, then ask a friendly spotter for a layer invite. Approved design B is
+implemented as a movable dark window with Seen by you, Reported, Friendly and
+Find tabs. It starts hidden. No minimap button or map pins. This is not a
+complete layer roster or a global player locator. Native-client appearance,
+chat targeting and actual transfers still need in-game verification.
 
 ## Installation and commands
 
@@ -15,9 +16,12 @@ client. No optional source is required for startup. An absent or unloaded
 source is reported as not installed; a loaded source with an incompatible
 shape is reported as data unavailable.
 
-- `/le`: current layer/source, source statuses, and opposite-faction players
-  directly observed in the current observation epoch. If War Effort reports
-  exist, one line says how many; they are never mixed into this list.
+- `/le`: toggle the window.
+- `/le list`: current layer/source, source statuses and directly observed
+  opposite-faction players. Reports are counted separately, never mixed in.
+- `/le find <name>`: add a tracked enemy (maximum five). Names may include a
+  Forever surname or an explicit `-Realm`. `/le find` clears all tracked names.
+  The Find tab also has a Track field and individual Clear buttons.
 - `/le unclassified`: local sightings whose faction is unknown or same-faction;
   these are explicitly not confirmed enemies.
 - `/le reports`: the separate section "Reported, not confirmed" and the last
@@ -28,8 +32,11 @@ shape is reported as data unavailable.
   press Enter. The list from `/le hosts` is valid for two minutes.
 
 Text rows show readable name or Unknown, class, level, zone ID, age, source
-and confidence. No class colours or other visual treatment are applied.
-Rows are newest first, expire after ten minutes, and are never saved.
+and confidence. The window adds class colours and invite buttons. Use the
+mouse wheel over its body to scroll longer lists. Only visible row frames are
+allocated, then reused. Ages refresh at 1 Hz only while the window is shown;
+there is no OnUpdate script. Drag the panel to save its position per character.
+Sightings expire after ten minutes and are never saved.
 
 ## Local observations
 
@@ -109,8 +116,10 @@ world entry or layer transfer drops all reports at once.
 
 Each row shows Unknown, class, level, the reporter, the age since receipt and
 how the reporter's zoneUID relates to yours: same, other (with the number), or
-unknown while yours has not been confirmed. Reports for another zone, with
-zoneUID 0, with a wrong enemy count, or with duplicate hashes are rejected.
+unknown while yours has not been confirmed. Reports with zoneUID 0, a wrong
+enemy count, or duplicate hashes are rejected. While names are tracked, the
+same gated receiver may also assemble other-zone reports for Find only.
+Those reports never enter the current-zone Reported list.
 
 What this does not prove:
 
@@ -137,6 +146,44 @@ The store retains only bounded possible-identity candidates from readable
 names actually observed in the same epoch. A report row always remains
 Unknown; matching candidates are labelled possible identity, never asserted
 as the named player. Report coordinates describe a reported cluster.
+
+## Finding a tracked player
+
+A target can only be located when you see him yourself, or a War Effort user
+near him sees him and a complete permitted report reaches you. There is no
+server lookup, discovery broadcast, request to another addon, or background
+scan of the world. Enter the name before a report arrives; current-zone
+reports already retained can also be matched when adding a name.
+
+A readable opposite-faction target/mouseover/nameplate event with a matching
+name says `is on YOUR layer`, with zone and age. A Bulo-only GUID enrichment
+is not enough to generate this exact-name finding. War Effort sends only a
+three-character enemy hash, so a match says `possible match, seen by <spotter>`
+and includes class, level, zone and age. Different players can share the same
+hash. It is probable, never certain; ask the spotter to confirm the identity.
+
+The key is the source's exact lower-case name, a hyphen, then lower-case realm
+with spaces/hyphens removed. Both home/explicit-realm and empty-realm forms
+are checked. On Forever, the inspected detector passes UnitName's second
+return into its realm argument even when that return is a surname. A tracked
+`First Surname` therefore also checks the `first-surname` wire key. Display
+name and hashing conventions were verified from source, not from a live
+client. The original code's realm terminology is not proof of a real realm.
+
+Find offers `Ask <spotter> for invite` through the same manual helper. If a
+fresh Bulo/LayerSwap claim puts that spotter on your current layer, it says
+`already on your layer` and hides the ask. Your own sightings do the same.
+Other-zone findings instead say `travel to <zone> first` and cannot be asked
+from Find. Reported zoneUIDs are never converted to server-layer keys.
+
+A first finding prints a chat alert and attempts a raid-warning sound. It
+re-alerts only after five minutes or when a new zone is reported. Sound API
+failure is harmless. Findings expire after ten minutes; a direct sighting
+has priority over a possible report until it expires. Only the newest
+possible spotter is retained for each name; this is not a spotter history.
+World/zone/layer boundaries wipe findings and pending report fragments,
+not tracked names. Re-entering a zone needs fresh observations. Alerts and
+locations are never persisted, so a reload starts a new alert session.
 
 ## Asking for an invite
 
@@ -174,8 +221,12 @@ that source for that call.
 and you press Enter. The addon never sends chat or addon messages, never
 invites, never accepts an invite and never leaves a group. If the client has
 neither ChatFrameUtil.OpenChat nor ChatFrame_OpenChat, or the call fails, the
-line is printed for you to type. `LE.AskInvite` only accepts a name that is
-on the current list.
+line is printed for you to type. For Forever names containing a space, the
+addon uses ChatFrameUtil.SendTell plus the active edit box's Insert method;
+if unavailable, it prints the recipient and message separately for manual
+entry, never an ambiguous `/w First Surname ...` line. These APIs still need
+a real Forever client check. `LE.AskInvite` accepts only a current friendly
+candidate or a live eligible Find spotter.
 
 Limits: one ask per name per 60 seconds and one ask per 10 seconds overall,
 because players get silenced for invite spam. A refused ask does not count.
@@ -196,10 +247,11 @@ your own layer key for 60 seconds:
 
 ## Storage and performance limits
 
-LayerEnemiesDB is SavedVariablesPerCharacter, currently an empty options
-container reserved for future approved configuration. No sightings, names,
-GUIDs, hashes, report payloads, asked names or source settings are persisted.
-Window position is intentionally absent until a window is approved.
+LayerEnemiesDB is SavedVariablesPerCharacter. It stores options, up to five
+explicitly entered tracked names, and window position. It never persists
+sightings, discovered identities, GUIDs, hashes, locations, report payloads,
+asked names, alert history or source settings. Reloading keeps your watchlist,
+not its locations. Epoch boundaries also clear locations.
 
 Limits: 256 local observations/identity hash buckets, at most eight candidate
 names per hash, 64 reports, 64 senders, 32 incomplete reports (four per sender),
@@ -209,8 +261,9 @@ privacy admission. Incomplete assemblies expire in 15 seconds; replay
 identifiers are held for 3,660 seconds. Saturation fails closed rather than
 evicting replay protection. A report ID reused during that interval is
 conservatively rejected. Unchanged Bulo timestamps do not allocate duplicate
-observation records. Friend lists are read only on `/le hosts`, `/le ask`
-and `LE.AskInvite`, never on the heartbeat.
+observation records. Friend lists are read for hosts/asks, tracked-target
+status/alerts, and shown-window refreshes. The UI reuses at most six row
+frames; its hidden timer stops after any already-queued callback returns.
 
 ## Verification
 
@@ -229,6 +282,6 @@ are in notes/SUMMARY.md. Offline tests are not evidence of live client
 compatibility, taint safety, layer semantics or event ordering. Everything
 still needs in-game verification.
 
-Footer used in slash output and intended for any approved UI:
+Footer used in slash output and the window:
 
 Only players seen by you or reported by War Effort users.

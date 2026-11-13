@@ -2,7 +2,7 @@
 ## Title: LayerEnemies
 ## Notes: Enemy players seen by you or reported by War Effort users, and friendly players to ask for a layer invite.
 ## Author: buiden
-## Version: 0.1.0
+## Version: 0.2.0
 ## SavedVariablesPerCharacter: LayerEnemiesDB
 ## OptionalDeps: BuloLayerForever, WarEffortScout, LayerSwap
 Safe.lua
@@ -14,4 +14,5 @@ Reports.lua
 Adapters.lua
 Invite.lua
 Find.lua
+UI.lua
 Main.lua

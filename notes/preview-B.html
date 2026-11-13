@@ -11,21 +11,22 @@
   .states { display: flex; gap: 22px; align-items: stretch; }
   .state { display: flex; flex-direction: column; }
   .state > p { margin: 0 0 7px; font-size: 10.5px; color: #7d8894; text-transform: uppercase; letter-spacing: .8px; }
-  .panel { flex: 1; display: flex; flex-direction: column; width: 360px; background: #12161b; border: 1px solid #000; box-shadow: 0 0 0 1px #2e3742, 0 10px 28px rgba(0,0,0,.7); }
+  .panel { height:468px; flex: none; display: flex; flex-direction: column; width: 360px; background: #12161b; border: 1px solid #000; box-shadow: 0 0 0 1px #2e3742, 0 10px 28px rgba(0,0,0,.7); }
   .bar { display: flex; align-items: center; height: 26px; padding: 0 8px 0 10px; background: #1a2027; border-bottom: 1px solid #000; }
   .bar .t { flex: 1; font-weight: bold; font-size: 11.5px; color: #e8edf2; letter-spacing: .4px; }
   .bar .x { color: #7d8894; font: bold 12px Arial, sans-serif; }
-  .layer { display: flex; align-items: center; gap: 10px; padding: 9px 10px; background: linear-gradient(90deg, #1d2a1c, #12161b 75%); border-bottom: 1px solid #000; }
+  .layer { display: flex; align-items: center; gap: 10px; padding: 9px 10px; background: #12161b; border-bottom: 1px solid #000; }
   .chip { padding: 3px 9px 4px; background: #0c1009; border: 1px solid #4d7a3a; color: #b6f08a; font: bold 15px "DejaVu Sans Mono", Consolas, monospace; }
   .layer .lbl { font-size: 10px; color: #7d8894; text-transform: uppercase; letter-spacing: .8px; }
   .layer .meta { font-size: 11px; color: #cfd6de; }
   .tabs { display: flex; background: #0e1216; border-bottom: 1px solid #000; }
-  .tab { flex: 1; padding: 7px 4px 6px; text-align: center; font-size: 11px; color: #7d8894; border-right: 1px solid #000; border-bottom: 2px solid transparent; }
-  .tab:last-child { border-right: 0; }
-  .tab b { display: inline-block; min-width: 16px; margin-left: 3px; padding: 0 4px; background: #232b34; color: #cfd6de; font-size: 10px; line-height: 14px; border-radius: 7px; }
+  .tab { flex: none; padding: 7px 4px 6px; text-align: center; font-size: 11px; color: #7d8894; border-right: 1px solid #000; border-bottom: 2px solid transparent; }
+  .tab:nth-child(1){width:112px} .tab:nth-child(2){width:88px} .tab:nth-child(3){width:98px} .tab:last-child { width:60px; border-right: 0; }
+  .tab b { margin-left: 3px; font-weight:normal; color:inherit; font-size:10px; }
+  .tab b::before { content:"("; } .tab b::after { content:")"; }
   .tab.on { color: #fff; background: #12161b; border-bottom-color: #ffd100; }
-  .tab.on b { background: #ffd100; color: #12161b; }
-  .tab.amber.on { border-bottom-color: #e0a23a; } .tab.amber.on b { background: #e0a23a; }
+  .tab.on b { color: #ffd100; }
+  .tab.amber.on { border-bottom-color: #ffd100; }
   .body { flex: 1; min-height: 300px; padding: 6px; }
   .card { display: flex; align-items: stretch; margin-bottom: 4px; background: #181d23; border: 1px solid #000; }
   .stripe { width: 4px; flex: none; }
@@ -38,7 +39,7 @@
   .btn { padding: 3px 8px 4px; background: #233a1c; border: 1px solid #4d7a3a; color: #c9f5a6; font-size: 10.5px; font-weight: bold; white-space: nowrap; }
   .btn.wait { background: #1c2229; border-color: #323c47; color: #9aa5b1; }
   .main .btn { display: inline-block; margin-top: 5px; }
-  .tag { display: inline-block; padding: 0 5px; font-size: 9.5px; line-height: 14px; margin-right: 3px; color: #12161b; font-weight: bold; }
+  .tag { display: inline-block; font-size:10px; margin-right:4px; color:#7d8894; background:none!important; font-weight:normal; }
   .bulo { background: #7fd0ff; } .ls { background: #b6f08a; } .we { background: #ffb86b; } .host { background: #ffd100; }
   .banner { margin-bottom: 6px; padding: 6px 8px; background: #2a1f0c; border: 1px solid #7d5320; color: #f0c27a; font-size: 10.5px; }
   .hint { padding: 3px 4px 0; font-size: 10.5px; color: #7d8894; }
@@ -49,14 +50,14 @@
 </style>
 </head>
 <body>
-<p class="caption"><b>Preview B - tabs.</b> One compact window, three tabs with counters; the picture shows the same window on each tab. Sample data.</p>
+<p class="caption"><b>Preview B - tabs.</b> One compact window, four tabs (three counters plus Find); the picture shows the same window on each tab. Sample data, not a game screenshot. 0.2.0 uses native Friz Quadrata, flat fills, text counters/tags and mouse-wheel row paging; archived PNG is the earlier three-tab concept.</p>
 <div class="states">
 
   <div class="state"><p>Tab 1 - Seen by you</p>
   <div class="panel">
     <div class="bar"><span class="t">LAYER ENEMIES</span><span class="x">x</span></div>
     <div class="layer"><div class="chip">7086</div><div><div class="lbl">Your layer</div><div class="meta">Stranglethorn Vale &middot; from Bulo</div></div></div>
-    <div class="tabs"><div class="tab on">Seen by you<b>4</b></div><div class="tab amber">Reported<b>3</b></div><div class="tab">Friendly<b>4</b></div></div>
+    <div class="tabs"><div class="tab on">Seen by you<b>4</b></div><div class="tab amber">Reported<b>3</b></div><div class="tab">Friendly<b>4</b></div><div class="tab">Find</div></div>
     <div class="body">
       <div class="card"><div class="stripe bg-shaman"></div><div class="lv">42</div><div class="main"><div class="name shaman">Grokthar</div><div class="sub">Shaman &middot; Stranglethorn Vale</div></div><div class="right"><div class="age">18 s</div></div></div>
       <div class="card"><div class="stripe bg-rogue"></div><div class="lv">39</div><div class="main"><div class="name rogue">Zulrasha</div><div class="sub">Rogue &middot; Stranglethorn Vale</div></div><div class="right"><div class="age">1 min</div></div></div>
@@ -71,7 +72,7 @@
   <div class="panel">
     <div class="bar"><span class="t">LAYER ENEMIES</span><span class="x">x</span></div>
     <div class="layer"><div class="chip">7086</div><div><div class="lbl">Your layer</div><div class="meta">Stranglethorn Vale &middot; from Bulo</div></div></div>
-    <div class="tabs"><div class="tab">Seen by you<b>4</b></div><div class="tab amber on">Reported<b>3</b></div><div class="tab">Friendly<b>4</b></div></div>
+    <div class="tabs"><div class="tab">Seen by you<b>4</b></div><div class="tab amber on">Reported<b>3</b></div><div class="tab">Friendly<b>4</b></div><div class="tab">Find</div></div>
     <div class="body">
       <div class="banner">Reported, not confirmed. War Effort reports, dated by when they reached you.</div>
       <div class="card"><div class="stripe bg-mage"></div><div class="lv">40</div><div class="main"><div class="name"><span class="unknown">Unknown</span> <span class="mage">Mage</span></div><div class="sub">reported by Ellowyn</div><div class="btn">Ask Ellowyn for invite</div></div><div class="right"><div class="age">40 s</div></div></div>
@@ -86,7 +87,7 @@
   <div class="panel">
     <div class="bar"><span class="t">LAYER ENEMIES</span><span class="x">x</span></div>
     <div class="layer"><div class="chip">7086</div><div><div class="lbl">Your layer</div><div class="meta">Stranglethorn Vale &middot; from Bulo</div></div></div>
-    <div class="tabs"><div class="tab">Seen by you<b>4</b></div><div class="tab amber">Reported<b>3</b></div><div class="tab on">Friendly<b>4</b></div></div>
+    <div class="tabs"><div class="tab">Seen by you<b>4</b></div><div class="tab amber">Reported<b>3</b></div><div class="tab on">Friendly<b>4</b></div><div class="tab">Find</div></div>
     <div class="body">
       <div class="card"><div class="stripe bg-friend"></div><div class="main"><div class="name">Ellowyn</div><div class="sub"><span class="tag we">War Effort</span>layer not known</div></div><div class="right"><div class="age">40 s</div><div class="btn wait">Asked &middot; 52 s</div></div></div>
       <div class="card"><div class="stripe bg-friend"></div><div class="main"><div class="name">Brannoc</div><div class="sub"><span class="tag bulo">Bulo</span><span class="tag host">host</span>layer 7102</div></div><div class="right"><div class="age">2 min</div><div class="btn">Ask for invite</div></div></div>
@@ -97,6 +98,20 @@
     <div class="footer">Only players seen by you or reported by War Effort users.</div>
   </div></div>
 
+  <div class="state"><p>Tab 4 - Find (new approved feature)</p>
+  <div class="panel">
+    <div class="bar"><span class="t">LAYER ENEMIES</span><span class="x">x</span></div>
+    <div class="layer"><div class="chip">7086</div><div><div class="lbl">Your layer</div><div class="meta">Stranglethorn Vale &middot; Bulo</div></div></div>
+    <div class="tabs"><div class="tab">Seen by you<b>4</b></div><div class="tab">Reported<b>3</b></div><div class="tab">Friendly<b>4</b></div><div class="tab on">Find</div></div>
+    <div class="body">
+      <div class="hint">Up to five names. Hash matches are possible, not certain.</div>
+      <div style="display:flex;gap:8px;margin:8px 0"><input aria-label="Tracked enemy name" placeholder="First Surname" style="min-width:0;width:248px;background:#1a2027;border:0;color:#cfd6de;height:24px"><span class="btn">Track</span></div>
+      <div class="card" style="height:102px"><div class="stripe bg-mage"></div><div class="lv">40</div><div class="main"><div class="name mage">Grokthar</div><div class="sub" style="white-space:normal">possible match, seen by Ellowyn &middot; Stranglethorn Vale<br>Mage 40</div><div class="btn">Ask Ellowyn for invite</div></div><div class="right"><div class="age">2 min</div><div class="btn wait">Clear</div></div></div>
+      <div class="card" style="height:102px"><div class="stripe bg-warlock"></div><div class="lv">44</div><div class="main"><div class="name warlock">Morvessa</div><div class="sub" style="white-space:normal">is on YOUR layer &middot; Stranglethorn Vale<br>Warlock 44 &middot; already on your layer</div></div><div class="right"><div class="age">18 s</div><div class="btn wait">Clear</div></div></div>
+      <div class="hint">Mouse wheel: 1–2 of 5</div>
+    </div>
+    <div class="footer">Only players seen by you or reported by War Effort users.</div>
+  </div></div>
 </div>
 </body>
 </html>

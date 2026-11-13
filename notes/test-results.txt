@@ -66,4 +66,14 @@ PASS after join: unchanged after 60 s says so once; nothing is left for the user
 PASS after join: no ask, late join, unknown layer and zone change
 PASS ask from a War Effort report: reporter is the target, own layer unknown
 PASS addon never sends, invites, accepts or leaves (source and runtime)
-RESULT: 68 tests passed, 0 failed, 6846 assertions
+PASS Find hashes mirror upstream realm, realm-less and Forever surname keys
+PASS Find match, no match, collisions, expiry, own sighting and alerts
+PASS Find integration: cross-zone privacy gate, same layer and persistence
+PASS Find cap, validation, remove, alert sound and own name with surname
+PASS UI starts hidden, toggles with /le, paints ages only while shown
+PASS UI tabs, scrolling and row pooling never allocate on repeat refresh
+PASS UI Friendly and Reported buttons dispatch AskInvite and show real cooldown
+PASS UI Find add, status, clear and invite use existing flow
+PASS UI dragging saves and restores valid per-character position
+PASS Forever surname whisper uses native target API, never malformed slash text
+RESULT: 78 tests passed, 0 failed, 7952 assertions

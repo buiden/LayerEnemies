@@ -359,7 +359,7 @@ function M.start()
     -- Configuration only. Sightings and source identities never enter SavedVariables.
     local saved=LayerEnemiesDB
     M.find=N.Find.new(saved.tracked)
-    LayerEnemiesDB={options={},tracked=M.find.names,position=S.tab(saved.position) and saved.position or nil}
+    LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position)}
     if S.tab(C_ChatInfo) then
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WEFF1")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"ZRAD1")
@@ -372,10 +372,12 @@ function M.start()
         if command=="find" then M.track(nil); return end
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
         local index=command:match("^ask%s+(%d%d?)$")
-        if command=="hosts" then guarded(M.hosts)
+        if command=="" then guarded(N.UI.toggle)
+        elseif command=="hosts" then guarded(M.hosts)
         elseif index or command:match("^ask") then guarded(M.askIndex,tonumber(index))
         else guarded(M.text,command) end
     end
+    N.UI.create()
     heartbeat()
 end
 local frame=CreateFrame("Frame")

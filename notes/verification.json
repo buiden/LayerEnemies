@@ -1,18 +1,18 @@
 {
   "lua_version": "Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio",
-  "syntax_files": 11,
+  "syntax_files": 13,
   "syntax_status": "PASS",
-  "tests_passed": 68,
+  "tests_passed": 78,
   "tests_failed": 0,
-  "assertions": 6846,
+  "assertions": 7952,
   "fuzz_inputs": 5000,
   "toc_and_static_checks": "PASS",
   "archive_integrity_and_source_parity": "PASS",
-  "archive": "/opt/data/projects/layer-enemies/dist/LayerEnemies-0.1.0-headless.zip",
-  "archive_members": 11,
-  "archive_sha256": "4585fab11e099c05a8c1ad37aa38e4cc2f06c2a1f91ac1be5637b8c17225b3b5",
+  "archive": "/opt/data/projects/layer-enemies/dist/LayerEnemies-0.2.0.zip",
+  "archive_members": 13,
+  "archive_sha256": "83d779345feece353ecad59f772aa534bab8e550355a01b17f5db7fa2765f728",
   "real_client_verified": false,
   "live_remote_reports": "On, dated by time of receipt; shown as reported, not confirmed; an old packet replayed in the same second-of-hour window can look fresh",
   "ask_for_invite": "Opens a prefilled whisper for the user to send; never sends, invites, accepts or leaves",
-  "visual_design": "Not applied; two static previews in notes/ await approval"
+  "visual_design": "Approved B implemented with fourth Find tab; native client appearance unverified"
 }

@@ -25,8 +25,12 @@ def main():
     assert '## SavedVariablesPerCharacter: LayerEnemiesDB' in toc
     addon_text = '\n'.join(p.read_text() for p in (ROOT / 'LayerEnemies').glob('*.lua'))
     for forbidden in ('SendAddonMessage', 'JoinChannelByName', 'SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED',
-                      'InviteUnit', 'LeaveParty', 'AcceptGroup', 'C_PartyInfo', 'RunMacroText', 'SetText'):
+                      'InviteUnit', 'LeaveParty', 'AcceptGroup', 'C_PartyInfo', 'RunMacroText'):
         assert forbidden not in addon_text, 'Unexpected outgoing/forbidden API: ' + forbidden
+    for file in (ROOT / 'LayerEnemies').glob('*.lua'):
+        if file.name != 'UI.lua':
+            assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
+    assert '## Version: 0.2.0' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
     (notes / 'test-results.txt').write_text(tests.stdout + tests.stderr)
@@ -37,7 +41,7 @@ def main():
     subprocess.run(['git', 'diff', '--check'], cwd=ROOT, check=True)
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    archive = dist / 'LayerEnemies-0.1.0-headless.zip'
+    archive = dist / 'LayerEnemies-0.2.0.zip'
     expected = ['LayerEnemies/' + p.name for p in sorted((ROOT / 'LayerEnemies').iterdir()) if p.is_file()]
     expected.append('LayerEnemies/README.md')
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as out:
@@ -69,7 +73,7 @@ def main():
         'live_remote_reports': 'On, dated by time of receipt; shown as reported, not confirmed; '
                                'an old packet replayed in the same second-of-hour window can look fresh',
         'ask_for_invite': 'Opens a prefilled whisper for the user to send; never sends, invites, accepts or leaves',
-        'visual_design': 'Not applied; two static previews in notes/ await approval',
+        'visual_design': 'Approved B implemented with fourth Find tab; native client appearance unverified',
     }
     (notes / 'verification.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))

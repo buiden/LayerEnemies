@@ -19,17 +19,52 @@ local frames,timers,log,units,loaded,metadata
 local clock,map,server,channels,inGuild,clientIgnored
 local wall,grouped,opened
 local methods={}
-function methods:Hide() self.shown=false end
-function methods:Show() self.shown=true end
+function methods:Hide() local old=self.shown; self.shown=false; if old and self.scripts.OnHide then self.scripts.OnHide(self) end end
+function methods:Show() local old=self.shown; self.shown=true; if not old and self.scripts.OnShow then self.scripts.OnShow(self) end end
 function methods:IsShown() return self.shown end
+function methods:SetShown(v) if v then self:Show() else self:Hide() end end
+function methods:SetSize(w,h) self.width,self.height=w,h end
+function methods:SetWidth(w) self.width=w end
+function methods:SetHeight(h) self.height=h end
+function methods:SetPoint(...) self.point={...} end
+function methods:GetPoint() local p=self.point or {}; return p[1],p[2],p[3],p[4],p[5] end
+function methods:ClearAllPoints() self.point=nil end
+function methods:SetAllPoints() end
+function methods:SetColorTexture(...) self.color={...} end
+function methods:SetFont(...) self.font={...} end
+function methods:SetJustifyH() end
+function methods:SetJustifyV() end
+function methods:SetTextColor(...) self.textColor={...} end
+function methods:SetText(text) self.text=text end
+function methods:GetText() return self.text or "" end
+function methods:SetFrameStrata() end
+function methods:SetMovable() end
+function methods:SetClampedToScreen() end
+function methods:EnableMouse() end
+function methods:EnableMouseWheel() end
+function methods:RegisterForDrag() end
+function methods:StartMoving() self.moving=true end
+function methods:StopMovingOrSizing() self.moving=false end
+function methods:SetAutoFocus() end
+function methods:SetMaxLetters() end
+function methods:ClearFocus() self.focused=false end
+function methods:Disable() self.disabled=true end
+function methods:Enable() self.disabled=false end
+function methods:Click() if not self.disabled and self.scripts.OnClick then self.scripts.OnClick(self) end end
+local function object(kind)
+    return setmetatable({kind=kind,shown=true,disabled=false,events={},scripts={}}, {__index=function(_,key) if methods[key] then return methods[key] end; error("unknown frame method: "..key) end})
+end
+function methods:CreateTexture() return object("Texture") end
+function methods:CreateFontString() return object("FontString") end
 function methods:RegisterEvent(event) self.events[event]=true end
 function methods:SetScript(key,fn)
-    if key~="OnEvent" and key~="OnUpdate" then error("unknown script") end
+    local allowed={OnEvent=true,OnUpdate=true,OnClick=true,OnDragStart=true,OnDragStop=true,OnMouseWheel=true,OnEnterPressed=true,OnEscapePressed=true,OnShow=true,OnHide=true}
+    if not allowed[key] then error("unknown script: "..key) end
     self.scripts[key]=fn
 end
 function CreateFrame(kind)
-    eq(kind,"Frame")
-    local f=setmetatable({shown=true,events={},scripts={}}, {__index=function(_,key) if methods[key] then return methods[key] end; error("unknown frame method: "..key) end})
+    yes(kind=="Frame" or kind=="Button" or kind=="EditBox","supported frame type")
+    local f=object(kind)
     frames[#frames+1]=f; return f
 end
 local function deliver(event,...)
@@ -93,7 +128,7 @@ local function loadAddon()
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
     _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
     local N={}
-    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Find","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
@@ -131,7 +166,7 @@ end
 
 test("strict frames start shown, dispatcher hidden, no UI or OnUpdate",function()
     local N=loadAddon()
-    eq(#frames,1); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil)
+    eq(#frames,11); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil)
     local f=CreateFrame("Frame"); yes(f:IsShown()); no(pcall(function() f:InventedMethod() end))
     eq(N.Main.statusBulo,"not installed"); eq(N.Main.statusWE,"not installed")
 end)
@@ -140,7 +175,7 @@ test("neither source: own observation works after local NPC confirmation",functi
     units.target=player("Enemy","Horde"); advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
     local rows=N.Store.rows(N.Main.store,clock,"local")
     eq(#rows,1); eq(rows[1].name,"Enemy"); eq(rows[1].confidence,"seen by you"); eq(rows[1].x,.25)
-    SlashCmdList.LAYERENEMIES(""); yes(table.concat(log,"\n"):find("Enemy",1,true)); no(N.Main.error)
+    SlashCmdList.LAYERENEMIES("list"); yes(table.concat(log,"\n"):find("Enemy",1,true)); no(N.Main.error)
 end)
 test("Bulo present subscribes and copies timestamps without position",function()
     local N=loadAddon(); local b,cb=fakeBulo("7086-7")
@@ -209,7 +244,7 @@ test("secret names/classes/levels/GUIDs remain unreadable",function()
     units.target=player(secret,"Horde"); units.target.class=secret; units.target.level=secret
     advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
     local row=N.Store.rows(N.Main.store,clock,"local")[1]; yes(row); eq(row.name,nil); eq(row.class,nil); eq(row.level,nil)
-    SlashCmdList.LAYERENEMIES(""); yes(table.concat(log,"\n"):find("Unknown",1,true))
+    SlashCmdList.LAYERENEMIES("list"); yes(table.concat(log,"\n"):find("Unknown",1,true))
     units.target.guid=secret; deliver("PLAYER_TARGET_CHANGED"); drain(); no(N.Main.error)
     eq(N.Safe.str(secret),nil); eq(N.Safe.num(secret),nil)
 end)
@@ -410,13 +445,13 @@ test("headless map candidates only for shown zone, never fake enemy coordinates"
     eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
     local candidates=N.Store.mapCandidates(N.Main.store,clock,100)
     eq(#candidates,1); eq(candidates[1].x,.25); eq(candidates[1].positionKind,"approximate observer position")
-    eq(#frames,1)
+    eq(#frames,11)
 end)
 test("SavedVariables contain options only; no sightings survive reload",function()
     local N=loadAddon(); establish(N)
     units.target=player("PrivateName","Horde"); advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
     eq(LayerEnemiesDB.sightings,nil); eq(LayerEnemiesDB.localSeen,nil); yes(LayerEnemiesDB.options)
-    N.Main.start(); eq(#frames,1)
+    N.Main.start(); eq(#frames,11)
     N=loadAddon(); eq(N.Safe.count(N.Main.store.localSeen),0)
 end)
 test("heartbeat is five seconds idle, two while map shown",function()
@@ -533,7 +568,7 @@ test("receipt time dates a report; it stays reported, not confirmed",function()
     eq(rows[1].namespace,"war-effort-zoneUID")
     eq(#N.Store.rows(N.Main.store,clock,"local"),0); eq(#N.Store.rows(N.Main.store,clock,"unclassified"),0)
     eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
-    SlashCmdList.LAYERENEMIES("")
+    SlashCmdList.LAYERENEMIES("list")
     yes(logged("Reported, not confirmed: 1 more in /le reports")); no(logged("Unknown | MAGE"))
     SlashCmdList.LAYERENEMIES("reports")
     yes(logged("Reported, not confirmed (War Effort, dated by time of receipt):"))
@@ -890,15 +925,15 @@ test("addon never sends, invites, accepts or leaves (source and runtime)",functi
     grouped=false; deliver("GROUP_ROSTER_UPDATE"); advance(10); LE.AskInvite("Bob"); drain()
     grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70)
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
-    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Find","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
-        for _,word in ipairs({"SendChatMessage","SendAddonMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","SetText","JoinChannel"}) do
+        for _,word in ipairs({"SendChatMessage","SendAddonMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","JoinChannel"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
         end
     end
     -- the only registered events are passive
     for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true)) end
-    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,1)
+    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,11)
     eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
 end)
 test("Find hashes mirror upstream realm, realm-less and Forever surname keys",function()
@@ -968,6 +1003,82 @@ test("Find cap, validation, remove, alert sound and own name with surname",funct
     deliver("PLAYER_TARGET_CHANGED"); drain()
     yes(N.Main.findRows()[1].own); eq(sounds,1); N.Main.findAlerts(); eq(sounds,1)
     advance(300); N.Main.findAlerts(); eq(sounds,2); PlaySound=nil
+end)
+test("UI starts hidden, toggles with /le, paints ages only while shown",function()
+    local N=loadAddon(); local U=N.UI
+    no(U.frame:IsShown()); eq(#U.pool,0)
+    for _,f in ipairs(frames) do eq(f.scripts.OnUpdate,nil) end
+    advance(20); eq(U.lastPaint,nil); eq(#U.pool,0)
+    SlashCmdList.LAYERENEMIES(""); yes(U.frame:IsShown()); eq(U.lastPaint,clock); no(N.Main.error)
+    local last=U.lastPaint
+    advance(.5); eq(U.lastPaint,last); advance(.5); eq(U.lastPaint,clock)
+    SlashCmdList.LAYERENEMIES(""); no(U.frame:IsShown()); last=U.lastPaint
+    advance(10); eq(U.lastPaint,last)
+    SlashCmdList.LAYERENEMIES("list"); no(U.frame:IsShown()); yes(logged("Only players seen"))
+end)
+test("UI tabs, scrolling and row pooling never allocate on repeat refresh",function()
+    local N=loadAddon(); establish(N); local U=N.UI
+    advance(1)
+    for i=1,20 do
+        N.Store.observe(N.Main.store,{key="Player-1-"..i,name="Enemy",class="MAGE",level=i,at=clock,faction="opposite",source="own target"},clock)
+    end
+    U.toggle(); eq(#U.pool,6); eq(U.tabs["local"].label.text,"Seen by you (20)")
+    local first=U.pool[1]; local count=#frames
+    for _=1,20 do U.render() end
+    eq(#frames,count); eq(U.pool[1],first)
+    U.body.scripts.OnMouseWheel(U.body,-1); eq(U.offset,1)
+    U.tabs.reported:Click(); eq(U.tab,"reported"); eq(U.offset,0); yes(U.banner.text:find("not confirmed",1,true)); no(first:IsShown())
+    U.tabs.friendly:Click(); eq(U.tab,"friendly")
+    U.tabs.find:Click(); eq(U.tab,"find"); yes(U.input:IsShown()); yes(U.add:IsShown())
+    U.tabs["local"]:Click(); no(U.input:IsShown()); eq(U.pool[1],first); eq(#frames,count)
+end)
+test("UI Friendly and Reported buttons dispatch AskInvite and show real cooldown",function()
+    local N=loadAddon(); warSettings(); chatBox(); friends(N,{Alice=there()})
+    local U=N.UI; U.toggle(); U.select("friendly")
+    eq(U.pool[1].title.text,"Alice")
+    local original=N.AskInvite; local calls={}
+    N.AskInvite=function(name) calls[#calls+1]=name; return original(name) end
+    U.pool[1].ask:Click(); drain(); eq(calls[1],"Alice"); eq(#opened,1)
+    eq(U.pool[1].ask.label.text,"Asked · 60s"); yes(U.pool[1].ask.disabled)
+    U.pool[1].ask:Click(); eq(#calls,1)
+    advance(1); eq(U.pool[1].ask.label.text,"Asked · 59s")
+    advance(60); no(U.pool[1].ask.disabled)
+    report(1,9,"Scout"); U.select("reported"); yes(U.pool[1].ask:IsShown())
+    U.pool[1].ask:Click(); drain(); eq(calls[2],"Scout"); eq(#opened,2)
+    eq(U.pool[1].ask.label.text,"Asked · 60s"); eq(forbidden,0)
+end)
+test("UI Find add, status, clear and invite use existing flow",function()
+    local N=loadAddon(); chatBox(); local U=N.UI
+    U.toggle(); U.tabs.find:Click(); U.input:SetText("Alice"); U.add:Click()
+    eq(LayerEnemiesDB.tracked[1],"Alice"); eq(U.input:GetText(),""); eq(U.pool[1].title.text,"Alice")
+    yes(U.pool[1].sub.text:find("Not located",1,true)); no(U.pool[1].ask:IsShown())
+    N.Find.report(N.Main.find,{sender="Scout",zone=100,at=clock,enemies={{hash=N.Hash.player("Alice",""),class="MAGE",level=40}}},"Test Realm")
+    U.render(); yes(U.pool[1].sub.text:find("possible match",1,true)); yes(U.pool[1].ask:IsShown())
+    U.pool[1].ask:Click(); drain(); eq(#opened,1); eq(opened[1].text,"/w Scout "..ASK)
+    U.pool[1].clear:Click(); eq(#LayerEnemiesDB.tracked,0); no(U.pool[1]:IsShown())
+    U.input:SetText("Bad|r"); U.add:Click(); eq(#LayerEnemiesDB.tracked,0)
+end)
+test("UI dragging saves and restores valid per-character position",function()
+    local N=loadAddon(); local U=N.UI
+    U.frame:SetPoint("TOPLEFT",UIParent,"TOPLEFT",42,-80)
+    U.frame.scripts.OnDragStart(); yes(U.frame.moving)
+    U.frame.scripts.OnDragStop(); no(U.frame.moving)
+    eq(LayerEnemiesDB.position.x,42); eq(LayerEnemiesDB.position.y,-80)
+    U.frame=nil; U.create(); eq(U.frame.point[1],"TOPLEFT"); eq(U.frame.point[4],42)
+    LayerEnemiesDB.position={point="garbage",relative="CENTER",x=math.huge,y=0}
+    U.frame=nil; U.create(); eq(U.frame.point[1],"CENTER"); eq(U.frame.point[4],0)
+    eq(U.position(secret),nil); eq(U.position({point=secret}),nil)
+    eq(U.position(setmetatable({},{__index=function() error("corrupt") end})),nil)
+    local clean=U.position({point="CENTER",relative="CENTER",x=0,y=0,unwanted="private"})
+    eq(clean.unwanted,nil); eq(N.Safe.count(clean),4)
+end)
+test("Forever surname whisper uses native target API, never malformed slash text",function()
+    local N=loadAddon(); friends(N,{["First Surname"]=there()})
+    local target,inserted
+    ChatFrameUtil={SendTell=function(name) target=name end,GetActiveWindow=function() return {Insert=function(_,text) inserted=text end} end}
+    yes(LE.AskInvite("First Surname")); drain(); eq(target,"First Surname"); eq(inserted,ASK); eq(#opened,0)
+    advance(60); ChatFrameUtil=nil
+    yes(LE.AskInvite("First Surname")); drain(); yes(logged("open a whisper to First Surname manually")); no(logged("/w First Surname")); eq(forbidden,0)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
