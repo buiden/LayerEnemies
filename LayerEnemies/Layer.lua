@@ -29,8 +29,26 @@ function L.same(a,b)
     a,b=L.key(a),L.key(b)
     return a~=nil and a==b
 end
-function L.new() return { votes={}, current=nil, last=nil } end
+function L.new() return { votes={}, current=nil, last=nil, raw=nil, ambigAt=nil } end
+-- reset: new votes (a zoneUID transition inside the zone, or 300 s without readings). The confirmed raw id and an
+-- ambiguity window stay: they belong to the zone epoch, which only forget() ends (zone change).
 function L.reset(t) S.clear(t.votes); t.current=nil; t.last=nil end
+function L.forget(t) L.reset(t); t.raw=nil; t.ambigAt=nil end
+L.AMBIGUOUS=1800
+-- Our own server key: the server part of the last confirmed raw id (two NPC readings agreeing exactly).
+function L.server(t)
+    if not S.tab(t) then return nil end
+    local ok,raw=pcall(function() return t.raw end)
+    return ok and L.key(raw) or nil
+end
+-- True for 1800 s after the confirmed raw id changed its zoneUID part while the server part stayed the same inside
+-- one zone epoch: two layers of a zone can share a server, so an equal key is then not even "probably yours".
+function L.ambiguous(t,now)
+    if not S.tab(t) then return false end
+    local ok,at=pcall(function() return t.ambigAt end)
+    now=S.num(now)
+    return ok and S.num(at)~=nil and now~=nil and now-at<L.AMBIGUOUS or false
+end
 -- Five recent readings, distinct NPC kinds, never unbounded GUID history.
 function L.observe(t,guid,now)
     local zone,npc,raw = L.npc(guid)
@@ -48,6 +66,11 @@ function L.observe(t,guid,now)
         local exact=0
         for _,v in ipairs(t.votes) do if v.raw==raw then exact=exact+1 end end
         t.current=zone; t.last=now
+        if exact>=2 then
+            if t.raw and t.raw~=raw and L.key(t.raw)==L.key(raw) then t.ambigAt=now end
+            if t.raw and L.key(t.raw)~=L.key(raw) then t.ambigAt=nil end   -- another server: a new layer, not ambiguous
+            t.raw=raw
+        end
         return zone,old,exact>=2 and raw or nil
     end
 end

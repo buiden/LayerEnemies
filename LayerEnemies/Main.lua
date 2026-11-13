@@ -29,7 +29,9 @@ end
 function M.boundary(zone)
     captureStale()
     M.blockedBulo=M.store.bulo
-    M.subEpoch=now(); L.reset(M.npcs)
+    -- a new zone ends the zone epoch (own raw id and ambiguity); inside one zone only the votes start again
+    if zone~=M.store.zone then L.forget(M.npcs) else L.reset(M.npcs) end
+    M.subEpoch=now()
     T.reset(M.store,M.subEpoch,zone,nil,nil)
     N.Reports.clearPending(M.receiver)
     S.clear(M.pendingUnits)
@@ -157,7 +159,12 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     local report,why=N.Reports.receive(M.receiver,text,sender,now(),server,A.zone,M.store.zone,M.store.zoneUID,M.store.epoch,N.Reports.RECEIPT,#M.find.names>0)
     M.lastDrop=why
     if report then
-        T.report(M.store,report,now())
+        -- War Effort 0.2.13 sends its zoneUID as the layer: private per player, never compared with anything.
+        local record=N.Record.new({src="we",kind="group",origin=report.sender,via=sender,route=kind,rid=tostring(report.id),
+            zone=report.zone,x=report.x,y=report.y,count=#report.enemies,enemies=report.enemies,
+            layer={ns="zoneuid",value=report.layer},heard=report.at,age=report.freshness~="receipt" and 0 or nil,
+            share=kind=="GUILD" and "guild" or "public"})
+        if record then T.report(M.store,record,now()) end
         N.Find.report(M.find,report,M.homeRealm())
         M.findAlerts()
         if N.UI then N.UI.refresh() end
@@ -201,7 +208,10 @@ function M.track(name,remove)
         local ok,why=N.Find.add(M.find,name)
         if not ok then M.say("LayerEnemies: "..why); return false end
         for _,e in pairs(M.store.localSeen) do N.Find.own(M.find,e,M.store.zone,e.at) end
-        for _,r in pairs(M.store.reports) do N.Find.report(M.find,r,M.homeRealm()) end
+        for _,row in pairs(M.store.reports) do
+            local r=row.record
+            N.Find.report(M.find,{sender=r.origin,zone=r.zone,at=r.heard,enemies=r.enemies},M.homeRealm())
+        end
     else N.Find.remove(M.find) end
     LayerEnemiesDB.tracked=M.find.names
     if #M.find.names==0 then M.say("LayerEnemies: tracked names cleared.") end
@@ -321,7 +331,8 @@ function M.text(command)
     say("LayerEnemies - Your layer: "..id.." ("..(M.layerSource or "unknown")..")")
     say("Bulo: "..M.statusBulo); say("War Effort: "..M.statusWE)
     if M.error then say("Runtime status: "..M.error) end
-    say("War Effort zoneUID: "..tostring(M.store.zoneUID or "Unknown").." (separate namespace, not layer membership proof)")
+    say("Your server key: "..(L.key(M.store.bulo) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
+        .." - zone-scoped; an equal key is not proof of the same layer")
     local kind=command=="reports" and "reported" or command=="unclassified" and "unclassified" or "local"
     say(kind=="reported" and "Reported, not confirmed (War Effort, dated by time of receipt):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
     local rows=T.rows(M.store,now(),kind)
@@ -330,7 +341,7 @@ function M.text(command)
         local when=ago(now()-e.at)
         local extra=""
         if e.reporter then
-            extra=" | reported by "..e.reporter.." | "..(e.relation=="same" and "same zoneUID as yours" or e.relation=="other" and ("other zoneUID "..tostring(e.reportLayer)) or "your zoneUID unknown")
+            extra=" | reported by "..e.reporter.." | "..(e.relation=="same" and "same server key as yours" or e.relation=="other" and ("other server key "..tostring(e.reportLayer)) or "layer unknown")
         end
         say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or ""))
     end
@@ -353,6 +364,7 @@ function M.start()
     if M.started then return end
     M.started=true
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new()
+    M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped()
     M.layerSource="unknown"; M.store.zone=A.location()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end

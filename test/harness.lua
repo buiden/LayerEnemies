@@ -154,7 +154,7 @@ local function loadAddon()
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
     _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
     local N={}
-    for _,file in ipairs({"Safe","Hash","Layer","Wire","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
@@ -447,14 +447,18 @@ test("reported reducer output stays separate with possible hash identities",func
     local N=loadAddon(); local t=N.Store.new(0); t.zone=100; t.bulo="7086-7"; t.zoneUID=7
     yes(N.Store.observe(t,{key="Player-1-1",at=100,name="Enemy",realm="Test Realm",class="MAGE",faction="opposite",source="own target"},100))
     local hash=N.Hash.player("Enemy","Test Realm")
-    local report={id=1,sender="Reporter",zone=100,layer=7,at=101,enemies={{hash=hash,class="MAGE",level=60}},freshness="verified",x=.4,y=.5}
+    local report=N.Record.new({src="we",kind="group",origin="Reporter",via="Reporter",route="GUILD",rid="1",zone=100,x=.4,y=.5,count=1,
+        enemies={{hash=hash,class="MAGE",level=60}},layer={ns="server",value="7086"},heard=101,age=0,share="guild"})
     yes(N.Store.report(t,report,101))
     local rows=N.Store.rows(t,101,"reported"); eq(#rows,1); eq(rows[1].name,"Unknown"); yes(rows[1].possible:find("possible identity:",1,true))
-    eq(rows[1].confidence,"reported zoneUID match (unverified)"); eq(rows[1].namespace,"war-effort-zoneUID")
+    eq(rows[1].confidence,"reported server key match (unverified)"); eq(rows[1].namespace,"server"); eq(rows[1].relation,"same"); eq(rows[1].record,report)
     eq(#N.Store.rows(t,101,"local"),1)
     t.identities[hash]["Collision-Realm"]=101
     rows=N.Store.rows(t,101,"reported"); yes(rows[1].possible:find("Collision-Realm",1,true))
-    report.freshness=nil; no(N.Store.report(t,report,101))
+    -- a dated (non-receipt) record must match our server key; another key, or a zoneUID, is not accepted
+    no(N.Store.report(t,N.Record.new({src="we",kind="group",origin="Other",route="GUILD",rid="2",zone=100,layer={ns="server",value="7087"},heard=101,age=0,share="guild"}),101))
+    no(N.Store.report(t,N.Record.new({src="we",kind="group",origin="Other",route="GUILD",rid="3",zone=100,layer={ns="zoneuid",value=7},heard=101,age=0,share="guild"}),101))
+    no(N.Store.report(t,{id="x"},101))
 end)
 test("store expiration, epoch, caps and deterministic newest ordering",function()
     local N=loadAddon(); local t=N.Store.new(100); t.zone=100; t.bulo="7086-7"
@@ -590,15 +594,15 @@ test("receipt time dates a report; it stays reported, not confirmed",function()
     eq(N.Main.lastDrop,"complete")
     local rows=N.Store.rows(N.Main.store,clock,"reported")
     eq(#rows,1); eq(rows[1].at,at); eq(rows[1].name,"Unknown"); eq(rows[1].class,"MAGE"); eq(rows[1].level,40)
-    eq(rows[1].confidence,"reported, not confirmed"); eq(rows[1].reporter,"Other"); eq(rows[1].relation,"same"); yes(rows[1].receipt)
-    eq(rows[1].namespace,"war-effort-zoneUID")
+    eq(rows[1].confidence,"reported, not confirmed"); eq(rows[1].reporter,"Other"); eq(rows[1].relation,"unknown"); yes(rows[1].receipt)
+    eq(rows[1].namespace,"zoneuid")
     eq(#N.Store.rows(N.Main.store,clock,"local"),0); eq(#N.Store.rows(N.Main.store,clock,"unclassified"),0)
     eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
     SlashCmdList.LAYERENEMIES("list")
     yes(logged("Reported, not confirmed: 1 more in /le reports")); no(logged("Unknown | MAGE"))
     SlashCmdList.LAYERENEMIES("reports")
     yes(logged("Reported, not confirmed (War Effort, dated by time of receipt):"))
-    yes(logged("Unknown | MAGE | 40 | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Other | same zoneUID as yours"))
+    yes(logged("Unknown | MAGE | 40 | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Other | layer unknown"))
     yes(logged("Only players seen by you or reported by War Effort users.")); no(N.Main.error)
 end)
 test("receipt-time reports expire ten minutes after receipt",function()
@@ -663,11 +667,11 @@ test("reports from another zoneUID in our zone are kept apart and labelled",func
     local N=loadAddon(); establish(N); warSettings(); advance(1)
     report(1,9,"Scout-TestRealm"); eq(N.Main.lastDrop,"complete")
     local rows=N.Store.rows(N.Main.store,clock,"reported")
-    eq(#rows,1); eq(rows[1].relation,"other"); eq(rows[1].reportLayer,9); eq(rows[1].confidence,"reported, not confirmed")
+    eq(#rows,1); eq(rows[1].relation,"unknown"); eq(rows[1].reportLayer,9); eq(rows[1].confidence,"reported, not confirmed")
     deliver("CHAT_MSG_ADDON","WEFF1","C|2|200|0|0|9|1|"..math.floor(server)%3600,"GUILD","Elsewhere"); eq(N.Main.lastDrop,"zone/layer mismatch")
     report(2,9,"Elsewhere",200); eq(N.Main.lastDrop,"replayed report"); eq(N.Safe.count(N.Main.store.reports),1)
     eq(#N.Store.reporters(N.Main.store,clock),1)
-    SlashCmdList.LAYERENEMIES("reports"); yes(logged("other zoneUID 9")); yes(logged("ask a reporter for an invite: /le hosts"))
+    SlashCmdList.LAYERENEMIES("reports"); yes(logged("| layer unknown")); no(logged("other zoneUID")); yes(logged("ask a reporter for an invite: /le hosts"))
     -- Before our own zoneUID is known the relation is unknown, never "same".
     N=loadAddon(); warSettings(); advance(1); report(1,7)
     eq(N.Store.rows(N.Main.store,clock,"reported")[1].relation,"unknown")
@@ -883,7 +887,8 @@ test("after join: confirmed layer change is announced once (Bulo)",function()
     yes(logged("you joined a group after asking - checking your layer for 60 s.")); yes(N.Main.invite.watch)
     advance(5); no(logged("Moved to layer"))
     b.current="8000-7"; b:Fire("LFS_LAYER",b.current); drain()
-    yes(logged("LayerEnemies: Moved to layer 8000 - safe to leave the group.")); eq(N.Main.invite.watch,nil)
+    yes(logged("LayerEnemies: Moved to layer 8000. Whether leaving the group keeps you there is not confirmed - stay grouped if unsure.")); eq(N.Main.invite.watch,nil)
+    eq(lines("safe to leave"),0)
     advance(120); deliver("GROUP_ROSTER_UPDATE")
     eq(lines("Moved to layer"),1); eq(lines("Still on your layer"),0); no(logged("was listed on layer"))
     yes(grouped); eq(forbidden,0); no(N.Main.error)
@@ -896,7 +901,7 @@ test("after join: change confirmed by two NPC kinds; other layer than listed is 
     no(logged("Moved to layer"))                                      -- one NPC is not confirmation
     units.mouseover={guid=npc(4,9,"9000"),player=false}; advance(1); deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
     eq(N.Main.store.bulo,"9000-9")
-    yes(logged("LayerEnemies: Moved to layer 9000 - safe to leave the group."))
+    yes(logged("LayerEnemies: Moved to layer 9000. Whether leaving the group keeps you there is not confirmed - stay grouped if unsure."))
     yes(logged("LayerEnemies: Alice was listed on layer 8000, not 9000.")); eq(forbidden,0)
 end)
 test("after join: unchanged after 60 s says so once; nothing is left for the user",function()
@@ -951,7 +956,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     grouped=false; deliver("GROUP_ROSTER_UPDATE"); advance(10); LE.AskInvite("Bob"); drain()
     grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70)
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
-    for _,file in ipairs({"Safe","Hash","Layer","Wire","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
         for _,word in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","JoinChannel"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
@@ -1109,6 +1114,91 @@ test("Forever surname whisper uses native target API, never malformed slash text
     yes(LE.AskInvite("First Surname")); drain(); eq(target,"First Surname"); eq(inserted,ASK); eq(#opened,0)
     advance(60); ChatFrameUtil=nil
     yes(LE.AskInvite("First Surname")); drain(); yes(logged("open a whisper to First Surname manually")); no(logged("/w First Surname")); eq(forbidden,0)
+end)
+-- Record model and layer namespaces (Task 2)
+local function rec(N,over)
+    local t={src="we",kind="group",origin="Scout-TestRealm",via="Scout-TestRealm",route="GUILD",rid="1",zone=100,x=.4,y=.5,count=1,
+        enemies={{hash="abc",class="HUNTER",level=40}},layer={ns="server",value="7086"},heard=10,share="guild"}
+    for k,v in pairs(over or {}) do t[k]=v end
+    return N.Record.new(t)
+end
+test("relation never crosses namespaces",function()
+    local N=loadAddon(); local R=N.Record; local own={zone=100,server="7086"}
+    local r=rec(N); yes(r); eq(r.id,"we:scout-testrealm:1"); eq(R.relation(r,own),"same")
+    eq(R.relation(rec(N,{layer={ns="zoneuid",value="7086"}}),own),"unknown")
+    eq(R.relation(rec(N,{layer={ns="zoneuid",value=7086}}),own),"unknown")
+    eq(R.relation(rec(N,{layer={ns="unknown",value="7086"}}),own),"unknown")
+    eq(R.relation(rec(N,{layer={ns="server",value="7087"}}),own),"other")
+end)
+test("relation is zone scoped",function()
+    local N=loadAddon(); local R=N.Record; local r=rec(N)
+    eq(R.relation(r,{zone=200,server="7086"}),"unknown"); eq(R.relation(r,{zone=200,server="7087"}),"unknown")
+    eq(R.relation(r,{zone=100,server=nil}),"unknown"); eq(R.relation(r,{server="7086"}),"unknown")
+    eq(R.relation(nil,{zone=100,server="7086"}),"unknown"); eq(R.relation(r,nil),"unknown")
+end)
+test("equal server is unknown while ambiguous",function()
+    local N=loadAddon(); local R=N.Record
+    eq(R.relation(rec(N),{zone=100,server="7086",ambiguous=true}),"unknown")
+    eq(R.relation(rec(N,{layer={ns="server",value="7087"}}),{zone=100,server="7086",ambiguous=true}),"other")
+end)
+test("own server key without Bulo",function()
+    local N=loadAddon(); eq(N.Layer.server(N.Main.npcs),nil)
+    units.target={guid=npc(1,4),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+    eq(N.Layer.server(N.Main.npcs),nil)
+    units.mouseover={guid=npc(2,4),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
+    eq(N.Layer.server(N.Main.npcs),"7086"); eq(N.Main.store.bulo,"7086-4")
+    eq(N.Layer.server({}),nil); eq(N.Layer.server(nil),nil); eq(N.Layer.server(secret),nil)
+end)
+test("ambiguity lasts 1800 s",function()
+    local N=loadAddon(); local L=N.Layer; local st=L.new()
+    L.observe(st,npc(1,4),1); L.observe(st,npc(2,4),2); eq(L.server(st),"7086"); no(L.ambiguous(st,2))
+    L.observe(st,npc(3,9),10); local z,old,raw=L.observe(st,npc(4,9),11); eq(raw,"7086-9")
+    yes(L.ambiguous(st,11)); yes(L.ambiguous(st,11+1799)); no(L.ambiguous(st,11+1801))
+    -- the same-zone reset Main does on a zoneUID transition keeps it; a zone change ends it
+    L.reset(st); yes(L.ambiguous(st,100)); eq(L.server(st),"7086")
+    L.forget(st); no(L.ambiguous(st,100)); eq(L.server(st),nil)
+    -- a changed server part is another layer, not an ambiguity
+    st=L.new(); L.observe(st,npc(1,4),1); L.observe(st,npc(2,4),2)
+    L.observe(st,npc(3,9,"7087"),10); L.observe(st,npc(4,9,"7087"),11); eq(L.server(st),"7087"); no(L.ambiguous(st,12))
+    -- through the addon: zoneUID 4 -> 9 on one server in one zone, then a zone change
+    N=loadAddon()
+    units.target={guid=npc(1,4),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+    units.mouseover={guid=npc(2,4),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(1)
+    units.target={guid=npc(3,9),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+    units.mouseover={guid=npc(4,9),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
+    yes(L.ambiguous(N.Main.npcs,clock)); yes(N.Main.store.ambiguous and N.Main.store.ambiguous(clock))
+    map=200; units.target={guid=npc(5,9),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain()
+    no(L.ambiguous(N.Main.npcs,clock))
+end)
+test("record rejects bad fields",function()
+    local N=loadAddon()
+    local function bad(over,why) local r,reason=rec(N,over); eq(r,nil,why); yes(reason,why) end
+    bad({count=81},"count 81"); local many={}; for i=1,81 do many[i]={hash="abc"} end; bad({enemies=many},"81 enemies")
+    bad({layer={ns="bulo",value="7086"}},"unknown ns"); bad({layer=false},"no layer"); bad({origin="A"},"1-byte origin")
+    bad({origin=string.rep("a",101)},"origin 101"); bad({src="spy"},"src"); bad({kind="raid"},"kind"); bad({route="CHANNEL"},"route")
+    bad({rid=string.rep("1",25)},"rid 25"); bad({x=1.5},"x"); bad({zone=0},"zone"); bad({share="all"},"share"); bad({heard=secret},"secret heard")
+    bad({origin=secret},"secret origin"); bad({enemies={{level=secret}}},"secret enemy")
+    eq(N.Record.new(nil),nil); eq(N.Record.new(secret),nil)
+    -- 80 enemies and count 80 are fine; a server value must be a server key
+    for i=1,80 do many[i]={hash="abc"} end; many[81]=nil; yes(rec(N,{enemies=many,count=80}))
+    bad({layer={ns="server",value="x7"}},"server value")
+    local r=rec(N,{label="War Effort",age=5}); eq(r.label,"War Effort"); eq(r.age,5); eq(r.layer.ns,"server")
+end)
+test("store relation uses the record; War Effort 0.2.13 zoneUID reports are not comparable",function()
+    local N=loadAddon(); establish(N); warSettings(); advance(1)
+    report(1,7); local rows=N.Store.rows(N.Main.store,clock,"reported")
+    eq(#rows,1); eq(rows[1].relation,"unknown"); eq(rows[1].record.layer.ns,"zoneuid"); eq(rows[1].record.src,"we")
+    eq(rows[1].record.origin,"Other"); eq(rows[1].record.share,"guild")
+    SlashCmdList.LAYERENEMIES("list"); yes(logged("Your server key: 7086")); no(logged("War Effort zoneUID"))
+end)
+test("tracking a name looks through reports already stored (records)",function()
+    local N=loadAddon(); establish(N); warSettings(); advance(1)
+    local hash=N.Hash.player("Alice","Test Realm"); local stamp=math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0.4|0.5|7|1|"..stamp,"GUILD","Scout")
+    deliver("CHAT_MSG_ADDON","WEFF1","E|1|1|1|"..hash..":H:40|"..stamp,"GUILD","Scout")
+    eq(N.Main.lastDrop,"complete"); no(N.Main.find.locations.Alice)
+    N.Main.track("Alice"); local loc=N.Main.find.locations.Alice
+    yes(loc); eq(loc.spotter,"Scout"); eq(loc.zone,100); eq(loc.level,40); no(N.Main.error)
 end)
 -- Wire.lua: the only sender
 test("the send mock counts any caller but Wire.lua as forbidden",function()
