@@ -116,49 +116,36 @@ function A.friendLists()
     if ok then out.book=list else out.book=false end
     return out
 end
-function A.policy(prefix,kind,sender,channel)
-    -- Read the installed version's persisted settings; never mutate or join/send.
+-- Client ignore list for any name (immediate sender or a wrapper's origin). Unreadable counts as ignored.
+function A.ignored(name)
+    local friends=C_FriendList
+    if not S.tab(friends) or type(S.clean(friends.IsIgnored))~="function" then return true,"client ignore policy unavailable" end
+    local isIgnored=S.call(friends.IsIgnored,name)
+    if type(isIgnored)~="boolean" then return true,"client ignore policy unavailable" end
+    return isIgnored,isIgnored and "ignored sender" or nil
+end
+-- War Effort 1.6.6 traffic is read whether or not War Effort is installed: WEFF1 on GUILD, PARTY or RAID only.
+-- Whispers (embassy partner state) and channels are Phase 2. Which types each route carries is checked after decode.
+function A.policy(prefix,kind,sender)
     local ok,allowed,reason=pcall(function()
-        if not A.loaded("WarEffortScout") then return false,"not installed" end
-        local api=C_AddOns
-        local metadata=S.tab(api) and api.GetAddOnMetadata or GetAddOnMetadata
-        if S.str(S.call(metadata,"WarEffortScout","Version"),30)~="0.2.13" then return false,"privacy unavailable: unsupported version" end
-        local db=_G.WarEffortScoutDB
-        if not S.tab(db) or not S.tab(db.ignored) or S.secret(db.silent) or S.secret(db.guildOnly) or type(db.silent)~="boolean" or type(db.guildOnly)~="boolean" then return false,"privacy settings unavailable" end
-        if db.silent then return false,"unavailable: War Effort silent mode" end
-        -- Legacy-network enablement is local, not exposed; do not guess it.
-        if prefix=="ZRAD1" then return false,"legacy privacy unavailable" end
         if prefix~="WEFF1" then return false,"prefix" end
+        if kind~="GUILD" and kind~="PARTY" and kind~="RAID" then return false,"route" end
         local me,realm=S.call(UnitName,"player"); me,realm=S.str(me),S.str(realm)
         realm=realm or S.str(S.call(GetRealmName))
         if not me or not realm then return false,"own identity unavailable" end
         local name,remoteRealm=sender:match("^([^%-]+)%-(.+)$")
         name=name or sender; remoteRealm=remoteRealm or realm
         if N.Hash.nameKey(name,remoteRealm)==N.Hash.nameKey(me,realm) or sender:lower()==me:lower() then return false,"own echo" end
-        -- War Effort uses Ambiguate(..., 'none'); demand the same readable key.
-        local short=S.str(S.call(Ambiguate,sender,"none"),100)
-        if not short then return false,"ignore policy unavailable" end
-        local ignored=S.clean(db.ignored[short:lower()])
-        if S.secret(db.ignored[short:lower()]) then return false,"ignore policy unavailable" end
-        if ignored~=nil and ignored~=false then return false,"ignored sender" end
-        -- Honor the client's ignore list too, only when a supported query is available.
-        local friends=C_FriendList
-        if not S.tab(friends) or type(S.clean(friends.IsIgnored))~="function" then return false,"client ignore policy unavailable" end
-        local isIgnored=S.call(friends.IsIgnored,sender)
-        if type(isIgnored)~="boolean" then return false,"client ignore policy unavailable" end
-        if isIgnored then return false,"ignored sender" end
+        local ignored,why=A.ignored(sender)
+        if ignored then return false,why end
         if kind=="GUILD" then
             if S.call(IsInGuild)~=true then return false,"guild unavailable" end
             return true,"guild"
         end
-        if kind~="CHANNEL" or db.guildOnly then return false,"channel disallowed" end
-        local faction=S.str(S.call(UnitFactionGroup,"player"),20)
-        local expected=faction=="Alliance" and "WarEffortPubA" or faction=="Horde" and "WarEffortPubH" or nil
-        if not expected or channel~=expected then return false,"wrong channel" end
-        local id=S.num(S.call(GetChannelName,expected))
-        if not id or id<1 then return false,"channel membership unavailable" end
-        return true,"public"
+        return true,"group"
     end)
-    if not ok then return false,"privacy settings unavailable" end
+    if not ok then return false,"policy unavailable" end
     return allowed,reason
 end
+-- Types each route may carry (WEFF1): guild C E H G, home group C E H X.
+A.WE_TYPES={GUILD={C=true,E=true,H=true,G=true},PARTY={C=true,E=true,H=true,X=true},RAID={C=true,E=true,H=true,X=true}}

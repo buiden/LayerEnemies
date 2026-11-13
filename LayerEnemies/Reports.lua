@@ -1,100 +1,128 @@
+-- War Effort report assembly, keyed by the original reporter and report id. A C alone makes a record; E lists enrich
+-- it (they may arrive first: held 15 s), never change when it was heard, and may stay incomplete: count is what C
+-- said. Every result is "reported, not confirmed": the wire has no absolute time.
 local _, N = ...
-local R,S,P = {},N.Safe,N.Protocol
-N.Reports=R
-function R.new() return { senders={}, pending={}, tombstones={}, rates={}, globalAt=0, globalCount=0 } end
-function R.clearPending(t)
-    -- An epoch boundary must not allow a queued old fragment to start over.
-    for key in pairs(t.pending) do t.tombstones[key]=t.pending[key].first end
-    S.clear(t.pending)
+local R, S, P = {}, N.Safe, N.Protocol
+N.Reports = R
+R.MAX, R.TTL, R.HOLD, R.HELD, R.ORIGINS, R.ORDER = 64, 600, 15, 200, 512, 3600
+
+function R.new() return { reports = {}, n = 0, latest = {}, held = {}, heldBy = {}, rates = {}, nrates = 0 } end
+-- A zone boundary: reports and held lists go; the per-reporter report order stays (an old id stays old).
+function R.clearPending(st)
+    S.clear(st.reports); st.n = 0; S.clear(st.held); S.clear(st.heldBy)
 end
-function R.prune(t,now)
-    for k,v in pairs(t.pending) do
-        if now-v.first>15 then t.pending[k]=nil; t.tombstones[k]=now end
+function R.prune(st, now)
+    for k, v in pairs(st.reports) do if now - v.at >= R.TTL then st.reports[k] = nil; st.n = st.n - 1 end end
+    for k, v in pairs(st.held) do
+        if now - v.at > R.HOLD then
+            st.heldBy[v.okey] = (st.heldBy[v.okey] or 0) - v.entries
+            if st.heldBy[v.okey] <= 0 then st.heldBy[v.okey] = nil end
+            st.held[k] = nil
+        end
     end
-    -- Tombstones are deliberately not evicted early to admit more senders.
-    for k,v in pairs(t.tombstones) do if now-v>3660 then t.tombstones[k]=nil end end
-    for k,v in pairs(t.senders) do if now-v>3660 then t.senders[k]=nil; t.rates[k]=nil end end
+    for k, v in pairs(st.rates) do if now - v.at >= 10 then st.rates[k] = nil; st.nrates = st.nrates - 1 end end
+    for k, v in pairs(st.latest) do if now - v.at >= R.ORDER then st.latest[k] = nil end end
 end
--- freshnessEvidence is either an independently trusted absolute send time (strict
--- reducer, exact zoneUID match) or R.RECEIPT: the time of receipt stands in for
--- the sighting time. The wire stamp is seconds within the hour, so in receipt
--- mode an old packet replayed inside the 30 s stamp window looks fresh. Such
--- reports are only ever shown as "reported, not confirmed". No evidence = rejected.
-R.RECEIPT="receipt"
-function R.receive(t,text,sender,now,serverNow,zoneFn,currentZone,zoneUID,epoch,freshnessEvidence,otherZones)
-    if not S.str(sender,100) then return nil,"sender" end
-    R.prune(t,now)
-    if now-t.globalAt>=10 then t.globalAt=now; t.globalCount=0 end
-    if t.globalCount>=128 then return nil,"global rate limit" end
-    t.globalCount=t.globalCount+1
-    if not t.senders[sender] and S.count(t.senders)>=64 then return nil,"sender cap" end
-    t.senders[sender]=now
-    local rate=t.rates[sender]
-    if not rate or now-rate.at>=10 then rate={at=now,n=0}; t.rates[sender]=rate end
-    if rate.n>=24 then return nil,"sender rate limit" end
-    rate.n=rate.n+1
-    local msg=P.decode(text)
-    if not msg then return nil,"invalid message" end
-    local receipt=freshnessEvidence==R.RECEIPT
-    local age=P.clockAge(msg.stamp,serverNow,receipt and P.AHEAD or nil)
-    if not age then return nil,"stale or clock unavailable" end
-    local at=now
-    if not receipt then
-        local sent=S.num(freshnessEvidence)
-        if not sent or not S.num(serverNow) or sent>serverNow or serverNow-sent>30 or math.floor(sent)%3600~=msg.stamp then
-            return nil,"freshness unavailable: hour-relative timestamp"
+-- A report id is newer iff (new - old) % 65536 is below half the id space and the ids differ.
+function R.newer(new, old) return new ~= old and (new - old) % 65536 < 32768 end
+-- Receive limit per immediate sender: 6 messages per 10 s, 20 for G/X wrappers. Excess is dropped silently.
+function R.allow(st, sender, wrapped, now)
+    local key = (wrapped and "w:" or "d:") .. tostring(sender):lower()
+    local v = st.rates[key]
+    if not v or now - v.at >= 10 then
+        if not v then
+            if st.nrates >= 512 then return false end
+            st.nrates = st.nrates + 1
         end
-        at=now-(serverNow-sent)
+        v = { at = now, n = 0 }; st.rates[key] = v
     end
-    if at<=epoch then return nil,"before observation epoch" end
-    if msg.kind=="H" then return nil,"hello" end
-    local key=sender..":"..msg.id
-    if t.tombstones[key] then return nil,"replayed report" end
-    local p=t.pending[key]
-    if not p then
-        if S.count(t.pending)>=32 or S.count(t.tombstones)+S.count(t.pending)>=512 then return nil,"report cap" end
-        local count=0; for _,v in pairs(t.pending) do if v.sender==sender then count=count+1 end end
-        if count>=4 then return nil,"sender report cap" end
-        p={first=now,parts={},sender=sender,id=msg.id,at=at,stamp=msg.stamp}; t.pending[key]=p
+    if v.n >= (wrapped and 20 or 6) then return false end
+    v.n = v.n + 1
+    return true
+end
+
+-- Adds an E list to a report: entries new to it (hash + class) are appended, unless the report would then hold more
+-- enemies than its count, in which case the whole list is rejected.
+local function enrich(rep, list)
+    local add = {}
+    for _, e in ipairs(list) do
+        local k = e.hash .. ":" .. tostring(e.class)
+        if not rep.seen[k] then rep.seen[k] = true; add[#add + 1] = e end
     end
-    local function reject(reason)
-        t.pending[key]=nil; t.tombstones[key]=now; return nil,reason
+    local r = rep.record
+    if #r.enemies + #add > (r.count or 0) then
+        for _, e in ipairs(add) do rep.seen[e.hash .. ":" .. tostring(e.class)] = nil end
+        return false
     end
-    -- Fragments can be stamped a few seconds apart by the send queue, never across
-    -- an epoch/hour boundary inferred solely from their receipt.
-    if math.abs(p.at-at)>15 then return reject("inconsistent fragment time") end
-    if msg.kind=="C" then
-        local zone=zoneFn(msg.map)
-        -- Receipt mode keeps same-zone reports from other zoneUIDs: those are the
-        -- ones whose sender can be asked for an invite. They stay labelled.
-        if not currentZone or (zone~=currentZone and not (receipt and otherZones and zone)) or msg.layer==0 or (not receipt and (not zoneUID or msg.layer~=zoneUID)) then return reject("zone/layer mismatch") end
-        if p.cluster then
-            if p.cluster.raw~=text then return reject("conflicting cluster") end
-            return nil,"duplicate fragment"
+    for _, e in ipairs(add) do r.enemies[#r.enemies + 1] = { hash = e.hash, class = e.class, level = e.level } end
+    return #add > 0
+end
+
+-- receive(st, msg, ctx) -> record | nil, reason. msg from Protocol.decode (C or E, or G/X carrying one);
+-- ctx = {sender, route, now, serverNow, zoneFn, peers}.
+function R.receive(st, msg, ctx)
+    local now = S.num(ctx.now)
+    if not now or not S.tab(msg) then return nil, "unreadable" end
+    R.prune(st, now)
+    local wrapped = msg.type == "G" or msg.type == "X"
+    local inner = wrapped and msg.inner or msg
+    if inner.type == "H" then return nil, "hello" end
+    local origin = wrapped and msg.origin or ctx.sender
+    local okey = N.Peers.key(origin)
+    if not okey then return nil, "origin" end
+    local age = P.age(inner.stamp, ctx.serverNow)
+    if not age then return nil, "clock unavailable" end
+    if age > P.MAXAGE then return nil, "stale" end
+    local key = okey .. ":" .. inner.rid
+    local rep = st.reports[key]
+    if inner.type == "E" then
+        if rep then
+            if not enrich(rep, inner.enemies) then
+                -- a list that would overfill the report is rejected whole; an all-known one changes nothing
+                local over = false
+                for _, e in ipairs(inner.enemies) do if not rep.seen[e.hash .. ":" .. tostring(e.class)] then over = true end end
+                return nil, over and "more enemies than counted" or "duplicate list"
+            end
+            return rep.record, "enriched"
         end
-        p.cluster={raw=text,map=msg.map,zone=zone,x=msg.x,y=msg.y,layer=msg.layer,count=msg.count}; p.at=at
-    else
-        if p.total and p.total~=msg.total then return reject("inconsistent part total") end
-        p.total=msg.total
-        if p.parts[msg.part] then
-            if p.parts[msg.part].raw~=text then return reject("conflicting fragment") end
-            return nil,"duplicate fragment"
-        end
-        p.parts[msg.part]={raw=text,enemies=msg.enemies}
+        local entries = #inner.enemies
+        if (st.heldBy[okey] or 0) + entries > R.HELD then return nil, "held list cap" end
+        local h = st.held[key]
+        if not h then h = { at = now, okey = okey, lists = {}, entries = 0 }; st.held[key] = h end
+        h.lists[#h.lists + 1] = inner.enemies; h.entries = h.entries + entries
+        st.heldBy[okey] = (st.heldBy[okey] or 0) + entries
+        return nil, "held"
     end
-    if not p.cluster or not p.total then return nil,"pending" end
-    local enemies,hashes={},{}
-    for i=1,p.total do
-        local part=p.parts[i]; if not part then return nil,"pending" end
-        for _,e in ipairs(part.enemies) do
-            -- Duplicate hashes are ambiguous identities; fail closed instead of merging.
-            if hashes[e.hash] then return reject("duplicate enemy hash") end
-            hashes[e.hash]=true; enemies[#enemies+1]=e
-        end
+    -- C: only a report newer than the last one heard from this reporter (an hour of memory). A repeat of the same
+    -- id, by a relay or after a boundary, is not a new sighting.
+    if rep then return nil, "duplicate report" end
+    local last = st.latest[okey]
+    if last and not R.newer(inner.rid, last.rid) then return nil, "old report" end
+    if st.n >= R.MAX then return nil, "report cap" end
+    local zone = ctx.zoneFn and ctx.zoneFn(inner.map) or nil
+    if not zone then return nil, "zone unknown" end
+    local minor = N.Peers.minor(ctx.peers, origin, now)
+    local layer
+    if N.Peers.layerKnown(minor) and inner.layer > 0 then layer = { ns = "server", value = tostring(inner.layer) }
+    else layer = { ns = "unknown", value = inner.layer } end
+    local record, why = N.Record.new({ src = "we", kind = "group", origin = origin, via = ctx.sender, route = ctx.route,
+        rid = tostring(inner.rid), zone = zone, x = inner.x, y = inner.y, count = inner.count, enemies = {}, layer = layer,
+        heard = now, age = age, share = (ctx.route == "GUILD" and not wrapped) and "guild" or "public" })
+    if not record then return nil, "record: " .. tostring(why) end
+    if not last then
+        local n, oldest, ok = 0, nil, nil
+        for k, v in pairs(st.latest) do n = n + 1; if not oldest or v.at < oldest then oldest, ok = v.at, k end end
+        if n >= R.ORIGINS then st.latest[ok] = nil end
     end
-    if #enemies~=p.cluster.count then return reject("enemy count mismatch") end
-    local c=p.cluster
-    local result={sender=sender,id=p.id,at=p.at,zone=c.zone,map=c.map,layer=c.layer,x=c.x,y=c.y,enemies=enemies,freshness=receipt and "receipt" or "verified"}
-    t.pending[key]=nil; t.tombstones[key]=now
-    return result,"complete"
+    st.latest[okey] = { rid = inner.rid, at = now }
+    rep = { record = record, at = now, seen = {} }
+    st.reports[key] = rep; st.n = st.n + 1
+    local h = st.held[key]
+    if h then
+        for _, list in ipairs(h.lists) do enrich(rep, list) end
+        st.heldBy[okey] = (st.heldBy[okey] or 0) - h.entries
+        if st.heldBy[okey] <= 0 then st.heldBy[okey] = nil end
+        st.held[key] = nil
+    end
+    return record, "new"
 end

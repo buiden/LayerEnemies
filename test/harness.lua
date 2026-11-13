@@ -21,8 +21,8 @@ local wall,grouped,opened
 local sent,sendResult
 -- The two routes the addon may send on (Wire.lua); anything else counts as forbidden.
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true}}
--- Prefixes the addon may register. ZRAD1 stays until Task 3 removes the legacy decoder.
-local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,ZRAD1=true}
+-- Prefixes the addon may register.
+local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true}
 local methods={}
 function methods:Hide() local old=self.shown; self.shown=false; if old and self.scripts.OnHide then self.scripts.OnHide(self) end end
 function methods:Show() local old=self.shown; self.shown=true; if not old and self.scripts.OnShow then self.scripts.OnShow(self) end end
@@ -154,7 +154,7 @@ local function loadAddon()
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
     _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
     local N={}
-    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
@@ -182,19 +182,30 @@ local function establish(N)
     units.mouseover={guid=npc(2),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
     eq(N.Main.store.bulo,"7086-7"); eq(N.Main.store.zoneUID,7)
 end
+-- War Effort 1.6.6 vectors (study/wareffort-vectors.json, copied as literals). Server time 720100 -> stamp 100.
+local VH="H|1.6.6|100|7086|1|19|0|123|100|456|H|60|1|42|1"
+local VC="C|42|100|0.400|0.500|7086|4|100|12||4f4c594d505553:4"
+local VE="E|42|1|1|Zzm:H:60,AbC:A:-1,def:?:?,xyz:D:59|100|aaaa"
+local SCOUT="53636f7574204f6e65"   -- "Scout One"
+local VX="X|"..SCOUT.."|123|C|42|100|0.400|0.500|7086|4|100|12||4f4c594d505553:4"
+local VG="G|"..SCOUT.."|123|C|42|100|0.400|0.500|7086|4|100|12||4f4c594d505553:4"
+-- Reports.receive over decoded text; zone 100 for maps 100/101, unknown otherwise.
 local function reportFixture(N)
-    local t=N.Reports.new()
-    local function feed(text,sender,evidence,at)
-        return N.Reports.receive(t,text,sender or "Reporter",at or 200,720100,function(id) return (id==100 or id==101) and 100 or id end,100,7,0,evidence==false and nil or (evidence or 720100))
+    local t,peers=N.Reports.new(),N.Peers.new()
+    local function feed(text,sender,at,route,serverNow)
+        local msg,why=N.Protocol.decode(text)
+        if not msg then return nil,why end
+        return N.Reports.receive(t,msg,{sender=sender or "Reporter",route=route or "GUILD",now=at or 200,serverNow=serverNow or 720100,
+            zoneFn=function(id) return (id==100 or id==101) and 100 or nil end,peers=peers})
     end
-    return t,feed
+    return t,feed,peers
 end
 
 test("strict frames start shown, dispatcher hidden, no UI or OnUpdate",function()
     local N=loadAddon()
     eq(#frames,11); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil)
     local f=CreateFrame("Frame"); yes(f:IsShown()); no(pcall(function() f:InventedMethod() end))
-    eq(N.Main.statusBulo,"not installed"); eq(N.Main.statusWE,"not installed")
+    eq(N.Main.statusBulo,"not installed"); eq(N.Main.statusWE,"not installed / listening on guild, party and raid (reported, not confirmed)")
 end)
 test("neither source: own observation works after local NPC confirmation",function()
     local N=loadAddon(); establish(N)
@@ -315,133 +326,140 @@ test("hash vectors and normalization",function()
     eq(N.Hash.player("NAME","Test Realm"),N.Hash.player("name","test-realm"))
     eq(N.Hash.player(secret,"Realm"),nil)
 end)
-test("strict C E H parsing of documented wire examples",function()
+test("we decodes C/E/H 1.6.6 vectors",function()
     local N=loadAddon(); local P=N.Protocol
-    local c=P.decode("C|1|100|0.250|0.750|7|2|100|45")
-    yes(c); eq(c.layer,7); eq(c.count,2); eq(c.spread,45)
-    local e=P.decode("E|1|1|1|abc:H:60,XYZ:?:?|100")
-    yes(e); eq(e.enemies[1].class,"MAGE"); eq(e.enemies[2].level,nil)
-    local h=P.decode("H|0.2.13|100|7|1|8|0|0|100|-|H|60")
-    yes(h); eq(h.stamp,100); eq(P.decode("C|1|0|0|0|7|1|100"),nil)
+    local c=P.decode(VC)
+    yes(c); eq(c.type,"C"); eq(c.rid,42); eq(c.map,100); eq(c.x,.4); eq(c.y,.5); eq(c.layer,7086); eq(c.count,4)
+    eq(c.stamp,100); eq(c.spread,12); eq(c.sync,false)
+    local e=P.decode(VE)
+    yes(e); eq(e.type,"E"); eq(e.rid,42); eq(e.part,1); eq(e.total,1); eq(#e.enemies,4); eq(e.stamp,100)
+    eq(e.enemies[1].hash,"Zzm"); eq(e.enemies[1].class,"MAGE"); eq(e.enemies[1].level,60)
+    eq(e.enemies[2].class,"WARRIOR"); eq(e.enemies[2].level,-1); eq(e.enemies[3].class,nil); eq(e.enemies[3].level,nil)
+    eq(e.enemies[4].class,"ROGUE"); eq(e.enemies[4].level,59)
+    local h=P.decode(VH)
+    yes(h); eq(h.type,"H"); eq(h.version,"1.6.6"); eq(h.layer,7086); eq(h.minor,19); eq(h.stamp,100)
+    eq(P.decode("H|1.6.6|100|7086|1").minor,0)                    -- absent minor is 0
+    eq(P.decode("H|1.6.6|100|7086|1|x9").minor,nil)               -- unreadable minor is unknown
+    -- other well-formed types are ignored, not errors
+    for _,text in ipairs({"Q","T|100|0.400|0.500|100","J|7|100|7086|0.400|0.500|100","K|7|3|100|4","S|1234|20|100|2|1|0|4|3|100",
+        "R|anything","Y|12|100|a:480","L|1|100","P|19|456|0|a","D|g789","W|"..SCOUT.."|123|"..VC:sub(1)}) do
+        local m,why=P.decode(text); eq(m,nil,text); eq(why,"ignored",text)
+    end
 end)
 test("decoder rejects hostile malformed and oversized messages",function()
     local N=loadAddon()
-    local bad={"",string.rep("A",256),"C|1|100|nan|0|7|1|100","C|1|100|1.01|0|7|1|100","C|0|100|0|0|7|1|100","C|1|100|0|0|7|1|3600","C|1|100|0|0|7|1|100|46","C|1|100|0|0|7|1","C|1|100|0|0|7|1|100|1|extra","E|1|2|1|abc:H:60|100","E|1|1|1|abcd:H:60|100","E|1|1|1|abc:Z:60|100","E|1|1|1|abc:H:0|100","E|1|1|1|abc:H:60,|100","E|1|1|1||100","H|bad|100|7|1|8|0|1|100","C|1|100|0|0|7|1|100\n","T|100|0|0|100"}
-    for _,text in ipairs(bad) do eq(N.Protocol.decode(text),nil,text) end
+    local many={}; for i=1,19 do many[i]="abc:H:60" end
+    local bad={"",string.rep("A",256),"C|1|100|nan|0|7|1|100","C|1|100|1.01|0|7|1|100","C|0|100|0|0|7|1|100","C|1|100|0|0|7|81|100",
+        "C|1|0|0|0|7|1|100","C|1|100|0|0|-1|1|100","C|1|100|0|0|7","E|1|2|1|abc:H:60|100","E|1|1|1|abcd:H:60|100","E|1|1|1|abc:Z:60|100",
+        "E|1|1|1|abc:H:0|100","E|1|1|1|abc:H:60,|100","E|1|1|1||100","E|1|1|1","E|1|1|1|"..table.concat(many,",").."|100",
+        "H|bad|100|7|1","H|1.6.6|100|7","C|1|100|0|0|7|1|100\n","C|1|100|0|0|7|1|100 ","C|1|100|0|0|7|1|1\0001"}
+    for _,text in ipairs(bad) do local m,why=N.Protocol.decode(text); eq(m,nil,text); eq(why,"invalid",text) end
     eq(N.Protocol.decode(secret),nil); eq(N.Protocol.decode({}),nil)
+    -- optional fields that are unreadable become unknown instead of failing the message
+    local c=N.Protocol.decode("C|1|100|0|0|7|1|3600|46|4:2"); yes(c); eq(c.stamp,nil); eq(c.spread,nil); eq(c.sync,false)
 end)
-test("reassembly accepts E parts out of order before cluster",function()
-    local N=loadAddon(); local t,feed=reportFixture(N)
-    eq(feed("E|1|2|2|def:A:40|100"),nil)
-    eq(feed("E|1|1|2|abc:H:60|100"),nil)
-    local r,why=feed("C|1|101|0.1|0.2|7|2|100")
-    yes(r); eq(why,"complete"); eq(#r.enemies,2); eq(r.enemies[1].hash,"abc"); eq(r.zone,100)
-    eq(N.Safe.count(t.pending),0); eq(N.Safe.count(t.tombstones),1)
+test("we accepts trailing unknown fields",function()
+    local N=loadAddon(); local P=N.Protocol
+    local c=P.decode("C|42|100|0.400|0.500|7086|4|100|12||4f4c594d505553:4|x|y|z|1|2|3|4|5|6"); yes(c); eq(c.count,4); eq(c.stamp,100)
+    local e=P.decode(VE.."|more|fields"); yes(e); eq(#e.enemies,4)
+    local h=P.decode(VH.."|extra|9"); yes(h); eq(h.minor,19)
+    yes(P.decode("C|42|100|0.400|0.500|7086|4"))                    -- minimum 7 fields, no stamp
 end)
-test("reassembly accepts C then E and stamps freshness explicitly",function()
-    local N=loadAddon(); local _,feed=reportFixture(N)
-    feed("C|1|100|0|1|7|1|100")
-    local r=feed("E|1|1|1|abc:H:60|100")
-    yes(r); eq(r.freshness,"verified"); eq(r.at,200)
-end)
-test("fragment inconsistency, duplicate conflict and count checks",function()
-    local N=loadAddon()
-    local _,feed=reportFixture(N)
-    feed("E|1|1|2|abc:H:60|100")
-    local r,why=feed("E|1|2|3|def:A:40|100"); eq(r,nil); eq(why,"inconsistent part total")
-    _,feed=reportFixture(N); feed("E|1|1|1|abc:H:60|100")
-    r,why=feed("E|1|1|1|abc:A:40|100"); eq(r,nil); eq(why,"conflicting fragment")
-    _,feed=reportFixture(N); feed("C|1|100|0|0|7|2|100")
-    r,why=feed("E|1|1|1|abc:H:60|100"); eq(r,nil); eq(why,"enemy count mismatch")
-    _,feed=reportFixture(N); feed("C|1|100|0|0|7|2|100")
-    r,why=feed("E|1|1|1|abc:H:60,abc:A:40|100"); eq(r,nil); eq(why,"duplicate enemy hash")
-end)
-test("identical fragment duplicates are harmless",function()
-    local N=loadAddon(); local _,feed=reportFixture(N)
-    feed("E|1|1|2|abc:H:60|100")
-    local r,why=feed("E|1|1|2|abc:H:60|100"); eq(r,nil); eq(why,"duplicate fragment")
-    feed("E|1|2|2|def:A:40|100")
-    yes(feed("C|1|100|0|0|7|2|100"))
-end)
-test("wrong zone, wrong layer and zero layer never match",function()
-    local N=loadAddon()
-    for _,text in ipairs({"C|1|200|0|0|7|1|100","C|1|100|0|0|8|1|100","C|1|100|0|0|0|1|100"}) do
-        local _,feed=reportFixture(N); local r,why=feed(text); eq(r,nil); eq(why,"zone/layer mismatch")
+test("we G and X unwrap one level and reject nesting",function()
+    local N=loadAddon(); local P=N.Protocol
+    for _,text in ipairs({VX,VG}) do
+        local m=P.decode(text); yes(m); eq(m.origin,"Scout One"); eq(m.realm,123); eq(m.inner.type,"C"); eq(m.inner.rid,42); eq(m.inner.stamp,100)
     end
+    eq(P.decode(VX).type,"X"); eq(P.decode(VG).type,"G")
+    local g=P.decode("G|"..SCOUT.."||"..VH); yes(g); eq(g.realm,nil); eq(g.inner.minor,19)
+    yes(P.decode("X|"..SCOUT.."|123|"..VE))
+    local bad={"G|"..SCOUT.."|123|"..VG,"X|"..SCOUT.."|123|"..VX,"G|"..SCOUT.."|123|X|"..SCOUT.."|123|"..VC,
+        "X|"..SCOUT.."|123|C|42|100|0.400|0.500|7086|4|0|12|1:2",   -- sync C never travels wrapped
+        "G|"..SCOUT.."|123|Q","G|"..SCOUT.."|123|"..VC:sub(1,8),"G|536|123|"..VC,"G|41|123|"..VC,"G|0a41|123|"..VC,"G|7c41|123|"..VC,
+        "G|"..SCOUT.."|0|"..VC,"G|"..SCOUT.."|x|"..VC,"G|"..SCOUT.."|123","G|zz41|123|"..VC}
+    for _,text in ipairs(bad) do local m,why=P.decode(text); eq(m,nil,text); eq(why,"invalid",text) end
 end)
-test("stale, future, missing and ambiguous source timestamps rejected",function()
-    local N=loadAddon(); local t=N.Reports.new()
-    eq(N.Protocol.clockAge(100,720100),0); eq(N.Protocol.clockAge(3599,720000),1)
-    eq(N.Protocol.clockAge(101,720100),nil); eq(N.Protocol.clockAge(60,720100),nil)
-    local r,why=N.Reports.receive(t,"C|1|100|0|0|7|1|100","Reporter",200,720100,function() return 100 end,100,7,0,nil)
-    eq(r,nil); eq(why,"freshness unavailable: hour-relative timestamp"); eq(N.Safe.count(t.pending),0)
-    r,why=N.Reports.receive(t,"C|1|100|0|0|7|1|100","Reporter",200,720100,function() return 100 end,100,7,0,716500)
-    eq(r,nil); eq(why,"freshness unavailable: hour-relative timestamp")
+test("we stamp ages",function()
+    local N=loadAddon(); local P=N.Protocol
+    for _,v in ipairs({{100,720100,0},{99,720100,1},{101,720100,0},{3599,720001,2},{1900,720100,1800},{1899,720100,0}}) do
+        eq(P.age(v[1],v[2]),v[3],v[1].."@"..v[2])
+    end
+    eq(P.age(nil,720100),0); eq(P.age(100,secret),nil); eq(P.age(100,nil),nil)
+    -- C and E older than 900 s are dropped; 900 is kept
+    local _,feed=reportFixture(N)
+    local r,why=feed("C|1|100|0|0|7|1|"..(100-901)%3600); eq(r,nil); eq(why,"stale")
+    r=feed("C|2|100|0|0|7|1|"..(100-900)%3600); yes(r); eq(r.age,900)
+    r,why=feed("E|3|1|1|abc:H:60|"..(100-901)%3600); eq(r,nil); eq(why,"stale")
+    r,why=feed("C|4|100|0|0|7|1|100",nil,nil,nil,secret); eq(r,nil); eq(why,"clock unavailable")
 end)
-test("same-id replay rejected even with a new plausible stamp",function()
+test("we C alone is a record",function()
     local N=loadAddon(); local t,feed=reportFixture(N)
-    feed("C|1|100|0|0|7|1|100"); yes(feed("E|1|1|1|abc:H:60|100"))
-    local r,why=feed("C|1|100|0|0|7|1|100"); eq(r,nil); eq(why,"replayed report")
-    r,why=N.Reports.receive(t,"C|1|100|0|0|7|1|101","Reporter",201,720101,function() return 100 end,100,7,0,720101)
-    eq(r,nil); eq(why,"replayed report")
+    local r,why=feed(VC,"Scout-Realm",200)
+    yes(r); eq(why,"new"); eq(r.src,"we"); eq(r.kind,"group"); eq(r.origin,"Scout-Realm"); eq(r.via,"Scout-Realm"); eq(r.route,"GUILD")
+    eq(r.rid,"42"); eq(r.zone,100); eq(r.count,4); eq(#r.enemies,0); eq(r.heard,200); eq(r.age,0); eq(r.share,"guild"); eq(r.x,.4)
+    eq(r.layer.ns,"unknown"); eq(r.layer.value,7086)
+    -- the E list enriches the same record without changing when it was heard
+    local r2,why2=feed(VE,"Scout-Realm",205); eq(r2,r); eq(why2,"enriched"); eq(#r.enemies,4); eq(r.heard,200)
+    local _,why3=feed(VE,"Scout-Realm",206); eq(why3,"duplicate list")
+    -- a zone we cannot resolve makes no record
+    local _,why4=feed("C|43|555|0|0|7|1|100","Scout-Realm"); eq(why4,"zone unknown")
+    -- in the store the record shows with its count while no list has arrived
+    local s=N.Store.new(0); s.zone=100; s.bulo="7086-7"
+    local c=feed("C|50|100|0|0|7|3|100","Other",300); yes(N.Store.report(s,c,300))
+    local rows=N.Store.rows(s,300,"reported"); eq(#rows,1); eq(rows[1].name,"3 not listed"); eq(rows[1].reporter,"Other")
 end)
-test("sender, rate, pending and tombstone caps",function()
-    local N=loadAddon(); local t=N.Reports.new()
-    for i=1,1000 do N.Reports.receive(t,"E|1|1|2|abc:H:60|100","Sender"..i,200+i/10,720100,function() return 100 end,100,7,0,720100) end
-    yes(N.Safe.count(t.senders)<=64); yes(N.Safe.count(t.pending)<=32)
-    for i=1,100 do N.Reports.receive(t,"E|"..i.."|1|2|abc:H:60|100","Sender1",400,720100,function() return 100 end,100,7,0,720100) end
-    yes(N.Safe.count(t.pending)<=32); yes(N.Safe.count(t.tombstones)<=512)
-    N.Reports.prune(t,5000); eq(N.Safe.count(t.pending),0); eq(N.Safe.count(t.senders),0)
-    local u=N.Reports.new()
-    for i=1,512 do u.tombstones["s:"..i]=200 end
-    local r,why=N.Reports.receive(u,"E|1|1|2|abc:H:60|100","New",201,720100,function() return 100 end,100,7,0,720100)
-    eq(r,nil); eq(why,"report cap")
-end)
-test("timed-out fragments cannot bridge old pending assembly",function()
+test("we E before C attaches within 15 s and expires after",function()
     local N=loadAddon(); local t,feed=reportFixture(N)
-    feed("C|1|100|0|0|7|1|100"); N.Reports.prune(t,216)
-    local r,why=feed("E|1|1|1|abc:H:60|100",nil,nil,217)
-    eq(r,nil); eq(why,"replayed report")
+    local r,why=feed("E|1|1|1|abc:H:60|100","Scout",200); eq(r,nil); eq(why,"held")
+    r=feed("C|1|100|0|0|7|2|100","Scout",215); yes(r); eq(#r.enemies,1); eq(r.enemies[1].hash,"abc"); eq(r.heard,215)
+    eq(N.Safe.count(t.held),0); eq(t.heldBy.scout,nil)
+    feed("E|2|1|1|abc:H:60|100","Scout",300)
+    r=feed("C|2|100|0|0|7|2|100","Scout",316); yes(r); eq(#r.enemies,0)
+    eq(N.Safe.count(t.held),0)
+    -- at most 200 held entries per reporter
+    for i=1,11 do local list={}; for j=1,18 do list[j]=string.char(64+i)..string.format("%02d",j)..":H:60" end
+        eq(select(2,feed("E|"..(10+i).."|1|1|"..table.concat(list,",").."|100","Flood",400)),"held") end
+    eq(t.heldBy.flood,198); eq(select(2,feed("E|30|1|1|abc:H:60,abd:H:60,abe:H:60|100","Flood",400)),"held list cap")
+    eq(select(2,feed("E|30|1|1|abc:H:60|100","Other",400)),"held")
 end)
-test("passive CHAT_MSG_ADDON: own echo and wrong channels ignored",function()
-    local N=loadAddon(); warSettings()
-    local msg="C|1|100|0|0|7|1|100"
-    deliver("CHAT_MSG_ADDON","WEFF1",msg,"GUILD","Me-TestRealm"); eq(N.Main.lastDrop,"own echo")
-    deliver("CHAT_MSG_ADDON","WEFF1",msg,"WHISPER","Other"); eq(N.Main.lastDrop,"channel disallowed")
-    deliver("CHAT_MSG_ADDON","WEFF1",msg,"CHANNEL","Other",nil,nil,7,"OtherChannel"); eq(N.Main.lastDrop,"wrong channel")
-    deliver("CHAT_MSG_ADDON","WEFF1",msg,"CHANNEL","Other",nil,nil,7,"WarEffortPubH"); eq(N.Main.lastDrop,"wrong channel")
-    deliver("CHAT_MSG_ADDON",secret,msg,"GUILD","Other"); no(N.Main.error)
+test("we lost middle E still shows count",function()
+    local N=loadAddon(); local t,feed=reportFixture(N)
+    local r=feed("C|7|100|0.1|0.2|7|5|100","Scout",200)
+    feed("E|7|1|3|aaa:H:60,bbb:A:40|100","Scout",201)
+    feed("E|7|3|3|ccc:D:60,ddd:E:40|100","Scout",202)
+    eq(#r.enemies,4); eq(r.count,5); eq(r.heard,200)
+    -- a list whose new entries would exceed the count is rejected whole
+    local _,why=feed("E|7|2|3|eee:H:60,fff:H:60|100","Scout",203); eq(why,"more enemies than counted"); eq(#r.enemies,4)
+    _,why=feed("E|7|2|3|aaa:H:60,eee:H:60|100","Scout",204); eq(why,"enriched"); eq(#r.enemies,5)
+    local s=N.Store.new(0); s.zone=100; s.bulo="7086-7"
+    feed("C|8|100|0|0|7|3|100","Scout",205); local r8=feed("E|8|1|2|aaa:H:60|100","Scout",205)
+    yes(N.Store.report(s,r8,206)); yes(N.Store.report(s,r,206))
+    local rows=N.Store.rows(s,206,"reported"); eq(#rows,7)
+    local names={}; for _,row in ipairs(rows) do names[row.name]=(names[row.name] or 0)+1 end
+    eq(names["2 more not listed"],1); eq(names.Unknown,6)
 end)
-test("guild-only, ignored, client ignore, silent and privacy unknown",function()
-    local N=loadAddon(); warSettings()
-    WarEffortScoutDB.guildOnly=true
-    no(N.Adapters.policy("WEFF1","CHANNEL","Other","WarEffortPubA"))
-    yes(N.Adapters.policy("WEFF1","GUILD","Other"))
-    WarEffortScoutDB.ignored.other="Other"; no(N.Adapters.policy("WEFF1","GUILD","Other"))
-    WarEffortScoutDB.ignored={}; clientIgnored=true; no(N.Adapters.policy("WEFF1","GUILD","Other"))
-    clientIgnored=false; WarEffortScoutDB.silent=true; no(N.Adapters.policy("WEFF1","GUILD","Other"))
-    WarEffortScoutDB.silent=false; WarEffortScoutDB.ignored=secret; no(N.Adapters.policy("WEFF1","GUILD","Other"))
-    WarEffortScoutDB.ignored={}; metadata.WarEffortScout="0.3.0"; no(N.Adapters.policy("WEFF1","GUILD","Other"))
-    metadata.WarEffortScout="0.2.13"; C_FriendList=nil; no(N.Adapters.policy("WEFF1","GUILD","Other"))
-end)
-test("approved public context only; legacy settings fail closed",function()
-    local N=loadAddon(); warSettings()
-    yes(N.Adapters.policy("WEFF1","CHANNEL","Other","WarEffortPubA"))
-    channels.WarEffortPubA=nil; no(N.Adapters.policy("WEFF1","CHANNEL","Other","WarEffortPubA"))
-    no(N.Adapters.policy("ZRAD1","GUILD","Other"))
-    loaded.WarEffortScout=false; no(N.Adapters.policy("WEFF1","GUILD","Other"))
-end)
-test("live guild C E accepted by time of receipt, hello ignored",function()
-    local N=loadAddon(); establish(N); warSettings()
-    local stamp=math.floor(server)%3600
-    deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0|0|7|1|"..stamp,"GUILD","Other")
-    eq(N.Main.lastDrop,"pending"); eq(N.Safe.count(N.Main.store.reports),0)
-    deliver("CHAT_MSG_ADDON","WEFF1","E|1|1|1|abc:H:60|"..stamp,"GUILD","Other")
-    eq(N.Main.lastDrop,"complete"); eq(N.Safe.count(N.Main.store.reports),1)
-    eq(N.Safe.count(N.Main.receiver.pending),0); yes(N.Main.lastHeard)
-    deliver("CHAT_MSG_ADDON","WEFF1","H|0.2.13|100|7|1|8|0|0|"..stamp.."|-|H|60","GUILD","Other")
-    eq(N.Main.lastDrop,"hello"); eq(N.Safe.count(N.Main.store.reports),1)
-    SlashCmdList.LAYERENEMIES("reports"); yes(table.concat(log,"\n"):find("Reported, not confirmed",1,true)); no(N.Main.error)
+test("we report ids: newer only, caps",function()
+    local N=loadAddon(); local t,feed=reportFixture(N)
+    yes(feed("C|10|100|0|0|7|1|100","Scout",200))
+    eq(select(2,feed("C|10|100|0|0|7|1|100","Scout",201)),"duplicate report")
+    eq(select(2,feed("C|9|100|0|0|7|1|100","Scout",202)),"old report")
+    yes(feed("C|11|100|0|0|7|1|100","Scout",203))
+    -- wrap-around: 65535 then 1 is newer
+    yes(feed("C|65535|100|0|0|7|1|100","Wrap",200)); yes(feed("C|1|100|0|0|7|1|100","Wrap",201))
+    eq(select(2,feed("C|65534|100|0|0|7|1|100","Wrap",202)),"old report")
+    -- after the 600 s TTL the record is gone, but the id order holds for an hour
+    N.Reports.prune(t,900); eq(t.reports["scout:10"],nil)
+    eq(select(2,feed("C|11|100|0|0|7|1|100","Scout",900)),"old report")
+    -- names compare without realm and case
+    eq(select(2,feed("C|11|100|0|0|7|1|100","scout-OtherRealm",901)),"old report")
+    -- 64 live reports at most
+    local u,feed2=reportFixture(N)
+    for i=1,64 do yes(feed2("C|1|100|0|0|7|1|100","S"..i,200)) end
+    eq(select(2,feed2("C|1|100|0|0|7|1|100","S65",200)),"report cap"); eq(u.n,64)
+    -- 512 reporters' id order at most: the oldest is forgotten
+    local v,feed3=reportFixture(N)
+    for i=1,600 do feed3("C|1|100|0|0|7|1|100","R"..i,200+i); N.Reports.prune(v,200+i); v.reports={}; v.n=0 end
+    eq(N.Safe.count(v.latest),512)
 end)
 test("reported reducer output stays separate with possible hash identities",function()
     local N=loadAddon(); local t=N.Store.new(0); t.zone=100; t.bulo="7086-7"; t.zoneUID=7
@@ -451,13 +469,19 @@ test("reported reducer output stays separate with possible hash identities",func
         enemies={{hash=hash,class="MAGE",level=60}},layer={ns="server",value="7086"},heard=101,age=0,share="guild"})
     yes(N.Store.report(t,report,101))
     local rows=N.Store.rows(t,101,"reported"); eq(#rows,1); eq(rows[1].name,"Unknown"); yes(rows[1].possible:find("possible identity:",1,true))
-    eq(rows[1].confidence,"reported server key match (unverified)"); eq(rows[1].namespace,"server"); eq(rows[1].relation,"same"); eq(rows[1].record,report)
+    eq(rows[1].confidence,"reported, not confirmed"); eq(rows[1].namespace,"server"); eq(rows[1].relation,"same"); eq(rows[1].record,report)
     eq(#N.Store.rows(t,101,"local"),1)
     t.identities[hash]["Collision-Realm"]=101
     rows=N.Store.rows(t,101,"reported"); yes(rows[1].possible:find("Collision-Realm",1,true))
-    -- a dated (non-receipt) record must match our server key; another key, or a zoneUID, is not accepted
-    no(N.Store.report(t,N.Record.new({src="we",kind="group",origin="Other",route="GUILD",rid="2",zone=100,layer={ns="server",value="7087"},heard=101,age=0,share="guild"}),101))
-    no(N.Store.report(t,N.Record.new({src="we",kind="group",origin="Other",route="GUILD",rid="3",zone=100,layer={ns="zoneuid",value=7},heard=101,age=0,share="guild"}),101))
+    -- every record of our zone is kept and labelled with its relation; another zone or the boundary instant is not
+    yes(N.Store.report(t,N.Record.new({src="we",kind="group",origin="Other",route="GUILD",rid="2",zone=100,count=1,layer={ns="server",value="7087"},heard=101,age=0,share="guild"}),101))
+    yes(N.Store.report(t,N.Record.new({src="we",kind="group",origin="Third",route="GUILD",rid="3",zone=100,count=1,layer={ns="zoneuid",value=7},heard=101,age=0,share="guild"}),101))
+    local rel={}; for _,row in ipairs(N.Store.rows(t,101,"reported")) do rel[row.reporter]=row.relation end
+    eq(rel.Other,"other"); eq(rel.Third,"unknown"); eq(rel.Reporter,"same")
+    local ok,why=N.Store.report(t,N.Record.new({src="we",kind="group",origin="Far",route="GUILD",rid="4",zone=200,layer={ns="server",value="7086"},heard=101,share="guild"}),101)
+    no(ok); eq(why,"another zone")
+    ok,why=N.Store.report(t,N.Record.new({src="we",kind="group",origin="Early",route="GUILD",rid="5",zone=100,layer={ns="server",value="7086"},heard=0,share="guild"}),101)
+    no(ok); eq(why,"before observation epoch")
     no(N.Store.report(t,{id="x"},101))
 end)
 test("store expiration, epoch, caps and deterministic newest ordering",function()
@@ -509,11 +533,12 @@ test("old units must disappear before reacquisition after a transfer",function()
     advance(1); deliver("NAME_PLATE_UNIT_ADDED","nameplate1"); drain()
     eq(#N.Store.rows(N.Main.store,clock,"local"),1); no(N.Main.error)
 end)
-test("epoch boundary tombstones incomplete fragments",function()
+test("a zone boundary drops held lists and reports, not the report order",function()
     local N=loadAddon(); local t,feed=reportFixture(N)
-    feed("E|1|1|2|abc:H:60|100"); N.Reports.clearPending(t)
-    local r,why=feed("C|1|100|0|0|7|2|100")
-    eq(r,nil); eq(why,"replayed report"); eq(N.Safe.count(t.pending),0)
+    feed("E|1|1|2|abc:H:60|100","Scout",200); feed("C|2|100|0|0|7|1|100","Scout",200)
+    N.Reports.clearPending(t); eq(N.Safe.count(t.held),0); eq(N.Safe.count(t.reports),0); eq(t.n,0)
+    local r=feed("C|1|100|0|0|7|2|100","Scout",201); eq(r,nil)          -- older than 2: not a new sighting
+    r=feed("C|3|100|0|0|7|2|100","Scout",201); yes(r); eq(#r.enemies,0)
 end)
 test("foreign field getter failures do not escape game event dispatch",function()
     local N=loadAddon()
@@ -575,10 +600,13 @@ local function page(extra)
     for k,v in pairs(extra or {}) do e[k]=v end
     return e
 end
-local function report(id,layer,sender,map)
+local function report(id,layer,sender,map,route)
     local stamp=math.floor(server)%3600
-    deliver("CHAT_MSG_ADDON","WEFF1","C|"..id.."|"..(map or 100).."|0.4|0.5|"..layer.."|1|"..stamp,"GUILD",sender or "Other")
-    deliver("CHAT_MSG_ADDON","WEFF1","E|"..id.."|1|1|abc:H:40|"..stamp,"GUILD",sender or "Other")
+    deliver("CHAT_MSG_ADDON","WEFF1","C|"..id.."|"..(map or 100).."|0.4|0.5|"..layer.."|1|"..stamp,route or "GUILD",sender or "Other")
+    deliver("CHAT_MSG_ADDON","WEFF1","E|"..id.."|1|1|abc:H:40|"..stamp,route or "GUILD",sender or "Other")
+end
+local function hello(sender,minor,route)
+    deliver("CHAT_MSG_ADDON","WEFF1","H|1.6.6|100|7086|1|"..minor.."|0|123|"..math.floor(server)%3600,route or "GUILD",sender)
 end
 test("one layer key helper compares the server part only",function()
     local N=loadAddon(); local L=N.Layer
@@ -588,98 +616,187 @@ test("one layer key helper compares the server part only",function()
     yes(L.same("7086-7","7086-99")); yes(L.same("7086","7086-1")); yes(L.same(7086,"7086"))
     no(L.same("7086-7","7087-7")); no(L.same(nil,nil)); no(L.same(secret,secret)); no(L.same("7086",nil))
 end)
-test("receipt time dates a report; it stays reported, not confirmed",function()
-    local N=loadAddon(); establish(N); warSettings()
+test("a War Effort report shows as reported, not confirmed",function()
+    local N=loadAddon(); establish(N)
     advance(1); local at=clock; report(1,7)
-    eq(N.Main.lastDrop,"complete")
+    eq(N.Main.lastDrop,"enriched")
     local rows=N.Store.rows(N.Main.store,clock,"reported")
     eq(#rows,1); eq(rows[1].at,at); eq(rows[1].name,"Unknown"); eq(rows[1].class,"MAGE"); eq(rows[1].level,40)
-    eq(rows[1].confidence,"reported, not confirmed"); eq(rows[1].reporter,"Other"); eq(rows[1].relation,"unknown"); yes(rows[1].receipt)
-    eq(rows[1].namespace,"zoneuid")
+    eq(rows[1].confidence,"reported, not confirmed"); eq(rows[1].reporter,"Other"); eq(rows[1].relation,"unknown")
+    eq(rows[1].namespace,"unknown"); eq(rows[1].age,0)
     eq(#N.Store.rows(N.Main.store,clock,"local"),0); eq(#N.Store.rows(N.Main.store,clock,"unclassified"),0)
     eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
     SlashCmdList.LAYERENEMIES("list")
     yes(logged("Reported, not confirmed: 1 more in /le reports")); no(logged("Unknown | MAGE"))
     SlashCmdList.LAYERENEMIES("reports")
-    yes(logged("Reported, not confirmed (War Effort, dated by time of receipt):"))
+    yes(logged("Reported, not confirmed (War Effort; age as the reporter's clock gives it):"))
     yes(logged("Unknown | MAGE | 40 | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Other | layer unknown"))
     yes(logged("Only players seen by you or reported by War Effort users.")); no(N.Main.error)
+    -- a claimed age is shown
+    local stamp=(math.floor(server)-120)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","C|2|100|0.4|0.5|7|1|"..stamp,"GUILD","Older")
+    SlashCmdList.LAYERENEMIES("reports"); yes(logged("1 not listed | Unknown class | ? | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Older | claimed 120 s old | layer unknown"))
 end)
 test("receipt-time reports expire ten minutes after receipt",function()
-    local N=loadAddon(); establish(N); warSettings(); advance(1); report(1,7)
+    local N=loadAddon(); establish(N); advance(1); report(1,7)
     advance(598); eq(#N.Store.rows(N.Main.store,clock,"reported"),1); eq(#N.Store.reporters(N.Main.store,clock),1)
     advance(3); eq(#N.Store.rows(N.Main.store,clock,"reported"),0); eq(N.Safe.count(N.Main.store.reports),0)
     eq(#N.Store.reporters(N.Main.store,clock),0)
 end)
-test("receipt mode: replay tombstones hold for an hour, then the documented limit",function()
-    local N=loadAddon(); establish(N); warSettings(); advance(1); report(1,7)
-    report(1,7); eq(N.Main.lastDrop,"replayed report"); eq(N.Safe.count(N.Main.store.reports),1)
-    advance(20); report(1,7); eq(N.Main.lastDrop,"replayed report")
-    -- One hour later the second-of-hour stamp matches again: still tombstoned.
-    advance(3580); eq(N.Safe.count(N.Main.store.reports),0)
-    report(1,7); eq(N.Main.lastDrop,"replayed report"); eq(N.Safe.count(N.Main.store.reports),0)
-    -- KNOWN LIMIT: two hours later the tombstone is gone and the stamp matches,
-    -- so a replayed old packet is shown as a fresh unconfirmed report.
-    advance(3600); report(1,7); eq(N.Main.lastDrop,"complete"); eq(N.Safe.count(N.Main.store.reports),1)
+test("a repeated report id is not a new sighting; an hour later it is (documented limit)",function()
+    local N=loadAddon(); establish(N); advance(1); report(1,7)
+    report(1,7); eq(N.Main.lastDrop,"duplicate list"); eq(N.Safe.count(N.Main.store.reports),1)
+    advance(20); deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0.4|0.5|7|1|"..math.floor(server)%3600,"GUILD","Other"); eq(N.Main.lastDrop,"duplicate report")
+    advance(600); eq(N.Safe.count(N.Main.store.reports),0)
+    deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0.4|0.5|7|1|"..math.floor(server)%3600,"GUILD","Other"); eq(N.Main.lastDrop,"old report")
+    -- KNOWN LIMIT: the stamp has no hour and the id order is kept for an hour, so an old packet replayed later is
+    -- shown again as a fresh unconfirmed report.
+    advance(3600); report(1,7); eq(N.Main.lastDrop,"enriched"); eq(N.Safe.count(N.Main.store.reports),1)
     eq(N.Store.rows(N.Main.store,clock,"reported")[1].confidence,"reported, not confirmed")
 end)
-test("receipt mode: stamp window, duplicates and conflicts still enforced",function()
-    local N=loadAddon(); establish(N); warSettings(); advance(1)
+test("we drops whisper and channel, and types a route does not carry",function()
+    local N=loadAddon(); establish(N); advance(1)
+    local stamp=math.floor(server)%3600; local c="C|1|100|0|0|7|1|"..stamp
+    deliver("CHAT_MSG_ADDON","WEFF1",c,"WHISPER","Other"); eq(N.Main.lastDrop,"route")
+    deliver("CHAT_MSG_ADDON","WEFF1",c,"CHANNEL","Other",nil,nil,7,"WarEffortPubA"); eq(N.Main.lastDrop,"route")
+    deliver("CHAT_MSG_ADDON","WEFF1",VX,"GUILD","Relay"); eq(N.Main.lastDrop,"X is not read on GUILD")
+    deliver("CHAT_MSG_ADDON","WEFF1",VG,"PARTY","Relay"); eq(N.Main.lastDrop,"G is not read on PARTY")
+    deliver("CHAT_MSG_ADDON","WEFF1",VG,"RAID","Relay"); eq(N.Main.lastDrop,"G is not read on RAID")
+    eq(N.Safe.count(N.Main.store.reports),0)
+    deliver("CHAT_MSG_ADDON","WEFF1",c,"PARTY","Friend"); eq(N.Main.lastDrop,"new")
+    deliver("CHAT_MSG_ADDON","WEFF1","C|2|100|0|0|7|1|"..stamp,"RAID","Friend"); eq(N.Main.lastDrop,"new")
+    local r=N.Store.rows(N.Main.store,clock,"reported")[1].record; eq(r.share,"public"); eq(r.route=="PARTY" or r.route=="RAID",true)
+    -- nothing about another addon's prefix, and an ignored type leaves no note
+    N.Main.lastDrop=nil; deliver("CHAT_MSG_ADDON","WEFF1","Q","GUILD","Other"); eq(N.Main.lastDrop,nil)
+    deliver("CHAT_MSG_ADDON","ZRAD1",c,"GUILD","Other"); eq(N.Main.lastDrop,nil)
+    eq(N.Safe.count(N.Main.store.reports),2); no(N.Main.error); eq(forbidden,0)
+end)
+test("we own echo, ignore list for sender and origin, guild membership",function()
+    local N=loadAddon(); establish(N); advance(1)
+    local c="C|1|100|0|0|7|1|"..math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1",c,"GUILD","Me-TestRealm"); eq(N.Main.lastDrop,"own echo")
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..("Me"):gsub(".",function(ch) return string.format("%02x",ch:byte()) end).."||"..c,"GUILD","Relay"); eq(N.Main.lastDrop,"own echo")
+    clientIgnored=true; deliver("CHAT_MSG_ADDON","WEFF1",c,"GUILD","Other"); eq(N.Main.lastDrop,"ignored sender")
+    -- the ignore list also applies to a wrapper's origin
+    local old=C_FriendList.IsIgnored
+    C_FriendList.IsIgnored=function(name) return name=="Scout One" end
+    deliver("CHAT_MSG_ADDON","WEFF1",VG,"GUILD","Relay"); eq(N.Main.lastDrop,"ignored sender")
+    C_FriendList.IsIgnored=function() return nil end
+    deliver("CHAT_MSG_ADDON","WEFF1",c,"GUILD","Other"); eq(N.Main.lastDrop,"client ignore policy unavailable")
+    C_FriendList=nil; deliver("CHAT_MSG_ADDON","WEFF1",c,"GUILD","Other"); eq(N.Main.lastDrop,"client ignore policy unavailable")
+    C_FriendList={IsIgnored=function() return false end}; clientIgnored=false
+    inGuild=false; deliver("CHAT_MSG_ADDON","WEFF1",c,"GUILD","Other"); eq(N.Main.lastDrop,"guild unavailable")
+    eq(N.Safe.count(N.Main.store.reports),0)
+    inGuild=true; deliver("CHAT_MSG_ADDON","WEFF1",c,"GUILD","Other"); eq(N.Main.lastDrop,"new")
+    eq(N.Safe.count(N.Main.store.reports),1); no(N.Main.error)
+end)
+test("we rate limit 6 per 10 s",function()
+    local N=loadAddon(); establish(N); advance(1)
+    local function c(id,who,route) deliver("CHAT_MSG_ADDON","WEFF1","C|"..id.."|100|0|0|7|1|"..math.floor(server)%3600,route or "GUILD",who) end
+    for i=1,7 do c(i,"Busy") end
+    eq(N.Safe.count(N.Main.store.reports),6); eq(N.Main.lastDrop,"new")       -- the 7th leaves no note
+    c(20,"Calm"); eq(N.Safe.count(N.Main.store.reports),7)                    -- per sender
+    advance(10); c(8,"Busy"); eq(N.Safe.count(N.Main.store.reports),8)
+    -- G wrappers: 20 per relayer per 10 s, counted apart from its own messages
+    local function hex(name) return (name:gsub(".",function(ch) return string.format("%02x",ch:byte()) end)) end
+    for i=1,21 do deliver("CHAT_MSG_ADDON","WEFF1","G|"..hex("Origin"..i).."||C|1|100|0|0|7|1|"..math.floor(server)%3600,"GUILD","Relay") end
+    eq(N.Safe.count(N.Main.store.reports),28)
+    c(1,"Relay"); eq(N.Safe.count(N.Main.store.reports),29)
+end)
+test("we works with no War Effort installed",function()
+    local N=loadAddon(); establish(N); advance(1)
+    loaded.WarEffortScout=false; WarEffortScoutDB=nil
+    hello("Scout",19); report(1,7086,"Scout")
+    eq(N.Main.lastDrop,"enriched"); eq(N.Safe.count(N.Main.store.reports),1)
+    N.Main.poll(); eq(N.Main.statusWE:sub(1,48),"not installed / listening on guild, party and ra")
+    -- an installed War Effort changes nothing: its settings are not read
+    loaded.WarEffortScout=true; WarEffortScoutDB={silent=true,guildOnly=true,ignored={scout=true}}
+    report(2,7086,"Scout"); eq(N.Main.lastDrop,"enriched"); eq(N.Safe.count(N.Main.store.reports),2)
+    no(N.Main.error); eq(forbidden,0)
+end)
+test("we layer is unknown without a hello, below 13 and above 19",function()
+    local N=loadAddon(); establish(N); advance(1)
+    hello("Low",12); hello("High",20)
+    report(1,7086,"None"); report(1,7086,"Low"); report(1,7086,"High")
+    local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,3)
+    for _,row in ipairs(rows) do eq(row.relation,"unknown",row.reporter); eq(row.namespace,"unknown"); eq(row.reportLayer,7086) end
+    -- a hello expires after 900 s
+    hello("Late",19); advance(901); report(1,7086,"Late")
+    local late; for _,row in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do if row.reporter=="Late" then late=row end end
+    eq(late.namespace,"unknown")
+end)
+test("we layer is server after hello minor 19",function()
+    local N=loadAddon(); establish(N); advance(1)
+    hello("Here",19); hello("There",19); hello("Lowest",13)
+    report(1,7086,"Here"); report(1,9000,"There"); report(1,7086,"Lowest")
+    local rel={}; for _,row in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do rel[row.reporter]=row.relation.."/"..row.namespace end
+    eq(rel.Here,"same/server"); eq(rel.There,"other/server"); eq(rel.Lowest,"same/server")
+    SlashCmdList.LAYERENEMIES("reports"); yes(logged("| other server key 9000")); yes(logged("| same server key as yours"))
+    -- the relayer's hello does not count for the origin of a G
+    hello("Relay",19)
+    deliver("CHAT_MSG_ADDON","WEFF1",VG,"GUILD","Relay")
+    local g; for _,row in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do if row.reporter=="Scout One" then g=row end end
+    eq(g.namespace,"unknown"); eq(g.record.via,"Relay"); eq(g.record.share,"public"); eq(g.name,"4 not listed")
+    -- the origin's own hello, wrapped, does
+    local h="H|1.6.6|100|7086|1|19|0|123|"..math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..SCOUT.."|123|"..h,"GUILD","Relay")
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..SCOUT.."|123|C|43|100|0.4|0.5|7086|1|"..math.floor(server)%3600,"GUILD","Relay")
+    local found=false
+    for _,row in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do
+        if row.reporter=="Scout One" and row.record.rid=="43" then found=true; eq(row.relation,"same"); eq(row.namespace,"server") end
+    end
+    yes(found)
+end)
+test("we repeated G of one report is one record",function()
+    local N=loadAddon(); establish(N); advance(1)
+    local stamp=math.floor(server)%3600
+    local g="G|"..SCOUT.."|123|C|42|100|0.400|0.500|7086|4|"..stamp
+    deliver("CHAT_MSG_ADDON","WEFF1",g,"GUILD","RelayOne"); eq(N.Main.lastDrop,"new")
+    deliver("CHAT_MSG_ADDON","WEFF1",g,"GUILD","RelayTwo"); eq(N.Main.lastDrop,"duplicate report")
+    deliver("CHAT_MSG_ADDON","WEFF1",g,"GUILD","RelayOne"); eq(N.Main.lastDrop,"duplicate report")
+    eq(N.Safe.count(N.Main.store.reports),1); eq(#N.Store.reporters(N.Main.store,clock),1)
+    -- the E list relayed by another guildmate enriches the same record
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..SCOUT.."|123|E|42|1|1|Zzm:H:60,AbC:A:-1|"..stamp,"GUILD","RelayTwo"); eq(N.Main.lastDrop,"enriched")
+    local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,3); eq(N.Safe.count(N.Main.store.reports),1)
+end)
+test("we zone, layer zero and clock",function()
+    local N=loadAddon(); establish(N); advance(1)
     local stamp=math.floor(server)%3600
     local function send(text,who) deliver("CHAT_MSG_ADDON","WEFF1",text,"GUILD",who or "Other") end
-    send("C|1|100|0|0|7|1|"..(stamp-31)%3600); eq(N.Main.lastDrop,"stale or clock unavailable")
-    send("C|1|100|0|0|7|1|"..(stamp+6)%3600); eq(N.Main.lastDrop,"stale or clock unavailable")
-    send("C|1|100|0|0|7|1|"..(stamp+1800)%3600); eq(N.Main.lastDrop,"stale or clock unavailable")
-    eq(N.Safe.count(N.Main.receiver.pending),0)
-    send("C|2|100|0|0|7|1|"..(stamp+5)%3600); eq(N.Main.lastDrop,"pending")
-    send("C|3|100|0|0|7|1|"..(stamp-30)%3600); eq(N.Main.lastDrop,"pending")
-    send("E|4|1|1|abc:H:60|"..stamp); send("E|4|1|1|abc:H:60|"..stamp); eq(N.Main.lastDrop,"duplicate fragment")
-    send("E|4|1|1|abc:A:40|"..stamp); eq(N.Main.lastDrop,"conflicting fragment")
-    send("C|4|100|0|0|7|1|"..stamp); eq(N.Main.lastDrop,"replayed report")
-    send("C|5|100|0|0|7|2|"..stamp); send("E|5|1|1|abc:H:60|"..stamp); eq(N.Main.lastDrop,"enemy count mismatch")
-    send("C|6|100|0|0|0|1|"..stamp); eq(N.Main.lastDrop,"zone/layer mismatch")
-    send("C|7|200|0|0|7|1|"..stamp); eq(N.Main.lastDrop,"zone/layer mismatch")
-    eq(N.Safe.count(N.Main.store.reports),0)
+    send("C|1|100|0|0|7|1|"..(stamp-901)%3600); eq(N.Main.lastDrop,"stale")
+    send("C|2|100|0|0|7|1|"..(stamp+1800)%3600); eq(N.Main.lastDrop,"stale")      -- age 1800 is not "now"
+    send("C|3|100|0|0|7|1|"..(stamp+5)%3600); eq(N.Main.lastDrop,"new")          -- ahead of our clock: age 0
+    send("C|4|200|0|0|7|1|"..stamp); eq(N.Main.lastDrop,"another zone")
+    send("C|5|100|0|0|0|1|"..stamp,"Zero"); eq(N.Main.lastDrop,"new")
+    hello("Zero",19); send("C|6|100|0|0|0|1|"..stamp,"Zero")
+    local z; for _,row in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do if row.record.rid=="6" then z=row end end
+    eq(z.namespace,"unknown")                                                    -- layer 0 is unknown even at minor 19
     GetServerTime=function() return secret end
-    send("C|8|100|0|0|7|1|"..stamp); eq(N.Main.lastDrop,"stale or clock unavailable"); no(N.Main.error)
+    send("C|8|100|0|0|7|1|"..stamp); eq(N.Main.lastDrop,"clock unavailable"); no(N.Main.error)
 end)
-test("receipt mode keeps privacy gates and caps",function()
-    local N=loadAddon(); establish(N); warSettings(); advance(1)
-    WarEffortScoutDB.silent=true; report(1,7); eq(N.Main.lastDrop,"unavailable: War Effort silent mode")
-    WarEffortScoutDB.silent=false; WarEffortScoutDB.ignored.other="Other"; report(1,7); eq(N.Main.lastDrop,"ignored sender")
-    WarEffortScoutDB.ignored={}; clientIgnored=true; report(1,7); eq(N.Main.lastDrop,"ignored sender")
-    clientIgnored=false; C_FriendList=nil; report(1,7); eq(N.Main.lastDrop,"client ignore policy unavailable")
-    C_FriendList={IsIgnored=function() return false end}
-    WarEffortScoutDB.guildOnly=true
-    local stamp=math.floor(server)%3600
-    deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0|0|7|1|"..stamp,"CHANNEL","Other",nil,nil,7,"WarEffortPubA"); eq(N.Main.lastDrop,"channel disallowed")
-    deliver("CHAT_MSG_ADDON","ZRAD1","C|1|100|0|0|7|1|"..stamp,"GUILD","Other"); eq(N.Main.lastDrop,"legacy privacy unavailable")
-    loaded.WarEffortScout=false; report(1,7); eq(N.Main.lastDrop,"not installed")
-    eq(N.Safe.count(N.Main.store.reports),0); eq(N.Safe.count(N.Main.receiver.pending),0)
-    eq(#N.Main.candidates(),0)
-    loaded.WarEffortScout=true; WarEffortScoutDB.guildOnly=false
+test("we caps hold under a flood",function()
+    local N=loadAddon(); establish(N); advance(1)
     for i=1,400 do advance(.2); report(i%7+1,9,"Sender"..i) end
     yes(N.Safe.count(N.Main.store.reports)<=64); yes(N.Safe.count(N.Main.store.reports)>0)
-    yes(N.Safe.count(N.Main.receiver.senders)<=64); yes(N.Safe.count(N.Main.receiver.pending)<=32)
-    yes(N.Safe.count(N.Main.receiver.tombstones)<=512); yes(#N.Main.candidates()<=40); no(N.Main.error)
+    yes(N.Main.receiver.n<=64); yes(N.Safe.count(N.Main.receiver.latest)<=512); yes(N.Main.receiver.nrates<=512)
+    yes(#N.Main.candidates()<=40); no(N.Main.error)
 end)
-test("reports from another zoneUID in our zone are kept apart and labelled",function()
-    local N=loadAddon(); establish(N); warSettings(); advance(1)
-    report(1,9,"Scout-TestRealm"); eq(N.Main.lastDrop,"complete")
+test("reports from another server key in our zone are kept apart and labelled",function()
+    local N=loadAddon(); establish(N); advance(1)
+    hello("Scout-TestRealm",19); report(1,9000,"Scout-TestRealm"); eq(N.Main.lastDrop,"enriched")
     local rows=N.Store.rows(N.Main.store,clock,"reported")
-    eq(#rows,1); eq(rows[1].relation,"unknown"); eq(rows[1].reportLayer,9); eq(rows[1].confidence,"reported, not confirmed")
-    deliver("CHAT_MSG_ADDON","WEFF1","C|2|200|0|0|9|1|"..math.floor(server)%3600,"GUILD","Elsewhere"); eq(N.Main.lastDrop,"zone/layer mismatch")
-    report(2,9,"Elsewhere",200); eq(N.Main.lastDrop,"replayed report"); eq(N.Safe.count(N.Main.store.reports),1)
+    eq(#rows,1); eq(rows[1].relation,"other"); eq(rows[1].reportLayer,"9000"); eq(rows[1].confidence,"reported, not confirmed")
+    report(2,9,"Elsewhere",200); eq(N.Main.lastDrop,"another zone"); eq(N.Safe.count(N.Main.store.reports),1)
     eq(#N.Store.reporters(N.Main.store,clock),1)
-    SlashCmdList.LAYERENEMIES("reports"); yes(logged("| layer unknown")); no(logged("other zoneUID")); yes(logged("ask a reporter for an invite: /le hosts"))
-    -- Before our own zoneUID is known the relation is unknown, never "same".
-    N=loadAddon(); warSettings(); advance(1); report(1,7)
+    SlashCmdList.LAYERENEMIES("reports"); yes(logged("| other server key 9000")); no(logged("zoneUID")); yes(logged("ask a reporter for an invite: /le hosts"))
+    -- before our own server key is known the relation is unknown, never "same"
+    N=loadAddon(); advance(1); hello("Other",19); report(1,7086)
     eq(N.Store.rows(N.Main.store,clock,"reported")[1].relation,"unknown")
-    -- A transfer wipes reports and reporters.
+    -- a transfer wipes reports and reporters
     deliver("SHARD_TRANSFER"); drain(); eq(N.Safe.count(N.Main.store.reports),0); eq(#N.Store.reporters(N.Main.store,clock),0)
-    -- Same instant as the boundary: nothing is accepted. Later: still tombstoned.
+    -- same instant as the boundary: nothing is stored; later the id is not new any more
     report(2,7); eq(N.Main.lastDrop,"before observation epoch")
-    advance(1); report(1,7); eq(N.Main.lastDrop,"replayed report"); eq(N.Safe.count(N.Main.store.reports),0)
+    advance(10); report(2,7); eq(N.Main.lastDrop,"duplicate list"); eq(N.Safe.count(N.Main.store.reports),0)
 end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
@@ -789,7 +906,8 @@ test("candidates: host preference and one row per name across sources",function(
     units.target={guid=npc(1),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
     units.mouseover={guid=npc(2),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
     eq(N.Main.store.zoneUID,7)
-    report(1,9,"Bob-TestRealm"); report(2,9,"Zed-TestRealm"); report(3,7,"Sam"); report(4,9,"Carl"); report(5,9,"Me-TestRealm")
+    for _,who in ipairs({"Bob-TestRealm","Zed-TestRealm","Sam","Carl"}) do hello(who,19) end
+    report(1,9,"Bob-TestRealm"); report(2,9,"Zed-TestRealm"); report(3,7086,"Sam"); report(4,9,"Carl"); report(5,9,"Me-TestRealm")
     advance(2); report(6,9,"Zed-TestRealm")
     list=N.Main.candidates()
     eq(names(list),"Zed-TestRealm,Bob,Alice,Erin,Finn")
@@ -944,7 +1062,7 @@ test("ask from a War Effort report: reporter is the target, own layer unknown",f
     yes(logged("Now on layer 8000 - your earlier layer was not known, so a move is not confirmed."))
     eq(lines("Moved to layer"),0); eq(forbidden,0)
     -- an ignored reporter is never offered
-    N=loadAddon(); warSettings(); WarEffortScoutDB.ignored.scout="Scout"; advance(1); report(1,9,"Scout-TestRealm")
+    N=loadAddon(); clientIgnored=true; advance(1); report(1,9,"Scout-TestRealm")
     eq(#N.Main.candidates(),0)
 end)
 test("addon never chats, invites, accepts, leaves or joins; sends only through Wire",function()
@@ -956,7 +1074,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     grouped=false; deliver("GROUP_ROSTER_UPDATE"); advance(10); LE.AskInvite("Bob"); drain()
     grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70)
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
-    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","Adapters","Invite","Find","UI","Main"}) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
         for _,word in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","JoinChannel"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
@@ -1010,11 +1128,11 @@ test("Find integration: cross-zone privacy gate, same layer and persistence",fun
     deliver("CHAT_MSG_ADDON","WEFF1","E|61|1|1|"..hash..":M:40|"..stamp,"GUILD","Scout")
     local row=N.Main.findRows()[1]; yes(row.possible); yes(row.travel)
     no(LE.AskInvite("Scout")); yes(logged("travel to zone 200 first")); eq(#opened,0)
-    WarEffortScoutDB.silent=true
+    clientIgnored=true
     deliver("CHAT_MSG_ADDON","WEFF1","C|62|100|0|0|9|1|"..stamp,"GUILD","Scout")
     deliver("CHAT_MSG_ADDON","WEFF1","E|62|1|1|"..hash..":M:40|"..stamp,"GUILD","Scout")
     eq(N.Main.findRows()[1].zone,200)
-    WarEffortScoutDB.silent=false
+    clientIgnored=false
     advance(1); stamp=math.floor(server)%3600
     deliver("CHAT_MSG_ADDON","WEFF1","C|63|100|0|0|9|1|"..stamp,"GUILD","Scout")
     deliver("CHAT_MSG_ADDON","WEFF1","E|63|1|1|"..hash..":M:40|"..stamp,"GUILD","Scout")
@@ -1216,10 +1334,10 @@ test("record rejects bad fields",function()
     bad({layer={ns="server",value="x7"}},"server value")
     local r=rec(N,{label="War Effort",age=5}); eq(r.label,"War Effort"); eq(r.age,5); eq(r.layer.ns,"server")
 end)
-test("store relation uses the record; War Effort 0.2.13 zoneUID reports are not comparable",function()
-    local N=loadAddon(); establish(N); warSettings(); advance(1)
+test("store relation uses the record",function()
+    local N=loadAddon(); establish(N); advance(1)
     report(1,7); local rows=N.Store.rows(N.Main.store,clock,"reported")
-    eq(#rows,1); eq(rows[1].relation,"unknown"); eq(rows[1].record.layer.ns,"zoneuid"); eq(rows[1].record.src,"we")
+    eq(#rows,1); eq(rows[1].relation,"unknown"); eq(rows[1].record.layer.ns,"unknown"); eq(rows[1].record.src,"we")
     eq(rows[1].record.origin,"Other"); eq(rows[1].record.share,"guild")
     SlashCmdList.LAYERENEMIES("list"); yes(logged("Your server key: 7086")); no(logged("War Effort zoneUID"))
 end)
@@ -1228,7 +1346,7 @@ test("tracking a name looks through reports already stored (records)",function()
     local hash=N.Hash.player("Alice","Test Realm"); local stamp=math.floor(server)%3600
     deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0.4|0.5|7|1|"..stamp,"GUILD","Scout")
     deliver("CHAT_MSG_ADDON","WEFF1","E|1|1|1|"..hash..":H:40|"..stamp,"GUILD","Scout")
-    eq(N.Main.lastDrop,"complete"); no(N.Main.find.locations.Alice)
+    eq(N.Main.lastDrop,"enriched"); no(N.Main.find.locations.Alice)
     N.Main.track("Alice"); local loc=N.Main.find.locations.Alice
     yes(loc); eq(loc.spotter,"Scout"); eq(loc.zone,100); eq(loc.level,40); no(N.Main.error)
 end)

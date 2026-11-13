@@ -11,6 +11,7 @@ Layer.lua
 Record.lua
 Wire.lua
 Protocol.lua
+Peers.lua
 Store.lua
 Reports.lua
 Adapters.lua

@@ -90,7 +90,7 @@ function U.render()
     U.layer:SetText(N.Layer.key(M.store.bulo) or "?")
     U.meta:SetText(M.zoneName(M.store.zone).." · "..(M.layerSource or "unknown"))
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
-    U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Dated by receipt time." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or "")
+    U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or "")
     local height=U.tab=="local" and 48 or U.tab=="find" and 106 or U.tab=="friendly" and 68 or 80
     local top=U.tab=="find" and 56 or U.tab=="reported" and 23 or 0
     local visible=math.floor((300-top)/height)
