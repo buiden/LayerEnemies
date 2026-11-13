@@ -120,6 +120,15 @@ local function loadAddon()
         SendAddonMessage=function(prefix,text,kind,target)
             sent[#sent+1]={prefix=prefix,text=text,kind=kind,target=target}
             if not (ROUTES[prefix] and ROUTES[prefix][kind]) then forbidden=forbidden+1 end
+            -- the caller: the first Lua frame above this one (C frames such as pcall are skipped) must be Wire.lua
+            local level,caller=2,nil
+            while true do
+                local info=debug.getinfo(level,"S")
+                if not info then break end
+                if info.what~="C" then caller=info.source; break end
+                level=level+1
+            end
+            if caller~="@LayerEnemies/Wire.lua" then forbidden=forbidden+1 end
             if type(sendResult)=="function" then return sendResult() end
             return sendResult
         end},
@@ -1102,6 +1111,27 @@ test("Forever surname whisper uses native target API, never malformed slash text
     yes(LE.AskInvite("First Surname")); drain(); yes(logged("open a whisper to First Surname manually")); no(logged("/w First Surname")); eq(forbidden,0)
 end)
 -- Wire.lua: the only sender
+test("the send mock counts any caller but Wire.lua as forbidden",function()
+    local N=loadAddon()
+    -- a direct call, a pcall-wrapped call and a dynamically named call from outside Wire.lua all count
+    C_ChatInfo.SendAddonMessage("LayerSwap","x","WHISPER","Alice"); eq(forbidden,1)
+    pcall(function() C_ChatInfo["Send".."AddonMessage"]("LayerSwap","x","WHISPER","Alice") end); eq(forbidden,2)
+    pcall(C_ChatInfo.SendAddonMessage,"LEGW1","x","GUILD"); eq(forbidden,3)
+    -- the same routes through Wire.lua do not
+    forbidden=0; yes(N.Wire.send("LayerSwap","x","WHISPER","Alice")); yes(N.Wire.send("LEGW1","x","GUILD")); eq(forbidden,0); eq(#sent,5)
+end)
+test("wire routes cannot be opened from outside",function()
+    local N=loadAddon(); local Wr=N.Wire
+    if type(Wr.ROUTES)=="table" then
+        Wr.ROUTES.WEFF1={GUILD=true}; if type(Wr.ROUTES.LayerSwap)=="table" then Wr.ROUTES.LayerSwap.GUILD=true end
+        if type(Wr.ROUTES.LEGW1)=="table" then Wr.ROUTES.LEGW1.WHISPER=true end
+    end
+    Wr.ROUTES={WEFF1={GUILD=true},LayerSwap={GUILD=true,CHANNEL=true}}
+    for _,c in ipairs({{"WEFF1","x","GUILD"},{"LayerSwap","x","GUILD"},{"LEGW1","x","WHISPER","Bob"}}) do
+        local ok,why=Wr.send(c[1],c[2],c[3],c[4]); no(ok); eq(why,"blocked route")
+    end
+    eq(#sent,0); yes(Wr.send("LayerSwap","x","WHISPER","Alice")); eq(#sent,1)
+end)
 test("wire sends only on the two allowed routes",function()
     local N=loadAddon(); local Wr=N.Wire
     local function blocked(...) local ok,why=Wr.send(...); no(ok); eq(why,"blocked route") end

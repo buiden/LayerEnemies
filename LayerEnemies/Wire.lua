@@ -5,6 +5,8 @@ local S = N.Safe
 local Wr = {}
 N.Wire = Wr
 
+-- The live allowlist is file-local; Wr.ROUTES is a copy for reading, and changing it changes nothing.
+local ROUTES = { LayerSwap = { WHISPER = true }, LEGW1 = { GUILD = true } }
 Wr.ROUTES = { LayerSwap = { WHISPER = true }, LEGW1 = { GUILD = true } }
 
 -- Guild relay budget: 5 messages, refilled at one every 2 seconds. The whisper route has none (Hop owns its cooldowns).
@@ -13,6 +15,7 @@ local bucket = { tokens = CAP, at = nil }
 function Wr.budget(now)
     now = S.num(now)
     if not now then return false end
+    -- a clock that goes backwards refills nothing (the max), and the bucket then counts from the earlier time
     if bucket.at then bucket.tokens = math.min(CAP, bucket.tokens + math.max(0, now - bucket.at) / REFILL) end
     bucket.at = now
     if bucket.tokens < 1 then return false end
@@ -25,7 +28,7 @@ end
 -- message, not that it was delivered.
 function Wr.send(prefix, text, kind, target)
     if S.secret(prefix) or S.secret(text) or S.secret(kind) or S.secret(target) then return false, "bad text" end
-    local route = type(prefix) == "string" and Wr.ROUTES[prefix]
+    local route = type(prefix) == "string" and ROUTES[prefix]
     if not (route and type(kind) == "string" and route[kind]) then return false, "blocked route" end
     if type(text) ~= "string" or #text < 1 or #text > 255 then return false, "bad text" end
     if kind == "WHISPER" then
@@ -34,6 +37,7 @@ function Wr.send(prefix, text, kind, target)
     else
         target = nil
     end
+    -- the token is spent before the client is asked: a refused or erroring send still uses it
     if prefix == "LEGW1" and not Wr.budget(S.num(S.call(GetTime))) then return false, "throttled" end
     local CI = _G.C_ChatInfo
     if S.secret(CI) or type(CI) ~= "table" then return false, "error" end
