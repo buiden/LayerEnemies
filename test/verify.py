@@ -2,12 +2,13 @@
 from pathlib import Path
 import hashlib
 import json
+import os
 import re
 import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-LUA = Path('/opt/data/tools/lua/lua-5.1.5/src/lua')
+LUA = Path(os.environ.get('LAYERENEMIES_LUA', '/opt/data/tools/lua/lua-5.1.5/src/lua'))
 LUAC = LUA.with_name('luac')
 
 
