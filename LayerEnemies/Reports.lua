@@ -5,21 +5,25 @@ local _, N = ...
 local R, S, P = {}, N.Safe, N.Protocol
 N.Reports = R
 R.MAX, R.TTL, R.HOLD, R.HELD, R.ORIGINS, R.ORDER = 64, 600, 15, 200, 512, 3600
+R.HELD_ALL = 256                                                 -- held E entries across all origins
 
-function R.new() return { reports = {}, n = 0, latest = {}, held = {}, heldBy = {}, rates = {}, nrates = 0 } end
+function R.new() return { reports = {}, n = 0, latest = {}, held = {}, heldBy = {}, heldAll = 0, rates = {}, nrates = 0 } end
+-- Drops one held list and its counts.
+local function unhold(st, key)
+    local h = st.held[key]
+    if not h then return end
+    st.heldBy[h.okey] = (st.heldBy[h.okey] or 0) - h.entries
+    if st.heldBy[h.okey] <= 0 then st.heldBy[h.okey] = nil end
+    st.heldAll = st.heldAll - h.entries
+    st.held[key] = nil
+end
 -- A zone boundary: reports and held lists go; the per-reporter report order stays (an old id stays old).
 function R.clearPending(st)
-    S.clear(st.reports); st.n = 0; S.clear(st.held); S.clear(st.heldBy)
+    S.clear(st.reports); st.n = 0; S.clear(st.held); S.clear(st.heldBy); st.heldAll = 0
 end
 function R.prune(st, now)
     for k, v in pairs(st.reports) do if now - v.at >= R.TTL then st.reports[k] = nil; st.n = st.n - 1 end end
-    for k, v in pairs(st.held) do
-        if now - v.at > R.HOLD then
-            st.heldBy[v.okey] = (st.heldBy[v.okey] or 0) - v.entries
-            if st.heldBy[v.okey] <= 0 then st.heldBy[v.okey] = nil end
-            st.held[k] = nil
-        end
-    end
+    for k, v in pairs(st.held) do if now - v.at > R.HOLD then unhold(st, k) end end
     for k, v in pairs(st.rates) do if now - v.at >= 10 then st.rates[k] = nil; st.nrates = st.nrates - 1 end end
     for k, v in pairs(st.latest) do if now - v.at >= R.ORDER then st.latest[k] = nil end end
 end
@@ -31,6 +35,10 @@ function R.allow(st, sender, wrapped, now)
     local v = st.rates[key]
     if not v or now - v.at >= 10 then
         if not v then
+            -- full: clear expired windows first (receive, which also prunes, never runs for a refused sender)
+            if st.nrates >= 512 then
+                for k, w in pairs(st.rates) do if now - w.at >= 10 then st.rates[k] = nil; st.nrates = st.nrates - 1 end end
+            end
             if st.nrates >= 512 then return false end
             st.nrates = st.nrates + 1
         end
@@ -87,10 +95,19 @@ function R.receive(st, msg, ctx)
         end
         local entries = #inner.enemies
         if (st.heldBy[okey] or 0) + entries > R.HELD then return nil, "held list cap" end
+        -- across all origins: the oldest held lists make room
+        while st.heldAll + entries > R.HELD_ALL do
+            local oldest, ok
+            for k, v in pairs(st.held) do if k ~= key and (not oldest or v.at < oldest) then oldest, ok = v.at, k end end
+            if not ok then break end
+            unhold(st, ok)
+        end
+        if st.heldAll + entries > R.HELD_ALL then return nil, "held list cap" end
         local h = st.held[key]
         if not h then h = { at = now, okey = okey, lists = {}, entries = 0 }; st.held[key] = h end
         h.lists[#h.lists + 1] = inner.enemies; h.entries = h.entries + entries
         st.heldBy[okey] = (st.heldBy[okey] or 0) + entries
+        st.heldAll = st.heldAll + entries
         return nil, "held"
     end
     -- C: only a report newer than the last one heard from this reporter (an hour of memory). A repeat of the same
@@ -120,9 +137,7 @@ function R.receive(st, msg, ctx)
     local h = st.held[key]
     if h then
         for _, list in ipairs(h.lists) do enrich(rep, list) end
-        st.heldBy[okey] = (st.heldBy[okey] or 0) - h.entries
-        if st.heldBy[okey] <= 0 then st.heldBy[okey] = nil end
-        st.held[key] = nil
+        unhold(st, key)
     end
     return record, "new"
 end

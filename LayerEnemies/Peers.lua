@@ -6,11 +6,12 @@ local Pe = {}
 N.Peers = Pe
 Pe.TTL, Pe.MAX = 900, 256
 
--- Names are compared without the realm part and without case ("Scout One-Realm" and "scout one" are one reporter).
+-- Names are compared whole, without case, as War Effort does: "Scout-RealmA" and "Scout-RealmB" are two reporters.
+-- A sender seen with and without its realm is then two keys; a missed match leaves a layer unknown (the safe side).
 function Pe.key(name)
     name = S.str(name, 100)
     if not name then return nil end
-    return (name:match("^([^%-]+)") or name):lower()
+    return name:lower()
 end
 function Pe.new() return { list = {}, n = 0 } end
 function Pe.hello(st, name, minor, now)

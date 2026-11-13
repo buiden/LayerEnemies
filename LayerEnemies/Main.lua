@@ -140,6 +140,16 @@ function M.queueUnit(unit)
     end
     if not after(0,run) then run() end
 end
+-- Our own character, with or without a realm (compared the way the receive policy compares senders).
+function M.isMe(name)
+    name=S.str(name,100)
+    local me,realm=S.call(UnitName,"player"); me,realm=S.str(me),S.str(realm)
+    realm=realm or S.str(S.call(GetRealmName))
+    if not name or not me then return false end
+    local short,remote=name:match("^([^%-]+)%-(.+)$")
+    if not short then return name:lower()==me:lower() end
+    return realm~=nil and N.Hash.nameKey(short,remote)==N.Hash.nameKey(me,realm)
+end
 function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelName)
     -- Check every delivered value before comparing/indexing it.
     local args={prefix,text,kind,sender,target,zoneChannelID,localID,channelName}
@@ -155,8 +165,13 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     if not N.Reports.allow(M.receiver,sender,msg.type=="G" or msg.type=="X",time) then return end
     local inner,origin=msg.inner or msg,msg.origin or sender
     if msg.origin then
-        local me=S.str((S.call(UnitName,"player")))
-        if me and N.Peers.key(origin)==N.Peers.key(me) then M.lastDrop="own echo"; return end
+        if M.isMe(origin) then M.lastDrop="own echo"; return end
+        -- a wrapper carries someone else's message; one naming its own sender is refused (as War Effort does)
+        -- same name: equal in full, or equal without realm when one of the two carries none
+        local function bare(n) return (n:match("^([^%-]+)") or n):lower() end
+        local whole=origin:lower()==sender:lower()
+        local partial=(not origin:find("-",1,true) or not sender:find("-",1,true)) and bare(origin)==bare(sender)
+        if whole or partial then M.lastDrop="wrapped by its own origin"; return end
         local ignored,whyIgnored=A.ignored(origin)
         if ignored then M.lastDrop=whyIgnored; return end
     end

@@ -450,8 +450,9 @@ test("we report ids: newer only, caps",function()
     -- after the 600 s TTL the record is gone, but the id order holds for an hour
     N.Reports.prune(t,900); eq(t.reports["scout:10"],nil)
     eq(select(2,feed("C|11|100|0|0|7|1|100","Scout",900)),"old report")
-    -- names compare without realm and case
-    eq(select(2,feed("C|11|100|0|0|7|1|100","scout-OtherRealm",901)),"old report")
+    -- names compare whole and without case: another realm is another reporter (مانع T3 F1)
+    eq(select(2,feed("C|11|100|0|0|7|1|100","SCOUT",901)),"old report")
+    eq(select(2,feed("C|11|100|0|0|7|1|100","scout-OtherRealm",901)),"new")
     -- 64 live reports at most
     local u,feed2=reportFixture(N)
     for i=1,64 do yes(feed2("C|1|100|0|0|7|1|100","S"..i,200)) end
@@ -797,6 +798,102 @@ test("reports from another server key in our zone are kept apart and labelled",f
     -- same instant as the boundary: nothing is stored; later the id is not new any more
     report(2,7); eq(N.Main.lastDrop,"before observation epoch")
     advance(10); report(2,7); eq(N.Main.lastDrop,"duplicate list"); eq(N.Safe.count(N.Main.store.reports),0)
+end)
+local function hexOf(s) return (s:gsub(".",function(c) return string.format("%02x",c:byte()) end)) end
+test("we a hello from one realm never vouches for a namesake on another (مانع T3 F1)",function()
+    local N=loadAddon(); establish(N); advance(1)
+    local stamp=math.floor(server)%3600
+    local function wrapped(origin,rid) return "G|"..hexOf(origin).."||C|"..rid.."|100|0.4|0.5|7086|4|"..stamp end
+    -- Astra's RELAYER_REALM_COLLISION: Scout-RealmA says hello 19, then relays a C whose origin is Scout-RealmB
+    hello("Scout-RealmA",19); deliver("CHAT_MSG_ADDON","WEFF1",wrapped("Scout-RealmB",42),"GUILD","Scout-RealmA")
+    local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1)
+    eq(rows[1].reporter,"Scout-RealmB"); eq(rows[1].namespace,"unknown"); eq(rows[1].relation,"unknown")
+    eq(N.Peers.minor(N.Main.peers,"Scout-RealmB",clock),nil); eq(N.Peers.minor(N.Main.peers,"Scout-RealmA",clock),19)
+    -- and the same id from the namesake on realm A is its own report: two rows
+    hello("Scout-RealmA",19); report(42,7086,"Scout-RealmA")
+    rows=N.Store.rows(N.Main.store,clock,"reported"); local seen={}
+    for _,row in ipairs(rows) do seen[row.reporter]=(row.relation) end
+    eq(seen["Scout-RealmB"],"unknown"); eq(seen["Scout-RealmA"],"same"); eq(N.Safe.count(N.Main.store.reports),2)
+    -- case does not split a reporter
+    eq(N.Peers.key("SCOUT-RealmA"),N.Peers.key("scout-realma"))
+end)
+test("we a wrapper naming its own sender, or us, is refused",function()
+    local N=loadAddon(); establish(N); advance(1)
+    local c="C|1|100|0.4|0.5|7086|1|"..math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..hexOf("Scout").."||"..c,"GUILD","Scout"); eq(N.Main.lastDrop,"wrapped by its own origin")
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..hexOf("Scout").."||"..c,"GUILD","Scout-TestRealm"); eq(N.Main.lastDrop,"wrapped by its own origin")
+    deliver("CHAT_MSG_ADDON","WEFF1","X|"..hexOf("Pal").."|1|"..c,"PARTY","pal"); eq(N.Main.lastDrop,"wrapped by its own origin")
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..hexOf("Me-TestRealm").."||"..c,"GUILD","Relay"); eq(N.Main.lastDrop,"own echo")
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..hexOf("Me").."||"..c,"GUILD","Relay"); eq(N.Main.lastDrop,"own echo")
+    eq(N.Safe.count(N.Main.store.reports),0)
+    -- a namesake on another realm is not us
+    deliver("CHAT_MSG_ADDON","WEFF1","G|"..hexOf("Me-FarRealm").."||"..c,"GUILD","Relay"); eq(N.Main.lastDrop,"new")
+end)
+test("we E, then a boundary, then C of the same id is a new report (مانع T3 S1, accepted)",function()
+    local N=loadAddon(); local t,feed=reportFixture(N)
+    eq(select(2,feed("E|5|1|1|abc:H:60|100","Scout",200)),"held")
+    N.Reports.clearPending(t)
+    local r,why=feed("C|5|100|0|0|7|1|100","Scout",201); eq(why,"new"); eq(#r.enemies,0); eq(r.heard,201)
+    -- through the addon: the E heard before a same-zone transfer does not attach; the C after it is a new row
+    N=loadAddon(); establish(N); advance(1); local stamp=math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","E|9|1|1|abc:H:60|"..stamp,"GUILD","Scout"); eq(N.Main.lastDrop,"held")
+    deliver("SHARD_TRANSFER"); drain(); advance(1)
+    deliver("CHAT_MSG_ADDON","WEFF1","C|9|100|0|0|7|1|"..math.floor(server)%3600,"GUILD","Scout"); eq(N.Main.lastDrop,"new")
+    local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].name,"1 not listed")
+end)
+test("we secret values in any message argument stop the message (مانع T3 S2)",function()
+    local stamp
+    for i=1,4 do
+        local N=loadAddon(); establish(N); advance(1); stamp=math.floor(server)%3600
+        local args={"WEFF1","C|1|100|0|0|7|1|"..stamp,"GUILD","Other"}
+        args[i]=secret
+        N.Main.lastDrop="untouched"; N.Main.lastHeard=nil
+        deliver("CHAT_MSG_ADDON",args[1],args[2],args[3],args[4])
+        eq(N.Main.lastDrop,"untouched",i); eq(N.Main.lastHeard,nil,i); eq(N.Safe.count(N.Main.store.reports),0,i); no(N.Main.error,i)
+        eq(N.Main.receiver.nrates,0,i)
+    end
+    -- the same message without a secret is read
+    local N=loadAddon(); establish(N); advance(1)
+    deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0|0|7|1|"..math.floor(server)%3600,"GUILD","Other"); eq(N.Main.lastDrop,"new")
+end)
+test("we held lists are capped across origins, rate table too (مانع T3 S3)",function()
+    local N=loadAddon(); local t,feed=reportFixture(N)
+    local function list(tag,n) local out={}; for j=1,n do out[j]=tag..string.format("%02d",j)..":H:60" end; return table.concat(out,",") end
+    -- 18 origins x 18 entries = 324 > 256: the oldest lists make room
+    for i=1,18 do eq(select(2,feed("E|1|1|1|"..list(string.char(64+i),18).."|100","Origin"..i,200+i/100)),"held") end
+    yes(t.heldAll<=256); eq(t.heldAll,252)
+    eq(t.held["origin1:1"],nil); eq(t.held["origin4:1"],nil); yes(t.held["origin5:1"]); yes(t.held["origin18:1"])
+    local sum=0; for _,h in pairs(t.held) do sum=sum+h.entries end; eq(sum,t.heldAll)
+    -- a kept list still attaches; a dropped one does not
+    local r=feed("C|1|100|0|0|7|18|100","Origin18",202); eq(#r.enemies,18)
+    r=feed("C|1|100|0|0|7|18|100","Origin1",202); eq(#r.enemies,0)
+    eq(t.heldAll,234)
+    N.Reports.prune(t,300); eq(t.heldAll,0); eq(next(t.held),nil)
+    -- the receive-rate table holds 512 senders at most; the 513th is refused until the window passes
+    local u=N.Reports.new()
+    for i=1,512 do yes(N.Reports.allow(u,"S"..i,false,0)) end
+    no(N.Reports.allow(u,"S513",false,1)); eq(u.nrates,512)
+    yes(N.Reports.allow(u,"S513",false,10)); yes(u.nrates<=512)
+end)
+test("we reports never enter LayerEnemiesDB (مانع T3 S4)",function()
+    local N=loadAddon(); establish(N); advance(1)
+    hello("Scout",19); report(1,7086,"Scout"); report(2,9000,"Scout"); hello("Relay",19)
+    deliver("CHAT_MSG_ADDON","WEFF1",VG,"GUILD","Relay"); deliver("CHAT_MSG_ADDON","WEFF1","E|9|1|1|abc:H:60|100","GUILD","Late")
+    SlashCmdList.LAYERENEMIES("find Alice"); SlashCmdList.LAYERENEMIES("reports")
+    yes(N.Safe.count(N.Main.store.reports)>=2)
+    local bad={rid=1,origin=1,via=1,enemies=1,layer=1,heard=1,hash=1,reports=1,peers=1,zone=1,count=1,record=1}
+    local function scan(v,path,depth)
+        if type(v)=="table" then
+            for k,x in pairs(v) do
+                no(bad[k],path.."."..tostring(k))
+                scan(x,path.."."..tostring(k),depth+1)
+            end
+        elseif type(v)=="string" then
+            no(v:find("Scout",1,true),path); no(v:find("Relay",1,true),path); no(v:find("7086",1,true),path); no(v=="abc",path)
+        end
+    end
+    scan(LayerEnemiesDB,"LayerEnemiesDB",0)
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position",k) end
 end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
