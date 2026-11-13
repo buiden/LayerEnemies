@@ -25,8 +25,9 @@ function Hp.reply(text, sender, me)
     if text == "same" then return { kind = "same" } end
     local who, layer, zone, host = text:match("^heard (.-)|([^|]*)|([^|]*)|([^|]*)$")
     if not who or not me or who ~= me then return nil end
-    return { kind = "heard", layer = layer:match("^%d+%-%d+$") and layer or nil, zone = zone:match("^%d+$") and tonumber(zone) or nil,
-        hosting = host == "h" }
+    -- malformed fields make the reply unreadable, not "unknown"
+    if not (layer == "-" or layer:match("^%d+%-%d+$")) or not (zone == "-" or zone:match("^%d+$")) or (host ~= "h" and host ~= "-") then return nil end
+    return { kind = "heard", layer = layer ~= "-" and layer or nil, zone = zone ~= "-" and tonumber(zone) or nil, hosting = host == "h" }
 end
 
 function Hp.new() return { pending = nil } end
@@ -42,15 +43,17 @@ function Hp.candidate(record, list)
     for _, c in ipairs(list or {}) do
         if c.layer == key and not c.same then
             local r
+            -- each source ranks by its own host flag: a Bulo non-host who is also a LayerSwap host ranks as LayerSwap
             for _, src in ipairs(c.sources or {}) do
-                local v = src == "Bulo" and (c.host and 1 or 3) or src == "LayerSwap" and 2 or nil
+                local v = src == "Bulo" and (c.hosts and c.hosts.Bulo and 1 or 3) or src == "LayerSwap" and 2 or nil
                 if v and (not r or v < r) then r = v end
             end
             if r and (not rank or r < rank or (r == rank and c.age < best.age)) then best, rank = c, r end
         end
     end
     if best then
-        return { name = best.name, short = best.short, uid = best.uid, source = best.sources[1], addon = true }
+        local src = rank == 2 and "LayerSwap" or "Bulo"
+        return { name = best.name, short = best.short, uid = best.uid, source = src, addon = true }
     end
     if record.src == "we" then
         local name, short = N.Invite.name(record.origin)
@@ -66,8 +69,9 @@ end
 function Hp.check(record, candidate, ctx)
     if ctx.grouped then return false, "leave your current group first; an invite cannot reach you while grouped." end
     if not S.tab(record) then return false, "nothing to hop to." end
-    if not ctx.own.zone then return false, "your zone is not known." end
-    if record.zone ~= ctx.own.zone then
+    -- the live map zone decides: unreadable or different from the report refuses (the cached zone can lag)
+    if not ctx.zone or not ctx.own.zone then return false, "your zone is not known." end
+    if record.zone ~= ctx.zone or record.zone ~= ctx.own.zone then
         return false, "travel to " .. (ctx.zoneName and ctx.zoneName(record.zone) or tostring(record.zone)) .. " first."
     end
     if not record.layer or record.layer.ns ~= "server" then return false, "this report's layer cannot be compared with yours." end
@@ -97,14 +101,15 @@ function Hp.request(st, record, candidate, ctx)
 end
 
 -- A LayerSwap-prefix message from the asked player within 120 s -> text to show, or nil.
-function Hp.receive(st, text, sender, me, now)
+function Hp.receive(st, text, sender, me, now, ambiguous)
     local p = st.pending
     if not p then return nil end
     if now - p.at > Hp.REPLY then st.pending = nil; return nil end
-    local _, short = N.Invite.name(sender)
-    if short ~= p.short then return nil end
+    -- the whole name, realm included: Alice-OtherRealm is not the Alice we asked
+    local _, key = N.Invite.name(sender)
+    if not key or key ~= p.short then return nil end
     local r = Hp.reply(text, sender, me)
     if not r then return nil end
-    if r.kind == "same" then return p.name .. " is on your layer." end
+    if r.kind == "same" then return p.name .. " says you're on their layer" .. (ambiguous and " (probably: your key is ambiguous)." or ".") end
     return p.name .. " heard you (layer " .. (r.layer or "unknown") .. ", hosting: " .. (r.hosting and "yes" or "no") .. ")."
 end

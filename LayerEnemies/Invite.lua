@@ -19,8 +19,16 @@ function I.name(name)
     local short,rest=name:match("^([^%-]+)(.*)$")
     if not short or #short<2 or #short>36 or not short:match("^[%a\128-\255]+$") then return nil end
     if rest~="" and not rest:match("^%-[%w'\128-\255]+$") then return nil end
-    return name,short:lower()
+    -- the key is the whole name, realm included: Scout-RealmA and Scout-RealmB are two players; our own realm
+    -- is dropped, so "Bob" and "Bob-<our realm>" are one
+    if rest~="" then
+        local home=I.home and S.str(I.home(),60)
+        local function norm(v) return (v:lower():gsub("[%s%-']","")) end
+        if home and norm(rest:sub(2))==norm(home) then return name,short:lower() end
+    end
+    return name,name:lower()
 end
+I.home=nil                                                      -- set by Main: our realm name
 function I.line(name) return "/w "..name.." "..I.MESSAGE end
 local function zoneText(v)
     v=S.clean(v)
@@ -54,7 +62,7 @@ local function scan(raw,env,source,maxAge)
             local age=at and env.wall-at
             if age and age<0 and age>=-5 then age=0 end
             if layer and zone and zone==env.zoneText and age and age>=0 and age<maxAge and not skip then
-                out[#out+1]={name=name,short=short,layer=layer,uid=uid(source,e),age=age,host=host,source=source,same=L.same(layer,env.ownKey)}
+                out[#out+1]={name=name,short=short,layer=layer,uid=uid(source,e),age=age,host=host,hosts={[source]=host},source=source,same=L.same(layer,env.ownKey)}
             end
         end
     end
@@ -108,11 +116,13 @@ function I.collect(env)
                 c.sources={c.source}
                 if cur.layer==c.layer then
                     c.host=c.host or cur.host
+                    for k,v in pairs(cur.hosts or {}) do c.hosts[k]=c.hosts[k] or v end
                     for _,label in ipairs(cur.sources) do addSource(c,label) end
                 end
                 byName[c.short]=c
             elseif cur.layer==c.layer then
                 cur.host=cur.host or c.host; addSource(cur,c.source)
+                cur.hosts=cur.hosts or {}; cur.hosts[c.source]=cur.hosts[c.source] or c.host
             end
         end
         status[field]=#claims.." fresh in this zone"

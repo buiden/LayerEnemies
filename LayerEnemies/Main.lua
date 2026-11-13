@@ -36,7 +36,11 @@ function M.boundary(zone)
         L.forget(M.npcs)
         -- a new zone also drops a pending hop or ask (the layer watch ends itself on the zone change, with a note)
         if M.hop then N.Hop.clear(M.hop) end
-        if M.invite then M.invite.pending=nil end
+        if M.invite then
+            M.invite.pending=nil
+            -- the layer watch ends here too: a quick out-and-back before the next poll must not read as a move
+            if M.invite.watch then M.invite.watch=nil; M.say("LayerEnemies: Zone changed - layer check cancelled.") end
+        end
     else L.reset(M.npcs) end
     if zone~=nil then M.zoneSeen=zone end
     M.subEpoch=now()
@@ -230,7 +234,8 @@ end
 function M.layerswap(text,kind,sender)
     if kind~="WHISPER" or type(text)~="string" or not S.str(sender,100) or not M.hop.pending then return end
     local me=S.str((S.call(UnitName,"player")))
-    local shown=N.Hop.receive(M.hop,text,sender,me,now())
+    local time=now()
+    local shown=N.Hop.receive(M.hop,text,sender,me,time,M.store.ambiguous(time))
     if shown then M.say("LayerEnemies: "..shown) end
 end
 -- LFSw prefix: Bulo guild layer lines, GUILD only, read and never answered.
@@ -250,6 +255,7 @@ M.say=say
 function M.homeRealm()
     return S.str(S.call(GetNormalizedRealmName)) or S.str(S.call(GetRealmName)) or ""
 end
+I.home=M.homeRealm
 function M.zoneName(zone)
     local info=S.tab(C_Map) and S.call(C_Map.GetMapInfo,zone)
     return S.tab(info) and S.str(info.name) or ("zone "..tostring(zone or "unknown"))
@@ -370,7 +376,7 @@ function M.hopContext()
     local zone,x,y=A.location()
     local own=T.own(M.store,time)
     if zone~=own.zone then x,y=nil,nil end
-    return {now=time,grouped=A.grouped(),own=own,invite=M.invite,x=x,y=y,zoneName=M.zoneName}
+    return {now=time,grouped=A.grouped(),own=own,zone=zone,invite=M.invite,x=x,y=y,zoneName=M.zoneName}
 end
 function M.hopPreview(record)
     local ctx=M.hopContext()
@@ -387,9 +393,17 @@ function M.hopPreview(record)
         or ("a prefilled chat whisper to "..cand.name.." (no host addon known); you press Enter")) or nil
     return {label=how,enabled=ok,reason=reason,detail=detail,candidate=cand}
 end
-function M.hopTo(record)
+-- shown: the preview the user clicked (button or /le reports). The click acts on that candidate and mode only:
+-- if the live pick differs now, nothing is sent and the row is redrawn.
+function M.hopTo(record,shown)
     local ctx=M.hopContext()
     local cand=N.Hop.candidate(record,(M.candidates()))
+    local was=S.tab(shown) and shown.candidate or nil
+    if not S.tab(shown) or (cand==nil)~=(was==nil) or (cand and (cand.name~=was.name or cand.addon~=was.addon)) then
+        M.say("LayerEnemies: hosts changed, check again.")
+        if N.UI then N.UI.refresh() end
+        return false
+    end
     local ok,result,line=N.Hop.request(M.hop,record,cand,ctx)
     if not ok then M.say("LayerEnemies: "..result); return false end
     if result=="whisper" then
@@ -407,7 +421,7 @@ function M.hopIndex(index)
     if not list or now()-list.at>120 then M.say("LayerEnemies: run /le reports first, then /le hop <number>."); return false end
     local record=index and list.records[index]
     if not record then M.say("LayerEnemies: no such number in the last /le reports list."); return false end
-    return M.hopTo(record)
+    return M.hopTo(record,list.shown and list.shown[index])
 end
 function M.hosts()
     guarded(M.poll)
@@ -458,13 +472,13 @@ function M.text(command)
     say(kind=="reported" and "Reported, not confirmed (War Effort; age as the reporter's clock gives it):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
     local rows=T.rows(M.store,now(),kind)
     if #rows==0 then say(kind=="reported" and "No live reports for your zone." or "No eligible observations.") end
-    local numbers,records={},{}
+    local numbers,records,shown={},{},{}
     for _,e in ipairs(rows) do
         local when=ago(now()-e.at)
         local extra=""
         if kind=="reported" and e.record and not numbers[e.record] then
             records[#records+1]=e.record; numbers[e.record]=#records
-            local p=M.hopPreview(e.record)
+            local p=M.hopPreview(e.record); shown[#records]=p
             say("["..#records.."] "..(p.enabled and ("/le hop "..#records..": "..p.detail) or ("no hop: "..p.reason)))
         end
         if e.reporter then
@@ -472,7 +486,7 @@ function M.text(command)
         end
         say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or ""))
     end
-    if kind=="reported" then M.hopList={at=now(),records=records} end
+    if kind=="reported" then M.hopList={at=now(),records=records,shown=shown} end
     if kind=="reported" and #rows>0 then say("To go there, ask a reporter for an invite: /le hosts") end
     if kind=="local" then
         local reported=#T.rows(M.store,now(),"reported")
