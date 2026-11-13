@@ -24,9 +24,11 @@ def main():
     assert '## Interface: 16001' in toc
     assert '## SavedVariablesPerCharacter: LayerEnemiesDB' in toc
     addon_text = '\n'.join(p.read_text() for p in (ROOT / 'LayerEnemies').glob('*.lua'))
-    for forbidden in ('SendAddonMessage', 'JoinChannelByName', 'SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED',
+    for forbidden in ('JoinChannelByName', 'SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED',
                       'InviteUnit', 'LeaveParty', 'AcceptGroup', 'C_PartyInfo', 'RunMacroText'):
         assert forbidden not in addon_text, 'Unexpected outgoing/forbidden API: ' + forbidden
+    senders = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua') if 'SendAddonMessage' in p.read_text())
+    assert senders == ['Wire.lua'], 'SendAddonMessage outside Wire.lua: ' + ', '.join(senders)
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         if file.name != 'UI.lua':
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
