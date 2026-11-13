@@ -47,12 +47,14 @@ end
 -- Race never establishes faction; there are neutral/cross-faction races.
 function A.enrich(guid)
     if not S.str(guid,120) or not guid:match("^Player%-") then return nil end
-    local _,class,_,race,_,name,realm=S.call(GetPlayerInfoByGUID,guid)
-    return S.str(name),S.str(realm),S.str(class,20),S.str(race,40)
+    local _,class,_,race,_,name,realm,level=S.call(GetPlayerInfoByGUID,guid)
+    level=S.num(level)
+    if level and (level%1~=0 or level< -1 or level>100) then level=nil end
+    return S.str(name),S.str(realm),S.str(class,20),S.str(race,40),level
 end
-function A.buloSnapshot(epoch,now)
+function A.buloSnapshot(epoch,now,known)
     local ns=_G.BuloLayerForever
-    if ns==nil then return {status="not installed"} end
+    if ns==nil then return {status=A.loaded("BuloLayerForever") and "Bulo data unavailable" or "not installed"} end
     if not S.tab(ns) then error("namespace shape") end
     local current=S.clean(ns.current)
     if current~=nil and not N.Layer.bulo(current) then error("layer shape") end
@@ -64,7 +66,8 @@ function A.buloSnapshot(epoch,now)
         if guid and S.tab(e) then
             local at,src=S.num(e.at),S.str(e.src,15)
             local hostile=S.clean(e.hostile)
-            if at and at>epoch and at<=now and now-at<=45 and (src=="target" or src=="mouseover" or src=="nameplate") and type(hostile)=="boolean" then
+            local previous=known and known[guid]
+            if at and (not previous or previous.at<at) and at>epoch and at<=now and now-at<=45 and (src=="target" or src=="mouseover" or src=="nameplate") and type(hostile)=="boolean" then
                 observations[#observations+1]={key=guid,at=at,source="Bulo "..src,hostile=hostile,faction="unknown"}
             end
         end
@@ -80,8 +83,8 @@ function A.buloSubscribe(ns,callback)
     end)
     return ok
 end
-function A.bulo(epoch,now)
-    local ok,result=pcall(A.buloSnapshot,epoch,now)
+function A.bulo(epoch,now,known)
+    local ok,result=pcall(A.buloSnapshot,epoch,now,known)
     if not ok then return {status="Bulo data unavailable"} end
     return result
 end

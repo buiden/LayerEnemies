@@ -203,8 +203,9 @@ test("optional GUID enrichment checks each return and missing API",function()
     local N=loadAddon(); eq(N.Adapters.enrich("Player-1-2"),nil)
     GetPlayerInfoByGUID=function() return secret,secret,secret,secret,2,secret,secret end
     local n,r,c,race=N.Adapters.enrich("Player-1-2"); eq(n,nil); eq(r,nil); eq(c,nil); eq(race,nil)
-    GetPlayerInfoByGUID=function() return "Mage","MAGE","Human","Human",2,"Named","Realm" end
-    n,r,c,race=N.Adapters.enrich("Player-1-2"); eq(n,"Named"); eq(r,"Realm"); eq(c,"MAGE"); eq(race,"Human")
+    GetPlayerInfoByGUID=function() return "Mage","MAGE","Human","Human",2,"Named","Realm",60 end
+    local level
+    n,r,c,race,level=N.Adapters.enrich("Player-1-2"); eq(n,"Named"); eq(r,"Realm"); eq(c,"MAGE"); eq(race,"Human"); eq(level,60)
     eq(N.Adapters.enrich("target:Name"),nil)
 end)
 test("NPC GUID parsing keeps namespaces and requires distinct NPC kinds",function()
@@ -325,7 +326,7 @@ test("timed-out fragments cannot bridge old pending assembly",function()
     local N=loadAddon(); local t,feed=reportFixture(N)
     feed("C|1|100|0|0|7|1|100"); N.Reports.prune(t,216)
     local r,why=feed("E|1|1|1|abc:H:60|100",nil,nil,217)
-    eq(r,nil); eq(why,"pending")
+    eq(r,nil); eq(why,"replayed report")
 end)
 test("passive CHAT_MSG_ADDON: own echo and wrong channels ignored",function()
     local N=loadAddon(); warSettings()
@@ -439,6 +440,38 @@ test("foreign field getter failures do not escape game event dispatch",function(
     local N=loadAddon()
     C_Map=setmetatable({},{__index=function() error("API shape changed") end})
     yes(pcall(deliver,"ZONE_CHANGED")); eq(N.Main.error,"data unavailable (API error)")
+end)
+test("unchanged Bulo timestamps allocate no duplicate observations",function()
+    local N=loadAddon(); local b=fakeBulo("7086-7"); N.Main.poll(); advance(1)
+    b.Radar.seen.a={at=clock,hostile=true,src="target"}; N.Main.poll()
+    local first=N.Main.store.localSeen.a
+    local snap=N.Adapters.bulo(N.Main.store.epoch,clock,N.Main.store.localSeen)
+    eq(#snap.observations,0); N.Main.poll(); eq(N.Main.store.localSeen.a,first)
+    advance(1); b.Radar.seen.a.at=clock; N.Main.poll()
+    yes(N.Main.store.localSeen.a~=first); eq(first.at,clock-1)
+end)
+test("deterministic decoder fuzz never crashes or accepts oversized input",function()
+    local N=loadAddon(); math.randomseed(1337)
+    local alphabet="CEH|0123456789abcdef:?-,. \n"
+    for _=1,5000 do
+        local n=math.random(0,300); local s={}
+        for i=1,n do local pos=math.random(#alphabet); s[i]=alphabet:sub(pos,pos) end
+        local ok,msg=pcall(N.Protocol.decode,table.concat(s))
+        yes(ok); if n>255 then eq(msg,nil) end
+    end
+end)
+test("same-frame own unit data can classify a Bulo copy without restamping",function()
+    local N=loadAddon(); local b=fakeBulo("7086-7"); N.Main.poll(); advance(1)
+    units.target=player("Verified","Horde")
+    b.Radar.seen[units.target.guid]={at=clock,hostile=true,src="target"}; N.Main.poll()
+    eq(#N.Store.rows(N.Main.store,clock,"local"),0)
+    deliver("PLAYER_TARGET_CHANGED"); drain()
+    local rows=N.Store.rows(N.Main.store,clock,"local")
+    eq(#rows,1); eq(rows[1].at,clock); eq(rows[1].source,"own target"); eq(rows[1].x,.25)
+end)
+test("loaded Bulo with missing namespace reports unavailable rather than absent",function()
+    local N=loadAddon(); loaded.BuloLayerForever=true; N.Main.poll()
+    eq(N.Main.statusBulo,"Bulo data unavailable"); no(N.Main.error)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

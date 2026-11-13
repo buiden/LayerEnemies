@@ -1,0 +1,45 @@
+PASS strict frames start shown, dispatcher hidden, no UI or OnUpdate
+PASS neither source: own observation works after local NPC confirmation
+PASS Bulo present subscribes and copies timestamps without position
+PASS Bulo shape changes and throwing fields cannot crash
+PASS Bulo unsafe/no event bus uses polling
+PASS Bulo layer and raw changes wipe all previous sightings
+PASS transfer epoch rejects old Bulo and carried unit observations
+PASS zone and child-map handling reset only real zones
+PASS missing map API safely disables zone-dependent output
+PASS hostility does not override same faction or unknown faction
+PASS secret names/classes/levels/GUIDs remain unreadable
+PASS optional GUID enrichment checks each return and missing API
+PASS NPC GUID parsing keeps namespaces and requires distinct NPC kinds
+PASS mixed servers sharing zoneUID do not confirm a server id
+PASS NPC vote memory, TTL, pets, and coalescing bounded
+PASS hash vectors and normalization
+PASS strict C E H parsing of documented wire examples
+PASS decoder rejects hostile malformed and oversized messages
+PASS reassembly accepts E parts out of order before cluster
+PASS reassembly accepts C then E and stamps freshness explicitly
+PASS fragment inconsistency, duplicate conflict and count checks
+PASS identical fragment duplicates are harmless
+PASS wrong zone, wrong layer and zero layer never match
+PASS stale, future, missing and ambiguous source timestamps rejected
+PASS same-id replay rejected even with a new plausible stamp
+PASS sender, rate, pending and tombstone caps
+PASS timed-out fragments cannot bridge old pending assembly
+PASS passive CHAT_MSG_ADDON: own echo and wrong channels ignored
+PASS guild-only, ignored, client ignore, silent and privacy unknown
+PASS approved public context only; legacy settings fail closed
+PASS live guild C E and H heard but never bypass ambiguous freshness
+PASS reported reducer output stays separate with possible hash identities
+PASS store expiration, epoch, caps and deterministic newest ordering
+PASS headless map candidates only for shown zone, never fake enemy coordinates
+PASS SavedVariables contain options only; no sightings survive reload
+PASS heartbeat is five seconds idle, two while map shown
+PASS missing timer and message-registration APIs degrade safely
+PASS old units must disappear before reacquisition after a transfer
+PASS epoch boundary tombstones incomplete fragments
+PASS foreign field getter failures do not escape game event dispatch
+PASS unchanged Bulo timestamps allocate no duplicate observations
+PASS deterministic decoder fuzz never crashes or accepts oversized input
+PASS same-frame own unit data can classify a Bulo copy without restamping
+PASS loaded Bulo with missing namespace reports unavailable rather than absent
+RESULT: 44 tests passed, 0 failed, 6219 assertions

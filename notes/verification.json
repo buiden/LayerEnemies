@@ -1,0 +1,17 @@
+{
+  "lua_version": "Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio",
+  "syntax_files": 10,
+  "syntax_status": "PASS",
+  "tests_passed": 44,
+  "tests_failed": 0,
+  "assertions": 6219,
+  "fuzz_inputs": 5000,
+  "toc_and_static_checks": "PASS",
+  "archive_integrity_and_source_parity": "PASS",
+  "archive": "/opt/data/projects/layer-enemies/dist/LayerEnemies-0.1.0-headless.zip",
+  "archive_members": 10,
+  "archive_sha256": "d1ee0ce741d485ce8cc3ae1f34802d0a3ee22ab33f722cd487b2d0f9c866a4b7",
+  "real_client_verified": false,
+  "live_remote_reports": "Unavailable: ambiguous hour-relative freshness",
+  "visual_design": "Not applied; approval pending"
+}

@@ -25,7 +25,12 @@ function T.observe(t,e,now)
     if not e.key or not S.num(e.at) or e.at<=t.epoch or e.at>now or now-e.at>=600 or not t.zone then return false end
     if not room(t.localSeen,e.key,256) then return false end
     local old=t.localSeen[e.key]
-    if old and old.at>=e.at then return false end
+    if old and old.at>e.at then return false end
+    if old and old.at==e.at then
+        -- A direct unit event can enrich a Bulo copy from this very frame.
+        local own=e.source and e.source:match("^own ")
+        if not own or (old.source and old.source:match("^own ")) then return false end
+    end
     e.zone=t.zone; e.epoch=t.serial; e.layer=t.bulo; e.namespace="bulo-server"; e.confidence="seen by you"
     t.localSeen[e.key]=e
     if e.name and e.realm then

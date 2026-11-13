@@ -8,7 +8,9 @@ function R.clearPending(t)
     S.clear(t.pending)
 end
 function R.prune(t,now)
-    for k,v in pairs(t.pending) do if now-v.first>15 then t.pending[k]=nil end end
+    for k,v in pairs(t.pending) do
+        if now-v.first>15 then t.pending[k]=nil; t.tombstones[k]=now end
+    end
     -- Tombstones are deliberately not evicted early to admit more senders.
     for k,v in pairs(t.tombstones) do if now-v>3660 then t.tombstones[k]=nil end end
     for k,v in pairs(t.senders) do if now-v>3660 then t.senders[k]=nil; t.rates[k]=nil end end

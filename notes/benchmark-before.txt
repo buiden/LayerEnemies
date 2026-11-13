@@ -1,0 +1,5 @@
+empty-store prune: 10000 calls; 0.000138 ms/call; 0.000080 KB allocated/call (GC stopped)
+256-entry store prune: 1000 calls; 0.011279 ms/call; 0.000000 KB allocated/call (GC stopped)
+256-entry unchanged Bulo snapshot: 200 calls; 0.322515 ms/call; 100.288521 KB allocated/call (GC stopped)
+invalid-wire rejection: 10000 calls; 0.003709 ms/call; 0.648455 KB allocated/call (GC stopped)
+Offline Linux/Lua 5.1 microbenchmarks only, not in-client CPU measurements.

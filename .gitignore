@@ -1,3 +1,6 @@
 build-*.log
 briefs/
 *.luac
+__pycache__/
+*.pyc
+dist/

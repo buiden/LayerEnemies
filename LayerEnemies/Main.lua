@@ -50,7 +50,7 @@ function M.poll()
     local time=now()
     local zone=A.location()
     if zone~=M.store.zone then M.boundary(zone) end
-    local snap=A.bulo(M.store.epoch,time)
+    local snap=A.bulo(M.store.epoch,time,M.store.localSeen)
     M.statusBulo=snap.status
     if snap.ns and M.attemptedNS~=snap.ns then
         M.attemptedNS=snap.ns
@@ -68,12 +68,12 @@ function M.poll()
         if not M.staleGUIDs[e.key] then
             local old=M.store.localSeen[e.key]
             if not old or old.at<e.at then
-                local name,realm,class,race=A.enrich(e.key)
-                e.name,e.realm,e.class,e.race=name,realm,class,race
+                local name,realm,class,race,level=A.enrich(e.key)
+                e.name,e.realm,e.class,e.race,e.level=name,realm,class,race,level
                 -- Only separately observed readable unit factions classify players.
                 if old then
                     e.name=e.name or old.name; e.realm=e.realm or old.realm; e.class=e.class or old.class
-                    e.level=old.level; e.faction=old.faction
+                    e.level=e.level or old.level; e.faction=old.faction
                 end
                 -- Do not attach today's position to an older Bulo timestamp.
                 T.observe(M.store,e,time)
@@ -161,6 +161,7 @@ function M.text(command)
     local id=M.store.bulo or "Unknown"
     say("LayerEnemies - Your layer: "..id.." ("..(M.layerSource or "unknown")..")")
     say("Bulo: "..M.statusBulo); say("War Effort: "..M.statusWE)
+    if M.error then say("Runtime status: "..M.error) end
     say("War Effort zoneUID: "..tostring(M.store.zoneUID or "Unknown").." (separate namespace, not layer membership proof)")
     local kind=command=="reports" and "reported" or command=="unclassified" and "unclassified" or "local"
     say(kind=="reported" and "Reported zoneUID matches (unverified):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
@@ -188,7 +189,7 @@ function M.start()
     M.layerSource="unknown"; M.store.zone=A.location()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
-    LayerEnemiesDB={options=S.tab(LayerEnemiesDB.options) and {enabled=LayerEnemiesDB.options.enabled~=false} or {enabled=true}}
+    LayerEnemiesDB={options={}}
     if S.tab(C_ChatInfo) then
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WEFF1")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"ZRAD1")
