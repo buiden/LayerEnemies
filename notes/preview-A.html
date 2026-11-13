@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LayerEnemies - preview A (stacked sections)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 28px; background: #14110d radial-gradient(ellipse at 30% 0%, #2b241a 0%, #14110d 70%); font: 12px/1.35 Verdana, "DejaVu Sans", Arial, sans-serif; color: #d8d2c4; }
+  .caption { width: 360px; margin: 0 0 12px; color: #8f8674; font-size: 11px; }
+  .caption b { color: #f2c94c; font-weight: normal; }
+  .panel { width: 360px; background: linear-gradient(#1c1915, #100e0c); border: 1px solid #000; border-radius: 6px;
+           box-shadow: 0 0 0 1px #6b5a35, 0 0 0 3px #17140f, 0 0 0 4px #4a3f27, 0 10px 28px rgba(0,0,0,.7); }
+  .title { position: relative; height: 30px; line-height: 30px; text-align: center; border-bottom: 1px solid #4a3f27;
+           background: linear-gradient(#3a2f1c, #1f1a11); border-radius: 5px 5px 0 0;
+           font: bold 14px/30px Georgia, "Palatino Linotype", "DejaVu Serif", serif; color: #ffd100; text-shadow: 0 1px 0 #000; letter-spacing: .3px; }
+  .close { position: absolute; right: 6px; top: 6px; width: 18px; height: 18px; line-height: 15px; border: 1px solid #7a2a1c; border-radius: 3px;
+           background: linear-gradient(#a3301d, #5c160c); color: #ffd9a8; font: bold 12px/15px Arial, sans-serif; }
+  .layer { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 12px 8px; border-bottom: 1px solid #2c261b; }
+  .layer .big { font: bold 15px Georgia, "DejaVu Serif", serif; color: #fff; }
+  .layer .big span { color: #ffd100; }
+  .layer .src { font-size: 10.5px; color: #8f8674; }
+  .status { padding: 5px 12px 7px; font-size: 10.5px; color: #8f8674; border-bottom: 1px solid #2c261b; }
+  .ok { color: #6fcf5a; } .warn { color: #e0a23a; }
+  h2 { margin: 0; padding: 6px 12px 5px; font: bold 12px Georgia, "DejaVu Serif", serif; color: #ffd100; text-shadow: 0 1px 0 #000;
+       background: linear-gradient(90deg, rgba(120,95,40,.38), rgba(120,95,40,0) 85%); border-top: 1px solid #3d3423; display: flex; justify-content: space-between; }
+  h2 small { font: 10.5px Verdana, "DejaVu Sans", sans-serif; color: #8f8674; }
+  h2.unconfirmed { color: #e0a23a; background: linear-gradient(90deg, rgba(150,90,20,.34), rgba(150,90,20,0) 85%); }
+  .row { display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-top: 1px solid rgba(255,255,255,.035); }
+  .row:nth-child(even) { background: rgba(255,255,255,.022); }
+  .who { flex: 1; min-width: 0; }
+  .name { font-weight: bold; font-size: 12.5px; text-shadow: 0 1px 0 #000; }
+  .sub { font-size: 10.5px; color: #8f8674; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lvl { width: 22px; text-align: right; color: #f1e7c8; font-weight: bold; }
+  .age { width: 46px; text-align: right; font-size: 10.5px; color: #a79d88; white-space: nowrap; }
+  .tag { display: inline-block; padding: 0 5px; border-radius: 2px; font-size: 9.5px; line-height: 14px; border: 1px solid; margin-right: 3px; vertical-align: 1px; }
+  .bulo { color: #7fd0ff; border-color: #2c5f7d; background: #10222d; }
+  .ls { color: #b6f08a; border-color: #44682a; background: #17240f; }
+  .we { color: #ffb86b; border-color: #7d5320; background: #2a1c0b; }
+  .host { color: #ffd100; border-color: #7a6410; background: #2a2306; }
+  .btn { flex: none; padding: 3px 9px 4px; border: 1px solid #000; border-radius: 3px; background: linear-gradient(#8e1f12, #54100a);
+         box-shadow: inset 0 0 0 1px #c9853c; color: #ffd100; font: bold 10.5px Verdana, "DejaVu Sans", sans-serif; text-shadow: 0 1px 0 #000; white-space: nowrap; }
+  .btn.wait { background: linear-gradient(#3a352c, #25211b); box-shadow: inset 0 0 0 1px #5a5245; color: #b3aa98; }
+  .unknown { color: #b9b1a0; font-style: italic; font-weight: bold; }
+  .rep { flex-wrap: wrap; row-gap: 4px; }
+  .rep .name { white-space: nowrap; }
+  .rep .by { flex: 1; font-size: 10.5px; color: #8f8674; }
+  .rep .by b { color: #d8d2c4; font-weight: normal; }
+  .break { flex-basis: 100%; height: 0; }
+  .note { padding: 4px 12px 7px; font-size: 10.5px; color: #8f8674; }
+  .footer { padding: 8px 12px 9px; border-top: 1px solid #4a3f27; text-align: center; font-size: 10.5px; color: #a79d88; background: #0d0b09; border-radius: 0 0 5px 5px; }
+  .mage{color:#3FC7EB} .shaman{color:#0070DD} .warlock{color:#8788EE} .rogue{color:#FFF468} .hunter{color:#AAD372} .warrior{color:#C69B6D} .priest{color:#FFFFFF} .druid{color:#FF7C0A}
+</style>
+</head>
+<body>
+<p class="caption"><b>Preview A - stacked sections.</b> One scrolling window, everything visible at once. Sample data.</p>
+<div class="panel">
+  <div class="title">Layer Enemies<span class="close">x</span></div>
+  <div class="layer">
+    <div class="big">Your layer: <span>7086</span></div>
+    <div class="src">Stranglethorn Vale &middot; from Bulo</div>
+  </div>
+  <div class="status">Bulo <span class="ok">ready</span> &nbsp;&middot;&nbsp; War Effort <span class="ok">listening</span>, last heard 12 s ago</div>
+
+  <h2>Seen by you <small>4 enemies</small></h2>
+  <div class="rows">
+    <div class="row"><div class="who"><div class="name shaman">Grokthar</div><div class="sub">Shaman &middot; Stranglethorn Vale</div></div><div class="lvl">42</div><div class="age">18 s</div></div>
+    <div class="row"><div class="who"><div class="name rogue">Zulrasha</div><div class="sub">Rogue &middot; Stranglethorn Vale</div></div><div class="lvl">39</div><div class="age">1 min</div></div>
+    <div class="row"><div class="who"><div class="name warlock">Morvessa</div><div class="sub">Warlock &middot; Stranglethorn Vale</div></div><div class="lvl">44</div><div class="age">3 min</div></div>
+    <div class="row"><div class="who"><div class="name hunter">Taurgrim</div><div class="sub">Hunter &middot; Stranglethorn Vale</div></div><div class="lvl">41</div><div class="age">7 min</div></div>
+  </div>
+
+  <h2 class="unconfirmed">Reported, not confirmed <small>War Effort</small></h2>
+  <div class="rows">
+    <div class="row rep"><div class="who"><div class="name"><span class="unknown">Unknown</span> <span class="mage">Mage</span></div></div><div class="lvl">40</div><div class="age">40 s</div><div class="break"></div><div class="by">reported by <b>Ellowyn</b></div><div class="btn">Ask Ellowyn for invite</div></div>
+    <div class="row rep"><div class="who"><div class="name"><span class="unknown">Unknown</span> <span class="warrior">Warrior</span></div></div><div class="lvl">43</div><div class="age">40 s</div><div class="break"></div><div class="by">reported by <b>Ellowyn</b></div><div class="btn wait">Asked &middot; 52 s</div></div>
+    <div class="row rep"><div class="who"><div class="name"><span class="unknown">Unknown</span> <span class="priest">Priest</span></div></div><div class="lvl">38</div><div class="age">4 min</div><div class="break"></div><div class="by">reported by <b>Thandric</b></div><div class="btn">Ask Thandric for invite</div></div>
+  </div>
+  <div class="note">Reports are dated by when they reached you. They are not checked.</div>
+
+  <h2>Friendly players on other layers <small>your zone only</small></h2>
+  <div class="rows">
+    <div class="row"><div class="who"><div class="name">Ellowyn</div><div class="sub"><span class="tag we">War Effort</span>layer not known</div></div><div class="age">40 s</div><div class="btn wait">Asked &middot; 52 s</div></div>
+    <div class="row"><div class="who"><div class="name">Brannoc</div><div class="sub"><span class="tag bulo">Bulo</span><span class="tag host">host</span>layer 7102</div></div><div class="age">2 min</div><div class="btn">Ask for invite</div></div>
+    <div class="row"><div class="who"><div class="name">Seraphine</div><div class="sub"><span class="tag ls">LayerSwap</span><span class="tag host">host</span>layer 7095</div></div><div class="age">5 min</div><div class="btn">Ask for invite</div></div>
+    <div class="row"><div class="who"><div class="name">Dunmar</div><div class="sub"><span class="tag bulo">Bulo</span><span class="tag ls">LayerSwap</span>layer 7102</div></div><div class="age">9 min</div><div class="btn">Ask for invite</div></div>
+  </div>
+  <div class="note">War Effort reporters saw the reported enemies. Ask puts a whisper in your chat box; you press Enter. Nothing is sent for you.</div>
+
+  <div class="footer">Only players seen by you or reported by War Effort users.</div>
+</div>
+</body>
+</html>
