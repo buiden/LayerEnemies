@@ -257,6 +257,7 @@ function M.relayIn(text,kind,sender)
     if M.isMe(sender) then return end
     if A.ignored(sender) then M.lastDrop="ignored sender"; return end
     local time=now()
+    if not N.Relay.allow(M.relay,sender,time) then return end
     local record,why=N.Relay.decode(text,sender,time)
     if not record then M.lastDrop="relay "..tostring(why); return end
     N.Relay.heard(M.relay,record,time)

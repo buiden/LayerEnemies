@@ -98,7 +98,26 @@ function Rl.decode(text, sender, now)
     return record
 end
 
-function Rl.new() return { seen = {}, n = 0, pending = {} } end
+Rl.RATE = 12                                                   -- LEGW1 messages per sender per 10 s
+function Rl.new() return { seen = {}, n = 0, pending = {}, rates = {}, nrates = 0 } end
+-- Receive limit per guildmate; excess is dropped silently. 512 senders at most.
+function Rl.allow(st, sender, now)
+    local k = tostring(sender):lower()
+    local v = st.rates[k]
+    if not v or now - v.at >= 10 then
+        if not v then
+            if st.nrates >= 512 then
+                for key, w in pairs(st.rates) do if now - w.at >= 10 then st.rates[key] = nil; st.nrates = st.nrates - 1 end end
+            end
+            if st.nrates >= 512 then return false end
+            st.nrates = st.nrates + 1
+        end
+        v = { at = now, n = 0 }; st.rates[k] = v
+    end
+    if v.n >= Rl.RATE then return false end
+    v.n = v.n + 1
+    return true
+end
 local function remember(st, key, now)
     for k, at in pairs(st.seen) do if now - at >= Rl.MEMORY then st.seen[k] = nil; st.n = st.n - 1 end end
     if not st.seen[key] then

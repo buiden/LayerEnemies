@@ -133,8 +133,8 @@ function T.reporters(t,now)
     local own=T.own(t,now)
     for _,row in pairs(t.reports) do
         local r=row.record
-        -- War Effort reporters, first-hand or relayed by a guildmate; one origin counts once
-        if row.epoch==t.serial and r.zone==t.zone and (r.src=="we" or (r.src=="guild" and r.label=="we")) then
+        -- War Effort reporters heard first-hand only: a relayed one was in someone else's group and may be a stranger
+        if row.epoch==t.serial and r.zone==t.zone and r.src=="we" then
             local cur=bySender[r.origin]
             local match=N.Record.relation(r,own)=="same"
             if not cur or cur.at<r.heard then bySender[r.origin]={name=r.origin,at=r.heard,match=match} end

@@ -1987,7 +1987,7 @@ test("relay sends each id once in 120 s",function()
     N=loadAddon(); establish(N); advance(1)
     local text=R.encode(weRec(N,{heard=clock,age=0}),clock)
     deliver("CHAT_MSG_ADDON","LEGW1",text,"GUILD","One"); deliver("CHAT_MSG_ADDON","LEGW1",text,"GUILD","Two")
-    eq(N.Main.lastDrop,"duplicate"); eq(N.Safe.count(N.Main.store.reports),1); eq(#N.Store.reporters(N.Main.store,clock),1)
+    eq(N.Main.lastDrop,"duplicate"); eq(N.Safe.count(N.Main.store.reports),1); eq(#N.Store.reporters(N.Main.store,clock),0)
     -- 256 remembered ids at most
     st=R.new(); for i=1,300 do R.offer(st,weRec(N,{rid=tostring(i)}),100,ctx) end; eq(st.n,256)
 end)
@@ -2007,8 +2007,8 @@ test("relayed record is labelled and not first-hand",function()
     local r=rows[1].record; eq(r.src,"guild"); eq(r.label,"we"); eq(r.via,"Guildie"); eq(r.origin,"Scout"); eq(r.heard,clock-10)
     eq(rows[1].source,"relayed by Guildie (War Effort)"); eq(rows[1].confidence,"reported, not confirmed")
     eq(rows[1].relation,"other")
-    -- a relayed War Effort reporter counts once with the same origin first-hand
-    eq(#N.Store.reporters(N.Main.store,clock),1)
+    -- a relayed reporter was in someone else's group: not an invite candidate
+    eq(#N.Store.reporters(N.Main.store,clock),0)
     -- no hop through the War Effort chat fallback for a relayed record: the origin was in someone else's group
     eq(N.Hop.candidate(r,{}),nil)
     -- the first-hand report of the same id replaces the relayed copy
@@ -2146,6 +2146,28 @@ test("hh count is the number of enemy ids; rows show via <carrier>",function()
     rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].reporter,"Scout"); eq(rows[1].via,"Relay")
     -- the window line too
     N.UI.toggle(); N.UI.select("reported"); eq(N.UI.pool[1].sub.text,"reported by Scout via Relay")
+end)
+test("relayed reporters are never invite candidates",function()
+    local N=loadAddon(); establish(N); advance(20)
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Stranger",heard=clock,age=0}),clock),"GUILD","Guildie")
+    eq(N.Main.lastDrop,"relayed we"); eq(#N.Store.rows(N.Main.store,clock,"reported"),2)
+    eq(#N.Store.reporters(N.Main.store,clock),0); eq(#N.Main.candidates(),0)
+    SlashCmdList.LAYERENEMIES("hosts"); yes(logged("No one to ask right now.")); no(logged("Stranger"))
+    no(LE.AskInvite("Stranger")); eq(#sent,0)
+    -- the same origin heard first-hand is a candidate again
+    hello("Stranger",19,"PARTY"); report(1,8000,"Stranger",nil,"PARTY")
+    eq(#N.Store.reporters(N.Main.store,clock),1); eq(N.Main.candidates()[1].name,"Stranger")
+end)
+test("relay receive limit: 12 per 10 s per sender",function()
+    local N=loadAddon(); establish(N); advance(20)
+    local function from(who,rid) deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="O"..who..rid,rid=tostring(rid),heard=clock,age=0}),clock),"GUILD",who) end
+    for i=1,13 do from("Busy",i) end
+    eq(N.Safe.count(N.Main.store.reports),12)
+    N.Main.lastDrop="before"; from("Busy",14); eq(N.Main.lastDrop,"before")    -- dropped silently
+    from("Calm",1); eq(N.Safe.count(N.Main.store.reports),13)                 -- per sender
+    advance(10); from("Busy",15); eq(N.Safe.count(N.Main.store.reports),14)
+    -- the limit table is bounded too
+    local st=N.Relay.new(); for i=1,600 do N.Relay.allow(st,"S"..i,0) end; yes(st.nrates<=512)
 end)
 -- Wire.lua: the only sender
 test("the send mock counts any caller but Wire.lua as forbidden",function()
