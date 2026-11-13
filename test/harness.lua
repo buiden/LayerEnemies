@@ -93,7 +93,7 @@ local function loadAddon()
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
     _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
     local N={}
-    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Find","Main"}) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
@@ -653,7 +653,7 @@ test("candidates: Bulo secret, stale, other zone, same layer and self excluded",
         Same=there({key="7086"}), SameFull=there({key="7086-99"}),
         Me=there(), me=there(),
         [secret]=there(), SecretKey=there({key=secret}), SecretZone=there({zone=secret}), SecretAt=there({at=secret}),
-        ["Bad Name"]=there(), ["Bad|Name"]=there(), ["Bad\nName"]=there(), ["/g"]=there(), Digit7=there(), X=there(),
+        ["Bad  Name"]=there(), ["Bad|Name"]=there(), ["Bad\nName"]=there(), ["/g"]=there(), Digit7=there(), X=there(),
         [string.rep("a",61)]=there(), ["Name-Realm-Extra"]=there(), ["Name-"]=there(),
     })
     local list,status=N.Main.candidates()
@@ -690,7 +690,7 @@ test("candidates: LayerSwap book absent, wrong shape, stale, gone, zone, same la
         Gone=page({gone=wall-5}), GoneSecret=page({gone=secret}), Away=page({zone="200"}), NoZone=page({zone=false}),
         Same=page({layer="7086-7"}), SameOtherZone=page({layer="7086-55"}), Me=page(),
         [secret]=page(), SecretLayer=page({layer=secret}), SecretAt=page({at=secret}), SecretZone=page({zone=secret}),
-        ["Bad Name"]=page(), ["Bad|Name"]=page(),
+        ["Bad  Name"]=page(), ["Bad|Name"]=page(),
     }}
     local list,st=N.Main.candidates()
     -- hosts first, then newest
@@ -890,7 +890,7 @@ test("addon never sends, invites, accepts or leaves (source and runtime)",functi
     grouped=false; deliver("GROUP_ROSTER_UPDATE"); advance(10); LE.AskInvite("Bob"); drain()
     grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70)
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
-    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Protocol","Store","Reports","Adapters","Invite","Find","Main"}) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
         for _,word in ipairs({"SendChatMessage","SendAddonMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","SetText","JoinChannel"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
@@ -900,6 +900,74 @@ test("addon never sends, invites, accepts or leaves (source and runtime)",functi
     for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true)) end
     yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,1)
     eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
+end)
+test("Find hashes mirror upstream realm, realm-less and Forever surname keys",function()
+    local N=loadAddon(); local H=N.Hash
+    eq(H.nameKey("Alice","Test Realm"),"alice-testrealm"); eq(H.nameKey("Alice",""),"alice-")
+    eq(H.hash3("alice-testrealm"),"Zzm"); eq(H.hash3("alice-"),"YNz")
+    local hashes=N.Find.hashes("Alice", "Test Realm")
+    yes(hashes[H.player("Alice","Test Realm")]); yes(hashes[H.player("Alice","")])
+    hashes=N.Find.hashes("First Surname", "Forever")
+    yes(hashes[H.player("First","Surname")]); yes(hashes[H.player("First Surname","")])
+end)
+test("Find match, no match, collisions, expiry, own sighting and alerts",function()
+    local N=loadAddon(); local F=N.Find; local st=F.new({"Alice","Bob"})
+    local function feed(hash,at,zone) F.report(st,{sender="Scout",zone=zone or 100,at=at,enemies={{hash=hash,class="MAGE",level=40}}},"Test Realm") end
+    feed("xxx",10); no(F.rows(st,10,100)[1].at)
+    feed(N.Hash.player("Alice",""),11)
+    local r=F.rows(st,11,100)[1]; yes(r.possible); yes(r.canAsk); eq(r.spotter,"Scout"); eq(r.class,"MAGE"); eq(r.level,40)
+    yes(F.alert(st,r,11)); no(F.alert(st,r,310)); yes(F.alert(st,r,311))
+    feed(N.Hash.player("Alice",""),312,200); r=F.rows(st,312,100)[1]; yes(r.travel); no(r.canAsk); yes(F.alert(st,r,312))
+    no(F.rows(st,912,100)[1].at)
+    F.own(st,{name="Alice",faction="same",source="own target"},100,913); no(st.locations.Alice)
+    F.own(st,{name="Alice",faction="opposite",source="own target"},100,913)
+    r=F.rows(st,913,100)[1]; yes(r.own); yes(r.same); no(r.canAsk)
+    F.boundary(st); no(st.locations.Alice); eq(#st.names,2)
+    -- A genuine three-character collision must remain possible, never confirmed.
+    local a,b="PFKMEclrzj","CuhFVPbgzA"
+    eq(N.Hash.player(a,""),"Y8Y"); eq(N.Hash.player(b,""),"Y8Y")
+    st=F.new({a,b})
+    feed(N.Hash.player(a,""),1000)
+    local rows=F.rows(st,1000,100); yes(rows[1].possible); yes(rows[2].possible)
+end)
+test("Find integration: cross-zone privacy gate, same layer and persistence",function()
+    local N=loadAddon(); warSettings(); establish(N); chatBox()
+    SlashCmdList.LAYERENEMIES("find Alice")
+    local hash=N.Hash.player("Alice","")
+    advance(1)
+    local stamp=math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","C|61|200|0|0|9|1|"..stamp,"GUILD","Scout")
+    deliver("CHAT_MSG_ADDON","WEFF1","E|61|1|1|"..hash..":M:40|"..stamp,"GUILD","Scout")
+    local row=N.Main.findRows()[1]; yes(row.possible); yes(row.travel)
+    no(LE.AskInvite("Scout")); yes(logged("travel to zone 200 first")); eq(#opened,0)
+    WarEffortScoutDB.silent=true
+    deliver("CHAT_MSG_ADDON","WEFF1","C|62|100|0|0|9|1|"..stamp,"GUILD","Scout")
+    deliver("CHAT_MSG_ADDON","WEFF1","E|62|1|1|"..hash..":M:40|"..stamp,"GUILD","Scout")
+    eq(N.Main.findRows()[1].zone,200)
+    WarEffortScoutDB.silent=false
+    advance(1); stamp=math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","C|63|100|0|0|9|1|"..stamp,"GUILD","Scout")
+    deliver("CHAT_MSG_ADDON","WEFF1","E|63|1|1|"..hash..":M:40|"..stamp,"GUILD","Scout")
+    yes(N.Main.findRows()[1].canAsk); yes(LE.AskInvite("Scout")); drain(); eq(#opened,1)
+    friends(N,{Scout=there({key="7086"})})
+    yes(N.Main.findRows()[1].same); no(N.Main.findRows()[1].canAsk)
+    local saved=LayerEnemiesDB
+    N.Main.started=false; N.Main.start(); eq(N.Main.find.names[1],"Alice"); no(N.Main.find.locations.Alice)
+    eq(saved.tracked[1],"Alice"); eq(LayerEnemiesDB.sightings,nil)
+    SlashCmdList.LAYERENEMIES("find"); eq(#LayerEnemiesDB.tracked,0)
+end)
+test("Find cap, validation, remove, alert sound and own name with surname",function()
+    local N=loadAddon(); local F=N.Find; local st=F.new({"Alice","Alice","Bob"})
+    eq(#st.names,2)
+    for _,name in ipairs({"Cora","Dave","Ellie"}) do yes(F.add(st,name)) end
+    no(F.add(st,"Frank")); no(F.add(st,secret)); no(F.add(st,"Alice|r")); no(F.add(st,"/g inject"))
+    F.remove(st,"Bob"); yes(F.add(st,"First Surname"))
+    local sounds=0; PlaySound=function() sounds=sounds+1 end
+    N.Main.track("First Surname"); advance(1)
+    units.target=player("First","Horde"); units.target.realm="Surname"
+    deliver("PLAYER_TARGET_CHANGED"); drain()
+    yes(N.Main.findRows()[1].own); eq(sounds,1); N.Main.findAlerts(); eq(sounds,1)
+    advance(300); N.Main.findAlerts(); eq(sounds,2); PlaySound=nil
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

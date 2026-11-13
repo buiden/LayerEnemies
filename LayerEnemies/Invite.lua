@@ -14,6 +14,8 @@ function I.new() return { asked={}, lastAsk=nil, pending=nil, watch=nil } end
 function I.name(name)
     name=S.str(name,60)
     if not name then return nil end
+    local first,surname=name:match("^([%a\128-\255]+) ([%a\128-\255]+)$")
+    if first and #first>=2 and #first<=36 and #surname<=36 then return name,name:lower() end
     local short,rest=name:match("^([^%-]+)(.*)$")
     if not short or #short<2 or #short>36 or not short:match("^[%a\128-\255]+$") then return nil end
     if rest~="" and not rest:match("^%-[%w'\128-\255]+$") then return nil end
@@ -50,6 +52,19 @@ local function scan(raw,env,source,maxAge)
         end
     end
     return out
+end
+-- A fresh foreign layer claim is evidence; zoneUID is not a server-layer key.
+function I.sameSpotter(name,env)
+    local _,wanted=I.name(name)
+    if not wanted or not env.ownKey or not env.wall then return false end
+    env.zoneText=zoneText(env.zone)
+    for _,source in ipairs({{"Bulo",env.bulo,I.BULO_STALE},{"LayerSwap",env.book,I.BOOK_FRESH}}) do
+        if S.tab(source[2]) then
+            local ok,claims=pcall(scan,source[2],env,source[1],source[3])
+            if ok then for _,c in ipairs(claims) do if c.short==wanted and c.same then return true end end end
+        end
+    end
+    return false
 end
 local function addSource(c,label)
     for _,have in ipairs(c.sources) do if have==label then return end end

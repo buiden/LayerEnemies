@@ -34,6 +34,7 @@ function M.boundary(zone)
     N.Reports.clearPending(M.receiver)
     S.clear(M.pendingUnits)
     M.layerSource="unknown"
+    if M.find then N.Find.boundary(M.find) end
 end
 function M.applyLayer(id,source)
     if id==M.store.bulo then M.layerSource=source; return end
@@ -89,6 +90,8 @@ function M.poll()
     end
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
     M.groupCheck(); M.inviteTick()
+    M.findAlerts()
+    if N.UI then N.UI.refresh() end
 end
 function M.queuePoll()
     if M.pollQueued then return end
@@ -120,6 +123,7 @@ function M.observe(unit)
     if not e then return end
     e.at=time; e.source="own "..unit; e.x=x; e.y=y; e.positionKind="approximate observer position"
     T.observe(M.store,e,time)
+    N.Find.own(M.find,e,zone,time)
 end
 function M.queueUnit(unit)
     if not S.str(unit,30) or not (unit=="target" or unit=="mouseover" or unit:match("^nameplate%d+$")) then return end
@@ -150,15 +154,62 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     -- War Effort sends live, so the time of receipt dates the report. The wire
     -- stamp only proves "within 30 s of this second of some hour": a replayed
     -- old packet can pass. Reports therefore stay in their own unconfirmed list.
-    local report,why=N.Reports.receive(M.receiver,text,sender,now(),server,A.zone,M.store.zone,M.store.zoneUID,M.store.epoch,N.Reports.RECEIPT)
+    local report,why=N.Reports.receive(M.receiver,text,sender,now(),server,A.zone,M.store.zone,M.store.zoneUID,M.store.epoch,N.Reports.RECEIPT,#M.find.names>0)
     M.lastDrop=why
-    if report then T.report(M.store,report,now()) end
+    if report then
+        T.report(M.store,report,now())
+        N.Find.report(M.find,report,M.homeRealm())
+        M.findAlerts()
+        if N.UI then N.UI.refresh() end
+    end
 end
 local function say(text)
     if S.tab(DEFAULT_CHAT_FRAME) then S.call(DEFAULT_CHAT_FRAME.AddMessage,DEFAULT_CHAT_FRAME,text)
     elseif type(print)=="function" then print(text) end
 end
 M.say=say
+function M.homeRealm()
+    return S.str(S.call(GetNormalizedRealmName)) or S.str(S.call(GetRealmName)) or ""
+end
+function M.zoneName(zone)
+    local info=S.tab(C_Map) and S.call(C_Map.GetMapInfo,zone)
+    return S.tab(info) and S.str(info.name) or ("zone "..tostring(zone or "unknown"))
+end
+function M.findRows()
+    local lists=A.friendLists()
+    return N.Find.rows(M.find,now(),M.store.zone,function(name,zone)
+        return zone==M.store.zone and I.sameSpotter(name,{zone=zone,wall=A.wall(),ownKey=L.key(M.store.bulo),bulo=lists.bulo,book=lists.book})
+    end)
+end
+function M.findText(row)
+    if not row.at then return row.name.." — "..row.status end
+    local detail=" in "..M.zoneName(row.zone)..", "..math.floor(now()-row.at).." s ago ("..(row.class or "Unknown class").." "..tostring(row.level or "?")..")"
+    return row.name.." — "..row.status..detail..(row.same and " — already on your layer" or row.travel and (" — travel to "..M.zoneName(row.zone).." first") or "")
+end
+function M.findAlerts()
+    if not M.find or #M.find.names==0 then return end
+    for _,row in ipairs(M.findRows()) do
+        if N.Find.alert(M.find,row,now()) then
+            M.say("LayerEnemies: "..M.findText(row))
+            S.call(PlaySound,S.tab(SOUNDKIT) and SOUNDKIT.RAID_WARNING or 8959,"Master")
+        end
+    end
+end
+function M.track(name,remove)
+    if remove then N.Find.remove(M.find,name)
+    elseif name then
+        local ok,why=N.Find.add(M.find,name)
+        if not ok then M.say("LayerEnemies: "..why); return false end
+        for _,e in pairs(M.store.localSeen) do N.Find.own(M.find,e,M.store.zone,e.at) end
+        for _,r in pairs(M.store.reports) do N.Find.report(M.find,r,M.homeRealm()) end
+    else N.Find.remove(M.find) end
+    LayerEnemiesDB.tracked=M.find.names
+    if #M.find.names==0 then M.say("LayerEnemies: tracked names cleared.") end
+    for _,row in ipairs(M.findRows()) do M.say("LayerEnemies: "..M.findText(row)) end
+    M.findAlerts()
+    if N.UI then N.UI.refresh() end
+    return true
+end
 local function ago(seconds)
     seconds=math.floor(math.max(0,seconds))
     return seconds<60 and (seconds.." s") or (math.floor(seconds/60).." min")
@@ -182,21 +233,49 @@ function M.openChat(line)
         end
     end)
 end
+function M.openWhisper(name,line)
+    if not name:find(" ",1,true) then return M.openChat(line) end
+    local tell=S.tab(ChatFrameUtil) and S.clean(ChatFrameUtil.SendTell)
+    if type(tell)~="function" then return false end
+    return after(0,function()
+        local ok=pcall(function()
+            tell(name)
+            local box=S.call(ChatFrameUtil.GetActiveWindow) or (S.tab(DEFAULT_CHAT_FRAME) and DEFAULT_CHAT_FRAME.editBox)
+            if not S.tab(box) or type(S.clean(box.Insert))~="function" then error("chat box unavailable") end
+            box:Insert(I.MESSAGE)
+        end)
+        if not ok then
+            M.say("LayerEnemies: open a whisper to "..name.." manually, then type:"); M.say(I.MESSAGE)
+        end
+    end)
+end
 function M.askInvite(name)
     local wanted,short=I.name(name)
     if not wanted then M.say("LayerEnemies: that player name is not readable."); return false end
     local found
     for _,c in ipairs((M.candidates())) do if c.short==short then found=c; break end end
     if not found then
+        for _,row in ipairs(M.findRows()) do
+            local _,key=I.name(row.spotter)
+            if key==short then
+                if row.travel then M.say("LayerEnemies: travel to "..M.zoneName(row.zone).." first."); return false end
+                if row.same then M.say("LayerEnemies: already on your layer."); return false end
+                if row.canAsk then found={name=row.spotter,short=key}; break end
+            end
+        end
+    end
+    if not found then
         M.say("LayerEnemies: "..wanted.." is not a known friendly player on another layer in your zone right now. See /le hosts.")
         return false
     end
     local ok,line=I.ask(M.invite,found,now(),A.grouped(),L.key(M.store.bulo))
     if not ok then M.say("LayerEnemies: "..line); return false end
-    if M.openChat(line) then
+    if M.openWhisper(found.name,line) then
         M.say("LayerEnemies: a whisper to "..found.name.." is in your chat box - press Enter to send it.")
     else
-        M.say("LayerEnemies: type or copy this line to ask "..found.name..":"); M.say(line)
+        if found.name:find(" ",1,true) then
+            M.say("LayerEnemies: open a whisper to "..found.name.." manually, then type:"); M.say(I.MESSAGE)
+        else M.say("LayerEnemies: type or copy this line to ask "..found.name..":"); M.say(line) end
     end
     return true
 end
@@ -261,7 +340,7 @@ function M.text(command)
         if reported>0 then say("Reported, not confirmed: "..reported.." more in /le reports") end
     end
     say("Only players seen by you or reported by War Effort users.")
-    say("Headless build: /le, /le unclassified, /le reports, /le hosts, /le ask <number>. Window and map layout await approval.")
+    say("/le window; /le list; /le reports; /le hosts; /le ask <number>; /le find <name>.")
     if M.lastDrop and command=="reports" then say("Last report rejected: "..M.lastDrop) end
 end
 local function heartbeat()
@@ -278,7 +357,9 @@ function M.start()
     M.layerSource="unknown"; M.store.zone=A.location()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
-    LayerEnemiesDB={options={}}
+    local saved=LayerEnemiesDB
+    M.find=N.Find.new(saved.tracked)
+    LayerEnemiesDB={options={},tracked=M.find.names,position=S.tab(saved.position) and saved.position or nil}
     if S.tab(C_ChatInfo) then
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WEFF1")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"ZRAD1")
@@ -286,7 +367,10 @@ function M.start()
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"
     SlashCmdList.LAYERENEMIES=function(command)
-        command=(S.str(command,30) or ""):lower():match("^%s*(.-)%s*$")
+        local raw=(S.str(command,110) or ""):match("^%s*(.-)%s*$")
+        command=raw:lower()
+        if command=="find" then M.track(nil); return end
+        if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
         local index=command:match("^ask%s+(%d%d?)$")
         if command=="hosts" then guarded(M.hosts)
         elseif index or command:match("^ask") then guarded(M.askIndex,tonumber(index))

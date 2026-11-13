@@ -21,7 +21,7 @@ end
 -- mode an old packet replayed inside the 30 s stamp window looks fresh. Such
 -- reports are only ever shown as "reported, not confirmed". No evidence = rejected.
 R.RECEIPT="receipt"
-function R.receive(t,text,sender,now,serverNow,zoneFn,currentZone,zoneUID,epoch,freshnessEvidence)
+function R.receive(t,text,sender,now,serverNow,zoneFn,currentZone,zoneUID,epoch,freshnessEvidence,otherZones)
     if not S.str(sender,100) then return nil,"sender" end
     R.prune(t,now)
     if now-t.globalAt>=10 then t.globalAt=now; t.globalCount=0 end
@@ -67,7 +67,7 @@ function R.receive(t,text,sender,now,serverNow,zoneFn,currentZone,zoneUID,epoch,
         local zone=zoneFn(msg.map)
         -- Receipt mode keeps same-zone reports from other zoneUIDs: those are the
         -- ones whose sender can be asked for an invite. They stay labelled.
-        if not currentZone or zone~=currentZone or msg.layer==0 or (not receipt and (not zoneUID or msg.layer~=zoneUID)) then return reject("zone/layer mismatch") end
+        if not currentZone or (zone~=currentZone and not (receipt and otherZones and zone)) or msg.layer==0 or (not receipt and (not zoneUID or msg.layer~=zoneUID)) then return reject("zone/layer mismatch") end
         if p.cluster then
             if p.cluster.raw~=text then return reject("conflicting cluster") end
             return nil,"duplicate fragment"

@@ -30,6 +30,8 @@ function A.unit(unit)
     if not guid or not guid:match("^Player%-") then return nil end
     local name,realm=S.call(UnitName,unit)
     name,realm=S.str(name),S.str(realm)
+    local displayName=name
+    if name and realm and not name:find(" ",1,true) then displayName=name.." "..realm end
     if not realm then realm=S.str(S.call(GetRealmName)) end
     local _,class=S.call(UnitClass,unit)
     class=S.str(class,20)
@@ -41,7 +43,7 @@ function A.unit(unit)
     if (own=="Alliance" or own=="Horde") and (theirs=="Alliance" or theirs=="Horde") then
         faction=own~=theirs and "opposite" or "same"
     end
-    return {key=guid,name=name,realm=realm,class=class,level=level,faction=faction}
+    return {key=guid,name=name,displayName=displayName,realm=realm,class=class,level=level,faction=faction}
 end
 -- This API is optional: its runtime availability and each return are checked.
 -- Race never establishes faction; there are neutral/cross-faction races.

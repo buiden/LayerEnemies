@@ -3,8 +3,9 @@ local H, S = {}, N.Safe
 N.Hash = H
 local alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 function H.nameKey(name, realm)
-    name, realm = S.str(name), S.str(realm)
-    if not name or not realm then return nil end
+    name = S.str(name)
+    if realm==nil then realm="" end
+    if not name or S.secret(realm) or type(realm)~="string" or (#realm>0 and not S.str(realm)) then return nil end
     return name:lower() .. "-" .. realm:gsub("[%s%-]", ""):lower()
 end
 function H.hash3(text)

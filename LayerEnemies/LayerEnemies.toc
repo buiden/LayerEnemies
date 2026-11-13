@@ -13,4 +13,5 @@ Store.lua
 Reports.lua
 Adapters.lua
 Invite.lua
+Find.lua
 Main.lua
