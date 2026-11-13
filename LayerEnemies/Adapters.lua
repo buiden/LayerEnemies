@@ -94,6 +94,11 @@ end
 function A.wall() return S.num(S.call(_G.time)) end
 -- Unreadable (secret, missing, error) counts as grouped: the hop then refuses rather than assume.
 function A.grouped() return S.call(IsInGroup)~=false end
+-- true/false when readable, nil otherwise (callers fail closed).
+function A.inInstance()
+    local v=S.call(IsInInstance)
+    if type(v)=="boolean" then return v end
+end
 -- Bulo's guild layer lines, heard on LFSw/GUILD: "L <key>|<zone>|<h or ->" (Bulo Guild.lua:118). We never send on
 -- LFSw. Kept in the shape of Bulo's own Guild.list, so they fill the host list when Bulo is not installed.
 A.GUILD_LINES,A.GUILD_MAX=720,256

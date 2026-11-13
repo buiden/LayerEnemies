@@ -71,6 +71,13 @@ function T.report(t,record,now)
     local old=t.reports[key]
     -- the same record again (an enriched report) refreshes its row; another copy of it (a second carrier) does not
     if old and old.record~=record then return false,"duplicate" end
+    -- a guild-relayed copy and its first-hand original are one report: the first-hand one wins
+    local rest=":"..record.origin:lower()..":"..record.rid
+    if record.src=="guild" then
+        if record.label and t.reports[record.label..rest] then return false,"duplicate" end
+    elseif t.reports["guild"..rest] then
+        t.reports["guild"..rest]=nil
+    end
     if not old then
         local n=0; for _,row in pairs(t.reports) do if row.record.src==record.src then n=n+1 end end
         if n>=64 then return false,"report cap" end
@@ -79,6 +86,13 @@ function T.report(t,record,now)
     return true
 end
 local SOURCE={we="reported (War Effort)",fight="fight (HeadHunter)",outlaw="wanted (HeadHunter)"}
+local function source(r)
+    if r.src=="guild" then
+        local what=r.label=="hh" and (r.kind=="outlaw" and "HeadHunter wanted" or "HeadHunter fight") or "War Effort"
+        return "relayed by "..r.via.." ("..what..")"
+    end
+    return r.src=="hh" and SOURCE[r.kind] or SOURCE.we
+end
 local function newest(a,b) if a.at==b.at then return a.key<b.key end; return a.at>b.at end
 function T.rows(t,now,kind)
     T.prune(t,now)
@@ -89,12 +103,12 @@ function T.rows(t,now,kind)
             local r=row.record
             local relation=N.Record.relation(r,own)
             if row.epoch==t.serial and r.zone==t.zone then
-                local source=r.src=="hh" and SOURCE[r.kind] or SOURCE.we
+                local label=source(r)
                 local function add(k,e,name,possible)
                     out[#out+1]={key=k,at=r.heard,zone=r.zone,hash=e.hash,class=e.class,level=e.level,
                         reporter=r.origin,via=r.via and r.via:lower()~=r.origin:lower() and r.via or nil,relation=relation,reportLayer=r.layer.value,age=r.age,record=r,
-                        name=name,possible=possible,confidence=row.confidence,source=source,namespace=r.layer.ns,x=r.x,y=r.y,
-                        positionKind=r.src=="hh" and "reporter's position" or "reported cluster position"}
+                        name=name,possible=possible,confidence=row.confidence,source=label,namespace=r.layer.ns,x=r.x,y=r.y,
+                        positionKind=(r.src=="hh" or r.label=="hh") and "reporter's position" or "reported cluster position"}
                 end
                 -- a HeadHunter name is the name as reported (claimed), never matched against our own sightings
                 for i,e in ipairs(r.enemies) do add(key..":"..i,e,e.name or "Unknown",e.hash and T.possible(t,e.hash) or nil) end
@@ -119,8 +133,8 @@ function T.reporters(t,now)
     local own=T.own(t,now)
     for _,row in pairs(t.reports) do
         local r=row.record
-        -- invite candidates stay War Effort reporters until the hop task
-        if row.epoch==t.serial and r.zone==t.zone and r.src=="we" then
+        -- War Effort reporters, first-hand or relayed by a guildmate; one origin counts once
+        if row.epoch==t.serial and r.zone==t.zone and (r.src=="we" or (r.src=="guild" and r.label=="we")) then
             local cur=bySender[r.origin]
             local match=N.Record.relation(r,own)=="same"
             if not cur or cur.at<r.heard then bySender[r.origin]={name=r.origin,at=r.heard,match=match} end

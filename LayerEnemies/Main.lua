@@ -100,7 +100,7 @@ function M.poll()
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
-    M.groupCheck(); M.inviteTick()
+    M.groupCheck(); M.inviteTick(); M.relayTick()
     M.findAlerts()
     if N.UI then N.UI.refresh() end
 end
@@ -167,6 +167,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     if prefix=="HeadHunter" then return M.headhunter(text,kind,sender) end
     if prefix=="LayerSwap" then return M.layerswap(text,kind,sender) end
     if prefix=="LFSw" then return M.lfsw(text,kind,sender) end
+    if prefix=="LEGW1" then return M.relayIn(text,kind,sender) end
     if prefix~="WEFF1" or type(text)~="string" or #text>255 or not S.str(sender,100) then return end
     local allowed,reason=A.policy(prefix,kind,sender)
     if not allowed then M.lastDrop=reason; return end
@@ -197,6 +198,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     if record then
         local stored,whyNot=T.report(M.store,record,time)
         if not stored then M.lastDrop=whyNot end
+        if why=="new" then M.offerRelay(record) end
         N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
         M.findAlerts()
         if N.UI then N.UI.refresh() end
@@ -226,9 +228,45 @@ function M.headhunter(text,kind,sender)
         else
             local stored,whyNot=T.report(M.store,record,time)
             M.lastDrop=stored and "headhunter "..record.kind or whyNot
+            if whyNot~="duplicate" then
+                N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+                M.offerRelay(record)
+            end
         end
     end
+    if #records>0 then M.findAlerts() end
     if #records>0 and N.UI then N.UI.refresh() end
+end
+-- Guild relay out: a first-hand record heard on PARTY, RAID or WHISPER goes to the guild once, after a random wait
+-- in which a guildmate's copy makes us stand down.
+function M.offerRelay(record)
+    local time=now()
+    local ok=N.Relay.offer(M.relay,record,time,{inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance()})
+    if ok then
+        local p=M.relay.pending[N.Relay.key(record)]
+        if not after(math.max(0,p.due-time)+0.05,function() guarded(M.relayTick) end) then M.relayTick() end
+    end
+end
+function M.relayTick()
+    for _,r in ipairs(N.Relay.tick(M.relay,now())) do M.lastRelay=r.ok and "relayed" or r.why end
+end
+-- Guild relay in: GUILD only, never from us, stored as src "guild" with the claimed source as its label; never
+-- relayed again.
+function M.relayIn(text,kind,sender)
+    if kind~="GUILD" or not S.str(sender,100) or S.call(IsInGuild)~=true then return end
+    local me=S.str((S.call(UnitName,"player")))
+    if me and N.Peers.key(sender)==N.Peers.key(me) then return end
+    if A.ignored(sender) then M.lastDrop="ignored sender"; return end
+    local time=now()
+    local record,why=N.Relay.decode(text,sender,time)
+    if not record then M.lastDrop="relay "..tostring(why); return end
+    N.Relay.heard(M.relay,record,time)
+    if (me and N.Peers.key(record.origin)==N.Peers.key(me)) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
+    local stored,whyNot=T.report(M.store,record,time)
+    M.lastDrop=stored and "relayed "..tostring(record.label) or whyNot
+    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+    M.findAlerts()
+    if N.UI then N.UI.refresh() end
 end
 -- LayerSwap prefix: only a reply from the player we asked, on WHISPER, within 120 s. An incoming "inv layer"
 -- request and everything else are ignored (answering is not ours to do).
@@ -507,7 +545,7 @@ function M.start()
     if M.started then return end
     M.started=true
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new(); M.hh=N.HeadHunter.new()
-    M.hop=N.Hop.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new()
+    M.hop=N.Hop.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped()
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
@@ -522,6 +560,7 @@ function M.start()
         -- replies to our hop request, and Bulo guild layer lines; we answer neither
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LayerSwap")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LFSw")
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LEGW1")
     end
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"

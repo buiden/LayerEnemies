@@ -52,11 +52,18 @@ function F.own(st,e,zone,now)
         end
     end
 end
+-- r: {sender, zone, at, enemies}. An enemy matches by name hash (War Effort) or by the name itself (HeadHunter,
+-- relayed HeadHunter): the full name, or a realm-less tracked name against the reported name.
+local function named(name,e)
+    if not e.name then return false end
+    local want,got=name:lower(),e.name:lower()
+    return want==got or (want:match("^([^%-]+)")==got)
+end
 function F.report(st,r,home)
     for _,name in ipairs(st.names) do
         local hashes=F.hashes(name,home)
         for _,e in ipairs(r.enemies) do
-            if hashes[e.hash] then
+            if (e.hash and hashes[e.hash]) or named(name,e) then
                 local old=st.locations[name]
                 if not old or (not old.own and old.at<=r.at) or r.at-old.at>=F.TTL then
                     st.locations[name]={name=name,zone=r.zone,at=r.at,spotter=r.sender,class=e.class,level=e.level,possible=true}
