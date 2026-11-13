@@ -254,14 +254,13 @@ end
 -- relayed again.
 function M.relayIn(text,kind,sender)
     if kind~="GUILD" or not S.str(sender,100) or S.call(IsInGuild)~=true then return end
-    local me=S.str((S.call(UnitName,"player")))
-    if me and N.Peers.key(sender)==N.Peers.key(me) then return end
+    if M.isMe(sender) then return end
     if A.ignored(sender) then M.lastDrop="ignored sender"; return end
     local time=now()
     local record,why=N.Relay.decode(text,sender,time)
     if not record then M.lastDrop="relay "..tostring(why); return end
     N.Relay.heard(M.relay,record,time)
-    if (me and N.Peers.key(record.origin)==N.Peers.key(me)) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
+    if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
     local stored,whyNot=T.report(M.store,record,time)
     M.lastDrop=stored and "relayed "..tostring(record.label) or whyNot
     N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())

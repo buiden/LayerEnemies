@@ -2024,6 +2024,7 @@ test("relayed record is labelled and not first-hand",function()
     local loc=N.Main.find.locations["Kora Reed"]; yes(loc); eq(loc.spotter,"Mira Vale"); eq(loc.zone,100)
     -- origin is us, or ignored: dropped
     deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Me",rid="7",heard=clock,age=0}),clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relay origin")
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Me-TestRealm",rid="17",heard=clock,age=0}),clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relay origin")
     local old=C_FriendList.IsIgnored; C_FriendList.IsIgnored=function(n) return n=="Bad Guy" end
     deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Bad Guy",rid="8",heard=clock,age=0}),clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relay origin")
     deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Fine",rid="9",heard=clock,age=0}),clock),"GUILD","Bad Guy"); eq(N.Main.lastDrop,"ignored sender")
