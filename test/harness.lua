@@ -1573,6 +1573,8 @@ test("hh routes, duplicates, ignore, rate, ttl and caps in the window",function(
     eq(N.Main.lastDrop,"ignored sender"); C_FriendList.IsIgnored=old
     deliver("CHAT_MSG_ADDON","HeadHunter","1AE:eu-pvp;Me;A;5cy;1;"..b36(server)..";P2s;"..b36(server)..";dw;6y;a1","WHISPER","Carrier")
     eq(N.Main.lastDrop,"own echo"); eq(N.Safe.count(N.Main.store.reports),1)
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AE:eu-pvp;Me-TestRealm;A;5cy;1;"..b36(server)..";P2s;"..b36(server)..";dw;6y;a1","WHISPER","Carrier2")
+    eq(N.Main.lastDrop,"own echo"); eq(N.Safe.count(N.Main.store.reports),1)
     -- 6 frames per sender per 10 s; the 7th leaves no trace
     for i=1,7 do p("Busy","PARTY",server-i) end
     eq(N.Safe.count(N.Main.store.reports),7)

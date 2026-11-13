@@ -204,7 +204,7 @@ function M.headhunter(text,kind,sender)
     for _,record in ipairs(records) do
         local ignored,whyIgnored=false,nil
         if record.origin~=sender then
-            if me and N.Peers.key(record.origin)==N.Peers.key(me) then ignored,whyIgnored=true,"own echo"
+            if M.isMe(record.origin) then ignored,whyIgnored=true,"own echo"
             else ignored,whyIgnored=A.ignored(record.origin) end
         end
         if ignored then M.lastDrop=whyIgnored
