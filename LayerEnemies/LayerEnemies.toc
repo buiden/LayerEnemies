@@ -1,0 +1,15 @@
+## Interface: 16001
+## Title: LayerEnemies
+## Notes: Local observations and separately labelled unverified zoneUID reports.
+## Author: buiden
+## Version: 0.1.0
+## SavedVariablesPerCharacter: LayerEnemiesDB
+## OptionalDeps: BuloLayerForever, WarEffortScout
+Safe.lua
+Hash.lua
+Layer.lua
+Protocol.lua
+Store.lua
+Reports.lua
+Adapters.lua
+Main.lua
