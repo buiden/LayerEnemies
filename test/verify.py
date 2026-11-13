@@ -32,7 +32,7 @@ def main():
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         if file.name != 'UI.lua':
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
-    assert '## Version: 0.2.0' in toc
+    assert '## Version: 0.3.0' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
     (notes / 'test-results.txt').write_text(tests.stdout + tests.stderr)
@@ -43,7 +43,7 @@ def main():
     subprocess.run(['git', 'diff', '--check'], cwd=ROOT, check=True)
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    archive = dist / 'LayerEnemies-0.2.0.zip'
+    archive = dist / 'LayerEnemies-0.3.0.zip'
     expected = ['LayerEnemies/' + p.name for p in sorted((ROOT / 'LayerEnemies').iterdir()) if p.is_file()]
     expected.append('LayerEnemies/README.md')
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as out:
@@ -68,13 +68,14 @@ def main():
         'fuzz_inputs': 5000,
         'toc_and_static_checks': 'PASS',
         'archive_integrity_and_source_parity': 'PASS',
-        'archive': str(archive),
+        'archive': archive.relative_to(ROOT).as_posix(),
         'archive_members': len(expected),
         'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
         'real_client_verified': False,
-        'live_remote_reports': 'On, dated by time of receipt; shown as reported, not confirmed; '
-                               'an old packet replayed in the same second-of-hour window can look fresh',
-        'ask_for_invite': 'Opens a prefilled whisper for the user to send; never sends, invites, accepts or leaves',
+        'live_remote_reports': 'War Effort 1.6.x and HeadHunter read-only, plus LEGW1 guild relays; dated by '
+                               'time of receipt; shown as reported, not confirmed',
+        'ask_for_invite': 'One click sends one LayerSwap-format request to one host; never invites, accepts or leaves',
+        'sends': 'LayerSwap/WHISPER hop request and LEGW1/GUILD relay only',
         'visual_design': 'Approved B implemented with fourth Find tab; native client appearance unverified',
     }
     (notes / 'verification.json').write_text(json.dumps(result, indent=2) + '\n')
