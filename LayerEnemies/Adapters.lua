@@ -126,16 +126,32 @@ function A.ignored(name)
 end
 -- War Effort 1.6.6 traffic is read whether or not War Effort is installed: WEFF1 on GUILD, PARTY or RAID only.
 -- Whispers (embassy partner state) and channels are Phase 2. Which types each route carries is checked after decode.
+-- Own name (with or without realm) -> "own echo"; unreadable identity -> refused.
+local function echo(sender)
+    local me,realm=S.call(UnitName,"player"); me,realm=S.str(me),S.str(realm)
+    realm=realm or S.str(S.call(GetRealmName))
+    if not me or not realm then return "own identity unavailable" end
+    local name,remoteRealm=sender:match("^([^%-]+)%-(.+)$")
+    name=name or sender; remoteRealm=remoteRealm or realm
+    if N.Hash.nameKey(name,remoteRealm)==N.Hash.nameKey(me,realm) or sender:lower()==me:lower() then return "own echo" end
+end
+-- HeadHunter: read on PARTY, RAID and WHISPER only. Never sent on, never joined, never answered.
+function A.hhPolicy(kind,sender)
+    local ok,allowed,reason=pcall(function()
+        if kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return false,"route" end
+        local mine=echo(sender); if mine then return false,mine end
+        local ignored,why=A.ignored(sender)
+        if ignored then return false,why end
+        return true,"headhunter"
+    end)
+    if not ok then return false,"policy unavailable" end
+    return allowed,reason
+end
 function A.policy(prefix,kind,sender)
     local ok,allowed,reason=pcall(function()
         if prefix~="WEFF1" then return false,"prefix" end
         if kind~="GUILD" and kind~="PARTY" and kind~="RAID" then return false,"route" end
-        local me,realm=S.call(UnitName,"player"); me,realm=S.str(me),S.str(realm)
-        realm=realm or S.str(S.call(GetRealmName))
-        if not me or not realm then return false,"own identity unavailable" end
-        local name,remoteRealm=sender:match("^([^%-]+)%-(.+)$")
-        name=name or sender; remoteRealm=remoteRealm or realm
-        if N.Hash.nameKey(name,remoteRealm)==N.Hash.nameKey(me,realm) or sender:lower()==me:lower() then return false,"own echo" end
+        local mine=echo(sender); if mine then return false,mine end
         local ignored,why=A.ignored(sender)
         if ignored then return false,why end
         if kind=="GUILD" then

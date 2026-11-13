@@ -154,6 +154,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     -- Check every delivered value before comparing/indexing it.
     local args={prefix,text,kind,sender,target,zoneChannelID,localID,channelName}
     for i=1,8 do if S.secret(args[i]) then return end end
+    if prefix=="HeadHunter" then return M.headhunter(text,kind,sender) end
     if prefix~="WEFF1" or type(text)~="string" or #text>255 or not S.str(sender,100) then return end
     local allowed,reason=A.policy(prefix,kind,sender)
     if not allowed then M.lastDrop=reason; return end
@@ -188,6 +189,31 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
         M.findAlerts()
         if N.UI then N.UI.refresh() end
     end
+end
+-- HeadHunter P (fight) and L (wanted) records: PARTY/RAID/WHISPER, own faction only, 6 frames per sender per 10 s.
+function M.headhunter(text,kind,sender)
+    if type(text)~="string" or #text>255 or not S.str(sender,100) then return end
+    local allowed,reason=A.hhPolicy(kind,sender)
+    if not allowed then M.lastDrop=reason; return end
+    local time=now()
+    if not N.HeadHunter.allow(M.hh,sender,time) then return end
+    local records,why=N.HeadHunter.decode(text,sender,S.num(S.call(GetServerTime)),S.str((S.call(UnitFactionGroup,"player")),20),
+        {heard=time,route=kind,zoneFn=A.zone})
+    M.lastDrop=why~="ignored" and why or M.lastDrop
+    local me=S.str((S.call(UnitName,"player")))
+    for _,record in ipairs(records) do
+        local ignored,whyIgnored=false,nil
+        if record.origin~=sender then
+            if me and N.Peers.key(record.origin)==N.Peers.key(me) then ignored,whyIgnored=true,"own echo"
+            else ignored,whyIgnored=A.ignored(record.origin) end
+        end
+        if ignored then M.lastDrop=whyIgnored
+        else
+            local stored,whyNot=T.report(M.store,record,time)
+            M.lastDrop=stored and "headhunter "..record.kind or whyNot
+        end
+    end
+    if #records>0 and N.UI then N.UI.refresh() end
 end
 local function say(text)
     if S.tab(DEFAULT_CHAT_FRAME) then S.call(DEFAULT_CHAT_FRAME.AddMessage,DEFAULT_CHAT_FRAME,text)
@@ -382,7 +408,7 @@ end
 function M.start()
     if M.started then return end
     M.started=true
-    M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new()
+    M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new(); M.hh=N.HeadHunter.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped()
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
@@ -393,6 +419,7 @@ function M.start()
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position)}
     if S.tab(C_ChatInfo) then
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WEFF1")
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"HeadHunter")
     end
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"

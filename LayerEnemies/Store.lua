@@ -10,7 +10,7 @@ function T.reset(t,now,zone,bulo,zoneUID)
 end
 function T.prune(t,now)
     for k,v in pairs(t.localSeen) do if now-v.at>=600 or v.at<t.epoch then t.localSeen[k]=nil end end
-    for k,v in pairs(t.reports) do local at=v.record.heard; if now-at>=600 or at<t.epoch then t.reports[k]=nil end end
+    for k,v in pairs(t.reports) do local at=v.record.heard; if now-at>=T.ttl(v.record) or at<t.epoch then t.reports[k]=nil end end
     -- Identity candidates expire with observations; never persist names from old epochs.
     for hash,set in pairs(t.identities) do
         for name,at in pairs(set) do if now-at>=600 or at<t.epoch then set[name]=nil end end
@@ -58,17 +58,27 @@ end
 -- record: from N.Record.new. Any record of our zone is kept, whatever its layer relation: the wire has no absolute
 -- time, so every report is "reported, not confirmed", and other-layer reports are the ones a hop needs.
 -- Storing the same record again (an enriched report) refreshes its row.
+-- HeadHunter rows live 300 s, War Effort rows 600 s.
+function T.ttl(record) return record.src=="hh" and 300 or 600 end
+-- Each source has its own 64 rows, so one cannot crowd out the other.
 function T.report(t,record,now)
     if not S.tab(record) or type(record.id)~="string" or not S.tab(record.layer) or not S.num(record.heard) then return false,"unreadable" end
     if not t.zone or record.zone~=t.zone then return false,"another zone" end
     -- heard at the boundary instant: it may have been sent before it, like a unit carried across
     if record.heard<=t.epoch then return false,"before observation epoch" end
-    if now-record.heard>=600 then return false,"expired" end
+    if now-record.heard>=T.ttl(record) then return false,"expired" end
     local key=record.id
-    if not t.reports[key] and not room(t.reports,key,64) then return false,"report cap" end
+    local old=t.reports[key]
+    -- the same record again (an enriched report) refreshes its row; another copy of it (a second carrier) does not
+    if old and old.record~=record then return false,"duplicate" end
+    if not old then
+        local n=0; for _,row in pairs(t.reports) do if row.record.src==record.src then n=n+1 end end
+        if n>=64 then return false,"report cap" end
+    end
     t.reports[key]={record=record,epoch=t.serial,confidence="reported, not confirmed"}
     return true
 end
+local SOURCE={we="reported (War Effort)",fight="fight (HeadHunter)",outlaw="wanted (HeadHunter)"}
 local function newest(a,b) if a.at==b.at then return a.key<b.key end; return a.at>b.at end
 function T.rows(t,now,kind)
     T.prune(t,now)
@@ -79,12 +89,15 @@ function T.rows(t,now,kind)
             local r=row.record
             local relation=N.Record.relation(r,own)
             if row.epoch==t.serial and r.zone==t.zone then
+                local source=r.src=="hh" and SOURCE[r.kind] or SOURCE.we
                 local function add(k,e,name,possible)
                     out[#out+1]={key=k,at=r.heard,zone=r.zone,hash=e.hash,class=e.class,level=e.level,
                         reporter=r.origin,relation=relation,reportLayer=r.layer.value,age=r.age,record=r,
-                        name=name,possible=possible,confidence=row.confidence,source="reported (War Effort)",namespace=r.layer.ns,x=r.x,y=r.y,positionKind="reported cluster position"}
+                        name=name,possible=possible,confidence=row.confidence,source=source,namespace=r.layer.ns,x=r.x,y=r.y,
+                        positionKind=r.src=="hh" and "reporter's position" or "reported cluster position"}
                 end
-                for i,e in ipairs(r.enemies) do add(key..":"..i,e,"Unknown",T.possible(t,e.hash)) end
+                -- a HeadHunter name is the name as reported (claimed), never matched against our own sightings
+                for i,e in ipairs(r.enemies) do add(key..":"..i,e,e.name or "Unknown",e.hash and T.possible(t,e.hash) or nil) end
                 -- the list may be partial or missing: the count is what the report said
                 local rest=(r.count or 0)-#r.enemies
                 if rest>0 then add(key..":rest",{},rest..(#r.enemies>0 and " more" or "").." not listed") end
@@ -106,7 +119,8 @@ function T.reporters(t,now)
     local own=T.own(t,now)
     for _,row in pairs(t.reports) do
         local r=row.record
-        if row.epoch==t.serial and r.zone==t.zone then
+        -- invite candidates stay War Effort reporters until the hop task
+        if row.epoch==t.serial and r.zone==t.zone and r.src=="we" then
             local cur=bySender[r.origin]
             local match=N.Record.relation(r,own)=="same"
             if not cur or cur.at<r.heard then bySender[r.origin]={name=r.origin,at=r.heard,match=match} end
