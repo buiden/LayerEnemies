@@ -5,7 +5,8 @@ local _, N = ...
 local S = N.Safe
 local Rl = {}
 N.Relay = Rl
-Rl.VERSION, Rl.MEMORY, Rl.MAX = "1", 120, 256
+Rl.VERSION, Rl.MEMORY, Rl.MAX, Rl.PENDING = "1", 120, 256, 128
+Rl.TTL = { we = 600, hh = 300 }                                 -- a relayed copy lives as long as a direct one
 Rl.rand = function() return 0.5 + math.random() * 2 end       -- 0.5..2.5 s wait before sending
 
 local SRC = { we = true, hh = true }
@@ -71,20 +72,28 @@ function Rl.decode(text, sender, now)
     if #f ~= 14 then return nil, "invalid" end
     local src, kind, origin, rid = f[3], f[4], unhex(f[5]), f[6]
     if not SRC[src] or not KIND[kind] or not origin or not rid:match("^[%w:%-]+$") then return nil, "invalid" end
+    -- a copy naming its own sender as the origin is not a relay (as War Effort refuses its own wrapped origin)
+    local function bare(n) return (n:match("^([^%-]+)") or n):lower() end
+    if type(sender) == "string" and (origin:lower() == sender:lower()
+        or ((not origin:find("-", 1, true) or not sender:find("-", 1, true)) and bare(origin) == bare(sender))) then
+        return nil, "origin is sender"
+    end
     local zone = int(f[7], 1, 999999)
     local function c3(s) if s == "" then return nil, true end local n = int(s, 0, 999); return n and n / 1000, n ~= nil end
     local x, okx = c3(f[8]); local y, oky = c3(f[9])
     local count = f[10] ~= "" and int(f[10], 0, 80) or nil
     local ns = NSBACK[f[11]]
     local age = int(f[13], 0, 900)
+    if age and age >= (Rl.TTL[src] or 0) then return nil, "too old" end
     if not (zone and okx and oky and (f[10] == "" or count) and ns and age) then return nil, "invalid" end
     local value = f[12] ~= "" and f[12] or nil
     if ns == "zoneuid" then value = value and tonumber(value) end
     local enemies = {}
     if f[14] ~= "" then
         for item in (f[14] .. ","):gmatch("([^,]*),") do
-            local id, class, level = item:match("^([%w]+):([%u]*):(%-?%d*)$")
+            local id, class, level = item:match("^([%w]+):([%u]*):([%-%d]*)$")
             if not id or #enemies >= 80 then return nil, "invalid" end
+            if level ~= "" and not level:match("^%-?%d+$") then return nil, "invalid" end
             local e = { class = CLASSES[class] and class or nil, level = level ~= "" and tonumber(level) or nil }
             if #id == 3 then e.hash = id else e.name = unhex(id); if not e.name then return nil, "invalid" end end
             if e.level and (e.level < -1 or e.level > 100 or e.level == 0) then return nil, "invalid" end
@@ -137,11 +146,13 @@ function Rl.offer(st, record, now, ctx)
     if not S.tab(record) or not SRC[record.src] then return false, "source" end
     if record.route ~= "PARTY" and record.route ~= "RAID" and record.route ~= "WHISPER" then return false, "route" end
     if record.share == "guild" then return false, "guild share" end
-    if ctx.inGuild ~= true or ctx.inInstance ~= false then return false, "not here" end
+    if ctx.inGuild ~= true or ctx.inInstance ~= false or type(ctx.guild) ~= "string" then return false, "not here" end
     local key = Rl.key(record)
     if Rl.seen(st, key, now) then return false, "seen" end
+    local n = 0; for _ in pairs(st.pending) do n = n + 1 end
+    if n >= Rl.PENDING then return false, "busy" end
     remember(st, key, now)
-    st.pending[key] = { record = record, due = now + Rl.rand() }
+    st.pending[key] = { record = record, due = now + Rl.rand(), guild = ctx.guild }
     return true
 end
 -- A LEGW1 copy heard from a guildmate: remembered, and our own pending send of it stands down.
@@ -150,14 +161,18 @@ function Rl.heard(st, record, now)
     st.pending[key] = nil
     remember(st, key, now)
 end
--- tick(st, now) sends every due record once; a full bucket drops it (no queue). -> list of {key, ok, why}
-function Rl.tick(st, now)
+-- tick(st, now, ctx) sends every due record once; a full bucket drops it (no queue). -> list of {key, ok, why}
+-- ctx as for offer, read again now: left the guild, another guild, or an instance (or unreadable) drops it.
+function Rl.tick(st, now, ctx)
     local out = {}
+    ctx = S.tab(ctx) and ctx or {}
     for key, p in pairs(st.pending) do
         if now >= p.due then
             st.pending[key] = nil
-            local text = Rl.encode(p.record, now)
-            local ok, why = false, "does not fit"
+            local text, ok, why = nil, false, "not here"
+            if ctx.inGuild == true and ctx.inInstance == false and ctx.guild == p.guild then
+                text = Rl.encode(p.record, now); why = "does not fit"
+            end
             if text then ok, why = N.Wire.send("LEGW1", text, "GUILD") end
             out[#out + 1] = { key = key, ok = ok, why = why }
         end

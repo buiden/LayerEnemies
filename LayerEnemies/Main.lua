@@ -241,14 +241,17 @@ end
 -- in which a guildmate's copy makes us stand down.
 function M.offerRelay(record)
     local time=now()
-    local ok=N.Relay.offer(M.relay,record,time,{inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance()})
+    local ok=N.Relay.offer(M.relay,record,time,M.relayContext())
     if ok then
         local p=M.relay.pending[N.Relay.key(record)]
         if not after(math.max(0,p.due-time)+0.05,function() guarded(M.relayTick) end) then M.relayTick() end
     end
 end
+function M.relayContext()
+    return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100)}
+end
 function M.relayTick()
-    for _,r in ipairs(N.Relay.tick(M.relay,now())) do M.lastRelay=r.ok and "relayed" or r.why end
+    for _,r in ipairs(N.Relay.tick(M.relay,now(),M.relayContext())) do M.lastRelay=r.ok and "relayed" or r.why end
 end
 -- Guild relay in: GUILD only, never from us, stored as src "guild" with the claimed source as its label; never
 -- relayed again.
@@ -264,7 +267,8 @@ function M.relayIn(text,kind,sender)
     if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
     local stored,whyNot=T.report(M.store,record,time)
     M.lastDrop=stored and "relayed "..tostring(record.label) or whyNot
-    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+    -- a relayed origin was in someone else's group: Find shows the report but never offers to ask them
+    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies,relayed=true},M.homeRealm())
     M.findAlerts()
     if N.UI then N.UI.refresh() end
 end

@@ -66,7 +66,7 @@ function F.report(st,r,home)
             if (e.hash and hashes[e.hash]) or named(name,e) then
                 local old=st.locations[name]
                 if not old or (not old.own and old.at<=r.at) or r.at-old.at>=F.TTL then
-                    st.locations[name]={name=name,zone=r.zone,at=r.at,spotter=r.sender,class=e.class,level=e.level,possible=true}
+                    st.locations[name]={name=name,zone=r.zone,at=r.at,spotter=r.sender,class=e.class,level=e.level,possible=true,relayed=r.relayed==true}
                 end
             end
         end
@@ -85,8 +85,9 @@ function F.rows(st,now,zone,sameSpotter)
             row.same=loc.own or spot==true
             row.probably=spot=="probably"         -- an equal key while ours is ambiguous: not a certain same layer
             row.travel=loc.zone~=zone
-            row.status=loc.own and "is on YOUR layer" or "possible match, seen by "..loc.spotter
-            row.canAsk=not row.same and not row.travel and loc.spotter~=nil
+            row.status=loc.own and "is on YOUR layer" or loc.relayed and "possible match, seen in a relayed report"
+                or "possible match, seen by "..loc.spotter
+            row.canAsk=not row.same and not row.travel and loc.spotter~=nil and not loc.relayed
         end
         out[#out+1]=row
     end

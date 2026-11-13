@@ -59,7 +59,7 @@ end
 -- time, so every report is "reported, not confirmed", and other-layer reports are the ones a hop needs.
 -- Storing the same record again (an enriched report) refreshes its row.
 -- HeadHunter rows live 300 s, War Effort rows 600 s.
-function T.ttl(record) return record.src=="hh" and 300 or 600 end
+function T.ttl(record) return (record.src=="hh" or record.label=="hh") and 300 or 600 end
 -- Each source has its own 64 rows, so one cannot crowd out the other.
 function T.report(t,record,now)
     if not S.tab(record) or type(record.id)~="string" or not S.tab(record.layer) or not S.num(record.heard) then return false,"unreadable" end
