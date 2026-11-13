@@ -136,16 +136,18 @@ are dropped. Reporters are compared by full name and realm.
 
 A report is listed under "Reported, not confirmed" for ten minutes from
 receipt. A real zone change drops reports from the old zone. Each row shows
-the reporter, the age since receipt and how the reported layer relates to
-yours: same, other, or unknown.
+the reporter ("via <name>" when someone else carried the message), the age
+since receipt and how the reported layer relates to yours: same, other, or
+unknown.
 
 Reports can be partial. A cluster line whose enemy list has not arrived (or
 never will) still shows, with a row such as "3 not listed". An enemy list is
 held for 15 seconds waiting for its cluster line; one heard before a zone
 change never attaches to a cluster line after it.
 
-HeadHunter (party, raid and whisper traffic only) adds fight and wanted rows.
-They never carry a usable layer, so they can never be hopped to.
+HeadHunter (party, raid and whisper traffic only) adds fight and wanted rows,
+direct or inside a checked forwarding envelope. They never carry a usable
+layer, so they can never be hopped to.
 
 What this does not prove:
 
@@ -264,7 +266,8 @@ names per hash, 64 War Effort reports, 64 HeadHunter rows, 256 relayed
 copies, 255 bytes per message. Held enemy lists: 200 entries per origin and
 256 in total, for 15 seconds. Report-id order is remembered for 512 origins
 for an hour. Receive rates per sender per ten seconds: 6 War Effort messages
-(20 for G/X wrappers), 6 HeadHunter, 12 LEGW1; excess is dropped silently, and
+(20 for G/X wrappers), 6 HeadHunter P/L/E frames (other HeadHunter types are
+ignored without counting), 12 LEGW1; excess is dropped silently, and
 each rate table holds at most 512 senders. Unchanged Bulo timestamps do not allocate duplicate
 observation records. Friend lists are read for hosts/asks, tracked-target
 status/alerts, and shown-window refreshes. The UI reuses at most six row

@@ -125,6 +125,11 @@ PASS relay drops instead of queueing when the bucket is empty
 PASS relayed record is labelled and not first-hand
 PASS relay rejects format version 2 and oversize
 PASS relay silent outside a guild
+PASS hh only P, L and E frames count against the rate (مانع T4 S1)
+PASS hh E envelope fields are checked (مانع T4 S2)
+PASS hh bounds: base36 digits, allies, frame size, rate table (مانع T4 S3)
+PASS hh carrier ignore and secrets on every event argument (مانع T4 S3)
+PASS hh count is the number of enemy ids; rows show via <carrier>
 PASS relayed reporters are never invite candidates
 PASS relay receive limit: 12 per 10 s per sender
 PASS the send mock counts any caller but Wire.lua as forbidden
@@ -133,4 +138,4 @@ PASS wire sends only on the two allowed routes
 PASS wire rejects oversize and secret text
 PASS wire maps client results
 PASS wire guild bucket
-RESULT: 135 tests passed, 0 failed, 10470 assertions
+RESULT: 140 tests passed, 0 failed, 11312 assertions
