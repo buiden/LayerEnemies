@@ -26,15 +26,19 @@ def main():
     assert '## SavedVariablesPerCharacter: LayerEnemiesDB' in toc
     addon_text = '\n'.join(p.read_text() for p in (ROOT / 'LayerEnemies').glob('*.lua'))
     for forbidden in ('JoinChannelByName', 'SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED',
-                      'LeaveParty', 'AcceptGroup', 'RunMacroText', 'UninviteUnit', 'ConfirmInviteUnit',
+                      'RunMacroText', 'UninviteUnit', 'ConfirmInviteUnit', 'ConfirmLeaveParty',
                       'ConvertToRaid', 'DeclineGroup', 'RequestInviteFromUnit'):
         assert forbidden not in addon_text, 'Unexpected outgoing/forbidden API: ' + forbidden
-    # the guild host's one party call: InviteUnit exactly once and C_PartyInfo only in Wire.lua
-    for word in ('InviteUnit', 'C_PartyInfo'):
-        users = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua') if word in p.read_text())
+    # the party calls (guild host invite, auto accept and leave): InviteUnit, AcceptGroup and LeaveParty exactly
+    # once each and C_PartyInfo only in Wire.lua
+    wire = (ROOT / 'LayerEnemies/Wire.lua').read_text()
+    for word in ('InviteUnit', 'AcceptGroup', 'LeaveParty', 'C_PartyInfo'):
+        users = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua')
+                       if re.search(r'\b' + word + r'\b', p.read_text()))
         assert users in ([], ['Wire.lua']), word + ' outside Wire.lua: ' + ', '.join(users)
-    invite_calls = len(re.findall(r'\bInviteUnit\b', (ROOT / 'LayerEnemies/Wire.lua').read_text()))
-    assert invite_calls == 1, 'InviteUnit must appear exactly once in Wire.lua, found %d' % invite_calls
+    for word in ('InviteUnit', 'AcceptGroup', 'LeaveParty'):
+        calls = len(re.findall(r'\b' + word + r'\b', wire))
+        assert calls == 1, word + ' must appear exactly once in Wire.lua, found %d' % calls
     senders = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua') if 'SendAddonMessage' in p.read_text())
     assert senders == ['Wire.lua'], 'SendAddonMessage outside Wire.lua: ' + ', '.join(senders)
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):

@@ -1,6 +1,7 @@
--- The only file that sends addon messages or invites. Three routes are allowed: LayerSwap-format whispers to one
+-- The only file that sends addon messages or makes party calls. Three routes are allowed: LayerSwap-format whispers to one
 -- player (a request, or a guild host's "same"/"heard" reply), the LayerEnemies guild relay, and Bulo's one-letter
--- guild question "Q" (at most once per 60 s, from a click). The one party call is Wr.invite, for the guild host.
+-- guild question "Q" (at most once per 60 s, from a click). The party calls are Wr.invite (guild host), Wr.accept
+-- and Wr.leave (auto accept and leave after our own hop).
 -- Everything else is refused here, before the client is asked.
 local _, N = ...
 local S = N.Safe
@@ -96,13 +97,14 @@ end
 -- 10 s between calls, at most 6 per 600 s, one per name per 60 s. The name passed is the part before a realm suffix.
 Wr.INVITE_EVERY, Wr.INVITE_CAP, Wr.INVITE_WINDOW, Wr.INVITE_NAME = 10, 6, 600, 60
 local invite = { at = nil, recent = {}, names = {} }
-local function partyCall()
+local INVITE, LEAVE = "InviteUnit", "LeaveParty"
+local function partyCall(name)
     local P = _G.C_PartyInfo
     if S.secret(P) or type(P) ~= "table" then return nil end
-    local ok, fn = pcall(function() return P.InviteUnit end)
+    local ok, fn = pcall(function() return P[name] end)
     if ok and type(fn) == "function" then return fn end
 end
-function Wr.canInvite() return partyCall() ~= nil end
+function Wr.canInvite() return partyCall(INVITE) ~= nil end
 -- invite(name, now) -> ok, why: "invited", "bad name", "throttled" or "error"
 function Wr.invite(name, now)
     if S.secret(name) or S.secret(now) then return false, "bad name" end
@@ -124,8 +126,42 @@ function Wr.invite(name, now)
     for k, at in pairs(invite.names) do if now - at >= Wr.INVITE_NAME then invite.names[k] = nil end end
     invite.at, invite.names[key] = now, now
     recent[#recent + 1] = now
-    local fn = partyCall()
+    local fn = partyCall(INVITE)
     if not fn then return false, "error" end
     if not pcall(fn, valid) then return false, "error" end
     return true, "invited"
+end
+
+-- Auto accept and leave (Main.partyInvite / Main.autoTick decide who and when). Each at most once per 10 s here,
+-- stamped before the client is asked.
+Wr.PARTY_EVERY = 10
+local acceptAt, leaveAt = nil, nil
+local function spaced(last, now) return last and now - last < Wr.PARTY_EVERY and now >= last end
+-- accept(now) -> ok, why
+function Wr.accept(now)
+    now = S.num(now)
+    if not now or spaced(acceptAt, now) then return false, "throttled" end
+    acceptAt = now
+    local fn = _G.AcceptGroup
+    if S.secret(fn) or type(fn) ~= "function" or not pcall(fn) then return false, "error" end
+    return true, "accepted"
+end
+-- The client's PARTY_INVITE popup declines in its OnHide unless inviteAccepted is set: mark it, then hide it. Never
+-- hides a popup it could not mark.
+function Wr.hideInvite()
+    local find, hide = _G.StaticPopup_FindVisible, _G.StaticPopup_Hide
+    if type(find) ~= "function" or type(hide) ~= "function" then return false end
+    local ok, dialog = pcall(find, "PARTY_INVITE")
+    if not ok or S.secret(dialog) or type(dialog) ~= "table" then return false end
+    if not pcall(function() dialog.inviteAccepted = 1 end) then return false end
+    return pcall(hide, "PARTY_INVITE") == true
+end
+-- leave(now) -> ok, why
+function Wr.leave(now)
+    now = S.num(now)
+    if not now or spaced(leaveAt, now) then return false, "throttled" end
+    leaveAt = now
+    local fn = partyCall(LEAVE)
+    if not fn or not pcall(fn) then return false, "error" end
+    return true, "left"
 end

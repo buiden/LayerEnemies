@@ -20,7 +20,7 @@ local clock,map,server,channels,inGuild,clientIgnored,inInstance
 local guildName="Test Guild"
 local wall,grouped,opened
 local sent,sendResult
-local roster,rosterCalls,combat,raid,leader,invites
+local roster,rosterCalls,combat,raid,leader,invites,accepts,leaves,popupHidden,popup
 -- The routes the addon may send on (Wire.lua); anything else counts as forbidden. LFSw/GUILD carries only "Q".
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true}}
 -- Prefixes the addon may register.
@@ -110,20 +110,53 @@ local function loadAddon()
     _G.InCombatLockdown=function() return combat end
     _G.UnitAffectingCombat=function(u) return u=="player" and combat or false end
     _G.IsInRaid=function() return raid end
-    _G.UnitIsGroupLeader=function(u) return u=="player" and leader end
+    _G.UnitIsGroupLeader=function(u) if u=="player" then return leader end; return units[u]~=nil and units[u].leader==true end
     _G.GetNumGroupMembers=function() local n=0; for i=1,4 do if units["party"..i] then n=n+1 end end; return n>0 and n+1 or 0 end
     _G.BuloLayerForever=nil; _G.WarEffortScoutDB=nil; _G.LayerEnemiesDB=nil
     _G.LayerSwapDB=nil; _G.LE=nil; _G.ChatFrameUtil=nil; _G.ChatFrame_OpenChat=nil
     _G.time=function() return wall end
     _G.IsInGroup=function() return grouped end
     -- Anything that would act for the user counts as a failure, even under pcall.
-    for _,name in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","DeclineGroup","RunMacroText"}) do
+    for _,name in ipairs({"SendChatMessage","InviteUnit","LeaveParty","DeclineGroup","RunMacroText"}) do
         _G[name]=function() forbidden=forbidden+1; error("must never call "..name) end
+    end
+    -- the caller of a party call must be Wire.lua (C frames such as pcall are skipped)
+    local function fromWire()
+        local level=3
+        while true do
+            local info=debug.getinfo(level,"S")
+            if not info then return false end
+            if info.what~="C" then return info.source=="@LayerEnemies/Wire.lua" end
+            level=level+1
+        end
+    end
+    -- AcceptGroup (0.4.0 auto-accept): allowed from Wire.lua only; the PARTY_INVITE popup is modelled with Blizzard's
+    -- OnHide rule (hiding it without inviteAccepted declines)
+    accepts,leaves,popupHidden={},{},0
+    popup={which="PARTY_INVITE",shown=false,inviteAccepted=nil}
+    _G.AcceptGroup=function() accepts[#accepts+1]=clock; if not fromWire() then forbidden=forbidden+1 end end
+    _G.StaticPopup_FindVisible=function(which) if which=="PARTY_INVITE" and popup.shown then return popup end end
+    _G.StaticPopup_Hide=function(which)
+        if which~="PARTY_INVITE" or not popup.shown then return end
+        popup.shown=false; popupHidden=popupHidden+1
+        if not popup.inviteAccepted then forbidden=forbidden+1 end   -- Blizzard would call DeclineGroup here
     end
     -- the one allowed party call: C_PartyInfo.InviteUnit, from Wire.lua only (0.4.0 guild host); every other member
     -- counts as forbidden
     invites={}
-    _G.C_PartyInfo=setmetatable({InviteUnit=function(name)
+    _G.C_PartyInfo=setmetatable({LeaveParty=function(category)
+            leaves[#leaves+1]=clock; if category~=nil then forbidden=forbidden+1 end
+            local level,caller=2,nil
+            while true do
+                local info=debug.getinfo(level,"S")
+                if not info then break end
+                if info.what~="C" then caller=info.source; break end
+                level=level+1
+            end
+            if caller~="@LayerEnemies/Wire.lua" then forbidden=forbidden+1 end
+            grouped=false
+        end,
+        InviteUnit=function(name)
             invites[#invites+1]=name
             local level,caller=2,nil
             while true do
@@ -241,7 +274,7 @@ end
 
 test("strict frames start shown, dispatcher hidden, no UI or OnUpdate",function()
     local N=loadAddon()
-    eq(#frames,13); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 13 from 0.4.0: the Find hosts and Host buttons
+    eq(#frames,14); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 14 from 0.4.0: the Find hosts, Host and Auto buttons
     local f=CreateFrame("Frame"); yes(f:IsShown()); no(pcall(function() f:InventedMethod() end))
     eq(N.Main.statusBulo,"not installed"); eq(N.Main.statusWE,"not installed / listening on guild, party and raid (reported, not confirmed)")
 end)
@@ -538,13 +571,13 @@ test("headless map candidates only for shown zone, never fake enemy coordinates"
     eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
     local candidates=N.Store.mapCandidates(N.Main.store,clock,100)
     eq(#candidates,1); eq(candidates[1].x,.25); eq(candidates[1].positionKind,"approximate observer position")
-    eq(#frames,13)
+    eq(#frames,14)
 end)
 test("SavedVariables contain options only; no sightings survive reload",function()
     local N=loadAddon(); establish(N)
     units.target=player("PrivateName","Horde"); advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
     eq(LayerEnemiesDB.sightings,nil); eq(LayerEnemiesDB.localSeen,nil); yes(LayerEnemiesDB.options)
-    N.Main.start(); eq(#frames,13)
+    N.Main.start(); eq(#frames,14)
     N=loadAddon(); eq(N.Safe.count(N.Main.store.localSeen),0)
 end)
 test("heartbeat is five seconds idle, two while map shown",function()
@@ -931,7 +964,7 @@ test("we reports never enter LayerEnemiesDB (مانع T3 S4)",function()
         end
     end
     scan(LayerEnemiesDB,"LayerEnemiesDB",0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
@@ -1213,20 +1246,21 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
     for _,file in ipairs(addonFiles()) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
-        for _,word in ipairs({"SendChatMessage","LeaveParty","AcceptGroup","RunMacroText","JoinChannel","UninviteUnit","ConfirmInviteUnit","ConvertToRaid","DeclineGroup","RequestInviteFromUnit"}) do
+        for _,word in ipairs({"SendChatMessage","RunMacroText","JoinChannel","UninviteUnit","ConfirmInviteUnit","ConvertToRaid","DeclineGroup","RequestInviteFromUnit","ConfirmLeaveParty"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
         end
         -- InviteUnit and C_PartyInfo: exactly once each, in Wire.lua only
         local function count(word) local n=0; for _ in text:gmatch("%f[%w_]"..word.."%f[^%w_]") do n=n+1 end; return n end
-        eq(count("InviteUnit"),file=="Wire" and 1 or 0,file.." InviteUnit count"); eq(count("C_PartyInfo"),file=="Wire" and 1 or 0,file.." C_PartyInfo count")
+        eq(count("InviteUnit"),file=="Wire" and 1 or 0,file.." InviteUnit count"); eq(count("AcceptGroup"),file=="Wire" and 1 or 0,file.." AcceptGroup count"); eq(count("LeaveParty"),file=="Wire" and 1 or 0,file.." LeaveParty count"); eq(count("C_PartyInfo"),file=="Wire" and 1 or 0,file.." C_PartyInfo count")
         -- SendAddonMessage only in Wire.lua
         if file=="Wire" then yes(text:find("SendAddonMessage",1,true),"Wire sends")
         else eq(text:find("SendAddonMessage",1,true),nil,file.." mentions SendAddonMessage") end
     end
     eq(#sent,0)
     -- the only registered events are passive
-    for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true)) end
-    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,13)
+    -- 0.4.0 Task 8: PARTY_INVITE_REQUEST is read (auto-accept of the asked host only); no other invite event
+    for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true) and event~="PARTY_INVITE_REQUEST",event) end
+    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,14)
     eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
 end)
 test("Find hashes mirror upstream realm, realm-less and Forever surname keys",function()
@@ -1646,7 +1680,7 @@ test("hop state clears on zone change and reload",function()
     grouped=false; N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); yes(hopNow(N,rec(N)))
     N=loadAddon(); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
     deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); eq(lines("on their layer"),0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("hop acts on the shown candidate only (مانع T5 F1)",function()
     -- shown "Ask Scout (chat)"; an LFSw host line arrives before the click: nothing is sent, nothing drafted
@@ -3004,7 +3038,7 @@ test("0.4 host saved: on survives a reload and is active; one login line; no H a
     lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(#sent,1)
     establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); advance(61); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,1)
     slash("host"); yes(logged("Hosting for your guild: on (saved) · 1 invite in the last 10 minutes"))
-    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost",k) end
+    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop",k) end
     eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("0.4 host saved: off persists; a bad saved value is off",function()
@@ -3048,6 +3082,105 @@ test("0.4 host saved: the window line and toggle",function()
     loaded.LayerSwap=true; reload(N); U.render(); yes(U.hosting:IsShown()); eq(U.host.label.text,"Host: on")
     yes(U.hosting.text:find("Hosting is on but inactive: ",1,true),U.hosting.text)
     U.host:Click(); drain(); no(N.Main.host.want); eq(LayerEnemiesDB.guildHost,false); no(U.hosting:IsShown()); eq(U.host.label.text,"Host: off")
+end)
+
+-- 0.4.0 Task 8: hiccup-free hop. Accept only the asked host's invite, leave only that group, after the move.
+local function inviteFrom(name) popup.shown=true; popup.inviteAccepted=nil; deliver("PARTY_INVITE_REQUEST",name,false,false,false,true,false,false,"Player-1-0001",false); drain() end
+local function joinParty(name) grouped=true; units.party1={name=name,leader=true}; deliver("GROUP_ROSTER_UPDATE"); drain() end
+-- with Bulo installed (askBob) its layer moves; without it, two rounds of two NPC kinds (the zoneUID change resets
+-- the votes, the second round confirms the new layer)
+local BULO
+local function moveTo(key,uid)
+    if BULO then BULO.current=key.."-"..(uid or 9); BULO:Fire("LFS_LAYER",BULO.current); drain(); return end
+    for r=0,1 do
+        units.target={guid=npc(11+2*r,uid or 9,key),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+        units.mouseover={guid=npc(12+2*r,uid or 9,key),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
+    end
+end
+local function askBob(N) BULO=friends(N,{Bob=there({key="8000",host=true})}); advance(1); yes(hopNow(N,rec(N))); eq(sent[#sent].target,"Bob") end
+test("0.4 T8: the asked host's invite is accepted, the popup hidden as accepted; the move then leaves after 3 s",function()
+    local N=loadAddon(); BULO=nil; establish(N); askBob(N)
+    advance(5); inviteFrom("Bob")
+    eq(#accepts,1); no(popup.shown); eq(popup.inviteAccepted,1); yes(logged("LayerEnemies: accepted Bob's invite"))
+    joinParty("Bob"); moveTo("8000")
+    eq(N.Main.store.bulo,"8000-9"); yes(logged("LayerEnemies: moved to layer 8000, leaving the group"))
+    eq(#leaves,0,"not before 3 s"); advance(3.1); drain(); eq(#leaves,1); no(grouped)
+    advance(60); drain(); eq(#leaves,1,"once"); eq(forbidden,0)
+    -- the ask is spent: a second invite from Bob afterwards is left to the player
+    inviteFrom("Bob"); eq(#accepts,1); yes(popup.shown)
+end)
+test("0.4 T8: Wire keeps its own limits on accept and leave (10 s each)",function()
+    local N=loadAddon(); local Wr=N.Wire
+    yes(Wr.accept(clock)); local ok,why=Wr.accept(clock+9); no(ok); eq(why,"throttled"); yes(Wr.accept(clock+10)); eq(#accepts,2)
+    grouped=true; yes(Wr.leave(clock)); ok,why=Wr.leave(clock+5); no(ok); eq(why,"throttled"); eq(#leaves,1)
+    AcceptGroup=nil; ok,why=Wr.accept(clock+30); no(ok); eq(why,"error")
+    C_PartyInfo=nil; ok,why=Wr.leave(clock+30); no(ok); eq(why,"error")
+    -- a popup that cannot be found is never hidden
+    popup.shown=false; no(Wr.hideInvite()); eq(popupHidden,0); eq(forbidden,0)
+end)
+test("0.4 T8: no move within 30 s of joining: leave and say the hop failed",function()
+    local N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob")
+    advance(29); drain(); eq(#leaves,0); advance(1.2); drain(); eq(#leaves,1)
+    yes(logged("LayerEnemies: hop failed: Bob could not move you")); eq(forbidden,0)
+end)
+test("0.4 T8: another inviter, a late invite, grouped, instance or combat: nothing is accepted",function()
+    local N=loadAddon(); BULO=nil; establish(N); askBob(N)
+    inviteFrom("Mallory"); inviteFrom("Bob-OtherRealm"); inviteFrom("bobby"); eq(#accepts,0); yes(popup.shown,"left to the player")
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); advance(121); inviteFrom("Bob"); eq(#accepts,0)
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); grouped=true; inviteFrom("Bob"); eq(#accepts,0); grouped=false
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inInstance=true; inviteFrom("Bob"); eq(#accepts,0); inInstance=false
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); combat=true; inviteFrom("Bob"); eq(#accepts,0); combat=false
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); InCombatLockdown=function() return secret end; inviteFrom("Bob"); eq(#accepts,0)
+    -- no ask at all, or a manual /le ask whisper: nothing
+    N=loadAddon(); BULO=nil; establish(N); inviteFrom("Bob"); eq(#accepts,0)
+    N=loadAddon(); BULO=nil; establish(N); friends(N,{Bob=there({key="8000"})}); chatBox(); advance(1); yes(LE.AskInvite("Bob")); inviteFrom("Bob"); eq(#accepts,0)
+    -- the same invite twice: one accept
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); inviteFrom("Bob"); eq(#accepts,1)
+    eq(#leaves,0); eq(forbidden,0)
+end)
+test("0.4 T8: a group not joined through our hop is never left; leader changes, raid or our lead stop the leave",function()
+    -- a group joined by hand (no ask)
+    local N=loadAddon(); BULO=nil; establish(N); joinParty("Cy"); moveTo("8000"); advance(40); drain(); eq(#leaves,0)
+    -- accepted Bob, but the group's leader is someone else
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); grouped=true; units.party1={name="Cy",leader=true}; deliver("GROUP_ROSTER_UPDATE"); drain()
+    moveTo("8000"); advance(40); drain(); eq(#leaves,0)
+    -- the group became a raid, or we became leader, after joining
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); raid=true; moveTo("8000"); advance(40); drain(); eq(#leaves,0); raid=false
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); units.party1.leader=false; leader=true; moveTo("8000"); advance(40); drain(); eq(#leaves,0); leader=false
+    -- moved to a layer that is not the target: no "moved" leave; the 30 s failure leave still applies to our hop group
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); moveTo("9000"); advance(3.5); drain(); eq(#leaves,0)
+    advance(30); drain(); eq(#leaves,1); yes(logged("hop failed: Bob could not move you"))
+    -- we left by ourselves before the move: nothing left later
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); grouped=false; units.party1=nil; deliver("GROUP_ROSTER_UPDATE"); drain()
+    advance(40); drain(); eq(#leaves,0); eq(forbidden,0)
+end)
+test("0.4 T8: the guild ask accepts an online guild member's invite only",function()
+    local N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Bob-TestRealm",true},{"Off-TestRealm",false}}
+    local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(#opened,1)
+    inviteFrom("Zed"); inviteFrom("Off"); eq(#accepts,0)
+    -- roster unreadable: no
+    local count=GetNumGuildMembers; GetNumGuildMembers=function() return secret end; inviteFrom("Bob"); eq(#accepts,0); GetNumGuildMembers=count
+    inviteFrom("Bob"); eq(#accepts,1); yes(logged("accepted Bob's invite"))
+    joinParty("Bob"); moveTo("9500"); advance(3.1); drain(); eq(#leaves,1)
+end)
+test("0.4 T8: hostOwn carries our own name key (it was dropped by an and-expression in 7.3)",function()
+    local N=loadAddon(); establish(N); eq(N.Main.hostOwn().self,"me")
+end)
+test("0.4 T8: Auto accept and leave: on by default, saved, /le hop auto and the toggle; off means manual",function()
+    local N=loadAddon(); BULO=nil; establish(N); yes(N.Main.autoHop()); eq(LayerEnemiesDB.autoHop,true)
+    slash("hop auto off"); no(N.Main.autoHop()); eq(LayerEnemiesDB.autoHop,false); yes(logged("Auto accept and leave is off"))
+    askBob(N); inviteFrom("Bob"); eq(#accepts,0); yes(popup.shown)
+    N.Main.started=false; N.Main.start(); drain(); no(N.Main.autoHop(),"saved off")
+    slash("hop auto on"); yes(N.Main.autoHop()); eq(LayerEnemiesDB.autoHop,true); yes(logged("Auto accept and leave is on"))
+    LayerEnemiesDB.autoHop="x"; N.Main.started=false; N.Main.start(); drain(); yes(N.Main.autoHop(),"a bad value is the default, on")
+    -- turned off after accepting: the group is not left
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); slash("hop auto off"); moveTo("8000"); advance(40); drain(); eq(#leaves,0)
+    -- the window toggle
+    N=loadAddon(); BULO=nil; establish(N); local U=N.UI; U.toggle(); U.select("friendly")
+    yes(U.auto:IsShown()); eq(U.auto.label.text,"Auto: on"); U.auto:Click(); drain(); no(N.Main.autoHop()); eq(U.auto.label.text,"Auto: off")
+    U.select("reported"); no(U.auto:IsShown())
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop",k) end
+    eq(forbidden,0)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -60,6 +60,7 @@ function M.applyLayer(id,source)
         N.Reports.clearPending(M.receiver)
     end
     M.store.bulo=id; M.store.zoneUID=M.npcs.current; M.layerSource=source
+    if M.auto and M.auto.group then guarded(M.autoTick) end
 end
 function M.poll()
     if not M.started then return end
@@ -100,7 +101,7 @@ function M.poll()
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
-    M.groupCheck(); M.inviteTick(); M.relayTick()
+    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick()
     M.findAlerts()
     if N.UI then N.UI.refresh() end
 end
@@ -350,7 +351,8 @@ function M.hostOwn()
     local id=S.str(M.store.bulo,32)
     local party=A.party()
     local me=S.str((S.call(UnitName,"player")))
-    local _,self=me and I.name(me)
+    local _,self
+    if me then _,self=I.name(me) end
     return {self=self,zone=zone and zone==M.store.zone and zone or nil,key=L.key(M.store.bulo),id=id,
         inInstance=A.inInstance(),inCombat=A.inCombat(),raid=party and party.raid,leader=party and party.leader,
         members=party and party.members or {},asking=M.hop.pending~=nil or M.invite.pending~=nil}
@@ -740,9 +742,93 @@ function M.askIndex(index)
     return M.askInvite(name)
 end
 -- Only notices a join; invites are accepted and groups are left by the user.
+-- Auto accept and leave (0.4.0): on by default, saved as LayerEnemiesDB.autoHop.
+M.AUTO_WINDOW,M.AUTO_LEAVE,M.AUTO_FAIL,M.AUTO_JOIN=120,3,30,60
+function M.autoHop() return M.auto~=nil and M.auto.on==true end
+function M.setAutoHop(on)
+    M.auto.on=on==true; if S.tab(LayerEnemiesDB) then LayerEnemiesDB.autoHop=M.auto.on end
+    if not M.auto.on then M.auto.group=nil end
+    M.say(M.auto.on and "LayerEnemies: Auto accept and leave is on: the invite of the host you asked by Hop is accepted, and that group is left once you moved (or after 30 s without a move)."
+        or "LayerEnemies: Auto accept and leave is off: invites and groups are left to you.")
+    if N.UI then N.UI.refresh() end
+end
+-- PARTY_INVITE_REQUEST: accept only the host our own hop asked (whole name, as Hop.receive; for the guild ask an
+-- online guild member), within 120 s of the ask, while not grouped, not in an instance and not in combat. Anything
+-- else is left to the player.
+function M.partyInvite(name)
+    if not M.autoHop() or M.auto.group then return end
+    local p=M.invite.pending
+    local time=now()
+    if not S.tab(p) or not p.auto or not S.num(p.at) or time-p.at>M.AUTO_WINDOW or time<p.at then return end
+    if S.secret(name) then return end
+    local inviter,short=I.name(name)
+    if not inviter then return end
+    if p.guild then
+        if A.guildMember(inviter)~=true then return end
+    elseif short~=p.short then return end
+    if A.grouped() or A.inInstance()~=false or A.inCombat() then return end
+    local ok=N.Wire.accept(time)
+    if not ok then return end
+    M.invite.pending=nil   -- one accept per ask: a later invite from the same host is left to the player
+    N.Wire.hideInvite()
+    after(0,function() N.Wire.hideInvite() end)
+    local shown=(inviter:match("^([^%-]+)%-")) or inviter
+    M.auto.group={host=shown,short=short,target=p.target,at=time}
+    M.say("LayerEnemies: accepted "..shown.."'s invite")
+end
+local function hostLeads(g)
+    for i=1,4 do
+        local u="party"..i
+        if S.call(UnitExists,u)==true then
+            local n,realm=S.call(UnitName,u)
+            n,realm=S.str(n,60),S.str(realm,60)
+            local _,key
+            if n then _,key=I.name(realm and realm~="" and (n.."-"..realm) or n) end
+            if key and key==g.short then return S.call(UnitIsGroupLeader,u)==true end
+        end
+    end
+    return false
+end
+-- Leaves only the group joined through that accepted invite: led by the host, not a raid, not led by us. Leaves 3 s
+-- after our server key changes to the target (a key learned after joining), or 30 s after joining without a move.
+function M.autoTick()
+    local g=M.auto and M.auto.group
+    if not g then return end
+    if not M.autoHop() then M.auto.group=nil; return end
+    local time=now()
+    local grouped=S.call(IsInGroup)==true
+    if not g.joinedAt then
+        if not grouped then
+            if time-g.at>M.AUTO_JOIN then M.auto.group=nil end
+            return
+        end
+        g.joinedAt=time; g.joinKey=L.key(M.store.bulo)
+        after(M.AUTO_FAIL+0.1,function() guarded(M.autoTick) end)
+    end
+    local party=A.party()
+    if not grouped or not party or party.raid~=false or party.leader or not hostLeads(g) then M.auto.group=nil; return end
+    if g.leaveAt then
+        if time>=g.leaveAt then N.Wire.leave(time); M.auto.group=nil end
+        return
+    end
+    local key=L.key(M.store.bulo)
+    if key and key==L.key(g.target) and key~=g.joinKey then
+        g.leaveAt=time+M.AUTO_LEAVE
+        M.say("LayerEnemies: moved to layer "..key..", leaving the group")
+        after(M.AUTO_LEAVE+0.05,function() guarded(M.autoTick) end)
+        return
+    end
+    if time-g.joinedAt>=M.AUTO_FAIL then
+        N.Wire.leave(time); M.auto.group=nil
+        M.say("LayerEnemies: hop failed: "..g.host.." could not move you")
+    end
+end
 function M.groupCheck()
     local grouped=A.grouped()
-    if grouped and not M.wasGrouped and I.joined(M.invite,now(),L.key(M.store.bulo),M.store.zone) then
+    if grouped and not M.wasGrouped and M.auto and M.auto.group then
+        -- our auto-accepted hop group: autoTick watches the move and leaves; the manual layer check stays quiet
+        guarded(M.autoTick)
+    elseif grouped and not M.wasGrouped and I.joined(M.invite,now(),L.key(M.store.bulo),M.store.zone) then
         M.say("LayerEnemies: you joined a group after asking - checking your layer for 60 s.")
         after(I.WATCH+0.5,function() guarded(M.inviteTick) end)
     end
@@ -813,6 +899,9 @@ function M.start()
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
     M.host.want=LayerEnemiesDB.guildHost
+    -- autoHop: on by default; only a saved false turns it off
+    LayerEnemiesDB.autoHop=saved.autoHop~=false
+    M.auto={on=LayerEnemiesDB.autoHop,group=nil}
     if S.tab(C_ChatInfo) then
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WEFF1")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"HeadHunter")
@@ -828,6 +917,8 @@ function M.start()
         command=raw:lower()
         if command=="find" then M.track(nil); return end
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
+        if command=="hop auto on" then guarded(M.setAutoHop,true); return end
+        if command=="hop auto off" then guarded(M.setAutoHop,false); return end
         local index=command:match("^ask%s+(%d%d?)$")
         local host=command:match("^hop%s+host%s+(%d%d?)$")
         if host or command:match("^hop%s+host") then guarded(M.hopHost,tonumber(host)); return end
@@ -849,7 +940,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -871,7 +962,8 @@ local function dispatch(_,event,...)
     elseif event=="NAME_PLATE_UNIT_ADDED" then M.queueUnit(...)
     elseif event=="NAME_PLATE_UNIT_REMOVED" then M.releaseUnit(...)
     elseif event=="GROUP_ROSTER_UPDATE" then guarded(M.groupCheck); guarded(M.inviteTick)
-    elseif event=="GUILD_ROSTER_UPDATE" then guarded(M.rosterUpdate) end
+    elseif event=="GUILD_ROSTER_UPDATE" then guarded(M.rosterUpdate)
+    elseif event=="PARTY_INVITE_REQUEST" then guarded(M.partyInvite,(...)) end
 end
 -- Opens the chat box with a whisper for the user to send; never sends it.
 function N.AskInvite(name)

@@ -134,6 +134,7 @@ function U.render()
     U.hosting:SetText(hosting and "Hosting for your guild (stays on after reload)"
         or ("Hosting is on but inactive: "..tostring(M.host and M.host.inactive or "")))
     U.hosting:SetShown(want==true)
+    U.auto:SetShown(U.tab=="friendly"); U.auto.label:SetText(M.autoHop() and "Auto: on" or "Auto: off")
     local hint=U.tab=="friendly" and not known
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
     local height=U.tab=="local" and 48 or U.tab=="find" and 106 or U.tab=="friendly" and 68 or 80
@@ -254,6 +255,9 @@ function U.create()
     -- guild-only hosting, off at every login; the line stays visible on every tab while it is on
     U.host=button(U.body,70,18,"Host: off",function() local M=N.Main; M.setHost(not (M.host and M.host.want)); U.render() end)
     U.host:SetPoint("TOPRIGHT",-92,0); U.host:Hide()
+    -- Auto accept and leave: accept the asked host's invite, leave that group after the move (saved, on by default)
+    U.auto=button(U.body,70,18,"Auto: on",function() local M=N.Main; M.setAutoHop(not M.autoHop()); U.render() end)
+    U.auto:SetPoint("TOPRIGHT",-166,0); U.auto:Hide()
     U.hosting=font(f,10,{.79,.96,.65}); U.hosting:SetPoint("TOPLEFT",86,-64); U.hosting:Hide()
     U.hint=font(f,10,colors.muted); U.hint:SetPoint("TOPLEFT",10,-420); U.hint:SetWidth(340)
     local footer=font(f,10,colors.muted); footer:SetPoint("BOTTOMLEFT",10,9); footer:SetWidth(340)
