@@ -204,6 +204,9 @@ function A.friendLists(guildLines,heard)
         return type(book)=="table" and book or false
     end)
     if ok then out.book=list else out.book=false end
+    -- LayerSwap loaded: its book only (empty until its saved table exists); our remembered replies stand in only
+    -- while it is not loaded
+    if out.book==nil and A.loaded("LayerSwap") then out.book={} end
     if out.book==nil and S.tab(heard) and next(heard)~=nil then out.book=heard end
     return out
 end

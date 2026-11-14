@@ -42,6 +42,8 @@ function Hp.guildLine(record, x, y)
 end
 -- request for the guild ask: the same preconditions as a hop, valid only while no one on that layer is known.
 function Hp.guildRequest(st, record, ctx)
+    -- the guild ask needs our own key (the auto hop compares it after the move)
+    if not S.tab(ctx.own) or not N.Layer.key(ctx.own.server) then return false, N.Invite.HINT end
     local fine, reason = Hp.check(record, nil, ctx)
     if fine or reason ~= Hp.NO_ONE then return false, fine and "a host is known; use Hop." or reason end
     local line = Hp.guildLine(record, ctx.x, ctx.y)
@@ -61,8 +63,14 @@ function Hp.clear(st) st.pending = nil end
 function Hp.candidate(record, list)
     local key = record and record.layer and record.layer.ns == "server" and N.Layer.key(record.layer.value)
     if not key then return nil end
-    local best, rank
+    local best, rank, hidden
+    local reporter = record.src == "we" and select(2, N.Invite.name(record.origin))
     for _, c in ipairs(list or {}) do
+        -- the War Effort reporter is himself a Bulo/LayerSwap row seen while our own layer is unknown: no reporter
+        -- draft (0.3.1 review S1); the caller shows the hint. Other rows on that layer leave the 0.3.0 draft alone.
+        if c.unknownOwn and not hidden and reporter and c.short == reporter then
+            for _, src in ipairs(c.sources or {}) do if src == "Bulo" or src == "LayerSwap" then hidden = c end end
+        end
         if c.layer == key and not c.same and not c.unknownOwn then
             local r
             -- each source ranks by its own host flag: a Bulo non-host who is also a LayerSwap host ranks as LayerSwap
@@ -77,6 +85,7 @@ function Hp.candidate(record, list)
         local src = rank == 2 and "LayerSwap" or "Bulo"
         return { name = best.name, short = best.short, uid = best.uid, source = src, addon = true, nonhost = rank == 3 }
     end
+    if hidden then return { name = hidden.name, short = hidden.short, source = "unknown", addon = true, unknownOwn = true } end
     if record.src == "we" then
         local name, short = N.Invite.name(record.origin)
         if name then return { name = name, short = short, source = "War Effort reporter", addon = false } end
@@ -110,8 +119,9 @@ end
 function Hp.check(record, candidate, ctx)
     if ctx.grouped then return false, "leave your current group first; an invite cannot reach you while grouped." end
     if not S.tab(record) then return false, "nothing to hop to." end
-    -- our own key unknown: no hop and no chat draft through any candidate, the reporter included
-    if not S.tab(ctx.own) or not N.Layer.key(ctx.own.server) then return false, N.Invite.HINT end
+    -- a candidate that is a Bulo/LayerSwap row seen while our own layer is unknown: the hint, nothing drafted
+    if S.tab(candidate) and candidate.unknownOwn then return false, N.Invite.HINT end
+    if not S.tab(ctx.own) then return false, "your zone is not known." end
     -- the live map zone decides: unreadable or different from the report refuses (the cached zone can lag)
     if not ctx.zone or not ctx.own.zone then return false, "your zone is not known." end
     if record.zone ~= ctx.zone or record.zone ~= ctx.own.zone then

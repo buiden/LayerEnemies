@@ -1828,11 +1828,12 @@ test("hop: own layer is the confirmed one, never a stale server key (مانع T2
     deliver("SHARD_TRANSFER"); drain()
     eq(N.Main.store.bulo,nil); eq(N.Layer.server(N.Main.npcs),"7086")      -- the raw id is kept for the ambiguity window
     eq(N.Store.own(N.Main.store,clock).server,nil)
-    -- a report on 7086 is not "on your layer": our layer is not known after the transfer. Since the 0.3.1 review
-    -- (S1) an unknown own key refuses every hop with the hint, the War Effort reporter's chat draft included.
+    -- a report on 7086 is not "on your layer": our layer is not known after the transfer. (Bulo/LayerSwap lists
+    -- need our own key, so the War Effort reporter is the one asked, by chat whisper.) The 0.3.1 S1 refusal covers
+    -- only a reporter that is a Bulo/LayerSwap row seen while our layer is unknown; Scout is none.
     chatBox()
     local r=rec(N,{layer={ns="server",value="7086"}}); eq(N.Record.relation(r,N.Store.own(N.Main.store,clock)),"unknown")
-    no(hopNow(N,r)); drain(); eq(#sent,0); eq(#opened,0); eq(lines("on your layer already"),0); yes(logged(N.Invite.HINT))
+    yes(hopNow(N,r)); drain(); eq(#sent,0); eq(#opened,1); eq(opened[1].text,"/w Scout "..ASK); eq(lines("on your layer already"),0)
     SlashCmdList.LAYERENEMIES("list"); yes(logged("Your server key: Unknown")); yes(logged("Your layer: Unknown"))
 end)
 test("hop: an ambiguous own key is never a certain same layer (مانع T2 S3)",function()
@@ -2657,9 +2658,12 @@ test("0.3.1 fix S1: own layer unknown, a report hop refuses with the hint, no dr
     local U=N.UI; U.toggle(); U.select("reported")
     local row; for _,x in ipairs(U.pool) do if x:IsShown() and x.hopRecord then row=x end end
     yes(row); yes(row.ask.disabled); eq(row.ask.reason,N.Invite.HINT)
-    -- Hop.check itself refuses an unknown own key
-    local ok,why=N.Hop.check(r,{name="Alpha",short="alpha",addon=false},{grouped=false,zone=100,own={zone=100,server=nil}})
-    no(ok); eq(why,N.Invite.HINT)
+    -- Hop.check refuses a candidate that is such a row; a plain reporter candidate passes (0.3.0)
+    local ctx={grouped=false,zone=100,own={zone=100,server=nil}}
+    local ok,why=N.Hop.check(r,{name="Alpha",short="alpha",addon=true,unknownOwn=true},ctx); no(ok); eq(why,N.Invite.HINT)
+    yes(N.Hop.check(r,{name="Scout",short="scout",addon=false},ctx))
+    -- the guild ask still needs our own key
+    ok,why=N.Hop.guildRequest(N.Main.hop,r,{grouped=false,zone=100,own={zone=100,server=nil},invite=N.Main.invite,now=clock}); no(ok); eq(why,N.Invite.HINT)
 end)
 test("0.3.1 fix S2: hop host refuses when the host flag or the LayerSwap uid changed since the preview",function()
     local N=loadAddon(); establish(N); guildLine("L 8000|100|h","Alpha"); slash("hosts")
@@ -3498,6 +3502,46 @@ test("1.0 T3: nothing is ever sent to a channel; channel calls only from Directo
             if file~="Directory" or word:find("Temporary") or word:find("Permanent") then eq(n,0,file.." "..word) else yes(n==1,file.." "..word.." "..n) end
         end
     end
+end)
+
+-- 0.3.1 S1 narrowed and three of Astra's extras (hermes)
+test("0.3.1 S1 narrowed: only a reporter who is himself a Bulo/LayerSwap row seen while unknown is refused",function()
+    -- the reporter is a Bulo row listed on another layer: still refused (the row says nothing reliable while unknown)
+    local N=loadAddon(); chatBox(); advance(1)
+    guildLine("L 9000|100|h","Alpha"); hopReport(301,8000,"Alpha")
+    slash("reports"); local r=N.Main.hopList.records[1]; yes(r)
+    local p=N.Main.hopPreview(r); no(p.enabled); eq(p.reason,N.Invite.HINT)
+    slash("hop 1"); eq(#opened,0); eq(#sent,0)
+    -- a LayerSwap book row as the reporter: refused too
+    N=loadAddon(); chatBox(); advance(1); LayerSwapDB={book={Alpha=page({layer="8000-3"})}}; hopReport(301,8000,"Alpha")
+    slash("reports"); r=N.Main.hopList.records[1]; p=N.Main.hopPreview(r); no(p.enabled); eq(p.reason,N.Invite.HINT); LayerSwapDB=nil
+    -- another Bulo row on that layer and a plain reporter: the reporter draft of 0.3.0
+    N=loadAddon(); chatBox(); advance(1); guildLine("L 8000|100|h","Alpha"); hopReport(301,8000,"Scout")
+    slash("reports"); r=N.Main.hopList.records[1]; p=N.Main.hopPreview(r); yes(p.enabled); eq(p.label,"Ask Scout (chat)")
+    slash("hop 1"); eq(#opened,1); eq(opened[1].text,"/w Scout "..ASK); eq(#sent,0)
+end)
+test("0.3.1 extra: a readable zone change clears the /le hosts numbers",function()
+    local N=loadAddon(); establish(N); chatBox(); guildLine("L 8000|100|h","Alpha"); slash("hosts"); yes(N.Main.hostList)
+    deliver("ZONE_CHANGED"); drain(); yes(N.Main.hostList,"same zone keeps them")
+    map=nil; deliver("ZONE_CHANGED_NEW_AREA"); drain(); yes(N.Main.hostList,"an unreadable map is no zone change"); map=100
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain(); eq(N.Main.hostList,nil)
+    slash("ask 1"); eq(#opened,0); yes(logged("run /le hosts first")); slash("hop host 1"); eq(#sent,0)
+end)
+test("0.3.1 extra: /le ask from a list taken while our layer was unknown re-checks before drafting",function()
+    local N=loadAddon(); chatBox(); guildLine("L 8000|100|h","Alpha"); slash("hosts"); yes(N.Main.hostList.rows[1].unknownOwn)
+    establish(N); slash("ask 1"); eq(#opened,0); yes(logged("hosts changed, check again."))
+    slash("hosts"); slash("ask 1"); eq(#opened,1); eq(opened[1].text,"/w Alpha "..ASK)
+    -- a list taken with our layer known and still known drafts as before
+    N=loadAddon(); establish(N); chatBox(); guildLine("L 8000|100|h","Bravo"); slash("hosts"); slash("ask 1"); eq(#opened,1)
+end)
+test("0.3.1 extra: with LayerSwap loaded our remembered replies are never used, even while its saved table is missing",function()
+    local N=loadAddon(); establish(N); guildLine("L 8000|100|h","Bob")
+    slash("hosts"); slash("hop host 1")
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|8000-12|100|h","WHISPER","Bob"); drain(); yes(N.Main.heard.heard.Bob)
+    N.Main.guildLines.Bob=nil; LayerSwapDB=nil
+    eq(#N.Main.candidates(),1,"not loaded: ours stands in")
+    loaded.LayerSwap=true; eq(#N.Main.candidates(),0,"loaded, no table yet: its book is empty")
+    loaded.LayerSwap=nil; eq(#N.Main.candidates(),1)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

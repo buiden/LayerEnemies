@@ -37,6 +37,7 @@ function M.boundary(zone)
         -- a new zone also drops a pending hop or ask (the layer watch ends itself on the zone change, with a note)
         if M.hop then N.Hop.clear(M.hop) end
         M.hopList=nil                                  -- the numbers /le reports showed belong to the old zone
+        M.hostList=nil                                 -- and so do those of /le hosts
         if M.invite then
             M.invite.pending=nil
             -- the layer watch ends here too: a quick out-and-back before the next poll must not read as a move
@@ -740,6 +741,14 @@ function M.askIndex(index)
     if not list or now()-list.at>120 then M.say("LayerEnemies: run /le hosts first, then /le ask <number>."); return false end
     local name=index and list.names[index]
     if not name then M.say("LayerEnemies: no such number in the last /le hosts list."); return false end
+    -- a row listed while our layer was unknown is checked against the live list: changed, nothing is drafted
+    local row=list.rows and list.rows[index]
+    if S.tab(row) and row.unknownOwn then
+        local live; for _,c in ipairs((M.candidates())) do if c.short==row.short then live=c; break end end
+        if not live or not live.unknownOwn or live.layer~=row.layer then
+            M.say("LayerEnemies: hosts changed, check again."); return false
+        end
+    end
     return M.askInvite(name)
 end
 -- Only notices a join; invites are accepted and groups are left by the user.
