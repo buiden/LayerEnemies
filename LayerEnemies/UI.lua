@@ -47,8 +47,20 @@ local function rowFrame()
     r.title=font(r,12); r.title:SetPoint("TOPLEFT",r,"TOPLEFT",42,-8); r.title:SetWidth(225)
     r.sub=font(r,10,colors.muted); r.sub:SetPoint("TOPLEFT",r,"TOPLEFT",42,-26); r.sub:SetWidth(294); r.sub:SetHeight(31); r.sub:SetJustifyV("TOP")
     r.age=font(r,10,colors.muted); r.age:SetPoint("TOPRIGHT",r,"TOPRIGHT",-8,-8); r.age:SetJustifyH("RIGHT")
-    r.ask=button(r,220,20,"Ask for invite",function() if r.spotter then N.AskInvite(r.spotter); U.render() end end)
+    r.ask=button(r,220,20,"Ask for invite",function()
+        if r.hopRecord then N.Main.hopTo(r.hopRecord,r.hopShown); U.render()
+        elseif r.spotter then N.AskInvite(r.spotter); U.render() end
+    end)
+    -- a disabled Hop button says why on mouse-over
+    r.ask:SetScript("OnEnter",function()
+        local tip=_G.GameTooltip
+        if r.ask.reason and S.tab(tip) then
+            pcall(function() tip:SetOwner(r.ask,"ANCHOR_TOP"); tip:SetText(r.ask.reason); tip:Show() end)
+        end
+    end)
+    r.ask:SetScript("OnLeave",function() local tip=_G.GameTooltip; if S.tab(tip) then pcall(tip.Hide,tip) end end)
     r.ask:SetPoint("BOTTOMLEFT",r,"BOTTOMLEFT",42,6)
+    r.hopRecord=false; r.hopShown=false; r.ask.reason=false
     r.clear=button(r,42,18,"Clear",function() if r.tracked then N.Main.track(r.tracked,true); U.render() end end)
     r.clear:SetPoint("BOTTOMRIGHT",r,"BOTTOMRIGHT",-6,6)
     return r
@@ -58,8 +70,16 @@ function U.cooldown(name)
     local st=N.Main.invite; local at=key and st.asked[key]
     if at and GetTime()-at<N.Invite.NAME_COOLDOWN then return math.ceil(N.Invite.NAME_COOLDOWN-(GetTime()-at)) end
 end
+-- The Hop button of a report row: who will be asked and how; disabled with the reason.
+local function hopState(r,record)
+    r.spotter=nil; r.hopRecord=record
+    local p=N.Main.hopPreview(record); r.hopShown=p
+    r.ask:Show(); r.ask.label:SetText(p.label); r.ask.reason=p.enabled and p.detail or p.reason
+    r.ask.bg:SetColorTexture(unpack(p.enabled and {.137,.227,.11} or {.11,.13,.16}))
+    if p.enabled then r.ask:Enable() else r.ask:Disable() end
+end
 local function askState(r,name,label)
-    r.spotter=name
+    r.spotter=name; r.hopRecord=false; r.hopShown=false; r.ask.reason=false
     if not name then r.ask:Hide(); return end
     r.ask:Show()
     local remaining=U.cooldown(name)
@@ -96,7 +116,7 @@ function U.render()
     local visible=math.floor((300-top)/height)
     local maximum=math.max(0,#rows-visible)
     U.offset=math.min(U.offset,maximum)
-    for _,r in ipairs(U.pool) do r:Hide(); r.spotter=nil; r.tracked=nil end
+    for _,r in ipairs(U.pool) do r:Hide(); r.spotter=nil; r.tracked=nil; r.hopRecord=false end
     for index=1,math.min(visible,#rows-U.offset) do
         local e=rows[index+U.offset]
         local r=U.pool[index]
@@ -121,8 +141,7 @@ function U.render()
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))
             r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or ""))
-            local _,key=N.Invite.name(e.reporter)
-            askState(r,key and eligible[key] and e.reporter or nil,"Ask "..e.reporter.." for invite")
+            hopState(r,e.record)
         elseif U.tab=="friendly" then
             r.sub:SetText(table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.layer and "layer "..e.layer or "layer not known"))
             askState(r,e.name,"Ask for invite")
@@ -130,6 +149,7 @@ function U.render()
             r.tracked=e.name; r.clear:Show()
             r.sub:SetText(e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or e.status)
             askState(r,e.canAsk and e.spotter or nil,e.spotter and ("Ask "..e.spotter.." for invite") or "")
+            if e.probably then r.sub:SetText(r.sub:GetText().." · probably your layer (key ambiguous)") end
         end
     end
     U.hint:SetText(#rows==0 and "No eligible observations yet." or (#rows>visible and ("Mouse wheel: "..(U.offset+1).."–"..math.min(#rows,U.offset+visible).." of "..#rows) or ""))

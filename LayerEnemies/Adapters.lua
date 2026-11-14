@@ -92,10 +92,33 @@ function A.bulo(epoch,now,known)
 end
 -- Wall clock, the base of both foreign lists' "at" fields.
 function A.wall() return S.num(S.call(_G.time)) end
-function A.grouped() return S.call(IsInGroup)==true end
+-- Unreadable (secret, missing, error) counts as grouped: the hop then refuses rather than assume.
+function A.grouped() return S.call(IsInGroup)~=false end
+-- Bulo's guild layer lines, heard on LFSw/GUILD: "L <key>|<zone>|<h or ->" (Bulo Guild.lua:118). We never send on
+-- LFSw. Kept in the shape of Bulo's own Guild.list, so they fill the host list when Bulo is not installed.
+A.GUILD_LINES,A.GUILD_MAX=720,256
+function A.guildLine(list,text,sender,wall)
+    if type(text)~="string" or #text>80 or not S.num(wall) then return false,"invalid" end
+    local key,zone,host=text:match("^L ([^|]+)|([^|]*)|([h%-])$")
+    if not key or not N.Layer.key(key) or key~=N.Layer.key(key) then return false,"invalid" end
+    if zone~="" and not zone:match("^%d+$") then return false,"invalid" end
+    -- the sender's own line; a cross-realm "First Surname-Realm" keeps the name only
+    local name=sender
+    if name:find(" ",1,true) then name=name:match("^(.-)%-[^ ]*$") or name end
+    if not N.Invite.name(name) then return false,"name" end
+    for k,v in pairs(list) do if wall-v.at>=A.GUILD_LINES then list[k]=nil end end
+    if not list[name] then
+        local n,oldest,ok=0,nil,nil
+        for k,v in pairs(list) do n=n+1; if not oldest or v.at<oldest then oldest,ok=v.at,k end end
+        if n>=A.GUILD_MAX then list[ok]=nil end
+    end
+    list[name]={key=key,zone=zone~="" and tonumber(zone) or nil,host=host=="h",at=wall}
+    return true
+end
 -- Foreign friend lists, never written to. nil = addon absent, false = unreadable.
 -- Shapes read from Bulo Layer Forever 3.0.24 (Guild.lua) and LayerSwap 1.14.18.
-function A.friendLists()
+-- guildLines: our own list of heard LFSw lines, used in Bulo's place when Bulo is not installed.
+function A.friendLists(guildLines)
     local out={}
     local ok,list=pcall(function()
         local ns=_G.BuloLayerForever
@@ -104,6 +127,7 @@ function A.friendLists()
         return ns.Guild.list
     end)
     if ok then out.bulo=list else out.bulo=false end
+    if out.bulo==nil and S.tab(guildLines) and next(guildLines)~=nil then out.bulo=guildLines end
     ok,list=pcall(function()
         local db=_G.LayerSwapDB
         if db==nil then return nil end

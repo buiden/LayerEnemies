@@ -63,7 +63,7 @@ function methods:CreateTexture() return object("Texture") end
 function methods:CreateFontString() return object("FontString") end
 function methods:RegisterEvent(event) self.events[event]=true end
 function methods:SetScript(key,fn)
-    local allowed={OnEvent=true,OnUpdate=true,OnClick=true,OnDragStart=true,OnDragStop=true,OnMouseWheel=true,OnEnterPressed=true,OnEscapePressed=true,OnShow=true,OnHide=true}
+    local allowed={OnEvent=true,OnUpdate=true,OnClick=true,OnDragStart=true,OnDragStop=true,OnMouseWheel=true,OnEnterPressed=true,OnEscapePressed=true,OnShow=true,OnHide=true,OnEnter=true,OnLeave=true}
     if not allowed[key] then error("unknown script: "..key) end
     self.scripts[key]=fn
 end
@@ -154,7 +154,7 @@ local function loadAddon()
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
     _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
     local N={}
-    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Hop","Find","UI","Main"}) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
@@ -580,7 +580,7 @@ test("loaded Bulo with missing namespace reports unavailable rather than absent"
 end)
 -- ---------------------------------------------------------------------------
 -- War Effort reports dated by time of receipt, and the ask-for-invite flow.
-local ASK="Hi! Could you invite me to your layer please? I'll leave right after."
+local ASK="Hi! Could you invite me to your layer please?"
 local function logged(text) return table.concat(log,"\n"):find(text,1,true)~=nil end
 local function lines(text) local n=0; for _,l in ipairs(log) do if l:find(text,1,true) then n=n+1 end end; return n end
 local function names(list) local out={}; for i,c in ipairs(list) do out[i]=c.name end; return table.concat(out,",") end
@@ -898,7 +898,7 @@ end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
     local list,status=N.Main.candidates()
-    eq(#list,0); eq(status.bulo,"not installed"); eq(status.book,"not installed"); eq(status.reports,"0 on another zoneUID")
+    eq(#list,0); eq(status.bulo,"not installed"); eq(status.book,"not installed"); eq(status.reports,"0 not on your server key")
     SlashCmdList.LAYERENEMIES("hosts"); yes(logged("No one to ask right now.")); yes(logged("Your layer: 7086"))
     no(LE.AskInvite("Alice")); yes(logged("not a known friendly player")); eq(#opened,0); no(N.Main.error)
 end)
@@ -999,7 +999,7 @@ test("candidates: host preference and one row per name across sources",function(
     -- freshest source first
     eq(list[1].age,50); yes(list[1].host); eq(table.concat(list[1].sources,"+"),"LayerSwap+Bulo")
     eq(list[4].layer,"9000"); eq(table.concat(list[4].sources,"+"),"LayerSwap"); eq(list[4].age,20)
-    -- A War Effort reporter on another zoneUID goes first and merges by name.
+    -- A War Effort reporter on another server key goes first and merges by name.
     units.target={guid=npc(1),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
     units.mouseover={guid=npc(2),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
     eq(N.Main.store.zoneUID,7)
@@ -1026,7 +1026,7 @@ test("ask: chat box opened one frame later with the exact line, never sent",func
     local N=loadAddon(); friends(N,{Alice=there({host=true})}); chatBox()
     yes(LE==N); yes(LE.AskInvite("Alice")); eq(#opened,0)
     drain(); eq(#opened,1)
-    eq(opened[1].text,"/w Alice Hi! Could you invite me to your layer please? I'll leave right after.")
+    eq(opened[1].text,"/w Alice Hi! Could you invite me to your layer please?")
     eq(opened[1].text,"/w Alice "..ASK); eq(opened[1].frame,DEFAULT_CHAT_FRAME)
     yes(logged("a whisper to Alice is in your chat box - press Enter to send it.")); eq(forbidden,0)
     -- case-insensitive lookup still whispers the listed spelling
@@ -1072,8 +1072,9 @@ test("ask: only listed, readable, ungrouped targets",function()
     for _,bad in ipairs({"Nobody","Same","Away","Me","","Alice Smith","Alice|r","Alice\n/g hi","/g hi",42,{},true}) do no(LE.AskInvite(bad)) end
     no(LE.AskInvite(secret)); no(LE.AskInvite(nil)); yes(logged("that player name is not readable."))
     grouped=true; no(LE.AskInvite("Alice")); yes(logged("leave your current group first"))
-    IsInGroup=function() return secret end; yes(LE.AskInvite("Alice"))
-    drain(); eq(#opened,1); eq(N.Safe.count(N.Main.invite.asked),1); no(N.Main.error); eq(forbidden,0)
+    -- an unreadable group state counts as grouped (مانع T5 S1)
+    IsInGroup=function() return secret end; no(LE.AskInvite("Alice")); yes(logged("leave your current group first"))
+    drain(); eq(#opened,0); eq(N.Safe.count(N.Main.invite.asked),0); no(N.Main.error); eq(forbidden,0)
 end)
 test("/le hosts numbers the candidates and /le ask <n> asks one",function()
     local N=loadAddon(); warSettings()
@@ -1086,7 +1087,7 @@ test("/le hosts numbers the candidates and /le ask <n> asks one",function()
     yes(logged("2. Bob | layer 8000 | Bulo | host | 3 min ago"))
     yes(logged("3. Cora | layer 9000 | LayerSwap | 31 s ago"))
     yes(logged("4. Alice | layer 8000 | Bulo | 1 min ago"))
-    yes(logged("Bulo: 2 fresh in this zone / LayerSwap: 1 fresh in this zone / War Effort reporters: 1 on another zoneUID"))
+    yes(logged("Bulo: 2 fresh in this zone / LayerSwap: 1 fresh in this zone / War Effort reporters: 1 not on your server key"))
     SlashCmdList.LAYERENEMIES("ask 9"); yes(logged("no such number")); SlashCmdList.LAYERENEMIES("ask"); SlashCmdList.LAYERENEMIES("ask x")
     drain(); eq(#opened,0)
     SlashCmdList.LAYERENEMIES(" ASK 2 "); drain(); eq(#opened,1); eq(opened[1].text,"/w Bob "..ASK)
@@ -1171,7 +1172,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     grouped=false; deliver("GROUP_ROSTER_UPDATE"); advance(10); LE.AskInvite("Bob"); drain()
     grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70)
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
-    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Hop","Find","UI","Main"}) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
         for _,word in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","JoinChannel"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
@@ -1293,9 +1294,18 @@ test("UI Friendly and Reported buttons dispatch AskInvite and show real cooldown
     U.pool[1].ask:Click(); eq(#calls,1)
     advance(1); eq(U.pool[1].ask.label.text,"Asked · 59s")
     advance(60); no(U.pool[1].ask.disabled)
-    report(1,9,"Scout"); U.select("reported"); yes(U.pool[1].ask:IsShown())
-    U.pool[1].ask:Click(); drain(); eq(calls[2],"Scout"); eq(#opened,2)
-    eq(U.pool[1].ask.label.text,"Asked · 60s"); eq(forbidden,0)
+    -- a report row: Hop. Its label says who is asked and how before the click; a reporter with no host addon
+    -- known gets the prefilled chat whisper, nothing is sent
+    hello("Scout",19); report(1,9,"Scout"); U.select("reported"); yes(U.pool[1].ask:IsShown())
+    eq(U.pool[1].ask.label.text,"Ask Scout (chat)"); no(U.pool[1].ask.disabled)
+    yes(U.pool[1].ask.reason:find("prefilled chat whisper to Scout",1,true))
+    U.pool[1].ask:Click(); drain(); eq(#calls,1); eq(#opened,2); eq(opened[2].text,"/w Scout "..ASK); eq(#sent,0)
+    U.render(); yes(U.pool[1].ask.disabled); yes(U.pool[1].ask.reason:find("Scout was asked",1,true))
+    -- a report whose layer cannot be compared: disabled, with the reason
+    report(2,7086,"Other"); U.render()
+    local other; for _,row in ipairs(U.pool) do if row:IsShown() and row.sub.text=="reported by Other" then other=row end end
+    yes(other); yes(other.ask.disabled); eq(other.ask.reason,"this report's layer cannot be compared with yours.")
+    eq(forbidden,0)
 end)
 test("UI Find add, status, clear and invite use existing flow",function()
     local N=loadAddon(); chatBox(); local U=N.UI
@@ -1446,6 +1456,312 @@ test("tracking a name looks through reports already stored (records)",function()
     eq(N.Main.lastDrop,"enriched"); no(N.Main.find.locations.Alice)
     N.Main.track("Alice"); local loc=N.Main.find.locations.Alice
     yes(loc); eq(loc.spotter,"Scout"); eq(loc.zone,100); eq(loc.level,40); no(N.Main.error)
+end)
+-- Task 5: one-click hop
+-- a hop as the user makes it: preview, then click on what was shown
+local function hopNow(N,record) return N.Main.hopTo(record,N.Main.hopPreview(record)) end
+local function hopReport(id,key,who) hello(who or "Scout",19); report(id,key,who or "Scout") end
+local function rec(N,over)
+    local t={src="we",kind="group",origin="Scout",via="Scout",route="GUILD",rid="1",zone=100,count=1,layer={ns="server",value="8000"},heard=clock,share="guild"}
+    for k,v in pairs(over or {}) do t[k]=v end
+    return assert(N.Record.new(t))
+end
+test("hop line matches the LayerSwap grammar",function()
+    local N=loadAddon(); local H=N.Hop
+    eq(H.line(1429,"7086",nil,.482,.425),"inv layer <LS 1429 want 7086-0 48.2,42.5>")
+    eq(H.line(1429,"7086",12,.482,.425),"inv layer <LS 1429 want 7086-12 48.2,42.5>")
+    eq(H.line(1429,"7091",3),"inv layer <LS 1429 want 7091-3>")
+    eq(H.line(1429,"7091",0,1,0),"inv layer <LS 1429 want 7091-0 100.0,0.0>")
+    eq(H.line(1429,"7091",0,1.2,.5),"inv layer <LS 1429 want 7091-0>")
+    eq(H.line(nil,"7086"),nil); eq(H.line(1429,"x7"),nil); eq(H.line(1429,"7086-4"),"inv layer <LS 1429 want 7086-0>"); eq(H.line(1429,"7086",-1),nil); eq(H.line(14.5,"7086"),nil)
+    -- what LayerSwap and Bulo parse out of it (study: first <LS...>, zone, want id, trailing pair within 0..100)
+    local body=H.line(1429,"7086",12,.482,.425):match("^inv layer <LS([^<>]*)>$")
+    eq(body:match("^%s*(%d+)"),"1429"); eq(body:match("want%s+(%d+%-%d+)"),"7086-12"); eq(body:match("(%d+%.?%d*),(%d+%.?%d*)%s*$"),"48.2")
+end)
+test("hop sends exactly one whisper per click",function()
+    local N=loadAddon(); friends(N,{Bob=there({host=true}),Alice=there()},{Cora=page()}); advance(1)
+    hopReport(1,8000)
+    SlashCmdList.LAYERENEMIES("reports")
+    yes(logged("[1] /le hop 1: one LayerSwap request whispered to Bob (Bulo)"))
+    SlashCmdList.LAYERENEMIES("hop 1"); drain()
+    eq(#sent,1); eq(sent[1].prefix,"LayerSwap"); eq(sent[1].kind,"WHISPER"); eq(sent[1].target,"Bob")
+    eq(sent[1].text,"inv layer <LS 100 want 8000-0 25.0,75.0>"); eq(#opened,0); eq(forbidden,0)
+    yes(logged("asked Bob (Bulo) for an invite to layer 8000. Accept the invite yourself; nothing else is sent."))
+    eq(N.Main.invite.pending.name,"Bob"); eq(N.Main.hop.pending.name,"Bob")
+    -- a LayerSwap book entry comes with the host's zoneUID; it goes before a Bulo line without the host flag
+    N=loadAddon(); friends(N,{Alice=there()},{Cora=page({layer="8000-13"})}); advance(1); hopReport(1,8000)
+    SlashCmdList.LAYERENEMIES("reports"); SlashCmdList.LAYERENEMIES("hop 1"); drain()
+    eq(#sent,1); eq(sent[1].target,"Cora"); eq(sent[1].text,"inv layer <LS 100 want 8000-13 25.0,75.0>")
+    -- no position on a child map: the line goes without it
+    N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); hopReport(1,8000)
+    map=101; yes(hopNow(N,N.Store.rows(N.Main.store,clock,"reported")[1].record)); eq(#sent,1); eq(sent[1].text,"inv layer <LS 100 want 8000-0>")
+    -- the map already shows another zone (no event yet): the live zone decides, so nothing is sent (مانع T5 S1)
+    advance(61); map=200; no(hopNow(N,N.Store.rows(N.Main.store,clock,"reported")[1].record)); eq(#sent,1); yes(log[#log]:find("travel to",1,true))
+end)
+test("hop refuses when grouped, other zone, zoneuid layer, same layer, no candidate",function()
+    local N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1)
+    local function refused(record,text)
+        local before=#log
+        no(hopNow(N,record)); eq(#sent,0); yes(log[#log]:find(text,1,true),text); yes(#log>before)
+    end
+    grouped=true; refused(rec(N),"leave your current group first"); grouped=false
+    refused(rec(N,{zone=200}),"travel to "); refused(rec(N,{layer={ns="zoneuid",value=8000}}),"cannot be compared")
+    refused(rec(N,{layer={ns="unknown",value=8000}}),"cannot be compared")
+    refused(rec(N,{layer={ns="server",value="7086"}}),"on your layer already")
+    refused(rec(N,{src="guild",layer={ns="server",value="9500"}}),"no one known on that layer")
+    -- unknown own zone
+    N.Main.store.zone=nil; refused(rec(N),"your zone is not known"); eq(#opened,0); eq(forbidden,0)
+end)
+test("hop cooldown blocks a second click",function()
+    local N=loadAddon(); friends(N,{Bob=there({host=true}),Dan=there({key="9000",host=true})}); advance(1)
+    yes(hopNow(N,rec(N))); eq(#sent,1)
+    no(hopNow(N,rec(N))); eq(#sent,1); yes(log[#log]:find("Bob was asked 0 s ago",1,true))
+    advance(5); no(hopNow(N,rec(N,{rid="2",layer={ns="server",value="9000"}}))); eq(#sent,1); yes(log[#log]:find("one ask every 10 s",1,true))
+    advance(5); yes(hopNow(N,rec(N,{rid="2",layer={ns="server",value="9000"}}))); eq(#sent,2); eq(sent[2].target,"Dan")
+    advance(10); no(hopNow(N,rec(N))); eq(#sent,2)
+    advance(41); yes(hopNow(N,rec(N))); eq(#sent,3)
+end)
+test("hop does not retry on throttle",function()
+    local N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1)
+    sendResult=3; no(hopNow(N,rec(N))); eq(#sent,1); yes(log[#log]:find("throttling whispers; not sent",1,true))
+    eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
+    advance(300); eq(#sent,1)
+    sendResult=8; advance(61); no(hopNow(N,rec(N))); eq(#sent,2); yes(log[#log]:find("refused the whisper",1,true))
+    sendResult=function() error("boom") end; advance(61); no(hopNow(N,rec(N))); eq(#sent,3); yes(log[#log]:find("could not be sent",1,true))
+    advance(300); eq(#sent,3); eq(forbidden,0)
+end)
+test("hop parses heard for me and ignores heard for others",function()
+    local N=loadAddon(); local H=N.Hop
+    local r=H.reply("heard Tam Reed|7091-3|1429|h","Bob","Tam Reed"); eq(r.kind,"heard"); eq(r.layer,"7091-3"); eq(r.zone,1429); yes(r.hosting)
+    r=H.reply("heard Tam Reed|-|1429|-","Bob","Tam Reed"); eq(r.layer,nil); no(r.hosting)
+    -- malformed fields make the reply unreadable (مانع T5 S2)
+    eq(H.reply("heard Tam Reed|7091-3|1429|x","Bob","Tam Reed"),nil); eq(H.reply("heard Tam Reed|7091-3|1429|","Bob","Tam Reed"),nil)
+    eq(H.reply("heard Tam Reed|7091|1429|h","Bob","Tam Reed"),nil); eq(H.reply("heard Tam Reed|7091-3|14x|h","Bob","Tam Reed"),nil)
+    eq(H.reply("heard Tam Reed|7091-3||h","Bob","Tam Reed"),nil); eq(H.reply("heard Tam Reed|7091-3|1429|h\1","Bob","Tam Reed"),nil)
+    eq(H.reply("heard Tam Reed|-|-|-","Bob","Tam Reed").zone,nil)
+    eq(H.reply("heard Aya Stone|7091-3|1429|h","Bob","Tam Reed"),nil); eq(H.reply("heard Tam Reed|7091-3|1429","Bob","Tam Reed"),nil)
+    eq(H.reply(secret,"Bob","Me"),nil)
+    friends(N,{Bob=there({host=true})}); advance(1); yes(hopNow(N,rec(N)))
+    local function reply(text,from) deliver("CHAT_MSG_ADDON","LayerSwap",text,"WHISPER",from or "Bob"); drain() end
+    reply("heard Someone Else|8000-13|100|h"); eq(lines("heard you"),0)
+    reply("heard Me|8000-13|100|h","Cora"); eq(lines("heard you"),0)
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|8000-13|100|h","GUILD","Bob"); eq(lines("heard you"),0)
+    reply("heard Me|8000-13|100|h"); yes(logged("LayerEnemies: Bob heard you (layer 8000-13, hosting: yes)."))
+    reply("heard Me|-|100|-","Bob-TestRealm"); yes(logged("LayerEnemies: Bob heard you (layer unknown, hosting: no)."))
+    advance(121); reply("heard Me|8000-13|100|h"); eq(lines("heard you"),2); eq(#sent,1)
+end)
+test("hop parses same",function()
+    local N=loadAddon(); eq(N.Hop.reply("same","Bob","Me").kind,"same"); eq(N.Hop.reply("same ","Bob","Me"),nil); eq(N.Hop.reply("SAME","Bob","Me"),nil)
+    friends(N,{Bob=there({host=true})}); advance(1)
+    deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); eq(lines("on their layer"),0)   -- nothing asked yet
+    yes(hopNow(N,rec(N)))
+    deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); yes(logged("LayerEnemies: Bob says you're on their layer."))
+end)
+test("hop ignores inv layer requests and sends no heard",function()
+    local N=loadAddon(); establish(N); friends(N,{Bob=there({host=true})}); advance(1)
+    local before=#log
+    for _,kind in ipairs({"WHISPER","GUILD","PARTY"}) do
+        deliver("CHAT_MSG_ADDON","LayerSwap","inv layer <LS 100 want 7086-7 50.0,50.0>",kind,"Stranger")
+        deliver("CHAT_MSG_ADDON","LayerSwap","inv layer <LS 100 not 8000-1 50.0,50.0>",kind,"Bob")
+        deliver("CHAT_MSG_ADDON","LayerSwap","claim Me",kind,"Bob")
+        deliver("CHAT_MSG_ADDON","LayerSwap","want 7086-7",kind,"Bob")
+    end
+    yes(hopNow(N,rec(N))); eq(#sent,1)
+    deliver("CHAT_MSG_ADDON","LayerSwap","inv layer <LS 100 want 7086-7 50.0,50.0>","WHISPER","Bob")
+    eq(#sent,1); eq(#log,before+1); eq(forbidden,0); no(N.Main.error)
+end)
+test("hop works while LayerSwap and Bulo are loaded",function()
+    local N=loadAddon(); loaded.LayerSwap=true; loaded.BuloLayerForever=true
+    local b=friends(N,{Bob=there({host=true})},{Cora=page({layer="8000-13"})}); advance(1)
+    local function snapshot(t,depth)
+        local out={}; for k,v in pairs(t) do out[#out+1]=tostring(k).."="..(type(v)=="table" and depth<3 and "{"..snapshot(v,depth+1).."}" or tostring(v)) end
+        table.sort(out); return table.concat(out,",")
+    end
+    local bulo,book=snapshot(b.Guild,0),snapshot(LayerSwapDB,0)
+    hopReport(1,8000); SlashCmdList.LAYERENEMIES("reports"); SlashCmdList.LAYERENEMIES("hop 1"); drain()
+    eq(#sent,1); eq(sent[1].target,"Bob")
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|8000-13|100|h","WHISPER","Bob"); yes(logged("Bob heard you (layer 8000-13, hosting: yes)."))
+    deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); yes(logged("Bob says you're on their layer."))
+    deliver("CHAT_MSG_ADDON","LFSw","L 8000|100|h","GUILD","Bob"); deliver("CHAT_MSG_ADDON","LFSw","v 3.0.25","WHISPER","Bob")
+    -- their saved data and live tables are only read
+    eq(snapshot(b.Guild,0),bulo); eq(snapshot(LayerSwapDB,0),book); eq(#sent,1); eq(forbidden,0); no(N.Main.error)
+end)
+test("hop state clears on zone change and reload",function()
+    local N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1)
+    yes(hopNow(N,rec(N))); yes(N.Main.hop.pending); yes(N.Main.invite.pending)
+    -- a same-zone transfer is what a hop causes: kept
+    deliver("SHARD_TRANSFER"); drain(); yes(N.Main.hop.pending); yes(N.Main.invite.pending)
+    map=nil; deliver("PLAYER_ENTERING_WORLD"); drain(); map=100; deliver("ZONE_CHANGED_NEW_AREA"); drain(); yes(N.Main.hop.pending)
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|8000-13|100|h","WHISPER","Bob"); eq(lines("heard you"),0)
+    grouped=true; deliver("GROUP_ROSTER_UPDATE"); eq(N.Main.invite.watch,nil); advance(70); eq(lines("Moved to layer"),0)
+    -- reload: nothing of a hop survives
+    grouped=false; N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); yes(hopNow(N,rec(N)))
+    N=loadAddon(); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
+    deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); eq(lines("on their layer"),0)
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position",k) end
+end)
+test("hop acts on the shown candidate only (مانع T5 F1)",function()
+    -- shown "Ask Scout (chat)"; an LFSw host line arrives before the click: nothing is sent, nothing drafted
+    local N=loadAddon(); chatBox(); establish(N); advance(1); local r=rec(N)
+    local shown=N.Main.hopPreview(r); eq(shown.label,"Ask Scout (chat)"); yes(shown.enabled)
+    deliver("CHAT_MSG_ADDON","LFSw","L 8000|100|h","GUILD","Mallory")
+    eq(N.Main.hopPreview(r).label,"Hop via Mallory")
+    no(N.Main.hopTo(r,shown)); drain(); eq(#sent,0); eq(#opened,0); yes(logged("LayerEnemies: hosts changed, check again."))
+    eq(N.Safe.count(N.Main.invite.asked),0); eq(N.Main.hop.pending,nil)
+    -- no preview at all is refused the same way
+    no(N.Main.hopTo(r)); eq(#sent,0)
+    -- the new preview is what a second click acts on
+    yes(N.Main.hopTo(r,N.Main.hopPreview(r))); eq(#sent,1); eq(sent[1].target,"Mallory")
+    -- the same through /le reports + /le hop and through the window button
+    N=loadAddon(); chatBox(); establish(N); advance(1); hopReport(1,8000)
+    SlashCmdList.LAYERENEMIES("reports"); yes(logged("a prefilled chat whisper to Scout"))
+    deliver("CHAT_MSG_ADDON","LFSw","L 8000|100|h","GUILD","Mallory")
+    SlashCmdList.LAYERENEMIES("hop 1"); drain(); eq(#sent,0); eq(#opened,0); yes(logged("hosts changed, check again."))
+    N=loadAddon(); chatBox(); establish(N); advance(1); hopReport(1,8000); local U=N.UI
+    U.toggle(); U.select("reported"); eq(U.pool[1].ask.label.text,"Ask Scout (chat)")
+    N.Main.guildLines["Mallory"]={key="8000",zone=100,host=true,at=wall}
+    U.pool[1].ask:Click(); drain(); eq(#sent,0); eq(#opened,0)
+    eq(U.pool[1].ask.label.text,"Hop via Mallory")                        -- redrawn
+    U.pool[1].ask:Click(); drain(); eq(#sent,1); eq(sent[1].target,"Mallory"); eq(#opened,0); eq(forbidden,0)
+    -- the same player changing mode (reporter to LFSw host) is a change too
+    N=loadAddon(); chatBox(); establish(N); advance(1); r=rec(N); shown=N.Main.hopPreview(r); eq(shown.label,"Ask Scout (chat)")
+    deliver("CHAT_MSG_ADDON","LFSw","L 8000|100|h","GUILD","Scout"); eq(N.Main.hopPreview(r).label,"Hop via Scout")
+    no(N.Main.hopTo(r,shown)); drain(); eq(#sent,0); eq(#opened,0)
+end)
+test("hop replies: same wording, ambiguity, full-name sender, route (مانع T5 F2, S2)",function()
+    local N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1)
+    yes(hopNow(N,rec(N)))
+    -- PARTY, another realm's Bob, and a lookalike are ignored
+    deliver("CHAT_MSG_ADDON","LayerSwap","same","PARTY","Bob"); deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob-EvilRealm")
+    deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bobb"); eq(lines("on their layer"),0)
+    -- our own realm written out is still Bob
+    N.Main.store.ambiguous=function() return true end
+    deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob-TestRealm")
+    yes(logged("LayerEnemies: Bob says you're on their layer (probably: your key is ambiguous)."))
+    eq(N.Hop.receive({pending={name="Al",short="al",at=0}},"same","Al","Me",1,false),"Al says you're on their layer.")
+end)
+test("hop: grouping, live zone and per-source host rank (مانع T5 S1, S3)",function()
+    -- unreadable IsInGroup refuses
+    local N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1)
+    IsInGroup=function() return secret end; no(hopNow(N,rec(N))); yes(log[#log]:find("leave your current group first",1,true))
+    IsInGroup=function() error("boom") end; no(hopNow(N,rec(N))); IsInGroup=nil; no(hopNow(N,rec(N))); eq(#sent,0)
+    IsInGroup=function() return grouped end
+    -- unreadable live map refuses
+    map=nil; no(hopNow(N,rec(N))); yes(log[#log]:find("your zone is not known",1,true)); map=100
+    yes(hopNow(N,rec(N))); eq(#sent,1)
+    -- a Bulo host beats a Bulo non-host who is also a LayerSwap host
+    N=loadAddon(); friends(N,{Bob=there({host=true,at=wall-30}),Alice=there({at=wall-1})},{Alice=page({host=true,at=wall-1})}); advance(1)
+    local list=N.Main.candidates(); local alice; for _,c in ipairs(list) do if c.name=="Alice" then alice=c end end
+    yes(alice.host); eq(alice.hosts.Bulo,false); eq(alice.hosts.LayerSwap,true)
+    local c=N.Hop.candidate(rec(N),list); eq(c.name,"Bob"); eq(c.source,"Bulo")
+    yes(hopNow(N,rec(N))); eq(sent[#sent].target,"Bob")
+    -- without the Bulo host, Alice is asked as a LayerSwap host
+    N=loadAddon(); friends(N,{Alice=there({at=wall-1})},{Alice=page({host=true,at=wall-1})}); advance(1)
+    c=N.Hop.candidate(rec(N),N.Main.candidates()); eq(c.name,"Alice"); eq(c.source,"LayerSwap")
+end)
+test("hop: two zone boundaries before a poll end the layer watch (مانع T5 S4)",function()
+    local N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1)
+    yes(hopNow(N,rec(N))); grouped=true; deliver("GROUP_ROSTER_UPDATE"); yes(N.Main.invite.watch)
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); map=100; deliver("ZONE_CHANGED_NEW_AREA")
+    eq(N.Main.invite.watch,nil); yes(logged("Zone changed - layer check cancelled."))
+    drain(); advance(70); eq(lines("Moved to layer"),0); eq(lines("Still on your layer"),0); grouped=false
+end)
+test("hop: a failed send keeps the cooldown",function()
+    local N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1)
+    sendResult=3; no(hopNow(N,rec(N))); eq(#sent,1)
+    sendResult=nil; no(hopNow(N,rec(N))); eq(#sent,1); yes(log[#log]:find("Bob was asked 0 s ago",1,true))
+    advance(5); no(hopNow(N,rec(N,{rid="2",layer={ns="server",value="9000"}}))); eq(#sent,1); yes(log[#log]:find("one ask every 10 s",1,true))
+end)
+test("claims are keyed by full name; HeadHunter never compares (T3/T4 leftovers)",function()
+    local N=loadAddon()
+    local env={ownKey="8000",wall=1000,zone=100,bulo={["Scout-RealmA"]={key="8000",zone=100,host=false,at=990}}}
+    eq(N.Invite.sameSpotter("Scout-RealmA",env),true); eq(N.Invite.sameSpotter("Scout-RealmB",env),false); eq(N.Invite.sameSpotter("Scout",env),false)
+    local _,a=N.Invite.name("Scout-RealmA"); local _,b=N.Invite.name("Scout-RealmB"); yes(a~=b)
+    local _,c=N.Invite.name("Bob"); local _,d=N.Invite.name("Bob-TestRealm"); eq(c,d)
+    -- a hand-built HeadHunter record with a server layer is still not comparable
+    local own={zone=100,server="8000"}
+    eq(N.Record.relation(rec(N,{src="hh",kind="fight",share="public"}),own),"unknown")
+    eq(N.Record.relation(rec(N,{src="hh",kind="fight",share="public",layer={ns="server",value="9000"}}),own),"unknown")
+    eq(N.Record.relation(rec(N),own),"same"); eq(N.Record.relation(rec(N,{layer={ns="server",value="9000"}}),own),"other")
+end)
+test("/le hop numbers do not survive a zone change (r2)",function()
+    local N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); hopReport(1,8000)
+    SlashCmdList.LAYERENEMIES("reports"); yes(N.Main.hopList)
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); map=100; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    eq(N.Main.hopList,nil)
+    SlashCmdList.LAYERENEMIES("hop 1"); drain(); eq(#sent,0); yes(logged("run /le reports first"))
+    -- a same-zone transfer (an unreadable map) keeps them
+    N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); hopReport(1,8000)
+    SlashCmdList.LAYERENEMIES("reports"); deliver("SHARD_TRANSFER"); drain(); yes(N.Main.hopList)
+end)
+test("guild L line without Bulo fills the host list",function()
+    local N=loadAddon(); establish(N); advance(1)
+    local function line(text,from,kind) deliver("CHAT_MSG_ADDON","LFSw",text,kind or "GUILD",from) end
+    line("L 8000|100|h","Bob"); line("L 9000|100|-","Dan Lee-OtherRealm"); line("L 8000|100|-","Me"); line("L 8000|100|-","Me-TestRealm")
+    eq(N.Main.guildLines["Me"],nil); eq(N.Main.guildLines["Me-TestRealm"],nil); yes(N.Main.guildLines["Bob"])
+    for _,bad in ipairs({"L 8000-3|100|h","L 8000|100|x","L 8000|100|h|x","L |100|h","L 8000|1a|h","Q","v 3.0.25"}) do line(bad,"Eve") end
+    line("L 8000|100|h","Wes","WHISPER"); line("L 8000|100|h","Pat","PARTY")
+    local list=N.Main.candidates(); eq(names(list),"Bob,Dan Lee")
+    eq(list[1].layer,"8000"); yes(list[1].host); eq(table.concat(list[1].sources,"+"),"Bulo")
+    yes(hopNow(N,rec(N))); eq(sent[1].target,"Bob"); eq(sent[1].text,"inv layer <LS 100 want 8000-0 25.0,75.0>"); eq(#sent,1)
+    -- not in a guild, or ignored: not read
+    inGuild=false; line("L 7000|100|h","Gus"); inGuild=true
+    clientIgnored=true; line("L 7000|100|h","Ivy"); clientIgnored=false
+    eq(#N.Main.candidates(),2)
+    -- 720 s freshness
+    advance(720); line("L 9500|100|h","Fay"); eq(names(N.Main.candidates()),"Fay"); eq(N.Safe.count(N.Main.guildLines),1)
+    -- 256 lines at most
+    local many={}; for i=1,300 do N.Adapters.guildLine(many,"L 8000|100|h","Name"..string.char(97+i%26)..string.char(97+math.floor(i/26)%26),1000+i) end
+    yes(N.Safe.count(many)<=256)
+    eq(forbidden,0); no(N.Main.error)
+end)
+test("hop: own layer is the confirmed one, never a stale server key (مانع T2 S2)",function()
+    local N=loadAddon(); establish(N); friends(N,{Bob=there({key="7086",host=true})}); advance(1)
+    deliver("SHARD_TRANSFER"); drain()
+    eq(N.Main.store.bulo,nil); eq(N.Layer.server(N.Main.npcs),"7086")      -- the raw id is kept for the ambiguity window
+    eq(N.Store.own(N.Main.store,clock).server,nil)
+    -- a report on 7086 is not "on your layer": our layer is not known after the transfer. (Bulo/LayerSwap lists
+    -- need our own key, so the War Effort reporter is the one asked, by chat whisper.)
+    chatBox()
+    local r=rec(N,{layer={ns="server",value="7086"}}); eq(N.Record.relation(r,N.Store.own(N.Main.store,clock)),"unknown")
+    yes(hopNow(N,r)); drain(); eq(#sent,0); eq(#opened,1); eq(opened[1].text,"/w Scout "..ASK); eq(lines("on your layer already"),0)
+    SlashCmdList.LAYERENEMIES("list"); yes(logged("Your server key: Unknown")); yes(logged("Your layer: Unknown"))
+end)
+test("hop: an ambiguous own key is never a certain same layer (مانع T2 S3)",function()
+    local function see(N,u,id,uid) units[u]={guid=npc(id,uid),player=false}; deliver(u=="target" and "PLAYER_TARGET_CHANGED" or "UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1) end
+    local N=loadAddon(); establish(N); see(N,"target",3,9); see(N,"mouseover",4,9); see(N,"target",5,9); see(N,"mouseover",6,9)
+    yes(N.Main.store.ambiguous(clock)); eq(N.Main.store.bulo,"7086-9")
+    -- candidate filtering: an equal key stays listed, marked probably
+    b=fakeBulo("7086-9"); b.Guild={list={Dora=there({key="7086"}),Bob=there()}}; N.Main.poll()
+    local list=N.Main.candidates(); eq(names(list),"Bob,Dora"); yes(list[2].probably); no(list[1].probably)
+    SlashCmdList.LAYERENEMIES("hosts"); yes(logged("Dora | layer 7086 (probably your layer: your key is ambiguous)"))
+    -- /le find: "probably on your layer", and the ask stays possible
+    chatBox(); SlashCmdList.LAYERENEMIES("find Alice")
+    local hash=N.Hash.player("Alice",""); local stamp=math.floor(server)%3600
+    deliver("CHAT_MSG_ADDON","WEFF1","C|70|100|0|0|9|1|"..stamp,"GUILD","Dora")
+    deliver("CHAT_MSG_ADDON","WEFF1","E|70|1|1|"..hash..":M:40|"..stamp,"GUILD","Dora")
+    local row=N.Main.findRows()[1]; no(row.same); yes(row.probably); yes(row.canAsk)
+    yes(N.Main.findText(row):find("probably on your layer (your server key is ambiguous)",1,true)); no(N.Main.findText(row):find("already on your layer",1,true))
+    -- a report on our key: relation unknown, so a hop is not refused as "on your layer"
+    eq(N.Record.relation(rec(N,{layer={ns="server",value="7086"}}),N.Store.own(N.Main.store,clock)),"unknown")
+    -- the deadline line: "probably" still on your layer
+    advance(11); yes(LE.AskInvite("Bob")); grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(61)
+    yes(logged("Probably still on your layer (your server key is ambiguous) - leave, wait a minute, try again."))
+    eq(lines("Still on your layer - leave"),0)
+    -- once the window is over the old wording comes back
+    N=loadAddon(); establish(N); friends(N,{Bob=there()}); yes(LE.AskInvite("Bob")); grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(61)
+    yes(logged("Still on your layer - leave, wait a minute, try again.")); eq(lines("Probably still"),0)
+end)
+test("ask texts: no promise about leaving, server-key wording",function()
+    local N=loadAddon()
+    eq(N.Invite.MESSAGE,"Hi! Could you invite me to your layer please?"); no(N.Invite.MESSAGE:find("leave",1,true))
+    establish(N); local _,status=N.Main.candidates(); eq(status.reports,"0 not on your server key")
+    for _,file in ipairs({"Invite","Main","UI"}) do
+        local f=io.open("LayerEnemies/"..file..".lua"); local src=f:read("*a"); f:close()
+        no(src:find("on another zoneUID",1,true),file); no(src:find("leave right after",1,true),file)
+    end
 end)
 -- HeadHunter 1.1.1 (study/headhunter.md §3.3 fixtures: map 1424 = "13k", t 1800000000 = "tro8w0", .5 = "dw", .25 = "6y")
 local HHT=1800000000
