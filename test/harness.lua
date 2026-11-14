@@ -635,7 +635,7 @@ test("a War Effort report shows as reported, not confirmed",function()
     SlashCmdList.LAYERENEMIES("reports")
     yes(logged("Reported, not confirmed (War Effort; age as the reporter's clock gives it):"))
     yes(logged("Unknown | MAGE | 40 | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Other | layer unknown"))
-    yes(logged("Only players seen by you or reported by War Effort users.")); no(N.Main.error)
+    yes(logged("Only players seen by you or reported by other players' addons.")); no(N.Main.error)
     -- a claimed age is shown
     local stamp=(math.floor(server)-120)%3600
     deliver("CHAT_MSG_ADDON","WEFF1","C|2|100|0.4|0.5|7|1|"..stamp,"GUILD","Older")

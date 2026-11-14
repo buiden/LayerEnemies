@@ -1,13 +1,39 @@
 # LayerEnemies
 
-WoW Forever addon 0.2.0, Interface 16001, Lua 5.1.
+WoW Forever addon 0.3.0, Interface 16001, Lua 5.1.
 
 Find a tracked enemy through your own sightings or possible War Effort hash
-matches, then ask a friendly spotter for a layer invite. Approved design B is
+matches, then hop: ask a host on that layer for an invite. Approved design B is
 implemented as a movable dark window with Seen by you, Reported, Friendly and
 Find tabs. It starts hidden. No minimap button or map pins. This is not a
-complete layer roster or a global player locator. Native-client appearance,
-chat targeting and actual transfers still need in-game verification.
+complete layer roster or a global player locator. 0.3.0 is no longer passive:
+it sends two kinds of addon message, listed under "What is sent". None of it
+has been tested on a live client yet (see the last section).
+
+## What is sent
+
+Every addon message goes through one file (Wire.lua), on exactly two routes:
+
+- LayerSwap prefix, WHISPER: one hop request to one host, only when you click
+  a Hop button or run `/le hop <number>`. No retry, no fan-out.
+- LEGW1 prefix, GUILD: a relay of a report you heard first-hand in your party,
+  raid or whispers, so guildmates running LayerEnemies see it. It waits a
+  random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
+  Guild membership, guild name and instance state are read when it is offered
+  and again when it is due; not in a guild, another guild, in an instance, or
+  unreadable means it is dropped. Each report id is sent about once per 120
+  seconds: the 120 seconds count from when it is offered, before the random
+  wait, and only while the id is remembered (256 ids; a flood of more ids can
+  let one repeat). At
+  most 128 offers wait at once. A local budget allows 5 quick sends, then one
+  per 2 seconds.
+
+Nothing is ever sent on WEFF1, HeadHunter or LFSw, and the addon never sends
+chat, joins channels, invites, accepts invites or leaves a group. HeadHunter
+and LEGW1 messages of an unknown version are ignored. A War Effort hello is
+judged by its minor number, not its version text: a known minor (13 to 19)
+gives a server key even when the version string is unusual, and an unknown
+minor is accepted but its reports keep an unknown layer.
 
 ## Installation and commands
 
@@ -24,12 +50,15 @@ shape is reported as data unavailable.
   The Find tab also has a Track field and individual Clear buttons.
 - `/le unclassified`: local sightings whose faction is unknown or same-faction;
   these are explicitly not confirmed enemies.
-- `/le reports`: the separate section "Reported, not confirmed" and the last
-  rejection reason. See below for what a report does and does not prove.
-- `/le hosts`: numbered list of friendly players known to be on another layer
-  in your zone, with source and age.
+- `/le reports`: the separate section "Reported, not confirmed" and the status
+  of the last report heard (why it was dropped, or "new"). See below for what a
+  report does and does not prove.
+- `/le hosts`: numbered list of friendly players in your zone who may be on
+  another layer, with source and age (see "Hop" for who is listed).
 - `/le ask <number>`: puts a whisper to that player into your chat box. You
   press Enter. The list from `/le hosts` is valid for two minutes.
+- `/le hop <number>` and the Hop buttons on report rows send the hop request
+  described below.
 
 Text rows show readable name or Unknown, class, level, zone ID, age, source
 and confidence. The window adds class colours and invite buttons. Use the
@@ -83,74 +112,87 @@ These coordinates are not enemy locations.
 A layer is compared by one key: the server part of a creature GUID, the number
 before the "-" in an ID such as 7086-7. Bulo Layer Forever and LayerSwap both
 use that number. One helper produces and compares it for every source, so
-7086-7 and 7086-55 are the same layer and 7086 and 7102 are not. Unreadable
-or malformed IDs have no key and never compare equal.
+7086-7 and 7086-55 have the same server key and 7086 and 7102 do not. An equal
+server key is the best evidence available, not proof of the same layer.
+Unreadable or malformed IDs have no key and never compare equal.
 
-War Effort's fifth field, zoneUID, is a different namespace. It is never
-converted to a layer key.
+Your own key comes only from a confirmed reading (Bulo's full ID or two
+agreeing NPC kinds). When NPC readings show a new full ID with the same server
+key, two layers of this zone share it, and your key is ambiguous for 30
+minutes (a Bulo ID change does not start this window). While it is
+ambiguous, a report on an equal key shows the relation as unknown (a
+different key still reads "other"), and Find, `/le hosts` and the layer
+check say "probably" where they would otherwise say "on your layer".
 
-## War Effort: passive, separate, reported not confirmed
+The number after the "-" (the zoneUID) is private to each player and is never
+compared across sources. War Effort 1.6.x sends its own layer field;
+it is treated as a server key only when the reporter's hello announced a
+version that uses one (minor 13 to 19) and the value is not 0. Otherwise the
+report's layer is unknown.
 
-The addon registers WEFF1 and ZRAD1 prefixes but never joins channels, sends
-addon messages, or requests information. It does not inspect War Effort's
-local namespace or hook its functions. Its independent decoder implements
-the documented C/E/H wire grammar, bounds and class-code table. No War Effort
-implementation code is bundled or loaded.
+## War Effort: read-only, reported not confirmed
 
-For current WEFF1 traffic, admission requires loaded WarEffortScout 0.2.13,
-readable initialized settings and ignore policy, non-silent mode, and readable
-client ignore status. Accepted contexts are GUILD when in a guild, or the
-exact faction-specific WarEffortPubA/WarEffortPubH channel when already joined
-and guildOnly=false. Unknown source versions/settings fail closed. Own echoes,
-ignored senders, whispers, parties, raids and other channels are rejected.
-Legacy ZRAD1 is registered and decoded by the pure parser, but live collection
-is unavailable because legacy-network permission is local and unexposed.
+The addon reads War Effort 1.6.x traffic on WEFF1 and never sends on it. It
+does not inspect War Effort's local namespace or hook its functions, and the
+0.2.13 requirement is gone: no War Effort install is needed. Its independent
+decoder implements the C (cluster), E (enemy list) and H (hello) lines, plus
+one level of G (guild) and X (party/raid) wrapping; any other type letter is
+ignored. No War Effort code is bundled or loaded. The legacy ZRAD1 prefix is
+no longer registered.
 
-### Reports are dated by when they reach you
+Accepted routes: GUILD carries C, E, H and G; PARTY and RAID carry C, E, H and
+X. Whispers, channels and other routes are ignored. Messages are 1 to 255
+bytes from a fixed character set. Own echoes (your name, with or without your
+realm), ignored senders, and a wrapper naming its own sender as the origin
+are dropped. Reporters are compared by full name and realm.
 
-War Effort sends a report when the sighting happens, so the time of receipt is
-used as the time of the sighting. A complete report (cluster line plus all of
-its enemy lines) for your current zone is listed under "Reported, not
-confirmed" for ten minutes from receipt and then dropped. A zone change,
-world entry or layer transfer drops all reports at once.
+### How long reports are listed
 
-Each row shows Unknown, class, level, the reporter, the age since receipt and
-how the reporter's zoneUID relates to yours: same, other (with the number), or
-unknown while yours has not been confirmed. Reports with zoneUID 0, a wrong
-enemy count, or duplicate hashes are rejected. While names are tracked, the
-same gated receiver may also assemble other-zone reports for Find only.
-Those reports never enter the current-zone Reported list.
+A War Effort report is listed under "Reported, not confirmed" for ten minutes
+from receipt; a HeadHunter report for five minutes. A guild-relayed copy is
+dated from its origin (receipt minus the age it carries) and lives as long as
+a direct one. A real zone change drops reports from the old zone. Each row
+shows the reporter ("via <name>" when someone else carried the message) and
+the age; `/le reports` also shows how the reported layer relates to yours:
+same, other, or unknown.
+
+Reports can be partial. A cluster line whose enemy list has not arrived (or
+never will) still shows, with a row such as "3 not listed". An enemy list is
+held for 15 seconds waiting for its cluster line; one heard before a zone
+change never attaches to a cluster line after it.
+
+HeadHunter (party, raid and whisper traffic only) adds fight and wanted rows,
+direct or inside a checked forwarding envelope. They never carry a usable
+layer, so they can never be hopped to. The inner record's own time must be
+within 300 seconds of the server clock; an envelope's first-sent time is
+checked for form only.
 
 What this does not prove:
 
-- The wire stamp is only seconds within an hour. It must lie within 30 seconds
-  behind, or 5 seconds ahead of, the server clock, but it cannot show which
-  hour it was sent in. A report ID is remembered for 61 minutes and rejected
-  if seen again in that time. After that, an old packet replayed at the same
-  second of a later hour is accepted and shown as fresh. This is a known
-  limit of the wire format, and the reason the section stays unconfirmed.
-- The addon restarts with an empty replay memory. A packet replayed after a
-  reload or relog, inside the 30 second stamp window, is accepted.
 - Nothing checks that the reporter saw anything. A report is a claim by
   another player's client.
-- A matching zoneUID is not proof of the same layer, and a different one is
-  not proof of a different layer.
+- A War Effort report id must be newer than the last one from the same origin
+  (kept for an hour); a reload starts with no memory, so a replay after a
+  reload can be accepted. HeadHunter and guild-relayed reports only drop an
+  identical id; an older id is accepted.
+- An equal layer field is not proof of the same layer (see Layer keys).
 
 Reports never enter the "seen by you" list and never produce a map candidate.
 
-The pure reducer also keeps its strict mode, used with explicit trusted
-absolute send times in tests only: no evidence means rejection.
-
-Three-character enemy hashes are not reversible names and can collide.
-The store retains only bounded possible-identity candidates from readable
-names actually observed in the same epoch. A report row always remains
+War Effort's three-character enemy hashes are not reversible names and can
+collide. The store retains only bounded possible-identity candidates from
+readable names actually observed in the same epoch. A War Effort row remains
 Unknown; matching candidates are labelled possible identity, never asserted
-as the named player. Report coordinates describe a reported cluster.
+as the named player. A HeadHunter row carries the name the reporter claimed
+(shown by `/le reports`; the window title still says Unknown and the class).
+War Effort coordinates describe a reported cluster, HeadHunter coordinates
+the reporter's position.
 
 ## Finding a tracked player
 
-A target can only be located when you see him yourself, or a War Effort user
-near him sees him and a complete permitted report reaches you. There is no
+A target can only be located when you see him yourself, or a report naming or
+hashing him reaches you (War Effort, HeadHunter or a guild relay; one enemy
+entry is enough, the rest of the list need not arrive). There is no
 server lookup, discovery broadcast, request to another addon, or background
 scan of the world. Enter the name before a report arrives; current-zone
 reports already retained can also be matched when adding a name.
@@ -171,10 +213,12 @@ name and hashing conventions were verified from source, not from a live
 client. The original code's realm terminology is not proof of a real realm.
 
 Find offers `Ask <spotter> for invite` through the same manual helper. If a
-fresh Bulo/LayerSwap claim puts that spotter on your current layer, it says
-`already on your layer` and hides the ask. Your own sightings do the same.
-Other-zone findings instead say `travel to <zone> first` and cannot be asked
-from Find. Reported zoneUIDs are never converted to server-layer keys.
+fresh Bulo/LayerSwap claim puts that spotter on your current server key, it
+says `already on your layer` and hides the ask; while your key is ambiguous it
+says "probably" and the ask stays. Your own sightings do the same. Other-zone
+findings instead say `travel to <zone> first` and cannot be asked from Find.
+A finding that came only from a guild relay says `possible match, seen in a
+relayed report`, without a name to ask and without an ask button.
 
 A first finding prints a chat alert and attempts a raid-warning sound. It
 re-alerts only after five minutes or when a new zone is reported. Sound API
@@ -185,65 +229,67 @@ World/zone/layer boundaries wipe findings and pending report fragments,
 not tracked names. Re-entering a zone needs fresh observations. Alerts and
 locations are never persisted, so a reload starts a new alert session.
 
-## Asking for an invite
+## Hop: asking for an invite
 
-Joining the group of a player on another layer moves you to that layer.
-`/le hosts` lists friendly players you could ask, from three read-only
-sources. Only players in your own zone are listed, because an invite from
-another zone moves nobody.
+Joining the group of a player on another layer is expected to move you to
+that layer; this has not been tested on a live client (see the last
+section). A report row with a known server key that is not yours gets a Hop
+button. The label says what a click will do; when the button is disabled, its
+tooltip gives the reason (you are grouped or that is unreadable, your map
+zone is unreadable or not the report's zone, its layer is unknown or yours
+already, or nobody on it is known). `/le reports` numbers the same rows for
+`/le hop <number>`; the numbers end after two minutes or at a zone change.
 
-- War Effort reporter: the sender of a live report in your zone whose zoneUID
-  is not confirmed equal to yours. They saw the reported enemies, so they are
-  where those enemies are. Their layer key is not known; they are listed by
-  name, first. Fresh for ten minutes.
-- Bulo guild list (`BuloLayerForever.Guild.list`): layer key, zone, host flag
-  and time. Entries of 12 minutes or older are ignored.
-- LayerSwap book (`LayerSwapDB.book`): layer ID, zone, host flag and time.
-  The book keeps entries for days; only entries younger than 15 minutes are
-  used, and entries marked gone are ignored.
+Who is asked, in order: a Bulo host on that layer, a LayerSwap host, another
+Bulo user, then the report's War Effort origin (also the origin named inside a
+War Effort G or X wrapper). When a player is in both Bulo's list and the
+LayerSwap book, each source ranks by its own host flag (a Bulo non-host who is
+a LayerSwap host ranks as a LayerSwap host); `/le hosts` marks the player as
+host if either source does. Bulo and LayerSwap users get one LayerSwap-format
+request by addon whisper:
 
-Left out: yourself, anyone whose layer key equals yours, other zones, stale
-entries, entries dated more than five seconds ahead of your clock, and names
-that are secret, unreadable or not a plain character name. Bulo and LayerSwap entries need your own layer to be known;
-until then nobody can be called "on another layer". Bulo entries whose zone is
-a zone name instead of a map ID do not match and are skipped.
+    inv layer <LS <zone> want <server>-<uid> <x>,<y>>
 
-A player appears once. When two lists disagree, the newer entry decides the
-layer. Order: War Effort reporters, then hosts, then newest. At most 512
-entries per source are examined and 40 rows returned. The foreign tables are
-read inside protected calls and never written; any unexpected shape discards
-that source for that call.
+`<uid>` is the host's own zoneUID when the player's freshest entry is a
+LayerSwap book entry, 0 otherwise (a fresher Bulo entry, which has none, wins
+the merge); the
+position is your map position in percent and is left out when unknown. That
+is one whisper per click, with no retry. A click acts only on the player and
+mode the row showed: if the pick has changed by then, nothing is sent ("hosts
+changed, check again") and the row is redrawn. Whether the host's addon
+answers with an invite has not been tested yet. A reply is read for 120
+seconds, on WHISPER, from the asked player only (whole name; another realm is
+another player). A War Effort origin has no host addon known to answer, so the
+button opens a whisper for you to send:
 
-`/le ask <number>` or `LE.AskInvite(name)` opens the chat box with
+    /w <name> Hi! Could you invite me to your layer please?
 
-    /w <name> Hi! Could you invite me to your layer please? I'll leave right after.
+Origins of guild-relayed (LEGW1) copies are never asked, neither here nor from
+Find: they were in someone else's group and may be strangers.
 
-and you press Enter. The addon never sends chat or addon messages, never
-invites, never accepts an invite and never leaves a group. If the client has
-neither ChatFrameUtil.OpenChat nor ChatFrame_OpenChat, or the call fails, the
-line is printed for you to type. For Forever names containing a space, the
-addon uses ChatFrameUtil.SendTell plus the active edit box's Insert method;
-if unavailable, it prints the recipient and message separately for manual
-entry, never an ambiguous `/w First Surname ...` line. These APIs still need
-a real Forever client check. `LE.AskInvite` accepts only a current friendly
-candidate or a live eligible Find spotter.
+`/le hosts` lists friendly players you could ask: War Effort origins in your
+zone whose layer is not known to be yours, Bulo's guild list
+(`BuloLayerForever.Guild.list`, or the LFSw guild lines when Bulo is not
+installed; never sent by this addon), and the LayerSwap book
+(`LayerSwapDB.book`, entries younger than 15 minutes). Left out: yourself,
+anyone on your server key (while it is ambiguous they stay, marked probably),
+other zones, stale entries, entries dated more than five seconds ahead and
+unreadable names. Bulo and LayerSwap entries need your own layer to be known.
+`/le ask <number>` and `LE.AskInvite(name)` open the whisper above for you to
+send. The foreign tables are read inside protected calls and never written.
 
-Limits: one ask per name per 60 seconds and one ask per 10 seconds overall,
-because players get silenced for invite spam. A refused ask does not count.
-Asking is refused while you are already in a group.
+Limits: one ask per name per 60 seconds and one per 10 seconds overall,
+because players get silenced for invite spam; a request that failed to send
+still counts. Asking is refused while you are in a group or the group state is
+unreadable.
 
 After an ask, when you join a group within five minutes, the addon watches
-your own layer key for 60 seconds:
-
-- `Moved to layer X - safe to leave the group.` when your confirmed layer key
-  changes. If X is not the layer the player was listed on, a second line says
-  so.
-- `Still on your layer - leave, wait a minute, try again.` when it is
-  unchanged after 60 seconds.
-- If your layer was not known before or cannot be confirmed afterwards, the
-  addon says that instead of claiming a move. Without Bulo, a new layer is
-  confirmed only after you target or mouse over two different NPC kinds.
-- A zone change cancels the check.
+your own layer key for 60 seconds and says `Moved to layer X` when it changes.
+Whether leaving the group keeps you on the new layer is not confirmed, so it
+tells you to stay grouped if unsure. If nothing changes it says `Still on your
+layer - leave, wait a minute, try again.` (`Probably still on your layer`
+while your key is ambiguous). If your layer cannot be confirmed it keeps
+checking for up to 180 seconds, then says so. A zone change cancels the check.
 
 ## Storage and performance limits
 
@@ -253,16 +299,17 @@ sightings, discovered identities, GUIDs, hashes, locations, report payloads,
 asked names, alert history or source settings. Reloading keeps your watchlist,
 not its locations. Epoch boundaries also clear locations. Your own server key and its
 30-minute "ambiguous" window are not saved either: after /reload the window is
-gone until two NPC kinds confirm the layer again.
+gone, and a new one starts only at the next qualifying layer change.
 
 Limits: 256 local observations/identity hash buckets, at most eight candidate
-names per hash, 64 reports, 64 senders, 32 incomplete reports (four per sender),
-512 total pending/replay slots, nine parts, 18 enemies per part, 255 bytes per
-message. Rates are 128 total messages and 24 per sender per ten seconds after
-privacy admission. Incomplete assemblies expire in 15 seconds; replay
-identifiers are held for 3,660 seconds. Saturation fails closed rather than
-evicting replay protection. A report ID reused during that interval is
-conservatively rejected. Unchanged Bulo timestamps do not allocate duplicate
+names per hash, 64 reports per source (War Effort, HeadHunter, guild relays;
+one report can show as several rows), 256 remembered relay ids, 255 bytes per
+message. Held enemy lists: 200 entries per origin and
+256 in total, for 15 seconds. Report-id order is remembered for 512 origins
+for an hour. Receive rates per sender per ten seconds: 6 War Effort messages
+(20 for G/X wrappers), 6 HeadHunter P/L/E frames (other HeadHunter types are
+ignored without counting), 12 LEGW1; excess is dropped silently, and
+each rate table holds at most 512 senders. Unchanged Bulo timestamps do not allocate duplicate
 observation records. Friend lists are read for hosts/asks, tracked-target
 status/alerts, and shown-window refreshes. The UI reuses at most six row
 frames; its hidden timer stops after any already-queued callback returns.
@@ -274,16 +321,36 @@ Run from the project root:
     python3 test/verify.py
 
 It compile-checks each Lua file with luac -p, checks the TOC, runs the strict
-mock harness and builds the local package. The mock client starts frames
+mock harness with the Lua 5.1 binary (`LAYERENEMIES_LUA` overrides its path;
+whatever binary is given is trusted to run the harness, and at least one test
+must pass) and builds the local package. The mock client starts frames
 shown, errors on unknown methods, delivers CHAT_MSG_ADDON, models secret
-values, and fails any test that reaches a send, invite, accept or leave call.
+values, and fails any test that reaches an invite, accept, leave, join or chat
+call, or an addon message sent from anywhere but Wire.lua or on any route but
+LayerSwap/WHISPER and LEGW1/GUILD.
 The randomized parser test uses 5,000 deterministic malformed inputs.
 
-Exact results, CPU/allocation measurements, and remaining real-client checks
-are in notes/SUMMARY.md. Offline tests are not evidence of live client
+Current results are in notes/test-results.txt and notes/verification.json,
+both written by verify.py. notes/SUMMARY.md is the 0.2.0 summary, including
+its CPU/allocation measurements; its counts are historical. Offline tests are not evidence of live client
 compatibility, taint safety, layer semantics or event ordering. Everything
 still needs in-game verification.
 
+## Not tested on a live client
+
+Everything above is checked against a mock client only. Still open:
+
+1. Does `inv layer <LS zone want S-0 x,y>` by addon whisper produce an invite
+   from a LayerSwap 1.14.20 host and from a Bulo 3.0.25 host? Also with the
+   full `S-U`. The hop depends on this.
+2. After accepting, does your server key change, and does leaving the group
+   keep the new layer?
+3. Does `C_ChatInfo.SendAddonMessage` to WHISPER work from a button click with
+   a "Given Family" target name, and what does an offline target return?
+4. Does LEGW1 on GUILD deliver between two guildmates, and does HeadHunter
+   whisper traffic reach a second addon registered on the same prefix?
+5. The same-zone swap test (Bulo id before and after a transfer).
+
 Footer used in slash output and the window:
 
-Only players seen by you or reported by War Effort users.
+Only players seen by you or reported by other players' addons.

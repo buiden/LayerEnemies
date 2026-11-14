@@ -223,7 +223,7 @@ function U.create()
     U.add=button(U.body,76,24,"Track",add); U.add:SetPoint("TOPRIGHT",-4,-23)
     U.hint=font(f,10,colors.muted); U.hint:SetPoint("TOPLEFT",10,-420); U.hint:SetWidth(340)
     local footer=font(f,10,colors.muted); footer:SetPoint("BOTTOMLEFT",10,9); footer:SetWidth(340)
-    footer:SetText("Only players seen by you or reported by War Effort users.")
+    footer:SetText("Only players seen by you or reported by other players' addons.")
     f:SetScript("OnShow",function() U.generation=(U.generation or 0)+1; U.tick(U.generation) end)
     f:SetScript("OnHide",function() U.generation=(U.generation or 0)+1; U.input:ClearFocus() end)
 end
