@@ -101,30 +101,30 @@ function A.inInstance()
 end
 -- Guild host state (read only). Each answer fails closed: unreadable is nil (or "in combat").
 -- guildMember(name) -> true (exactly one online roster entry), false (none, offline, or ambiguous), nil (unreadable).
--- The full name is compared first; when only one side carries a "-Realm" suffix, the part before it, and only when
--- exactly one roster entry has it.
+-- Compared by Invite.name keys (our realm dropped, any other kept): a foreign-realm sender never matches a bare
+-- entry or one of our realm; a sender of our realm is ambiguous while a namesake of another realm is listed.
 A.ROSTER_FRESH,A.ROSTER_EVERY,A.ROSTER_MAX=120,15,1000
 A.roster={at=nil,askedAt=nil}
 local function base(name) return name:match("^([^%-]+)%-") or name end
 function A.guildMember(name)
-    name=S.str(name,100)
-    -- a "First Surname-Realm" sender is readable by its name part (Invite.name takes no realm on a spaced name)
-    local readable=name and (N.Invite.name(name) or (name:find(" ",1,true) and N.Invite.name(base(name))))
-    if not readable or S.call(IsInGuild)~=true then return nil end
+    local _,want,target=N.Invite.name(name)
+    if not want or S.call(IsInGuild)~=true then return nil end
+    local spelled=base(target)                         -- the name part as the client spells it, case included
+    local local_=not want:find("-",1,true)
     local count=S.num(S.call(GetNumGuildMembers))
     if not count or count<1 or count>A.ROSTER_MAX or count%1~=0 then return nil end
     local read=_G.GetGuildRosterInfo
     if S.secret(read) or type(read)~="function" then return nil end
-    local exact,bare={},{}
-    local suffix=name:find("-",1,true)~=nil
+    local found,other={},false
     for i=1,count do
         local ok,entry,_,_,_,_,_,_,_,online=pcall(read,i)
         if not ok or S.secret(entry) or S.secret(online) or type(entry)~="string" then return nil end
-        if entry==name then exact[#exact+1]=online==true
-        elseif (entry:find("-",1,true)~=nil)~=suffix and base(entry)==base(name) then bare[#bare+1]=online==true end
+        local _,key,etarget=N.Invite.name(entry)
+        if key==want and base(etarget)==spelled then found[#found+1]=online==true
+        elseif key and local_ and base(key)==want then other=true end
     end
-    if #exact>0 then return #exact==1 and exact[1] end
-    return #bare==1 and bare[1]
+    if other then return false end
+    return #found==1 and found[1]
 end
 -- Seconds since the last GUILD_ROSTER_UPDATE, or nil.
 function A.rosterSeen(now) A.roster.at=S.num(now) end
@@ -146,17 +146,22 @@ end
 -- {raid, leader, members = {names}} or nil when unreadable.
 function A.party()
     local raid,leader,count=S.call(IsInRaid),S.call(UnitIsGroupLeader,"player"),S.num(S.call(GetNumGroupMembers))
-    if type(raid)~="boolean" or not count or count<0 then return nil end
+    if type(raid)~="boolean" or type(leader)~="boolean" or not count or count<0 then return nil end
     local members={}
     for i=1,4 do
-        if S.call(UnitExists,"party"..i)==true then
+        -- every unit read must answer true or false; nil, secret, a throw or a missing API is unreadable
+        local exists=S.call(UnitExists,"party"..i)
+        if type(exists)~="boolean" then return nil end
+        if exists then
             local n,realm=S.call(UnitName,"party"..i)
             n,realm=S.str(n,60),S.str(realm,60)
             if not n then return nil end
             members[#members+1]=realm and realm~="" and (n.."-"..realm) or n
         end
     end
-    return {raid=raid,leader=leader==true,members=members}
+    -- outside a raid the count must be ourselves plus the listed party units (0 when alone)
+    if not raid and count~=(#members>0 and #members+1 or 0) and not (count==1 and #members==0) then return nil end
+    return {raid=raid,leader=leader,members=members}
 end
 -- Bulo's guild layer lines, heard on LFSw/GUILD: "L <key>|<zone>|<h or ->" (Bulo Guild.lua:118). We never send an
 -- L line; the only LFSw send is the one-letter question "Q" from a click (Hosts.ask, Wire). Kept in the shape of Bulo's own Guild.list, so they fill the host list when Bulo is not installed.

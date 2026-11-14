@@ -241,10 +241,8 @@ function Wr.canInvite() return partyCall(INVITE) ~= nil end
 function Wr.invite(name, now)
     if S.secret(name) or S.secret(now) then return false, "bad name" end
     local I = N.Invite
-    name = S.str(name, 100)
-    local short = name and (name:match("^([^%-]+)%-") or name)
-    local valid, key = nil, nil
-    if short then valid, key = I.name(short) end
+    -- the player checked is the player invited: our realm dropped, any other realm kept (Invite.name)
+    local valid, key, target = I.name(name)
     if not valid then return false, "bad name" end
     now = S.num(now)
     if not now then return false, "throttled" end
@@ -260,7 +258,7 @@ function Wr.invite(name, now)
     recent[#recent + 1] = now
     local fn = partyCall(INVITE)
     if not fn then return false, "error" end
-    if not pcall(fn, valid) then return false, "error" end
+    if not pcall(fn, target) then return false, "error" end
     return true, "invited"
 end
 

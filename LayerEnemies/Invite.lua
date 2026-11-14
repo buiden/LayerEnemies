@@ -12,23 +12,26 @@ I.JOIN_WINDOW,I.WATCH=300,60
 I.BULO_STALE,I.BOOK_FRESH,I.REPORT_FRESH=720,900,600
 I.MAX_SCAN,I.MAX_ROWS=512,40
 function I.new() return { asked={}, lastAsk=nil, pending=nil, watch=nil } end
--- A whisper target: letters only, optionally "-Realm". Returns name, dedupe key.
+-- The one name rule (whisper, guild check, guild host, invite): "Name" or "First Surname" (Forever), letters only,
+-- optionally "-Realm" (letters, digits, apostrophes; no spaces, as the client writes it). Anything else is nil.
+-- Returns name, key, target. The key is the whole name, realm included: Scout-RealmA and Scout-RealmB are two
+-- players. Our own realm is dropped from key and target, so "Bob" and "Bob-<our realm>" are one; any other realm
+-- stays in both, and the target is what an invite names.
 function I.name(name)
-    name=S.str(name,60)
+    name=S.str(name,100)
     if not name then return nil end
-    local first,surname=name:match("^([%a\128-\255]+) ([%a\128-\255]+)$")
-    if first and #first>=2 and #first<=36 and #surname<=36 then return name,name:lower() end
-    local short,rest=name:match("^([^%-]+)(.*)$")
-    if not short or #short<2 or #short>36 or not short:match("^[%a\128-\255]+$") then return nil end
-    if rest~="" and not rest:match("^%-[%w'\128-\255]+$") then return nil end
-    -- the key is the whole name, realm included: Scout-RealmA and Scout-RealmB are two players; our own realm
-    -- is dropped, so "Bob" and "Bob-<our realm>" are one
-    if rest~="" then
+    local base,realm=name:match("^(.-)%-([%w'\128-\255]+)$")
+    base=base or name                                 -- a dash outside a realm suffix fails the letters check below
+    local first,surname=base:match("^([%a\128-\255]+) ([%a\128-\255]+)$")
+    if first then
+        if #first<2 or #first>36 or #surname>36 then return nil end
+    elseif #base<2 or #base>36 or not base:match("^[%a\128-\255]+$") then return nil end
+    if realm then
         local home=I.home and S.str(I.home(),60)
         local function norm(v) return (v:lower():gsub("[%s%-']","")) end
-        if home and norm(rest:sub(2))==norm(home) then return name,short:lower() end
+        if home and norm(realm)==norm(home) then return name,base:lower(),base end
     end
-    return name,name:lower()
+    return name,name:lower(),name
 end
 I.home=nil                                                      -- set by Main: our realm name
 function I.line(name) return "/w "..name.." "..I.MESSAGE end

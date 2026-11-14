@@ -2895,10 +2895,11 @@ local function hostReady(N,names)
     slash("host on"); deliver("GUILD_ROSTER_UPDATE",true); drain()
     yes(N.Main.host.on,"hosting on"); sent={}
 end
-test("0.4 T7.3: Wire.invite keeps its own limits: 10 s, 60 s per name, 6 per 600 s; realm dropped",function()
+test("0.4 T7.3: Wire.invite keeps its own limits: 10 s, 60 s per name, 6 per 600 s; our realm dropped",function()
     local N=loadAddon(); local Wr=N.Wire
     yes(Wr.canInvite()); eq(#invites,0)
-    local ok,why=Wr.invite("Bob-OtherRealm",clock); yes(ok); eq(why,"invited"); eq(invites[1],"Bob")
+    -- (0.4.0 review M1: only our own realm is dropped; another realm stays in the invite)
+    local ok,why=Wr.invite("Bob-TestRealm",clock); yes(ok); eq(why,"invited"); eq(invites[1],"Bob")
     ok,why=Wr.invite("Cy",clock+9); no(ok); eq(why,"throttled")
     ok,why=Wr.invite("Bob",clock+11); no(ok); eq(why,"throttled","same name inside 60 s")
     yes(Wr.invite("Cy",clock+12)); eq(invites[2],"Cy")
@@ -3542,6 +3543,77 @@ test("0.3.1 extra: with LayerSwap loaded our remembered replies are never used, 
     eq(#N.Main.candidates(),1,"not loaded: ours stands in")
     loaded.LayerSwap=true; eq(#N.Main.candidates(),0,"loaded, no table yet: its book is empty")
     loaded.LayerSwap=nil; eq(#N.Main.candidates(),1)
+end)
+
+-- 0.4.0 review round 1 (مانع): M1 identity, S1 party, S2 spaced names, S3 guests
+test("0.4 fix M1: the player checked is the player invited; realms are kept unless they are ours",function()
+    local N=loadAddon(); local A,I=N.Adapters,N.Invite
+    -- one name rule: key and invite target, our realm dropped, any other kept
+    local n,k,tgt=I.name("Alpha-OtherRealm"); eq(k,"alpha-otherrealm"); eq(tgt,"Alpha-OtherRealm")
+    n,k,tgt=I.name("Alpha-TestRealm"); eq(k,"alpha"); eq(tgt,"Alpha")
+    n,k,tgt=I.name("Alpha"); eq(k,"alpha"); eq(tgt,"Alpha")
+    -- a foreign-realm sender never matches a bare roster entry or one of our realm
+    roster={{"Alpha",true}}; eq(A.guildMember("Alpha-OtherRealm"),false)
+    roster={{"Alpha-TestRealm",true}}; eq(A.guildMember("Alpha-OtherRealm"),false)
+    roster={{"Alpha-OtherRealm",true}}; eq(A.guildMember("Alpha-OtherRealm"),true)
+    roster={{"Alpha-TestRealm",true}}; eq(A.guildMember("alpha"),false,"spelled differently")
+    -- a bare (our realm) sender does not win while a namesake from another realm is in the roster
+    roster={{"Alpha",true},{"Alpha-OtherRealm",true}}; eq(A.guildMember("Alpha"),false); eq(A.guildMember("Alpha-OtherRealm"),true)
+    roster={{"Alpha-TestRealm",true},{"Alpha-OtherRealm",true}}; eq(A.guildMember("Alpha"),false)
+    -- end to end: a qualified guild member is invited by his whole name
+    hostReady(N,{}); roster={{"Alpha-OtherRealm",true}}
+    lsw("inv layer <LS 100 want 7086-7>","Alpha-OtherRealm"); eq(#invites,1); eq(invites[1],"Alpha-OtherRealm")
+    -- the same request from a foreign Alpha with only our Alpha in the roster: nothing
+    N=loadAddon(); hostReady(N,{"Alpha"}); lsw("inv layer <LS 100 want 7086-7>","Alpha-OtherRealm"); eq(#invites,0)
+    -- our own Alpha: invited by the bare name
+    lsw("inv layer <LS 100 want 7086-7>","Alpha"); eq(#invites,1); eq(invites[1],"Alpha")
+    -- Wire keeps a foreign realm and drops ours
+    N=loadAddon(); yes(N.Wire.invite("Cara-OtherRealm",clock)); eq(invites[#invites],"Cara-OtherRealm")
+    advance(11); yes(N.Wire.invite("Dana-TestRealm",clock)); eq(invites[#invites],"Dana")
+end)
+test("0.4 fix S1: the party is unreadable (busy) when the count and the party units disagree or a unit read fails",function()
+    local N=loadAddon(); local A=N.Adapters
+    units.party1={name="Cy"}; leader=true; local p=A.party(); yes(p); eq(#p.members,1)
+    GetNumGroupMembers=function() return 5 end; eq(A.party(),nil,"5 counted, 1 listed")
+    GetNumGroupMembers=function() return 0 end; eq(A.party(),nil,"none counted, 1 listed")
+    GetNumGroupMembers=function() local n=0; for i=1,4 do if units["party"..i] then n=n+1 end end; return n>0 and n+1 or 0 end
+    local was=UnitExists
+    UnitExists=function(u) if u:find("party") then return nil end; return true end; eq(A.party(),nil,"nil exists")
+    UnitExists=function(u) if u:find("party") then return secret end; return true end; eq(A.party(),nil,"secret exists")
+    UnitExists=function(u) if u:find("party") then error("x") end; return true end; eq(A.party(),nil,"throws")
+    UnitExists=nil; eq(A.party(),nil,"missing"); UnitExists=was
+    -- one unreadable slot hidden by a matching count: party1 unreadable, party2 listed, count 2
+    units.party1=nil; units.party2={name="Di"}
+    UnitExists=function(u) if u=="party1" then return nil end; return was(u) end; eq(A.party(),nil,"one slot unreadable"); UnitExists=was
+    units.party1={name="Cy"}; units.party2=nil
+    UnitIsGroupLeader=function() return secret end; eq(A.party(),nil,"unreadable leader")
+    -- the guild host answers busy, no invite
+    N=loadAddon(); hostReady(N); GetNumGroupMembers=function() return 5 end
+    lsw("inv layer <LS 100 want 7086-7>","Bob"); eq(#invites,0); yes(sent[1] and sent[1].text:find("|-$"),"busy reply")
+end)
+test("0.4 fix S2: a spaced name with a realm is one rule everywhere: guild check, host and Wire",function()
+    local N=loadAddon(); local I=N.Invite
+    local n,k,tgt=I.name("Tam Reed-OtherRealm"); eq(n,"Tam Reed-OtherRealm"); eq(k,"tam reed-otherrealm"); eq(tgt,"Tam Reed-OtherRealm")
+    n,k,tgt=I.name("Tam Reed-TestRealm"); eq(k,"tam reed"); eq(tgt,"Tam Reed")
+    for _,bad in ipairs({"Tam Reed Lee","Tam  Reed","Tam Reed-","Tam Reed-Other Realm","T Reed","Tam-Reed-Other","Tam Reed-Real|m"}) do eq(I.name(bad),nil,bad) end
+    hostReady(N,{}); roster={{"Tam Reed-OtherRealm",true}}
+    lsw("inv layer <LS 100 want 7086-7>","Tam Reed-OtherRealm"); eq(#invites,1); eq(invites[1],"Tam Reed-OtherRealm")
+    N=loadAddon(); hostReady(N,{}); roster={{"Tam Reed-TestRealm",true}}
+    lsw("inv layer <LS 100 want 7086-7>","Tam Reed"); eq(#invites,1); eq(invites[1],"Tam Reed")
+end)
+test("0.4 fix S3: an asker already in our party gets same; a guest who joined frees the pending slot at once",function()
+    local N=loadAddon(); hostReady(N,{"Bob","Cy","Di","Ed","Fay"})
+    lsw("inv layer <LS 100 want 7086-7>","Bob"); eq(#invites,1)
+    units.party1={name="Bob"}; leader=true; grouped=true; deliver("GROUP_ROSTER_UPDATE"); drain()
+    advance(61); sent={}; lsw("inv layer <LS 100 want 7086-7>","Bob"); eq(#invites,1,"no second invite"); eq(sent[1].text,"same")
+    -- Bob joined: his slot is not counted twice. Cy, Di and Ed get invites (Bob + 3 pending + us = 5)
+    advance(10); lsw("inv layer <LS 100 want 7086-7>","Cy"); eq(#invites,2)
+    advance(10); lsw("inv layer <LS 100 want 7086-7>","Di"); eq(#invites,3)
+    advance(10); lsw("inv layer <LS 100 want 7086-7>","Ed"); eq(#invites,4)
+    advance(10); lsw("inv layer <LS 100 want 7086-7>","Fay"); eq(#invites,4,"now full")
+    local G=N.GuildHost; local s=G.new(); s.on=true; s.pending.bob=clock; s.hosted.bob=true
+    local own={self="me",zone=100,key="7086",inInstance=false,inCombat=false,raid=false,leader=true,members={"Bob"},member=true}
+    eq((G.decide(s,{name="Cy",zone=100,want="7086-1"},own,clock)),"invite"); eq(s.pending.bob,nil,"cleared on join")
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

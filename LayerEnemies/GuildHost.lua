@@ -88,6 +88,12 @@ function G.decide(st, req, own, now)
     if own.raid ~= false then return "busy", heard(name, own, "-") end   -- unreadable counts as a raid
     local members = own.members or {}
     for k, at in pairs(st.pending) do if now - at >= G.PENDING then st.pending[k] = nil end end
+    -- a guest who joined is a member, no longer pending; an asker already with us gets "same", never a new invite
+    for _, m in ipairs(members) do
+        local mk = short(m)
+        if mk then st.pending[mk] = nil end
+        if mk == key then return "same", "same" end
+    end
     if #members > 0 then
         if own.leader ~= true then return "busy", heard(name, own, "-") end
         for _, m in ipairs(members) do local mk = short(m); if not mk or not st.hosted[mk] then return "busy", heard(name, own, "-") end end
