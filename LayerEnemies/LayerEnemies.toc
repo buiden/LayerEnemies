@@ -18,6 +18,7 @@ HeadHunter.lua
 Adapters.lua
 Invite.lua
 Hop.lua
+Hosts.lua
 Relay.lua
 Find.lua
 UI.lua

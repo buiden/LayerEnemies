@@ -5,6 +5,8 @@ local _, N = ...
 local I,S,L = {},N.Safe,N.Layer
 N.Invite=I
 I.MESSAGE="Hi! Could you invite me to your layer please?"
+-- The 15 s is the vote window of Layer.lua.
+I.HINT="Your layer is not known yet: target or mouse over two different NPCs within 15 seconds."
 I.NAME_COOLDOWN,I.GLOBAL_COOLDOWN=60,10
 I.JOIN_WINDOW,I.WATCH=300,60
 I.BULO_STALE,I.BOOK_FRESH,I.REPORT_FRESH=720,900,600
@@ -104,10 +106,11 @@ function I.collect(env)
         if not S.tab(raw) then status[field]="data unavailable"; return end
         if not env.self then status[field]="own name unreadable"; return end
         if not env.wall or not env.zoneText then status[field]="clock or zone unavailable"; return end
-        if not env.ownKey then status[field]="your layer is not known yet"; return end
         local ok,claims=pcall(scan,raw,env,label,maxAge)
         if not ok then status[field]="data unavailable"; return end
         for _,c in ipairs(claims) do
+            -- listed while our own key is unknown, so a host is visible; no hop or ask goes through such a row
+            c.unknownOwn=not env.ownKey or nil
             local cur=byName[c.short]
             if not cur then
                 c.sources={c.source}; byName[c.short]=c
@@ -125,7 +128,7 @@ function I.collect(env)
                 cur.hosts=cur.hosts or {}; cur.hosts[c.source]=cur.hosts[c.source] or c.host
             end
         end
-        status[field]=#claims.." fresh in this zone"
+        status[field]=#claims.." fresh in this zone"..(env.ownKey and "" or " (your layer is not known yet)")
     end
     source("Bulo","bulo",env.bulo,I.BULO_STALE)
     source("LayerSwap","book",env.book,I.BOOK_FRESH)

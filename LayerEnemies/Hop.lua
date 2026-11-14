@@ -41,7 +41,7 @@ function Hp.candidate(record, list)
     if not key then return nil end
     local best, rank
     for _, c in ipairs(list or {}) do
-        if c.layer == key and not c.same then
+        if c.layer == key and not c.same and not c.unknownOwn then
             local r
             -- each source ranks by its own host flag: a Bulo non-host who is also a LayerSwap host ranks as LayerSwap
             for _, src in ipairs(c.sources or {}) do
@@ -59,6 +59,25 @@ function Hp.candidate(record, list)
         local name, short = N.Invite.name(record.origin)
         if name then return { name = name, short = short, source = "War Effort reporter", addon = false } end
     end
+end
+
+-- A host row from Invite.collect (a layer and a Bulo or LayerSwap source) as a record Hop.check and Hop.request
+-- accept. src "own" makes Record.relation compare the server keys, so a host on our own key is refused.
+function Hp.hostRecord(c, zone)
+    if not S.tab(c) or not c.layer or not S.num(zone) then return nil end
+    for _, src in ipairs(c.sources or {}) do
+        if src == "Bulo" or src == "LayerSwap" then return { src = "own", zone = zone, layer = { ns = "server", value = c.layer } } end
+    end
+end
+-- The same ranking as candidate: a Bulo host, a LayerSwap entry, a Bulo line without the host flag.
+function Hp.hostCandidate(c)
+    local rank
+    for _, src in ipairs(c.sources or {}) do
+        local v = src == "Bulo" and (c.hosts and c.hosts.Bulo and 1 or 3) or src == "LayerSwap" and 2 or nil
+        if v and (not rank or v < rank) then rank = v end
+    end
+    if not rank then return nil end
+    return { name = c.name, short = c.short, uid = c.uid, source = rank == 2 and "LayerSwap" or "Bulo", addon = true }
 end
 
 -- request(st, record, candidate, ctx) -> ok, message[, line]
@@ -100,7 +119,7 @@ function Hp.request(st, record, candidate, ctx)
     return true, "sent", line
 end
 
--- A LayerSwap-prefix message from the asked player within 120 s -> text to show, or nil.
+-- A LayerSwap-prefix message from the asked player within 120 s -> text to show and the parsed reply, or nil.
 function Hp.receive(st, text, sender, me, now, ambiguous)
     local p = st.pending
     if not p then return nil end
@@ -110,6 +129,6 @@ function Hp.receive(st, text, sender, me, now, ambiguous)
     if not key or key ~= p.short then return nil end
     local r = Hp.reply(text, sender, me)
     if not r then return nil end
-    if r.kind == "same" then return p.name .. " says you're on their layer" .. (ambiguous and " (probably: your key is ambiguous)." or ".") end
-    return p.name .. " heard you (layer " .. (r.layer or "unknown") .. ", hosting: " .. (r.hosting and "yes" or "no") .. ")."
+    if r.kind == "same" then return p.name .. " says you're on their layer" .. (ambiguous and " (probably: your key is ambiguous)." or "."), r end
+    return p.name .. " heard you (layer " .. (r.layer or "unknown") .. ", hosting: " .. (r.hosting and "yes" or "no") .. ").", r
 end

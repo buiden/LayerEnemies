@@ -280,8 +280,17 @@ function M.layerswap(text,kind,sender)
     if kind~="WHISPER" or type(text)~="string" or not S.str(sender,100) or not M.hop.pending then return end
     local me=S.str((S.call(UnitName,"player")))
     local time=now()
-    local shown=N.Hop.receive(M.hop,text,sender,me,time,M.store.ambiguous(time))
+    local asked=M.hop.pending
+    local shown,reply=N.Hop.receive(M.hop,text,sender,me,time,M.store.ambiguous(time))
     if shown then M.say("LayerEnemies: "..shown) end
+    -- the asked player's own "heard" answer: remembered 12 minutes as a host (or forgotten on "-"); nothing is sent
+    if reply and reply.kind=="heard" and asked then N.Hosts.heard(M.heard,asked.name,reply,A.wall()) end
+end
+-- Hosts remembered from replies, pruned before they are read.
+function M.heardBook()
+    local wall=A.wall()
+    if wall then N.Hosts.prune(M.heard,wall) end
+    return M.heard.heard
 end
 -- LFSw prefix: Bulo guild layer lines, GUILD only, read and never answered.
 function M.lfsw(text,kind,sender)
@@ -306,7 +315,7 @@ function M.zoneName(zone)
     return S.tab(info) and S.str(info.name) or ("zone "..tostring(zone or "unknown"))
 end
 function M.findRows()
-    local lists=A.friendLists(M.guildLines)
+    local lists=A.friendLists(M.guildLines,M.heardBook())
     return N.Find.rows(M.find,now(),M.store.zone,function(name,zone)
         return zone==M.store.zone and I.sameSpotter(name,{zone=zone,wall=A.wall(),ownKey=L.key(M.store.bulo),
             ambiguous=M.store.ambiguous(now()),bulo=lists.bulo,book=lists.book})
@@ -352,7 +361,7 @@ local function ago(seconds)
 end
 function M.candidates()
     local time=now()
-    local lists=A.friendLists(M.guildLines)
+    local lists=A.friendLists(M.guildLines,M.heardBook())
     local _,short=I.name((S.call(UnitName,"player")))
     return I.collect({now=time,wall=A.wall(),zone=M.store.zone,ownKey=L.key(M.store.bulo),ambiguous=M.store.ambiguous(time),self=short,
         reporters=T.reporters(M.store,time),bulo=lists.bulo,book=lists.book})
@@ -405,6 +414,7 @@ function M.askInvite(name)
         M.say("LayerEnemies: "..wanted.." is not a known friendly player on another layer in your zone right now. See /le hosts.")
         return false
     end
+    if found.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
     local ok,line=I.ask(M.invite,found,now(),A.grouped(),L.key(M.store.bulo))
     if not ok then M.say("LayerEnemies: "..line); return false end
     if M.openWhisper(found.name,line) then
@@ -469,18 +479,79 @@ function M.hopIndex(index)
     if not record then M.say("LayerEnemies: no such number in the last /le reports list."); return false end
     return M.hopTo(record,list.shown and list.shown[index])
 end
+-- A Friendly/hosts row that has a layer from Bulo or LayerSwap: Hop via that host. Same shape and the same
+-- "what was shown is what is asked" rule as hopPreview/hopTo. Returns nil for a row without a host record.
+function M.hostPreview(c)
+    local ctx=M.hopContext()
+    local record=N.Hop.hostRecord(c,ctx.own.zone)
+    if not record then return nil end
+    local cand=N.Hop.hostCandidate(c)
+    if not L.key(M.store.bulo) or c.unknownOwn then
+        return {label="Hop via "..c.name,enabled=false,reason=I.HINT,candidate=cand,record=record}
+    end
+    local ok,reason=N.Hop.check(record,cand,ctx)
+    if ok then
+        local last=M.invite.asked[cand.short]
+        if last and ctx.now-last<I.NAME_COOLDOWN then ok,reason=false,cand.name.." was asked "..math.floor(ctx.now-last).." s ago." end
+        if ok and M.invite.lastAsk and ctx.now-M.invite.lastAsk<I.GLOBAL_COOLDOWN then ok,reason=false,"one ask every "..I.GLOBAL_COOLDOWN.." s." end
+    end
+    return {label="Hop via "..cand.name,enabled=ok,reason=ok and nil or reason,detail="one LayerSwap request whispered to "..cand.name.." ("..cand.source..")",
+        candidate=cand,record=record}
+end
+-- c: the row as it was shown; shown: the preview the user clicked (nil from /le hop host). One click, one whisper
+-- through Hop.request (its preconditions and cooldowns); a row that changed since it was shown sends nothing.
+function M.hopHostTo(c,shown)
+    if not L.key(M.store.bulo) or c.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
+    local live
+    for _,row in ipairs((M.candidates())) do if row.short==c.short then live=row; break end end
+    if not live then
+        local why=c.layer and L.same(c.layer,M.store.bulo) and not M.store.ambiguous(now()) and "that host is on your layer already." or "hosts changed, check again."
+        M.say("LayerEnemies: "..why); if N.UI then N.UI.refresh() end
+        return false
+    end
+    local was=N.Hop.hostCandidate(c)
+    local cand=N.Hop.hostCandidate(live)
+    local shownCand=S.tab(shown) and shown.candidate or was
+    if live.layer~=c.layer or live.unknownOwn or not cand or not shownCand or cand.name~=shownCand.name or cand.source~=shownCand.source then
+        M.say("LayerEnemies: hosts changed, check again."); if N.UI then N.UI.refresh() end
+        return false
+    end
+    local ctx=M.hopContext()
+    local record=N.Hop.hostRecord(live,ctx.own.zone)
+    local ok,result=N.Hop.request(M.hop,record,cand,ctx)
+    if not ok then
+        M.say("LayerEnemies: "..(result=="that report is on your layer already." and "that host is on your layer already." or result))
+        return false
+    end
+    M.say("LayerEnemies: asked "..cand.name.." ("..cand.source..") for an invite to layer "..live.layer..". Accept the invite yourself; nothing else is sent.")
+    return true
+end
+function M.hopHost(index)
+    local list=M.hostList
+    if not list or now()-list.at>120 then M.say("LayerEnemies: run /le hosts first, then /le hop host <number>."); return false end
+    local row=index and list.rows and list.rows[index]
+    if not row then M.say("LayerEnemies: no such number in the last /le hosts list."); return false end
+    if not L.key(M.store.bulo) or row.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
+    if not N.Hop.hostRecord(row,M.store.zone) then
+        M.say("LayerEnemies: no host addon is known for "..row.name.."; /le ask "..index.." puts a whisper in your chat box instead.")
+        return false
+    end
+    return M.hopHostTo(row,nil)
+end
 function M.hosts()
     guarded(M.poll)
     local list,status=M.candidates()
     local names={}
     M.say("LayerEnemies - friendly players on other layers, your zone only. Your layer: "..(L.key(M.store.bulo) or "Unknown"))
+    if not L.key(M.store.bulo) then M.say(I.HINT) end
     if #list==0 then M.say("No one to ask right now.") end
     for i,c in ipairs(list) do
         names[i]=c.name
         M.say(i..". "..c.name.." | "..(c.layer and ("layer "..c.layer) or "layer unknown - saw reported enemies")..(c.probably and " (probably your layer: your key is ambiguous)" or "").." | "..table.concat(c.sources," + ")..(c.host and " | host" or "").." | "..ago(c.age).." ago")
     end
-    M.hostList={at=now(),names=names}
+    M.hostList={at=now(),names=names,rows=list}
     M.say("Bulo: "..status.bulo.." / LayerSwap: "..status.book.." / War Effort reporters: "..status.reports)
+    M.say("/le hop host <number> asks that host directly: one LayerSwap whisper per click.")
     M.say("/le hop <number> from /le reports asks one host on that layer directly (one whisper per click).")
     M.say("/le ask <number> puts a whisper in your chat box; you press Enter. Nothing is sent, accepted or left for you.")
 end
@@ -514,6 +585,7 @@ function M.text(command)
     if M.error then say("Runtime status: "..M.error) end
     say("Your server key: "..(L.key(M.store.bulo) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
         .." - zone-scoped; an equal key is not proof of the same layer")
+    if not L.key(M.store.bulo) then say(I.HINT) end
     local kind=command=="reports" and "reported" or command=="unclassified" and "unclassified" or "local"
     say(kind=="reported" and "Reported, not confirmed (War Effort; age as the reporter's clock gives it):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
     local rows=T.rows(M.store,now(),kind)
@@ -539,7 +611,7 @@ function M.text(command)
         if reported>0 then say("Reported, not confirmed: "..reported.." more in /le reports") end
     end
     say("Only players seen by you or reported by other players' addons.")
-    say("/le window; /le list; /le reports; /le hop <number>; /le hosts; /le ask <number>; /le find <name>.")
+    say("/le window; /le list; /le reports; /le hop <number>; /le hosts; /le hop host <number>; /le ask <number>; /le find <name>.")
     if M.lastDrop and command=="reports" then say("Last report rejected: "..M.lastDrop) end
 end
 local function heartbeat()
@@ -552,7 +624,7 @@ function M.start()
     if M.started then return end
     M.started=true
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new(); M.hh=N.HeadHunter.new()
-    M.hop=N.Hop.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
+    M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped()
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
@@ -577,6 +649,8 @@ function M.start()
         if command=="find" then M.track(nil); return end
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
         local index=command:match("^ask%s+(%d%d?)$")
+        local host=command:match("^hop%s+host%s+(%d%d?)$")
+        if host or command:match("^hop%s+host") then guarded(M.hopHost,tonumber(host)); return end
         local hop=command:match("^hop%s+(%d%d?)$")
         if hop or command=="hop" then guarded(M.hopIndex,tonumber(hop)); return end
         if command=="" then guarded(N.UI.toggle)

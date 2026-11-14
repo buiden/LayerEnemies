@@ -123,7 +123,9 @@ end
 -- Foreign friend lists, never written to. nil = addon absent, false = unreadable.
 -- Shapes read from Bulo Layer Forever 3.0.24 (Guild.lua) and LayerSwap 1.14.18.
 -- guildLines: our own list of heard LFSw lines, used in Bulo's place when Bulo is not installed.
-function A.friendLists(guildLines)
+-- heard: hosts from LayerSwap replies to our own requests (Hosts.lua), used in the book's place when LayerSwap is not
+-- installed.
+function A.friendLists(guildLines,heard)
     local out={}
     local ok,list=pcall(function()
         local ns=_G.BuloLayerForever
@@ -143,6 +145,7 @@ function A.friendLists(guildLines)
         return type(book)=="table" and book or false
     end)
     if ok then out.book=list else out.book=false end
+    if out.book==nil and S.tab(heard) and next(heard)~=nil then out.book=heard end
     return out
 end
 -- Client ignore list for any name (immediate sender or a wrapper's origin). Unreadable counts as ignored.

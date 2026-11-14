@@ -48,7 +48,8 @@ local function rowFrame()
     r.sub=font(r,10,colors.muted); r.sub:SetPoint("TOPLEFT",r,"TOPLEFT",42,-26); r.sub:SetWidth(294); r.sub:SetHeight(31); r.sub:SetJustifyV("TOP")
     r.age=font(r,10,colors.muted); r.age:SetPoint("TOPRIGHT",r,"TOPRIGHT",-8,-8); r.age:SetJustifyH("RIGHT")
     r.ask=button(r,220,20,"Ask for invite",function()
-        if r.hopRecord then N.Main.hopTo(r.hopRecord,r.hopShown); U.render()
+        if r.hostRow then N.Main.hopHostTo(r.hostRow,r.hostShown); U.render()
+        elseif r.hopRecord then N.Main.hopTo(r.hopRecord,r.hopShown); U.render()
         elseif r.spotter then N.AskInvite(r.spotter); U.render() end
     end)
     -- a disabled Hop button says why on mouse-over
@@ -60,7 +61,7 @@ local function rowFrame()
     end)
     r.ask:SetScript("OnLeave",function() local tip=_G.GameTooltip; if S.tab(tip) then pcall(tip.Hide,tip) end end)
     r.ask:SetPoint("BOTTOMLEFT",r,"BOTTOMLEFT",42,6)
-    r.hopRecord=false; r.hopShown=false; r.spotter=false; r.ask.reason=false
+    r.hopRecord=false; r.hopShown=false; r.hostRow=false; r.hostShown=false; r.spotter=false; r.ask.reason=false
     r.clear=button(r,42,18,"Clear",function() if r.tracked then N.Main.track(r.tracked,true); U.render() end end)
     r.clear:SetPoint("BOTTOMRIGHT",r,"BOTTOMRIGHT",-6,6)
     return r
@@ -71,15 +72,28 @@ function U.cooldown(name)
     if at and GetTime()-at<N.Invite.NAME_COOLDOWN then return math.ceil(N.Invite.NAME_COOLDOWN-(GetTime()-at)) end
 end
 -- The Hop button of a report row: who will be asked and how; disabled with the reason.
+-- A Friendly row with a host record: Hop via that host (one whisper per click), disabled with the reason.
+local function hostState(r,e,p)
+    r.spotter=false; r.hopRecord=false; r.hostRow=e; r.hostShown=p
+    r.ask:Show(); r.ask.label:SetText(p.label); r.ask.reason=p.enabled and p.detail or p.reason
+    r.ask.bg:SetColorTexture(unpack(p.enabled and {.137,.227,.11} or {.11,.13,.16}))
+    if p.enabled then r.ask:Enable() else r.ask:Disable() end
+end
+-- A row listed while our own layer is unknown: no ask, the hint says what to do.
+local function unknownState(r)
+    r.spotter=false; r.hopRecord=false; r.hostRow=false; r.hostShown=false
+    r.ask:Show(); r.ask.label:SetText("Ask for invite"); r.ask.reason=N.Invite.HINT
+    r.ask.bg:SetColorTexture(.11,.13,.16); r.ask:Disable()
+end
 local function hopState(r,record)
-    r.spotter=false; r.hopRecord=record
+    r.spotter=false; r.hostRow=false; r.hostShown=false; r.hopRecord=record
     local p=N.Main.hopPreview(record); r.hopShown=p
     r.ask:Show(); r.ask.label:SetText(p.label); r.ask.reason=p.enabled and p.detail or p.reason
     r.ask.bg:SetColorTexture(unpack(p.enabled and {.137,.227,.11} or {.11,.13,.16}))
     if p.enabled then r.ask:Enable() else r.ask:Disable() end
 end
 local function askState(r,name,label)
-    r.spotter=name or false; r.hopRecord=false; r.hopShown=false; r.ask.reason=false
+    r.spotter=name or false; r.hopRecord=false; r.hopShown=false; r.hostRow=false; r.hostShown=false; r.ask.reason=false
     if not name then r.ask:Hide(); return end
     r.ask:Show()
     local remaining=U.cooldown(name)
@@ -107,16 +121,18 @@ function U.render()
         b.bg:SetColorTexture(unpack(key==U.tab and colors.bg or {.055,.071,.086}))
         b.line:SetShown(key==U.tab)
     end
-    U.layer:SetText(N.Layer.key(M.store.bulo) or "?")
-    U.meta:SetText(M.zoneName(M.store.zone).." · "..(M.layerSource or "unknown"))
+    local known=N.Layer.key(M.store.bulo)
+    U.layer:SetText(known or "?")
+    U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or "layer unknown: mouse over or target two different NPCs within 15 s"))
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
-    U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or "")
+    local hint=U.tab=="friendly" and not known
+    U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
     local height=U.tab=="local" and 48 or U.tab=="find" and 106 or U.tab=="friendly" and 68 or 80
-    local top=U.tab=="find" and 56 or U.tab=="reported" and 23 or 0
+    local top=U.tab=="find" and 56 or (U.tab=="reported" or hint) and 23 or 0
     local visible=math.floor((300-top)/height)
     local maximum=math.max(0,#rows-visible)
     U.offset=math.min(U.offset,maximum)
-    for _,r in ipairs(U.pool) do r:Hide(); r.spotter=false; r.tracked=nil; r.hopRecord=false end
+    for _,r in ipairs(U.pool) do r:Hide(); r.spotter=false; r.tracked=nil; r.hopRecord=false; r.hostRow=false end
     for index=1,math.min(visible,#rows-U.offset) do
         local e=rows[index+U.offset]
         local r=U.pool[index]
@@ -144,7 +160,10 @@ function U.render()
             hopState(r,e.record)
         elseif U.tab=="friendly" then
             r.sub:SetText(table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.layer and "layer "..e.layer or "layer not known"))
-            askState(r,e.name,"Ask for invite")
+            local p=not e.unknownOwn and M.hostPreview(e)
+            if e.unknownOwn then unknownState(r)
+            elseif p then hostState(r,e,p)
+            else askState(r,e.name,"Ask for invite") end
         else
             r.tracked=e.name; r.clear:Show()
             r.sub:SetText(e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or e.status)

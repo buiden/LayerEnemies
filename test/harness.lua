@@ -24,6 +24,16 @@ local sent,sendResult
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true}}
 -- Prefixes the addon may register.
 local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true}
+-- The addon's source files, in load order, as the TOC lists them.
+local function addonFiles()
+    local out={}
+    for line in io.lines("LayerEnemies/LayerEnemies.toc") do
+        local name=line:match("^(%w+)%.lua%s*$")
+        if name then out[#out+1]=name end
+    end
+    assert(#out>0,"no files in the TOC")
+    return out
+end
 local methods={}
 function methods:Hide() local old=self.shown; self.shown=false; if old and self.scripts.OnHide then self.scripts.OnHide(self) end end
 function methods:Show() local old=self.shown; self.shown=true; if not old and self.scripts.OnShow then self.scripts.OnShow(self) end end
@@ -157,7 +167,7 @@ local function loadAddon()
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
     _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
     local N={}
-    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Hop","Relay","Find","UI","Main"}) do
+    for _,file in ipairs(addonFiles()) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
@@ -942,9 +952,10 @@ test("candidates: Bulo secret, stale, other zone, same layer and self excluded",
     eq(names(list),"Other,Good,Edge"); eq(status.bulo,"5 fresh in this zone")
     eq(list[1].layer,"8000"); eq(list[1].age,30); eq(list[1].sources[1],"Bulo"); eq(#list[1].sources,1); no(list[1].host)
     eq(list[3].age,719); no(N.Main.error)
-    -- Without a known own layer nobody can be called "another layer".
+    -- Without a known own layer (0.3.1): the host is listed, marked, so a player without a layer addon sees it;
+    -- no hop or ask goes through such a row (the 0.3.1 T3 tests).
     N=loadAddon(); local b=fakeBulo(nil); b.Guild={list={Good=there()}}; N.Main.poll()
-    list,status=N.Main.candidates(); eq(#list,0); eq(status.bulo,"your layer is not known yet")
+    list,status=N.Main.candidates(); eq(names(list),"Good"); yes(list[1].unknownOwn); eq(status.bulo,"1 fresh in this zone (your layer is not known yet)")
     -- Unknown own zone or own name: same.
     N=loadAddon(); friends(N,{Good=there()}); eq(#N.Main.candidates(),1)
     UnitName=function() return secret end; list,status=N.Main.candidates(); eq(#list,0); eq(status.bulo,"own name unreadable")
@@ -1175,7 +1186,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     grouped=false; deliver("GROUP_ROSTER_UPDATE"); advance(10); LE.AskInvite("Bob"); drain()
     grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70)
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
-    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Hop","Relay","Find","UI","Main"}) do
+    for _,file in ipairs(addonFiles()) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
         for _,word in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","JoinChannel"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
@@ -1287,9 +1298,11 @@ test("UI tabs, scrolling and row pooling never allocate on repeat refresh",funct
     U.tabs["local"]:Click(); no(U.input:IsShown()); eq(U.pool[1],first); eq(#frames,count)
 end)
 test("UI Friendly and Reported buttons dispatch AskInvite and show real cooldown",function()
-    local N=loadAddon(); warSettings(); chatBox(); friends(N,{Alice=there()})
+    local N=loadAddon(); warSettings(); chatBox(); friends(N,{})
+    -- 0.3.1: a row with a Bulo or LayerSwap layer gets "Hop via"; a War Effort reporter row keeps the chat ask
+    advance(1); hello("Alice",19); report(7,9,"Alice")
     local U=N.UI; U.toggle(); U.select("friendly")
-    eq(U.pool[1].title.text,"Alice")
+    eq(U.pool[1].title.text,"Alice"); eq(U.pool[1].ask.label.text,"Ask for invite")
     local original=N.AskInvite; local calls={}
     N.AskInvite=function(name) calls[#calls+1]=name; return original(name) end
     U.pool[1].ask:Click(); drain(); eq(calls[1],"Alice"); eq(#opened,1)
@@ -2340,6 +2353,152 @@ test("wire guild bucket",function()
     eq(#sent,14)
     -- refill caps at 5
     advance(100); for i=1,6 do Wr.send("LEGW1","r"..i,"GUILD") end; eq(#sent,19)
+end)
+
+-- 0.3.1 core: hosts while our own layer is unknown, hop to a host, remembered LayerSwap replies.
+local HINT="Your layer is not known yet: target or mouse over two different NPCs within 15 seconds."
+local function guildLine(text,from) deliver("CHAT_MSG_ADDON","LFSw",text,"GUILD",from) end
+local function slash(text) SlashCmdList.LAYERENEMIES(text); drain() end
+test("0.3.1 T3: hosts are listed while our own layer is unknown; nothing is sent or drafted",function()
+    local N=loadAddon(); chatBox(); guildLine("L 8000|100|h","Bob")
+    eq(N.Main.store.bulo,nil,"own layer unknown")
+    slash("hosts")
+    yes(logged("1. Bob | layer 8000 | Bulo | host"),"host listed"); yes(logged(HINT),"hint in /le hosts")
+    eq(#log>0 and log[#log]:find("mouse over",1,true),nil)
+    local before=#log
+    slash("hop host 1"); eq(#sent,0); eq(#opened,0); yes(log[#log]:find(HINT,1,true),"hop host refuses with the hint"); yes(#log>before)
+    slash("ask 1"); eq(#sent,0); eq(#opened,0); yes(log[#log]:find(HINT,1,true),"ask refuses with the hint")
+    -- the shared path (window button and /le hop host) refuses on its own too
+    local row=N.Main.candidates()[1]; no(N.Main.hopHostTo(row,nil)); eq(#sent,0); yes(log[#log]:find(HINT,1,true))
+    row.unknownOwn=nil; no(N.Main.hopHostTo(row,nil)); eq(#sent,0); yes(log[#log]:find(HINT,1,true),"own key unknown alone refuses")
+    -- /le list shows the hint too
+    log={}; slash("list"); yes(logged(HINT),"hint in /le list")
+    -- two NPC readings: the same row becomes hoppable, the hint goes
+    establish(N); log={}; slash("list"); no(logged(HINT),"no hint once known")
+    log={}; slash("hosts"); no(logged(HINT)); yes(logged("1. Bob | layer 8000 | Bulo | host"))
+    slash("hop host 1"); eq(#sent,1); eq(sent[1].prefix,"LayerSwap"); eq(sent[1].kind,"WHISPER"); eq(sent[1].target,"Bob")
+    eq(sent[1].text,"inv layer <LS 100 want 8000-0 25.0,75.0>"); eq(forbidden,0)
+end)
+test("0.3.1 T3: Invite.collect marks rows while unknown; a report hop never picks them",function()
+    local N=loadAddon(); guildLine("L 8000|100|h","Bob")
+    local list,status=N.Main.candidates()
+    eq(#list,1); eq(list[1].name,"Bob"); yes(list[1].unknownOwn); no(list[1].same)
+    yes(status.bulo:find("your layer is not known yet",1,true),status.bulo)
+    eq(N.Invite.HINT,HINT)
+    -- a report on 8000 while our layer is unknown: the hop does not go through the unknown-layer row (0.3.0 behaviour)
+    -- (the War Effort origin of the record stays the 0.3.0 fallback: a chat whisper, no addon)
+    local c=N.Hop.candidate(rec(N),(N.Main.candidates())); yes(c); eq(c.name,"Scout"); no(c.addon)
+    establish(N); list=N.Main.candidates(); no(list[1].unknownOwn)
+end)
+test("0.3.1 T3: the window shows the hint and disables the row button while unknown",function()
+    local N=loadAddon(); chatBox(); guildLine("L 8000|100|h","Bob")
+    local U=N.UI; U.toggle(); U.select("friendly")
+    eq(U.pool[1].title.text,"Bob"); yes(U.pool[1].ask.disabled,"disabled"); eq(U.pool[1].ask.reason,HINT)
+    eq(U.banner.text,HINT); yes(U.meta.text:find("mouse over or target two different NPCs within 15 s",1,true),U.meta.text)
+    U.pool[1].ask:Click(); drain(); eq(#sent,0); eq(#opened,0)
+    establish(N); U.render(); no(U.pool[1].ask.disabled); eq(U.banner.text,"")
+end)
+test("0.3.1 T2: /le hop host sends one LayerSwap whisper through Hop.request, with its cooldowns",function()
+    local N=loadAddon(); establish(N); guildLine("L 8000|100|h","Bob"); guildLine("L 9000|100|-","Dan")
+    slash("hosts"); yes(logged("/le hop host <number>"),"names the command")
+    slash("hop host 1"); eq(#sent,1); eq(sent[1].target,"Bob"); eq(sent[1].text,"inv layer <LS 100 want 8000-0 25.0,75.0>")
+    yes(logged("asked Bob (Bulo) for an invite to layer 8000. Accept the invite yourself; nothing else is sent."))
+    eq(N.Main.hop.pending.name,"Bob"); eq(N.Main.invite.pending.target,"8000")
+    slash("hop host 1"); eq(#sent,1); yes(log[#log]:find("Bob was asked 0 s ago",1,true),log[#log])
+    slash("hop host 2"); eq(#sent,1); yes(log[#log]:find("one ask every 10 s",1,true),log[#log])
+    advance(10); slash("hosts"); slash("hop host 2"); eq(#sent,2); eq(sent[2].target,"Dan"); eq(sent[2].text,"inv layer <LS 100 want 9000-0 25.0,75.0>")
+    grouped=true; advance(60); slash("hosts"); slash("hop host 1"); eq(#sent,2); yes(log[#log]:find("leave your current group first",1,true))
+    eq(forbidden,0)
+end)
+test("0.3.1 T2: hop host refuses stale lists, bad numbers, changed rows, reporters and our own layer",function()
+    local N=loadAddon(); establish(N); chatBox(); guildLine("L 8000|100|h","Bob")
+    slash("hop host 1"); eq(#sent,0); yes(log[#log]:find("run /le hosts first",1,true))
+    slash("hosts"); slash("hop host 9"); eq(#sent,0); yes(log[#log]:find("no such number in the last /le hosts list",1,true))
+    advance(121); slash("hop host 1"); eq(#sent,0); yes(log[#log]:find("run /le hosts first",1,true))
+    -- the row changed after the list
+    slash("hosts"); guildLine("L 9000|100|h","Bob"); slash("hop host 1"); eq(#sent,0); yes(log[#log]:find("hosts changed, check again",1,true))
+    -- our own layer moved onto the host's key after the list (not ambiguous)
+    slash("hosts")
+    units.target={guid=npc(3,7,"9000"),player=false}; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+    units.mouseover={guid=npc(4,7,"9000"),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
+    eq(N.Main.store.bulo,"9000-7")
+    slash("hop host 1"); eq(#sent,0); yes(log[#log]:find("on your layer already",1,true),log[#log])
+    -- a War Effort reporter row has no layer: no hop, pointed to /le ask
+    N=loadAddon(); establish(N); chatBox(); hopReport(1,8000)
+    slash("hosts"); yes(logged("1. Scout | layer unknown"))
+    slash("hop host 1"); eq(#sent,0); eq(#opened,0); yes(log[#log]:find("/le ask 1",1,true),log[#log]); eq(forbidden,0)
+end)
+test("0.3.1 T2: the Friendly button hops via the host, one message per click",function()
+    local N=loadAddon(); establish(N); chatBox(); guildLine("L 8000|100|h","Bob")
+    local U=N.UI; U.toggle(); U.select("friendly")
+    local r=U.pool[1]; eq(r.title.text,"Bob"); eq(r.ask.label.text,"Hop via Bob"); eq(r.ask.reason,"one LayerSwap request whispered to Bob (Bulo)")
+    no(r.ask.disabled)
+    r.ask:Click(); drain(); eq(#sent,1); eq(sent[1].target,"Bob"); eq(#opened,0)
+    U.render(); yes(r.ask.disabled,"cooldown after the click"); r.ask:Click(); drain(); eq(#sent,1)
+    -- a reporter row keeps "Ask for invite" (chat box)
+    N=loadAddon(); establish(N); chatBox(); hopReport(1,8000); U=N.UI; U.toggle(); U.select("friendly")
+    eq(U.pool[1].ask.label.text,"Ask for invite"); U.pool[1].ask:Click(); drain(); eq(#sent,0); eq(#opened,1)
+end)
+test("0.3.1 T4: a heard|h reply from the asked player is remembered for 12 minutes, read-only",function()
+    local N=loadAddon(); establish(N); guildLine("L 8000|100|h","Bob")
+    slash("hosts"); slash("hop host 1"); eq(#sent,1)
+    local function reply(text,from,kind) deliver("CHAT_MSG_ADDON","LayerSwap",text,kind or "WHISPER",from or "Bob"); drain() end
+    reply("heard Me|8000-12|100|h"); eq(#sent,1,"storing sends nothing")
+    yes(N.Main.heard.heard.Bob); eq(N.Main.heard.heard.Bob.layer,"8000-12"); eq(N.Main.heard.heard.Bob.zone,100)
+    -- the Bulo line goes; Bob stays a LayerSwap host with uid 12
+    N.Main.guildLines.Bob=nil
+    local list=N.Main.candidates(); eq(#list,1); eq(list[1].name,"Bob"); eq(list[1].uid,12); eq(table.concat(list[1].sources,"+"),"LayerSwap")
+    advance(60); slash("hosts"); slash("hop host 1"); eq(#sent,2); eq(sent[2].text,"inv layer <LS 100 want 8000-12 25.0,75.0>")
+    -- a "-" reply removes him
+    reply("heard Me|8000-12|100|-"); eq(N.Main.heard.heard.Bob,nil); eq(#N.Main.candidates(),0)
+    -- 12 minutes later the entry is gone
+    advance(61); guildLine("L 8000|100|h","Bob"); slash("hosts"); slash("hop host 1"); eq(#sent,3)
+    reply("heard Me|8000-12|100|h"); N.Main.guildLines.Bob=nil; eq(#N.Main.candidates(),1)
+    advance(719); eq(#N.Main.candidates(),1); advance(2); eq(#N.Main.candidates(),0); eq(N.Main.heard.heard.Bob,nil)
+    eq(forbidden,0)
+end)
+test("0.3.1 T4: replies not from the asked player, not on WHISPER, late or for someone else are not stored",function()
+    local N=loadAddon(); establish(N); guildLine("L 8000|100|h","Bob")
+    local function reply(text,from,kind) deliver("CHAT_MSG_ADDON","LayerSwap",text,kind or "WHISPER",from or "Bob"); drain() end
+    reply("heard Me|8000-12|100|h"); eq(next(N.Main.heard.heard),nil,"nothing asked yet")
+    slash("hosts"); slash("hop host 1"); eq(#sent,1)
+    reply("heard Me|8000-12|100|h","Cora"); reply("heard Me|8000-12|100|h","Bob","GUILD")
+    reply("heard Someone|8000-12|100|h"); reply("heard Me|8000|100|h")
+    eq(next(N.Main.heard.heard),nil)
+    advance(121); reply("heard Me|8000-12|100|h"); eq(next(N.Main.heard.heard),nil,"after 120 s")
+    eq(#sent,1)
+end)
+test("0.3.1 T4: with LayerSwap installed its own book is used and ours is ignored; the store is capped",function()
+    local N=loadAddon(); establish(N); guildLine("L 8000|100|h","Bob")
+    slash("hosts"); slash("hop host 1")
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|8000-12|100|h","WHISPER","Bob"); drain(); yes(N.Main.heard.heard.Bob)
+    N.Main.guildLines.Bob=nil; LayerSwapDB={book={}}
+    eq(#N.Main.candidates(),0,"LayerSwap's own (empty) book wins")
+    LayerSwapDB=nil; eq(#N.Main.candidates(),1)
+    -- at most 64 names, the oldest dropped; entries older than 720 s pruned
+    local Hs=N.Hosts; local st=Hs.new()
+    for i=1,70 do Hs.heard(st,"Name"..string.char(96+math.ceil(i/26))..string.char(96+(i-1)%26+1),{kind="heard",layer="8000-1",zone=100,hosting=true},1000+i) end
+    eq(N.Safe.count(st.heard),64); eq(st.heard.Nameaa,nil); yes(st.heard.Namecr)
+    Hs.prune(st,1007+719); eq(N.Safe.count(st.heard),64); Hs.prune(st,1007+720); eq(N.Safe.count(st.heard),63)
+    -- a reply without layer or zone stores nothing
+    local s2=Hs.new(); Hs.heard(s2,"Bob",{kind="heard",zone=100,hosting=true},1); Hs.heard(s2,"Cy",{kind="heard",layer="8000-1",hosting=true},1)
+    Hs.heard(s2,"Di",{kind="same"},1); eq(next(s2.heard),nil)
+end)
+test("0.3.1 guardrails: 20 idle minutes with the new paths send nothing",function()
+    local N=loadAddon(); chatBox()
+    local U=N.UI; U.toggle(); U.select("friendly")
+    for i=1,240 do
+        guildLine("L 8000|100|h","Bob"); guildLine("Q","Bob"); guildLine("v 3.0.25","Bob")
+        deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|8000-12|100|h","WHISPER","Bob")
+        deliver("CHAT_MSG_ADDON","LayerSwap","inv layer <LS 100 want 7086-0>","WHISPER","Bob")
+        if i==60 then establish(N) end
+        if i==120 then map=200; deliver("ZONE_CHANGED_NEW_AREA") end
+        if i==180 then map=100; deliver("ZONE_CHANGED_NEW_AREA") end
+        U.render(); advance(5)
+    end
+    eq(#sent,0); eq(#opened,0); eq(forbidden,0); no(N.Main.error)
+    -- the routes are those of 0.3.0
+    local ok,why=N.Wire.send("LFSw","Q","GUILD"); no(ok); eq(why,"blocked route"); eq(#sent,0)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
