@@ -3947,8 +3947,10 @@ test("names end to end: a foreign spaced host First Last-7103 on realm 7102: lin
     yes(N.Main.hopTo(r,p)); eq(#sent,1); eq(sent[1].target,"First Last-7103"); eq(sent[1].prefix,"LayerSwap")
     -- a local namesake's invite is not the asked host's
     inviteFrom("First Last"); eq(#accepts,0); popup.shown=false
-    inviteFrom("First Last-7105"); eq(#accepts,0); popup.shown=false
+    for _,other in ipairs({"First Last-7105","First Last-7104","First Last-7102","First Lasts-7103","First-7103"}) do
+        inviteFrom(other); eq(#accepts,0,other); popup.shown=false end
     inviteFrom("First Last-7103"); eq(#accepts,1); yes(logged("accepted First Last's invite"))
+    eq(N.Main.auto.group.short,"first last-7103","the group tracked is the asked host's")
 end)
 
 -- a732c39 review (مانع r040b/a7): guild changes
@@ -4231,6 +4233,20 @@ test("r040c D2: ours only by our own join notice; a hand leave and rejoin is the
     N=loadAddon(); D=N.Directory; chanList={"General","HeadHunterSync"}
     deliver("CHAT_MSG_CHANNEL_NOTICE","YOU_JOINED","","","2. HeadHunterSync","",0,0,2,"HeadHunterSync"); dirReady(N)
     N.Net.setSwitch("hh",false); eq(#leftCh,0)
+end)
+
+test("cc: Directory lists nobody while our own name or home realm is unreadable; one entry per player",function()
+    local N=loadAddon(); local D=N.Directory; numericHome(); dirReady(N)
+    chanMembers.HeadHunterSync={"Peer One","Peer One-7102","peer one","Me Self-7102","Me Self","Peer Two-7105","Peer Two"}
+    advance(10); advance(3.1); local m=D.members("hh")
+    eq(#m,3,table.concat(m,",")); eq(D.count("hh"),3); eq(m[1],"Peer One"); eq(m[2],"Peer Two-7105"); eq(m[3],"Peer Two")
+    -- home realm unreadable: our "-7102" entries cannot be told from peers, so no list at all
+    GetRealmName=function() return nil end; GetNormalizedRealmName=function() return nil end
+    yes(D.refresh("hh")); advance(3.1); eq(D.members("hh"),nil,"home realm unreadable"); eq(D.count("hh"),nil)
+    numericHome(); yes(D.refresh("hh")); advance(3.1); eq(#D.members("hh"),3)
+    -- our own name unreadable
+    local was=UnitName; UnitName=function(u) if u=="player" then return nil end; return was(u) end
+    yes(D.refresh("hh")); advance(3.1); eq(D.members("hh"),nil,"own name unreadable"); UnitName=was
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

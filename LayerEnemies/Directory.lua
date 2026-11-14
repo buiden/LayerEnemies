@@ -74,8 +74,14 @@ local function index(name)
         if shown and (shown:match("^%d+%. (.+)$") or shown):lower() == name:lower() then return i end
     end
 end
--- ourselves by the one name rule (Invite.name keys)
-local function me() local _, key = N.Invite.name((S.call(UnitName, "player"))); return key end
+-- ourselves by the one name rule (Invite.name keys); nil while our name or our home realm cannot be read (then our
+-- own "-<realm>" entries cannot be told from peers)
+local function me()
+    local home = N.Invite.home and S.str(N.Invite.home(), 60)
+    if not home or home == "" then return nil end
+    local _, key = N.Invite.name((S.call(UnitName, "player")))
+    return key
+end
 local function read(key)
     pending[key] = nil
     -- conditions may have changed in the 3 s: combat, an instance or the Channels window stop the read
@@ -87,13 +93,16 @@ local function read(key)
     local CI = _G.C_ChatInfo
     -- an unreadable count forgets the list rather than keep an old one
     if not count or count < 0 or not S.tab(CI) or type(CI.GetChannelRosterInfo) ~= "function" then members[key] = nil; return end
+    local self = me()
+    if not self then members[key] = nil; return end
     if count == 0 then members[key] = {}; return end
-    local list, self = {}, me()
+    -- one entry per player (the folded key): "Peer" and "Peer-<our realm>" are one, the first spelling listed stays
+    local list, seen = {}, {}
     for r = 1, math.min(count, D.MAX) do
         local ok, who = pcall(CI.GetChannelRosterInfo, i, r)
         who = ok and S.str(who, 60)
-        local _, key = N.Invite.name(who)
-        if key and key ~= self then list[#list + 1] = who end
+        local _, pkey = N.Invite.name(who)
+        if pkey and pkey ~= self and not seen[pkey] then seen[pkey] = true; list[#list + 1] = who end
     end
     members[key] = list
 end
