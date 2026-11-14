@@ -16,7 +16,8 @@ end
 local secret=setmetatable({}, {__tostring=function() error("secret stringify") end,__concat=function() error("secret concatenate") end,__lt=function() error("secret compare") end,__index=function() error("secret index") end})
 function issecretvalue(v) return rawequal(v,secret) end
 local frames,timers,log,units,loaded,metadata
-local clock,map,server,channels,inGuild,clientIgnored
+local clock,map,server,channels,inGuild,clientIgnored,inInstance
+local guildName="Test Guild"
 local wall,grouped,opened
 local sent,sendResult
 -- The two routes the addon may send on (Wire.lua); anything else counts as forbidden.
@@ -87,7 +88,7 @@ end
 local function advance(n) clock=clock+n; server=server+n; wall=wall+n; drain() end
 local function loadAddon()
     frames,timers,log,units,loaded,metadata={},{},{},{},{},{}
-    clock,map,server,channels,inGuild,clientIgnored=10,100,720100,{WarEffortPubA=7},true,false
+    clock,map,server,channels,inGuild,clientIgnored,inInstance=10,100,720100,{WarEffortPubA=7},true,false,false; guildName="Test Guild"
     wall,grouped,opened,forbidden=1800000000,false,{},0
     sent,sendResult={},0
     _G.BuloLayerForever=nil; _G.WarEffortScoutDB=nil; _G.LayerEnemiesDB=nil
@@ -137,6 +138,8 @@ local function loadAddon()
     _G.GetServerTime=function() return server end
     _G.GetRealmName=function() return "Test Realm" end
     _G.IsInGuild=function() return inGuild end
+    _G.IsInInstance=function() return inInstance end
+    _G.GetGuildInfo=function() if inGuild then return guildName end end
     _G.GetChannelName=function(name) return channels[name] or 0 end
     _G.Ambiguate=function(name) return name:match("^([^%-]+)") end
     _G.UnitExists=function(u) return u=="player" or units[u]~=nil end
@@ -154,7 +157,7 @@ local function loadAddon()
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
     _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
     local N={}
-    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Hop","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Hop","Relay","Find","UI","Main"}) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
@@ -1172,7 +1175,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     grouped=false; deliver("GROUP_ROSTER_UPDATE"); advance(10); LE.AskInvite("Bob"); drain()
     grouped=true; deliver("GROUP_ROSTER_UPDATE"); advance(70)
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
-    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Hop","Find","UI","Main"}) do
+    for _,file in ipairs({"Safe","Hash","Layer","Record","Wire","Protocol","Peers","Store","Reports","HeadHunter","Adapters","Invite","Hop","Relay","Find","UI","Main"}) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
         for _,word in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","JoinChannel"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
@@ -1903,7 +1906,163 @@ test("hh routes, duplicates, ignore, rate, ttl and caps in the window",function(
     for i=1,70 do p("Fighter"..i,"PARTY") end
     eq(N.Safe.count(N.Main.store.reports),64); eq(N.Main.lastDrop,"report cap")
     report(1,7,"Scout"); eq(N.Main.lastDrop,"enriched"); eq(N.Safe.count(N.Main.store.reports),65)
-    eq(#sent,0); eq(forbidden,0); no(N.Main.error)
+    -- party/raid pings go on to the guild (Task 6); nothing on any other prefix or route
+    yes(#sent>0); for _,m in ipairs(sent) do eq(m.prefix,"LEGW1"); eq(m.kind,"GUILD") end
+    eq(forbidden,0); no(N.Main.error)
+end)
+-- Task 6: guild relay (LEGW1)
+local function hx(s) return (s:gsub(".",function(c) return string.format("%02x",c:byte()) end)) end
+local function weRec(N,over)
+    local t={src="we",kind="group",origin="Scout",via="Scout",route="PARTY",rid="1",zone=100,x=.4,y=.5,count=2,
+        enemies={{hash="abc",class="MAGE",level=40},{hash="def"}},layer={ns="server",value="8000"},heard=100,age=5,share="public"}
+    for k,v in pairs(over or {}) do t[k]=v end
+    return assert(N.Record.new(t))
+end
+local function relayed(N) local out={}; for _,m in ipairs(sent) do if m.prefix=="LEGW1" then out[#out+1]=m end end; return out end
+test("relay round-trips a we record and an hh record",function()
+    local N=loadAddon(); local R=N.Relay
+    local text=R.encode(weRec(N),110)
+    eq(text,"R|1|we|group|"..hx("Scout").."|1|100|400|500|2|s|8000|15|abc:MAGE:40,def::")
+    local r=R.decode(text,"Relayer",200)
+    yes(r); eq(r.src,"guild"); eq(r.label,"we"); eq(r.kind,"group"); eq(r.origin,"Scout"); eq(r.via,"Relayer"); eq(r.route,"GUILD")
+    eq(r.rid,"1"); eq(r.zone,100); eq(r.x,.4); eq(r.y,.5); eq(r.count,2); eq(r.layer.ns,"server"); eq(r.layer.value,"8000")
+    eq(r.heard,185); eq(r.share,"guild"); eq(#r.enemies,2); eq(r.enemies[1].hash,"abc"); eq(r.enemies[1].class,"MAGE"); eq(r.enemies[1].level,40)
+    eq(r.enemies[2].hash,"def"); eq(r.enemies[2].class,nil); eq(r.id,"guild:scout:1"); eq(R.key(r),"we:scout:1")
+    -- an edge coordinate of 1.0 goes as 999 (.999), like HeadHunter's own encoding
+    local edge=R.encode(weRec(N,{x=1,y=0}),100); yes(edge:find("|100|999|0|",1,true)); eq(R.decode(edge,"G",100).x,.999)
+    -- HeadHunter fight with names, a zoneUID layer, no position; and an outlaw
+    local hh=assert(N.Record.new({src="hh",kind="fight",origin="Mira Vale",via="Carrier",route="WHISPER",rid="1800000000",zone=100,count=2,
+        enemies={{name="Kora Reed",class="PALADIN",level=31},{name="Ann Lee",level=-1}},layer={ns="zoneuid",value=4},heard=100,age=0,share="public"}))
+    r=R.decode(R.encode(hh,100),"Relayer",100)
+    -- its zoneUID layer is not sent: a relayed HeadHunter record has no layer (r2)
+    yes(r); eq(r.label,"hh"); eq(r.kind,"fight"); eq(r.origin,"Mira Vale"); eq(r.x,nil); eq(r.layer.ns,"unknown"); eq(r.layer.value,nil)
+    eq(r.enemies[1].name,"Kora Reed"); eq(r.enemies[1].class,"PALADIN"); eq(r.enemies[1].level,31); eq(r.enemies[2].name,"Ann Lee"); eq(r.enemies[2].level,-1)
+    local outlaw=assert(N.Record.new({src="hh",kind="outlaw",origin="Spotter",route="PARTY",rid="abc:1800000000",zone=100,count=1,
+        enemies={{name="Kora Reed"}},layer={ns="unknown"},heard=100,age=0,share="public"}))
+    r=R.decode(R.encode(outlaw,100),"Relayer",100); yes(r); eq(r.kind,"outlaw"); eq(r.rid,"abc:1800000000"); eq(r.layer.ns,"unknown")
+    -- end to end: a party report goes to the guild once, after the wait
+    N=loadAddon(); establish(N); N.Relay.rand=function() return 2 end; advance(1)
+    hello("Scout",19,"PARTY"); report(1,8000,"Scout",nil,"PARTY")
+    eq(#relayed(N),0); advance(1); eq(#relayed(N),0); advance(1.1)
+    local out=relayed(N); eq(#out,1); eq(out[1].kind,"GUILD"); eq(out[1].target,nil)
+    local back=R.decode(out[1].text,"X",clock); eq(back.origin,"Scout"); eq(back.layer.value,"8000"); eq(#back.enemies,1); eq(back.enemies[1].hash,"abc")
+    advance(200); eq(#relayed(N),1); eq(forbidden,0)
+end)
+test("relay skips records heard on GUILD",function()
+    local N=loadAddon(); establish(N); advance(1)
+    hello("Scout",19); report(1,8000,"Scout"); advance(5); eq(#sent,0)
+    no(N.Relay.offer(N.Main.relay,weRec(N,{route="GUILD",share="guild"}),clock,{inGuild=true,inInstance=false,guild="Test Guild"}))
+    no(N.Relay.offer(N.Main.relay,weRec(N,{share="guild"}),clock,{inGuild=true,inInstance=false,guild="Test Guild"}))
+    -- a relayed G from War Effort's own guild path is guild traffic too
+    deliver("CHAT_MSG_ADDON","WEFF1",VG,"GUILD","Relay"); advance(5); eq(#sent,0)
+end)
+test("relay never re-relays a guild record",function()
+    local N=loadAddon(); establish(N); advance(1)
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{heard=clock,age=0}),clock),"GUILD","Guildie")
+    eq(N.Main.lastDrop,"relayed we"); eq(N.Safe.count(N.Main.store.reports),1)
+    advance(5); eq(#sent,0)
+    local stored=N.Store.rows(N.Main.store,clock,"reported")[1].record
+    no(N.Relay.offer(N.Main.relay,stored,clock,{inGuild=true,inInstance=false,guild="Test Guild"}))
+    -- a relay never claims to be first-hand: own/guild/anything but we and hh is refused
+    for _,src in ipairs({"own","guild","LEGW1",""}) do
+        eq(N.Relay.decode("R|1|"..src.."|group|"..hx("Scout").."|9|100|||1|u||0|","Guildie",clock),nil,src)
+    end
+end)
+test("relay stands down when another guildmate sends first",function()
+    local N=loadAddon(); establish(N); N.Relay.rand=function() return 2 end; advance(1)
+    hello("Scout",19,"PARTY"); report(1,8000,"Scout",nil,"PARTY")
+    yes(N.Main.relay.pending["we:scout:1"])
+    advance(1)
+    local copy=N.Relay.encode(N.Main.relay.pending["we:scout:1"].record,clock)
+    deliver("CHAT_MSG_ADDON","LEGW1",copy,"GUILD","Quick")
+    eq(N.Main.relay.pending["we:scout:1"],nil); advance(5); eq(#relayed(N),0)
+    -- the guildmate's copy and our first-hand record are one report and one reporter
+    eq(N.Safe.count(N.Main.store.reports),1); eq(N.Store.rows(N.Main.store,clock,"reported")[1].record.src,"we")
+    eq(#N.Store.reporters(N.Main.store,clock),1)
+end)
+test("relay sends each id once in 120 s",function()
+    local N=loadAddon(); local R=N.Relay; local st=R.new(); local ctx={inGuild=true,inInstance=false,guild="Test Guild"}
+    R.rand=function() return .5 end
+    local rec=weRec(N); yes(R.offer(st,rec,100,ctx)); eq(#R.tick(st,100.4),0); eq(#R.tick(st,100.5),1)
+    no(R.offer(st,rec,160,ctx)); no(R.offer(st,weRec(N,{route="RAID"}),219,ctx))
+    yes(R.offer(st,rec,220,ctx))
+    -- two guildmates relaying the same report: the guild sees it once
+    N=loadAddon(); establish(N); advance(1)
+    local text=R.encode(weRec(N,{heard=clock,age=0}),clock)
+    deliver("CHAT_MSG_ADDON","LEGW1",text,"GUILD","One"); deliver("CHAT_MSG_ADDON","LEGW1",text,"GUILD","Two")
+    eq(N.Main.lastDrop,"duplicate"); eq(N.Safe.count(N.Main.store.reports),1); eq(#N.Store.reporters(N.Main.store,clock),0)
+    -- 256 remembered ids at most
+    st=R.new(); for i=1,300 do R.offer(st,weRec(N,{rid=tostring(i)}),100,ctx); R.clear(st) end; eq(st.n,256)
+end)
+test("relay drops instead of queueing when the bucket is empty",function()
+    local N=loadAddon(); establish(N); N.Relay.rand=function() return .5 end; advance(1)
+    for i=1,7 do N.Main.offerRelay(weRec(N,{origin="Scout"..string.char(96+i),heard=clock})) end
+    advance(1); eq(#relayed(N),5); eq(N.Main.lastRelay,"throttled")
+    eq(next(N.Main.relay.pending),nil)
+    advance(30); eq(#relayed(N),5)
+    -- the bucket refills: a new record goes
+    N.Main.offerRelay(weRec(N,{origin="Later",heard=clock})); advance(1); eq(#relayed(N),6)
+end)
+test("relayed record is labelled and not first-hand",function()
+    local N=loadAddon(); establish(N); advance(20)
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{heard=clock-10,age=0}),clock),"GUILD","Guildie")
+    local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,2)
+    local r=rows[1].record; eq(r.src,"guild"); eq(r.label,"we"); eq(r.via,"Guildie"); eq(r.origin,"Scout"); eq(r.heard,clock-10)
+    eq(rows[1].source,"relayed by Guildie (War Effort)"); eq(rows[1].confidence,"reported, not confirmed")
+    eq(rows[1].relation,"other")
+    -- a relayed reporter was in someone else's group: not an invite candidate
+    eq(#N.Store.reporters(N.Main.store,clock),0)
+    -- no hop through the War Effort chat fallback for a relayed record: the origin was in someone else's group
+    eq(N.Hop.candidate(r,{}),nil)
+    -- the first-hand report of the same id replaces the relayed copy
+    hello("Scout",19,"PARTY"); report(1,8000,"Scout",nil,"PARTY")
+    rows=N.Store.rows(N.Main.store,clock,"reported"); eq(rows[1].record.src,"we"); eq(N.Safe.count(N.Main.store.reports),1)
+    -- a HeadHunter relay: label and a tracked name found by name
+    SlashCmdList.LAYERENEMIES("find Kora Reed")
+    local hh=assert(N.Record.new({src="hh",kind="fight",origin="Mira Vale",route="WHISPER",rid="5",zone=100,count=1,
+        enemies={{name="Kora Reed",class="PALADIN",level=31}},layer={ns="zoneuid",value=4},heard=clock,share="public"}))
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(hh,clock),"GUILD","Guildie")
+    local hrow; for _,row in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do if row.record.label=="hh" then hrow=row end end
+    eq(hrow.source,"relayed by Guildie (HeadHunter fight)"); eq(hrow.name,"Kora Reed"); eq(hrow.relation,"unknown")
+    local loc=N.Main.find.locations["Kora Reed"]; yes(loc); eq(loc.spotter,"Mira Vale"); eq(loc.zone,100)
+    -- origin is us, or ignored: dropped
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Me",rid="7",heard=clock,age=0}),clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relay origin")
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Me-TestRealm",rid="17",heard=clock,age=0}),clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relay origin")
+    local old=C_FriendList.IsIgnored; C_FriendList.IsIgnored=function(n) return n=="Bad Guy" end
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Bad Guy",rid="8",heard=clock,age=0}),clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relay origin")
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Fine",rid="9",heard=clock,age=0}),clock),"GUILD","Bad Guy"); eq(N.Main.lastDrop,"ignored sender")
+    C_FriendList.IsIgnored=old; eq(#sent,0)
+end)
+test("relay rejects format version 2 and oversize",function()
+    local N=loadAddon(); local R=N.Relay
+    local good=R.encode(weRec(N),100)
+    local v2=good:gsub("^R|1|","R|2|"); local r,why=R.decode(v2,"G",100); eq(r,nil); eq(why,"version")
+    eq(R.decode(good..string.rep(",",256-#good),"G",100),nil); eq(R.decode(string.rep("R",256),"G",100),nil)
+    local bad={good:gsub("|abc:MAGE:40,def::$",""),good.."|x",good:gsub("|100|400|","|100|1000|"),good:gsub("|2|s|","|81|s|"),
+        good:gsub("|5|abc","|901|abc"),good:gsub("|s|","|q|"),good.." ",good:gsub("^R","Q"),good:gsub(hx("Scout"),"5"),good:gsub("abc:MAGE:40","abc:MAGE:101"),
+        good:gsub("abc:MAGE:40","abcde:MAGE:40"),good:gsub("abc:MAGE:40","abzz:MAGE:40"),good:gsub("abc:MAGE:40","ab:MAGE:40"),
+        good:gsub("abc:MAGE:40","0a41:MAGE:40")}
+    for _,text in ipairs(bad) do eq(R.decode(text,"G",100),nil,text) end
+    -- too many enemies: as many as fit go, the rest is dropped
+    local many={}; for i=1,80 do many[i]={hash=string.format("%03d",i),class="WARRIOR",level=60} end
+    local big=R.encode(weRec(N,{count=80,enemies=many}),100); yes(#big<=255); local back=R.decode(big,"G",100); yes(back); yes(#back.enemies>5 and #back.enemies<80)
+    -- a record that does not fit even without enemies, or is too old, is not sent
+    yes(#R.encode(weRec(N,{origin=string.rep("a",100)}),100)<=255)
+    eq(R.encode(weRec(N,{origin=string.rep("a",100),rid=string.rep("9",24),layer={ns="unknown",value=string.rep("7",32)}}),100),nil)
+    eq(R.encode(weRec(N,{heard=0,age=0}),901),nil)
+end)
+test("relay silent outside a guild",function()
+    local N=loadAddon(); establish(N); N.Relay.rand=function() return .5 end; advance(1)
+    inGuild=false; hello("Scout",19,"PARTY"); report(1,8000,"Scout",nil,"PARTY"); advance(5); eq(#sent,0)
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{rid="2",heard=clock,age=0}),clock),"GUILD","Guildie"); eq(N.Safe.count(N.Main.store.reports),1)
+    inGuild=true; inInstance=true; report(3,8000,"Scout",nil,"PARTY"); advance(5); eq(#sent,0)
+    IsInInstance=function() return nil end; advance(10); report(4,8000,"Scout",nil,"PARTY"); advance(5); eq(#sent,0)
+    IsInInstance=function() return false end; advance(10); report(5,8000,"Scout",nil,"PARTY"); advance(5); eq(#relayed(N),1)
+    -- only GUILD carries LEGW1, and our own echo is not read
+    local text=N.Relay.encode(weRec(N,{rid="6",heard=clock,age=0}),clock)
+    for _,kind in ipairs({"PARTY","RAID","WHISPER"}) do deliver("CHAT_MSG_ADDON","LEGW1",text,kind,"Guildie") end
+    deliver("CHAT_MSG_ADDON","LEGW1",text,"GUILD","Me-TestRealm")
+    local n=0; for _,row in pairs(N.Main.store.reports) do if row.record.rid=="6" then n=n+1 end end; eq(n,0); eq(forbidden,0)
 end)
 test("hh only P, L and E frames count against the rate (مانع T4 S1)",function()
     local N=loadAddon(); establish(N); advance(1); server=HHT
@@ -1990,6 +2149,130 @@ test("hh count is the number of enemy ids; rows show via <carrier>",function()
     rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].reporter,"Scout"); eq(rows[1].via,"Relay")
     -- the window line too
     N.UI.toggle(); N.UI.select("reported"); eq(N.UI.pool[1].sub.text,"reported by Scout via Relay")
+end)
+test("relayed origins never become Find spotters (مانع T6 F1)",function()
+    local N=loadAddon(); chatBox(); establish(N); advance(20); local U=N.UI
+    SlashCmdList.LAYERENEMIES("find Kora Reed")
+    local hhRec=weRec(N,{src="hh",kind="fight",origin="Stranger",share="public",layer={ns="unknown"},count=1,heard=clock,age=0,
+        enemies={{name="Kora Reed",class="PALADIN",level=31}}})
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(hhRec,clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relayed hh")
+    U.toggle(); U.tabs.find:Click()
+    eq(U.pool[1].title.text,"Kora Reed"); yes(U.pool[1].sub.text:find("seen in a relayed report",1,true)); no(U.pool[1].sub.text:find("Stranger",1,true))
+    no(U.pool[1].ask:IsShown())
+    no(LE.AskInvite("Stranger")); drain(); eq(#opened,0); eq(#sent,0)
+    -- the same name reported first-hand afterwards can be asked again
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AP:2s;"..b36(server)..";dw;6y;a1;Kora Reed/P/31;4","PARTY","Mira Vale")
+    U.render(); yes(U.pool[1].sub.text:find("seen by Mira Vale",1,true)); yes(U.pool[1].ask:IsShown())
+end)
+test("relay rechecks guild and instance at send time (مانع T6 S1)",function()
+    local N=loadAddon(); establish(N); N.Relay.rand=function() return .5 end; advance(1)
+    local function try(change) N=loadAddon(); establish(N); N.Relay.rand=function() return .5 end; advance(1)
+        N.Main.offerRelay(weRec(N,{heard=clock})); yes(next(N.Main.relay.pending)); change(); advance(1); local n=#relayed(N); inGuild,inInstance,guildName=true,false,"Test Guild"; return n end
+    eq(try(function() end),1)
+    eq(try(function() guildName="Other Guild" end),0)
+    eq(try(function() inGuild=false end),0)
+    eq(try(function() inInstance=true end),0)
+    eq(try(function() inInstance=nil end),0)
+    eq(try(function() guildName=nil end),0)
+    -- no readable guild name: nothing is offered
+    N=loadAddon(); establish(N); advance(1); guildName=nil
+    no(N.Relay.offer(N.Main.relay,weRec(N),clock,N.Main.relayContext())); guildName="Test Guild"
+end)
+test("relayed HeadHunter lives 300 s from origin time (مانع T6 S2)",function()
+    local N=loadAddon(); establish(N); advance(250); local R=N.Relay
+    local function hhAt(age,rid) return weRec(N,{src="hh",kind="fight",rid=rid,share="public",layer={ns="unknown"},count=1,heard=clock,age=age,enemies={}}) end
+    eq(select(2,R.decode(R.encode(hhAt(300,"1"),clock),"Guildie",clock)),"too old")
+    yes(R.decode(R.encode(hhAt(299,"2"),clock),"Guildie",clock))
+    -- War Effort copies: 600 s
+    eq(select(2,R.decode(R.encode(weRec(N,{heard=clock,age=600}),clock),"Guildie",clock)),"too old")
+    yes(R.decode(R.encode(weRec(N,{heard=clock,age=599}),clock),"Guildie",clock))
+    -- stored: a 200 s old relayed fight goes after 100 more seconds
+    deliver("CHAT_MSG_ADDON","LEGW1",R.encode(hhAt(200,"3"),clock),"GUILD","Guildie"); eq(N.Safe.count(N.Main.store.reports),1)
+    advance(99); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),1)
+    advance(1); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),0)
+end)
+test("relay rejects bad levels, self-relays, and caps pending offers (مانع T6 S3, S4)",function()
+    local N=loadAddon(); establish(N); advance(20); local R=N.Relay
+    local good=R.encode(weRec(N,{heard=clock,age=0}),clock); yes(R.decode(good,"Guildie",clock))
+    for _,lvl in ipairs({"-","--1","1-","-0-","1-2"}) do eq(R.decode(good:gsub("abc:MAGE:40","abc:MAGE:"..lvl),"Guildie",clock),nil,lvl) end
+    yes(R.decode(good:gsub("abc:MAGE:40","abc:MAGE:-1"),"Guildie",clock)); yes(R.decode(good:gsub("abc:MAGE:40","abc:MAGE:"),"Guildie",clock))
+    -- origin Scout sent by Scout (any realm form) is not a relay
+    eq(select(2,R.decode(good,"Scout",clock)),"origin is sender"); eq(select(2,R.decode(good,"scout-TestRealm",clock)),"origin is sender")
+    yes(R.decode(good,"Scout-OtherRealm",clock)==nil)
+    yes(R.decode(R.encode(weRec(N,{origin="Scout-RealmA",heard=clock,age=0}),clock),"Scout-RealmB",clock))
+    deliver("CHAT_MSG_ADDON","LEGW1",good,"GUILD","Scout"); eq(N.Main.lastDrop,"relay origin is sender"); eq(N.Safe.count(N.Main.store.reports),0)
+    -- a relayed HeadHunter copy claiming a server layer is still not comparable; a relayed War Effort one is
+    -- a relayed HeadHunter copy claiming any layer is refused (r2); a relayed War Effort one compares
+    local crafted=good:gsub("|we|group|","|hh|fight|",1)
+    eq(select(2,R.decode(crafted,"Guildie",clock)),"invalid")
+    eq(select(2,R.decode(crafted:gsub("|s|8000|","|z|4|",1),"Guildie",clock)),"invalid")
+    yes(R.decode(crafted:gsub("|s|8000|","|u||",1),"Guildie",clock))
+    eq(N.Record.relation(R.decode(good,"Guildie",clock),{zone=100,server="7000"}),"other")
+    -- 128 pending offers at most
+    local st=R.new(); local ctx={inGuild=true,inInstance=false,guild="Test Guild"}
+    for i=1,130 do R.offer(st,weRec(N,{rid=tostring(i)}),100,ctx) end
+    local n=0; for _ in pairs(st.pending) do n=n+1 end; eq(n,128); no(R.offer(st,weRec(N,{rid="999"}),100,ctx))
+end)
+test("a stored relay replayed into Find stays unaskable (r2)",function()
+    for _,src in ipairs({"hh","we"}) do
+        for _,mode in ipairs({"slash","button","unrelated"}) do
+            local N=loadAddon(); chatBox(); establish(N); advance(2); local U=N.UI
+            local name=src=="hh" and "Kora Reed" or "Alice"
+            local enemy=src=="hh" and {name=name,class="PALADIN",level=31} or {hash=N.Hash.player(name,""),class="PALADIN",level=31}
+            local rec=assert(N.Record.new({src=src,kind=src=="hh" and "fight" or "group",origin="Stranger",route="PARTY",rid="1",zone=100,count=1,
+                enemies={enemy},layer={ns="unknown"},heard=clock,share="public"}))
+            if mode=="unrelated" then SlashCmdList.LAYERENEMIES("find "..name) end
+            deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(rec,clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relayed "..src,src..mode)
+            U.toggle(); U.tabs.find:Click()
+            if mode=="button" then U.input:SetText(name); U.add:Click()
+            else SlashCmdList.LAYERENEMIES("find "..(mode=="unrelated" and "Otherenemy" or name)); U.render() end
+            local row; for _,r in ipairs(N.Main.findRows()) do if r.name==name then row=r end end
+            yes(row and row.spotter,src..mode); no(row.canAsk,src..mode)
+            local i; for k,r in ipairs(U.pool) do if r.title.text==name then i=k end end
+            no(U.pool[i].ask:IsShown(),src..mode); U.pool[i].ask:Click(); no(LE.AskInvite("Stranger"),src..mode); drain(); eq(#opened,0,src..mode)
+        end
+    end
+end)
+test("a duplicate relay does not make a first-hand Find row unaskable (r2)",function()
+    local N=loadAddon(); chatBox(); establish(N); advance(2)
+    SlashCmdList.LAYERENEMIES("find Kora Reed")
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AP:2s;"..b36(server)..";dw;6y;a1;Kora Reed/P/31;4","PARTY","Mira Vale")
+    local function row() for _,r in ipairs(N.Main.findRows()) do if r.name=="Kora Reed" then return r end end end
+    yes(row().canAsk); eq(row().spotter,"Mira Vale")
+    -- a guildmate relays the same fight back to us: a duplicate, Find unchanged
+    local rec=assert(N.Record.new({src="hh",kind="fight",origin="Mira Vale",route="PARTY",rid=tostring(math.floor(server)),zone=100,count=1,
+        enemies={{name="Kora Reed",class="PALADIN",level=31}},layer={ns="unknown"},heard=clock,share="public"}))
+    advance(1); deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(rec,clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"duplicate")
+    yes(row().canAsk); eq(row().spotter,"Mira Vale")
+    -- another relayed fight with the name, newer: still the first-hand row while it is fresh
+    rec=assert(N.Record.new({src="hh",kind="fight",origin="Stranger",route="PARTY",rid="77",zone=100,count=1,
+        enemies={{name="Kora Reed"}},layer={ns="unknown"},heard=clock,share="public"}))
+    advance(1); deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(rec,clock),"GUILD","Guildie"); eq(N.Main.lastDrop,"relayed hh")
+    yes(row().canAsk); eq(row().spotter,"Mira Vale")
+    -- tracking again replays the store: the first-hand row still wins
+    SlashCmdList.LAYERENEMIES("find Other Name"); yes(row().canAsk); eq(row().spotter,"Mira Vale")
+end)
+test("relayed reporters are never invite candidates",function()
+    local N=loadAddon(); establish(N); advance(20)
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Stranger",heard=clock,age=0}),clock),"GUILD","Guildie")
+    eq(N.Main.lastDrop,"relayed we"); eq(#N.Store.rows(N.Main.store,clock,"reported"),2)
+    eq(#N.Store.reporters(N.Main.store,clock),0); eq(#N.Main.candidates(),0)
+    SlashCmdList.LAYERENEMIES("hosts"); yes(logged("No one to ask right now.")); no(logged("Stranger"))
+    no(LE.AskInvite("Stranger")); eq(#sent,0)
+    -- the same origin heard first-hand is a candidate again
+    hello("Stranger",19,"PARTY"); report(1,8000,"Stranger",nil,"PARTY")
+    eq(#N.Store.reporters(N.Main.store,clock),1); eq(N.Main.candidates()[1].name,"Stranger")
+end)
+test("relay receive limit: 12 per 10 s per sender",function()
+    local N=loadAddon(); establish(N); advance(20)
+    local function from(who,rid) deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="O"..who..rid,rid=tostring(rid),heard=clock,age=0}),clock),"GUILD",who) end
+    for i=1,13 do from("Busy",i) end
+    eq(N.Safe.count(N.Main.store.reports),12)
+    N.Main.lastDrop="before"; from("Busy",14); eq(N.Main.lastDrop,"before")    -- dropped silently
+    from("Calm",1); eq(N.Safe.count(N.Main.store.reports),13)                 -- per sender
+    advance(10); from("Busy",15); eq(N.Safe.count(N.Main.store.reports),14)
+    -- the limit table is bounded too
+    local st=N.Relay.new(); for i=1,600 do N.Relay.allow(st,"S"..i,0) end; yes(st.nrates<=512)
 end)
 -- Wire.lua: the only sender
 test("the send mock counts any caller but Wire.lua as forbidden",function()
