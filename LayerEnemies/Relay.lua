@@ -183,3 +183,24 @@ function Rl.tick(st, now, ctx)
     return out
 end
 function Rl.clear(st) S.clear(st.pending) end
+
+-- Finding a LayerEnemies guild host (0.4.0): two control lines on LEGW1/GUILD, outside the "R" format, so a 0.3.x
+-- decoder drops them as invalid.
+--   F|1                  "which LayerEnemies hosts are on?", from the Find hosts click only
+--   H|1|<key>|<zone>     a host's answer: our server key and uiMapID; once on enabling and once per F (60 s)
+function Rl.findLine() return "F|1" end
+function Rl.hostLine(key, zone)
+    key = N.Layer.key(key); zone = S.num(zone)
+    if not key or not zone or zone < 1 or zone > 999999 or zone % 1 ~= 0 then return nil end
+    return "H|1|" .. key .. "|" .. string.format("%d", zone)
+end
+-- control(text) -> {kind = "F"} | {kind = "H", key, zone} | nil
+function Rl.control(text)
+    if S.secret(text) or type(text) ~= "string" or #text > 64 then return nil end
+    if text == "F|1" then return { kind = "F" } end
+    local key, zone = text:match("^H|1|(%d+)|(%d+)$")
+    if not key or #key > 15 then return nil end
+    zone = int(zone, 1, 999999)
+    if not zone or not N.Layer.key(key) then return nil end
+    return { kind = "H", key = N.Layer.key(key), zone = zone }
+end

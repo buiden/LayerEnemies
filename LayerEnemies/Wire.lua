@@ -17,6 +17,9 @@ local lfswAt = nil
 -- Replies are limited to one per 6 s overall, stamped before the client is asked.
 Wr.REPLY_EVERY = 6
 local replyAt = nil
+-- LEGW1 control lines (Relay.control): "F|1" and "H|1|<d>|<d>" only, each at most once per 60 s
+Wr.CONTROL_EVERY = 60
+local controlAt = {}
 local function layerswapText(text)
     if text == "same" then return "reply" end
     local name = text:match("^heard ([^|]+)|%d+%-%d+|%d+|[h%-]$")
@@ -49,6 +52,8 @@ function Wr.send(prefix, text, kind, target)
     if not (route and type(kind) == "string" and route[kind]) then return false, "blocked route" end
     if type(text) ~= "string" or #text < 1 or #text > 255 then return false, "bad text" end
     if prefix == "LFSw" and text ~= Wr.LFSW_TEXT then return false, "bad text" end
+    local control = prefix == "LEGW1" and (text:sub(1, 2) == "F|" or text:sub(1, 2) == "H|") and text:sub(1, 1)
+    if control and not (text == "F|1" or text:match("^H|1|%d+|%d+$")) then return false, "bad text" end
     local lsKind = prefix == "LayerSwap" and layerswapText(text)
     if prefix == "LayerSwap" and not lsKind then return false, "bad text" end
     if kind == "WHISPER" then
@@ -64,6 +69,11 @@ function Wr.send(prefix, text, kind, target)
         local now = S.num(S.call(GetTime))
         if not now or (lfswAt and now - lfswAt < Wr.LFSW_EVERY and now >= lfswAt) then return false, "throttled" end
         lfswAt = now
+    end
+    if control then
+        local now, last = S.num(S.call(GetTime)), controlAt[control]
+        if not now or (last and now - last < Wr.CONTROL_EVERY and now >= last) then return false, "throttled" end
+        controlAt[control] = now
     end
     if lsKind == "reply" then
         local now = S.num(S.call(GetTime))

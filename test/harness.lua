@@ -2533,14 +2533,16 @@ end)
 
 -- 0.4.0 Task 1: one LFSw "Q" on GUILD from a click, 60 s apart, never on its own.
 local ASKED="asked the guild's Bulo users for their layers; answers take up to 6 s"
+local function lfswSent() local n={}; for _,m in ipairs(sent) do if m.prefix=="LFSw" then n[#n+1]=m end end; return n end
 test("0.4 T1: /le hosts find sends exactly one LFSw Q on GUILD, then waits 60 s",function()
     local N=loadAddon(); establish(N)
     slash("hosts"); yes(log[#log]:find("/le hosts find",1,true),"the hosts list ends naming /le hosts find")
     eq(#sent,0,"/le hosts alone sends nothing")
-    slash("hosts find"); eq(#sent,1); eq(sent[1].prefix,"LFSw"); eq(sent[1].text,"Q"); eq(sent[1].kind,"GUILD"); eq(sent[1].target,nil)
+    -- (0.4.0 Task 7.4: the same click also sends one LEGW1 "F|1"; only the LFSw messages are counted here)
+    slash("hosts find"); local q=lfswSent(); eq(#q,1); eq(q[1].text,"Q"); eq(q[1].kind,"GUILD"); eq(q[1].target,nil)
     yes(logged(ASKED))
-    advance(59); slash("hosts find"); eq(#sent,1); yes(log[#log]:find("wait 1 s",1,true),log[#log])
-    advance(1); slash("hosts find"); eq(#sent,2); eq(forbidden,0)
+    advance(59); slash("hosts find"); eq(#lfswSent(),1); yes(log[#log]:find("wait 1 s",1,true),log[#log])
+    advance(1); slash("hosts find"); eq(#lfswSent(),2); eq(forbidden,0)
 end)
 test("0.4 T1: the 60 s limit is in Wire itself, and Wire takes only the literal Q",function()
     local N=loadAddon(); local Wr=N.Wire
@@ -2564,8 +2566,8 @@ end)
 test("0.4 T1: the Find hosts button on the Friendly tab, one Q per click",function()
     local N=loadAddon(); establish(N); local U=N.UI; U.toggle(); U.select("friendly")
     yes(U.findHosts:IsShown()); eq(U.findHosts.label.text,"Find hosts")
-    U.findHosts:Click(); drain(); eq(#sent,1); eq(sent[1].prefix,"LFSw")
-    U.render(); yes(U.findHosts.disabled,"disabled while the 60 s run"); U.findHosts:Click(); eq(#sent,1)
+    U.findHosts:Click(); drain(); eq(#lfswSent(),1); eq(sent[1].prefix,"LFSw")
+    U.render(); yes(U.findHosts.disabled,"disabled while the 60 s run"); U.findHosts:Click(); eq(#lfswSent(),1)
     advance(60); U.render(); no(U.findHosts.disabled)
     U.select("reported"); no(U.findHosts:IsShown())
 end)
@@ -2856,7 +2858,7 @@ test("0.4 T7.3: LayerSwap whispers carry only the request, same or heard; replie
 end)
 test("0.4 T7.3: hosting: off at load, on refused beside LayerSwap or Bulo or without the invite call",function()
     local N=loadAddon(); eq(N.Main.host.on,false)
-    slash("host"); yes(logged("Hosting for your guild: off"))
+    slash("host"); yes(logged("Hosting for your guild: off (not saved"))
     slash("host on"); yes(N.Main.host.on); eq(rosterCalls,1); yes(logged("Hosting for your guild is on"))
     slash("host"); yes(logged("Hosting for your guild: on · 0 invites in the last 10 minutes"))
     slash("host off"); no(N.Main.host.on); yes(logged("Hosting for your guild is off."))
@@ -2880,7 +2882,8 @@ test("0.4 T7.3: a guild member's request: one reply, at most one invite, one lin
     guildLine("inv layer <LS 100 want 7086-0>","Bob"); drain(); eq(#sent,3); eq(#invites,1)
     -- hosting off, or LayerSwap loaded while on: nothing
     advance(61); slash("host off"); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#sent,3)
-    slash("host on"); deliver("GUILD_ROSTER_UPDATE",true); loaded.LayerSwap=true; lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#sent,3); eq(#invites,1)
+    -- turning hosting on again announces one LEGW1 H (Task 7.4); the request beside LayerSwap gets nothing
+    slash("host on"); eq(#sent,4); eq(sent[4].text,"H|1|7086|100"); deliver("GUILD_ROSTER_UPDATE",true); loaded.LayerSwap=true; lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#sent,4); eq(#invites,1)
     loaded.LayerSwap=nil; lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,2)
     slash("host"); yes(logged("2 invites in the last 10 minutes"))
     -- a bad line or a secret sender: nothing
@@ -2925,10 +2928,76 @@ end)
 test("0.4 T7.3: the window toggle and the hosting line",function()
     local N=loadAddon(); establish(N); local U=N.UI; U.toggle(); U.select("friendly")
     yes(U.host:IsShown()); eq(U.host.label.text,"Host: off"); no(U.hosting:IsShown())
-    U.host:Click(); drain(); yes(N.Main.host.on); eq(U.host.label.text,"Host: on"); yes(U.hosting:IsShown()); eq(U.hosting.text,"Hosting for your guild")
+    U.host:Click(); drain(); yes(N.Main.host.on); eq(U.host.label.text,"Host: on"); yes(U.hosting:IsShown()); eq(U.hosting.text,"Hosting for your guild · off after every reload")
     U.select("reported"); no(U.host:IsShown()); yes(U.hosting:IsShown(),"the line stays visible while on")
     U.select("friendly"); U.host:Click(); drain(); no(N.Main.host.on); no(U.hosting:IsShown())
-    loaded.LayerSwap=true; U.host:Click(); drain(); no(N.Main.host.on); eq(#sent,0)
+    -- the only message: the H from turning hosting on (Task 7.4); the refused click beside LayerSwap sends nothing
+    loaded.LayerSwap=true; U.host:Click(); drain(); no(N.Main.host.on); eq(#sent,1); eq(sent[1].text,"H|1|7086|100")
+end)
+
+-- 0.4.0 Task 7.4: finding a LayerEnemies host: "F|1" from the Find hosts click, "H|1|<key>|<zone>" from a host.
+local function legw(text,from,kind) deliver("CHAT_MSG_ADDON","LEGW1",text,kind or "GUILD",from or "Bob"); drain() end
+local function legwSent(prefix) local out={}; for _,m in ipairs(sent) do if m.prefix=="LEGW1" and m.text:sub(1,#prefix)==prefix then out[#out+1]=m end end; return out end
+test("0.4 T7.4: a 0.3.1 decoder rejects F and H lines as invalid; Relay builds and reads them strictly",function()
+    local N=loadAddon(); local R=N.Relay
+    for _,s in ipairs({"F|1","H|1|8000|100"}) do local rec,why=R.decode(s,"Bob",clock); eq(rec,nil); eq(why,"invalid") end
+    eq(R.findLine(),"F|1"); eq(R.hostLine("8000",100),"H|1|8000|100"); eq(R.hostLine(nil,100),nil); eq(R.hostLine("8000",nil),nil)
+    local c=R.control("F|1"); eq(c.kind,"F"); c=R.control("H|1|8000|100"); eq(c.kind,"H"); eq(c.key,"8000"); eq(c.zone,100)
+    for _,bad in ipairs({"F|2","F|1|x","F","H|1|8000","H|1|8000|100|x","H|2|8000|100","H|1|abc|100","H|1|8000|0","H|1|8000|abc","H|1|-1|100",
+        "R|1|x",secret,5,"H|1|"..string.rep("9",40).."|100","H|1|1234567890123456|100"}) do eq(R.control(bad),nil,tostring(type(bad)=="string" and bad or type(bad))) end
+end)
+test("0.4 T7.4: Find hosts sends one Q and one F|1, once per 60 s; outside a guild neither",function()
+    local N=loadAddon(); establish(N)
+    slash("hosts find"); eq(#sent,2); eq(sent[1].prefix,"LFSw"); eq(sent[2].prefix,"LEGW1"); eq(sent[2].text,"F|1"); eq(sent[2].kind,"GUILD")
+    advance(30); slash("hosts find"); eq(#sent,2)
+    advance(31); slash("hosts find"); eq(#sent,4)
+    -- the F limit is in Wire too
+    local ok,why=N.Wire.send("LEGW1","F|1","GUILD"); no(ok); eq(why,"throttled")
+    no(N.Wire.send("LEGW1","F|2","GUILD")); no(N.Wire.send("LEGW1","H|1|8000","GUILD"))
+    N=loadAddon(); inGuild=false; slash("hosts find"); eq(#sent,0); inGuild=true
+    eq(forbidden,0)
+end)
+test("0.4 T7.4: turning hosting on announces H once; an F gets one H 1 to 6 s later, at most once per 60 s",function()
+    local N=loadAddon(); establish(N); roster={{"Bob-TestRealm",true}}
+    slash("host on"); local h=legwSent("H|"); eq(#h,1); eq(h[1].text,"H|1|7086|100"); eq(h[1].kind,"GUILD")
+    advance(61); legw("F|1","Bob"); eq(#legwSent("H|"),1,"not at once"); advance(7); drain(); eq(#legwSent("H|"),2)
+    advance(10); legw("F|1","Cy"); advance(7); drain(); eq(#legwSent("H|"),2,"second F inside 60 s")
+    advance(50); legw("F|1","Cy"); legw("F|1","Di"); advance(7); drain(); eq(#legwSent("H|"),3,"two F, one H")
+    -- our own F, an F on PARTY or WHISPER: nothing
+    advance(61); legw("F|1","Me"); legw("F|1","Bob","PARTY"); legw("F|1","Bob","WHISPER"); advance(7); drain(); eq(#legwSent("H|"),3)
+    -- the H limit is in Wire too
+    local ok,why=N.Wire.send("LEGW1","H|1|7086|100","GUILD"); yes(ok); ok,why=N.Wire.send("LEGW1","H|1|7086|100","GUILD"); no(ok); eq(why,"throttled")
+    eq(#invites,0); eq(forbidden,0)
+end)
+test("0.4 T7.4: no H when hosting is off, our layer or zone unknown, or LayerSwap loaded",function()
+    local N=loadAddon(); establish(N)
+    legw("F|1","Bob"); advance(7); drain(); eq(#sent,0,"hosting off")
+    N=loadAddon(); slash("host on"); eq(#legwSent("H|"),0,"own layer unknown: no announcement"); yes(N.Main.host.on)
+    legw("F|1","Bob"); advance(7); drain(); eq(#legwSent("H|"),0)
+    N=loadAddon(); establish(N); slash("host on"); eq(#legwSent("H|"),1); advance(61)
+    loaded.LayerSwap=true; legw("F|1","Bob"); advance(7); drain(); eq(#legwSent("H|"),1); loaded.LayerSwap=nil
+    -- hosting turned off while the answer waits: nothing
+    advance(61); legw("F|1","Bob"); slash("host off"); advance(7); drain(); eq(#legwSent("H|"),1)
+end)
+test("0.4 T7.4: a guild H is remembered 12 minutes as a host on <key>-0; /le hop host asks it",function()
+    local N=loadAddon(); establish(N)
+    legw("H|1|8000|100","Bob")
+    local list=N.Main.candidates(); eq(#list,1); eq(list[1].name,"Bob"); eq(list[1].layer,"8000"); yes(list[1].host)
+    slash("hosts"); slash("hop host 1"); eq(#sent,1); eq(sent[1].prefix,"LayerSwap"); eq(sent[1].target,"Bob"); yes(sent[1].text:find("want 8000-0",1,true),sent[1].text)
+    -- from us, ignored, not GUILD, malformed: not stored
+    N=loadAddon(); establish(N)
+    legw("H|1|8000|100","Me"); legw("H|1|8000|100","Bob","PARTY"); legw("H|1|8000|100","Bob","WHISPER"); legw("H|1|abc|100","Bob")
+    clientIgnored=true; legw("H|1|8000|100","Cy"); clientIgnored=false
+    eq(#N.Main.candidates(),0); eq(next(N.Main.heard.heard),nil,"nothing stored")
+    legw("H|1|8000|100","Dee"); eq(#N.Main.candidates(),1); advance(721); wall=wall+721; eq(#N.Main.candidates(),0,"12 minutes")
+    eq(#sent,0); eq(forbidden,0)
+end)
+test("0.4 T7.4: hosting is not saved: the window line and messages say so",function()
+    local N=loadAddon(); establish(N); local U=N.UI; U.toggle(); U.select("friendly")
+    slash("host on"); yes(logged("Hosting is off after every login or reload."))
+    eq(U.hosting.text,"Hosting for your guild · off after every reload")
+    slash("host off"); slash("host"); yes(logged("Hosting for your guild: off (not saved: off after every login or reload)"))
+    eq(LayerEnemiesDB.host,nil)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -261,6 +261,8 @@ function M.relayIn(text,kind,sender)
     if A.ignored(sender) then M.lastDrop="ignored sender"; return end
     local time=now()
     if not N.Relay.allow(M.relay,sender,time) then return end
+    local control=N.Relay.control(text)
+    if control then return M.hostControl(control,sender,time) end
     local record,why=N.Relay.decode(text,sender,time)
     if not record then M.lastDrop="relay "..tostring(why); return end
     N.Relay.heard(M.relay,record,time)
@@ -306,7 +308,8 @@ function M.setHost(on)
         local why=M.hostBlocked() or (S.call(IsInGuild)~=true and "you are not in a guild.")
         if why then M.say("LayerEnemies: "..why); return false end
         M.host.on=true; A.rosterRefresh(now())
-        M.say("LayerEnemies: Hosting for your guild is on. Guild members who ask by LayerSwap request are invited to your layer (10 s apart, at most 6 in 10 minutes, never in combat). Guests are never removed.")
+        M.say("LayerEnemies: Hosting for your guild is on. Guild members who ask by LayerSwap request are invited to your layer (10 s apart, at most 6 in 10 minutes, never in combat). Guests are never removed. Hosting is off after every login or reload.")
+        M.announceHost()
     else
         M.host.on=false; M.host.held=nil
         M.say("LayerEnemies: Hosting for your guild is off.")
@@ -317,7 +320,7 @@ end
 function M.hostStatus()
     local time,n=now(),0
     for _,at in ipairs(M.host.invites) do if time-at<N.GuildHost.WINDOW then n=n+1 end end
-    M.say("LayerEnemies: Hosting for your guild: "..(M.host.on and ("on · "..n.." invite"..(n==1 and "" or "s").." in the last 10 minutes") or "off"))
+    M.say("LayerEnemies: Hosting for your guild: "..(M.host.on and ("on · "..n.." invite"..(n==1 and "" or "s").." in the last 10 minutes") or "off (not saved: off after every login or reload)"))
 end
 -- Our own state for GuildHost.decide; member is read only after the early checks pass.
 function M.hostOwn()
@@ -329,6 +332,30 @@ function M.hostOwn()
     return {self=self,zone=zone and zone==M.store.zone and zone or nil,key=L.key(M.store.bulo),id=id,
         inInstance=A.inInstance(),inCombat=A.inCombat(),raid=party and party.raid,leader=party and party.leader,
         members=party and party.members or {},asking=M.hop.pending~=nil or M.invite.pending~=nil}
+end
+-- LEGW1 control lines. An H from a guildmate is remembered like a LayerSwap "heard ...|h" (12 minutes, layer
+-- <key>-0); an F, while we host, gets one H 1 to 6 s later (Wire allows one H per 60 s).
+function M.hostControl(c,sender,time)
+    if c.kind=="H" then
+        N.Hosts.heard(M.heard,sender,{kind="heard",layer=c.key.."-0",zone=c.zone,hosting=true},A.wall())
+        if N.UI then N.UI.refresh() end
+        return
+    end
+    if not (M.host and M.host.on) or M.host.answerDue then return end
+    if M.host.announcedAt and time-M.host.announcedAt<N.Wire.CONTROL_EVERY and time>=M.host.announcedAt then return end
+    M.host.answerDue=true
+    local delay=1+math.random()*5
+    if not after(delay,function() M.host.answerDue=nil; guarded(M.announceHost) end) then M.host.answerDue=nil end
+end
+-- One H line: only while hosting, with our key and live zone known, and nothing blocking hosting.
+function M.announceHost()
+    if not (M.host and M.host.on) or M.hostBlocked() then return false end
+    local own=M.hostOwn()
+    local line=N.Relay.hostLine(own.key,own.zone)
+    if not line then return false end
+    local ok=N.Wire.send("LEGW1",line,"GUILD")
+    if ok then M.host.announcedAt=now() end
+    return ok
 end
 function M.hostRequest(text,sender,held)
     if M.hostBlocked() then return end
@@ -655,6 +682,11 @@ end
 -- The only caller of the guild question: /le hosts find and the Find hosts button.
 function M.findHosts()
     local ok,message=N.Hosts.ask(M.heard,now(),S.call(IsInGuild)==true)
+    -- the same click asks LayerEnemies hosts with one F|1 (sent only when the Q went out: guild, 60 s)
+    if ok then
+        local sentF=N.Wire.send("LEGW1",N.Relay.findLine(),"GUILD")
+        if sentF then message=message.."; LayerEnemies hosts were asked too" end
+    end
     M.say("LayerEnemies: "..message)
     if N.UI then N.UI.refresh() end
     return ok

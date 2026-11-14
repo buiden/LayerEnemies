@@ -252,7 +252,7 @@ function U.create()
     -- guild-only hosting, off at every login; the line stays visible on every tab while it is on
     U.host=button(U.body,70,18,"Host: off",function() local M=N.Main; M.setHost(not (M.host and M.host.on)); U.render() end)
     U.host:SetPoint("TOPRIGHT",-92,0); U.host:Hide()
-    U.hosting=font(f,10,{.79,.96,.65}); U.hosting:SetPoint("TOPLEFT",86,-64); U.hosting:SetText("Hosting for your guild"); U.hosting:Hide()
+    U.hosting=font(f,10,{.79,.96,.65}); U.hosting:SetPoint("TOPLEFT",86,-64); U.hosting:SetText("Hosting for your guild · off after every reload"); U.hosting:Hide()
     U.hint=font(f,10,colors.muted); U.hint:SetPoint("TOPLEFT",10,-420); U.hint:SetWidth(340)
     local footer=font(f,10,colors.muted); footer:SetPoint("BOTTOMLEFT",10,9); footer:SetWidth(340)
     footer:SetText("Only players seen by you or reported by other players' addons.")
