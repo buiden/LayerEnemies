@@ -705,12 +705,12 @@ test("a War Effort report shows as reported, not confirmed",function()
     yes(logged("Reported, not confirmed: 1 more in /le reports")); no(logged("Unknown | MAGE"))
     SlashCmdList.LAYERENEMIES("reports")
     yes(logged("Reported, not confirmed (War Effort; age as the reporter's clock gives it):"))
-    yes(logged("Unknown | MAGE | 40 | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Other | layer unknown"))
+    yes(logged("Unknown | MAGE | 40 | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Other | reported cluster position | layer unknown"))
     yes(logged("Only players seen by you or reported by other players' addons.")); no(N.Main.error)
     -- a claimed age is shown
     local stamp=(math.floor(server)-120)%3600
     deliver("CHAT_MSG_ADDON","WEFF1","C|2|100|0.4|0.5|7|1|"..stamp,"GUILD","Older")
-    SlashCmdList.LAYERENEMIES("reports"); yes(logged("1 not listed | Unknown class | ? | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Older | claimed 120 s old | layer unknown"))
+    SlashCmdList.LAYERENEMIES("reports"); yes(logged("1 not listed | Unknown class | ? | zone 100 | received 0 s ago | reported (War Effort) | reported, not confirmed | reported by Older | reported cluster position | claimed 120 s old | layer unknown"))
 end)
 test("receipt-time reports expire ten minutes after receipt",function()
     local N=loadAddon(); establish(N); advance(1); report(1,7)
@@ -1513,7 +1513,7 @@ test("record rejects bad fields",function()
     local function bad(over,why) local r,reason=rec(N,over); eq(r,nil,why); yes(reason,why) end
     bad({count=81},"count 81"); local many={}; for i=1,81 do many[i]={hash="abc"} end; bad({enemies=many},"81 enemies")
     bad({layer={ns="bulo",value="7086"}},"unknown ns"); bad({layer=false},"no layer"); bad({origin="A"},"1-byte origin")
-    bad({origin=string.rep("a",101)},"origin 101"); bad({src="spy"},"src"); bad({kind="raid"},"kind"); bad({route="CHANNEL"},"route")
+    bad({origin=string.rep("a",101)},"origin 101"); bad({src="xx"},"src"); bad({kind="raid"},"kind"); bad({route="CHANNEL"},"route")
     bad({rid=string.rep("1",25)},"rid 25"); bad({x=1.5},"x"); bad({zone=0},"zone"); bad({share="all"},"share"); bad({heard=secret},"secret heard")
     bad({origin=secret},"secret origin"); bad({enemies={{level=secret}}},"secret enemy")
     eq(N.Record.new(nil),nil); eq(N.Record.new(secret),nil)
@@ -1924,8 +1924,8 @@ test("hh L becomes an outlaw record with unknown layer",function()
     deliver("CHAT_MSG_ADDON","HeadHunter","1AL:Kora Reed;2s;"..b36(server)..";dw;6y","WHISPER","Spotter")
     eq(N.Main.lastDrop,"headhunter outlaw")
     local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].name,"Kora Reed"); eq(rows[1].source,"wanted (HeadHunter)")
-    eq(rows[1].relation,"unknown"); eq(rows[1].positionKind,"reporter's position")
-    SlashCmdList.LAYERENEMIES("reports"); yes(table.concat(log,"\n"):find("Kora Reed | Unknown class | ? | zone 100 | received 0 s ago | wanted (HeadHunter) | reported, not confirmed | reported by Spotter | layer unknown",1,true))
+    eq(rows[1].relation,"unknown"); eq(rows[1].positionKind,"observer's position")
+    SlashCmdList.LAYERENEMIES("reports"); yes(table.concat(log,"\n"):find("Kora Reed | Unknown class | ? | zone 100 | received 0 s ago | wanted (HeadHunter) | reported, not confirmed | reported by Spotter | observer's position | layer unknown",1,true))
 end)
 test("hh layer is never comparable",function()
     local N=loadAddon()
@@ -1981,8 +1981,11 @@ test("hh routes, duplicates, ignore, rate, ttl and caps in the window",function(
     eq(N.Safe.count(N.Main.store.reports),7)
     advance(10); p("Busy","PARTY",server); eq(N.Safe.count(N.Main.store.reports),8)
     -- a HeadHunter row lives 300 s
-    advance(289); eq(N.Safe.count(N.Main.store.reports),8); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),8)
-    advance(1); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),1)
+    -- a HeadHunter row lives 300 s from its origin's time (1.0 T2): the batch was 1 to 7 s old when it arrived
+    -- (the six accepted batch rows were 1 to 6 s old on arrival, so they leave one per second, oldest first)
+    advance(283); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),8)
+    advance(1); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),7)
+    advance(6); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),1)
     advance(10); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),0)
     -- 64 HeadHunter rows at most, and they never crowd out War Effort reports
     for i=1,70 do p("Fighter"..i,"PARTY") end
@@ -2230,7 +2233,7 @@ test("hh count is the number of enemy ids; rows show via <carrier>",function()
     deliver("CHAT_MSG_ADDON","WEFF1","G|"..hexOf("Scout").."||C|42|100|0.4|0.5|7086|4|"..stamp,"GUILD","Relay")
     rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].reporter,"Scout"); eq(rows[1].via,"Relay")
     -- the window line too
-    N.UI.toggle(); N.UI.select("reported"); eq(N.UI.pool[1].sub.text,"reported by Scout via Relay")
+    N.UI.toggle(); N.UI.select("reported"); eq(N.UI.pool[1].sub.text,"reported by Scout via Relay · relayed")
 end)
 test("relayed origins never become Find spotters (مانع T6 F1)",function()
     local N=loadAddon(); chatBox(); establish(N); advance(20); local U=N.UI
@@ -3340,6 +3343,79 @@ test("1.0 T1: callers carry their priority: a hop click and Find hosts go in an 
     yes(hopNow(N,rec(N))); eq(#sent,1); eq(sent[1].prefix,"LayerSwap")
     slash("hosts find"); eq(#sent,3,"Q and F|1 are clicks")
     eq(select(2,N.Wire.send("LEGW1","R|1","GUILD",nil,{prio="forward"})),"instance")
+end)
+
+-- 1.0 T2: one record for every network: hand, hops, pos and the origin's time; one row per origin, zone and 5 s.
+local function base(over) local o={src="we",kind="group",origin="Scout",via="Scout",route="GUILD",rid="1",zone=100,count=1,
+    layer={ns="server",value="8000"},heard=500,share="guild"}; for k,v in pairs(over or {}) do o[k]=v end; return o end
+test("1.0 T2: a wrapped, enveloped, relayed or synced record is never first-hand",function()
+    local N=loadAddon(); local R=N.Record
+    eq(R.new(base()).hand,"first")
+    eq(R.new(base({via="Other"})).hand,"relayed","another carrier")
+    eq(R.new(base({wrapped=true})).hand,"relayed"); eq(R.new(base({wrapped=true,hand="first"})).hand,"relayed","a claim of first is not enough")
+    eq(R.new(base({hand="relayed"})).hand,"relayed")
+    eq(R.new(base({src="guild",label="we"})).hand,"relayed","a guild relay")
+    eq(R.new(base({via="scout"})).hand,"first","same name, other case")
+    eq(R.new(base({hops=3})).hops,3); eq(R.new(base({hops=0})),nil); eq(R.new(base({hops=17})),nil); eq(R.new(base({hops="x"})),nil)
+    eq(R.new(base({hand="maybe"})),nil)
+    -- decoders: a War Effort G wrapper and a HeadHunter envelope are relayed; a direct P is first-hand
+    local _,feed=reportFixture(N)
+    local r=feed(VG,"Carrier"); yes(r); eq(r.hand,"relayed"); eq(r.hops,1)
+    r=feed(VC,"Reporter"); yes(r); eq(r.hand,"first")
+    local e=hh(N,HHE,"Carrier")[1]; yes(e); eq(e.hand,"relayed"); eq(e.hops,1)
+    local p=hh(N,HHP,"Fighter")[1]; yes(p); eq(p.hand,"first"); eq(p.hops,nil)
+    -- an envelope sent by its own author is still an envelope; a War Effort wrapper naming its carrier as origin too
+    local own=hh(N,HHE,"Mira Vale")[1]; yes(own); eq(own.hand,"relayed")
+    eq(feed(VG,"Scout One"),nil,"a wrapper carried by its own origin is refused before it becomes a record")
+end)
+test("1.0 T2: at is the origin's time, never the time we heard it",function()
+    local N=loadAddon(); local R=N.Record
+    eq(R.new(base({heard=500,age=40})).at,460); eq(R.new(base({heard=500})).at,500)
+    eq(R.new(base({heard=500,at=470})).at,470); eq(R.new(base({heard=500,at=501})),nil,"after receipt")
+    local _,feed=reportFixture(N)
+    local r=feed(VC,"Reporter",200,"GUILD",720140); yes(r); eq(r.heard,200); eq(r.age,40); eq(r.at,160)
+    local h=hh(N,"1AP:13k;"..b36(HHT-30)..";dw;6y;a1;;",nil,HHT)[1]; yes(h); eq(h.at,50-30)
+end)
+test("1.0 T2: positions are labelled: enemy, observer, victim or none",function()
+    local N=loadAddon(); local R=N.Record
+    eq(R.new(base({x=.5,y=.5})).pos,"enemy"); eq(R.new(base()).pos,"none","no coordinates")
+    eq(R.new(base({x=.5,y=.5,pos="observer"})).pos,"observer"); eq(R.new(base({src="gb",kind="death",x=.5,y=.5,pos="victim"})).pos,"victim")
+    eq(R.new(base({pos="victim"})).pos,"none","no coordinates: none whatever is claimed"); eq(R.new(base({x=.5,y=.5,pos="there"})),nil)
+    eq(hh(N,HHP)[1].pos,"observer","HeadHunter positions are the reporter's")
+    for _,s in ipairs({"spy","fspy","sent","gb","wos","ft"}) do yes(R.new(base({src=s,kind="seen"})),s) end
+    yes(R.new(base({kind="death",src="wos"}))); eq(R.new(base({src="xx"})),nil)
+    -- the window and /le reports say whose position it is and that a row was relayed
+    establish(N); local T=N.Store
+    yes(T.report(N.Main.store,R.new(base({heard=clock,x=.5,y=.5,pos="observer",via="Carrier",rid="7"})),clock))
+    local rows=T.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].hand,"relayed"); eq(rows[1].positionKind,"observer's position")
+    slash("reports"); yes(logged("relayed"))
+    local U=N.UI; U.toggle(); U.select("reported")
+    local found=false; for _,x in ipairs(U.pool) do if x:IsShown() and x.sub.text and x.sub.text:find("relayed",1,true) then found=true end end; yes(found)
+end)
+test("1.0 T2: a record older than its network's limit is dropped, counted from the origin's time",function()
+    local N=loadAddon(); establish(N); local T,R,st=N.Store,N.Record,N.Main.store
+    local ok,why=T.report(st,R.new(base({heard=clock,age=600,rid="a"})),clock); no(ok); eq(why,"expired")
+    yes(T.report(st,R.new(base({heard=clock,age=590,rid="b"})),clock))
+    advance(10); eq(#T.rows(st,clock,"reported"),0,"gone 600 s after the origin's time")
+    ok,why=T.report(st,R.new(base({src="hh",kind="fight",heard=clock,age=300,rid="c",layer={ns="unknown"}})),clock); eq(why,"expired")
+    for _,s in ipairs({"spy","fspy","sent"}) do eq(T.ttl({src=s}),600,s) end
+    for _,s in ipairs({"gb","wos","ft"}) do eq(T.ttl({src=s}),900,s) end
+end)
+test("1.0 T2: one row per origin, zone and 5 s; the copy with names wins",function()
+    local N=loadAddon(); establish(N); local T,R,st=N.Store,N.Record,N.Main.store
+    local hashOnly=R.new(base({heard=clock,rid="10",enemies={{hash="abc"}},count=2}))
+    local named=R.new(base({src="guild",label="own",via="Scout",heard=clock,rid="O1",enemies={{name="Kora Reed"},{name="Ann Lee"}},count=2}))
+    yes(T.report(st,hashOnly,clock)); yes(T.report(st,named,clock)); local rows=T.rows(st,clock,"reported")
+    eq(#rows,2,"two named enemies, one row each"); eq(rows[1].record,named)
+    -- the other way round: the named row stays and the hash-only copy is a duplicate
+    N=loadAddon(); establish(N); T,R,st=N.Store,N.Record,N.Main.store
+    yes(T.report(st,R.new(base({src="guild",label="own",heard=clock,rid="O2",enemies={{name="Kora Reed"}}})),clock))
+    local ok,why=T.report(st,R.new(base({heard=clock+3,rid="11",enemies={{hash="abc"}}})),clock+3); no(ok); eq(why,"duplicate")
+    -- 6 s apart, another zone or another origin: separate rows
+    yes(T.report(st,R.new(base({heard=clock+6,rid="12"})),clock+6))
+    -- two reports of one network within 5 s are two sightings
+    yes(T.report(st,R.new(base({heard=clock+6,rid="14"})),clock+6))
+    yes(T.report(st,R.new(base({origin="Other",via="Other",heard=clock,rid="13"})),clock))
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

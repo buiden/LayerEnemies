@@ -166,7 +166,7 @@ function U.render()
             r.sub:SetText(className(e.class).." · "..M.zoneName(e.zone)); askState(r,nil)
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))
-            r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or ""))
+            r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or ""))
             hopState(r,e.record)
         elseif U.tab=="friendly" then
             r.sub:SetText(table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.layer and "layer "..e.layer or "layer not known"))

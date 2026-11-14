@@ -6,8 +6,12 @@ local S = N.Safe
 local R = {}
 N.Record = R
 
-local SRC = { own = true, we = true, hh = true, guild = true }
-local KIND = { group = true, fight = true, outlaw = true }
+-- 1.0 adds the Spy family (spy, fspy, sent) and the guild incident addons (gb, wos, ft); kinds seen (one enemy) and
+-- death (a player died to this enemy).
+local SRC = { own = true, we = true, hh = true, guild = true, spy = true, fspy = true, sent = true, gb = true, wos = true, ft = true }
+local KIND = { group = true, fight = true, outlaw = true, seen = true, death = true }
+local HAND = { first = true, relayed = true }
+local POS = { enemy = true, observer = true, victim = true, none = true }
 local ROUTE = { GUILD = true, PARTY = true, RAID = true, WHISPER = true, LOCAL = true }
 local NS = { server = true, zoneuid = true, unknown = true }
 local SHARE = { guild = true, public = true }
@@ -78,6 +82,19 @@ function R.new(t)
         if not SHARE[S.clean(t.share)] then return nil, "share" end
         local label = t.label
         if label ~= nil then label = S.str(label, 24); if not label then return nil, "label" end end
+        -- hand: first only when the transport sender is the origin and the line is not a wrapper, envelope, guild
+        -- relay or sync answer; a claimed "first" never overrides that
+        if t.hand ~= nil and not HAND[S.clean(t.hand)] then return nil, "hand" end
+        local direct = t.hand ~= "relayed" and not t.wrapped and t.src ~= "guild" and (via == nil or via:lower() == origin:lower())
+        local hops = t.hops
+        if hops ~= nil then hops = S.num(hops); if not hops or hops < 1 or hops > 16 or hops % 1 ~= 0 then return nil, "hops" end end
+        -- pos: whose position the coordinates are; none without coordinates
+        if t.pos ~= nil and not POS[S.clean(t.pos)] then return nil, "pos" end
+        local pos = x == nil and "none" or t.pos or "enemy"
+        -- at: the origin's time (receipt minus the age carried, or given), never later than receipt
+        local at = t.at
+        if at ~= nil then at = S.num(at); if not at or at > heard then return nil, "at" end else at = heard - (age or 0) end
+        r.hand, r.hops, r.pos, r.at = direct and "first" or "relayed", hops, pos, at
         r.src, r.kind, r.origin, r.via, r.route, r.rid = t.src, t.kind, origin, via, t.route, rid
         r.zone, r.x, r.y, r.count, r.enemies = zone, x, y, count, enemies
         r.layer = { ns = layer.ns, value = value }

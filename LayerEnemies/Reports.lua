@@ -124,7 +124,8 @@ function R.receive(st, msg, ctx)
     else layer = { ns = "unknown", value = inner.layer } end
     local record, why = N.Record.new({ src = "we", kind = "group", origin = origin, via = ctx.sender, route = ctx.route,
         rid = tostring(inner.rid), zone = zone, x = inner.x, y = inner.y, count = inner.count, enemies = {}, layer = layer,
-        heard = now, age = age, share = (ctx.route == "GUILD" and not wrapped) and "guild" or "public" })
+        heard = now, age = age, share = (ctx.route == "GUILD" and not wrapped) and "guild" or "public",
+        wrapped = wrapped, hops = wrapped and 1 or nil })
     if not record then return nil, "record: " .. tostring(why) end
     if not last then
         local n, oldest, ok = 0, nil, nil
