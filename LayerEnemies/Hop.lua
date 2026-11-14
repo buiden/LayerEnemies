@@ -5,6 +5,7 @@ local S = N.Safe
 local Hp = {}
 N.Hop = Hp
 Hp.REPLY = 120                                                 -- seconds a reply from the asked player is read
+Hp.NO_ONE = "no one known on that layer to ask."
 
 -- line(zone, server, uid, x, y) -> "inv layer <LS <zone> want <server>-<uid>[ <x>,<y>]>"
 -- x, y: our own map position as fractions 0..1 (sent as percent with one decimal), omitted when unknown.
@@ -30,7 +31,27 @@ function Hp.reply(text, sender, me)
     return { kind = "heard", layer = layer ~= "-" and layer or nil, zone = zone ~= "-" and tonumber(zone) or nil, hosting = host == "h" }
 end
 
-function Hp.new() return { pending = nil } end
+function Hp.new() return { pending = nil, guildAsk = nil } end
+
+-- The guild-chat request: LayerSwap's own guild ask, "/g " + line with uid 0, for the player to send with Enter. The
+-- addon sends nothing. Hosts in the guild on that layer answer it (LayerSwap and Bulo read guild chat).
+Hp.GUILD = { name = "the guild", short = "#guild" }   -- a pseudo-name for Invite.reserve: 60 s per guild ask, 10 s overall
+function Hp.guildLine(record, x, y)
+    local line = S.tab(record) and S.tab(record.layer) and Hp.line(record.zone, record.layer.value, 0, x, y)
+    return line and ("/g " .. line) or nil
+end
+-- request for the guild ask: the same preconditions as a hop, valid only while no one on that layer is known.
+function Hp.guildRequest(st, record, ctx)
+    local fine, reason = Hp.check(record, nil, ctx)
+    if fine or reason ~= Hp.NO_ONE then return false, fine and "a host is known; use Hop." or reason end
+    local line = Hp.guildLine(record, ctx.x, ctx.y)
+    if not line then return false, "the request could not be built." end
+    local ok, why = N.Invite.reserve(ctx.invite, Hp.GUILD, ctx.now)
+    if not ok then return false, why end
+    ctx.invite.pending = { name = Hp.GUILD.name, target = N.Layer.key(record.layer.value), from = ctx.own.server, at = ctx.now }
+    st.guildAsk = { at = ctx.now }
+    return true, line
+end
 function Hp.clear(st) st.pending = nil end
 
 -- The candidate for a record: one player known to stand on the record's server key, in this order: a Bulo guild
@@ -97,7 +118,7 @@ function Hp.check(record, candidate, ctx)
     end
     if not record.layer or record.layer.ns ~= "server" then return false, "this report's layer cannot be compared with yours." end
     if N.Record.relation(record, ctx.own) == "same" then return false, "that report is on your layer already." end
-    if not candidate then return false, "no one known on that layer to ask." end
+    if not candidate then return false, Hp.NO_ONE end
     return true
 end
 function Hp.request(st, record, candidate, ctx)

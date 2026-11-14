@@ -277,6 +277,7 @@ end
 -- LayerSwap prefix: only a reply from the player we asked, on WHISPER, within 120 s. An incoming "inv layer"
 -- request and everything else are ignored (answering is not ours to do).
 function M.layerswap(text,kind,sender)
+    if kind=="GUILD" then return M.layerswapGuild(text,sender) end
     if kind~="WHISPER" or type(text)~="string" or not S.str(sender,100) or not M.hop.pending then return end
     local me=S.str((S.call(UnitName,"player")))
     local time=now()
@@ -285,6 +286,19 @@ function M.layerswap(text,kind,sender)
     if shown then M.say("LayerEnemies: "..shown) end
     -- the asked player's own "heard" answer: remembered 12 minutes as a host (or forgotten on "-"); nothing is sent
     if reply and reply.kind=="heard" and asked then N.Hosts.heard(M.heard,asked.name,reply,A.wall()) end
+end
+-- After our own guild-chat ask (120 s): LayerSwap users answer on GUILD with "heard <us>|<layer>|<zone>|<h or ->".
+-- Read only when the first field is our own name; hosting answers are remembered like a whispered reply. "claim"
+-- notes and everything else are ignored, and nothing is ever answered.
+function M.layerswapGuild(text,sender)
+    local g=M.hop.guildAsk
+    if not g or type(text)~="string" or not S.str(sender,100) then return end
+    local time=now()
+    if time-g.at>N.Hop.REPLY then M.hop.guildAsk=nil; return end
+    if M.isMe(sender) or A.ignored(sender) then return end
+    local me=S.str((S.call(UnitName,"player")))
+    local reply=N.Hop.reply(text,sender,me)
+    if reply and reply.kind=="heard" then N.Hosts.heard(M.heard,sender,reply,A.wall()) end
 end
 -- Hosts remembered from replies, pruned before they are read.
 function M.heardBook()
@@ -444,6 +458,15 @@ function M.hopPreview(record)
         if last and ctx.now-last<I.NAME_COOLDOWN then ok,reason=false,cand.name.." was asked "..math.floor(ctx.now-last).." s ago." end
         if ok and M.invite.lastAsk and ctx.now-M.invite.lastAsk<I.GLOBAL_COOLDOWN then ok,reason=false,"one ask every "..I.GLOBAL_COOLDOWN.." s." end
     end
+    -- nobody known on that layer, everything else fine: a guild-chat request the player sends
+    if not ok and reason==N.Hop.NO_ONE then
+        local last=M.invite.asked[N.Hop.GUILD.short]
+        local g,why=true,nil
+        if last and ctx.now-last<I.NAME_COOLDOWN then g,why=false,"the guild was asked "..math.floor(ctx.now-last).." s ago." end
+        if g and M.invite.lastAsk and ctx.now-M.invite.lastAsk<I.GLOBAL_COOLDOWN then g,why=false,"one ask every "..I.GLOBAL_COOLDOWN.." s." end
+        return {label="Ask guild (chat)",enabled=g,reason=why,mode="guild",
+            detail="a prefilled /g LayerSwap request for hosts in your guild on that layer; you press Enter"}
+    end
     local how=cand and (cand.addon and ("Hop via "..cand.name) or ("Ask "..cand.name.." (chat)")) or "Hop"
     local detail=cand and (cand.addon and ("one LayerSwap request whispered to "..cand.name.." ("..cand.source..(cand.nonhost and "; not hosting; may not answer" or "")..")")
         or ("a prefilled chat whisper to "..cand.name.." (no host addon known); you press Enter")) or nil
@@ -455,7 +478,8 @@ function M.hopTo(record,shown)
     local ctx=M.hopContext()
     local cand=N.Hop.candidate(record,(M.candidates()))
     local was=S.tab(shown) and shown.candidate or nil
-    if not S.tab(shown) or (cand==nil)~=(was==nil) or (cand and (cand.name~=was.name or cand.addon~=was.addon)) then
+    if S.tab(shown) and shown.mode=="guild" and cand==nil then return M.guildAsk(record,ctx) end
+    if not S.tab(shown) or (shown.mode=="guild") or (cand==nil)~=(was==nil) or (cand and (cand.name~=was.name or cand.addon~=was.addon)) then
         M.say("LayerEnemies: hosts changed, check again.")
         if N.UI then N.UI.refresh() end
         return false
@@ -470,6 +494,17 @@ function M.hopTo(record,shown)
     end
     M.say("LayerEnemies: asked "..cand.name.." ("..cand.source..") for an invite to layer "..N.Layer.key(record.layer.value)
         ..". Accept the invite yourself; nothing else is sent.")
+    return true
+end
+-- The guild-chat request: drafted into the chat box, sent by the player with Enter.
+function M.guildAsk(record,ctx)
+    local ok,line=N.Hop.guildRequest(M.hop,record,ctx)
+    if not ok then M.say("LayerEnemies: "..line); return false end
+    if M.openChat(line) then
+        M.say("LayerEnemies: a guild request is in your chat box - press Enter to send it. Hosts in your guild on that layer may invite you.")
+    else
+        M.say("LayerEnemies: type or copy this line into guild chat:"); M.say(line)
+    end
     return true
 end
 function M.hopIndex(index)

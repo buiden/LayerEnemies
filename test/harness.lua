@@ -1524,7 +1524,9 @@ test("hop refuses when grouped, other zone, zoneuid layer, same layer, no candid
     refused(rec(N,{zone=200}),"travel to "); refused(rec(N,{layer={ns="zoneuid",value=8000}}),"cannot be compared")
     refused(rec(N,{layer={ns="unknown",value=8000}}),"cannot be compared")
     refused(rec(N,{layer={ns="server",value="7086"}}),"on your layer already")
-    refused(rec(N,{src="guild",layer={ns="server",value="9500"}}),"no one known on that layer")
+    -- no one known on that layer: since 0.4.0 the guild-chat request is drafted instead (no chat box here: the line
+    -- is printed to type); no addon message either way
+    yes(hopNow(N,rec(N,{src="guild",layer={ns="server",value="9500"}}))); eq(#sent,0); yes(logged("/g inv layer <LS 100 want 9500-0"))
     -- unknown own zone
     N.Main.store.zone=nil; refused(rec(N),"your zone is not known"); eq(#opened,0); eq(forbidden,0)
 end)
@@ -2587,6 +2589,58 @@ test("0.3.1 fix S3 and note: the hint names two different kinds of NPC; a non-ho
     yes(p.detail:find("not hosting; may not answer",1,true),p.detail)
     local r=rec(N); local q=N.Main.hopPreview(r); eq(q.label,"Hop via Bravo"); yes(q.detail:find("not hosting; may not answer",1,true),q.detail)
     guildLine("L 8000|100|h","Bravo"); slash("hosts"); p=N.Main.hostPreview(N.Main.hostList.rows[1]); no(p.detail:find("may not answer",1,true))
+end)
+-- 0.4.0 Task 5: a prefilled guild-chat LayerSwap request; the player sends it with Enter, the addon sends nothing.
+local GLINE="/g inv layer <LS 100 want 9500-0 25.0,75.0>"
+local function guildRec(N,over) local o={src="guild",layer={ns="server",value="9500"}}; for k,v in pairs(over or {}) do o[k]=v end; return rec(N,o) end
+test("0.4 T5: no one known on the layer: Ask guild (chat) drafts the exact /g line and sends nothing",function()
+    local N=loadAddon(); establish(N); chatBox()
+    local r=guildRec(N); local p=N.Main.hopPreview(r)
+    eq(p.label,"Ask guild (chat)"); yes(p.enabled); eq(p.mode,"guild")
+    yes(p.detail:find("you press Enter",1,true),p.detail)
+    yes(N.Main.hopTo(r,p)); drain()
+    eq(#sent,0,"the addon sends nothing"); eq(#opened,1); eq(opened[1].text,GLINE); eq(forbidden,0)
+    yes(log[#log]:find("press Enter",1,true),log[#log])
+    -- a second ask within 60 s drafts nothing; the 10 s overall limit applies to it as to any ask
+    advance(30); no(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(#opened,1); yes(log[#log]:find("wait 30 s",1,true),log[#log])
+    advance(30); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(#opened,2)
+    advance(61); guildLine("L 8000|100|h","Bob"); yes(hopNow(N,rec(N))); eq(#sent,1)
+    no(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(#opened,2); yes(log[#log]:find("one ask every 10 s",1,true),log[#log])
+end)
+test("0.4 T5: a known host or another precondition means no guild ask",function()
+    local N=loadAddon(); establish(N); chatBox(); guildLine("L 9500|100|h","Bob")
+    local p=N.Main.hopPreview(guildRec(N)); eq(p.label,"Hop via Bob"); no(p.mode=="guild")
+    N=loadAddon(); establish(N); chatBox()
+    grouped=true; p=N.Main.hopPreview(guildRec(N)); no(p.enabled); no(p.mode=="guild"); yes(p.reason:find("leave your current group",1,true)); grouped=false
+    p=N.Main.hopPreview(guildRec(N,{zone=200})); no(p.mode=="guild"); yes(p.reason:find("travel to",1,true))
+    p=N.Main.hopPreview(guildRec(N,{layer={ns="server",value="7086"},src="own"})); no(p.mode=="guild")
+    -- shown as a guild ask, but a host appears before the click: nothing drafted, nothing sent
+    local r=guildRec(N); p=N.Main.hopPreview(r); eq(p.mode,"guild")
+    guildLine("L 9500|100|h","Mallory"); no(N.Main.hopTo(r,p)); drain(); eq(#opened,0); eq(#sent,0); yes(logged("hosts changed, check again."))
+    -- shown as a guild ask, then grouped or the map shows another zone before the click: nothing drafted
+    N=loadAddon(); establish(N); chatBox(); r=guildRec(N); p=N.Main.hopPreview(r); eq(p.mode,"guild")
+    grouped=true; no(N.Main.hopTo(r,p)); drain(); eq(#opened,0); yes(log[#log]:find("leave your current group",1,true)); grouped=false
+    map=200; no(N.Main.hopTo(r,p)); drain(); eq(#opened,0); yes(log[#log]:find("travel to",1,true)); map=100
+end)
+test("0.4 T5: GUILD heard replies are read for 120 s after our own guild ask, naming us, and stored as hosts",function()
+    local N=loadAddon(); establish(N); chatBox()
+    local function gheard(text,from) deliver("CHAT_MSG_ADDON","LayerSwap",text,"GUILD",from); drain() end
+    gheard("heard Me|9500-4|100|h","Bob"); eq(next(N.Main.heard.heard),nil,"no guild ask yet")
+    local r=guildRec(N); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
+    gheard("heard Someone|9500-4|100|h","Bob"); gheard("claim Me","Bob"); gheard("heard Me|9500|100|h","Bob"); eq(next(N.Main.heard.heard),nil)
+    gheard("heard Me|9500-4|100|h","Bob"); yes(N.Main.heard.heard.Bob); eq(N.Main.heard.heard.Bob.layer,"9500-4")
+    local list=N.Main.candidates(); eq(list[1].name,"Bob"); eq(list[1].uid,4)
+    gheard("heard Me|9500-5|100|-","Cy"); eq(N.Main.heard.heard.Cy,nil)
+    advance(121); gheard("heard Me|9500-6|100|h","Dee"); eq(N.Main.heard.heard.Dee,nil,"after 120 s")
+    eq(#sent,0); eq(forbidden,0)
+end)
+test("0.4 T5: the Reported row button drafts the guild line",function()
+    local N=loadAddon(); establish(N); chatBox()
+    local r=guildRec(N); N.Store.report(N.Main.store,r,clock)
+    local U=N.UI; U.toggle(); U.select("reported")
+    local row; for _,x in ipairs(U.pool) do if x:IsShown() then row=x end end
+    yes(row); eq(row.ask.label.text,"Ask guild (chat)"); no(row.ask.disabled)
+    row.ask:Click(); drain(); eq(#opened,1); eq(opened[1].text,GLINE); eq(#sent,0)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
