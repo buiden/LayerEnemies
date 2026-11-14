@@ -86,7 +86,7 @@ function T.report(t,record,now)
         t.reports["guild"..rest]=nil
     end
     -- one row per origin, zone and 5 s across networks (one sighting heard twice, e.g. a LayerEnemies O line and its
-    -- War Effort C): the copy with more names wins, then a first-hand one; otherwise the row already held stays.
+    -- War Effort C): a first-hand copy wins, then the copy with more names; otherwise the row already held stays.
     -- Two reports of one network are two sightings and both stay.
     for k,row in pairs(t.reports) do
         local rr=row.record

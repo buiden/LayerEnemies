@@ -45,10 +45,13 @@ function D.channel(key)
     return tag and letter and ("WarEffort" .. tag .. letter) or nil
 end
 
--- joined[key]: the channel we read; ours[key]: we joined it (only then do we ever leave it); due[key]: when this
--- channel's one timer fires (toggling never adds a second; a timer that fired while the network was off stops
+-- joined[key]: the channel we read; ours[key]: we joined it, by our own join notice (only then do we ever leave it);
+-- asked[key]: our join call, waiting for its YOU_JOINED/YOU_CHANGED notice (30 s); handLeft[key]: the player left
+-- it by hand, so we do not join it again this session (a hand rejoin is read, never left by us); due[key]: when
+-- this channel's one timer fires (toggling never adds a second; a timer that fired while the network was off stops
 -- counting once its time has passed)
-local joined, members, pending, ours, due = {}, {}, {}, {}, {}
+local joined, members, pending, ours, due, asked, handLeft = {}, {}, {}, {}, {}, {}, {}
+D.NOTICE_WAIT = 30
 local function calm()
     return S.call(IsInInstance) == false and S.call(InCombatLockdown) == false
 end
@@ -57,6 +60,11 @@ local function windowOpen()
     if not S.tab(f) or type(f.IsShown) ~= "function" then return false end
     local ok, shown = pcall(f.IsShown, f)
     return not ok or shown ~= false
+end
+-- the display list is readable and filled (at login it may still be empty): only then can "already in it" be told
+local function listReady()
+    local n = S.num(S.call(GetNumDisplayChannels))
+    return n ~= nil and n >= 1
 end
 local function index(name)
     local n = S.num(S.call(GetNumDisplayChannels))
@@ -119,21 +127,46 @@ function D.sync()
         local want = N.Net.allowed(key, "public")
         if want and not joined[key] then
             local name = D.channel(key)
-            if name and calm() then
+            if name and calm() and listReady() then
                 -- already in that channel (the player joined it): read it, never join or leave it
-                local mine = false
-                if not index(name) then
-                    local ok, result = pcall(JoinChannelByName, name, nil, 0, false)
-                    mine = ok and result ~= false
+                local result, called = false, false
+                if not index(name) and not handLeft[key] then
+                    called = true
+                    local now = S.num(S.call(GetTime))
+                    asked[key] = now and { name = name, at = now } or nil
+                    local ok, r = pcall(JoinChannelByName, name, nil, 0, false)
+                    -- a nil, false or empty return is no join (its notice, if one still comes, makes it ours, so it
+                    -- can be left again)
+                    result = ok and r ~= nil and r ~= false and r ~= "" and not S.secret(r)
                 end
-                if mine or index(name) then
-                    joined[key], ours[key] = name, mine or nil
+                if result or (not called and index(name)) then
+                    joined[key] = name
                     schedule(key, D.FIRST)
                 end
             end
         elseif not want and joined[key] then
-            if ours[key] then pcall(LeaveChannelByName, joined[key]) end
-            joined[key], members[key], pending[key], ours[key] = nil, nil, nil, nil
+            local name, mine = joined[key], ours[key]
+            joined[key], members[key], pending[key], ours[key], asked[key] = nil, nil, nil, nil, nil
+            if mine then pcall(LeaveChannelByName, name) end
+        end
+    end
+end
+-- CHAT_MSG_CHANNEL_NOTICE: our own join notice makes the channel ours; a leave we did not make is the player's
+-- (not joined again this session)
+function D.notice(what, shown, base)
+    if S.secret(what) or S.secret(shown) or S.secret(base) then return end
+    local name = S.str(base, 120) or (S.str(shown, 120) and (shown:match("^%d+%. (.+)$") or shown))
+    if not name then return end
+    local now = S.num(S.call(GetTime))
+    for key in pairs(N.Net.LIST) do
+        if what == "YOU_JOINED" or what == "YOU_CHANGED" then
+            local a = asked[key]
+            if a and a.name:lower() == name:lower() and now and now >= a.at and now - a.at <= D.NOTICE_WAIT then
+                asked[key] = nil; ours[key] = true
+            end
+        elseif what == "YOU_LEFT" and joined[key] and joined[key]:lower() == name:lower() then
+            joined[key], members[key], pending[key], ours[key], asked[key] = nil, nil, nil, nil, nil
+            handLeft[key] = true
         end
     end
 end

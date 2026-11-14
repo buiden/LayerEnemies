@@ -24,7 +24,7 @@ local wall,grouped,opened
 local sent,sendResult
 local roster,rosterCalls,combat,raid,leader,invites,accepts,leaves,popupHidden,popup
 -- 1.0 T3: chat channels (display list, members), joins, leaves and roster selections; channel calls only from Directory.lua
-local joined,leftCh,selected,chanList,chanMembers
+local joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn
 -- The routes the addon may send on (Wire.lua); anything else counts as forbidden. LFSw/GUILD carries only "Q".
 -- the routes the mock accepts without counting a forbidden send; WEFF1 and HeadHunter are open from 1.0 T1 (behind
 -- Net: ship constant, switch, consent, stand-down)
@@ -240,11 +240,16 @@ local function loadAddon()
             level=level+1
         end
     end
-    joined,leftCh,selected,chanList,chanMembers={},{},{},{},{}
+    joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn={},{},{},{"General"},{},true,nil
+    local function notice(what,name) for i,c in ipairs(chanList) do if c==name or what=="YOU_LEFT" then
+        deliver("CHAT_MSG_CHANNEL_NOTICE",what,"","",(i..". "..name),"",0,0,i,name); return end end end
     _G.JoinChannelByName=function(name) if not fromDirectory() then forbidden=forbidden+1 end; joined[#joined+1]=name
-        local found=false; for _,c in ipairs(chanList) do if c==name then found=true end end; if not found then chanList[#chanList+1]=name end end
+        local found=false; for _,c in ipairs(chanList) do if c==name then found=true end end; if not found then chanList[#chanList+1]=name end
+        if joinNotice then notice("YOU_JOINED",name) end
+        if joinReturn~=nil then return joinReturn end
+        return 1,name end
     _G.LeaveChannelByName=function(name) if not fromDirectory() then forbidden=forbidden+1 end; leftCh[#leftCh+1]=name
-        for i,c in ipairs(chanList) do if c==name then table.remove(chanList,i); break end end end
+        for i,c in ipairs(chanList) do if c==name then table.remove(chanList,i); break end end; notice("YOU_LEFT",name) end
     _G.SetSelectedDisplayChannel=function(i) if not fromDirectory() then forbidden=forbidden+1 end; selected[#selected+1]=chanList[i] or i end
     _G.GetNumDisplayChannels=function() return #chanList end
     _G.GetChannelDisplayInfo=function(i) local n=chanList[i]; if n then return i..". "..n,false,nil,i,#(chanMembers[n] or {}),true end end
@@ -3738,6 +3743,8 @@ test("0.4 T8 B1: the guild ask arms on our own /g line; then only an answerer or
     deliver("CHAT_MSG_GUILD",GLINE:sub(4).." x","Me"); deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Other"); drain()
     inviteFrom("Bob"); eq(#accepts,0,"other text or another sender"); popup.shown=false
     deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me-TestRealm"); drain()
+    inviteFrom("Bob"); eq(#accepts,0,"answered before the line went out (r040c G2)"); popup.shown=false
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD","Bob"); drain()
     inviteFrom("Dee"); eq(#accepts,0,"a guildmate who neither answered nor is a listed host"); popup.shown=false
     -- a claim for someone else, or a busy heard, is no answer
     deliver("CHAT_MSG_ADDON","LayerSwap","claim Someone Else","GUILD","Cy"); deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|-","GUILD","Eve"); drain()
@@ -4152,6 +4159,78 @@ test("e4 S1b: one key in the remembered hosts and the offline skip ('Gone' and '
     sendResult=12; local ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Gone-TestRealm",{net="hh",scope="public"}); no(ok); eq(why,"offline"); sendResult=0
     ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","gone",{net="hh",scope="public"}); no(ok); eq(why,"offline")
     ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Gone-OtherRealm",{net="hh",scope="public"}); yes(ok,why)
+end)
+
+-- مانع's closing round for B and C (r040c)
+test("r040c G1: a listed Bulo or LayerSwap row counts as a host only with its host flag",function()
+    for _,c in ipairs({{"LFSw","L 9500|100|-"},{"LFSw","L 9500|100|h"}}) do
+        local N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Eve-TestRealm",true}}
+        local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
+        deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
+        deliver("CHAT_MSG_ADDON",c[1],c[2],"GUILD","Eve"); drain()
+        inviteFrom("Eve"); eq(#accepts,c[2]:sub(-1)=="h" and 1 or 0,c[2])
+    end
+    -- a LayerSwap book row with host=false
+    local N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Eve-TestRealm",true}}
+    -- (on another layer than the hop's, so the hop is the guild ask and not a direct request to Eve)
+    LayerSwapDB={book={Eve={layer="9600-1",zone=100,at=N.Adapters.wall(),host=false}}}; loaded.LayerSwap=true
+    local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(opened[#opened].text,GLINE)
+    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain(); inviteFrom("Eve"); eq(#accepts,0,"LayerSwap host=false")
+    popup.shown=false; LayerSwapDB.book.Eve.host=true; advance(11); inviteFrom("Eve"); eq(#accepts,1,"LayerSwap host=true")
+    LayerSwapDB=nil; loaded.LayerSwap=nil
+end)
+test("r040c G2/G3: an answer before our guild line goes out does not count; the window runs from the send",function()
+    local N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Cy-TestRealm",true},{"Bob-TestRealm",true}}
+    local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
+    deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD","Cy"); deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD","Bob"); drain()
+    advance(100); deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
+    inviteFrom("Cy"); inviteFrom("Bob"); eq(#accepts,0,"answers seen before the send")
+    -- 100 s after the draft, 30 s after the send: still in the window
+    advance(30); deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD","Cy"); drain(); inviteFrom("Cy"); eq(#accepts,1,"30 s after a late send")
+    -- and an answer more than 120 s after the send is late
+    N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Cy-TestRealm",true}}
+    r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
+    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain(); advance(121)
+    deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD","Cy"); drain(); inviteFrom("Cy"); eq(#accepts,0,"after the window")
+end)
+test("r040c: an AcceptGroup that throws spends the ask",function()
+    local N=loadAddon(); BULO=nil; establish(N); askBob(N)
+    local was=AcceptGroup; AcceptGroup=function() error("blocked") end
+    inviteFrom("Bob"); eq(N.Main.invite.pending,nil,"the ask is spent"); eq(N.Main.auto.group,nil); AcceptGroup=was
+    advance(11); popup.shown=false; inviteFrom("Bob"); eq(#accepts,0,"no second try")
+end)
+test("r040c D1: no join while the channel display list is unreadable or empty",function()
+    local N=loadAddon(); local D=N.Directory; chanList={}
+    dirReady(N); eq(#joined,0,"empty list (still loading)")
+    local was=GetNumDisplayChannels; GetNumDisplayChannels=function() return nil end; chanList={"General"}
+    D.sync(); eq(#joined,0,"unreadable count"); GetNumDisplayChannels=was
+    D.sync(); eq(#joined,2,"filled: joins")
+end)
+test("r040c D2: ours only by our own join notice; a hand leave and rejoin is the player's; a nil or empty return is no join",function()
+    -- nil and "" returns: not joined
+    for _,ret in ipairs({false,""}) do
+        local N=loadAddon(); local D=N.Directory; joinReturn=ret; joinNotice=false; dirReady(N); eq(D.joined("hh"),nil,tostring(ret)); joinReturn=nil; joinNotice=true
+    end
+    local N=loadAddon(); local D=N.Directory; local real=JoinChannelByName
+    JoinChannelByName=function(name) real(name); return nil end; dirReady(N); eq(D.joined("hh"),nil,"nil return"); JoinChannelByName=real
+    -- joined but no notice of ours: we read it and never leave it
+    N=loadAddon(); D=N.Directory; joinNotice=false; dirReady(N); joinNotice=true; yes(D.joined("hh"))
+    N.Net.setSwitch("hh",false); eq(#leftCh,0,"never ours: not left")
+    -- the notice arriving a moment later counts
+    N=loadAddon(); D=N.Directory; joinNotice=false; dirReady(N); joinNotice=true
+    for i,c in ipairs(chanList) do if c=="HeadHunterSync" then deliver("CHAT_MSG_CHANNEL_NOTICE","YOU_CHANGED","","",i..". "..c,"",0,0,i,c) end end
+    N.Net.setSwitch("hh",false); eq(table.concat(leftCh,","),"HeadHunterSync")
+    -- ours, then the player leaves by hand: not rejoined this session; rejoined by hand: theirs, never left by us
+    N=loadAddon(); D=N.Directory; dirReady(N); eq(#joined,2)
+    for i,c in ipairs(chanList) do if c=="HeadHunterSync" then table.remove(chanList,i); deliver("CHAT_MSG_CHANNEL_NOTICE","YOU_LEFT","","",i..". "..c,"",0,0,i,c) end end
+    eq(D.joined("hh"),nil); D.sync(); advance(5); eq(#joined,2,"not rejoined after a hand leave")
+    chanList[#chanList+1]="HeadHunterSync"; deliver("CHAT_MSG_CHANNEL_NOTICE","YOU_JOINED","","",#chanList..". HeadHunterSync","",0,0,#chanList,"HeadHunterSync")
+    D.sync(); eq(D.joined("hh"),"HeadHunterSync","read again"); eq(#joined,2)
+    N.Net.setSwitch("hh",false); eq(#leftCh,0,"the player's channel is never left by us")
+    -- a notice for another channel, or one we did not ask for, makes nothing ours
+    N=loadAddon(); D=N.Directory; chanList={"General","HeadHunterSync"}
+    deliver("CHAT_MSG_CHANNEL_NOTICE","YOU_JOINED","","","2. HeadHunterSync","",0,0,2,"HeadHunterSync"); dirReady(N)
+    N.Net.setSwitch("hh",false); eq(#leftCh,0)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

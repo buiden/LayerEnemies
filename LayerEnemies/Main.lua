@@ -446,6 +446,8 @@ function M.layerswapGuild(text,sender)
     local time=now()
     if time-g.at>N.Hop.REPLY then M.hop.guildAsk=nil; return end
     if M.isMe(sender) or A.ignored(sender) then return end
+    -- answers count only once our guild line has gone out (draftSent); the window then runs from the send
+    local sent=g.sent
     local me=S.str((S.call(UnitName,"player")))
     local reply=N.Hop.reply(text,sender,me)
     if reply and reply.kind=="heard" then N.Hosts.heard(M.heard,sender,reply,A.wall()) end
@@ -453,7 +455,7 @@ function M.layerswapGuild(text,sender)
     -- only these and listed hosts may have their invite accepted for the guild ask
     local claimed=#text<=120 and text:match("^claim (.+)$")
     local _,key=I.name(sender)
-    if key and ((reply and reply.kind=="heard" and reply.hosting) or (claimed and me and claimed==me)) then
+    if sent and key and ((reply and reply.kind=="heard" and reply.hosting) or (claimed and me and claimed==me)) then
         g.answered=g.answered or {}; g.answered[key]=true
     end
 end
@@ -467,11 +469,15 @@ function M.draftSent(kind,text,who)
     if kind=="WHISPER" then local _,key=I.name(who); if not key or key~=p.short then return end
     elseif not M.isMe(who) then return end
     p.arm=nil; p.auto=true; p.at=time
+    -- our guild line is out: answers to it count from now (anything heard before is no answer to it)
+    local g=M.hop.guildAsk
+    if kind=="GUILD" and S.tab(g) then g.sent=true; g.at=time; g.answered=nil end
 end
 -- A listed Bulo/LayerSwap/LayerEnemies host (guild lines, LayerSwap book, remembered replies and H lines).
 local function listedHost(short)
-    for _,c in ipairs((M.candidates())) do
-        if c.short==short then for _,s in ipairs(c.sources or {}) do if s=="Bulo" or s=="LayerSwap" then return true end end end
+    for _,c in ipairs((M.candidates(true))) do
+        -- only with that source's host flag: a Bulo "not hosting" line or a LayerSwap row with host=false is no host
+        if c.short==short and S.tab(c.hosts) and (c.hosts.Bulo==true or c.hosts.LayerSwap==true) then return true end
     end
     return false
 end
@@ -548,9 +554,10 @@ local function ago(seconds)
     seconds=math.floor(math.max(0,seconds))
     return seconds<60 and (seconds.." s") or (math.floor(seconds/60).." min")
 end
-function M.candidates()
+-- listed=true: only what Bulo and LayerSwap themselves list (not our remembered replies, which are answers)
+function M.candidates(listed)
     local time=now()
-    local lists=A.friendLists(M.guildLines,M.heardBook())
+    local lists=A.friendLists(M.guildLines,not listed and M.heardBook() or nil)
     local _,short=I.name((S.call(UnitName,"player")))
     return I.collect({now=time,wall=A.wall(),zone=M.store.zone,ownKey=L.key(M.store.bulo),ambiguous=M.store.ambiguous(time),self=short,
         reporters=T.reporters(M.store,time),bulo=lists.bulo,book=lists.book})
@@ -825,8 +832,9 @@ function M.partyInvite(name)
         if not ((g and g.answered and g.answered[short]) or listedHost(short)) then return end
     elseif short~=p.short then return end
     if A.grouped() or A.inInstance()~=false or A.inCombat() then return end
-    local ok=N.Wire.accept(time)
-    if not ok then return end
+    local ok,why=N.Wire.accept(time)
+    -- the client refused or threw: the ask is spent all the same (no second try on the next invite)
+    if not ok then if why=="error" then M.invite.pending=nil end; return end
     M.invite.pending=nil   -- one accept per ask: a later invite from the same host is left to the player
     N.Wire.hideInvite()
     after(0,function() N.Wire.hideInvite() end)
@@ -1078,7 +1086,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -1104,7 +1112,8 @@ local function dispatch(_,event,...)
     elseif event=="PARTY_INVITE_REQUEST" then guarded(M.partyInvite,(...))
     elseif event=="CHAT_MSG_WHISPER_INFORM" then local text,who=...; guarded(M.draftSent,"WHISPER",text,who)
     elseif event=="CHAT_MSG_GUILD" then local text,who=...; guarded(M.draftSent,"GUILD",text,who)
-    elseif event=="PLAYER_GUILD_UPDATE" then guarded(M.guildChanged) end
+    elseif event=="PLAYER_GUILD_UPDATE" then guarded(M.guildChanged)
+    elseif event=="CHAT_MSG_CHANNEL_NOTICE" then local what,_,_,shown,_,_,_,_,base=...; guarded(N.Directory.notice,what,shown,base) end
 end
 -- Opens the chat box with a whisper for the user to send; never sends it.
 function N.AskInvite(name)
