@@ -3205,6 +3205,9 @@ end)
 test("0.4 T8: the guild ask accepts an online guild member's invite only",function()
     local N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Bob-TestRealm",true},{"Off-TestRealm",false}}
     local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(#opened,1)
+    -- (round 2: armed when our /g line goes out; Bob, Off and Zed answered, so only the guild check decides here)
+    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
+    for _,who in ipairs({"Bob","Off","Zed"}) do deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD",who) end; drain()
     inviteFrom("Zed"); inviteFrom("Off"); eq(#accepts,0)
     -- roster unreadable: no
     local count=GetNumGuildMembers; GetNumGuildMembers=function() return secret end; inviteFrom("Bob"); eq(#accepts,0); GetNumGuildMembers=count
@@ -3705,6 +3708,73 @@ test("1.0 T2 names: every network's sender and origin pass the one name rule (Fi
     local ok,why=T.report(st,mk({origin="Scout-7102",via="Scout-7102",heard=clock,rid="9",enemies={{hash="abc"}}}),clock); no(ok); eq(why,"duplicate")
     -- the decoders: War Effort and HeadHunter reporters with spaced names come through; malformed ones do not
     local _,feed=reportFixture(N); yes(feed(VC,"Reporter Two")); eq(feed(VC,"Reporter  Two"),nil)
+end)
+
+-- 0.4.0 round 2 (مانع r040b) Task 8: arm only on a real send; guild ask from answerers or listed hosts; group end,
+-- instance and combat
+test("0.4 T8 B1: a drafted whisper arms auto-accept only once we see it go out to that host",function()
+    local N=loadAddon(); BULO=nil; establish(N); chatBox(); advance(1)
+    local r=rec(N); yes(hopNow(N,r)); drain(); eq(#opened,1); eq(#sent,0)
+    inviteFrom("Scout"); eq(#accepts,0,"the draft was never sent"); popup.shown=false
+    deliver("CHAT_MSG_WHISPER_INFORM",N.Invite.MESSAGE,"Other"); deliver("CHAT_MSG_WHISPER_INFORM","hello","Scout"); drain()
+    inviteFrom("Scout"); eq(#accepts,0,"another target or another text"); popup.shown=false
+    deliver("CHAT_MSG_WHISPER_INFORM",N.Invite.MESSAGE,"Scout-TestRealm"); drain()
+    inviteFrom("Scout"); eq(#accepts,1,"sent: armed")
+end)
+test("0.4 T8 B1: the guild ask arms on our own /g line; then only an answerer or a listed host is accepted",function()
+    local N=loadAddon(); BULO=nil; establish(N); chatBox()
+    roster={{"Bob-TestRealm",true},{"Cy-TestRealm",true},{"Dee-TestRealm",true},{"Eve-TestRealm",true}}
+    local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(opened[1].text,GLINE)
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD","Bob"); drain()
+    inviteFrom("Bob"); eq(#accepts,0,"our line has not gone out"); popup.shown=false
+    deliver("CHAT_MSG_GUILD",GLINE:sub(4).." x","Me"); deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Other"); drain()
+    inviteFrom("Bob"); eq(#accepts,0,"other text or another sender"); popup.shown=false
+    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me-TestRealm"); drain()
+    inviteFrom("Dee"); eq(#accepts,0,"a guildmate who neither answered nor is a listed host"); popup.shown=false
+    -- a claim for someone else, or a busy heard, is no answer
+    deliver("CHAT_MSG_ADDON","LayerSwap","claim Someone Else","GUILD","Cy"); deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|-","GUILD","Eve"); drain()
+    inviteFrom("Cy"); inviteFrom("Eve"); eq(#accepts,0,"claim for another, busy heard"); popup.shown=false
+    inviteFrom("Bob"); eq(#accepts,1,"answered heard|h")
+    -- a LayerSwap claim naming us, and a listed Bulo host on that layer
+    for _,who in ipairs({"Cy","Eve"}) do
+        N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{who.."-TestRealm",true}}
+        r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
+        deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
+        if who=="Cy" then deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD","Cy")
+        else deliver("CHAT_MSG_ADDON","LFSw","L 9500|100|h","GUILD","Eve") end; drain()
+        inviteFrom(who); eq(#accepts,1,who)
+    end
+end)
+test("0.4 T8 B1: a request whose line cannot be built leaves nothing armed",function()
+    local N=loadAddon(); establish(N); local Hp=N.Hop; local inv=N.Invite.new()
+    local r=rec(N); local cand={name="Bob",short="bob",addon=true,uid=1.5,source="LayerSwap"}
+    local ctx={grouped=false,zone=100,own={zone=100,server="7086"},invite=inv,now=clock,x=.25,y=.75}
+    local ok,why=Hp.request(N.Main.hop,r,cand,ctx); no(ok); eq(why,"the request could not be built."); eq(inv.pending,nil); eq(#sent,0)
+end)
+test("0.4 T8 B2: the hop group ends: tracking stops at once; a later group of the same host is never left",function()
+    local N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); yes(N.Main.auto.group)
+    grouped=false; units.party1=nil; deliver("GROUP_ROSTER_UPDATE"); drain(); eq(N.Main.auto.group,nil)
+    advance(2); joinParty("Bob"); advance(40); drain(); eq(#leaves,0)
+end)
+test("0.4 T8: never auto-leave inside an instance; in combat the leave waits for combat to end",function()
+    local N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob")
+    inInstance=true; advance(31); drain(); eq(#leaves,0); eq(N.Main.auto.group,nil,"tracking stopped"); inInstance=false
+    advance(30); drain(); eq(#leaves,0)
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); moveTo("8000")
+    combat=true; advance(3.1); drain(); eq(#leaves,0,"in combat"); advance(20); drain(); eq(#leaves,0)
+    combat=false; advance(1.1); drain(); eq(#leaves,1,"after combat")
+    -- the 30 s failure also waits
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob")
+    combat=true; advance(31); drain(); eq(#leaves,0); combat=false; advance(1.1); drain(); eq(#leaves,1); yes(logged("hop failed"))
+end)
+test("0.4 L2: a finished or expired hop no longer counts as asking for the guild host",function()
+    local N=loadAddon(); BULO=nil; establish(N); askBob(N); yes(N.Main.hostOwn().asking)
+    advance(121); no(N.Main.hostOwn().asking,"120 s without an invite"); eq(N.Main.hop.pending,nil)
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); moveTo("8000"); advance(3.1); drain(); eq(#leaves,1)
+    grouped=false; units.party1=nil; deliver("GROUP_ROSTER_UPDATE"); drain()
+    no(N.Main.hostOwn().asking,"moved and left"); eq(N.Main.hop.pending,nil)
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); advance(31); drain(); eq(#leaves,1)
+    no(N.Main.hostOwn().asking,"failed"); eq(N.Main.hop.pending,nil)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -348,6 +348,14 @@ function M.hostStatus()
         or "off (saved)"
     M.say("LayerEnemies: Hosting for your guild: "..state)
 end
+-- An ask of ours still open (120 s): older ones are cleared here, so hosting does not stay busy after a hop.
+function M.asking()
+    local time=now()
+    local function open(p) return S.tab(p) and S.num(p.at) and time>=p.at and time-p.at<=N.Hop.REPLY end
+    if M.hop.pending and not open(M.hop.pending) then N.Hop.clear(M.hop) end
+    if M.invite.pending and not open(M.invite.pending) and not (M.auto and M.auto.group) then M.invite.pending=nil end
+    return M.hop.pending~=nil or M.invite.pending~=nil
+end
 -- Our own state for GuildHost.decide; member is read only after the early checks pass.
 function M.hostOwn()
     local zone=A.location()
@@ -358,7 +366,7 @@ function M.hostOwn()
     if me then _,self=I.name(me) end
     return {self=self,zone=zone and zone==M.store.zone and zone or nil,key=L.key(M.store.bulo),id=id,
         inInstance=A.inInstance(),inCombat=A.inCombat(),raid=party and party.raid,leader=party and party.leader,
-        members=party and party.members or {},asking=M.hop.pending~=nil or M.invite.pending~=nil}
+        members=party and party.members or {},asking=M.asking()}
 end
 -- LEGW1 control lines. An H from a guildmate is remembered like a LayerSwap "heard ...|h" (12 minutes, layer
 -- <key>-0); an F, while we host, gets one H 1 to 6 s later (Wire allows one H per 60 s).
@@ -435,6 +443,31 @@ function M.layerswapGuild(text,sender)
     local me=S.str((S.call(UnitName,"player")))
     local reply=N.Hop.reply(text,sender,me)
     if reply and reply.kind=="heard" then N.Hosts.heard(M.heard,sender,reply,A.wall()) end
+    -- who answered our ask: a hosting heard naming us, or a LayerSwap/Bulo claim naming us (Bulo Host.lua:521);
+    -- only these and listed hosts may have their invite accepted for the guild ask
+    local claimed=#text<=120 and text:match("^claim (.+)$")
+    local _,key=I.name(sender)
+    if key and ((reply and reply.kind=="heard" and reply.hosting) or (claimed and me and claimed==me)) then
+        g.answered=g.answered or {}; g.answered[key]=true
+    end
+end
+-- Our own drafted line seen going out (CHAT_MSG_WHISPER_INFORM to the asked player, CHAT_MSG_GUILD from us with the
+-- drafted text): only then may that ask's invite be accepted automatically; the 120 s count from here.
+function M.draftSent(kind,text,who)
+    local p=M.invite and M.invite.pending
+    if not S.tab(p) or not S.tab(p.arm) or p.arm.kind~=kind or S.secret(text) or text~=p.arm.text then return end
+    local time=now()
+    if time-p.at>M.AUTO_WINDOW or time<p.at then return end
+    if kind=="WHISPER" then local _,key=I.name(who); if not key or key~=p.short then return end
+    elseif not M.isMe(who) then return end
+    p.arm=nil; p.auto=true; p.at=time
+end
+-- A listed Bulo/LayerSwap/LayerEnemies host (guild lines, LayerSwap book, remembered replies and H lines).
+local function listedHost(short)
+    for _,c in ipairs((M.candidates())) do
+        if c.short==short then for _,s in ipairs(c.sources or {}) do if s=="Bulo" or s=="LayerSwap" then return true end end end
+    end
+    return false
 end
 -- Hosts remembered from replies, pruned before they are read.
 function M.heardBook()
@@ -779,7 +812,11 @@ function M.partyInvite(name)
     local inviter,short=I.name(name)
     if not inviter then return end
     if p.guild then
+        -- an online guildmate who answered our ask or is a listed host (not any guildmate: a dungeon invite would
+        -- otherwise be accepted and then left)
         if A.guildMember(inviter)~=true then return end
+        local g=M.hop.guildAsk
+        if not ((g and g.answered and g.answered[short]) or listedHost(short)) then return end
     elseif short~=p.short then return end
     if A.grouped() or A.inInstance()~=false or A.inCombat() then return end
     local ok=N.Wire.accept(time)
@@ -822,8 +859,14 @@ function M.autoTick()
     end
     local party=A.party()
     if not grouped or not party or party.raid~=false or party.leader or not hostLeads(g) then M.auto.group=nil; return end
+    -- never inside an instance: stop tracking; in combat the leave waits until combat ends
+    if A.inInstance()~=false then M.auto.group=nil; return end
+    local fighting=A.inCombat()
     if g.leaveAt then
-        if time>=g.leaveAt then N.Wire.leave(time); M.auto.group=nil end
+        if time>=g.leaveAt then
+            if fighting then after(1,function() guarded(M.autoTick) end); return end
+            N.Wire.leave(time); M.auto.group=nil; M.hopDone()
+        end
         return
     end
     local key=L.key(M.store.bulo)
@@ -834,12 +877,17 @@ function M.autoTick()
         return
     end
     if time-g.joinedAt>=M.AUTO_FAIL then
-        N.Wire.leave(time); M.auto.group=nil
+        if fighting then after(1,function() guarded(M.autoTick) end); return end
+        N.Wire.leave(time); M.auto.group=nil; M.hopDone()
         M.say("LayerEnemies: hop failed: "..g.host.." could not move you")
     end
 end
+-- The hop is over (moved and left, failed, or 120 s without an invite): no ask is pending any more.
+function M.hopDone() N.Hop.clear(M.hop); M.invite.pending=nil end
 function M.groupCheck()
     local grouped=A.grouped()
+    -- the hop group ended (left by hand or otherwise): stop tracking at once
+    if not grouped and M.wasGrouped and M.auto and M.auto.group and M.auto.group.joinedAt then M.auto.group=nil end
     if grouped and not M.wasGrouped and M.auto and M.auto.group then
         -- our auto-accepted hop group: autoTick watches the move and leaves; the manual layer check stays quiet
         guarded(M.autoTick)
@@ -957,7 +1005,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -980,7 +1028,9 @@ local function dispatch(_,event,...)
     elseif event=="NAME_PLATE_UNIT_REMOVED" then M.releaseUnit(...)
     elseif event=="GROUP_ROSTER_UPDATE" then guarded(M.groupCheck); guarded(M.inviteTick)
     elseif event=="GUILD_ROSTER_UPDATE" then guarded(M.rosterUpdate)
-    elseif event=="PARTY_INVITE_REQUEST" then guarded(M.partyInvite,(...)) end
+    elseif event=="PARTY_INVITE_REQUEST" then guarded(M.partyInvite,(...))
+    elseif event=="CHAT_MSG_WHISPER_INFORM" then local text,who=...; guarded(M.draftSent,"WHISPER",text,who)
+    elseif event=="CHAT_MSG_GUILD" then local text,who=...; guarded(M.draftSent,"GUILD",text,who) end
 end
 -- Opens the chat box with a whisper for the user to send; never sends it.
 function N.AskInvite(name)

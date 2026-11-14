@@ -50,8 +50,9 @@ function Hp.guildRequest(st, record, ctx)
     if not line then return false, "the request could not be built." end
     local ok, why = N.Invite.reserve(ctx.invite, Hp.GUILD, ctx.now)
     if not ok then return false, why end
+    -- armed for auto-accept only when our own /g line is seen going out (Main.draftSent)
     ctx.invite.pending = { name = Hp.GUILD.name, target = N.Layer.key(record.layer.value), from = ctx.own.server, at = ctx.now,
-        guild = true, auto = true }
+        guild = true, arm = { kind = "GUILD", text = line:sub(4) } }
     st.guildAsk = { at = ctx.now }
     return true, line
 end
@@ -138,12 +139,14 @@ function Hp.request(st, record, candidate, ctx)
     if not fine then return false, reason end
     local ok, why = I.reserve(ctx.invite, candidate, ctx.now)
     if not ok then return false, why end
-    -- auto: an ask made by a hop (Hop, hop host); its host's invite may be accepted automatically (Main.partyInvite)
+    -- auto: an ask made by a hop (Hop, hop host); its host's invite may be accepted automatically (Main.partyInvite).
+    -- A drafted whisper is armed only when it is seen going out to that host (Main.draftSent).
     ctx.invite.pending = { name = candidate.name, short = candidate.short, target = N.Layer.key(record.layer.value),
-        from = ctx.own.server, at = ctx.now, auto = true }
+        from = ctx.own.server, at = ctx.now, auto = candidate.addon and true or nil,
+        arm = not candidate.addon and { kind = "WHISPER", text = I.MESSAGE } or nil }
     if not candidate.addon then return true, "whisper", I.line(candidate.name) end
     local line = Hp.line(record.zone, record.layer.value, candidate.uid, ctx.x, ctx.y)
-    if not line then return false, "the request could not be built." end
+    if not line then ctx.invite.pending = nil; return false, "the request could not be built." end
     local sent, result = N.Wire.send("LayerSwap", line, "WHISPER", candidate.name, { prio = "click" })
     if not sent then
         ctx.invite.pending = nil
