@@ -3943,5 +3943,39 @@ test("names end to end: a foreign spaced host First Last-7103 on realm 7102: lin
     inviteFrom("First Last-7105"); eq(#accepts,0); popup.shown=false
     inviteFrom("First Last-7103"); eq(#accepts,1); yes(logged("accepted First Last's invite"))
 end)
+
+-- a732c39 review (مانع r040b/a7): guild changes
+local function hReady(N) establish(N); roster={{"Bob-TestRealm",true}}; deliver("GUILD_ROSTER_UPDATE",true); drain(); slash("host on"); sent={} end
+test("a7: leaving the guild makes hosting inactive; a new guild's H waits for that guild's roster",function()
+    local N=loadAddon(); hReady(N); yes(N.Main.host.on)
+    inGuild=false; deliver("PLAYER_GUILD_UPDATE","player"); drain()
+    no(N.Main.host.on,"inactive"); yes(N.Main.host.want,"still saved on"); yes(logged("not in a guild"))
+    eq(N.Adapters.roster.at,nil,"roster flag reset")
+    -- joining another guild: nothing before that guild's roster
+    inGuild=true; guildName="Other Guild"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on)
+    advance(61); legw("F|1","Cy"); advance(7); drain(); eq(#legwSent("H|"),0,"no H before the new roster")
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on,"active on the new roster"); eq(#legwSent("H|"),0,"activation sends nothing")
+    advance(61); legw("F|1","Cy"); advance(7); drain(); eq(#legwSent("H|"),1)
+    -- announceHost itself refuses while not in a guild
+    inGuild=false; advance(61); no(N.Main.announceHost()); inGuild=true
+end)
+test("a7: leaving the guild drops a scheduled F answer and an owed H",function()
+    local N=loadAddon(); hReady(N); advance(61)
+    legw("F|1","Cy"); eq(#legwSent("H|"),0)                         -- answer scheduled 1 to 6 s out
+    inGuild=false; deliver("PLAYER_GUILD_UPDATE","player"); drain()
+    inGuild=true; deliver("PLAYER_GUILD_UPDATE","player"); deliver("GUILD_ROSTER_UPDATE",true); drain()
+    advance(7); drain(); eq(#legwSent("H|"),0,"the scheduled answer was dropped")
+    -- owed H (turned on before any roster), then out of the guild and back: never sent
+    N=loadAddon(); establish(N); slash("host on"); yes(N.Main.host.announceOwed)
+    inGuild=false; deliver("PLAYER_GUILD_UPDATE","player"); drain(); eq(N.Main.host.announceOwed,nil)
+    inGuild=true; deliver("PLAYER_GUILD_UPDATE","player"); deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#legwSent("H|"),0)
+    -- a guild update that changes nothing (same guild, still in it) keeps everything, also the first one
+    N=loadAddon(); hReady(N); deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on); yes(N.Adapters.roster.at)
+    deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on)
+    -- guild name unreadable for a moment (loading): no change either
+    guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on); guildName="Test Guild"
+    -- another guild without leaving in between: a change
+    guildName="Third Guild"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on); eq(N.Adapters.roster.at,nil)
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

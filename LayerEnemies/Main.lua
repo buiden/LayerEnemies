@@ -379,12 +379,17 @@ function M.hostControl(c,sender,time)
     local delay=1+math.random()*5
     -- (announceHost needs a guild roster read this session: an F just before the first roster is answered if the
     -- roster arrives within the 1 to 6 s)
-    if not after(delay,function() M.host.answerDue=nil; guarded(M.announceHost) end) then M.host.answerDue=nil end
+    -- a guild change in the meantime drops this answer (the token moves on)
+    local token=M.host.guildToken
+    if not after(delay,function()
+        if M.host.guildToken~=token then return end
+        M.host.answerDue=nil; guarded(M.announceHost)
+    end) then M.host.answerDue=nil end
 end
 -- One H line: only while hosting, after this session's first guild roster (a host resumed at login or turned on
 -- early is not yet checked against it), with our key and live zone known, and nothing blocking hosting.
 function M.announceHost()
-    if not (M.host and M.host.on) or M.hostBlocked() or not A.rosterAge(now()) then return false end
+    if not (M.host and M.host.on) or M.hostWhyNot() or not A.rosterAge(now()) then return false end
     local own=M.hostOwn()
     local line=N.Relay.hostLine(own.key,own.zone)
     if not line then return false end
@@ -879,6 +884,25 @@ function M.autoTick()
         M.say("LayerEnemies: hop failed: "..g.host.." could not move you")
     end
 end
+-- PLAYER_GUILD_UPDATE: out of the guild, or in another one, hosting goes inactive (still saved on), the owed H and
+-- a scheduled F answer are dropped, and the roster-seen flag is reset, so an H in a new guild waits for its roster.
+-- An update that changes nothing (same guild) keeps everything.
+function M.guildChanged()
+    local inGuild=S.call(IsInGuild)==true
+    local name=inGuild and S.str((S.call(GetGuildInfo,"player")),100) or nil
+    -- still in a guild and not known to be another one (its name unread yet, or the same): nothing changed
+    if inGuild and (not name or not M.guildSeen or name==M.guildSeen) then M.guildSeen=name or M.guildSeen; return end
+    M.guildSeen=name
+    if not M.host then return end
+    M.host.guildToken=(M.host.guildToken or 0)+1
+    M.host.announceOwed=nil; M.host.answerDue=nil; M.host.held=nil
+    A.roster.at=nil
+    if M.host.on then
+        M.host.on=false; M.host.inactive=M.hostWhyNot() or "waiting for the new guild's roster."
+        M.say("LayerEnemies: hosting for your guild is ON but inactive: "..M.host.inactive:gsub("%.$","").." (/le host off to stop).")
+        if N.UI then N.UI.refresh() end
+    end
+end
 -- The hop is over (moved and left, failed, or 120 s without an invite): no ask is pending any more.
 function M.hopDone() N.Hop.clear(M.hop); M.invite.pending=nil end
 function M.groupCheck()
@@ -1002,7 +1026,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -1027,7 +1051,8 @@ local function dispatch(_,event,...)
     elseif event=="GUILD_ROSTER_UPDATE" then guarded(M.rosterUpdate)
     elseif event=="PARTY_INVITE_REQUEST" then guarded(M.partyInvite,(...))
     elseif event=="CHAT_MSG_WHISPER_INFORM" then local text,who=...; guarded(M.draftSent,"WHISPER",text,who)
-    elseif event=="CHAT_MSG_GUILD" then local text,who=...; guarded(M.draftSent,"GUILD",text,who) end
+    elseif event=="CHAT_MSG_GUILD" then local text,who=...; guarded(M.draftSent,"GUILD",text,who)
+    elseif event=="PLAYER_GUILD_UPDATE" then guarded(M.guildChanged) end
 end
 -- Opens the chat box with a whisper for the user to send; never sends it.
 function N.AskInvite(name)
