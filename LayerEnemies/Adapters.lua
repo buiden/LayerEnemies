@@ -171,10 +171,9 @@ function A.guildLine(list,text,sender,wall)
     local key,zone,host=text:match("^L ([^|]+)|([^|]*)|([h%-])$")
     if not key or not N.Layer.key(key) or key~=N.Layer.key(key) then return false,"invalid" end
     if zone~="" and not zone:match("^%d+$") then return false,"invalid" end
-    -- the sender's own line; a cross-realm "First Surname-Realm" keeps the name only
-    local name=sender
-    if name:find(" ",1,true) then name=name:match("^(.-)%-[^ ]*$") or name end
-    if not N.Invite.name(name) then return false,"name" end
+    -- the sender's own line, named by the one name rule: our realm dropped, any other realm kept
+    local _,_,name=N.Invite.name(sender)
+    if not name then return false,"name" end
     for k,v in pairs(list) do if wall-v.at>=A.GUILD_LINES then list[k]=nil end end
     if not list[name] then
         local n,oldest,ok=0,nil,nil

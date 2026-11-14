@@ -1809,7 +1809,8 @@ test("guild L line without Bulo fills the host list",function()
     eq(N.Main.guildLines["Me"],nil); eq(N.Main.guildLines["Me-TestRealm"],nil); yes(N.Main.guildLines["Bob"])
     for _,bad in ipairs({"L 8000-3|100|h","L 8000|100|x","L 8000|100|h|x","L |100|h","L 8000|1a|h","Q","v 3.0.25"}) do line(bad,"Eve") end
     line("L 8000|100|h","Wes","WHISPER"); line("L 8000|100|h","Pat","PARTY")
-    local list=N.Main.candidates(); eq(names(list),"Bob,Dan Lee")
+    -- (0.4.0 review S2/M1: one name rule; another realm stays in the name, also for a spaced name)
+    local list=N.Main.candidates(); eq(names(list),"Bob,Dan Lee-OtherRealm")
     eq(list[1].layer,"8000"); yes(list[1].host); eq(table.concat(list[1].sources,"+"),"Bulo")
     yes(hopNow(N,rec(N))); eq(sent[1].target,"Bob"); eq(sent[1].text,"inv layer <LS 100 want 8000-0 25.0,75.0>"); eq(#sent,1)
     -- not in a guild, or ignored: not read
@@ -3629,6 +3630,45 @@ test("0.4 host saved (review 6c): a host resumed at login answers no F before th
     deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#sent,0,"the roster alone sends nothing")
     advance(61); deliver("CHAT_MSG_ADDON","LEGW1","F|1","GUILD","Peer"); drain(); advance(7)
     eq(#sent,1); eq(sent[1].text,"H|1|7086|100")
+end)
+
+-- Forever names are "First Last"; realms are numeric (owner facts): one name rule everywhere (0.4.0 review S2, must)
+local function numericHome() GetRealmName=function() return "7102" end; UnitName=(function(old) return function(u) if u=="player" then return "Me Self","7102" end; return old(u) end end)(UnitName) end
+test("0.4 fix S2 (must): First Last, numeric realms; double, leading and trailing spaces and three words refused",function()
+    local N=loadAddon(); numericHome(); local I=N.Invite
+    local n,k,t=I.name("First Last"); eq(n,"First Last"); eq(k,"first last"); eq(t,"First Last")
+    n,k,t=I.name("First Last-7102"); eq(k,"first last"); eq(t,"First Last","our numeric realm dropped")
+    n,k,t=I.name("First Last-7105"); eq(k,"first last-7105"); eq(t,"First Last-7105","another numeric realm kept")
+    n,k,t=I.name("First Last-OtherRealm"); eq(k,"first last-otherrealm"); eq(t,"First Last-OtherRealm")
+    for _,bad in ipairs({"First  Last"," First Last","First Last ","One Two Three","First Last-","First Last-71 02","First|Last","First%Last",
+        "First Last-7102-1","First\tLast","Fi.rst Last","First Last-[x]",string.rep("a",37).." Last"}) do eq(I.name(bad),nil,bad) end
+    -- the guild check and the invite on numeric realms
+    local A=N.Adapters
+    roster={{"Alpha Beta-7102",true}}; eq(A.guildMember("Alpha Beta"),true); eq(A.guildMember("Alpha Beta-7102"),true); eq(A.guildMember("Alpha Beta-7105"),false)
+    roster={{"Alpha Beta",true},{"Alpha Beta-7105",true}}
+    eq(A.guildMember("Alpha Beta"),false,"bare namesake while 7105 is listed"); eq(A.guildMember("Alpha Beta-7102"),false); eq(A.guildMember("Alpha Beta-7105"),true)
+    hostReady(N,{}); roster={{"Alpha Beta-7105",true}}
+    lsw("inv layer <LS 100 want 7086-7>","Alpha Beta-7105"); eq(#invites,1); eq(invites[1],"Alpha Beta-7105")
+    eq(sent[1].text,"heard Alpha Beta|7086-7|100|h","the reply names the asker as his own UnitName reads")
+    N=loadAddon(); numericHome(); hostReady(N,{}); roster={{"Cara Dune-7102",true}}
+    lsw("inv layer <LS 100 want 7086-7>","Cara Dune"); eq(#invites,1); eq(invites[1],"Cara Dune")
+end)
+test("0.4 fix S2 (must): the LayerSwap reply grammar takes the spaced name and nothing looser",function()
+    local N=loadAddon(); local Wr=N.Wire
+    for _,ok in ipairs({"heard First Last|7086-7|100|h","heard First Last-7105|7086-7|100|-","heard Bob|7086-7|100|h"}) do
+        local r,why=Wr.send("LayerSwap",ok,"WHISPER","First Last"); yes(r,ok.." "..tostring(why)); advance(7) end
+    for _,bad in ipairs({"heard First  Last|7086-7|100|h","heard First Last Third|7086-7|100|h","heard  First Last|7086-7|100|h",
+        "heard First Last |7086-7|100|h","heard First%Last|7086-7|100|h"}) do
+        local r,why=Wr.send("LayerSwap",bad,"WHISPER","First Last"); no(r,bad); eq(why,"bad text"); advance(7) end
+    -- a heard reply naming us by our spaced name is read (Hop.reply compares the whole name)
+    local rep=N.Hop.reply("heard Me Self|7086-7|100|h","First Last","Me Self"); yes(rep); eq(rep.layer,"7086-7")
+end)
+test("0.3.x name paths: a Bulo guild line from First Last-OtherRealm keeps the realm; ours is dropped",function()
+    local N=loadAddon(); numericHome(); local A=N.Adapters; local list={}
+    yes(A.guildLine(list,"L 8000|100|h","Alpha Beta-7105",1000)); yes(list["Alpha Beta-7105"]); eq(list["Alpha Beta"],nil)
+    yes(A.guildLine(list,"L 8000|100|h","Cara Dune-7102",1000)); yes(list["Cara Dune"])
+    yes(A.guildLine(list,"L 8000|100|h","Dana-7105",1000)); yes(list["Dana-7105"])
+    no(A.guildLine(list,"L 8000|100|h","Eli  Fox",1000)); no(A.guildLine(list,"L 8000|100|h","One Two Three",1000))
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
