@@ -44,7 +44,9 @@ function Rl.encode(record, now)
     local ns = NS[record.layer.ns]
     if record.src == "hh" then ns, layer = "u", "" end            -- HeadHunter never carries a usable layer
     if not layer:match("^[%w%-]*$") or #layer > 32 then return nil end
-    local age = math.max(0, math.floor(now - record.heard)) + (record.age or 0)
+    -- the origin's time (Record.at) is what travels, as an age at sending
+    local at = S.num(record.at) or (record.heard - (record.age or 0))
+    local age = math.max(0, math.floor(now - at))
     if age > 900 then return nil end                             -- too old for any receiver
     local head = table.concat({ "R", Rl.VERSION, record.src, record.kind, hex(record.origin), rid, tostring(record.zone),
         c3(record.x), c3(record.y), record.count and tostring(record.count) or "", ns, layer, tostring(age) }, "|") .. "|"
@@ -105,7 +107,9 @@ function Rl.decode(text, sender, now)
     end
     local record, why = N.Record.new({ src = "guild", kind = kind, origin = origin, via = sender, route = "GUILD", rid = rid,
         zone = zone, x = x, y = y, count = count, enemies = enemies, layer = { ns = ns, value = value },
-        heard = now - age, share = "guild", label = src })
+        heard = now - age, share = "guild", label = src,
+        -- one guild hop (the format carries no upstream count); HeadHunter positions stay the observer's
+        hops = 1, pos = src == "hh" and x and "observer" or nil })
     if not record then return nil, "record: " .. tostring(why) end
     return record
 end

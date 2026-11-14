@@ -92,7 +92,9 @@ function T.report(t,record,now)
         if k~=key and network(rr)~=network(record) and (rr.okey or rr.origin:lower())==(record.okey or record.origin:lower()) and rr.zone==record.zone
             and math.abs((rr.at or rr.heard)-(record.at or record.heard))<=5 then
             local a,b=named(record),named(rr)
-            if a>b or (a==b and record.hand=="first" and rr.hand~="first") then t.reports[k]=nil else return false,"duplicate" end
+            -- first-hand wins first (a relayed copy can name anyone); then the copy with more names
+            local fa,fb=record.hand=="first",rr.hand=="first"
+            if (fa and not fb) or (fa==fb and a>b) then t.reports[k]=nil else return false,"duplicate" end
         end
     end
     if not old then
@@ -126,7 +128,7 @@ function T.rows(t,now,kind)
                     out[#out+1]={key=k,at=r.heard,zone=r.zone,hash=e.hash,class=e.class,level=e.level,
                         reporter=r.origin,via=r.via and r.via:lower()~=r.origin:lower() and r.via or nil,relation=relation,reportLayer=r.layer.value,age=r.age,record=r,
                         name=name,possible=possible,confidence=row.confidence,source=label,namespace=r.layer.ns,x=r.x,y=r.y,
-                        hand=r.hand,positionKind=POSITION[r.pos]}
+                        hand=r.hand,positionKind=POSITION[r.pos],untimed=r.untimed}
                 end
                 -- a HeadHunter name is the name as reported (claimed), never matched against our own sightings
                 for i,e in ipairs(r.enemies) do add(key..":"..i,e,e.name or "Unknown",e.hash and T.possible(t,e.hash) or nil) end

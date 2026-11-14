@@ -102,9 +102,10 @@ end
 function P.age(stamp, serverNow)
     serverNow = S.num(serverNow)
     if not serverNow then return nil end
-    if stamp == nil then return 0 end
+    -- no usable stamp: age 0 and untimed (the record then carries receipt time and says so)
+    if stamp == nil then return 0, true end
     local age = (math.floor(serverNow) - stamp) % 3600
-    if age > 1800 then return 0 end
+    if age > 1800 then return 0, true end
     return age
 end
 P.MAXAGE = 900                                                  -- C and E older than this are dropped

@@ -78,7 +78,7 @@ function R.receive(st, msg, ctx)
     local origin = wrapped and msg.origin or ctx.sender
     local okey = N.Peers.key(origin)
     if not okey then return nil, "origin" end
-    local age = P.age(inner.stamp, ctx.serverNow)
+    local age, untimed = P.age(inner.stamp, ctx.serverNow)
     if not age then return nil, "clock unavailable" end
     if age > P.MAXAGE then return nil, "stale" end
     local key = okey .. ":" .. inner.rid
@@ -125,7 +125,8 @@ function R.receive(st, msg, ctx)
     local record, why = N.Record.new({ src = "we", kind = "group", origin = origin, via = ctx.sender, route = ctx.route,
         rid = tostring(inner.rid), zone = zone, x = inner.x, y = inner.y, count = inner.count, enemies = {}, layer = layer,
         heard = now, age = age, share = (ctx.route == "GUILD" and not wrapped) and "guild" or "public",
-        wrapped = wrapped, hops = wrapped and 1 or nil })
+        wrapped = wrapped, hops = wrapped and 1 or nil, untimed = untimed,
+        hand = inner.sync and "relayed" or nil })              -- a sync answer (catch-up) is never first-hand
     if not record then return nil, "record: " .. tostring(why) end
     if not last then
         local n, oldest, ok = 0, nil, nil

@@ -3436,21 +3436,28 @@ test("1.0 T2: a record older than its network's limit is dropped, counted from t
     for _,s in ipairs({"spy","fspy","sent"}) do eq(T.ttl({src=s}),600,s) end
     for _,s in ipairs({"gb","wos","ft"}) do eq(T.ttl({src=s}),900,s) end
 end)
-test("1.0 T2: one row per origin, zone and 5 s; the copy with names wins",function()
+test("1.0 T2: one row per origin, zone and 5 s; first-hand first, then the copy with names",function()
+    -- (round 2, T2-1: a first-hand copy wins before the name count; the guild relay's copy is relayed)
     local N=loadAddon(); establish(N); local T,R,st=N.Store,N.Record,N.Main.store
     local hashOnly=R.new(base({heard=clock,rid="10",enemies={{hash="abc"}},count=2}))
     local named=R.new(base({src="guild",label="own",via="Scout",heard=clock,rid="O1",enemies={{name="Kora Reed"},{name="Ann Lee"}},count=2}))
-    yes(T.report(st,hashOnly,clock)); yes(T.report(st,named,clock)); local rows=T.rows(st,clock,"reported")
-    eq(#rows,2,"two named enemies, one row each"); eq(rows[1].record,named)
-    -- the other way round: the named row stays and the hash-only copy is a duplicate
+    yes(T.report(st,hashOnly,clock)); local ok,why=T.report(st,named,clock); no(ok); eq(why,"duplicate")
+    local rows=T.rows(st,clock,"reported"); for _,row in ipairs(rows) do eq(row.record,hashOnly) end
+    -- the other way round: the first-hand copy replaces the relayed named one
     N=loadAddon(); establish(N); T,R,st=N.Store,N.Record,N.Main.store
     yes(T.report(st,R.new(base({src="guild",label="own",heard=clock,rid="O2",enemies={{name="Kora Reed"}}})),clock))
-    local ok,why=T.report(st,R.new(base({heard=clock+3,rid="11",enemies={{hash="abc"}}})),clock+3); no(ok); eq(why,"duplicate")
+    yes(T.report(st,R.new(base({heard=clock+3,rid="11",enemies={{hash="abc"}}})),clock+3))
     -- 6 s apart, another zone or another origin: separate rows
     yes(T.report(st,R.new(base({heard=clock+6,rid="12"})),clock+6))
     -- two reports of one network within 5 s are two sightings
     yes(T.report(st,R.new(base({heard=clock+6,rid="14"})),clock+6))
     yes(T.report(st,R.new(base({origin="Other",via="Other",heard=clock,rid="13"})),clock))
+    -- both first-hand on two networks: the one with names wins
+    N=loadAddon(); establish(N); T,R,st=N.Store,N.Record,N.Main.store
+    yes(T.report(st,R.new(base({heard=clock,rid="20",enemies={{hash="abc"}}})),clock))
+    local p=R.new(base({src="hh",kind="fight",heard=clock,rid="21",layer={ns="unknown"},enemies={{name="Kora Reed"}}}))
+    yes(T.report(st,p,clock)); rows=T.rows(st,clock,"reported"); eq(#rows,1); eq(rows[1].record,p)
+    local ok2,why2=T.report(st,R.new(base({heard=clock+3,rid="22",src="hh",kind="fight",layer={ns="unknown"},enemies={{hash="abc"}}})),clock+3); yes(ok2,"same network: its own row")
 end)
 
 -- 1.0 T3: Directory: the two named channels, joined only at consent "public", read only when safe, never sent to.
@@ -3704,8 +3711,8 @@ test("1.0 T2 names: every network's sender and origin pass the one name rule (Fi
     eq(mk({origin="Scout-7105",via="Scout"}).hand,"relayed","another realm is another player")
     -- the store's one-row-per-origin rule uses the same key
     establish(N); local T,st=N.Store,N.Main.store
-    yes(T.report(st,mk({src="guild",label="own",origin="Scout",via="Scout",heard=clock,rid="O1",enemies={{name="Kora Reed"}}}),clock))
-    local ok,why=T.report(st,mk({origin="Scout-7102",via="Scout-7102",heard=clock,rid="9",enemies={{hash="abc"}}}),clock); no(ok); eq(why,"duplicate")
+    yes(T.report(st,mk({src="hh",kind="fight",origin="Scout",via="Scout",heard=clock,rid="O1",layer={ns="unknown"},enemies={{name="Kora Reed"}}}),clock))
+    local ok,why=T.report(st,mk({origin="Scout-7102",via="Scout-7102",heard=clock,rid="9",enemies={{hash="abc"}}}),clock); no(ok); eq(why,"duplicate","one origin key across networks")
     -- the decoders: War Effort and HeadHunter reporters with spaced names come through; malformed ones do not
     local _,feed=reportFixture(N); yes(feed(VC,"Reporter Two")); eq(feed(VC,"Reporter  Two"),nil)
 end)
@@ -3839,6 +3846,54 @@ test("1.0 T1: one player is one key for the per-player limit; the target tables 
     local targets,offline=Wr.sizes(); yes(targets<=2,"stale players pruned: "..targets)
     sendResult=12; for i=1,300 do Wr.send("WEFF1","P|"..i,"WHISPER","Gone"..abc(i),{net="we",prio="click"}); advance(3.1) end; sendResult=0
     targets,offline=Wr.sizes(); yes(offline<=256,"offline skips capped: "..offline)
+end)
+
+-- 1.0 review round 2: T2
+local function t2rec(N,over) local o={src="we",kind="group",origin="Scout",via="Scout",route="GUILD",rid="1",zone=100,count=1,
+    layer={ns="server",value="8000"},heard=clock,share="guild"}; for k,v in pairs(over or {}) do o[k]=v end; return N.Record.new(o) end
+test("1.0 T2-1: across networks a first-hand copy wins before the name count",function()
+    local N=loadAddon(); establish(N); local T,st=N.Store,N.Main.store
+    yes(T.report(st,t2rec(N,{rid="1",enemies={{hash="abc"}}}),clock))                              -- first-hand War Effort
+    local forged=t2rec(N,{src="hh",kind="fight",via="Carrier",wrapped=true,hops=1,rid="9",enemies={{name="Kora Reed"},{name="Ann Lee"}},layer={ns="unknown"}})
+    local ok,why=T.report(st,forged,clock); no(ok); eq(why,"duplicate","a relayed copy with more names does not replace a first-hand row")
+    local rows=T.rows(st,clock,"reported"); eq(#rows,1); eq(rows[1].hand,"first")
+    -- reverse order: the first-hand copy replaces the relayed one
+    N=loadAddon(); establish(N); T,st=N.Store,N.Main.store
+    yes(T.report(st,t2rec(N,{src="hh",kind="fight",via="Carrier",wrapped=true,hops=1,rid="9",enemies={{name="Kora Reed"}},layer={ns="unknown"}}),clock))
+    yes(T.report(st,t2rec(N,{rid="1",enemies={{hash="abc"}}}),clock)); rows=T.rows(st,clock,"reported"); eq(#rows,1); eq(rows[1].hand,"first")
+
+end)
+test("1.0 T2: a War Effort sync answer is not first-hand",function()
+    local N=loadAddon(); establish(N); advance(1)
+    deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0.4|0.5|7086|1|"..(server%3600).."|12|1:2","GUILD","Origin"); drain()
+    local hand; for _,row in pairs(N.Main.store.reports) do hand=row.record.hand end; eq(hand,"relayed")
+    N=loadAddon(); establish(N); advance(1)
+    deliver("CHAT_MSG_ADDON","WEFF1","C|1|100|0.4|0.5|7086|1|"..(server%3600),"GUILD","Origin"); drain()
+    for _,row in pairs(N.Main.store.reports) do hand=row.record.hand end; eq(hand,"first","a live C")
+end)
+test("1.0 T2: a relayed HeadHunter record keeps its observer position and a hop count; the relay codes the origin's time",function()
+    local N=loadAddon(); local R=N.Relay
+    local hh=t2rec(N,{src="hh",kind="fight",origin="Mira Vale",via="Carrier",route="WHISPER",rid="1800000000",x=.5,y=.2,pos="observer",
+        wrapped=true,hops=2,heard=100,layer={ns="unknown"},enemies={{name="Kora Reed",class="MAGE",level=60}},share="public"})
+    local back=R.decode(R.encode(hh,100),"Relayer",100); yes(back); eq(back.pos,"observer"); yes(back.hops and back.hops>=1,"a hop count")
+    local first=t2rec(N,{src="hh",kind="fight",origin="Mira Vale",via="Mira Vale",route="WHISPER",rid="1800000001",x=.5,y=.2,pos="observer",
+        heard=100,layer={ns="unknown"},share="public"})
+    back=R.decode(R.encode(first,100),"Relayer",100); eq(back.pos,"observer"); eq(back.hops,1,"one guild hop from a first-hand record")
+    -- an explicit origin time is what the relay carries
+    local timed=t2rec(N,{heard=100,at=40}); back=R.decode(R.encode(timed,100),"Relayer",100); eq(back.at,40)
+end)
+test("1.0 T2: a record with no timestamp uses receipt time and says so",function()
+    local N=loadAddon(); establish(N); advance(1)
+    hello("Scout",19); deliver("CHAT_MSG_ADDON","WEFF1","C|7|100|0.4|0.5|8000|1","GUILD","Scout"); drain()
+    local row; for _,v in pairs(N.Main.store.reports) do row=v.record end; yes(row); yes(row.untimed); eq(row.at,row.heard)
+    slash("reports"); yes(logged("time of receipt (no timestamp)"))
+    -- a stamp in the future half of the hour is no usable stamp either
+    N=loadAddon(); establish(N); advance(1); hello("Scout",19)
+    deliver("CHAT_MSG_ADDON","WEFF1","C|9|100|0.4|0.5|8000|1|"..((math.floor(server)+100)%3600),"GUILD","Scout"); drain()
+    for _,v in pairs(N.Main.store.reports) do row=v.record end; yes(row and row.untimed,"future stamp")
+    -- a stamped report is not labelled
+    N=loadAddon(); establish(N); advance(1); hello("Scout",19); report(8,8000,"Scout")
+    for _,v in pairs(N.Main.store.reports) do row=v.record end; no(row.untimed)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

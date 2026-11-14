@@ -97,6 +97,7 @@ function R.new(t)
         local at = t.at
         if at ~= nil then at = S.num(at); if not at or at > heard then return nil, "at" end else at = heard - (age or 0) end
         r.hand, r.hops, r.pos, r.at = direct and "first" or "relayed", hops, pos, at
+        r.untimed = t.untimed == true or nil                     -- receipt time stands in for a missing stamp
         r.src, r.kind, r.origin, r.via, r.route, r.rid = t.src, t.kind, origin, via, t.route, rid
         r.zone, r.x, r.y, r.count, r.enemies = zone, x, y, count, enemies
         r.layer = { ns = layer.ns, value = value }
