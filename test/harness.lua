@@ -2642,5 +2642,102 @@ test("0.4 T5: the Reported row button drafts the guild line",function()
     yes(row); eq(row.ask.label.text,"Ask guild (chat)"); no(row.ask.disabled)
     row.ask:Click(); drain(); eq(#opened,1); eq(opened[1].text,GLINE); eq(#sent,0)
 end)
+
+local N_G
+-- 0.4.0 Task 7.1: guild-only host, pure parser and decision (GuildHost.lua). Nothing is sent or invited here.
+local function gh(N) return N.GuildHost end
+local function ownState(over)
+    local o={self="me",zone=100,key="8000",id="8000-7",inInstance=false,inCombat=false,raid=false,leader=false,members={},asking=false,member=true}
+    for k,v in pairs(over or {}) do o[k]=v end
+    return o
+end
+local function req(text,name) local r=assert(N_G.parse(text),text); r.name=name or "Bob"; return r end
+test("0.4 T7.1: parse accepts only the full want/not grammar",function()
+    local N=loadAddon(); local G=gh(N); N_G=G
+    local r=G.parse("inv layer <LS 100 want 8000-12 25.0,75.0>"); eq(r.zone,100); eq(r.want,"8000-12"); eq(r.x,25); eq(r.y,75); eq(r.nots,nil)
+    r=G.parse("inv layer <LS 1429 want 7086-0>"); eq(r.zone,1429); eq(r.want,"7086-0"); eq(r.x,nil)
+    r=G.parse("inv layer <LS 100 not 7086-3>"); eq(r.want,nil); eq(#r.nots,1); eq(r.nots[1],"7086-3")
+    r=G.parse("inv layer <LS 100 not 7086-3 not 8000-1 not 9000-2 48.2,42.5>"); eq(#r.nots,3); eq(r.nots[3],"9000-2"); eq(r.x,48.2)
+    for _,bad in ipairs({"inv layer <LS 100>","inv layer <LS 100 25.0,75.0>","inv layer <LS 100 want 8000-12> extra","x inv layer <LS 100 want 8000-1>",
+        "inv layer <LS 100 want 8000>","inv layer <LS 100 want 8000-1 not 7000-1>","inv layer <LS 100 not 7000-1 want 8000-1>",
+        "inv layer <LS abc want 8000-1>","inv layer <LS 100  want 8000-1>","inv layer <LS 100 want 8000-1 25.0>","inv layer <LS 100 want 8000-1 a,b>",
+        "inv layer <LS 1234567890 want 8000-1>","inv layer <LS 100 want 8000-1>"..string.rep(" ",200),"",5,nil,secret,
+        "INV LAYER <LS 100 want 8000-1>","inv layer <LS 100 want 8000-1-2>"}) do
+        eq(G.parse(bad),nil,tostring(type(bad)=="string" and bad or type(bad)))
+    end
+    eq(G.parse("inv layer <LS 100 want "..string.rep("1",230).."-1>"),nil,"over 255 bytes")
+end)
+test("0.4 T7.1: decide order: hosting, name, 60 s per asker, zone, key, instance, combat, guild",function()
+    local N=loadAddon(); local G=gh(N); N_G=G
+    local st=G.new(); local R=req("inv layer <LS 100 want 8000-12 25.0,75.0>")
+    eq((G.decide(st,R,ownState(),100)),"drop","hosting off")
+    st.on=true
+    eq((G.decide(st,req("inv layer <LS 100 want 8000-1>","Me"),ownState(),100)),"drop","our own name")
+    eq((G.decide(st,req("inv layer <LS 100 want 8000-1>","Bad|Name"),ownState(),100)),"drop","bad name")
+    for _,c in ipairs({{zone=200},{zone=false},{key=false},{inInstance=true},{inInstance="?"},{inCombat=true},{member=false},{member="?"}}) do
+        local o=ownState(); for k,v in pairs(c) do if v==false and (k=="zone" or k=="key") then o[k]=nil else o[k]=v end end
+        local s=G.new(); s.on=true
+        local v,reply=G.decide(s,R,o,100); eq(v,"drop"); eq(reply,nil)
+    end
+    -- combat unreadable counts as in combat
+    local s=G.new(); s.on=true; local o=ownState(); o.inCombat=nil; eq((G.decide(s,R,o,100)),"drop")
+    -- guild membership unreadable (nil) is no
+    s=G.new(); s.on=true; o=ownState(); o.member=nil; eq((G.decide(s,R,o,100)),"drop")
+    -- instance unreadable (nil) is no
+    s=G.new(); s.on=true; o=ownState(); o.inInstance=nil; eq((G.decide(s,R,o,100)),"drop")
+    -- request zone other than ours
+    s=G.new(); s.on=true; eq((G.decide(s,req("inv layer <LS 101 want 8000-1>"),ownState(),100)),"drop")
+end)
+test("0.4 T7.1: want and not rules with their replies",function()
+    local N=loadAddon(); local G=gh(N); N_G=G
+    local function fresh() local s=G.new(); s.on=true; return s end
+    local v,reply=G.decide(fresh(),req("inv layer <LS 100 want 8000-12 25.0,75.0>"),ownState(),100); eq(v,"invite"); eq(reply,"heard Bob|8000-7|100|h")
+    v,reply=G.decide(fresh(),req("inv layer <LS 100 want 9000-0>"),ownState(),100); eq(v,"busy"); eq(reply,"heard Bob|8000-7|100|-","carries our real layer")
+    v,reply=G.decide(fresh(),req("inv layer <LS 100 not 8000-3>"),ownState(),100); eq(v,"same"); eq(reply,"same")
+    v,reply=G.decide(fresh(),req("inv layer <LS 100 not 9000-3>"),ownState(),100); eq(v,"invite"); eq(reply,"heard Bob|8000-7|100|h")
+    v,reply=G.decide(fresh(),req("inv layer <LS 100 not 9000-3 not 8000-1>"),ownState(),100); eq(v,"drop"); eq(reply,nil)
+    -- without a zoneUID we answer with uid 0; a realm suffix on the asker is dropped from the reply
+    v,reply=G.decide(fresh(),req("inv layer <LS 100 want 8000-1>","Bob-OtherRealm"),ownState({id=false}),100); eq(v,"invite"); eq(reply,"heard Bob|8000-0|100|h")
+    v,reply=G.decide(fresh(),req("inv layer <LS 100 want 8000-1>","Tam Reed"),ownState(),100); eq(reply,"heard Tam Reed|8000-7|100|h")
+end)
+test("0.4 T7.1: group rule, own request, 10 s overall and 6 per 600 s give busy",function()
+    local N=loadAddon(); local G=gh(N); N_G=G
+    local R=function(n) return req("inv layer <LS 100 want 8000-1>",n or "Bob") end
+    local function fresh() local s=G.new(); s.on=true; return s end
+    for _,o in ipairs({ownState({raid=true}),ownState({members={"Cy"},leader=false}),ownState({members={"Cy"},leader=true}),ownState({asking=true})}) do
+        local v,reply=G.decide(fresh(),R(),o,100); eq(v,"busy"); eq(reply,"heard Bob|8000-7|100|-")
+    end
+    -- a party whose members we all invited but that we do not lead: busy
+    local s0=fresh(); s0.hosted.cy=true; eq((G.decide(s0,R(),ownState({members={"Cy"},leader=false}),100)),"busy","not the leader")
+    -- a party we lead whose members we all invited, under five with pending: invite
+    local s=fresh(); s.hosted.cy=true; local v=G.decide(s,R(),ownState({members={"Cy"},leader=true}),100); eq(v,"invite")
+    -- four members, or three plus one pending: busy
+    s=fresh(); for _,m in ipairs({"aa","bb","cc"}) do s.hosted[m]=true end; v=G.decide(s,R(),ownState({members={"Aa","Bb","Cc"},leader=true}),100); eq(v,"invite")
+    s=fresh(); for _,m in ipairs({"aa","bb","cc","dd"}) do s.hosted[m]=true end; v=G.decide(s,R(),ownState({members={"Aa","Bb","Cc","Dd"},leader=true}),100); eq(v,"busy")
+    s=fresh(); for _,m in ipairs({"aa","bb","cc"}) do s.hosted[m]=true end; s.pending.zz=100
+    v=G.decide(s,R(),ownState({members={"Aa","Bb","Cc"},leader=true}),110); eq(v,"busy","three members plus one pending")
+    -- 60 s per asker, 10 s overall, 6 per 600 s
+    s=fresh(); eq((G.decide(s,R("Bob"),ownState(),1000)),"invite")
+    eq((G.decide(s,R("Bob"),ownState(),1059)),"drop","same asker at 59 s")
+    eq((G.decide(s,R("Cy"),ownState(),1009)),"busy","second asker at 9 s")
+    s=fresh(); local t0=2000; local names={"Aa","Bb","Cc","Dd","Ee","Ff","Gg"}
+    -- 61 s apart: a pending invite counts 60 s toward the group size
+    for i=1,6 do eq((G.decide(s,R(names[i]),ownState(),t0+(i-1)*61)),"invite",names[i]) end
+    eq((G.decide(s,R("Gg"),ownState(),t0+366)),"busy","seventh inside 600 s")
+    eq((G.decide(s,R("Hh"),ownState(),t0+600)),"invite","the first has aged out")
+end)
+test("0.4 T7.1: the asker table is capped at 128 and the 60 s counts from the guild check",function()
+    local N=loadAddon(); local G=gh(N); N_G=G
+    local s=G.new(); s.on=true
+    for i=1,140 do G.decide(s,req("inv layer <LS 100 want 9000-1>","N"..string.char(96+math.ceil(i/26))..string.char(96+(i-1)%26+1)),ownState(),i) end
+    eq(N.Safe.count(s.asked),128)
+    -- a drop before the guild check (other zone) does not start the 60 s
+    s=G.new(); s.on=true
+    eq((G.decide(s,req("inv layer <LS 101 want 8000-1>"),ownState(),10)),"drop"); eq((G.decide(s,req("inv layer <LS 100 want 8000-1>"),ownState(),11)),"invite")
+    -- a non-member reached the guild check: 60 s
+    s=G.new(); s.on=true
+    eq((G.decide(s,req("inv layer <LS 100 want 8000-1>"),ownState({member=false}),10)),"drop")
+    eq((G.decide(s,req("inv layer <LS 100 want 8000-1>"),ownState(),40)),"drop","within 60 s of the guild check")
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

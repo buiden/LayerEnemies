@@ -19,6 +19,7 @@ Adapters.lua
 Invite.lua
 Hop.lua
 Hosts.lua
+GuildHost.lua
 Relay.lua
 Find.lua
 UI.lua
