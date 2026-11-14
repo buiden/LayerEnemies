@@ -17,15 +17,44 @@ function I.new() return { asked={}, lastAsk=nil, pending=nil, watch=nil } end
 -- Returns name, key, target. The key is the whole name, realm included: Scout-RealmA and Scout-RealmB are two
 -- players. Our own realm is dropped from key and target, so "Bob" and "Bob-<our realm>" are one; any other realm
 -- stays in both, and the target is what an invite names.
+-- letters(w, digits): ASCII letters (and digits when allowed) or well-formed UTF-8 letters. Refused: the Latin-1
+-- punctuation block (no-break space, soft hyphen, middle dot, U+00A0-U+00BF), U+00D7 and U+00F7, general
+-- punctuation and invisible marks (U+2000-U+206F, U+FEFF, U+3000-U+303F), specials and surrogates, and any broken
+-- byte sequence.
+local function letters(w,digits)
+    local i,n=1,#w
+    while i<=n do
+        local b=w:byte(i)
+        if b<128 then
+            if not ((b>=65 and b<=90) or (b>=97 and b<=122) or (digits and ((b>=48 and b<=57) or b==39))) then return false end
+            i=i+1
+        else
+            local len=b>=0xF0 and b<=0xF4 and 4 or b>=0xE0 and 3 or b>=0xC2 and b<0xE0 and 2 or nil
+            if not len or i+len-1>n then return false end
+            local cp=b%(len==2 and 32 or len==3 and 16 or 8)
+            for k=1,len-1 do
+                local c=w:byte(i+k)
+                if c<0x80 or c>0xBF then return false end
+                cp=cp*64+(c-0x80)
+            end
+            if (len==3 and cp<0x800) or (len==4 and (cp<0x10000 or cp>0x10FFFF)) then return false end
+            if cp<0xC0 or cp==0xD7 or cp==0xF7 or (cp>=0x2000 and cp<=0x206F) or cp==0xFEFF or (cp>=0x3000 and cp<=0x303F)
+                or (cp>=0xD800 and cp<=0xDFFF) or cp>=0xFFF0 and cp<=0xFFFF then return false end
+            i=i+len
+        end
+    end
+    return true
+end
 function I.name(name)
     name=S.str(name,100)
     if not name then return nil end
     local base,realm=name:match("^(.-)%-([%w'\128-\255]+)$")
+    if realm and not letters(realm,true) then return nil end
     base=base or name                                 -- a dash outside a realm suffix fails the letters check below
     local first,surname=base:match("^([%a\128-\255]+) ([%a\128-\255]+)$")
     if first then
-        if #first<2 or #first>36 or #surname>36 then return nil end
-    elseif #base<2 or #base>36 or not base:match("^[%a\128-\255]+$") then return nil end
+        if #first<2 or #first>36 or #surname>36 or not letters(first) or not letters(surname) then return nil end
+    elseif #base<2 or #base>36 or not base:match("^[%a\128-\255]+$") or not letters(base) then return nil end
     if realm then
         local home=I.home and S.str(I.home(),60)
         local function norm(v) return (v:lower():gsub("[%s%-']","")) end

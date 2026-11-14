@@ -154,14 +154,11 @@ function M.queueUnit(unit)
     if not after(0,run) then run() end
 end
 -- Our own character, with or without a realm (compared the way the receive policy compares senders).
+-- Ourselves, by the one name rule (Invite.name keys: our realm dropped, any other realm is someone else).
 function M.isMe(name)
-    name=S.str(name,100)
-    local me,realm=S.call(UnitName,"player"); me,realm=S.str(me),S.str(realm)
-    realm=realm or S.str(S.call(GetRealmName))
-    if not name or not me then return false end
-    local short,remote=name:match("^([^%-]+)%-(.+)$")
-    if not short then return name:lower()==me:lower() end
-    return realm~=nil and N.Hash.nameKey(short,remote)==N.Hash.nameKey(me,realm)
+    local _,key=I.name(name)
+    local _,me=I.name((S.call(UnitName,"player")))
+    return key~=nil and me~=nil and key==me
 end
 function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelName)
     -- Check every delivered value before comparing/indexing it.

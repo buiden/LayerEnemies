@@ -3776,5 +3776,15 @@ test("0.4 L2: a finished or expired hop no longer counts as asking for the guild
     N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); advance(31); drain(); eq(#leaves,1)
     no(N.Main.hostOwn().asking,"failed"); eq(N.Main.hop.pending,nil)
 end)
+
+test("0.4 L1: isMe uses the one name rule; letters refuse a no-break space, zero-width and invalid bytes",function()
+    local N=loadAddon(); local M,I=N.Main,N.Invite
+    yes(M.isMe("Me")); yes(M.isMe("Me-TestRealm")); yes(M.isMe("me")); no(M.isMe("Me-OtherRealm")); no(M.isMe("Me  ")); no(M.isMe("Mee"))
+    numericHome(); yes(M.isMe("Me Self")); yes(M.isMe("Me Self-7102")); no(M.isMe("Me Self-7105")); no(M.isMe("Me  Self")); no(M.isMe("Me"))
+    -- letters: UTF-8 letters pass, no-break space, zero-width, soft hyphen, BOM, punctuation and broken bytes do not
+    yes(I.name("Zo\195\171 \195\133ngstr\195\182m")); yes(I.name("\208\148\208\176\209\128"))
+    for _,bad in ipairs({"First\194\160Last","Fi\226\128\139rst Last","Fi\194\173rst","\239\187\191Bob","Bo\195","\255Bob","Bo\128b",
+        "Bob\226\128\168","Bo\194\183b","Bo\195\151b","Bob-Re\194\160alm","Bob-\226\128\139x"}) do eq(I.name(bad),nil,bad) end
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
