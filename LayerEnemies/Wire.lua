@@ -59,7 +59,8 @@ for prefix, r in pairs(ROUTES) do Wr.ROUTES[prefix] = {}; for k in pairs(r.kinds
 -- Budgets (1.0 plan 4.3), all spent before the client is asked:
 --   each prefix 5 at once, then 1 per 2 s; all sends 8 at once, then 1 per 1.5 s and never more than 40 in 60 s;
 --   GUILD 20 in 60 s over all prefixes; public whispers 20 in 60 s in total and 4 in 60 s to one player.
---   In combat a send costs double. In an instance only clicks go. A client throttle (3 or 8) pauses that prefix
+--   In combat a send costs double and every minute cap is halved. In an instance only clicks go. A clock that steps
+--   back counts as "just sent": nothing refills and nothing leaves a window. A client throttle (3 or 8) pauses that prefix
 --   30 s and the line is dropped; an offline target (12) is skipped for an hour.
 Wr.PRIO = { click = 1, own = 2, owed = 3, forward = 4 }
 Wr.QUEUE_MAX, Wr.PAUSE, Wr.OFFLINE = 40, 30, 3600
@@ -71,15 +72,19 @@ local paused, offline = {}, {}
 local queue, seq, pumping = {}, 0, false
 
 local function refill(b, cap, every, now)
-    -- a clock that goes backwards refills nothing, and the bucket then counts from the earlier time
-    if b.at then b.tokens = math.min(cap, b.tokens + math.max(0, now - b.at) / every) end
+    -- a clock that goes backwards refills nothing, and the bucket keeps counting from the later time
+    if b.at and now <= b.at then return end
+    if b.at then b.tokens = math.min(cap, b.tokens + (now - b.at) / every) end
     b.at = now
 end
+-- the stamps of the last 60 s; a stamp later than now (the clock stepped back) still counts
 local function recent(list, now)
     local out = {}
-    for _, at in ipairs(list) do if now - at < 60 and now >= at then out[#out + 1] = at end end
+    for _, at in ipairs(list) do if now - at < 60 then out[#out + 1] = at end end
     return out
 end
+-- one player, one key (Invite.name: case, and our realm, do not make another player)
+local function who(target) local _, key = N.Invite.name(target); return key end
 local function inCombat()
     local a, b = S.call(InCombatLockdown), S.call(UnitAffectingCombat, "player")
     return a == true or b == true
@@ -90,14 +95,16 @@ local function room(prefix, kind, target, public, now, cost)
     buckets[prefix] = b
     refill(b, PREFIX_CAP, PREFIX_REFILL, now); refill(all, ALL_CAP, ALL_REFILL, now)
     if b.tokens < cost or all.tokens < cost then return false end
+    -- in combat (cost 2) every minute cap is halved
+    local function cap(n) return math.floor(n / cost) end
     allTimes = recent(allTimes, now)
-    if #allTimes >= ALL_MINUTE then return false end
-    if kind == "GUILD" then guildTimes = recent(guildTimes, now); if #guildTimes >= GUILD_MINUTE then return false end end
+    if #allTimes >= cap(ALL_MINUTE) then return false end
+    if kind == "GUILD" then guildTimes = recent(guildTimes, now); if #guildTimes >= cap(GUILD_MINUTE) then return false end end
     if public then
         publicTimes = recent(publicTimes, now)
-        if #publicTimes >= PUBLIC_MINUTE then return false end
-        publicTo[target] = recent(publicTo[target] or {}, now)
-        if #publicTo[target] >= PUBLIC_ONE then return false end
+        if #publicTimes >= cap(PUBLIC_MINUTE) then return false end
+        for k, l in pairs(publicTo) do l = recent(l, now); publicTo[k] = l[1] and l or nil end   -- pruned
+        if #(publicTo[target] or {}) >= cap(PUBLIC_ONE) then return false end
     end
     return true
 end
@@ -106,7 +113,7 @@ local function spend(prefix, kind, target, public, now, cost)
     all.tokens = all.tokens - cost
     allTimes[#allTimes + 1] = now
     if kind == "GUILD" then guildTimes[#guildTimes + 1] = now end
-    if public then publicTimes[#publicTimes + 1] = now; local l = publicTo[target]; l[#l + 1] = now end
+    if public then publicTimes[#publicTimes + 1] = now; local l = publicTo[target] or {}; l[#l + 1] = now; publicTo[target] = l end
 end
 
 local enqueue
@@ -125,15 +132,19 @@ local function check(prefix, text, kind, target, opts)
         target = nil
     end
     opts = S.tab(opts) and opts or {}
+    -- a network whisper is public unless its target is a checked online guildmate (never the caller's word)
+    local public = false
     if route.net then
         if opts.net ~= route.net then return nil, "network off" end
-        local ok, why = N.Net.allowed(route.net, opts.scope)
+        public = kind == "WHISPER" and not (N.Adapters and N.Adapters.guildMember(target) == true)
+        local ok, why = N.Net.allowed(route.net, public and "public" or "guild")
         if not ok then return nil, why end
     end
-    return route, tag, target, opts
+    return route, tag, target, opts, public
 end
 -- the client call and its result
-local function deliver(prefix, text, kind, target, now)
+local OFFLINE_MAX = 256
+local function deliver(prefix, text, kind, target, now, key)
     local CI = _G.C_ChatInfo
     if S.secret(CI) or type(CI) ~= "table" then return false, "error" end
     local okFn, fn = pcall(function() return CI.SendAddonMessage end)
@@ -143,7 +154,17 @@ local function deliver(prefix, text, kind, target, now)
     if S.secret(result) then return false, "refused" end
     if result == 0 or result == true then return true, "sent" end   -- (true: older clients return a boolean)
     if result == 3 or result == 8 then if now then paused[prefix] = now + Wr.PAUSE end; return false, "throttled" end
-    if result == 12 and target and now then offline[target] = now; return false, "offline" end
+    if result == 12 and key and now then
+        -- skipped for an hour; at most 256 names, expired ones and then the oldest go first
+        local n, oldest, okey = 0, nil, nil
+        for k, at in pairs(offline) do
+            if now - at >= Wr.OFFLINE then offline[k] = nil
+            else n = n + 1; if not oldest or at < oldest then oldest, okey = at, k end end
+        end
+        if n >= OFFLINE_MAX then offline[okey] = nil end
+        offline[key] = now
+        return false, "offline"
+    end
     return false, "refused"
 end
 
@@ -154,37 +175,37 @@ end
 -- "paused", "offline", "throttled", "queue full", "refused" or "error". "sent" means the client took the message,
 -- not that it was delivered.
 local function sendNow(prefix, text, kind, target, opts, fromQueue)
-    local route, tag
-    route, tag, target, opts = check(prefix, text, kind, target, opts)
+    local route, tag, public
+    route, tag, target, opts, public = check(prefix, text, kind, target, opts)
     if not route then return false, tag end
     local now = S.num(S.call(GetTime))
     if not now then return false, "error" end
     local prio = Wr.PRIO[opts.prio] or Wr.PRIO.forward
     if S.call(IsInInstance) ~= false and prio ~= Wr.PRIO.click then return false, "instance" end
     if paused[prefix] and now < paused[prefix] then return false, "paused" end
-    if target and offline[target] and now - offline[target] < Wr.OFFLINE and now >= offline[target] then return false, "offline" end
-    local public = kind == "WHISPER" and opts.scope == "public"
+    local key = target and who(target)
+    if key and offline[key] and (now < offline[key] or now - offline[key] < Wr.OFFLINE) then return false, "offline" end
     local cost = inCombat() and 2 or 1
-    if not room(prefix, kind, target, public, now, cost) then
+    if not room(prefix, kind, key, public, now, cost) then
         if opts.queue and not fromQueue then return enqueue(prefix, text, kind, target, opts, prio) end
         return false, "throttled"
     end
     -- route limits, stamped before the client is asked (a refused send still waits)
     if prefix == "LFSw" then
-        if lfswAt and now - lfswAt < Wr.LFSW_EVERY and now >= lfswAt then return false, "throttled" end
+        if lfswAt and (now < lfswAt or now - lfswAt < Wr.LFSW_EVERY) then return false, "throttled" end
         lfswAt = now
     end
     if prefix == "LEGW1" and (tag == "F" or tag == "H") then
         local last = controlAt[tag]
-        if last and now - last < Wr.CONTROL_EVERY and now >= last then return false, "throttled" end
+        if last and (now < last or now - last < Wr.CONTROL_EVERY) then return false, "throttled" end
         controlAt[tag] = now
     end
     if prefix == "LayerSwap" and tag == "reply" then
-        if replyAt and now - replyAt < Wr.REPLY_EVERY and now >= replyAt then return false, "throttled" end
+        if replyAt and (now < replyAt or now - replyAt < Wr.REPLY_EVERY) then return false, "throttled" end
         replyAt = now
     end
-    spend(prefix, kind, target, public, now, cost)
-    return deliver(prefix, text, kind, target, now)
+    spend(prefix, kind, key, public, now, cost)
+    return deliver(prefix, text, kind, target, now, key)
 end
 function Wr.send(prefix, text, kind, target, opts) return sendNow(prefix, text, kind, target, opts, false) end
 
@@ -223,6 +244,7 @@ pump = function()
     end
 end
 function Wr.queued() return #queue end
+function Wr.sizes() return N.Safe.count(publicTo), N.Safe.count(offline) end
 function Wr.isQueued(text) for _, q in ipairs(queue) do if q.text == text then return true end end return false end
 
 -- The guild host's invite. Limits of its own, whatever the caller checked, spent before the client is asked:
@@ -246,11 +268,11 @@ function Wr.invite(name, now)
     if not valid then return false, "bad name" end
     now = S.num(now)
     if not now then return false, "throttled" end
-    if invite.at and now - invite.at < Wr.INVITE_EVERY and now >= invite.at then return false, "throttled" end
+    if invite.at and (now < invite.at or now - invite.at < Wr.INVITE_EVERY) then return false, "throttled" end
     local last = invite.names[key]
-    if last and now - last < Wr.INVITE_NAME and now >= last then return false, "throttled" end
+    if last and (now < last or now - last < Wr.INVITE_NAME) then return false, "throttled" end
     local recent = {}
-    for _, at in ipairs(invite.recent) do if now - at < Wr.INVITE_WINDOW and now >= at then recent[#recent + 1] = at end end
+    for _, at in ipairs(invite.recent) do if now - at < Wr.INVITE_WINDOW then recent[#recent + 1] = at end end
     invite.recent = recent
     if #recent >= Wr.INVITE_CAP then return false, "throttled" end
     for k, at in pairs(invite.names) do if now - at >= Wr.INVITE_NAME then invite.names[k] = nil end end
@@ -266,7 +288,7 @@ end
 -- stamped before the client is asked.
 Wr.PARTY_EVERY = 10
 local acceptAt, leaveAt = nil, nil
-local function spaced(last, now) return last and now - last < Wr.PARTY_EVERY and now >= last end
+local function spaced(last, now) return last and (now < last or now - last < Wr.PARTY_EVERY) end
 -- accept(now) -> ok, why
 function Wr.accept(now)
     now = S.num(now)

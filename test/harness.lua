@@ -3786,5 +3786,59 @@ test("0.4 L1: isMe uses the one name rule; letters refuse a no-break space, zero
     for _,bad in ipairs({"First\194\160Last","Fi\226\128\139rst Last","Fi\194\173rst","\239\187\191Bob","Bo\195","\255Bob","Bo\128b",
         "Bob\226\128\168","Bo\194\183b","Bo\195\151b","Bob-Re\194\160alm","Bob-\226\128\139x"}) do eq(I.name(bad),nil,bad) end
 end)
+
+-- 1.0 review round 2 (مانع r040b part C): T1
+local function sentCount(prefix,kind) local n=0; for _,m in ipairs(sent) do if m.prefix==prefix and (not kind or m.kind==kind) then n=n+1 end end; return n end
+test("1.0 T1-1: in combat the minute caps halve too: GUILD 10, public 10, one player 2, all 20",function()
+    local N=loadAddon(); local Wr=N.Wire; combat=true
+    for i=1,15 do Wr.send("LEGW1","R|"..i,"GUILD",nil,{prio="own"}); advance(4.1) end
+    eq(sentCount("LEGW1"),10,"GUILD 10 per minute in combat")
+    N=loadAddon(); Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public"); combat=true
+    for i=1,4 do Wr.send("WEFF1","P|"..i,"WHISPER","Stranger",{net="we",prio="own"}); advance(5) end
+    eq(sentCount("WEFF1"),2,"one player 2 per minute in combat")
+    N=loadAddon(); Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public"); combat=true
+    for i=1,15 do Wr.send("WEFF1","P|"..i,"WHISPER","Strang"..abc(i),{net="we",prio="own"}); advance(4.1) end
+    eq(sentCount("WEFF1"),10,"public 10 per minute in combat")
+    N=loadAddon(); Wr=N.Wire; combat=true
+    for i=1,30 do Wr.send(i%2==0 and "LEGW1" or "LayerSwap",i%2==0 and ("R|"..i) or LSX,i%2==0 and "PARTY" or "WHISPER",i%2==0 and nil or "Bob",{prio="own"}); advance(2.05) end
+    yes(#sent<=20,"all 20 per minute in combat: "..#sent)
+end)
+test("1.0 T1-2: a network whisper is public unless the target is a checked online guildmate; opts.scope is not trusted",function()
+    local N=loadAddon(); local Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("guild"); roster={{"Bob-TestRealm",true},{"Off-TestRealm",false}}
+    local ok,why=Wr.send("WEFF1","P|1","WHISPER","Stranger",{net="we",scope="guild"}); no(ok); eq(why,"no consent")
+    ok,why=Wr.send("WEFF1","P|1","WHISPER","Off",{net="we"}); no(ok); eq(why,"no consent","an offline guildmate is not checked online")
+    ok,why=Wr.send("WEFF1","P|1","WHISPER","Bob",{net="we",scope="public"}); yes(ok,why)
+    -- a guildmate does not spend the public budget
+    N=loadAddon(); Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public"); roster={{"Bob-TestRealm",true}}
+    for i=1,6 do Wr.send("WEFF1","P|"..i,"WHISPER","Bob",{net="we",prio="own"}); advance(5) end; eq(sentCount("WEFF1"),6)
+end)
+test("1.0 T1-3: a clock stepping back counts as just sent; the limits hold",function()
+    local N=loadAddon(); local Wr=N.Wire; establish(N)
+    for i=1,100 do clock=clock+(i%2==0 and 50 or -50); Wr.send("LEGW1","R|"..i,"GUILD",nil,{prio="own"}) end
+    yes(sentCount("LEGW1")<=6,"an oscillating clock gets no extra budget: "..sentCount("LEGW1"))
+    -- the GUILD minute: 20 lines, then the clock steps back 30 s; the window still holds all 20
+    N=loadAddon(); Wr=N.Wire
+    for i=1,20 do yes(Wr.send("LEGW1","R|"..i,"GUILD",nil,{prio="own"}),i); advance(2.05) end
+    clock=clock-30; local okg,whyg=Wr.send("LEGW1","R|x","GUILD",nil,{prio="own"}); no(okg); eq(whyg,"throttled")
+    N=loadAddon(); Wr=N.Wire; yes(Wr.send("LFSw","Q","GUILD",nil,{prio="click"})); clock=clock-1
+    local ok,why=Wr.send("LFSw","Q","GUILD",nil,{prio="click"}); no(ok); eq(why,"throttled")
+    yes(Wr.send("LEGW1","F|1","GUILD",nil,{prio="click"})); clock=clock-5; ok,why=Wr.send("LEGW1","F|1","GUILD",nil,{prio="click"}); no(ok); eq(why,"throttled")
+    -- invites and party calls too
+    N=loadAddon(); Wr=N.Wire; yes(Wr.invite("Cara",clock)); ok,why=Wr.invite("Dana",clock-3); no(ok); eq(why,"throttled")
+    -- six invites, then the clock steps back 300 s: the 600 s window still holds all six
+    N=loadAddon(); Wr=N.Wire; for i=1,6 do yes(Wr.invite("Guest"..abc(i),clock+11*i)) end
+    ok,why=Wr.invite("Guestz",clock+11*7-300); no(ok); eq(why,"throttled")
+    yes(Wr.accept(clock)); ok,why=Wr.accept(clock-1); no(ok); eq(why,"throttled")
+end)
+test("1.0 T1: one player is one key for the per-player limit; the target tables are pruned",function()
+    local N=loadAddon(); local Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public")
+    for i,name in ipairs({"Stranger","stranger","Stranger-TestRealm","STRANGER","Stranger"}) do Wr.send("WEFF1","P|"..i,"WHISPER",name,{net="we",prio="own"}); advance(3) end
+    eq(sentCount("WEFF1"),4,"spellings of one player share the 4 per minute")
+    for i=1,30 do Wr.send("WEFF1","P|"..i,"WHISPER","Other"..abc(i),{net="we",prio="own"}); advance(3.1) end
+    advance(61); Wr.send("WEFF1","P|x","WHISPER","Last",{net="we",prio="own"})
+    local targets,offline=Wr.sizes(); yes(targets<=2,"stale players pruned: "..targets)
+    sendResult=12; for i=1,300 do Wr.send("WEFF1","P|"..i,"WHISPER","Gone"..abc(i),{net="we",prio="click"}); advance(3.1) end; sendResult=0
+    targets,offline=Wr.sizes(); yes(offline<=256,"offline skips capped: "..offline)
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
