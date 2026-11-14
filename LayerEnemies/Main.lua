@@ -316,9 +316,10 @@ function M.setHost(on)
         if why then M.say("LayerEnemies: "..why); return false end
         saveHost(true); M.host.on=true; M.host.inactive=nil; A.rosterRefresh(now())
         M.say("LayerEnemies: Hosting for your guild is on. Guild members who ask by LayerSwap request are invited to your layer (10 s apart, at most 6 in 10 minutes, never in combat). Guests are never removed. It stays on after a reload; /le host off stops it.")
-        M.announceHost()
+        -- before this session's first guild roster the H waits for it (once)
+        if not M.announceHost() and not A.rosterAge(now()) then M.host.announceOwed=true end
     else
-        saveHost(false); M.host.on=false; M.host.held=nil; M.host.inactive=nil
+        saveHost(false); M.host.on=false; M.host.held=nil; M.host.inactive=nil; M.host.announceOwed=nil
         M.say("LayerEnemies: Hosting for your guild is off.")
     end
     if N.UI then N.UI.refresh() end
@@ -371,13 +372,14 @@ function M.hostControl(c,sender,time)
     if M.host.announcedAt and time-M.host.announcedAt<N.Wire.CONTROL_EVERY and time>=M.host.announcedAt then return end
     M.host.answerDue=true
     local delay=1+math.random()*5
-    -- answered only once this session has read a guild roster (a host resumed at login is not yet checked against
-    -- it); an F just before the first roster is answered if the roster arrives within the 1 to 6 s
-    if not after(delay,function() M.host.answerDue=nil; if A.rosterAge(now()) then guarded(M.announceHost) end end) then M.host.answerDue=nil end
+    -- (announceHost needs a guild roster read this session: an F just before the first roster is answered if the
+    -- roster arrives within the 1 to 6 s)
+    if not after(delay,function() M.host.answerDue=nil; guarded(M.announceHost) end) then M.host.answerDue=nil end
 end
--- One H line: only while hosting, with our key and live zone known, and nothing blocking hosting.
+-- One H line: only while hosting, after this session's first guild roster (a host resumed at login or turned on
+-- early is not yet checked against it), with our key and live zone known, and nothing blocking hosting.
 function M.announceHost()
-    if not (M.host and M.host.on) or M.hostBlocked() then return false end
+    if not (M.host and M.host.on) or M.hostBlocked() or not A.rosterAge(now()) then return false end
     local own=M.hostOwn()
     local line=N.Relay.hostLine(own.key,own.zone)
     if not line then return false end
@@ -415,6 +417,7 @@ function M.rosterUpdate()
     local time=now()
     A.rosterSeen(time)
     if M.host and M.host.want and not M.host.on then M.hostResume(false) end
+    if M.host and M.host.announceOwed then M.host.announceOwed=nil; if M.host.on then guarded(M.announceHost) end end
     local held=M.host and M.host.held
     if not held then return end
     M.host.held=nil

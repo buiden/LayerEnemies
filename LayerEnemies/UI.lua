@@ -252,7 +252,7 @@ function U.create()
     U.add=button(U.body,76,24,"Track",add); U.add:SetPoint("TOPRIGHT",-4,-23)
     -- one LFSw guild question per click, at most once a minute (Hosts.ask, Wire)
     U.findHosts=button(U.body,84,18,"Find hosts",function() N.Main.findHosts(); U.render() end); U.findHosts:SetPoint("TOPRIGHT",-4,0); U.findHosts:Hide()
-    -- guild-only hosting, off at every login; the line stays visible on every tab while it is on
+    -- guild-only hosting, saved (LayerEnemiesDB.guildHost); the line stays visible on every tab while it is on
     U.host=button(U.body,70,18,"Host: off",function() local M=N.Main; M.setHost(not (M.host and M.host.want)); U.render() end)
     U.host:SetPoint("TOPRIGHT",-92,0); U.host:Hide()
     -- Auto accept and leave: accept the asked host's invite, leave that group after the move (saved, on by default)

@@ -3005,6 +3005,7 @@ end)
 test("0.4 T7.3: the window toggle and the hosting line",function()
     local N=loadAddon(); establish(N); local U=N.UI; U.toggle(); U.select("friendly")
     yes(U.host:IsShown()); eq(U.host.label.text,"Host: off"); no(U.hosting:IsShown())
+    deliver("GUILD_ROSTER_UPDATE",true); drain()   -- an H needs a guild roster read this session (review 6c)
     U.host:Click(); drain(); yes(N.Main.host.on); eq(U.host.label.text,"Host: on"); yes(U.hosting:IsShown()); eq(U.hosting.text,"Hosting for your guild (stays on after reload)")
     U.select("reported"); no(U.host:IsShown()); yes(U.hosting:IsShown(),"the line stays visible while on")
     U.select("friendly"); U.host:Click(); drain(); no(N.Main.host.on); no(U.hosting:IsShown())
@@ -3036,8 +3037,8 @@ test("0.4 T7.4: Find hosts sends one Q and one F|1, once per 60 s; outside a gui
 end)
 test("0.4 T7.4: turning hosting on announces H once; an F gets one H 1 to 6 s later, at most once per 60 s",function()
     local N=loadAddon(); establish(N); roster={{"Bob-TestRealm",true}}
+    deliver("GUILD_ROSTER_UPDATE",true); drain()   -- an H needs a guild roster read this session (review 6c)
     slash("host on"); local h=legwSent("H|"); eq(#h,1); eq(h[1].text,"H|1|7086|100"); eq(h[1].kind,"GUILD")
-    deliver("GUILD_ROSTER_UPDATE",true)            -- the roster asked for when hosting turned on (F answers need one)
     advance(61); legw("F|1","Bob"); eq(#legwSent("H|"),1,"not at once"); advance(7); drain(); eq(#legwSent("H|"),2)
     advance(10); legw("F|1","Cy"); advance(7); drain(); eq(#legwSent("H|"),2,"second F inside 60 s")
     advance(50); legw("F|1","Cy"); legw("F|1","Di"); advance(7); drain(); eq(#legwSent("H|"),3,"two F, one H")
@@ -3052,7 +3053,7 @@ test("0.4 T7.4: no H when hosting is off, our layer or zone unknown, or LayerSwa
     legw("F|1","Bob"); advance(7); drain(); eq(#sent,0,"hosting off")
     N=loadAddon(); slash("host on"); eq(#legwSent("H|"),0,"own layer unknown: no announcement"); yes(N.Main.host.on)
     legw("F|1","Bob"); advance(7); drain(); eq(#legwSent("H|"),0)
-    N=loadAddon(); establish(N); slash("host on"); eq(#legwSent("H|"),1); advance(61)
+    N=loadAddon(); establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); slash("host on"); eq(#legwSent("H|"),1); advance(61)
     loaded.LayerSwap=true; legw("F|1","Bob"); advance(7); drain(); eq(#legwSent("H|"),1); loaded.LayerSwap=nil
     -- hosting turned off while the answer waits: nothing
     advance(61); legw("F|1","Bob"); slash("host off"); advance(7); drain(); eq(#legwSent("H|"),1)
@@ -3075,6 +3076,7 @@ local function reload(N) N.Main.started=false; N.Main.start(); drain() end
 local ONLINE="LayerEnemies: hosting for your guild is ON (/le host off to stop)."
 test("0.4 host saved: on survives a reload and is active; one login line; no H at login",function()
     local N=loadAddon(); establish(N); roster={{"Bob-TestRealm",true}}
+    deliver("GUILD_ROSTER_UPDATE",true); drain()   -- an H needs a guild roster read this session (review 6c)
     slash("host on"); eq(LayerEnemiesDB.guildHost,true); eq(#sent,1,"the H from turning it on")
     advance(16); reload(N); yes(N.Main.host.on); eq(lines(ONLINE),1); eq(LayerEnemiesDB.guildHost,true)
     eq(#sent,1,"nothing sent at login"); eq(rosterCalls,2,"one roster request at login")
@@ -3669,6 +3671,19 @@ test("0.3.x name paths: a Bulo guild line from First Last-OtherRealm keeps the r
     yes(A.guildLine(list,"L 8000|100|h","Cara Dune-7102",1000)); yes(list["Cara Dune"])
     yes(A.guildLine(list,"L 8000|100|h","Dana-7105",1000)); yes(list["Dana-7105"])
     no(A.guildLine(list,"L 8000|100|h","Eli  Fox",1000)); no(A.guildLine(list,"L 8000|100|h","One Two Three",1000))
+end)
+
+test("0.4 host (review 6c): no H before this session's first guild roster; turning hosting on then announces once on it",function()
+    local N=loadAddon(); establish(N); roster={{"Bob-TestRealm",true}}; eq(N.Adapters.roster.at,nil)
+    slash("host on"); yes(N.Main.host.on); eq(#legwSent("H|"),0,"no roster read yet")
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#legwSent("H|"),1,"the owed H on the first roster"); eq(legwSent("H|")[1].text,"H|1|7086|100")
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#legwSent("H|"),1,"once")
+    -- turned off before the roster: nothing owed
+    N=loadAddon(); establish(N); slash("host on"); slash("host off"); deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#legwSent("H|"),0)
+    -- a roster already read: the H goes at once, as before
+    N=loadAddon(); establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); slash("host on"); eq(#legwSent("H|"),1)
+    -- announceHost itself refuses before a roster
+    N=loadAddon(); establish(N); N.Main.host.on=true; no(N.Main.announceHost()); eq(#sent,0)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

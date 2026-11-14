@@ -33,7 +33,7 @@ function G.parse(text)
     return out
 end
 
--- Hosting is off at every login and reload (never saved).
+-- The state starts off; Main restores the saved choice (LayerEnemiesDB.guildHost) at login.
 function G.new() return { on = false, asked = {}, pending = {}, hosted = {}, invites = {}, lastInvite = nil, held = nil } end
 
 local function short(name) local _, key = N.Invite.name(name); return key end
