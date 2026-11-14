@@ -30,6 +30,10 @@ local function layerswapText(text)
     return nil
 end
 local function legw1Text(text)
+    -- our own sighting line (lane A1): its whole grammar, nothing else after "O|"
+    if text:sub(1, 2) == "O|" then
+        return text:match("^O|1|%d+|%d+|[01]?%.?%d*|[01]?%.?%d*|%d*|%d+|%d+|[%x:%u%d,%-]*$") and "O" or nil
+    end
     local c = (text:sub(1, 2) == "F|" or text:sub(1, 2) == "H|") and text:sub(1, 1)
     if c and not (text == "F|1" or text:match("^H|1|%d+|%d+$")) then return nil end
     return c or "line"

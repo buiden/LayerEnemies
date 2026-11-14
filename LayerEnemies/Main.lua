@@ -102,7 +102,7 @@ function M.poll()
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
-    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick()
+    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick()
     N.Directory.sync()
     M.findAlerts()
     if N.UI then N.UI.refresh() end
@@ -177,6 +177,8 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     local time=now()
     -- Over the per-sender limit: dropped without a note.
     if not N.Reports.allow(M.receiver,sender,msg.type=="G" or msg.type=="X",time) then return end
+    -- a War Effort reader heard on this route (its hello): our C and E may go there for 600 s (lane A1)
+    if msg.type=="H" and (kind=="GUILD" or kind=="PARTY" or kind=="RAID") and not M.isMe(sender) then M.weHeard[kind]=time end
     local inner,origin=msg.inner or msg,msg.origin or sender
     if msg.origin then
         if M.isMe(origin) then M.lastDrop="own echo"; return end
@@ -263,9 +265,11 @@ function M.relayIn(text,kind,sender)
     if not N.Relay.allow(M.relay,sender,time) then return end
     local control=N.Relay.control(text)
     if control then return M.hostControl(control,sender,time) end
-    local record,why=N.Relay.decode(text,sender,time)
+    local own=type(text)=="string" and text:sub(1,2)=="O|"
+    local record,why
+    if own then record,why=N.Relay.decodeOwn(text,sender,time) else record,why=N.Relay.decode(text,sender,time) end
     if not record then M.lastDrop="relay "..tostring(why); return end
-    N.Relay.heard(M.relay,record,time)
+    if not own then N.Relay.heard(M.relay,record,time) end
     if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
     local stored,whyNot=T.report(M.store,record,time)
     M.lastDrop=stored and "relayed "..tostring(record.label) or whyNot
@@ -903,6 +907,51 @@ function M.guildChanged()
         if N.UI then N.UI.refresh() end
     end
 end
+-- Our own sightings out (lane A1). One report id per report, saved, 1 to 65535 and round again (War Effort expects
+-- it to keep rising across sessions).
+M.WE_READER=600
+function M.nextReportId()
+    local db=S.tab(LayerEnemiesDB) and LayerEnemiesDB or {}
+    local id=S.num(db.weReportId)
+    id=(id and id>=1 and id<=65535 and id%1==0) and id%65535+1 or 1
+    db.weReportId=id
+    return id
+end
+function M.shareTick()
+    if not M.share then return end
+    local time=now()
+    local zone,x,y=A.location()
+    if not zone or zone~=M.store.zone then return end
+    local rep=N.Share.pick(M.share,M.store.localSeen,time,zone)
+    if not rep then return end
+    local key=L.key(M.store.bulo)
+    local rid=M.nextReportId()
+    local inGuild=S.call(IsInGuild)==true
+    -- to the guild: one O line with up to four names
+    local line=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=key,age=math.max(0,math.floor(time-rep.at)),count=rep.count,enemies=rep.enemies})
+    if line and inGuild then N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"}) end
+    -- to War Effort: C then E, two or more enemies, a position, and only where a reader was heard in 600 s
+    if rep.count<2 or not (x and y) then return end
+    local stamp=S.num(S.call(GetServerTime))
+    if not stamp then return end
+    local function heard(kind) local at=M.weHeard[kind]; return at and time>=at and time-at<M.WE_READER end
+    local routes={}
+    if inGuild and heard("GUILD") then routes[#routes+1]="GUILD" end
+    local raid=S.call(IsInRaid)==true
+    if A.grouped() then
+        if raid and heard("RAID") then routes[#routes+1]="RAID" elseif not raid and heard("PARTY") then routes[#routes+1]="PARTY" end
+    end
+    if #routes==0 then return end
+    local list={}
+    for _,e in ipairs(rep.enemies) do list[#list+1]={hash=N.Hash.player(e.name,e.realm),class=e.class,level=e.level} end
+    local c=N.WeOut.cluster(rid,zone,x,y,tonumber(key) or 0,rep.count,stamp)
+    local parts=N.WeOut.enemies(rid,list,stamp)
+    for _,kind in ipairs(routes) do
+        if N.Wire.send("WEFF1",c,kind,nil,{net="we",prio="own"}) then
+            for _,p in ipairs(parts) do N.Wire.send("WEFF1",p,kind,nil,{net="we",prio="own"}) end
+        end
+    end
+end
 -- The hop is over (moved and left, failed, or 120 s without an invite): no ask is pending any more.
 function M.hopDone() N.Hop.clear(M.hop); M.invite.pending=nil end
 function M.groupCheck()
@@ -973,7 +1022,7 @@ function M.start()
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new(); M.hh=N.HeadHunter.new()
     M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
-    M.invite=I.new(); M.wasGrouped=A.grouped()
+    M.invite=I.new(); M.wasGrouped=A.grouped(); M.share=N.Share.new(); M.weHeard={}
     M.host=N.GuildHost.new()   -- guild-only hosting; the wish (want) is saved as LayerEnemiesDB.guildHost
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
@@ -987,6 +1036,9 @@ function M.start()
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- autoHop: on by default; only a saved false turns it off
     LayerEnemiesDB.autoHop=saved.autoHop~=false
+    -- War Effort report id (lane A1): must keep rising across sessions; anything but 1..65535 starts again at 0
+    local rid=S.num(saved.weReportId)
+    LayerEnemiesDB.weReportId=(rid and rid>=1 and rid<=65535 and rid%1==0) and rid or nil
     M.auto={on=LayerEnemiesDB.autoHop,group=nil}
     if S.tab(C_ChatInfo) then
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WEFF1")

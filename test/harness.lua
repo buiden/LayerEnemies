@@ -445,7 +445,7 @@ end)
 test("decoder rejects hostile malformed and oversized messages",function()
     local N=loadAddon()
     local many={}; for i=1,19 do many[i]="abc:H:60" end
-    local bad={"",string.rep("A",256),"C|1|100|nan|0|7|1|100","C|1|100|1.01|0|7|1|100","C|0|100|0|0|7|1|100","C|1|100|0|0|7|81|100",
+    local bad={"",string.rep("A",256),"C|1|100|nan|0|7|1|100","C|1|100|1.01|0|7|1|100","C|0|100|0|0|7|1|100","C|1|100|0|0|7|201|100",
         "C|1|0|0|0|7|1|100","C|1|100|0|0|-1|1|100","C|1|100|0|0|7","E|1|2|1|abc:H:60|100","E|1|1|1|abcd:H:60|100","E|1|1|1|abc:Z:60|100",
         "E|1|1|1|abc:H:0|100","E|1|1|1|abc:H:60,|100","E|1|1|1||100","E|1|1|1","E|1|1|1|"..table.concat(many,",").."|100",
         "H|bad|100|7|1","H|1.6.6|100|7","C|1|100|0|0|7|1|100\n","C|1|100|0|0|7|1|100 ","C|1|100|0|0|7|1|1\0001"}
@@ -1534,7 +1534,7 @@ end)
 test("record rejects bad fields",function()
     local N=loadAddon()
     local function bad(over,why) local r,reason=rec(N,over); eq(r,nil,why); yes(reason,why) end
-    bad({count=81},"count 81"); local many={}; for i=1,81 do many[i]={hash="abc"} end; bad({enemies=many},"81 enemies")
+    bad({count=201},"count 201 (War Effort's maximum is 200)"); local many={}; for i=1,81 do many[i]={hash="abc"} end; bad({enemies=many},"81 enemies")
     bad({layer={ns="bulo",value="7086"}},"unknown ns"); bad({layer=false},"no layer"); bad({origin="A"},"1-byte origin")
     bad({origin=string.rep("a",101)},"origin 101"); bad({src="xx"},"src"); bad({kind="raid"},"kind"); bad({route="CHANNEL"},"route")
     bad({rid=string.rep("1",25)},"rid 25"); bad({x=1.5},"x"); bad({zone=0},"zone"); bad({share="all"},"share"); bad({heard=secret},"secret heard")
@@ -3976,6 +3976,92 @@ test("a7: leaving the guild drops a scheduled F answer and an owed H",function()
     guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on); guildName="Test Guild"
     -- another guild without leaving in between: a change
     guildName="Third Guild"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on); eq(N.Adapters.roster.at,nil)
+end)
+
+-- 1.0 lane A1: own sightings out (O on LEGW1; C+E on WEFF1 for two or more, where a War Effort reader was heard)
+local function foe(N,i,over) local e={key="Player-1-9"..i,name=({"Kora Reed","Ann Lee","Bo Dyl","Cy Fen","Di Gar","Ed Hol"})[i],realm="Test Realm",
+    class="MAGE",level=60,at=clock,faction="opposite",source="own target",x=.25,y=.75}; for k,v in pairs(over or {}) do e[k]=v end
+    return N.Store.observe(N.Main.store,e,clock) end
+local function weSent(t) local out={}; for _,m in ipairs(sent) do if m.prefix=="WEFF1" and (not t or m.text:sub(1,1)==t) then out[#out+1]=m end end; return out end
+local function oLines() return legwSent("O|") end
+test("1.0 A1: WeOut encodes C and E as War Effort does; they decode back to the same values",function()
+    local N=loadAddon(); local W,P=N.WeOut,N.Protocol
+    eq(W.cluster(42,100,.4,.5,7086,4,100),"C|42|100|0.400|0.500|7086|4|100")
+    local vec="C|42|100|0.400|0.500|7086|4|100|12||4f4c594d505553:4"            -- study vector (spread, guild: not sent by us)
+    eq(vec:sub(1,#W.cluster(42,100,.4,.5,7086,4,100)),W.cluster(42,100,.4,.5,7086,4,100))
+    local e=W.enemies(42,{{hash="Zzm",class="MAGE",level=60},{hash="AbC",class="WARRIOR",level=-1},{hash="def"},{hash="xyz",class="ROGUE",level=59}},100)
+    eq(#e,1); eq(e[1],"E|42|1|1|Zzm:H:60,AbC:A:-1,def:?:?,xyz:D:59|100")
+    local c=P.decode(W.cluster(65535,1429,1,0,0,200,3599)); eq(c.rid,65535); eq(c.map,1429); eq(c.x,1); eq(c.y,0); eq(c.layer,0); eq(c.count,200); eq(c.stamp,3599)
+    local many={}; for i=1,40 do many[i]={hash=string.format("%03d",i),class="PRIEST",level=i} end
+    local parts=W.enemies(7,many,5); eq(#parts,3); for i,p in ipairs(parts) do local d=P.decode(p); yes(d,p); eq(d.part,i); eq(d.total,3); yes(#p<=255) end
+    eq(#P.decode(parts[1]).enemies,18); eq(P.decode(parts[3]).enemies[4].level,40)
+    eq(W.cluster(1,100,1.7,-3,7086,999,0),"C|1|100|1.000|0.000|7086|200|0","clamped")
+end)
+test("1.0 A1: an O line to the guild: 3 s settle, one per 15 s, the same enemy again only after 60 s",function()
+    local N=loadAddon(); establish(N); local M=N.Main
+    foe(N,1); M.shareTick(); eq(#oLines(),0,"settling"); advance(3); M.shareTick(); eq(#oLines(),1)
+    local o=oLines()[1].text; yes(o:find("^O|1|1|100|0.250|0.750|7086|%d+|1|"),o)
+    advance(1); foe(N,2); advance(3); M.shareTick(); eq(#oLines(),1,"inside 15 s")
+    advance(12); M.shareTick(); eq(#oLines(),2,"after 15 s, the new enemy")
+    advance(16); foe(N,1); foe(N,2); advance(3); M.shareTick(); eq(#oLines(),2,"both shared within 60 s")
+    advance(41); foe(N,1); advance(3); M.shareTick(); eq(#oLines(),3,"60 s later")
+    -- same faction, unknown faction, other zone: never shared
+    N=loadAddon(); establish(N); foe(N,1,{faction="same"}); foe(N,2,{faction="unknown"}); advance(3); N.Main.shareTick(); advance(3); N.Main.shareTick(); eq(#oLines(),0)
+    -- not in a guild: no O line
+    N=loadAddon(); establish(N); inGuild=false; foe(N,1); advance(3); N.Main.shareTick(); eq(#oLines(),0); inGuild=true
+end)
+test("1.0 A1: a guildmate's O line is a first-hand row with names; our own is not stored",function()
+    local N=loadAddon(); establish(N); local R=N.Relay
+    local line=R.ownLine({rid=7,zone=100,x=.25,y=.75,layer="7086",age=2,count=3,enemies={{name="Kora Reed",class="MAGE",level=60},{name="Ann Lee"}}})
+    legw(line,"Scout"); local rows=N.Store.rows(N.Main.store,clock,"reported"); yes(#rows>=1)
+    local r=rows[1].record; eq(r.src,"le"); eq(r.hand,"first"); eq(r.origin,"Scout"); eq(r.enemies[1].name,"Kora Reed"); eq(r.count,3); eq(r.pos,"enemy")
+    eq(r.layer.ns,"server"); eq(r.layer.value,"7086"); eq(r.at,clock-2)
+    local n=N.Safe.count(N.Main.store.reports); legw(line,"Me"); eq(N.Safe.count(N.Main.store.reports),n,"own echo")
+    local five={}; for i=1,5 do five[i]="4b6f7261"..string.format("%02x",96+i)..":MAGE:60" end
+    for i,bad in ipairs({"O|2|8|100|0.250|0.750|7086|2|3|","O|1|x|100|0.250|0.750|7086|2|3|","O|1|9|100|2.0|0.750|7086|2|3|",
+        "O|1|10|100|0.250|0.750|7086|2|3|zz:MAGE:60","O|1|11|100|0.250|0.750|7086|2|5|"..table.concat(five,",")}) do
+        legw(bad,"Scout"..abc(i)); end
+    eq(N.Safe.count(N.Main.store.reports),n)
+    -- Wire carries only the O grammar
+    local Wr=N.Wire; yes(Wr.send("LEGW1",line,"GUILD",nil,{prio="own"}))
+    for _,bad in ipairs({"O|1|7|100|0.250|0.750|7086|2|3|x y","O|2","O|1|7|100|a|b|7086|2|3|"}) do local ok,why=Wr.send("LEGW1",bad,"GUILD",nil,{prio="own"}); no(ok,bad); eq(why,"bad text") end
+end)
+test("1.0 A1: C and E for two or more enemies, only where a War Effort reader was heard; the id rises and is saved",function()
+    local N=loadAddon(); netOn(N,"we"); establish(N); local M=N.Main
+    foe(N,1); foe(N,2); advance(3); M.shareTick(); eq(#oLines(),1); eq(#weSent(),0,"no War Effort reader heard")
+    hello("Wes",19); advance(16); foe(N,3); foe(N,4); advance(3); M.shareTick()
+    -- (foes 1 and 2 are 19 s old by now: the report is foes 3 and 4)
+    local c,e=weSent("C"),weSent("E"); eq(#c,1); eq(#e,1); eq(c[1].kind,"GUILD"); yes(c[1].text:find("^C|2|100|0.250|0.750|7086|2|%d+$"),c[1].text)
+    local d=N.Protocol.decode(e[1].text); eq(#d.enemies,2); eq(d.enemies[1].hash,N.Hash.player("Bo Dyl","Test Realm")); eq(d.enemies[1].class,"MAGE"); eq(d.enemies[1].level,60)
+    eq(c[1].text:match("|(%d+)$"),tostring(math.floor(server)%3600),"the stamp is server time % 3600")
+    eq(LayerEnemiesDB.weReportId,2)
+    -- a C from a War Effort user is no hello: it does not open a route
+    N.Main.weHeard={}; report(1,9000,"Wes"); advance(16); foe(N,5); foe(N,6); advance(3); M.shareTick(); eq(#oLines(),3); eq(#weSent("C"),1,"no reader")
+    hello("Wes",19)
+    -- one enemy alone: an O line, no C
+    advance(61); foe(N,5); advance(3); M.shareTick(); eq(#weSent("C"),1); eq(#oLines(),4)
+    -- the reader's 600 s run out
+    advance(600); foe(N,1); foe(N,2); advance(3); M.shareTick(); eq(#weSent("C"),1)
+    -- saved across a reload, and 65535 wraps to 1
+    LayerEnemiesDB.weReportId=300; local saved=LayerEnemiesDB
+    N=loadAddon(); LayerEnemiesDB=saved; reload(N); netOn(N,"we"); establish(N); hello("Wes",19); foe(N,1); foe(N,2); advance(3); N.Main.shareTick()
+    yes(weSent("C")[1].text:find("^C|301|"),weSent("C")[1].text)
+    for i,v in ipairs({0,65536,1.5,"7",secret}) do LayerEnemiesDB.weReportId=v; reload(N); eq(LayerEnemiesDB.weReportId,nil,"bad saved id "..i) end
+    LayerEnemiesDB.weReportId=65535; saved=LayerEnemiesDB
+    N=loadAddon(); LayerEnemiesDB=saved; reload(N); netOn(N,"we"); establish(N); hello("Wes",19); foe(N,1); foe(N,2); advance(3); N.Main.shareTick()
+    yes(weSent("C")[1].text:find("^C|1|"),weSent("C")[1].text); eq(LayerEnemiesDB.weReportId,1)
+end)
+test("1.0 A1: no C or E with the network off, War Effort loaded, in an instance, without a position; groups get them too",function()
+    local function run(setup) local N=loadAddon(); netOn(N,"we"); establish(N); hello("Wes",19); setup(N); foe(N,1); foe(N,2); advance(3); N.Main.shareTick(); return N end
+    run(function(N) N.Net.SHIP.we=false end); eq(#weSent(),0,"ship constant")
+    run(function(N) N.Net.setSwitch("we",false) end); eq(#weSent(),0,"switch")
+    run(function() loaded.WarEffortScout=true end); eq(#weSent(),0,"War Effort loaded"); loaded.WarEffortScout=nil
+    local N=run(function() inInstance=true end); eq(#weSent(),0,"instance"); inInstance=false
+    local was=C_Map.GetPlayerMapPosition; N=run(function() C_Map.GetPlayerMapPosition=function() return nil end end); C_Map.GetPlayerMapPosition=was
+    eq(#weSent(),0,"no position"); eq(#oLines(),1,"the O line goes without coordinates")
+    -- a War Effort reader in our party: the party gets C+E too
+    N=loadAddon(); netOn(N,"we"); establish(N); grouped=true; hello("Pam",19,"PARTY"); foe(N,1); foe(N,2); advance(3); N.Main.shareTick()
+    local kinds={}; for _,m in ipairs(weSent("C")) do kinds[#kinds+1]=m.kind end; eq(table.concat(kinds,","),"PARTY")
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

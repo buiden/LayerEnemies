@@ -37,7 +37,7 @@ local decodeInner
 local function C(f)
     if #f < 7 then return nil end
     local r = { type = "C", rid = int(f[2], 1, 65535), map = int(f[3], 1, 999999), x = coord(f[4]), y = coord(f[5]),
-        layer = int(f[6], 0, 99999999), count = int(f[7], 1, 80) }
+        layer = int(f[6], 0, 99999999), count = int(f[7], 1, 200) }                               -- War Effort's MAX_COUNT
     if not (r.rid and r.map and r.x and r.y and r.layer and r.count) then return nil end
     r.stamp = int(f[8], 0, 3599)                                 -- invalid or absent: no stamp (age 0)
     r.spread = int(f[9], 0, 45)                                   -- invalid: unknown

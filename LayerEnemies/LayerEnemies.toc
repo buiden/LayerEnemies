@@ -22,6 +22,8 @@ Hop.lua
 Hosts.lua
 GuildHost.lua
 Relay.lua
+WeOut.lua
+Share.lua
 Directory.lua
 Find.lua
 UI.lua

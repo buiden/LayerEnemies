@@ -8,7 +8,8 @@ N.Record = R
 
 -- 1.0 adds the Spy family (spy, fspy, sent) and the guild incident addons (gb, wos, ft); kinds seen (one enemy) and
 -- death (a player died to this enemy).
-local SRC = { own = true, we = true, hh = true, guild = true, spy = true, fspy = true, sent = true, gb = true, wos = true, ft = true }
+-- le: a LayerEnemies guildmate's own sighting (LEGW1 O line)
+local SRC = { own = true, we = true, hh = true, guild = true, le = true, spy = true, fspy = true, sent = true, gb = true, wos = true, ft = true }
 local KIND = { group = true, fight = true, outlaw = true, seen = true, death = true }
 local HAND = { first = true, relayed = true }
 local POS = { enemy = true, observer = true, victim = true, none = true }
@@ -51,7 +52,7 @@ function R.new(t)
         local count = t.count
         if count ~= nil then
             count = S.num(count)
-            if not count or count < 0 or count > 80 or count % 1 ~= 0 then return nil, "count" end
+            if not count or count < 0 or count > 200 or count % 1 ~= 0 then return nil, "count" end
         end
         local enemies = {}
         if t.enemies ~= nil then
