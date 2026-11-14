@@ -3895,5 +3895,40 @@ test("1.0 T2: a record with no timestamp uses receipt time and says so",function
     N=loadAddon(); establish(N); advance(1); hello("Scout",19); report(8,8000,"Scout")
     for _,v in pairs(N.Main.store.reports) do row=v.record end; no(row.untimed)
 end)
+
+-- 1.0 review round 2: T3
+test("1.0 T3-1: a channel we were already in is read but never joined or left by us",function()
+    local N=loadAddon(); local D=N.Directory; chanList[1]="HeadHunterSync"; chanMembers.HeadHunterSync={"Peer One"}
+    dirReady(N); eq(table.concat(joined,","),"WarEfforttestrealmA","only the channel we did not have"); eq(D.joined("hh"),"HeadHunterSync")
+    advance(10); advance(3.1); eq(#D.members("hh"),1,"still read")
+    N.Net.setConsent("guild"); eq(table.concat(leftCh,","),"WarEfforttestrealmA","only the channel we added is left")
+    eq(chanList[1],"HeadHunterSync"); eq(D.joined("hh"),nil); eq(D.members("hh"),nil)
+end)
+test("1.0 T3-2: the delayed read rechecks combat, instance and the Channels window; an unreadable count forgets",function()
+    local N=loadAddon(); local D=N.Directory; dirReady(N); chanMembers.HeadHunterSync={"Peer One"}
+    for _,c in ipairs({"combat","instance","window"}) do
+        yes(D.refresh("hh"),c)
+        if c=="combat" then combat=true elseif c=="instance" then inInstance=true else ChannelFrame={IsShown=function() return true end} end
+        advance(3.1); eq(D.members("hh"),nil,c)
+        combat=false; inInstance=false; ChannelFrame=nil
+    end
+    yes(D.refresh("hh")); advance(3.1); eq(#D.members("hh"),1)
+    local was=GetChannelDisplayInfo; GetChannelDisplayInfo=function(i) local n=chanList[i]; if n then return i..". "..n,false,nil,i,nil,true end end
+    yes(D.refresh("hh")); advance(3.1); eq(D.members("hh"),nil,"unreadable count"); GetChannelDisplayInfo=was
+end)
+test("1.0 T3-2: a join that fails is not marked joined; toggling never stacks timers",function()
+    local N=loadAddon(); local D=N.Directory; local real=JoinChannelByName
+    JoinChannelByName=function(name) real(name); for i,c in ipairs(chanList) do if c==name then table.remove(chanList,i) end end; return false end
+    dirReady(N); eq(D.joined("hh"),nil); eq(D.joined("we"),nil); JoinChannelByName=real
+    N=loadAddon(); D=N.Directory; dirReady(N); local base=#timers
+    for i=1,50 do N.Net.setSwitch("hh",false); N.Net.setSwitch("hh",true) end
+    yes(#timers<=base+4,"timers "..#timers.." from "..base)
+    advance(10); advance(3.1); local before=0; for _,c in ipairs(selected) do if c=="HeadHunterSync" then before=before+1 end end
+    eq(before,1,"one loop for hh after the toggles")
+    -- off long enough for its timer to fire unheard, then on again: reading resumes
+    N.Net.setSwitch("hh",false); advance(400); N.Net.setSwitch("hh",true); advance(10); advance(3.1)
+    local after=0; for _,c in ipairs(selected) do if c=="HeadHunterSync" then after=after+1 end end
+    eq(after,before+1,"resumed after a timer fired while off")
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -45,7 +45,10 @@ function D.channel(key)
     return tag and letter and ("WarEffort" .. tag .. letter) or nil
 end
 
-local joined, members, pending = {}, {}, {}
+-- joined[key]: the channel we read; ours[key]: we joined it (only then do we ever leave it); due[key]: when this
+-- channel's one timer fires (toggling never adds a second; a timer that fired while the network was off stops
+-- counting once its time has passed)
+local joined, members, pending, ours, due = {}, {}, {}, {}, {}
 local function calm()
     return S.call(IsInInstance) == false and S.call(InCombatLockdown) == false
 end
@@ -66,12 +69,16 @@ end
 local function me() return (S.str((S.call(UnitName, "player")), 60) or ""):lower() end
 local function read(key)
     pending[key] = nil
+    -- conditions may have changed in the 3 s: combat, an instance or the Channels window stop the read
+    if windowOpen() or not calm() then return end
     local name = joined[key]
     local i = name and index(name)
-    if not i then return end
-    local count = S.num((select(5, S.call(GetChannelDisplayInfo, i)))) or 0
+    if not i then members[key] = nil; return end
+    local count = S.num((select(5, S.call(GetChannelDisplayInfo, i))))
     local CI = _G.C_ChatInfo
-    if count <= 0 or not S.tab(CI) or type(CI.GetChannelRosterInfo) ~= "function" then return end
+    -- an unreadable count forgets the list rather than keep an old one
+    if not count or count < 0 or not S.tab(CI) or type(CI.GetChannelRosterInfo) ~= "function" then members[key] = nil; return end
+    if count == 0 then members[key] = {}; return end
     local list, self = {}, me()
     for r = 1, math.min(count, D.MAX) do
         local ok, who = pcall(CI.GetChannelRosterInfo, i, r)
@@ -91,10 +98,15 @@ function D.refresh(key)
     if not N.Net.after(key, D.WAIT, function() read(key) end, "public") then pending[key] = nil; return false end
     return true
 end
-local function loop(key)
-    if not joined[key] then return end
-    D.refresh(key)
-    N.Net.after(key, D.EVERY, function() loop(key) end, "public")
+local function schedule(key, delay)
+    local now = S.num(S.call(GetTime))
+    if not now or (due[key] and now <= due[key]) then return end
+    due[key] = now + delay
+    local ok = N.Net.after(key, delay, function()
+        due[key] = nil
+        if joined[key] then D.refresh(key); schedule(key, D.EVERY) end
+    end, "public")
+    if not ok then due[key] = nil end
 end
 -- sync(): join what may run, leave what we joined and may not; called on consent, switch and heartbeat
 function D.sync()
@@ -105,13 +117,21 @@ function D.sync()
         local want = N.Net.allowed(key, "public")
         if want and not joined[key] then
             local name = D.channel(key)
-            if name and calm() and pcall(JoinChannelByName, name, nil, 0, false) then
-                joined[key] = name
-                N.Net.after(key, D.FIRST, function() loop(key) end, "public")
+            if name and calm() then
+                -- already in that channel (the player joined it): read it, never join or leave it
+                local mine = false
+                if not index(name) then
+                    local ok, result = pcall(JoinChannelByName, name, nil, 0, false)
+                    mine = ok and result ~= false
+                end
+                if mine or index(name) then
+                    joined[key], ours[key] = name, mine or nil
+                    schedule(key, D.FIRST)
+                end
             end
         elseif not want and joined[key] then
-            pcall(LeaveChannelByName, joined[key])
-            joined[key], members[key], pending[key] = nil, nil, nil
+            if ours[key] then pcall(LeaveChannelByName, joined[key]) end
+            joined[key], members[key], pending[key], ours[key] = nil, nil, nil, nil
         end
     end
 end
