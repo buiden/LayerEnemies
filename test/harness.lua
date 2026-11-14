@@ -931,7 +931,7 @@ test("we reports never enter LayerEnemiesDB (مانع T3 S4)",function()
         end
     end
     scan(LayerEnemiesDB,"LayerEnemiesDB",0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position",k) end
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
@@ -1646,7 +1646,7 @@ test("hop state clears on zone change and reload",function()
     grouped=false; N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); yes(hopNow(N,rec(N)))
     N=loadAddon(); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
     deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); eq(lines("on their layer"),0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position",k) end
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("hop acts on the shown candidate only (مانع T5 F1)",function()
     -- shown "Ask Scout (chat)"; an LFSw host line arrives before the click: nothing is sent, nothing drafted
@@ -2858,11 +2858,11 @@ test("0.4 T7.3: LayerSwap whispers carry only the request, same or heard; replie
 end)
 test("0.4 T7.3: hosting: off at load, on refused beside LayerSwap or Bulo or without the invite call",function()
     local N=loadAddon(); eq(N.Main.host.on,false)
-    slash("host"); yes(logged("Hosting for your guild: off (not saved"))
+    slash("host"); yes(logged("Hosting for your guild: off (saved)"))
     slash("host on"); yes(N.Main.host.on); eq(rosterCalls,1); yes(logged("Hosting for your guild is on"))
-    slash("host"); yes(logged("Hosting for your guild: on · 0 invites in the last 10 minutes"))
+    slash("host"); yes(logged("Hosting for your guild: on (saved) · 0 invites in the last 10 minutes"))
     slash("host off"); no(N.Main.host.on); yes(logged("Hosting for your guild is off."))
-    slash("host on"); N=loadAddon(); eq(N.Main.host.on,false,"off after a reload")
+    slash("host on"); N=loadAddon(); eq(N.Main.host.on,false,"a fresh profile (no saved setting) starts off")
     loaded.LayerSwap=true; slash("host on"); no(N.Main.host.on); yes(logged("LayerSwap")); loaded.LayerSwap=nil
     loaded.BuloLayerForever=true; slash("host on"); no(N.Main.host.on); yes(logged("BuloLayerForever")); loaded.BuloLayerForever=nil
     inGuild=false; slash("host on"); no(N.Main.host.on); yes(logged("not in a guild")); inGuild=true
@@ -2928,7 +2928,7 @@ end)
 test("0.4 T7.3: the window toggle and the hosting line",function()
     local N=loadAddon(); establish(N); local U=N.UI; U.toggle(); U.select("friendly")
     yes(U.host:IsShown()); eq(U.host.label.text,"Host: off"); no(U.hosting:IsShown())
-    U.host:Click(); drain(); yes(N.Main.host.on); eq(U.host.label.text,"Host: on"); yes(U.hosting:IsShown()); eq(U.hosting.text,"Hosting for your guild · off after every reload")
+    U.host:Click(); drain(); yes(N.Main.host.on); eq(U.host.label.text,"Host: on"); yes(U.hosting:IsShown()); eq(U.hosting.text,"Hosting for your guild (stays on after reload)")
     U.select("reported"); no(U.host:IsShown()); yes(U.hosting:IsShown(),"the line stays visible while on")
     U.select("friendly"); U.host:Click(); drain(); no(N.Main.host.on); no(U.hosting:IsShown())
     -- the only message: the H from turning hosting on (Task 7.4); the refused click beside LayerSwap sends nothing
@@ -2992,12 +2992,62 @@ test("0.4 T7.4: a guild H is remembered 12 minutes as a host on <key>-0; /le hop
     legw("H|1|8000|100","Dee"); eq(#N.Main.candidates(),1); advance(721); wall=wall+721; eq(#N.Main.candidates(),0,"12 minutes")
     eq(#sent,0); eq(forbidden,0)
 end)
-test("0.4 T7.4: hosting is not saved: the window line and messages say so",function()
+-- 0.4.0 (owner decision): the hosting toggle is saved, a boolean setting only (LayerEnemiesDB.guildHost).
+local function reload(N) N.Main.started=false; N.Main.start(); drain() end
+local ONLINE="LayerEnemies: hosting for your guild is ON (/le host off to stop)."
+test("0.4 host saved: on survives a reload and is active; one login line; no H at login",function()
+    local N=loadAddon(); establish(N); roster={{"Bob-TestRealm",true}}
+    slash("host on"); eq(LayerEnemiesDB.guildHost,true); eq(#sent,1,"the H from turning it on")
+    advance(16); reload(N); yes(N.Main.host.on); eq(lines(ONLINE),1); eq(LayerEnemiesDB.guildHost,true)
+    eq(#sent,1,"nothing sent at login"); eq(rosterCalls,2,"one roster request at login")
+    -- after a reload our layer is learned again from NPCs before a request can be answered
+    lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(#sent,1)
+    establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); advance(61); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,1)
+    slash("host"); yes(logged("Hosting for your guild: on (saved) · 1 invite in the last 10 minutes"))
+    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost",k) end
+    eq(type(LayerEnemiesDB.guildHost),"boolean")
+end)
+test("0.4 host saved: off persists; a bad saved value is off",function()
+    local N=loadAddon(); establish(N)
+    slash("host on"); slash("host off"); eq(LayerEnemiesDB.guildHost,false)
+    reload(N); no(N.Main.host.on); eq(lines("hosting for your guild is ON"),0); eq(LayerEnemiesDB.guildHost,false)
+    slash("host"); yes(logged("Hosting for your guild: off (saved)"))
+    LayerEnemiesDB.guildHost="yes"; reload(N); no(N.Main.host.on); eq(LayerEnemiesDB.guildHost,false)
+    LayerEnemiesDB=nil; reload(N); no(N.Main.host.on); eq(LayerEnemiesDB.guildHost,false)
+end)
+test("0.4 host saved: on but inactive at login says why, answers nothing, stays saved",function()
+    local cases={
+        {function() loaded.LayerSwap=true end,function() loaded.LayerSwap=nil end,"LayerSwap is loaded"},
+        {function() loaded.BuloLayerForever=true end,function() loaded.BuloLayerForever=nil end,"BuloLayerForever is loaded"},
+        {function() C_PartyInfo=nil end,nil,"no party invite call"},
+        {function() inGuild=false end,function() inGuild=true end,"not in a guild"},
+    }
+    for _,c in ipairs(cases) do
+        local N=loadAddon(); establish(N); roster={{"Bob-TestRealm",true}}; slash("host on"); sent={}
+        c[1](); reload(N)
+        no(N.Main.host.on,c[3]); yes(N.Main.host.want); eq(LayerEnemiesDB.guildHost,true)
+        yes(logged("LayerEnemies: hosting for your guild is ON but inactive: "),c[3]); yes(log[#log]:find(c[3],1,true),log[#log])
+        yes(log[#log]:find("(/le host off to stop)",1,true))
+        slash("host"); yes(logged("Hosting for your guild: on (saved) but inactive: "))
+        deliver("GUILD_ROSTER_UPDATE",true); drain(); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#sent,0); eq(#invites,0)
+        eq(lines("hosting for your guild is ON but inactive"),1,"the inactive line only at login")
+        if c[2] then c[2]() end
+    end
+    -- not in a guild at login (guild data late): it becomes active on the guild roster update, with one line
+    local N=loadAddon(); establish(N); roster={{"Bob-TestRealm",true}}; slash("host on")
+    inGuild=false; reload(N); no(N.Main.host.on); inGuild=true
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on); eq(lines("LayerEnemies: hosting for your guild is now active."),1)
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(lines("LayerEnemies: hosting for your guild is now active."),1)
+    -- /le host off while inactive: off and saved off
+    loaded.LayerSwap=true; reload(N); no(N.Main.host.on); slash("host off"); eq(LayerEnemiesDB.guildHost,false); no(N.Main.host.want); loaded.LayerSwap=nil
+end)
+test("0.4 host saved: the window line and toggle",function()
     local N=loadAddon(); establish(N); local U=N.UI; U.toggle(); U.select("friendly")
-    slash("host on"); yes(logged("Hosting is off after every login or reload."))
-    eq(U.hosting.text,"Hosting for your guild · off after every reload")
-    slash("host off"); slash("host"); yes(logged("Hosting for your guild: off (not saved: off after every login or reload)"))
-    eq(LayerEnemiesDB.host,nil)
+    slash("host on"); yes(logged("It stays on after a reload; /le host off stops it.")); U.render()
+    eq(U.hosting.text,"Hosting for your guild (stays on after reload)"); eq(U.host.label.text,"Host: on")
+    loaded.LayerSwap=true; reload(N); U.render(); yes(U.hosting:IsShown()); eq(U.host.label.text,"Host: on")
+    yes(U.hosting.text:find("Hosting is on but inactive: ",1,true),U.hosting.text)
+    U.host:Click(); drain(); no(N.Main.host.want); eq(LayerEnemiesDB.guildHost,false); no(U.hosting:IsShown()); eq(U.host.label.text,"Host: off")
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

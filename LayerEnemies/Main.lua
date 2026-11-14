@@ -303,24 +303,46 @@ function M.hostBlocked()
     end
     if not N.Wire.canInvite() then return "hosting is not available: this client has no party invite call." end
 end
+function M.hostWhyNot()
+    return M.hostBlocked() or (S.call(IsInGuild)~=true and "you are not in a guild.")
+end
+local function saveHost(want) M.host.want=want; if S.tab(LayerEnemiesDB) then LayerEnemiesDB.guildHost=want end end
 function M.setHost(on)
     if on then
-        local why=M.hostBlocked() or (S.call(IsInGuild)~=true and "you are not in a guild.")
+        local why=M.hostWhyNot()
         if why then M.say("LayerEnemies: "..why); return false end
-        M.host.on=true; A.rosterRefresh(now())
-        M.say("LayerEnemies: Hosting for your guild is on. Guild members who ask by LayerSwap request are invited to your layer (10 s apart, at most 6 in 10 minutes, never in combat). Guests are never removed. Hosting is off after every login or reload.")
+        saveHost(true); M.host.on=true; M.host.inactive=nil; A.rosterRefresh(now())
+        M.say("LayerEnemies: Hosting for your guild is on. Guild members who ask by LayerSwap request are invited to your layer (10 s apart, at most 6 in 10 minutes, never in combat). Guests are never removed. It stays on after a reload; /le host off stops it.")
         M.announceHost()
     else
-        M.host.on=false; M.host.held=nil
+        saveHost(false); M.host.on=false; M.host.held=nil; M.host.inactive=nil
         M.say("LayerEnemies: Hosting for your guild is off.")
     end
     if N.UI then N.UI.refresh() end
     return M.host.on
 end
+-- Saved as on: at login (login=true) one line says ON, or ON but inactive and why; later (a guild roster update)
+-- an inactive host becomes active with one line. Nothing is sent here: the H line goes out only from the toggle or
+-- in answer to an F.
+function M.hostResume(login)
+    if not M.host.want or M.host.on then return end
+    local why=M.hostWhyNot()
+    if why then
+        M.host.inactive=why
+        if login then M.say("LayerEnemies: hosting for your guild is ON but inactive: "..why:gsub("%.$","").." (/le host off to stop).") end
+    else
+        M.host.on=true; M.host.inactive=nil; A.rosterRefresh(now())
+        M.say(login and "LayerEnemies: hosting for your guild is ON (/le host off to stop)." or "LayerEnemies: hosting for your guild is now active.")
+    end
+    if N.UI then N.UI.refresh() end
+end
 function M.hostStatus()
     local time,n=now(),0
     for _,at in ipairs(M.host.invites) do if time-at<N.GuildHost.WINDOW then n=n+1 end end
-    M.say("LayerEnemies: Hosting for your guild: "..(M.host.on and ("on · "..n.." invite"..(n==1 and "" or "s").." in the last 10 minutes") or "off (not saved: off after every login or reload)"))
+    local state=M.host.on and ("on (saved) · "..n.." invite"..(n==1 and "" or "s").." in the last 10 minutes")
+        or M.host.want and ("on (saved) but inactive: "..(M.hostWhyNot() or M.host.inactive or "not active yet."))
+        or "off (saved)"
+    M.say("LayerEnemies: Hosting for your guild: "..state)
 end
 -- Our own state for GuildHost.decide; member is read only after the early checks pass.
 function M.hostOwn()
@@ -386,6 +408,7 @@ end
 function M.rosterUpdate()
     local time=now()
     A.rosterSeen(time)
+    if M.host and M.host.want and not M.host.on then M.hostResume(false) end
     local held=M.host and M.host.held
     if not held then return end
     M.host.held=nil
@@ -781,13 +804,15 @@ function M.start()
     M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped()
-    M.host=N.GuildHost.new()   -- guild-only hosting: off at every login and reload, never saved
+    M.host=N.GuildHost.new()   -- guild-only hosting; the wish (want) is saved as LayerEnemiesDB.guildHost
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
     local saved=LayerEnemiesDB
     M.find=N.Find.new(saved.tracked)
-    LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position)}
+    -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
+    LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
+    M.host.want=LayerEnemiesDB.guildHost
     if S.tab(C_ChatInfo) then
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WEFF1")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"HeadHunter")
@@ -818,6 +843,7 @@ function M.start()
         else guarded(M.text,command) end
     end
     N.UI.create()
+    if M.host.want then M.hostResume(true) end
     heartbeat()
 end
 local frame=CreateFrame("Frame")
