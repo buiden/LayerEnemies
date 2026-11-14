@@ -20,6 +20,7 @@ local clock,map,server,channels,inGuild,clientIgnored,inInstance
 local guildName="Test Guild"
 local wall,grouped,opened
 local sent,sendResult
+local roster,rosterCalls,combat,raid,leader
 -- The routes the addon may send on (Wire.lua); anything else counts as forbidden. LFSw/GUILD carries only "Q".
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true}}
 -- Prefixes the addon may register.
@@ -101,6 +102,16 @@ local function loadAddon()
     clock,map,server,channels,inGuild,clientIgnored,inInstance=10,100,720100,{WarEffortPubA=7},true,false,false; guildName="Test Guild"
     wall,grouped,opened,forbidden=1800000000,false,{},0
     sent,sendResult={},0
+    -- guild roster: {name, online}; combat, party and raid state for the guild host
+    roster,rosterCalls,combat,raid,leader={},0,false,false,false
+    _G.GetNumGuildMembers=function() return #roster end
+    _G.GetGuildRosterInfo=function(i) local e=roster[i]; if e then return e[1],nil,nil,nil,nil,nil,nil,nil,e[2] end end
+    _G.C_GuildInfo={GuildRoster=function() rosterCalls=rosterCalls+1 end}
+    _G.InCombatLockdown=function() return combat end
+    _G.UnitAffectingCombat=function(u) return u=="player" and combat or false end
+    _G.IsInRaid=function() return raid end
+    _G.UnitIsGroupLeader=function(u) return u=="player" and leader end
+    _G.GetNumGroupMembers=function() local n=0; for i=1,4 do if units["party"..i] then n=n+1 end end; return n>0 and n+1 or 0 end
     _G.BuloLayerForever=nil; _G.WarEffortScoutDB=nil; _G.LayerEnemiesDB=nil
     _G.LayerSwapDB=nil; _G.LE=nil; _G.ChatFrameUtil=nil; _G.ChatFrame_OpenChat=nil
     _G.time=function() return wall end
@@ -2738,6 +2749,47 @@ test("0.4 T7.1: the asker table is capped at 128 and the 60 s counts from the gu
     s=G.new(); s.on=true
     eq((G.decide(s,req("inv layer <LS 100 want 8000-1>"),ownState({member=false}),10)),"drop")
     eq((G.decide(s,req("inv layer <LS 100 want 8000-1>"),ownState(),40)),"drop","within 60 s of the guild check")
+end)
+
+-- 0.4.0 Task 7.2: state adapters for the guild host (read only).
+test("0.4 T7.2: guild membership: one online roster entry, exact name first, bare name only when unique",function()
+    local N=loadAddon(); local A=N.Adapters
+    roster={{"Bob-TestRealm",true},{"Tam Reed-TestRealm",true},{"Off-TestRealm",false},{"Two-RealmA",true},{"Two-RealmB",true}}
+    eq(A.guildMember("Bob-TestRealm"),true); eq(A.guildMember("Bob"),true); eq(A.guildMember("Tam Reed"),true); eq(A.guildMember("Tam Reed-TestRealm"),true)
+    eq(A.guildMember("Off"),false,"offline"); eq(A.guildMember("Off-TestRealm"),false,"offline, exact name"); eq(A.guildMember("Nobody"),false); eq(A.guildMember("Bob-OtherRealm"),false,"a different realm")
+    eq(A.guildMember("Two"),false,"two entries with that bare name"); eq(A.guildMember("Two-RealmA"),true,"the exact name is unique")
+    roster={{"Bob",true}}; eq(A.guildMember("Bob-TestRealm"),true,"roster without the realm")
+    roster={{"Bob",true},{"Bob",true}}; eq(A.guildMember("Bob"),false,"duplicated exact name")
+    -- unreadable is nil
+    inGuild=false; roster={{"Bob",true}}; eq(A.guildMember("Bob"),nil); inGuild=true
+    roster={}; eq(A.guildMember("Bob"),nil,"count 0")
+    GetNumGuildMembers=function() return secret end; eq(A.guildMember("Bob"),nil)
+    GetNumGuildMembers=function() return 1 end; GetGuildRosterInfo=function() error("x") end; eq(A.guildMember("Bob"),nil)
+    GetGuildRosterInfo=function() return secret end; eq(A.guildMember("Bob"),nil)
+    GetGuildRosterInfo=function() return "Bob",nil,nil,nil,nil,nil,nil,nil,secret end; eq(A.guildMember("Bob"),nil)
+    eq(A.guildMember(secret),nil); eq(A.guildMember("Bad|Name"),nil)
+    GetNumGuildMembers=nil; eq(A.guildMember("Bob"),nil)
+end)
+test("0.4 T7.2: roster age from GUILD_ROSTER_UPDATE, refresh at most every 15 s",function()
+    local N=loadAddon(); local A=N.Adapters
+    eq(A.rosterAge(clock),nil)
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(A.rosterAge(clock),0); advance(30); eq(A.rosterAge(clock),30)
+    yes(A.rosterRefresh(clock)); eq(rosterCalls,1)
+    advance(14); no(A.rosterRefresh(clock)); eq(rosterCalls,1); advance(1); yes(A.rosterRefresh(clock)); eq(rosterCalls,2)
+    C_GuildInfo=nil; advance(20); no(A.rosterRefresh(clock)); eq(rosterCalls,2)
+    eq(#sent,0)
+end)
+test("0.4 T7.2: combat and party state; unreadable combat is in combat, unreadable party is nil",function()
+    local N=loadAddon(); local A=N.Adapters
+    eq(A.inCombat(),false); combat=true; eq(A.inCombat(),true); combat=false
+    UnitAffectingCombat=function() return true end; eq(A.inCombat(),true); UnitAffectingCombat=function() return false end
+    InCombatLockdown=function() return secret end; eq(A.inCombat(),true); InCombatLockdown=nil; eq(A.inCombat(),true)
+    local p=A.party(); eq(p.raid,false); eq(p.leader,false); eq(#p.members,0)
+    units.party1={name="Cy",realm=nil}; units.party2={name="Di",realm="OtherRealm"}; leader=true
+    p=A.party(); eq(p.leader,true); eq(#p.members,2); eq(p.members[1],"Cy"); eq(p.members[2],"Di-OtherRealm")
+    raid=true; p=A.party(); eq(p.raid,true); raid=false
+    IsInRaid=function() return secret end; eq(A.party(),nil)
+    IsInRaid=function() return false end; GetNumGroupMembers=function() error("x") end; eq(A.party(),nil)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
