@@ -57,17 +57,24 @@ end
 -- req = { name, zone, want | nots }; own = { self, zone, key, id, inInstance, inCombat, raid, leader, members,
 -- asking, member }. Verdicts: "drop" (no reply), "same" (reply "same"), "busy" (reply heard ...|-),
 -- "invite" (reply heard ...|h; the caller invites once). Every failure before the guild check is silent.
-function G.decide(st, req, own, now)
-    if not st.on or not S.tab(req) or not S.tab(own) or not S.num(now) then return "drop" end
+-- early(st, req, own, now) -> name, key, our key | nil: every check before the guild check, nothing recorded.
+-- The caller asks for a new roster only for a request that passes these.
+function G.early(st, req, own, now)
+    if not st.on or not S.tab(req) or not S.tab(own) or not S.num(now) then return nil end
     local name = S.str(req.name, 100)
     local key = name and short(name)
-    if not key or key == own.self then return "drop" end
+    if not key or key == own.self then return nil end
     local last = st.asked[key]
-    if last and now - last < G.ASKER and now >= last then return "drop" end
-    if not own.zone or req.zone ~= own.zone then return "drop" end
+    if last and now - last < G.ASKER and now >= last then return nil end
+    if not own.zone or req.zone ~= own.zone then return nil end
     local mine = N.Layer.key(own.key)
-    if not mine then return "drop" end
-    if own.inInstance ~= false or own.inCombat ~= false then return "drop" end
+    if not mine then return nil end
+    if own.inInstance ~= false or own.inCombat ~= false then return nil end
+    return name, key, mine
+end
+function G.decide(st, req, own, now)
+    local name, key, mine = G.early(st, req, own, now)
+    if not name then return "drop" end
     -- the request reached the guild check: the 60 s per asker starts here
     remember(st, key, now)
     if own.member ~= true then return "drop" end
@@ -78,7 +85,7 @@ function G.decide(st, req, own, now)
         if not req.nots or N.Layer.key(req.nots[1]) == mine then return "same", "same" end
         for i = 2, #req.nots do if N.Layer.key(req.nots[i]) == mine then return "drop" end end
     end
-    if own.raid ~= false and own.raid ~= nil then return "busy", heard(name, own, "-") end
+    if own.raid ~= false then return "busy", heard(name, own, "-") end   -- unreadable counts as a raid
     local members = own.members or {}
     for k, at in pairs(st.pending) do if now - at >= G.PENDING then st.pending[k] = nil end end
     if #members > 0 then

@@ -278,6 +278,11 @@ end
 -- request and everything else are ignored (answering is not ours to do).
 function M.layerswap(text,kind,sender)
     if kind=="GUILD" then return M.layerswapGuild(text,sender) end
+    -- a request whispered to us goes to the guild host, and only while hosting is on; it never reaches Hop
+    if kind=="WHISPER" and type(text)=="string" and text:sub(1,10)=="inv layer " then
+        if M.host and M.host.on then M.hostRequest(text,sender) end
+        return
+    end
     if kind~="WHISPER" or type(text)~="string" or not S.str(sender,100) or not M.hop.pending then return end
     local me=S.str((S.call(UnitName,"player")))
     local time=now()
@@ -286,6 +291,78 @@ function M.layerswap(text,kind,sender)
     if shown then M.say("LayerEnemies: "..shown) end
     -- the asked player's own "heard" answer: remembered 12 minutes as a host (or forgotten on "-"); nothing is sent
     if reply and reply.kind=="heard" and asked then N.Hosts.heard(M.heard,asked.name,reply,A.wall()) end
+end
+-- Guild host. Hosting stays off beside LayerSwap or Bulo (they host already) and without the client's invite call.
+M.HOST_DONORS={"LayerSwap","BuloLayerForever"}
+M.HOST_HOLD=5
+function M.hostBlocked()
+    for _,name in ipairs(M.HOST_DONORS) do
+        if A.loaded(name) then return "hosting stays off while "..name.." is loaded (it hosts already)." end
+    end
+    if not N.Wire.canInvite() then return "hosting is not available: this client has no party invite call." end
+end
+function M.setHost(on)
+    if on then
+        local why=M.hostBlocked() or (S.call(IsInGuild)~=true and "you are not in a guild.")
+        if why then M.say("LayerEnemies: "..why); return false end
+        M.host.on=true; A.rosterRefresh(now())
+        M.say("LayerEnemies: Hosting for your guild is on. Guild members who ask by LayerSwap request are invited to your layer (10 s apart, at most 6 in 10 minutes, never in combat). Guests are never removed.")
+    else
+        M.host.on=false; M.host.held=nil
+        M.say("LayerEnemies: Hosting for your guild is off.")
+    end
+    if N.UI then N.UI.refresh() end
+    return M.host.on
+end
+function M.hostStatus()
+    local time,n=now(),0
+    for _,at in ipairs(M.host.invites) do if time-at<N.GuildHost.WINDOW then n=n+1 end end
+    M.say("LayerEnemies: Hosting for your guild: "..(M.host.on and ("on · "..n.." invite"..(n==1 and "" or "s").." in the last 10 minutes") or "off"))
+end
+-- Our own state for GuildHost.decide; member is read only after the early checks pass.
+function M.hostOwn()
+    local zone=A.location()
+    local id=S.str(M.store.bulo,32)
+    local party=A.party()
+    local me=S.str((S.call(UnitName,"player")))
+    local _,self=me and I.name(me)
+    return {self=self,zone=zone and zone==M.store.zone and zone or nil,key=L.key(M.store.bulo),id=id,
+        inInstance=A.inInstance(),inCombat=A.inCombat(),raid=party and party.raid,leader=party and party.leader,
+        members=party and party.members or {},asking=M.hop.pending~=nil or M.invite.pending~=nil}
+end
+function M.hostRequest(text,sender,held)
+    if M.hostBlocked() then return end
+    if S.secret(sender) or not S.str(sender,100) or M.isMe(sender) or A.ignored(sender) then return end
+    local G=N.GuildHost
+    local req=G.parse(text)
+    if not req then return end
+    req.name=sender
+    local time=now()
+    local own=M.hostOwn()
+    if not G.early(M.host,req,own,time) then return end
+    -- a roster older than 120 s: ask for a new one and decide on its update (5 s, one slot, newest wins)
+    local age=A.rosterAge(time)
+    if not held and (not age or age>A.ROSTER_FRESH) then
+        A.rosterRefresh(time)
+        M.host.held={text=text,sender=sender,at=time}
+        return
+    end
+    own.member=A.guildMember(sender)
+    local verdict,reply=G.decide(M.host,req,own,time)
+    if reply then N.Wire.send("LayerSwap",reply,"WHISPER",sender) end
+    if verdict=="invite" then
+        local ok=N.Wire.invite(sender,time)
+        if ok then M.say("LayerEnemies: invited "..((sender:match("^([^%-]+)%-")) or sender).." to your layer (guild host).") end
+    end
+    if N.UI then N.UI.refresh() end
+end
+function M.rosterUpdate()
+    local time=now()
+    A.rosterSeen(time)
+    local held=M.host and M.host.held
+    if not held then return end
+    M.host.held=nil
+    if time-held.at<=M.HOST_HOLD and M.host.on then M.hostRequest(held.text,held.sender,true) end
 end
 -- After our own guild-chat ask (120 s): LayerSwap users answer on GUILD with "heard <us>|<layer>|<zone>|<h or ->".
 -- Read only when the first field is our own name; hosting answers are remembered like a whispered reply. "claim"
@@ -672,6 +749,7 @@ function M.start()
     M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped()
+    M.host=N.GuildHost.new()   -- guild-only hosting: off at every login and reload, never saved
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
@@ -701,6 +779,9 @@ function M.start()
         if command=="" then guarded(N.UI.toggle)
         elseif command=="hosts" then guarded(M.hosts)
         elseif command=="hosts find" then guarded(M.findHosts)
+        elseif command=="host" then guarded(M.hostStatus)
+        elseif command=="host on" then guarded(M.setHost,true)
+        elseif command=="host off" then guarded(M.setHost,false)
         elseif index or command:match("^ask") then guarded(M.askIndex,tonumber(index))
         else guarded(M.text,command) end
     end
@@ -732,7 +813,7 @@ local function dispatch(_,event,...)
     elseif event=="NAME_PLATE_UNIT_ADDED" then M.queueUnit(...)
     elseif event=="NAME_PLATE_UNIT_REMOVED" then M.releaseUnit(...)
     elseif event=="GROUP_ROSTER_UPDATE" then guarded(M.groupCheck); guarded(M.inviteTick)
-    elseif event=="GUILD_ROSTER_UPDATE" then A.rosterSeen(now()) end
+    elseif event=="GUILD_ROSTER_UPDATE" then guarded(M.rosterUpdate) end
 end
 -- Opens the chat box with a whisper for the user to send; never sends it.
 function N.AskInvite(name)

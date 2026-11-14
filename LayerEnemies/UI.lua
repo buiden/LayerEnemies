@@ -129,6 +129,9 @@ function U.render()
     local wait=N.Hosts.askWait(M.heard,time)
     U.findHosts.label:SetText(wait and ("Asked · "..wait.."s") or "Find hosts")
     if wait then U.findHosts:Disable() else U.findHosts:Enable() end
+    local hosting=M.host and M.host.on
+    U.host:SetShown(U.tab=="friendly"); U.host.label:SetText(hosting and "Host: on" or "Host: off")
+    U.hosting:SetShown(hosting==true)
     local hint=U.tab=="friendly" and not known
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
     local height=U.tab=="local" and 48 or U.tab=="find" and 106 or U.tab=="friendly" and 68 or 80
@@ -246,6 +249,10 @@ function U.create()
     U.add=button(U.body,76,24,"Track",add); U.add:SetPoint("TOPRIGHT",-4,-23)
     -- one LFSw guild question per click, at most once a minute (Hosts.ask, Wire)
     U.findHosts=button(U.body,84,18,"Find hosts",function() N.Main.findHosts(); U.render() end); U.findHosts:SetPoint("TOPRIGHT",-4,0); U.findHosts:Hide()
+    -- guild-only hosting, off at every login; the line stays visible on every tab while it is on
+    U.host=button(U.body,70,18,"Host: off",function() local M=N.Main; M.setHost(not (M.host and M.host.on)); U.render() end)
+    U.host:SetPoint("TOPRIGHT",-92,0); U.host:Hide()
+    U.hosting=font(f,10,{.79,.96,.65}); U.hosting:SetPoint("TOPLEFT",86,-64); U.hosting:SetText("Hosting for your guild"); U.hosting:Hide()
     U.hint=font(f,10,colors.muted); U.hint:SetPoint("TOPLEFT",10,-420); U.hint:SetWidth(340)
     local footer=font(f,10,colors.muted); footer:SetPoint("BOTTOMLEFT",10,9); footer:SetWidth(340)
     footer:SetText("Only players seen by you or reported by other players' addons.")

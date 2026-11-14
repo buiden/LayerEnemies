@@ -20,7 +20,7 @@ local clock,map,server,channels,inGuild,clientIgnored,inInstance
 local guildName="Test Guild"
 local wall,grouped,opened
 local sent,sendResult
-local roster,rosterCalls,combat,raid,leader
+local roster,rosterCalls,combat,raid,leader,invites
 -- The routes the addon may send on (Wire.lua); anything else counts as forbidden. LFSw/GUILD carries only "Q".
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true}}
 -- Prefixes the addon may register.
@@ -120,7 +120,21 @@ local function loadAddon()
     for _,name in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","DeclineGroup","RunMacroText"}) do
         _G[name]=function() forbidden=forbidden+1; error("must never call "..name) end
     end
-    _G.C_PartyInfo=setmetatable({},{__index=function(_,key) forbidden=forbidden+1; error("must never use C_PartyInfo."..tostring(key)) end})
+    -- the one allowed party call: C_PartyInfo.InviteUnit, from Wire.lua only (0.4.0 guild host); every other member
+    -- counts as forbidden
+    invites={}
+    _G.C_PartyInfo=setmetatable({InviteUnit=function(name)
+            invites[#invites+1]=name
+            local level,caller=2,nil
+            while true do
+                local info=debug.getinfo(level,"S")
+                if not info then break end
+                if info.what~="C" then caller=info.source; break end
+                level=level+1
+            end
+            if caller~="@LayerEnemies/Wire.lua" then forbidden=forbidden+1 end
+        end},
+        {__index=function(_,key) forbidden=forbidden+1; error("must never use C_PartyInfo."..tostring(key)) end})
     _G.C_Timer={After=function(delay,fn) timers[#timers+1]={at=clock+delay,fn=fn} end}
     _G.C_Map={
         GetBestMapForUnit=function() return map end,
@@ -227,7 +241,7 @@ end
 
 test("strict frames start shown, dispatcher hidden, no UI or OnUpdate",function()
     local N=loadAddon()
-    eq(#frames,12); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 12 from 0.4.0: the Find hosts button
+    eq(#frames,13); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 13 from 0.4.0: the Find hosts and Host buttons
     local f=CreateFrame("Frame"); yes(f:IsShown()); no(pcall(function() f:InventedMethod() end))
     eq(N.Main.statusBulo,"not installed"); eq(N.Main.statusWE,"not installed / listening on guild, party and raid (reported, not confirmed)")
 end)
@@ -524,13 +538,13 @@ test("headless map candidates only for shown zone, never fake enemy coordinates"
     eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
     local candidates=N.Store.mapCandidates(N.Main.store,clock,100)
     eq(#candidates,1); eq(candidates[1].x,.25); eq(candidates[1].positionKind,"approximate observer position")
-    eq(#frames,12)
+    eq(#frames,13)
 end)
 test("SavedVariables contain options only; no sightings survive reload",function()
     local N=loadAddon(); establish(N)
     units.target=player("PrivateName","Horde"); advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
     eq(LayerEnemiesDB.sightings,nil); eq(LayerEnemiesDB.localSeen,nil); yes(LayerEnemiesDB.options)
-    N.Main.start(); eq(#frames,12)
+    N.Main.start(); eq(#frames,13)
     N=loadAddon(); eq(N.Safe.count(N.Main.store.localSeen),0)
 end)
 test("heartbeat is five seconds idle, two while map shown",function()
@@ -1199,9 +1213,12 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     eq(forbidden,0); eq(#opened,3); yes(grouped); no(N.Main.error)
     for _,file in ipairs(addonFiles()) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
-        for _,word in ipairs({"SendChatMessage","InviteUnit","LeaveParty","AcceptGroup","C_PartyInfo","RunMacroText","JoinChannel"}) do
+        for _,word in ipairs({"SendChatMessage","LeaveParty","AcceptGroup","RunMacroText","JoinChannel","UninviteUnit","ConfirmInviteUnit","ConvertToRaid","DeclineGroup","RequestInviteFromUnit"}) do
             eq(text:find(word,1,true),nil,file.." mentions "..word)
         end
+        -- InviteUnit and C_PartyInfo: exactly once each, in Wire.lua only
+        local function count(word) local n=0; for _ in text:gmatch("%f[%w_]"..word.."%f[^%w_]") do n=n+1 end; return n end
+        eq(count("InviteUnit"),file=="Wire" and 1 or 0,file.." InviteUnit count"); eq(count("C_PartyInfo"),file=="Wire" and 1 or 0,file.." C_PartyInfo count")
         -- SendAddonMessage only in Wire.lua
         if file=="Wire" then yes(text:find("SendAddonMessage",1,true),"Wire sends")
         else eq(text:find("SendAddonMessage",1,true),nil,file.." mentions SendAddonMessage") end
@@ -1209,7 +1226,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     eq(#sent,0)
     -- the only registered events are passive
     for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true)) end
-    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,12)
+    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,13)
     eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
 end)
 test("Find hashes mirror upstream realm, realm-less and Forever surname keys",function()
@@ -2301,6 +2318,7 @@ test("relay receive limit: 12 per 10 s per sender",function()
     local st=N.Relay.new(); for i=1,600 do N.Relay.allow(st,"S"..i,0) end; yes(st.nrates<=512)
 end)
 -- Wire.lua: the only sender
+local LSX="inv layer <LS 1429 want 7086-0>"
 test("the send mock counts any caller but Wire.lua as forbidden",function()
     local N=loadAddon()
     -- a direct call, a pcall-wrapped call and a dynamically named call from outside Wire.lua all count
@@ -2308,7 +2326,7 @@ test("the send mock counts any caller but Wire.lua as forbidden",function()
     pcall(function() C_ChatInfo["Send".."AddonMessage"]("LayerSwap","x","WHISPER","Alice") end); eq(forbidden,2)
     pcall(C_ChatInfo.SendAddonMessage,"LEGW1","x","GUILD"); eq(forbidden,3)
     -- the same routes through Wire.lua do not
-    forbidden=0; yes(N.Wire.send("LayerSwap","x","WHISPER","Alice")); yes(N.Wire.send("LEGW1","x","GUILD")); eq(forbidden,0); eq(#sent,5)
+    forbidden=0; yes(N.Wire.send("LayerSwap",LSX,"WHISPER","Alice")); yes(N.Wire.send("LEGW1","x","GUILD")); eq(forbidden,0); eq(#sent,5)
 end)
 test("wire routes cannot be opened from outside",function()
     local N=loadAddon(); local Wr=N.Wire
@@ -2320,7 +2338,7 @@ test("wire routes cannot be opened from outside",function()
     for _,c in ipairs({{"WEFF1","x","GUILD"},{"LayerSwap","x","GUILD"},{"LEGW1","x","WHISPER","Bob"}}) do
         local ok,why=Wr.send(c[1],c[2],c[3],c[4]); no(ok); eq(why,"blocked route")
     end
-    eq(#sent,0); yes(Wr.send("LayerSwap","x","WHISPER","Alice")); eq(#sent,1)
+    eq(#sent,0); yes(Wr.send("LayerSwap",LSX,"WHISPER","Alice")); eq(#sent,1)
 end)
 test("wire sends only on the allowed routes",function()
     local N=loadAddon(); local Wr=N.Wire
@@ -2339,21 +2357,21 @@ test("wire rejects oversize and secret text",function()
     local N=loadAddon(); local Wr=N.Wire
     local function bad(...) local ok,why=Wr.send(...); no(ok); eq(why,"bad text") end
     bad("LEGW1",string.rep("a",256),"GUILD"); bad("LEGW1","","GUILD"); bad("LEGW1",secret,"GUILD"); bad("LEGW1",42,"GUILD")
-    bad("LayerSwap","x","WHISPER",secret); bad("LayerSwap","x","WHISPER","B"); bad("LayerSwap","x","WHISPER",nil)
-    bad("LayerSwap","x","WHISPER","Bad|Name")
+    bad("LayerSwap",LSX,"WHISPER",secret); bad("LayerSwap",LSX,"WHISPER","B"); bad("LayerSwap",LSX,"WHISPER",nil)
+    bad("LayerSwap",LSX,"WHISPER","Bad|Name")
     local ok,why=Wr.send(secret,"x","GUILD"); no(ok); eq(why,"bad text")
     ok,why=Wr.send("LEGW1","x",secret); no(ok); eq(why,"bad text")
     eq(#sent,0)
     ok=Wr.send("LEGW1",string.rep("a",255),"GUILD"); yes(ok); eq(#sent,1)
-    ok=Wr.send("LayerSwap","x","WHISPER","First Surname"); yes(ok); eq(#sent,2)
+    ok=Wr.send("LayerSwap",LSX,"WHISPER","First Surname"); yes(ok); eq(#sent,2)
 end)
 test("wire maps client results",function()
     local N=loadAddon(); local Wr=N.Wire
-    local function try(r,want) sendResult=r; local ok,why=Wr.send("LayerSwap","x","WHISPER","Alice"); eq(why,want); eq(ok,want=="sent") end
+    local function try(r,want) sendResult=r; local ok,why=Wr.send("LayerSwap",LSX,"WHISPER","Alice"); eq(why,want); eq(ok,want=="sent") end
     try(0,"sent"); try(3,"throttled"); try(8,"refused"); try(1,"refused")
     try(function() error("boom") end,"error")
     eq(#sent,5); no(N.Main.error); eq(forbidden,0)
-    C_ChatInfo=nil; local ok,why=Wr.send("LayerSwap","x","WHISPER","Alice"); no(ok); eq(why,"error")
+    C_ChatInfo=nil; local ok,why=Wr.send("LayerSwap",LSX,"WHISPER","Alice"); no(ok); eq(why,"error")
 end)
 test("wire guild bucket",function()
     local N=loadAddon(); local Wr=N.Wire
@@ -2363,7 +2381,7 @@ test("wire guild bucket",function()
     advance(1); local ok,why=Wr.send("LEGW1","m7","GUILD"); no(ok); eq(why,"throttled"); eq(#sent,5)
     advance(1); ok,why=Wr.send("LEGW1","m8","GUILD"); yes(ok); eq(why,"sent"); eq(#sent,6)
     -- the whisper route has no bucket
-    for i=1,8 do yes((Wr.send("LayerSwap","x","WHISPER","Alice"))) end
+    for i=1,8 do yes((Wr.send("LayerSwap",LSX,"WHISPER","Alice"))) end
     eq(#sent,14)
     -- refill caps at 5
     advance(100); for i=1,6 do Wr.send("LEGW1","r"..i,"GUILD") end; eq(#sent,19)
@@ -2790,6 +2808,127 @@ test("0.4 T7.2: combat and party state; unreadable combat is in combat, unreadab
     raid=true; p=A.party(); eq(p.raid,true); raid=false
     IsInRaid=function() return secret end; eq(A.party(),nil)
     IsInRaid=function() return false end; GetNumGroupMembers=function() error("x") end; eq(A.party(),nil)
+end)
+
+-- 0.4.0 Task 7.3: the invite (Wire.invite, the only party call) and the guild host wiring.
+local function lsw(text,from) deliver("CHAT_MSG_ADDON","LayerSwap",text,"WHISPER",from or "Bob"); drain() end
+local function hostReady(N,names)
+    establish(N); roster={}
+    for _,n in ipairs(names or {"Bob"}) do roster[#roster+1]={n.."-TestRealm",true} end
+    slash("host on"); deliver("GUILD_ROSTER_UPDATE",true); drain()
+    yes(N.Main.host.on,"hosting on"); sent={}
+end
+test("0.4 T7.3: Wire.invite keeps its own limits: 10 s, 60 s per name, 6 per 600 s; realm dropped",function()
+    local N=loadAddon(); local Wr=N.Wire
+    yes(Wr.canInvite()); eq(#invites,0)
+    local ok,why=Wr.invite("Bob-OtherRealm",clock); yes(ok); eq(why,"invited"); eq(invites[1],"Bob")
+    ok,why=Wr.invite("Cy",clock+9); no(ok); eq(why,"throttled")
+    ok,why=Wr.invite("Bob",clock+11); no(ok); eq(why,"throttled","same name inside 60 s")
+    yes(Wr.invite("Cy",clock+12)); eq(invites[2],"Cy")
+    yes(Wr.invite("Tam Reed",clock+60)); eq(invites[3],"Tam Reed")
+    yes(Wr.invite("Bob",clock+120)); yes(Wr.invite("Di",clock+180)); yes(Wr.invite("Ed",clock+240))
+    ok,why=Wr.invite("Fy",clock+300); no(ok); eq(why,"throttled","seventh inside 600 s"); eq(#invites,6)
+    yes(Wr.invite("Fy",clock+611))
+    for _,bad in ipairs({secret,"Bad|Name","B","",5}) do local o,w=Wr.invite(bad,clock+1000); no(o); eq(w,"bad name") end
+    no(Wr.invite("Gy",secret))
+    eq(forbidden,0)
+    -- a client without the call: no invite, and canInvite says so
+    N=loadAddon(); C_PartyInfo=nil; no(N.Wire.canInvite()); ok,why=N.Wire.invite("Bob",clock); no(ok); eq(why,"error")
+    N=loadAddon(); C_PartyInfo={InviteUnit=function() error("x") end}; ok,why=N.Wire.invite("Bob",clock); no(ok); eq(why,"error")
+    no(N.Wire.invite("Cy",clock+1),"the limit was spent before the client was asked")
+end)
+test("0.4 T7.3: LayerSwap whispers carry only the request, same or heard; replies one per 6 s",function()
+    local N=loadAddon(); local Wr=N.Wire
+    yes(Wr.send("LayerSwap","inv layer <LS 1429 want 7086-0 48.2,42.5>","WHISPER","Alice"))
+    yes(Wr.send("LayerSwap","inv layer <LS 1429 not 7086-3>","WHISPER","Alice"))
+    yes(Wr.send("LayerSwap","same","WHISPER","Alice"))
+    local ok,why=Wr.send("LayerSwap","heard Alice|7086-7|100|h","WHISPER","Alice"); no(ok); eq(why,"throttled")
+    advance(6); yes(Wr.send("LayerSwap","heard Tam Reed|7086-7|100|-","WHISPER","Tam Reed"))
+    advance(6)
+    for _,bad in ipairs({"x","hello","heard Alice|7086|100|h","heard Alice|7086-7|100|x","heard |7086-7|100|h","heard x|7086-7|100|h","heard Bad1|7086-7|100|h","same ","claim Alice",
+        "inv layer <LS 1429>","inv layer <LS 1429 want 7086-0> x"}) do
+        ok,why=Wr.send("LayerSwap",bad,"WHISPER","Alice"); no(ok,bad); eq(why,"bad text",bad)
+    end
+    yes(Wr.send("LayerSwap","heard Alice|7086-7|100|h","WHISPER","Alice"))
+    -- requests are not part of the reply limit
+    yes(Wr.send("LayerSwap","inv layer <LS 1429 want 7086-0>","WHISPER","Alice"))
+    eq(forbidden,0)
+end)
+test("0.4 T7.3: hosting: off at load, on refused beside LayerSwap or Bulo or without the invite call",function()
+    local N=loadAddon(); eq(N.Main.host.on,false)
+    slash("host"); yes(logged("Hosting for your guild: off"))
+    slash("host on"); yes(N.Main.host.on); eq(rosterCalls,1); yes(logged("Hosting for your guild is on"))
+    slash("host"); yes(logged("Hosting for your guild: on · 0 invites in the last 10 minutes"))
+    slash("host off"); no(N.Main.host.on); yes(logged("Hosting for your guild is off."))
+    slash("host on"); N=loadAddon(); eq(N.Main.host.on,false,"off after a reload")
+    loaded.LayerSwap=true; slash("host on"); no(N.Main.host.on); yes(logged("LayerSwap")); loaded.LayerSwap=nil
+    loaded.BuloLayerForever=true; slash("host on"); no(N.Main.host.on); yes(logged("BuloLayerForever")); loaded.BuloLayerForever=nil
+    inGuild=false; slash("host on"); no(N.Main.host.on); yes(logged("not in a guild")); inGuild=true
+    C_PartyInfo=nil; slash("host on"); no(N.Main.host.on); yes(logged("no party invite")); eq(#sent,0)
+end)
+test("0.4 T7.3: a guild member's request: one reply, at most one invite, one line",function()
+    local N=loadAddon(); hostReady(N,{"Bob","Cy","Di","Ed"})
+    lsw("inv layer <LS 100 want 7086-0 25.0,75.0>","Bob")
+    eq(#sent,1); eq(sent[1].prefix,"LayerSwap"); eq(sent[1].kind,"WHISPER"); eq(sent[1].target,"Bob"); eq(sent[1].text,"heard Bob|7086-7|100|h")
+    eq(#invites,1); eq(invites[1],"Bob"); yes(logged("LayerEnemies: invited Bob to your layer (guild host)."))
+    advance(11); lsw("inv layer <LS 100 want 9000-0>","Cy"); eq(#sent,2); eq(sent[2].text,"heard Cy|7086-7|100|-"); eq(#invites,1)
+    advance(11); lsw("inv layer <LS 100 not 7086-3>","Di"); eq(#sent,3); eq(sent[3].text,"same"); eq(#invites,1)
+    -- not a member, offline, a request on GUILD or PARTY, a guild-chat line: nothing
+    advance(11); lsw("inv layer <LS 100 want 7086-0>","Zed"); eq(#sent,3)
+    roster[4][2]=false; lsw("inv layer <LS 100 want 7086-0>","Ed"); eq(#sent,3)
+    for _,k in ipairs({"GUILD","PARTY","CHANNEL"}) do deliver("CHAT_MSG_ADDON","LayerSwap","inv layer <LS 100 want 7086-0>",k,"Bob") end
+    guildLine("inv layer <LS 100 want 7086-0>","Bob"); drain(); eq(#sent,3); eq(#invites,1)
+    -- hosting off, or LayerSwap loaded while on: nothing
+    advance(61); slash("host off"); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#sent,3)
+    slash("host on"); deliver("GUILD_ROSTER_UPDATE",true); loaded.LayerSwap=true; lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#sent,3); eq(#invites,1)
+    loaded.LayerSwap=nil; lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,2)
+    slash("host"); yes(logged("2 invites in the last 10 minutes"))
+    -- a bad line or a secret sender: nothing
+    advance(61); lsw("inv layer <LS 100>","Cy"); lsw("inv layer <LS 100 want 7086-0>",secret); eq(#invites,2)
+    eq(forbidden,0)
+end)
+test("0.4 T7.3: unreadable party, combat or own layer fails closed",function()
+    local N=loadAddon(); hostReady(N,{"Bob"})
+    IsInRaid=function() return secret end; lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); IsInRaid=function() return false end
+    advance(61); combat=true; lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(#sent,1,"busy reply for the unreadable party only"); combat=false
+    -- the map shows another zone than the store (no zone event yet): our zone is unknown, nothing (fresh roster)
+    advance(61); deliver("GUILD_ROSTER_UPDATE",true); map=200; lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(#sent,1); map=100
+    -- everything readable again, roster 61 s old: one invite
+    advance(61); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,1)
+end)
+test("0.4 T7.3: a stale roster: one refresh, the request held in one slot for 5 s",function()
+    local N=loadAddon(); establish(N); roster={{"Bob",true},{"Cy",true},{"Di",true}}
+    slash("host on"); eq(rosterCalls,1); sent={}
+    -- no roster yet: held, no reply and no invite; the update decides it
+    lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#sent,0); eq(#invites,0); eq(rosterCalls,1,"15 s since the last refresh")
+    advance(3); deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#invites,1); eq(invites[1],"Bob")
+    -- 121 s later the roster is stale again: one refresh; a newer request replaces the held one
+    advance(121); lsw("inv layer <LS 100 want 7086-0>","Cy"); eq(rosterCalls,2); lsw("inv layer <LS 100 want 7086-0>","Di"); eq(rosterCalls,2)
+    advance(2); deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#invites,2); eq(invites[2],"Di")
+    -- no update within 5 s: nothing
+    advance(121); lsw("inv layer <LS 100 want 7086-0>","Cy"); advance(6); deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#invites,2)
+    -- a request failing an early check never asks for the roster
+    advance(121); local calls=rosterCalls; lsw("inv layer <LS 101 want 7086-0>","Cy"); eq(rosterCalls,calls)
+    eq(forbidden,0)
+end)
+test("0.4 T7.3: 20 idle minutes with hosting on: nothing sent, nothing invited",function()
+    local N=loadAddon(); hostReady(N,{"Bob"})
+    for i=1,120 do
+        advance(10)
+        if i%10==0 then deliver("GUILD_ROSTER_UPDATE",true) end
+        if i%30==0 then map=(map==100) and 101 or 100; deliver("ZONE_CHANGED_NEW_AREA") end
+        if i%45==0 then deliver("GROUP_ROSTER_UPDATE") end
+        drain()
+    end
+    eq(#sent,0); eq(#invites,0); eq(forbidden,0)
+end)
+test("0.4 T7.3: the window toggle and the hosting line",function()
+    local N=loadAddon(); establish(N); local U=N.UI; U.toggle(); U.select("friendly")
+    yes(U.host:IsShown()); eq(U.host.label.text,"Host: off"); no(U.hosting:IsShown())
+    U.host:Click(); drain(); yes(N.Main.host.on); eq(U.host.label.text,"Host: on"); yes(U.hosting:IsShown()); eq(U.hosting.text,"Hosting for your guild")
+    U.select("reported"); no(U.host:IsShown()); yes(U.hosting:IsShown(),"the line stays visible while on")
+    U.select("friendly"); U.host:Click(); drain(); no(N.Main.host.on); no(U.hosting:IsShown())
+    loaded.LayerSwap=true; U.host:Click(); drain(); no(N.Main.host.on); eq(#sent,0)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
