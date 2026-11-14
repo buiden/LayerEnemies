@@ -3491,10 +3491,11 @@ test("1.0 T3: no join below consent public; joins at public; leaves on switch-of
 end)
 test("1.0 T3: the member list is read after selecting the channel, never with the Channels window open, in combat or an instance",function()
     local N=loadAddon(); local D=N.Directory; dirReady(N)
-    chanMembers.HeadHunterSync={"Me","Peer One","Peer Two-Other"}
+    chanMembers.HeadHunterSync={"Me","Peer One","Peer Two-Other","Me-TestRealm","Bad|Name","Me-OtherRealm"}
     yes(D.refresh("hh")); eq(#selected,1); eq(D.members("hh"),nil,"read 3 s later")
     advance(2.9); eq(D.members("hh"),nil)
-    advance(0.2); local m=D.members("hh"); eq(#m,2); eq(m[1],"Peer One"); eq(m[2],"Peer Two-Other"); eq(D.count("hh"),2)
+    -- ourselves (our realm or none) and unreadable names are skipped; our namesake on another realm is someone else
+    advance(0.2); local m=D.members("hh"); eq(#m,3); eq(m[1],"Peer One"); eq(m[2],"Peer Two-Other"); eq(m[3],"Me-OtherRealm"); eq(D.count("hh"),3)
     ChannelFrame={IsShown=function() return true end}; no(D.refresh("hh")); eq(#selected,1); ChannelFrame=nil
     combat=true; no(D.refresh("hh")); combat=false
     inInstance=true; no(D.refresh("hh")); inInstance=false
@@ -3929,6 +3930,18 @@ test("1.0 T3-2: a join that fails is not marked joined; toggling never stacks ti
     N.Net.setSwitch("hh",false); advance(400); N.Net.setSwitch("hh",true); advance(10); advance(3.1)
     local after=0; for _,c in ipairs(selected) do if c=="HeadHunterSync" then after=after+1 end end
     eq(after,before+1,"resumed after a timer fired while off")
+end)
+
+test("names end to end: a foreign spaced host First Last-7103 on realm 7102: line, hop, whisper, auto-accept",function()
+    local N=loadAddon(); BULO=nil; numericHome(); establish(N); advance(1)
+    deliver("CHAT_MSG_ADDON","LFSw","L 8000|100|h","GUILD","First Last-7103"); drain()
+    local list=N.Main.candidates(); eq(#list,1); eq(list[1].name,"First Last-7103")
+    local r=rec(N); local p=N.Main.hopPreview(r); eq(p.label,"Hop via First Last-7103")
+    yes(N.Main.hopTo(r,p)); eq(#sent,1); eq(sent[1].target,"First Last-7103"); eq(sent[1].prefix,"LayerSwap")
+    -- a local namesake's invite is not the asked host's
+    inviteFrom("First Last"); eq(#accepts,0); popup.shown=false
+    inviteFrom("First Last-7105"); eq(#accepts,0); popup.shown=false
+    inviteFrom("First Last-7103"); eq(#accepts,1); yes(logged("accepted First Last's invite"))
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

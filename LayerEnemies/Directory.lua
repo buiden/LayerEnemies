@@ -66,7 +66,8 @@ local function index(name)
         if shown and (shown:match("^%d+%. (.+)$") or shown):lower() == name:lower() then return i end
     end
 end
-local function me() return (S.str((S.call(UnitName, "player")), 60) or ""):lower() end
+-- ourselves by the one name rule (Invite.name keys)
+local function me() local _, key = N.Invite.name((S.call(UnitName, "player"))); return key end
 local function read(key)
     pending[key] = nil
     -- conditions may have changed in the 3 s: combat, an instance or the Channels window stop the read
@@ -83,7 +84,8 @@ local function read(key)
     for r = 1, math.min(count, D.MAX) do
         local ok, who = pcall(CI.GetChannelRosterInfo, i, r)
         who = ok and S.str(who, 60)
-        if who and (who:match("^([^%-]+)") or who):lower() ~= self then list[#list + 1] = who end
+        local _, key = N.Invite.name(who)
+        if key and key ~= self then list[#list + 1] = who end
     end
     members[key] = list
 end
