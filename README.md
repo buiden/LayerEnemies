@@ -7,8 +7,13 @@ matches, then hop: ask a host on that layer for an invite. Approved design B is
 implemented as a movable dark window with Seen by you, Reported, Friendly and
 Find tabs. It starts hidden. No minimap button or map pins. This is not a
 complete layer roster or a global player locator. 0.3.0 is no longer passive:
-it sends two kinds of addon message, listed under "What is sent". None of it
-has been tested on a live client yet (see the last section).
+it sends two kinds of addon message, listed under "What is sent". It has had
+one live trial (0.3.0, two guildmates in one zone on different layers): the
+player without Bulo or LayerSwap could not see the host, because their own layer
+stayed unknown and neither addon announces its hosts unprompted. 0.3.1 answers
+that with hosts listed while your layer is unknown, a direct hop to a host and
+remembered LayerSwap replies; none of that has been tried live yet (see the
+last section).
 
 ## What is sent
 
@@ -338,7 +343,9 @@ still needs in-game verification.
 
 ## Not tested on a live client
 
-Everything above is checked against a mock client only. Still open:
+Apart from the one 0.3.0 trial described at the top (host discovery failed for
+a player without Bulo or LayerSwap), everything above is checked against a
+mock client only. Still open:
 
 1. Does `inv layer <LS zone want S-0 x,y>` by addon whisper produce an invite
    from a LayerSwap 1.14.20 host and from a Bulo 3.0.25 host? Also with the

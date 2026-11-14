@@ -445,7 +445,7 @@ function M.hopPreview(record)
         if ok and M.invite.lastAsk and ctx.now-M.invite.lastAsk<I.GLOBAL_COOLDOWN then ok,reason=false,"one ask every "..I.GLOBAL_COOLDOWN.." s." end
     end
     local how=cand and (cand.addon and ("Hop via "..cand.name) or ("Ask "..cand.name.." (chat)")) or "Hop"
-    local detail=cand and (cand.addon and ("one LayerSwap request whispered to "..cand.name.." ("..cand.source..")")
+    local detail=cand and (cand.addon and ("one LayerSwap request whispered to "..cand.name.." ("..cand.source..(cand.nonhost and "; not hosting; may not answer" or "")..")")
         or ("a prefilled chat whisper to "..cand.name.." (no host addon known); you press Enter")) or nil
     return {label=how,enabled=ok,reason=reason,detail=detail,candidate=cand}
 end
@@ -495,7 +495,7 @@ function M.hostPreview(c)
         if last and ctx.now-last<I.NAME_COOLDOWN then ok,reason=false,cand.name.." was asked "..math.floor(ctx.now-last).." s ago." end
         if ok and M.invite.lastAsk and ctx.now-M.invite.lastAsk<I.GLOBAL_COOLDOWN then ok,reason=false,"one ask every "..I.GLOBAL_COOLDOWN.." s." end
     end
-    return {label="Hop via "..cand.name,enabled=ok,reason=ok and nil or reason,detail="one LayerSwap request whispered to "..cand.name.." ("..cand.source..")",
+    return {label="Hop via "..cand.name,enabled=ok,reason=ok and nil or reason,detail="one LayerSwap request whispered to "..cand.name.." ("..cand.source..(cand.nonhost and "; not hosting; may not answer" or "")..")",
         candidate=cand,record=record}
 end
 -- c: the row as it was shown; shown: the preview the user clicked (nil from /le hop host). One click, one whisper
@@ -512,7 +512,9 @@ function M.hopHostTo(c,shown)
     local was=N.Hop.hostCandidate(c)
     local cand=N.Hop.hostCandidate(live)
     local shownCand=S.tab(shown) and shown.candidate or was
-    if live.layer~=c.layer or live.unknownOwn or not cand or not shownCand or cand.name~=shownCand.name or cand.source~=shownCand.source then
+    -- the host flag and the LayerSwap uid are part of what was shown: a change sends nothing
+    if live.layer~=c.layer or live.unknownOwn or (live.host==true)~=(c.host==true) or not cand or not shownCand
+        or cand.name~=shownCand.name or cand.source~=shownCand.source or cand.uid~=shownCand.uid then
         M.say("LayerEnemies: hosts changed, check again."); if N.UI then N.UI.refresh() end
         return false
     end

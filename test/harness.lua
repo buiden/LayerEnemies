@@ -1155,7 +1155,7 @@ test("after join: no ask, late join, unknown layer and zone change",function()
     -- layer never confirmed again: one hint, then the check ends without a claim
     N=loadAddon(); establish(N); LayerSwapDB={book={Alice=page()}}
     yes(LE.AskInvite("Alice")); grouped=true; deliver("GROUP_ROSTER_UPDATE"); deliver("SHARD_TRANSFER"); drain()
-    advance(61); eq(lines("Layer not confirmed yet - target or mouse over two different NPCs."),1)
+    advance(61); eq(lines("Layer not confirmed yet - target or mouse over two different kinds of NPC."),1)
     advance(60); eq(lines("Layer not confirmed yet"),1); advance(65); eq(lines("Layer check ended - your layer could not be confirmed."),1)
     eq(lines("Moved to layer"),0); eq(lines("Still on your layer"),0); eq(N.Main.invite.watch,nil)
     -- zone change cancels
@@ -1738,11 +1738,11 @@ test("hop: own layer is the confirmed one, never a stale server key (مانع T2
     deliver("SHARD_TRANSFER"); drain()
     eq(N.Main.store.bulo,nil); eq(N.Layer.server(N.Main.npcs),"7086")      -- the raw id is kept for the ambiguity window
     eq(N.Store.own(N.Main.store,clock).server,nil)
-    -- a report on 7086 is not "on your layer": our layer is not known after the transfer. (Bulo/LayerSwap lists
-    -- need our own key, so the War Effort reporter is the one asked, by chat whisper.)
+    -- a report on 7086 is not "on your layer": our layer is not known after the transfer. Since the 0.3.1 review
+    -- (S1) an unknown own key refuses every hop with the hint, the War Effort reporter's chat draft included.
     chatBox()
     local r=rec(N,{layer={ns="server",value="7086"}}); eq(N.Record.relation(r,N.Store.own(N.Main.store,clock)),"unknown")
-    yes(hopNow(N,r)); drain(); eq(#sent,0); eq(#opened,1); eq(opened[1].text,"/w Scout "..ASK); eq(lines("on your layer already"),0)
+    no(hopNow(N,r)); drain(); eq(#sent,0); eq(#opened,0); eq(lines("on your layer already"),0); yes(logged(N.Invite.HINT))
     SlashCmdList.LAYERENEMIES("list"); yes(logged("Your server key: Unknown")); yes(logged("Your layer: Unknown"))
 end)
 test("hop: an ambiguous own key is never a certain same layer (مانع T2 S3)",function()
@@ -2356,7 +2356,7 @@ test("wire guild bucket",function()
 end)
 
 -- 0.3.1 core: hosts while our own layer is unknown, hop to a host, remembered LayerSwap replies.
-local HINT="Your layer is not known yet: target or mouse over two different NPCs within 15 seconds."
+local HINT="Your layer is not known yet: target or mouse over two different kinds of NPC within 15 seconds."
 local function guildLine(text,from) deliver("CHAT_MSG_ADDON","LFSw",text,"GUILD",from) end
 local function slash(text) SlashCmdList.LAYERENEMIES(text); drain() end
 test("0.3.1 T3: hosts are listed while our own layer is unknown; nothing is sent or drafted",function()
@@ -2394,7 +2394,7 @@ test("0.3.1 T3: the window shows the hint and disables the row button while unkn
     local N=loadAddon(); chatBox(); guildLine("L 8000|100|h","Bob")
     local U=N.UI; U.toggle(); U.select("friendly")
     eq(U.pool[1].title.text,"Bob"); yes(U.pool[1].ask.disabled,"disabled"); eq(U.pool[1].ask.reason,HINT)
-    eq(U.banner.text,HINT); yes(U.meta.text:find("mouse over or target two different NPCs within 15 s",1,true),U.meta.text)
+    eq(U.banner.text,HINT); yes(U.meta.text:find("mouse over or target two different kinds of NPC within 15 s",1,true),U.meta.text)
     U.pool[1].ask:Click(); drain(); eq(#sent,0); eq(#opened,0)
     establish(N); U.render(); no(U.pool[1].ask.disabled); eq(U.banner.text,"")
 end)
@@ -2499,6 +2499,56 @@ test("0.3.1 guardrails: 20 idle minutes with the new paths send nothing",functio
     eq(#sent,0); eq(#opened,0); eq(forbidden,0); no(N.Main.error)
     -- the routes are those of 0.3.0
     local ok,why=N.Wire.send("LFSw","Q","GUILD"); no(ok); eq(why,"blocked route"); eq(#sent,0)
+end)
+
+-- 0.3.1 review fixes (S1-S3)
+test("0.3.1 fix S1: own layer unknown, a report hop refuses with the hint, no draft even via the reporter",function()
+    local N=loadAddon(); chatBox(); advance(1)
+    guildLine("L 8000|100|h","Alpha"); hopReport(301,8000,"Alpha")
+    local list=N.Main.candidates(); eq(#list,1); yes(list[1].unknownOwn)
+    slash("reports"); eq(#N.Main.hopList.records,1)
+    local r=N.Main.hopList.records[1]; local p=N.Main.hopPreview(r)
+    no(p.enabled); eq(p.reason,N.Invite.HINT)
+    slash("hop 1"); eq(#opened,0); eq(#sent,0); yes(logged(N.Invite.HINT))
+    no(N.Main.hopTo(r,p)); eq(#opened,0); eq(#sent,0)
+    -- the Reported row button is disabled with the hint
+    local U=N.UI; U.toggle(); U.select("reported")
+    local row; for _,x in ipairs(U.pool) do if x:IsShown() and x.hopRecord then row=x end end
+    yes(row); yes(row.ask.disabled); eq(row.ask.reason,N.Invite.HINT)
+    -- Hop.check itself refuses an unknown own key
+    local ok,why=N.Hop.check(r,{name="Alpha",short="alpha",addon=false},{grouped=false,zone=100,own={zone=100,server=nil}})
+    no(ok); eq(why,N.Invite.HINT)
+end)
+test("0.3.1 fix S2: hop host refuses when the host flag or the LayerSwap uid changed since the preview",function()
+    local N=loadAddon(); establish(N); guildLine("L 8000|100|h","Alpha"); slash("hosts")
+    local c=N.Main.hostList.rows[1]; local p=N.Main.hostPreview(c); yes(c.host); yes(p.enabled)
+    guildLine("L 8000|100|-","Alpha")
+    no(N.Main.hopHostTo(c,p)); eq(#sent,0); yes(logged("hosts changed, check again."))
+    N=loadAddon(); establish(N); LayerSwapDB={book={Alpha=page({host=true,layer="8000-12"})}}; slash("hosts")
+    c=N.Main.hostList.rows[1]; p=N.Main.hostPreview(c); eq(p.candidate.uid,12); yes(p.enabled)
+    LayerSwapDB.book.Alpha.layer="8000-13"
+    no(N.Main.hopHostTo(c,p)); eq(#sent,0); yes(logged("hosts changed, check again."))
+    -- unchanged: one whisper with the shown uid
+    LayerSwapDB.book.Alpha.layer="8000-12"; slash("hosts"); c=N.Main.hostList.rows[1]; p=N.Main.hostPreview(c)
+    yes(N.Main.hopHostTo(c,p)); eq(#sent,1); yes(sent[1].text:find("want 8000-12",1,true),sent[1].text)
+    -- a LayerSwap page whose host flag drops (same source, same uid): refused too
+    N=loadAddon(); establish(N); LayerSwapDB={book={Alpha=page({host=true,layer="8000-12"})}}; slash("hosts")
+    c=N.Main.hostList.rows[1]; p=N.Main.hostPreview(c); yes(c.host)
+    LayerSwapDB.book.Alpha.host=false; no(N.Main.candidates()[1].host)
+    no(N.Main.hopHostTo(c,p)); eq(#sent,0); yes(logged("hosts changed, check again."))
+    -- /le hop host N compares against the listed row the same way
+    N=loadAddon(); establish(N); LayerSwapDB={book={Alpha=page({host=true,layer="8000-12"})}}; slash("hosts")
+    LayerSwapDB.book.Alpha.layer="8000-13"; slash("hop host 1"); eq(#sent,0); yes(logged("hosts changed, check again."))
+end)
+test("0.3.1 fix S3 and note: the hint names two different kinds of NPC; a non-host Bulo row says it may not answer",function()
+    local N=loadAddon(); chatBox()
+    eq(N.Invite.HINT,"Your layer is not known yet: target or mouse over two different kinds of NPC within 15 seconds.")
+    local U=N.UI; U.toggle(); yes(U.meta.text:find("two different kinds of NPC within 15 s",1,true),U.meta.text)
+    establish(N); guildLine("L 8000|100|-","Bravo"); slash("hosts")
+    local p=N.Main.hostPreview(N.Main.hostList.rows[1]); yes(p.enabled)
+    yes(p.detail:find("not hosting; may not answer",1,true),p.detail)
+    local r=rec(N); local q=N.Main.hopPreview(r); eq(q.label,"Hop via Bravo"); yes(q.detail:find("not hosting; may not answer",1,true),q.detail)
+    guildLine("L 8000|100|h","Bravo"); slash("hosts"); p=N.Main.hostPreview(N.Main.hostList.rows[1]); no(p.detail:find("may not answer",1,true))
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

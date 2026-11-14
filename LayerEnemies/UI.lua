@@ -123,7 +123,7 @@ function U.render()
     end
     local known=N.Layer.key(M.store.bulo)
     U.layer:SetText(known or "?")
-    U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or "layer unknown: mouse over or target two different NPCs within 15 s"))
+    U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or "layer unknown: mouse over or target two different kinds of NPC within 15 s"))
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
     local hint=U.tab=="friendly" and not known
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")

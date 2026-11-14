@@ -5,8 +5,8 @@ local _, N = ...
 local I,S,L = {},N.Safe,N.Layer
 N.Invite=I
 I.MESSAGE="Hi! Could you invite me to your layer please?"
--- The 15 s is the vote window of Layer.lua.
-I.HINT="Your layer is not known yet: target or mouse over two different NPCs within 15 seconds."
+-- The 15 s is the vote window of Layer.lua, which counts distinct NPC ids (kinds), not individual creatures.
+I.HINT="Your layer is not known yet: target or mouse over two different kinds of NPC within 15 seconds."
 I.NAME_COOLDOWN,I.GLOBAL_COOLDOWN=60,10
 I.JOIN_WINDOW,I.WATCH=300,60
 I.BULO_STALE,I.BOOK_FRESH,I.REPORT_FRESH=720,900,600
@@ -208,5 +208,5 @@ function I.tick(st,now,key,zone,ambiguous)
         return "Still on your layer - leave, wait a minute, try again."
     end
     if now>=w.stop then st.watch=nil; return "Layer check ended - your layer could not be confirmed." end
-    if not w.warned then w.warned=true; return "Layer not confirmed yet - target or mouse over two different NPCs." end
+    if not w.warned then w.warned=true; return "Layer not confirmed yet - target or mouse over two different kinds of NPC." end
 end

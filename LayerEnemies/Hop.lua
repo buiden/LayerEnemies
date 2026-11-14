@@ -53,7 +53,7 @@ function Hp.candidate(record, list)
     end
     if best then
         local src = rank == 2 and "LayerSwap" or "Bulo"
-        return { name = best.name, short = best.short, uid = best.uid, source = src, addon = true }
+        return { name = best.name, short = best.short, uid = best.uid, source = src, addon = true, nonhost = rank == 3 }
     end
     if record.src == "we" then
         local name, short = N.Invite.name(record.origin)
@@ -77,7 +77,7 @@ function Hp.hostCandidate(c)
         if v and (not rank or v < rank) then rank = v end
     end
     if not rank then return nil end
-    return { name = c.name, short = c.short, uid = c.uid, source = rank == 2 and "LayerSwap" or "Bulo", addon = true }
+    return { name = c.name, short = c.short, uid = c.uid, source = rank == 2 and "LayerSwap" or "Bulo", addon = true, nonhost = rank == 3 }
 end
 
 -- request(st, record, candidate, ctx) -> ok, message[, line]
@@ -88,6 +88,8 @@ end
 function Hp.check(record, candidate, ctx)
     if ctx.grouped then return false, "leave your current group first; an invite cannot reach you while grouped." end
     if not S.tab(record) then return false, "nothing to hop to." end
+    -- our own key unknown: no hop and no chat draft through any candidate, the reporter included
+    if not S.tab(ctx.own) or not N.Layer.key(ctx.own.server) then return false, N.Invite.HINT end
     -- the live map zone decides: unreadable or different from the report refuses (the cached zone can lag)
     if not ctx.zone or not ctx.own.zone then return false, "your zone is not known." end
     if record.zone ~= ctx.zone or record.zone ~= ctx.own.zone then
