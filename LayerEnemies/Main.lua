@@ -540,6 +540,13 @@ function M.hopHost(index)
     end
     return M.hopHostTo(row,nil)
 end
+-- The only caller of the guild question: /le hosts find and the Find hosts button.
+function M.findHosts()
+    local ok,message=N.Hosts.ask(M.heard,now(),S.call(IsInGuild)==true)
+    M.say("LayerEnemies: "..message)
+    if N.UI then N.UI.refresh() end
+    return ok
+end
 function M.hosts()
     guarded(M.poll)
     local list,status=M.candidates()
@@ -556,6 +563,7 @@ function M.hosts()
     M.say("/le hop host <number> asks that host directly: one LayerSwap whisper per click.")
     M.say("/le hop <number> from /le reports asks one host on that layer directly (one whisper per click).")
     M.say("/le ask <number> puts a whisper in your chat box; you press Enter. Nothing is sent, accepted or left for you.")
+    M.say("/le hosts find asks the guild's Bulo users for their layers (one guild message, at most once a minute).")
 end
 function M.askIndex(index)
     local list=M.hostList
@@ -613,7 +621,7 @@ function M.text(command)
         if reported>0 then say("Reported, not confirmed: "..reported.." more in /le reports") end
     end
     say("Only players seen by you or reported by other players' addons.")
-    say("/le window; /le list; /le reports; /le hop <number>; /le hosts; /le hop host <number>; /le ask <number>; /le find <name>.")
+    say("/le window; /le list; /le reports; /le hop <number>; /le hosts; /le hosts find; /le hop host <number>; /le ask <number>; /le find <name>.")
     if M.lastDrop and command=="reports" then say("Last report rejected: "..M.lastDrop) end
 end
 local function heartbeat()
@@ -657,6 +665,7 @@ function M.start()
         if hop or command=="hop" then guarded(M.hopIndex,tonumber(hop)); return end
         if command=="" then guarded(N.UI.toggle)
         elseif command=="hosts" then guarded(M.hosts)
+        elseif command=="hosts find" then guarded(M.findHosts)
         elseif index or command:match("^ask") then guarded(M.askIndex,tonumber(index))
         else guarded(M.text,command) end
     end

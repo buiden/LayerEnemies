@@ -20,8 +20,8 @@ local clock,map,server,channels,inGuild,clientIgnored,inInstance
 local guildName="Test Guild"
 local wall,grouped,opened
 local sent,sendResult
--- The two routes the addon may send on (Wire.lua); anything else counts as forbidden.
-local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true}}
+-- The routes the addon may send on (Wire.lua); anything else counts as forbidden. LFSw/GUILD carries only "Q".
+local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true}}
 -- Prefixes the addon may register.
 local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true}
 -- The addon's source files, in load order, as the TOC lists them.
@@ -216,7 +216,7 @@ end
 
 test("strict frames start shown, dispatcher hidden, no UI or OnUpdate",function()
     local N=loadAddon()
-    eq(#frames,11); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil)
+    eq(#frames,12); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 12 from 0.4.0: the Find hosts button
     local f=CreateFrame("Frame"); yes(f:IsShown()); no(pcall(function() f:InventedMethod() end))
     eq(N.Main.statusBulo,"not installed"); eq(N.Main.statusWE,"not installed / listening on guild, party and raid (reported, not confirmed)")
 end)
@@ -513,13 +513,13 @@ test("headless map candidates only for shown zone, never fake enemy coordinates"
     eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
     local candidates=N.Store.mapCandidates(N.Main.store,clock,100)
     eq(#candidates,1); eq(candidates[1].x,.25); eq(candidates[1].positionKind,"approximate observer position")
-    eq(#frames,11)
+    eq(#frames,12)
 end)
 test("SavedVariables contain options only; no sightings survive reload",function()
     local N=loadAddon(); establish(N)
     units.target=player("PrivateName","Horde"); advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
     eq(LayerEnemiesDB.sightings,nil); eq(LayerEnemiesDB.localSeen,nil); yes(LayerEnemiesDB.options)
-    N.Main.start(); eq(#frames,11)
+    N.Main.start(); eq(#frames,12)
     N=loadAddon(); eq(N.Safe.count(N.Main.store.localSeen),0)
 end)
 test("heartbeat is five seconds idle, two while map shown",function()
@@ -1198,7 +1198,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     eq(#sent,0)
     -- the only registered events are passive
     for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true)) end
-    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,11)
+    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,12)
     eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
 end)
 test("Find hashes mirror upstream realm, realm-less and Forever surname keys",function()
@@ -2309,11 +2309,12 @@ test("wire routes cannot be opened from outside",function()
     end
     eq(#sent,0); yes(Wr.send("LayerSwap","x","WHISPER","Alice")); eq(#sent,1)
 end)
-test("wire sends only on the two allowed routes",function()
+test("wire sends only on the allowed routes",function()
     local N=loadAddon(); local Wr=N.Wire
     local function blocked(...) local ok,why=Wr.send(...); no(ok); eq(why,"blocked route") end
     blocked("WEFF1","x","GUILD"); blocked("LayerSwap","x","GUILD"); blocked("LEGW1","x","WHISPER","Bob")
-    blocked("LayerSwap","x","CHANNEL","5"); blocked("HeadHunter","x","WHISPER","Bob"); blocked("LFSw","x","GUILD")
+    blocked("LayerSwap","x","CHANNEL","5"); blocked("HeadHunter","x","WHISPER","Bob"); blocked("LFSw","Q","WHISPER","Bob")
+    local ok,why=Wr.send("LFSw","x","GUILD"); no(ok); eq(why,"bad text")
     eq(#sent,0)
     eq(Wr.ROUTES.LayerSwap.WHISPER,true); eq(Wr.ROUTES.LEGW1.GUILD,true)
     local ok,why=Wr.send("LayerSwap","inv layer <LS 1429 want 7086-0 48.2,42.5>","WHISPER","Alice"); yes(ok); eq(why,"sent")
@@ -2497,8 +2498,45 @@ test("0.3.1 guardrails: 20 idle minutes with the new paths send nothing",functio
         U.render(); advance(5)
     end
     eq(#sent,0); eq(#opened,0); eq(forbidden,0); no(N.Main.error)
-    -- the routes are those of 0.3.0
-    local ok,why=N.Wire.send("LFSw","Q","GUILD"); no(ok); eq(why,"blocked route"); eq(#sent,0)
+end)
+
+-- 0.4.0 Task 1: one LFSw "Q" on GUILD from a click, 60 s apart, never on its own.
+local ASKED="asked the guild's Bulo users for their layers; answers take up to 6 s"
+test("0.4 T1: /le hosts find sends exactly one LFSw Q on GUILD, then waits 60 s",function()
+    local N=loadAddon(); establish(N)
+    slash("hosts"); yes(log[#log]:find("/le hosts find",1,true),"the hosts list ends naming /le hosts find")
+    eq(#sent,0,"/le hosts alone sends nothing")
+    slash("hosts find"); eq(#sent,1); eq(sent[1].prefix,"LFSw"); eq(sent[1].text,"Q"); eq(sent[1].kind,"GUILD"); eq(sent[1].target,nil)
+    yes(logged(ASKED))
+    advance(59); slash("hosts find"); eq(#sent,1); yes(log[#log]:find("wait 1 s",1,true),log[#log])
+    advance(1); slash("hosts find"); eq(#sent,2); eq(forbidden,0)
+end)
+test("0.4 T1: the 60 s limit is in Wire itself, and Wire takes only the literal Q",function()
+    local N=loadAddon(); local Wr=N.Wire
+    yes(Wr.send("LFSw","Q","GUILD")); local ok,why=Wr.send("LFSw","Q","GUILD"); no(ok); eq(why,"throttled"); eq(#sent,1)
+    advance(59); ok,why=Wr.send("LFSw","Q","GUILD"); eq(why,"throttled"); advance(1); yes(Wr.send("LFSw","Q","GUILD")); eq(#sent,2)
+    for _,x in ipairs({"L 8000|100|h","L 8000|100|-","v 3.0.25","QQ","q"," Q",""}) do ok,why=Wr.send("LFSw",x,"GUILD"); no(ok); eq(why,"bad text",x) end
+    for _,k in ipairs({"WHISPER","PARTY","CHANNEL","RAID"}) do ok,why=Wr.send("LFSw","Q",k,"Bob"); no(ok); eq(why,"blocked route",k) end
+    eq(#sent,2)
+    -- the stamp is set before the client is asked: a client throttle does not allow a quick retry
+    N=loadAddon(); Wr=N.Wire; sendResult=3; ok,why=Wr.send("LFSw","Q","GUILD"); eq(why,"throttled"); eq(#sent,1)
+    sendResult=0; ok,why=Wr.send("LFSw","Q","GUILD"); eq(why,"throttled"); eq(#sent,1); eq(forbidden,0)
+end)
+test("0.4 T1: not in a guild, nothing is sent; an incoming Q is never answered",function()
+    local N=loadAddon(); establish(N); inGuild=false
+    slash("hosts find"); eq(#sent,0); yes(log[#log]:find("not in a guild",1,true),log[#log])
+    inGuild=true
+    for i=1,20 do guildLine("Q","Bob"..string.char(96+i)); advance(1) end
+    deliver("CHAT_MSG_ADDON","LFSw","Q","WHISPER","Bob"); drain()
+    eq(#sent,0)
+end)
+test("0.4 T1: the Find hosts button on the Friendly tab, one Q per click",function()
+    local N=loadAddon(); establish(N); local U=N.UI; U.toggle(); U.select("friendly")
+    yes(U.findHosts:IsShown()); eq(U.findHosts.label.text,"Find hosts")
+    U.findHosts:Click(); drain(); eq(#sent,1); eq(sent[1].prefix,"LFSw")
+    U.render(); yes(U.findHosts.disabled,"disabled while the 60 s run"); U.findHosts:Click(); eq(#sent,1)
+    advance(60); U.render(); no(U.findHosts.disabled)
+    U.select("reported"); no(U.findHosts:IsShown())
 end)
 
 -- 0.3.1 review fixes (S1-S3)

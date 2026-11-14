@@ -6,7 +6,29 @@ local Hs = {}
 N.Hosts = Hs
 Hs.KEEP, Hs.MAX = 720, 64
 
-function Hs.new() return { heard = {} } end
+Hs.ASK_EVERY = 60
+function Hs.new() return { heard = {}, askedAt = nil } end
+
+-- ask(st, now, inGuild) -> ok, message. One LFSw "Q" on GUILD: Bulo users in the guild answer with their own layer
+-- line within 1 to 6 s (each at most once per 60 s, so a faster question is wasted). Only from a click.
+function Hs.ask(st, now, inGuild)
+    if not inGuild then return false, "you are not in a guild; nothing was sent." end
+    if not S.num(now) then return false, "the clock is unreadable; nothing was sent." end
+    if st.askedAt and now - st.askedAt < Hs.ASK_EVERY and now >= st.askedAt then
+        return false, "the guild was asked " .. math.floor(now - st.askedAt) .. " s ago; wait " .. math.ceil(Hs.ASK_EVERY - (now - st.askedAt)) .. " s."
+    end
+    st.askedAt = now
+    local ok, why = N.Wire.send("LFSw", N.Wire.LFSW_TEXT, "GUILD")
+    if not ok then
+        return false, why == "throttled" and "the question was sent less than 60 s ago or the client is throttling; not sent."
+            or "the client refused the guild message; not sent."
+    end
+    return true, "asked the guild's Bulo users for their layers; answers take up to 6 s"
+end
+-- Seconds until the next question is allowed, or nil.
+function Hs.askWait(st, now)
+    if st.askedAt and S.num(now) and now - st.askedAt < Hs.ASK_EVERY and now >= st.askedAt then return math.ceil(Hs.ASK_EVERY - (now - st.askedAt)) end
+end
 
 -- Entries 720 s old or older go.
 function Hs.prune(st, wall)

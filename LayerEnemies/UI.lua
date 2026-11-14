@@ -125,10 +125,14 @@ function U.render()
     U.layer:SetText(known or "?")
     U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or "layer unknown: mouse over or target two different kinds of NPC within 15 s"))
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
+    U.findHosts:SetShown(U.tab=="friendly")
+    local wait=N.Hosts.askWait(M.heard,time)
+    U.findHosts.label:SetText(wait and ("Asked · "..wait.."s") or "Find hosts")
+    if wait then U.findHosts:Disable() else U.findHosts:Enable() end
     local hint=U.tab=="friendly" and not known
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
     local height=U.tab=="local" and 48 or U.tab=="find" and 106 or U.tab=="friendly" and 68 or 80
-    local top=U.tab=="find" and 56 or (U.tab=="reported" or hint) and 23 or 0
+    local top=U.tab=="find" and 56 or (U.tab=="reported" or U.tab=="friendly") and 23 or 0
     local visible=math.floor((300-top)/height)
     local maximum=math.max(0,#rows-visible)
     U.offset=math.min(U.offset,maximum)
@@ -231,7 +235,7 @@ function U.create()
     U.body=CreateFrame("Frame",nil,f); U.body:SetSize(348,300); U.body:SetPoint("TOPLEFT",6,-114)
     U.body:EnableMouseWheel(true)
     U.body:SetScript("OnMouseWheel",function(_,delta) U.offset=math.max(0,U.offset-(delta>0 and 1 or -1)); U.render() end)
-    U.banner=font(U.body,10,{.94,.76,.48}); U.banner:SetPoint("TOPLEFT",4,0); U.banner:SetWidth(340)
+    U.banner=font(U.body,10,{.94,.76,.48}); U.banner:SetPoint("TOPLEFT",4,0); U.banner:SetWidth(250)
     U.input=CreateFrame("EditBox",nil,U.body); U.input:Hide(); U.input:SetSize(248,24); U.input:SetPoint("TOPLEFT",4,-23)
     U.input:SetFont("Fonts\\FRIZQT__.TTF",12,""); U.input:SetAutoFocus(false); U.input:SetMaxLetters(100); paint(U.input,colors.bar)
     local function add()
@@ -240,6 +244,8 @@ function U.create()
     end
     U.input:SetScript("OnEnterPressed",add); U.input:SetScript("OnEscapePressed",function() U.input:ClearFocus() end)
     U.add=button(U.body,76,24,"Track",add); U.add:SetPoint("TOPRIGHT",-4,-23)
+    -- one LFSw guild question per click, at most once a minute (Hosts.ask, Wire)
+    U.findHosts=button(U.body,84,18,"Find hosts",function() N.Main.findHosts(); U.render() end); U.findHosts:SetPoint("TOPRIGHT",-4,0); U.findHosts:Hide()
     U.hint=font(f,10,colors.muted); U.hint:SetPoint("TOPLEFT",10,-420); U.hint:SetWidth(340)
     local footer=font(f,10,colors.muted); footer:SetPoint("BOTTOMLEFT",10,9); footer:SetWidth(340)
     footer:SetText("Only players seen by you or reported by other players' addons.")

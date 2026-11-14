@@ -1,13 +1,17 @@
--- The only file that sends addon messages. Two routes are allowed: a LayerSwap-format request whispered to one
--- player, and the LayerEnemies guild relay. Everything else is refused here, before the client is asked.
+-- The only file that sends addon messages. Three routes are allowed: a LayerSwap-format request whispered to one
+-- player, the LayerEnemies guild relay, and Bulo's one-letter guild question "Q" (at most once per 60 s, from a
+-- click). Everything else is refused here, before the client is asked.
 local _, N = ...
 local S = N.Safe
 local Wr = {}
 N.Wire = Wr
 
 -- The live allowlist is file-local; Wr.ROUTES is a copy for reading, and changing it changes nothing.
-local ROUTES = { LayerSwap = { WHISPER = true }, LEGW1 = { GUILD = true } }
-Wr.ROUTES = { LayerSwap = { WHISPER = true }, LEGW1 = { GUILD = true } }
+local ROUTES = { LayerSwap = { WHISPER = true }, LEGW1 = { GUILD = true }, LFSw = { GUILD = true } }
+Wr.ROUTES = { LayerSwap = { WHISPER = true }, LEGW1 = { GUILD = true }, LFSw = { GUILD = true } }
+-- LFSw carries only the literal question; our own "L" line is never sent.
+Wr.LFSW_TEXT, Wr.LFSW_EVERY = "Q", 60
+local lfswAt = nil
 
 -- Guild relay budget: 5 messages, refilled at one every 2 seconds. The whisper route has none (Hop owns its cooldowns).
 local CAP, REFILL = 5, 2
@@ -31,6 +35,7 @@ function Wr.send(prefix, text, kind, target)
     local route = type(prefix) == "string" and ROUTES[prefix]
     if not (route and type(kind) == "string" and route[kind]) then return false, "blocked route" end
     if type(text) ~= "string" or #text < 1 or #text > 255 then return false, "bad text" end
+    if prefix == "LFSw" and text ~= Wr.LFSW_TEXT then return false, "bad text" end
     if kind == "WHISPER" then
         local I = N.Invite
         if not (I and I.name and I.name(target)) then return false, "bad text" end
@@ -39,6 +44,12 @@ function Wr.send(prefix, text, kind, target)
     end
     -- the token is spent before the client is asked: a refused or erroring send still uses it
     if prefix == "LEGW1" and not Wr.budget(S.num(S.call(GetTime))) then return false, "throttled" end
+    -- one LFSw question per 60 s, stamped before the client is asked (a refused send still waits)
+    if prefix == "LFSw" then
+        local now = S.num(S.call(GetTime))
+        if not now or (lfswAt and now - lfswAt < Wr.LFSW_EVERY and now >= lfswAt) then return false, "throttled" end
+        lfswAt = now
+    end
     local CI = _G.C_ChatInfo
     if S.secret(CI) or type(CI) ~= "table" then return false, "error" end
     local okFn, fn = pcall(function() return CI.SendAddonMessage end)
