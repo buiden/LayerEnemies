@@ -22,7 +22,10 @@ local wall,grouped,opened
 local sent,sendResult
 local roster,rosterCalls,combat,raid,leader,invites,accepts,leaves,popupHidden,popup
 -- The routes the addon may send on (Wire.lua); anything else counts as forbidden. LFSw/GUILD carries only "Q".
-local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true}}
+-- the routes the mock accepts without counting a forbidden send; WEFF1 and HeadHunter are open from 1.0 T1 (behind
+-- Net: ship constant, switch, consent, stand-down)
+local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true},
+    WEFF1={GUILD=true,PARTY=true,RAID=true,WHISPER=true},HeadHunter={WHISPER=true}}
 -- Prefixes the addon may register.
 local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true}
 -- The addon's source files, in load order, as the TOC lists them.
@@ -187,7 +190,7 @@ local function loadAddon()
         end,
         -- records every call; a route outside the allowlist counts as forbidden
         SendAddonMessage=function(prefix,text,kind,target)
-            sent[#sent+1]={prefix=prefix,text=text,kind=kind,target=target}
+            sent[#sent+1]={prefix=prefix,text=text,kind=kind,target=target,at=clock}
             if not (ROUTES[prefix] and ROUTES[prefix][kind]) then forbidden=forbidden+1 end
             -- the caller: the first Lua frame above this one (C frames such as pcall are skipped) must be Wire.lua
             local level,caller=2,nil
@@ -964,7 +967,7 @@ test("we reports never enter LayerEnemiesDB (مانع T3 S4)",function()
         end
     end
     scan(LayerEnemiesDB,"LayerEnemiesDB",0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
@@ -1606,9 +1609,11 @@ test("hop does not retry on throttle",function()
     sendResult=3; no(hopNow(N,rec(N))); eq(#sent,1); yes(log[#log]:find("throttling whispers; not sent",1,true))
     eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
     advance(300); eq(#sent,1)
-    sendResult=8; advance(61); no(hopNow(N,rec(N))); eq(#sent,2); yes(log[#log]:find("refused the whisper",1,true))
-    sendResult=function() error("boom") end; advance(61); no(hopNow(N,rec(N))); eq(#sent,3); yes(log[#log]:find("could not be sent",1,true))
-    advance(300); eq(#sent,3); eq(forbidden,0)
+    -- 1.0 T1: a channel throttle (8) is a throttle too (the prefix pauses 30 s); another refusal (1) is "refused"
+    sendResult=8; advance(61); no(hopNow(N,rec(N))); eq(#sent,2); yes(log[#log]:find("throttling whispers; not sent",1,true))
+    sendResult=1; advance(61); no(hopNow(N,rec(N))); eq(#sent,3); yes(log[#log]:find("refused the whisper",1,true))
+    sendResult=function() error("boom") end; advance(61); no(hopNow(N,rec(N))); eq(#sent,4); yes(log[#log]:find("could not be sent",1,true))
+    advance(300); eq(#sent,4); eq(forbidden,0)
 end)
 test("hop parses heard for me and ignores heard for others",function()
     local N=loadAddon(); local H=N.Hop
@@ -1680,7 +1685,7 @@ test("hop state clears on zone change and reload",function()
     grouped=false; N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); yes(hopNow(N,rec(N)))
     N=loadAddon(); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
     deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); eq(lines("on their layer"),0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("hop acts on the shown candidate only (مانع T5 F1)",function()
     -- shown "Ask Scout (chat)"; an LFSw host line arrives before the click: nothing is sent, nothing drafted
@@ -2369,7 +2374,7 @@ test("wire routes cannot be opened from outside",function()
         if type(Wr.ROUTES.LEGW1)=="table" then Wr.ROUTES.LEGW1.WHISPER=true end
     end
     Wr.ROUTES={WEFF1={GUILD=true},LayerSwap={GUILD=true,CHANNEL=true}}
-    for _,c in ipairs({{"WEFF1","x","GUILD"},{"LayerSwap","x","GUILD"},{"LEGW1","x","WHISPER","Bob"}}) do
+    for _,c in ipairs({{"WEFF1","x","CHANNEL","5"},{"LayerSwap","x","GUILD"},{"LEGW1","x","WHISPER","Bob"}}) do
         local ok,why=Wr.send(c[1],c[2],c[3],c[4]); no(ok); eq(why,"blocked route")
     end
     eq(#sent,0); yes(Wr.send("LayerSwap",LSX,"WHISPER","Alice")); eq(#sent,1)
@@ -2377,8 +2382,13 @@ end)
 test("wire sends only on the allowed routes",function()
     local N=loadAddon(); local Wr=N.Wire
     local function blocked(...) local ok,why=Wr.send(...); no(ok); eq(why,"blocked route") end
-    blocked("WEFF1","x","GUILD"); blocked("LayerSwap","x","GUILD"); blocked("LEGW1","x","WHISPER","Bob")
-    blocked("LayerSwap","x","CHANNEL","5"); blocked("HeadHunter","x","WHISPER","Bob"); blocked("LFSw","Q","WHISPER","Bob")
+    blocked("WEFF1","x","CHANNEL","5"); blocked("LayerSwap","x","GUILD"); blocked("LEGW1","x","WHISPER","Bob")
+    blocked("LayerSwap","x","CHANNEL","5"); blocked("HeadHunter","1AN:x","GUILD"); blocked("LFSw","Q","WHISPER","Bob")
+    blocked("ForeverSpy1","x","PARTY"); blocked("GBOUNTY","D|x","GUILD")
+    -- WEFF1 and HeadHunter routes exist from 1.0 T1, but text outside their types fails, and their networks ship off
+    local ok0,why0=Wr.send("WEFF1","x","GUILD"); no(ok0); eq(why0,"bad text")
+    ok0,why0=Wr.send("WEFF1","H|0.1.0","GUILD"); no(ok0); eq(why0,"network off")
+    ok0,why0=Wr.send("HeadHunter","1AP:x","WHISPER","Bob"); no(ok0); eq(why0,"bad text")
     local ok,why=Wr.send("LFSw","x","GUILD"); no(ok); eq(why,"bad text")
     eq(#sent,0)
     eq(Wr.ROUTES.LayerSwap.WHISPER,true); eq(Wr.ROUTES.LEGW1.GUILD,true)
@@ -2402,8 +2412,9 @@ end)
 test("wire maps client results",function()
     local N=loadAddon(); local Wr=N.Wire
     local function try(r,want) sendResult=r; local ok,why=Wr.send("LayerSwap",LSX,"WHISPER","Alice"); eq(why,want); eq(ok,want=="sent") end
-    try(0,"sent"); try(3,"throttled"); try(8,"refused"); try(1,"refused")
-    try(function() error("boom") end,"error")
+    -- 1.0 T1: 3 and 8 are throttles and pause the prefix 30 s (the next send there is "paused" without asking)
+    try(0,"sent"); try(3,"throttled"); try(0,"paused"); advance(31); try(8,"throttled"); advance(31); try(1,"refused")
+    advance(3); try(function() error("boom") end,"error")
     eq(#sent,5); no(N.Main.error); eq(forbidden,0)
     C_ChatInfo=nil; local ok,why=Wr.send("LayerSwap",LSX,"WHISPER","Alice"); no(ok); eq(why,"error")
 end)
@@ -2414,9 +2425,10 @@ test("wire guild bucket",function()
     eq(table.concat(got,","),"sent,sent,sent,sent,sent,throttled"); eq(#sent,5)
     advance(1); local ok,why=Wr.send("LEGW1","m7","GUILD"); no(ok); eq(why,"throttled"); eq(#sent,5)
     advance(1); ok,why=Wr.send("LEGW1","m8","GUILD"); yes(ok); eq(why,"sent"); eq(#sent,6)
-    -- the whisper route has no bucket
-    for i=1,8 do yes((Wr.send("LayerSwap",LSX,"WHISPER","Alice"))) end
-    eq(#sent,14)
+    -- 1.0 T1: every prefix has its own bucket of 5, and all sends share 8 at once (6 spent here, 1.3 refilled)
+    local okW=0; for i=1,8 do if Wr.send("LayerSwap",LSX,"WHISPER","Alice") then okW=okW+1 end end
+    eq(okW,3,"the shared bucket"); eq(#sent,9)
+    advance(100); okW=0; for i=1,8 do if Wr.send("LayerSwap",LSX,"WHISPER","Alice") then okW=okW+1 end end; eq(okW,5,"the prefix bucket")
     -- refill caps at 5
     advance(100); for i=1,6 do Wr.send("LEGW1","r"..i,"GUILD") end; eq(#sent,19)
 end)
@@ -2587,7 +2599,8 @@ test("0.4 T1: the 60 s limit is in Wire itself, and Wire takes only the literal 
     eq(#sent,2)
     -- the stamp is set before the client is asked: a client throttle does not allow a quick retry
     N=loadAddon(); Wr=N.Wire; sendResult=3; ok,why=Wr.send("LFSw","Q","GUILD"); eq(why,"throttled"); eq(#sent,1)
-    sendResult=0; ok,why=Wr.send("LFSw","Q","GUILD"); eq(why,"throttled"); eq(#sent,1); eq(forbidden,0)
+    sendResult=0; ok,why=Wr.send("LFSw","Q","GUILD"); no(ok); eq(why,"paused","1.0: the prefix pauses 30 s"); eq(#sent,1)
+    advance(31); ok,why=Wr.send("LFSw","Q","GUILD"); eq(why,"throttled","then the 60 s"); eq(#sent,1); eq(forbidden,0)
 end)
 test("0.4 T1: not in a guild, nothing is sent; an incoming Q is never answered",function()
     local N=loadAddon(); establish(N); inGuild=false
@@ -3038,7 +3051,7 @@ test("0.4 host saved: on survives a reload and is active; one login line; no H a
     lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(#sent,1)
     establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); advance(61); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,1)
     slash("host"); yes(logged("Hosting for your guild: on (saved) · 1 invite in the last 10 minutes"))
-    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop",k) end
+    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets",k) end
     eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("0.4 host saved: off persists; a bad saved value is off",function()
@@ -3179,8 +3192,154 @@ test("0.4 T8: Auto accept and leave: on by default, saved, /le hop auto and the 
     N=loadAddon(); BULO=nil; establish(N); local U=N.UI; U.toggle(); U.select("friendly")
     yes(U.auto:IsShown()); eq(U.auto.label.text,"Auto: on"); U.auto:Click(); drain(); no(N.Main.autoHop()); eq(U.auto.label.text,"Auto: off")
     U.select("reported"); no(U.auto:IsShown())
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop",k) end
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets",k) end
     eq(forbidden,0)
+end)
+
+-- 1.0 T1: Wire routes with a text check each, budgets, queue and priority, offline skip; Net switches and consent.
+local function netOn(N,...) for _,k in ipairs({...}) do N.Net.SHIP[k]=true end end
+local GOOD_WE="H|0.1.0|1|100|7086|0|0|0"
+test("1.0 T1: each route's text check: WEFF1 and HeadHunter carry only their planned types",function()
+    local N=loadAddon(); local Wr=N.Wire; netOn(N,"we","hh"); N.Net.setConsent("public")
+    local function t(prefix,text,kind,target,opts,want) local ok,why=Wr.send(prefix,text,kind,target,opts); eq(why,want,prefix.." "..tostring(text).." "..kind) end
+    t("WEFF1",GOOD_WE,"GUILD",nil,{net="we"},"sent")
+    t("WEFF1","Z|1","GUILD",nil,{net="we"},"bad text"); t("WEFF1","H|1","WHISPER","Bob",{net="we",scope="public"},"bad text")
+    t("WEFF1","D|x","PARTY",nil,{net="we"},"bad text"); t("WEFF1","h|1","GUILD",nil,{net="we"},"bad text")
+    t("WEFF1","P|x","WHISPER","Bob",{net="we",scope="public"},"sent")
+    advance(10)
+    for _,ty in ipairs({"P","L","D","T","U","V","X"}) do t("HeadHunter","1A"..ty..":x","WHISPER","Bob",{net="hh",scope="public"},"bad text") end
+    t("HeadHunter","1AN:","WHISPER","Bob",{net="hh",scope="public"},"bad text"); t("HeadHunter","2AN:x","WHISPER","Bob",{net="hh",scope="public"},"bad text")
+    t("HeadHunter","1AN:LayerEnemies","WHISPER","Bob",{net="hh",scope="public"},"sent")
+    -- a network route without its net named in opts is refused
+    t("WEFF1",GOOD_WE,"GUILD",nil,nil,"network off")
+    eq(forbidden,0)
+end)
+test("1.0 T1: global budget: 8 at once, 1 per 1.5 s, never more than 40 in 60 s",function()
+    local N=loadAddon(); local Wr=N.Wire
+    local sentN=0
+    local function try() local ok,why=Wr.send("LEGW1","R|1","GUILD",nil,{prio="own"}); if ok then sentN=sentN+1 end; return ok,why end
+    netOn(N,"we")
+    for i=1,8 do if i%2==0 then yes((try())) else yes((Wr.send("WEFF1",GOOD_WE,"GUILD",nil,{net="we",prio="own"}))) end end
+    local ok,why=try(); no(ok); eq(why,"throttled")
+    -- a different prefix shares the global budget
+    ok,why=Wr.send("LFSw","Q","GUILD"); no(ok); eq(why,"throttled")
+    -- 60 s of steady sends: the cap of 40 in any 60 s holds (8 + one per 1.5 s would be 48)
+    N=loadAddon(); Wr=N.Wire; sentN=0
+    local prefixes={"LEGW1","WEFF1"}; netOn(N,"we")
+    for i=1,120 do
+        Wr.send("LEGW1","R|"..i,"GUILD",nil,{prio="own"}); Wr.send("WEFF1",GOOD_WE,"PARTY",nil,{net="we",prio="own"})
+        advance(0.5)
+    end
+    local inWindow=0; for _,m in ipairs(sent) do if m.at and m.at>clock-60 then inWindow=inWindow+1 end end
+    -- the per-minute cap, checked on the send times
+    local times={}; for _,m in ipairs(sent) do times[#times+1]=m.at end
+    for i=1,#times do local n=0; for j=i,#times do if times[j]-times[i]<60 then n=n+1 end end; yes(n<=40,"window from "..i..": "..n) end
+end)
+test("1.0 T1: whispers outside guild and group: 4 a minute to one player, 20 a minute in total; consent guild sends none",function()
+    local N=loadAddon(); local Wr=N.Wire; netOn(N,"hh"); N.Net.setConsent("public")
+    local function hh(target) return Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER",target,{net="hh",scope="public",prio="owed"}) end
+    for i=1,4 do yes((hh("Bob"))); advance(2.1) end
+    local ok,why=hh("Bob"); no(ok); eq(why,"throttled","5th to one player in a minute")
+    advance(60); yes((hh("Bob")))
+    N=loadAddon(); Wr=N.Wire; netOn(N,"hh"); N.Net.setConsent("public")
+    local names={}; for i=1,26 do names[i]="Peer"..string.char(96+i) end
+    local okN=0; for i=1,26 do if hh(names[i]) then okN=okN+1 end; advance(2.1) end
+    eq(okN,20,"20 public whispers a minute")
+    -- consent guild: no public whisper, guild scope still allowed
+    N=loadAddon(); Wr=N.Wire; netOn(N,"hh","we"); N.Net.setConsent("guild")
+    ok,why=hh("Bob"); no(ok); eq(why,"no consent")
+    yes(Wr.send("WEFF1",GOOD_WE,"GUILD",nil,{net="we",scope="guild"}))
+    -- no choice made yet: public refused too
+    N=loadAddon(); Wr=N.Wire; netOn(N,"hh"); ok,why=hh("Bob"); no(ok); eq(why,"no consent")
+    eq(forbidden,0)
+end)
+test("1.0 T1: guild budget: 20 a minute over all prefixes",function()
+    local N=loadAddon(); local Wr=N.Wire; netOn(N,"we")
+    local okN=0
+    for i=1,30 do
+        if Wr.send(i%2==0 and "LEGW1" or "WEFF1",i%2==0 and "R|"..i or GOOD_WE,"GUILD",nil,{net="we",prio="own"}) then okN=okN+1 end
+        advance(2.01)
+    end
+    eq(okN,20)
+end)
+test("1.0 T1: throttled by the client: dropped, never retried, that prefix pauses 30 s; offline target skipped 1 h",function()
+    local N=loadAddon(); local Wr=N.Wire; netOn(N,"hh"); N.Net.setConsent("public")
+    sendResult=3; local ok,why=Wr.send("LEGW1","R|1","GUILD",nil,{prio="own",queue=true}); no(ok); eq(why,"throttled"); sendResult=0
+    advance(5); drain(); eq(#sent,1,"not retried")
+    ok,why=Wr.send("LEGW1","R|2","GUILD",nil,{prio="own"}); no(ok); eq(why,"paused")
+    yes(Wr.send("LFSw","Q","GUILD"),"other prefixes go on")
+    advance(26); yes(Wr.send("LEGW1","R|3","GUILD",nil,{prio="own"}))
+    sendResult=8; no(Wr.send("LEGW1","R|4","GUILD",nil,{prio="own"})); sendResult=0; advance(2.1); eq(select(2,Wr.send("LEGW1","R|5","GUILD")),"paused")
+    -- offline
+    sendResult=12; ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Gone",{net="hh",scope="public"}); no(ok); eq(why,"offline"); sendResult=0
+    advance(10); ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Gone",{net="hh",scope="public"}); no(ok); eq(why,"offline")
+    advance(3600); yes(Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Gone",{net="hh",scope="public"}))
+end)
+test("1.0 T1: the queue: over budget a queued line waits; full, the oldest forward goes and a click stays; priority order",function()
+    local N=loadAddon(); local Wr=N.Wire; netOn(N,"we")
+    for i=1,8 do Wr.send("LEGW1","R|"..i,"GUILD",nil,{prio="own"}) end; eq(#sent,5,"LEGW1 bucket 5")
+    for i=1,3 do Wr.send("WEFF1",GOOD_WE,"PARTY",nil,{net="we",prio="own"}) end; eq(#sent,8,"all 8 spent")
+    local ok,why=Wr.send("LEGW1","R|f1","GUILD",nil,{prio="forward",queue=true}); yes(ok); eq(why,"queued")
+    for i=2,39 do Wr.send("LEGW1","R|f"..i,"GUILD",nil,{prio="forward",queue=true}) end
+    eq(Wr.queued(),39)
+    yes(Wr.send("LEGW1","R|own","GUILD",nil,{prio="own",queue=true})); eq(Wr.queued(),40)
+    -- full: a click goes in, the oldest forward goes out
+    ok,why=Wr.send("LayerSwap","inv layer <LS 1429 want 7086-0>","WHISPER","Alice",{prio="click",queue=true}); yes(ok); eq(why,"queued")
+    eq(Wr.queued(),40); no(Wr.isQueued("R|f1")); yes(Wr.isQueued("R|f2"))
+    -- full of non-forwards, a forward is refused
+    N=loadAddon(); Wr=N.Wire
+    for i=1,8 do Wr.send("LEGW1","R|"..i,"GUILD",nil,{prio="own"}) end
+    for i=1,40 do Wr.send("LEGW1","R|o"..i,"GUILD",nil,{prio="own",queue=true}) end
+    ok,why=Wr.send("LEGW1","R|fx","GUILD",nil,{prio="forward",queue=true}); no(ok); eq(why,"queue full")
+    -- order: the click first, then own, then owed, then forward
+    N=loadAddon(); Wr=N.Wire
+    for i=1,8 do Wr.send("LEGW1","R|"..i,"GUILD",nil,{prio="own"}) end
+    Wr.send("LEGW1","R|F","GUILD",nil,{prio="forward",queue=true}); Wr.send("LEGW1","R|W","GUILD",nil,{prio="owed",queue=true})
+    Wr.send("LEGW1","R|O","GUILD",nil,{prio="own",queue=true}); Wr.send("LEGW1","R|C","GUILD",nil,{prio="click",queue=true})
+    local before=#sent
+    for _=1,20 do advance(2.1); drain() end
+    local order={}; for i=before+1,#sent do order[#order+1]=sent[i].text end
+    eq(table.concat(order,","),"R|C,R|O,R|W,R|F")
+    eq(Wr.queued(),0)
+end)
+test("1.0 T1: in combat every rate halves; in an instance only clicks go",function()
+    local N=loadAddon(); local Wr=N.Wire; combat=true
+    local okN=0; for i=1,8 do if Wr.send("LEGW1","R|"..i,"GUILD",nil,{prio="own"}) then okN=okN+1 end end
+    eq(okN,2,"LEGW1 bucket 5 at half cost: 2"); combat=false
+    N=loadAddon(); Wr=N.Wire; inInstance=true
+    local ok,why=Wr.send("LEGW1","R|1","GUILD",nil,{prio="own"}); no(ok); eq(why,"instance")
+    yes(Wr.send("LFSw","Q","GUILD",nil,{prio="click"}))
+    ok,why=Wr.send("LEGW1","R|2","GUILD"); no(ok); eq(why,"instance","no opts counts as a forward")
+end)
+test("1.0 T1: network off sends nothing and registers no timer; the real addon loaded stands its prefix down",function()
+    local N=loadAddon(); local Wr=N.Wire; local Net=N.Net
+    local ok,why=Wr.send("WEFF1",GOOD_WE,"GUILD",nil,{net="we"}); no(ok); eq(why,"network off")
+    local before=#timers; local ran=false
+    no(Net.after("we",5,function() ran=true end)); eq(#timers,before,"no timer while shipped off")
+    netOn(N,"we"); yes(Net.after("we",5,function() ran=true end)); eq(#timers,before+1); advance(5); drain(); yes(ran)
+    -- the player's switch
+    Net.setSwitch("we",false); eq(LayerEnemiesDB.nets.we,false); ok,why=Wr.send("WEFF1",GOOD_WE,"GUILD",nil,{net="we"}); no(ok); eq(why,"network off")
+    ran=false; no(Net.after("we",5,function() ran=true end)); advance(6); drain(); no(ran)
+    -- a timer registered while on does nothing once the network is off
+    Net.setSwitch("we",true); yes(Net.after("we",5,function() ran=true end)); Net.setSwitch("we",false); advance(6); drain(); no(ran)
+    Net.setSwitch("we",true)
+    -- stand-down
+    loaded.WarEffortScout=true; ok,why=Wr.send("WEFF1",GOOD_WE,"GUILD",nil,{net="we"}); no(ok); eq(why,"stand down")
+    no(Net.after("we",5,function() end)); loaded.WarEffortScout=nil
+    netOn(N,"hh"); Net.setConsent("public"); loaded.HeadHunter=true
+    ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Bob",{net="hh",scope="public"}); no(ok); eq(why,"stand down"); loaded.HeadHunter=nil
+    -- consent and switches are saved; anything odd reads as no consent / default on
+    eq(LayerEnemiesDB.consent,"public"); LayerEnemiesDB.consent="all"; LayerEnemiesDB.nets={we="x",hh=false}
+    N.Main.started=false; N.Main.start(); drain()
+    eq(N.Net.consent(),nil); eq(LayerEnemiesDB.consent,nil); eq(LayerEnemiesDB.nets.we,true); eq(LayerEnemiesDB.nets.hh,false)
+    eq(sent and #sent or 0,0); eq(forbidden,0)
+end)
+
+test("1.0 T1: callers carry their priority: a hop click and Find hosts go in an instance, host and relay lines do not",function()
+    local N=loadAddon(); establish(N); friends(N,{Bob=there({key="8000",host=true})}); advance(1); inInstance=true
+    yes(hopNow(N,rec(N))); eq(#sent,1); eq(sent[1].prefix,"LayerSwap")
+    slash("hosts find"); eq(#sent,3,"Q and F|1 are clicks")
+    eq(select(2,N.Wire.send("LEGW1","R|1","GUILD",nil,{prio="forward"})),"instance")
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

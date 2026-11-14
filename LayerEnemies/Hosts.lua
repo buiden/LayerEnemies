@@ -18,7 +18,7 @@ function Hs.ask(st, now, inGuild)
         return false, "the guild was asked " .. math.floor(now - st.askedAt) .. " s ago; wait " .. math.ceil(Hs.ASK_EVERY - (now - st.askedAt)) .. " s."
     end
     st.askedAt = now
-    local ok, why = N.Wire.send("LFSw", N.Wire.LFSW_TEXT, "GUILD")
+    local ok, why = N.Wire.send("LFSw", N.Wire.LFSW_TEXT, "GUILD", nil, { prio = "click" })
     if not ok then
         return false, why == "throttled" and "the question was sent less than 60 s ago or the client is throttling; not sent."
             or "the client refused the guild message; not sent."

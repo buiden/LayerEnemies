@@ -134,7 +134,7 @@ function Hp.request(st, record, candidate, ctx)
     if not candidate.addon then return true, "whisper", I.line(candidate.name) end
     local line = Hp.line(record.zone, record.layer.value, candidate.uid, ctx.x, ctx.y)
     if not line then return false, "the request could not be built." end
-    local sent, result = N.Wire.send("LayerSwap", line, "WHISPER", candidate.name)
+    local sent, result = N.Wire.send("LayerSwap", line, "WHISPER", candidate.name, { prio = "click" })
     if not sent then
         ctx.invite.pending = nil
         return false, result == "throttled" and "the client is throttling whispers; not sent. Click again later."

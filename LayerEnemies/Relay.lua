@@ -176,7 +176,7 @@ function Rl.tick(st, now, ctx)
             if ctx.inGuild == true and ctx.inInstance == false and ctx.guild == p.guild then
                 text = Rl.encode(p.record, now); why = "does not fit"
             end
-            if text then ok, why = N.Wire.send("LEGW1", text, "GUILD") end
+            if text then ok, why = N.Wire.send("LEGW1", text, "GUILD", nil, { prio = "forward" }) end
             out[#out + 1] = { key = key, ok = ok, why = why }
         end
     end

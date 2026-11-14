@@ -377,7 +377,7 @@ function M.announceHost()
     local own=M.hostOwn()
     local line=N.Relay.hostLine(own.key,own.zone)
     if not line then return false end
-    local ok=N.Wire.send("LEGW1",line,"GUILD")
+    local ok=N.Wire.send("LEGW1",line,"GUILD",nil,{prio="owed"})
     if ok then M.host.announcedAt=now() end
     return ok
 end
@@ -400,7 +400,7 @@ function M.hostRequest(text,sender,held)
     end
     own.member=A.guildMember(sender)
     local verdict,reply=G.decide(M.host,req,own,time)
-    if reply then N.Wire.send("LayerSwap",reply,"WHISPER",sender) end
+    if reply then N.Wire.send("LayerSwap",reply,"WHISPER",sender,{prio="owed"}) end
     if verdict=="invite" then
         local ok=N.Wire.invite(sender,time)
         if ok then M.say("LayerEnemies: invited "..((sender:match("^([^%-]+)%-")) or sender).." to your layer (guild host).") end
@@ -709,7 +709,7 @@ function M.findHosts()
     local ok,message=N.Hosts.ask(M.heard,now(),S.call(IsInGuild)==true)
     -- the same click asks LayerEnemies hosts with one F|1 (sent only when the Q went out: guild, 60 s)
     if ok then
-        local sentF=N.Wire.send("LEGW1",N.Relay.findLine(),"GUILD")
+        local sentF=N.Wire.send("LEGW1",N.Relay.findLine(),"GUILD",nil,{prio="click"})
         if sentF then message=message.."; LayerEnemies hosts were asked too" end
     end
     M.say("LayerEnemies: "..message)
@@ -899,6 +899,8 @@ function M.start()
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
     M.host.want=LayerEnemiesDB.guildHost
+    -- 1.0 networks: consent ("guild", "public" or not asked yet) and one switch per network
+    LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- autoHop: on by default; only a saved false turns it off
     LayerEnemiesDB.autoHop=saved.autoHop~=false
     M.auto={on=LayerEnemiesDB.autoHop,group=nil}

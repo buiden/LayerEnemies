@@ -9,6 +9,7 @@ Safe.lua
 Hash.lua
 Layer.lua
 Record.lua
+Net.lua
 Wire.lua
 Protocol.lua
 Peers.lua
