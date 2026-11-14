@@ -371,7 +371,9 @@ function M.hostControl(c,sender,time)
     if M.host.announcedAt and time-M.host.announcedAt<N.Wire.CONTROL_EVERY and time>=M.host.announcedAt then return end
     M.host.answerDue=true
     local delay=1+math.random()*5
-    if not after(delay,function() M.host.answerDue=nil; guarded(M.announceHost) end) then M.host.answerDue=nil end
+    -- answered only once this session has read a guild roster (a host resumed at login is not yet checked against
+    -- it); an F just before the first roster is answered if the roster arrives within the 1 to 6 s
+    if not after(delay,function() M.host.answerDue=nil; if A.rosterAge(now()) then guarded(M.announceHost) end end) then M.host.answerDue=nil end
 end
 -- One H line: only while hosting, with our key and live zone known, and nothing blocking hosting.
 function M.announceHost()

@@ -3036,6 +3036,7 @@ end)
 test("0.4 T7.4: turning hosting on announces H once; an F gets one H 1 to 6 s later, at most once per 60 s",function()
     local N=loadAddon(); establish(N); roster={{"Bob-TestRealm",true}}
     slash("host on"); local h=legwSent("H|"); eq(#h,1); eq(h[1].text,"H|1|7086|100"); eq(h[1].kind,"GUILD")
+    deliver("GUILD_ROSTER_UPDATE",true)            -- the roster asked for when hosting turned on (F answers need one)
     advance(61); legw("F|1","Bob"); eq(#legwSent("H|"),1,"not at once"); advance(7); drain(); eq(#legwSent("H|"),2)
     advance(10); legw("F|1","Cy"); advance(7); drain(); eq(#legwSent("H|"),2,"second F inside 60 s")
     advance(50); legw("F|1","Cy"); legw("F|1","Di"); advance(7); drain(); eq(#legwSent("H|"),3,"two F, one H")
@@ -3614,6 +3615,20 @@ test("0.4 fix S3: an asker already in our party gets same; a guest who joined fr
     local G=N.GuildHost; local s=G.new(); s.on=true; s.pending.bob=clock; s.hosted.bob=true
     local own={self="me",zone=100,key="7086",inInstance=false,inCombat=false,raid=false,leader=true,members={"Bob"},member=true}
     eq((G.decide(s,{name="Cy",zone=100,want="7086-1"},own,clock)),"invite"); eq(s.pending.bob,nil,"cleared on join")
+end)
+
+test("0.4 host saved (review 6c): a host resumed at login answers no F before the first guild roster",function()
+    local normal=deliver
+    deliver=function(event,...) if event=="ADDON_LOADED" and (...)=="LayerEnemies" then return end; return normal(event,...) end
+    local N=loadAddon(); deliver=normal
+    LayerEnemiesDB={guildHost=true}; roster={{"Peer-TestRealm",true}}
+    deliver("ADDON_LOADED","LayerEnemies"); deliver("PLAYER_LOGIN"); deliver("PLAYER_ENTERING_WORLD"); drain()
+    establish(N); yes(N.Main.host.on); eq(N.Adapters.roster.at,nil)
+    deliver("CHAT_MSG_ADDON","LEGW1","F|1","GUILD","Peer"); drain(); advance(7)
+    eq(#sent,0,"no H before the first roster")
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#sent,0,"the roster alone sends nothing")
+    advance(61); deliver("CHAT_MSG_ADDON","LEGW1","F|1","GUILD","Peer"); drain(); advance(7)
+    eq(#sent,1); eq(sent[1].text,"H|1|7086|100")
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
