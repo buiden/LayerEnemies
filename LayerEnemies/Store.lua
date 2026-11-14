@@ -78,7 +78,8 @@ function T.report(t,record,now)
     -- the same record again (an enriched report) refreshes its row; another copy of it (a second carrier) does not
     if old and old.record~=record then return false,"duplicate" end
     -- a guild-relayed copy and its first-hand original are one report: the first-hand one wins
-    local rest=":"..record.origin:lower()..":"..record.rid
+    -- keyed like record.id: the folded origin (our realm stripped)
+    local rest=":"..(record.okey or record.origin:lower())..":"..record.rid
     if record.src=="guild" then
         if record.label and t.reports[record.label..rest] then return false,"duplicate" end
     elseif t.reports["guild"..rest] then
@@ -155,9 +156,10 @@ function T.reporters(t,now)
         local r=row.record
         -- War Effort reporters heard first-hand only: a relayed one was in someone else's group and may be a stranger
         if row.epoch==t.serial and r.zone==t.zone and r.src=="we" then
-            local cur=bySender[r.origin]
+            local k=r.okey or r.origin:lower()
+            local cur=bySender[k]
             local match=N.Record.relation(r,own)=="same"
-            if not cur or cur.at<r.heard then bySender[r.origin]={name=r.origin,at=r.heard,match=match} end
+            if not cur or cur.at<r.heard then bySender[k]={name=r.origin,at=r.heard,match=match} end
         end
     end
     for _,v in pairs(bySender) do out[#out+1]=v end

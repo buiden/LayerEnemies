@@ -148,7 +148,7 @@ end
 -- Receive state: 6 frames per sender per 10 s.
 function HH.new() return { rates = {}, n = 0 } end
 function HH.allow(st, sender, now)
-    local k = tostring(sender):lower()
+    local k = N.Invite.rateKey(sender)
     for key2, v in pairs(st.rates) do if now - v.at >= 10 then st.rates[key2] = nil; st.n = st.n - 1 end end
     local v = st.rates[k]
     if not v then

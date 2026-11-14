@@ -30,7 +30,7 @@ end
 
 -- The first-hand id a record stands for: a relayed copy counts as the same report as the original.
 function Rl.key(record)
-    return (record.label or record.src) .. ":" .. record.origin:lower() .. ":" .. record.rid
+    return (record.label or record.src) .. ":" .. (record.okey or N.Invite.rateKey(record.origin)) .. ":" .. record.rid
 end
 
 -- encode(record, now) -> "R|1|src|kind|originHex|rid|zone|x3|y3|count|ns|layer|age|enemies" or nil
@@ -118,7 +118,7 @@ Rl.RATE = 12                                                   -- LEGW1 messages
 function Rl.new() return { seen = {}, n = 0, pending = {}, rates = {}, nrates = 0 } end
 -- Receive limit per guildmate; excess is dropped silently. 512 senders at most.
 function Rl.allow(st, sender, now)
-    local k = tostring(sender):lower()
+    local k = N.Invite.rateKey(sender)
     local v = st.rates[k]
     if not v or now - v.at >= 10 then
         if not v then

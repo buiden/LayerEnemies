@@ -4063,5 +4063,75 @@ test("1.0 A1: no C or E with the network off, War Effort loaded, in an instance,
     N=loadAddon(); netOn(N,"we"); establish(N); grouped=true; hello("Pam",19,"PARTY"); foe(N,1); foe(N,2); advance(3); N.Main.shareTick()
     local kinds={}; for _,m in ipairs(weSent("C")) do kinds[#kinds+1]=m.kind end; eq(table.concat(kinds,","),"PARTY")
 end)
+
+-- مانع on e4f27f0 (r040b/e4): one player, one key; through the real CHAT_MSG_ADDON path
+test("e4 M1: an own-realm suffixed origin heard first-hand and through the guild relay is one row, in both orders",function()
+    local N=loadAddon(); establish(N); N.Relay.rand=function() return 2 end; advance(1)
+    hello("Scout-TestRealm",19,"PARTY"); report(1,8000,"Scout-TestRealm",nil,"PARTY")
+    eq(N.Safe.count(N.Main.store.reports),1)
+    local first=N.Store.rows(N.Main.store,clock,"reported")[1].record; eq(first.src,"we"); eq(first.origin,"Scout-TestRealm")
+    local copy=N.Relay.encode(first,clock); yes(copy)
+    deliver("CHAT_MSG_ADDON","LEGW1",copy,"GUILD","Quick"); drain()
+    eq(N.Safe.count(N.Main.store.reports),1,"direct then relay"); eq(N.Store.rows(N.Main.store,clock,"reported")[1].record.src,"we")
+    eq(N.Main.relay.pending["we:scout:1"],nil,"our pending relay stood down")
+    -- relay first, then the first-hand report: the first-hand one replaces the copy
+    N=loadAddon(); establish(N); advance(1)
+    deliver("CHAT_MSG_ADDON","LEGW1",copy,"GUILD","Quick"); drain(); eq(N.Safe.count(N.Main.store.reports),1)
+    eq(N.Store.rows(N.Main.store,clock,"reported")[1].record.src,"guild")
+    hello("Scout-TestRealm",19,"PARTY"); report(1,8000,"Scout-TestRealm",nil,"PARTY")
+    eq(N.Safe.count(N.Main.store.reports),1,"relay then direct"); eq(N.Store.rows(N.Main.store,clock,"reported")[1].record.src,"we")
+    -- the bare spelling is the same player too
+    N=loadAddon(); establish(N); advance(1)
+    deliver("CHAT_MSG_ADDON","LEGW1",copy,"GUILD","Quick"); drain(); hello("Scout",19,"PARTY"); report(1,8000,"Scout",nil,"PARTY")
+    eq(N.Safe.count(N.Main.store.reports),1); eq(N.Store.rows(N.Main.store,clock,"reported")[1].record.src,"we")
+    -- another realm is another player: two rows
+    N=loadAddon(); establish(N); advance(1)
+    deliver("CHAT_MSG_ADDON","LEGW1",copy,"GUILD","Quick"); drain(); hello("Scout-OtherRealm",19,"PARTY"); report(1,8000,"Scout-OtherRealm",nil,"PARTY")
+    eq(N.Safe.count(N.Main.store.reports),2)
+end)
+test("e4 S1: the folded key everywhere a player is keyed (peers, report order, rates, relay ids, reporters)",function()
+    -- Peers: a hello as "Scout-TestRealm" vouches for "Scout"
+    local N=loadAddon(); establish(N); advance(1)
+    hello("Scout-TestRealm",19,"PARTY"); report(1,8000,"Scout",nil,"PARTY")
+    local r=N.Store.rows(N.Main.store,clock,"reported")[1].record; eq(r.layer.ns,"server"); eq(r.layer.value,"8000")
+    -- report order: the same id from the other spelling is not a new report; one reporter
+    report(1,8000,"Scout-TestRealm",nil,"PARTY"); eq(N.Safe.count(N.Main.store.reports),1); eq(#N.Store.reporters(N.Main.store,clock),1)
+    report(2,8000,"Scout-TestRealm",nil,"PARTY"); eq(#N.Store.reporters(N.Main.store,clock),1,"two reports, one reporter")
+    -- receive limits share one slot per player
+    local st=N.Reports.new(); for i=1,6 do yes(N.Reports.allow(st,i%2==0 and "Scout" or "Scout-TestRealm",false,0)) end
+    no(N.Reports.allow(st,"SCOUT",false,1)); yes(N.Reports.allow(st,"Scout-OtherRealm",false,1))
+    st=N.Relay.new(); for i=1,12 do yes(N.Relay.allow(st,i%2==0 and "Bob" or "Bob-TestRealm",0)) end; no(N.Relay.allow(st,"bob",1))
+    st=N.HeadHunter.new(); for i=1,6 do yes(N.HeadHunter.allow(st,i%2==0 and "Fighter" or "Fighter-TestRealm",0)) end; no(N.HeadHunter.allow(st,"Fighter",1))
+    -- relay ids
+    eq(N.Relay.key({src="we",origin="Scout-TestRealm",okey="scout",rid="1"}),"we:scout:1")
+    eq(N.Peers.key("Scout-TestRealm"),N.Peers.key("scout")); eq(N.Peers.key("Bad|Name"),nil)
+end)
+test("e4 S3: decoders through CHAT_MSG_ADDON with spaced and suffixed names (War Effort, HeadHunter, guild relay)",function()
+    local N=loadAddon(); establish(N); advance(1); server=HHT
+    -- HeadHunter whisper from an own-realm suffixed spaced name, then the bare one: one sighting, one origin key
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AL:Kora Reed;2s;"..b36(server)..";dw;6y","WHISPER","First Last-TestRealm"); drain()
+    local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].record.okey,"first last"); eq(rows[1].record.origin,"First Last-TestRealm")
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AL:Kora Reed;2s;"..b36(server)..";dw;6y","WHISPER","First Last"); drain()
+    eq(#N.Store.rows(N.Main.store,clock,"reported"),1,"the same report from the same player")
+    -- a foreign spaced name is its own reporter; malformed names are dropped
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AL:Ann Lee;2s;"..b36(server)..";dw;6y","WHISPER","First Last-7105"); drain()
+    eq(#N.Store.rows(N.Main.store,clock,"reported"),2)
+    for i,bad in ipairs({"First  Last","One Two Three","First Last-","Bad|Name"}) do
+        deliver("CHAT_MSG_ADDON","HeadHunter","1AL:Bo Dyl;2s;"..b36(server)..";dw;6y","WHISPER",bad); drain() end
+    eq(#N.Store.rows(N.Main.store,clock,"reported"),2,"malformed HeadHunter senders")
+    -- War Effort on GUILD from a spaced guildmate, and from malformed names
+    N=loadAddon(); establish(N); advance(1)
+    hello("First Last",19); report(5,8000,"First Last"); local w=N.Store.rows(N.Main.store,clock,"reported"); eq(#w,1); eq(w[1].record.okey,"first last")
+    for i,bad in ipairs({"First  Last"," First Last","One Two Three"}) do report(5+i,8000,bad) end
+    eq(#N.Store.rows(N.Main.store,clock,"reported"),1,"malformed War Effort senders")
+    -- a guild relay from a suffixed guildmate naming a spaced foreign origin
+    local rec=weRec(N,{origin="Cy Fen-7105",via="Cy Fen-7105",heard=clock,age=0}); yes(rec)
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(rec,clock),"GUILD","Bob-TestRealm"); drain()
+    local g; for _,row in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do if row.record.src=="guild" then g=row.record end end
+    yes(g); eq(g.origin,"Cy Fen-7105"); eq(g.okey,"cy fen-7105"); eq(g.hand,"relayed")
+    -- our own suffixed name relayed back is our echo
+    deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Me-TestRealm",via="Me-TestRealm",rid="9",heard=clock,age=0}),clock),"GUILD","Bob"); drain()
+    eq(N.Main.lastDrop,"relay origin")
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

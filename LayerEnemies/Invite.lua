@@ -63,6 +63,9 @@ function I.name(name)
     return name,name:lower(),name
 end
 I.home=nil                                                      -- set by Main: our realm name
+-- the folded key of a player (our realm stripped, lower case) or nil; rate keys fall back to the raw name lowered
+function I.key(name) local _,key=I.name(name); return key end
+function I.rateKey(name) return I.key(name) or tostring(name):lower() end
 function I.line(name) return "/w "..name.." "..I.MESSAGE end
 local function zoneText(v)
     v=S.clean(v)

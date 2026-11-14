@@ -31,7 +31,7 @@ end
 function R.newer(new, old) return new ~= old and (new - old) % 65536 < 32768 end
 -- Receive limit per immediate sender: 6 messages per 10 s, 20 for G/X wrappers. Excess is dropped silently.
 function R.allow(st, sender, wrapped, now)
-    local key = (wrapped and "w:" or "d:") .. tostring(sender):lower()
+    local key = (wrapped and "w:" or "d:") .. N.Invite.rateKey(sender)
     local v = st.rates[key]
     if not v or now - v.at >= 10 then
         if not v then
