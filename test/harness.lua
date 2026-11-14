@@ -13,6 +13,8 @@ local function test(name,fn)
     if ok and (forbidden or 0)>0 then ok,err=false,"forbidden API reached "..forbidden.." time(s)" end
     if ok then passed=passed+1; print("PASS "..name) else failed=failed+1; print("FAIL "..name..": "..tostring(err)) end
 end
+-- letters-only suffix for generated player names (names never carry digits; 1.0 T2 name rule)
+local function abc(i) local s=""; repeat local r=(i-1)%26; s=string.char(97+r)..s; i=math.floor((i-1)/26) until i==0; return s end
 local secret=setmetatable({}, {__tostring=function() error("secret stringify") end,__concat=function() error("secret concatenate") end,__lt=function() error("secret compare") end,__index=function() error("secret index") end})
 function issecretvalue(v) return rawequal(v,secret) end
 local frames,timers,log,units,loaded,metadata
@@ -549,11 +551,11 @@ test("we report ids: newer only, caps",function()
     eq(select(2,feed("C|11|100|0|0|7|1|100","scout-OtherRealm",901)),"new")
     -- 64 live reports at most
     local u,feed2=reportFixture(N)
-    for i=1,64 do yes(feed2("C|1|100|0|0|7|1|100","S"..i,200)) end
-    eq(select(2,feed2("C|1|100|0|0|7|1|100","S65",200)),"report cap"); eq(u.n,64)
+    for i=1,64 do yes(feed2("C|1|100|0|0|7|1|100","Ess"..abc(i),200)) end
+    eq(select(2,feed2("C|1|100|0|0|7|1|100","Ess"..abc(65),200)),"report cap"); eq(u.n,64)
     -- 512 reporters' id order at most: the oldest is forgotten
     local v,feed3=reportFixture(N)
-    for i=1,600 do feed3("C|1|100|0|0|7|1|100","R"..i,200+i); N.Reports.prune(v,200+i); v.reports={}; v.n=0 end
+    for i=1,600 do feed3("C|1|100|0|0|7|1|100","Arr"..abc(i),200+i); N.Reports.prune(v,200+i); v.reports={}; v.n=0 end
     eq(N.Safe.count(v.latest),512)
 end)
 test("reported reducer output stays separate with possible hash identities",function()
@@ -794,7 +796,7 @@ test("we rate limit 6 per 10 s",function()
     advance(10); c(8,"Busy"); eq(N.Safe.count(N.Main.store.reports),8)
     -- G wrappers: 20 per relayer per 10 s, counted apart from its own messages
     local function hex(name) return (name:gsub(".",function(ch) return string.format("%02x",ch:byte()) end)) end
-    for i=1,21 do deliver("CHAT_MSG_ADDON","WEFF1","G|"..hex("Origin"..i).."||C|1|100|0|0|7|1|"..math.floor(server)%3600,"GUILD","Relay") end
+    for i=1,21 do deliver("CHAT_MSG_ADDON","WEFF1","G|"..hex("Origin"..abc(i)).."||C|1|100|0|0|7|1|"..math.floor(server)%3600,"GUILD","Relay") end
     eq(N.Safe.count(N.Main.store.reports),28)
     c(1,"Relay"); eq(N.Safe.count(N.Main.store.reports),29)
 end)
@@ -871,7 +873,7 @@ test("we zone, layer zero and clock",function()
 end)
 test("we caps hold under a flood",function()
     local N=loadAddon(); establish(N); advance(1)
-    for i=1,400 do advance(.2); report(i%7+1,9,"Sender"..i) end
+    for i=1,400 do advance(.2); report(i%7+1,9,"Sender"..abc(i)) end
     yes(N.Safe.count(N.Main.store.reports)<=64); yes(N.Safe.count(N.Main.store.reports)>0)
     yes(N.Main.receiver.n<=64); yes(N.Safe.count(N.Main.receiver.latest)<=512); yes(N.Main.receiver.nrates<=512)
     yes(#N.Main.candidates()<=40); no(N.Main.error)
@@ -954,13 +956,13 @@ test("we held lists are capped across origins, rate table too (مانع T3 S3)",
     local N=loadAddon(); local t,feed=reportFixture(N)
     local function list(tag,n) local out={}; for j=1,n do out[j]=tag..string.format("%02d",j)..":H:60" end; return table.concat(out,",") end
     -- 18 origins x 18 entries = 324 > 256: the oldest lists make room
-    for i=1,18 do eq(select(2,feed("E|1|1|1|"..list(string.char(64+i),18).."|100","Origin"..i,200+i/100)),"held") end
+    for i=1,18 do eq(select(2,feed("E|1|1|1|"..list(string.char(64+i),18).."|100","Origin"..abc(i),200+i/100)),"held") end
     yes(t.heldAll<=256); eq(t.heldAll,252)
-    eq(t.held["origin1:1"],nil); eq(t.held["origin4:1"],nil); yes(t.held["origin5:1"]); yes(t.held["origin18:1"])
+    eq(t.held["origina:1"],nil); eq(t.held["origind:1"],nil); yes(t.held["origine:1"]); yes(t.held["originr:1"])
     local sum=0; for _,h in pairs(t.held) do sum=sum+h.entries end; eq(sum,t.heldAll)
     -- a kept list still attaches; a dropped one does not
-    local r=feed("C|1|100|0|0|7|18|100","Origin18",202); eq(#r.enemies,18)
-    r=feed("C|1|100|0|0|7|18|100","Origin1",202); eq(#r.enemies,0)
+    local r=feed("C|1|100|0|0|7|18|100","Originr",202); eq(#r.enemies,18)
+    r=feed("C|1|100|0|0|7|18|100","Origina",202); eq(#r.enemies,0)
     eq(t.heldAll,234)
     N.Reports.prune(t,300); eq(t.heldAll,0); eq(next(t.held),nil)
     -- the receive-rate table holds 512 senders at most; the 513th is refused until the window passes
@@ -1451,7 +1453,7 @@ local function rec(N,over)
 end
 test("relation never crosses namespaces",function()
     local N=loadAddon(); local R=N.Record; local own={zone=100,server="7086"}
-    local r=rec(N); yes(r); eq(r.id,"we:scout-testrealm:1"); eq(R.relation(r,own),"same")
+    local r=rec(N); yes(r); eq(r.id,"we:scout:1"); eq(R.relation(r,own),"same")
     eq(R.relation(rec(N,{layer={ns="zoneuid",value="7086"}}),own),"unknown")
     eq(R.relation(rec(N,{layer={ns="zoneuid",value=7086}}),own),"unknown")
     eq(R.relation(rec(N,{layer={ns="unknown",value="7086"}}),own),"unknown")
@@ -1997,7 +1999,7 @@ test("hh routes, duplicates, ignore, rate, ttl and caps in the window",function(
     eq(N.Main.lastDrop,"ignored sender"); C_FriendList.IsIgnored=old
     deliver("CHAT_MSG_ADDON","HeadHunter","1AE:eu-pvp;Me;A;5cy;1;"..b36(server)..";P2s;"..b36(server)..";dw;6y;a1","WHISPER","Carrier")
     eq(N.Main.lastDrop,"own echo"); eq(N.Safe.count(N.Main.store.reports),1)
-    deliver("CHAT_MSG_ADDON","HeadHunter","1AE:eu-pvp;Me-TestRealm;A;5cy;1;"..b36(server)..";P2s;"..b36(server)..";dw;6y;a1","WHISPER","Carrier2")
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AE:eu-pvp;Me-TestRealm;A;5cy;1;"..b36(server)..";P2s;"..b36(server)..";dw;6y;a1","WHISPER","Carriertwo")
     eq(N.Main.lastDrop,"own echo"); eq(N.Safe.count(N.Main.store.reports),1)
     -- 6 frames per sender per 10 s; the 7th leaves no trace
     for i=1,7 do p("Busy","PARTY",server-i) end
@@ -2011,7 +2013,7 @@ test("hh routes, duplicates, ignore, rate, ttl and caps in the window",function(
     advance(6); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),1)
     advance(10); N.Store.prune(N.Main.store,clock); eq(N.Safe.count(N.Main.store.reports),0)
     -- 64 HeadHunter rows at most, and they never crowd out War Effort reports
-    for i=1,70 do p("Fighter"..i,"PARTY") end
+    for i=1,70 do p("Fighter"..abc(i),"PARTY") end
     eq(N.Safe.count(N.Main.store.reports),64); eq(N.Main.lastDrop,"report cap")
     report(1,7,"Scout"); eq(N.Main.lastDrop,"enriched"); eq(N.Safe.count(N.Main.store.reports),65)
     -- party/raid pings go on to the guild (Task 6); nothing on any other prefix or route
@@ -2037,7 +2039,7 @@ test("relay round-trips a we record and an hh record",function()
     eq(r.heard,185); eq(r.share,"guild"); eq(#r.enemies,2); eq(r.enemies[1].hash,"abc"); eq(r.enemies[1].class,"MAGE"); eq(r.enemies[1].level,40)
     eq(r.enemies[2].hash,"def"); eq(r.enemies[2].class,nil); eq(r.id,"guild:scout:1"); eq(R.key(r),"we:scout:1")
     -- an edge coordinate of 1.0 goes as 999 (.999), like HeadHunter's own encoding
-    local edge=R.encode(weRec(N,{x=1,y=0}),100); yes(edge:find("|100|999|0|",1,true)); eq(R.decode(edge,"G",100).x,.999)
+    local edge=R.encode(weRec(N,{x=1,y=0}),100); yes(edge:find("|100|999|0|",1,true)); eq(R.decode(edge,"Gee",100).x,.999)
     -- HeadHunter fight with names, a zoneUID layer, no position; and an outlaw
     local hh=assert(N.Record.new({src="hh",kind="fight",origin="Mira Vale",via="Carrier",route="WHISPER",rid="1800000000",zone=100,count=2,
         enemies={{name="Kora Reed",class="PALADIN",level=31},{name="Ann Lee",level=-1}},layer={ns="zoneuid",value=4},heard=100,age=0,share="public"}))
@@ -2053,7 +2055,7 @@ test("relay round-trips a we record and an hh record",function()
     hello("Scout",19,"PARTY"); report(1,8000,"Scout",nil,"PARTY")
     eq(#relayed(N),0); advance(1); eq(#relayed(N),0); advance(1.1)
     local out=relayed(N); eq(#out,1); eq(out[1].kind,"GUILD"); eq(out[1].target,nil)
-    local back=R.decode(out[1].text,"X",clock); eq(back.origin,"Scout"); eq(back.layer.value,"8000"); eq(#back.enemies,1); eq(back.enemies[1].hash,"abc")
+    local back=R.decode(out[1].text,"Exx",clock); eq(back.origin,"Scout"); eq(back.layer.value,"8000"); eq(#back.enemies,1); eq(back.enemies[1].hash,"abc")
     advance(200); eq(#relayed(N),1); eq(forbidden,0)
 end)
 test("relay skips records heard on GUILD",function()
@@ -2144,19 +2146,19 @@ end)
 test("relay rejects format version 2 and oversize",function()
     local N=loadAddon(); local R=N.Relay
     local good=R.encode(weRec(N),100)
-    local v2=good:gsub("^R|1|","R|2|"); local r,why=R.decode(v2,"G",100); eq(r,nil); eq(why,"version")
-    eq(R.decode(good..string.rep(",",256-#good),"G",100),nil); eq(R.decode(string.rep("R",256),"G",100),nil)
+    local v2=good:gsub("^R|1|","R|2|"); local r,why=R.decode(v2,"Gee",100); eq(r,nil); eq(why,"version")
+    eq(R.decode(good..string.rep(",",256-#good),"Gee",100),nil); eq(R.decode(string.rep("R",256),"Gee",100),nil)
     local bad={good:gsub("|abc:MAGE:40,def::$",""),good.."|x",good:gsub("|100|400|","|100|1000|"),good:gsub("|2|s|","|81|s|"),
         good:gsub("|5|abc","|901|abc"),good:gsub("|s|","|q|"),good.." ",good:gsub("^R","Q"),good:gsub(hx("Scout"),"5"),good:gsub("abc:MAGE:40","abc:MAGE:101"),
         good:gsub("abc:MAGE:40","abcde:MAGE:40"),good:gsub("abc:MAGE:40","abzz:MAGE:40"),good:gsub("abc:MAGE:40","ab:MAGE:40"),
         good:gsub("abc:MAGE:40","0a41:MAGE:40")}
-    for _,text in ipairs(bad) do eq(R.decode(text,"G",100),nil,text) end
+    for _,text in ipairs(bad) do eq(R.decode(text,"Gee",100),nil,text) end
     -- too many enemies: as many as fit go, the rest is dropped
     local many={}; for i=1,80 do many[i]={hash=string.format("%03d",i),class="WARRIOR",level=60} end
-    local big=R.encode(weRec(N,{count=80,enemies=many}),100); yes(#big<=255); local back=R.decode(big,"G",100); yes(back); yes(#back.enemies>5 and #back.enemies<80)
+    local big=R.encode(weRec(N,{count=80,enemies=many}),100); yes(#big<=255); local back=R.decode(big,"Gee",100); yes(back); yes(#back.enemies>5 and #back.enemies<80)
     -- a record that does not fit even without enemies, or is too old, is not sent
-    yes(#R.encode(weRec(N,{origin=string.rep("a",100)}),100)<=255)
-    eq(R.encode(weRec(N,{origin=string.rep("a",100),rid=string.rep("9",24),layer={ns="unknown",value=string.rep("7",32)}}),100),nil)
+    yes(#R.encode(weRec(N,{origin=string.rep("a",36).." "..string.rep("b",36).."-"..string.rep("c",26)}),100)<=255)
+    eq(R.encode(weRec(N,{origin=string.rep("a",36).." "..string.rep("b",36).."-"..string.rep("c",26),rid=string.rep("9",24),layer={ns="unknown",value=string.rep("7",32)}}),100),nil)
     eq(R.encode(weRec(N,{heard=0,age=0}),901),nil)
 end)
 test("relay silent outside a guild",function()
@@ -2373,7 +2375,7 @@ test("relayed reporters are never invite candidates",function()
 end)
 test("relay receive limit: 12 per 10 s per sender",function()
     local N=loadAddon(); establish(N); advance(20)
-    local function from(who,rid) deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="O"..who..rid,rid=tostring(rid),heard=clock,age=0}),clock),"GUILD",who) end
+    local function from(who,rid) deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="O"..who..abc(rid),rid=tostring(rid),heard=clock,age=0}),clock),"GUILD",who) end
     for i=1,13 do from("Busy",i) end
     eq(N.Safe.count(N.Main.store.reports),12)
     N.Main.lastDrop="before"; from("Busy",14); eq(N.Main.lastDrop,"before")    -- dropped silently
@@ -3684,6 +3686,25 @@ test("0.4 host (review 6c): no H before this session's first guild roster; turni
     N=loadAddon(); establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); slash("host on"); eq(#legwSent("H|"),1)
     -- announceHost itself refuses before a roster
     N=loadAddon(); establish(N); N.Main.host.on=true; no(N.Main.announceHost()); eq(#sent,0)
+end)
+
+test("1.0 T2 names: every network's sender and origin pass the one name rule (First Last, numeric realms)",function()
+    local N=loadAddon(); numericHome(); local R=N.Record
+    local function mk(over) local o={src="we",kind="group",origin="Scout",via="Scout",route="GUILD",rid="1",zone=100,count=1,
+        layer={ns="server",value="8000"},heard=500,share="guild"}; for k,v in pairs(over or {}) do o[k]=v end; return R.new(o) end
+    yes(mk({origin="First Last",via="First Last"})); yes(mk({origin="First Last-7105",via="Carrier Two"}))
+    for _,bad in ipairs({"First  Last"," First Last","One Two Three","Bad|Name","First Last-","x"}) do
+        eq(mk({origin=bad,via=bad}),nil,"origin "..bad); eq(mk({via=bad}),nil,"via "..bad) end
+    -- our realm is the same player: first-hand, one key
+    local r=mk({origin="Scout",via="Scout-7102"}); eq(r.hand,"first"); eq(r.id,"we:scout:1")
+    eq(mk({origin="Scout-7102",via="Scout"}).id,"we:scout:1")
+    eq(mk({origin="Scout-7105",via="Scout"}).hand,"relayed","another realm is another player")
+    -- the store's one-row-per-origin rule uses the same key
+    establish(N); local T,st=N.Store,N.Main.store
+    yes(T.report(st,mk({src="guild",label="own",origin="Scout",via="Scout",heard=clock,rid="O1",enemies={{name="Kora Reed"}}}),clock))
+    local ok,why=T.report(st,mk({origin="Scout-7102",via="Scout-7102",heard=clock,rid="9",enemies={{hash="abc"}}}),clock); no(ok); eq(why,"duplicate")
+    -- the decoders: War Effort and HeadHunter reporters with spaced names come through; malformed ones do not
+    local _,feed=reportFixture(N); yes(feed(VC,"Reporter Two")); eq(feed(VC,"Reporter  Two"),nil)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

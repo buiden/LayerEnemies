@@ -32,10 +32,12 @@ function R.new(t)
         local r = {}
         if not SRC[S.clean(t.src)] then return nil, "src" end
         if not KIND[S.clean(t.kind)] then return nil, "kind" end
-        local origin = S.str(t.origin, 100)
-        if not origin or #origin < 2 then return nil, "origin" end
-        local via = t.via
-        if via ~= nil then via = S.str(via, 100); if not via then return nil, "via" end end
+        -- every network's names pass the one name rule (Invite.name: "Name" or "First Last", optional realm; our
+        -- realm is the same player)
+        local origin, okey = N.Invite.name(t.origin)
+        if not origin then return nil, "origin" end
+        local via, vkey = t.via, nil
+        if via ~= nil then via, vkey = N.Invite.name(via); if not via then return nil, "via" end end
         if not ROUTE[S.clean(t.route)] then return nil, "route" end
         local rid = S.str(t.rid, 24)
         if not rid then return nil, "rid" end
@@ -85,7 +87,7 @@ function R.new(t)
         -- hand: first only when the transport sender is the origin and the line is not a wrapper, envelope, guild
         -- relay or sync answer; a claimed "first" never overrides that
         if t.hand ~= nil and not HAND[S.clean(t.hand)] then return nil, "hand" end
-        local direct = t.hand ~= "relayed" and not t.wrapped and t.src ~= "guild" and (via == nil or via:lower() == origin:lower())
+        local direct = t.hand ~= "relayed" and not t.wrapped and t.src ~= "guild" and (via == nil or vkey == okey)
         local hops = t.hops
         if hops ~= nil then hops = S.num(hops); if not hops or hops < 1 or hops > 16 or hops % 1 ~= 0 then return nil, "hops" end end
         -- pos: whose position the coordinates are; none without coordinates
@@ -99,7 +101,8 @@ function R.new(t)
         r.zone, r.x, r.y, r.count, r.enemies = zone, x, y, count, enemies
         r.layer = { ns = layer.ns, value = value }
         r.heard, r.age, r.share, r.label = heard, age, t.share, label
-        r.id = r.src .. ":" .. origin:lower() .. ":" .. rid
+        r.okey = okey
+        r.id = r.src .. ":" .. okey .. ":" .. rid
         return r
     end)
     if not ok then return nil, "unreadable" end

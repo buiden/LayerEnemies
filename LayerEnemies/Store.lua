@@ -89,7 +89,7 @@ function T.report(t,record,now)
     -- Two reports of one network are two sightings and both stay.
     for k,row in pairs(t.reports) do
         local rr=row.record
-        if k~=key and network(rr)~=network(record) and rr.origin:lower()==record.origin:lower() and rr.zone==record.zone
+        if k~=key and network(rr)~=network(record) and (rr.okey or rr.origin:lower())==(record.okey or record.origin:lower()) and rr.zone==record.zone
             and math.abs((rr.at or rr.heard)-(record.at or record.heard))<=5 then
             local a,b=named(record),named(rr)
             if a>b or (a==b and record.hand=="first" and rr.hand~="first") then t.reports[k]=nil else return false,"duplicate" end
