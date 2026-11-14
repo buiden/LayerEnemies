@@ -40,7 +40,12 @@ end
 -- who, how and when). Hosting with a layer and a zone stores the name; a "-" (not hosting) reply removes it.
 function Hs.heard(st, name, reply, wall)
     if not S.tab(reply) or reply.kind ~= "heard" or not S.str(name, 100) or not S.num(wall) then return false end
+    local key = N.Invite.key(name)
+    if not key then return false end
     Hs.prune(st, wall)
+    -- one entry per player (the folded key): another spelling of the same player is replaced; the book stays keyed
+    -- by the spelling last heard, which is the name to whisper
+    for k in pairs(st.heard) do if k ~= name and N.Invite.key(k) == key then st.heard[k] = nil end end
     if not reply.hosting then st.heard[name] = nil; return false end
     if not reply.layer or not reply.zone then return false end
     if not st.heard[name] then

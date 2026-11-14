@@ -4133,5 +4133,25 @@ test("e4 S3: decoders through CHAT_MSG_ADDON with spaced and suffixed names (War
     deliver("CHAT_MSG_ADDON","LEGW1",N.Relay.encode(weRec(N,{origin="Me-TestRealm",via="Me-TestRealm",rid="9",heard=clock,age=0}),clock),"GUILD","Bob"); drain()
     eq(N.Main.lastDrop,"relay origin")
 end)
+
+test("e4 S1b: one key in the remembered hosts and the offline skip ('Gone' and 'Gone-TestRealm' are one player)",function()
+    local N=loadAddon(); local Hs=N.Hosts; local st=Hs.new()
+    yes(Hs.heard(st,"First Last-TestRealm",{kind="heard",layer="8000-1",zone=100,hosting=true},10))
+    yes(Hs.heard(st,"First Last",{kind="heard",layer="8001-1",zone=100,hosting=true},11))
+    eq(N.Safe.count(st.heard),1,"one entry"); local k,e=next(st.heard); eq(e.layer,"8001-1"); eq(k,"First Last","the latest spelling is kept to whisper")
+    Hs.heard(st,"FIRST LAST-TestRealm",{kind="heard",hosting=false},12); eq(next(st.heard),nil,"not hosting removes it under any spelling")
+    yes(Hs.heard(st,"First Last-7105",{kind="heard",layer="8000-1",zone=100,hosting=true},13)); yes(Hs.heard(st,"First Last",{kind="heard",layer="8000-1",zone=100,hosting=true},13))
+    eq(N.Safe.count(st.heard),2,"another realm is another host")
+    for _,bad in ipairs({"Bad|Name","First  Last","One Two Three"}) do no(Hs.heard(st,bad,{kind="heard",layer="8000-1",zone=100,hosting=true},14),bad) end
+    eq(N.Safe.count(st.heard),2)
+    -- the friendly list shows the spelling heard
+    N=loadAddon(); establish(N); N.Hosts.heard(N.Main.heard,"Cy Fen-TestRealm",{kind="heard",layer="8000-1",zone=100,hosting=true},N.Adapters.wall())
+    local names={}; for _,c in ipairs((N.Main.candidates())) do names[#names+1]=c.name end; yes(table.concat(names,","):find("Cy Fen-TestRealm",1,true),table.concat(names,","))
+    -- Wire: an offline result under one spelling skips the other
+    N=loadAddon(); local Wr=N.Wire; netOn(N,"hh"); N.Net.setConsent("public")
+    sendResult=12; local ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Gone-TestRealm",{net="hh",scope="public"}); no(ok); eq(why,"offline"); sendResult=0
+    ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","gone",{net="hh",scope="public"}); no(ok); eq(why,"offline")
+    ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Gone-OtherRealm",{net="hh",scope="public"}); yes(ok,why)
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
