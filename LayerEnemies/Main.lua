@@ -102,6 +102,7 @@ function M.poll()
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
     M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick()
+    N.Directory.sync()
     M.findAlerts()
     if N.UI then N.UI.refresh() end
 end

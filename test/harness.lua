@@ -21,6 +21,8 @@ local guildName="Test Guild"
 local wall,grouped,opened
 local sent,sendResult
 local roster,rosterCalls,combat,raid,leader,invites,accepts,leaves,popupHidden,popup
+-- 1.0 T3: chat channels (display list, members), joins, leaves and roster selections; channel calls only from Directory.lua
+local joined,leftCh,selected,chanList,chanMembers
 -- The routes the addon may send on (Wire.lua); anything else counts as forbidden. LFSw/GUILD carries only "Q".
 -- the routes the mock accepts without counting a forbidden send; WEFF1 and HeadHunter are open from 1.0 T1 (behind
 -- Net: ship constant, switch, consent, stand-down)
@@ -184,6 +186,7 @@ local function loadAddon()
     _G.C_AddOns={IsAddOnLoaded=function(name) return loaded[name]==true end,GetAddOnMetadata=function(name,key) return metadata[name] end}
     _G.C_FriendList={IsIgnored=function() return clientIgnored end}
     _G.C_ChatInfo=setmetatable({
+        GetChannelRosterInfo=function(index,r) local n=chanList[index]; local m=n and chanMembers[n] and chanMembers[n][r]; if m then return m,false,false,"Player-1-"..r end end,
         RegisterAddonMessagePrefix=function(prefix)
             if not PREFIXES[prefix] then forbidden=forbidden+1 end
             return true
@@ -226,7 +229,24 @@ local function loadAddon()
     _G.DEFAULT_CHAT_FRAME={AddMessage=function(_,s) log[#log+1]=s end}
     _G.SlashCmdList={}; _G.WorldMapFrame=nil
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
-    _G.JoinChannelByName=function() forbidden=forbidden+1; error("must never join") end
+    local function fromDirectory()
+        local level=3
+        while true do
+            local info=debug.getinfo(level,"S")
+            if not info then return false end
+            if info.what~="C" then return info.source=="@LayerEnemies/Directory.lua" end
+            level=level+1
+        end
+    end
+    joined,leftCh,selected,chanList,chanMembers={},{},{},{},{}
+    _G.JoinChannelByName=function(name) if not fromDirectory() then forbidden=forbidden+1 end; joined[#joined+1]=name
+        local found=false; for _,c in ipairs(chanList) do if c==name then found=true end end; if not found then chanList[#chanList+1]=name end end
+    _G.LeaveChannelByName=function(name) if not fromDirectory() then forbidden=forbidden+1 end; leftCh[#leftCh+1]=name
+        for i,c in ipairs(chanList) do if c==name then table.remove(chanList,i); break end end end
+    _G.SetSelectedDisplayChannel=function(i) if not fromDirectory() then forbidden=forbidden+1 end; selected[#selected+1]=chanList[i] or i end
+    _G.GetNumDisplayChannels=function() return #chanList end
+    _G.GetChannelDisplayInfo=function(i) local n=chanList[i]; if n then return i..". "..n,false,nil,i,#(chanMembers[n] or {}),true end end
+    _G.ChannelFrame=nil
     local N={}
     for _,file in ipairs(addonFiles()) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
@@ -1250,7 +1270,8 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     for _,file in ipairs(addonFiles()) do
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
         for _,word in ipairs({"SendChatMessage","RunMacroText","JoinChannel","UninviteUnit","ConfirmInviteUnit","ConvertToRaid","DeclineGroup","RequestInviteFromUnit","ConfirmLeaveParty"}) do
-            eq(text:find(word,1,true),nil,file.." mentions "..word)
+            -- 1.0 T3: Directory.lua joins its two channels (checked in the T3 tests)
+            if not (file=="Directory" and word=="JoinChannel") then eq(text:find(word,1,true),nil,file.." mentions "..word) end
         end
         -- InviteUnit and C_PartyInfo: exactly once each, in Wire.lua only
         local function count(word) local n=0; for _ in text:gmatch("%f[%w_]"..word.."%f[^%w_]") do n=n+1 end; return n end
@@ -3416,6 +3437,67 @@ test("1.0 T2: one row per origin, zone and 5 s; the copy with names wins",functi
     -- two reports of one network within 5 s are two sightings
     yes(T.report(st,R.new(base({heard=clock+6,rid="14"})),clock+6))
     yes(T.report(st,R.new(base({origin="Other",via="Other",heard=clock,rid="13"})),clock))
+end)
+
+-- 1.0 T3: Directory: the two named channels, joined only at consent "public", read only when safe, never sent to.
+local function dirReady(N) netOn(N,"we","hh"); N.Net.setConsent("public") end
+test("1.0 T3: the War Effort channel name follows the realm's ruleset; HeadHunter's is fixed",function()
+    local N=loadAddon(); local D=N.Directory
+    local cases={["Forever RP-PvP2"]="RPPvP",ForeverPvE="PvE",["Forever PvP"]="PvP",["Warp PvE"]="PvE",["Role Play"]="RP",["RP2"]="RP",
+        ["Sharpvale"]="sharpvale",["Forever Legends 2"]="foreverleg",["Normal"]="PvE",["ForeverRP-PvP"]="RPPvP",["R.P. Land"]="RP",["Test Realm"]="testrealm"}
+    for realm,tag in pairs(cases) do eq(D.rulesetTag(realm),tag,realm) end
+    eq(D.rulesetTag(""),nil); eq(D.rulesetTag(secret),nil); eq(D.rulesetTag(nil),nil); eq(D.rulesetTag("Ab 2"),"ab")
+    local was=issecretvalue; issecretvalue=function(v) return v=="Hidden PvP" or (was and was(v)) end
+    eq(D.rulesetTag("Hidden PvP"),nil,"a secret realm name is never read"); issecretvalue=was
+    eq(D.channel("we"),"WarEfforttestrealmA"); eq(D.channel("hh"),"HeadHunterSync")
+    UnitFactionGroup=function() return "Neutral" end; eq(D.channel("we"),nil,"no faction letter: no channel")
+end)
+test("1.0 T3: no join below consent public; joins at public; leaves on switch-off or consent guild",function()
+    local N=loadAddon(); local D=N.Directory; netOn(N,"we","hh")
+    D.sync(); eq(#joined,0,"not asked yet")
+    N.Net.setConsent("guild"); D.sync(); eq(#joined,0,"guild only")
+    N.Net.setConsent("public"); eq(#joined,2,"setting consent syncs"); eq(table.concat(joined,","),"HeadHunterSync,WarEfforttestrealmA")
+    D.sync(); eq(#joined,2,"no second join")
+    N.Net.setSwitch("hh",false); eq(leftCh[#leftCh],"HeadHunterSync")
+    N.Net.setConsent("guild"); eq(leftCh[#leftCh],"WarEfforttestrealmA")
+    -- a network shipped off never joins, and the real addon loaded joins nothing for us
+    N=loadAddon(); D=N.Directory; N.Net.setConsent("public"); D.sync(); eq(#joined,0)
+    N=loadAddon(); D=N.Directory; loaded.HeadHunter=true; dirReady(N); eq(table.concat(joined,","),"WarEfforttestrealmA")
+    -- an instance or combat at the time: no join now
+    N=loadAddon(); D=N.Directory; inInstance=true; dirReady(N); eq(#joined,0); inInstance=false
+    combat=true; D.sync(); eq(#joined,0); combat=false; D.sync(); eq(#joined,2)
+    eq(forbidden,0)
+end)
+test("1.0 T3: the member list is read after selecting the channel, never with the Channels window open, in combat or an instance",function()
+    local N=loadAddon(); local D=N.Directory; dirReady(N)
+    chanMembers.HeadHunterSync={"Me","Peer One","Peer Two-Other"}
+    yes(D.refresh("hh")); eq(#selected,1); eq(D.members("hh"),nil,"read 3 s later")
+    advance(2.9); eq(D.members("hh"),nil)
+    advance(0.2); local m=D.members("hh"); eq(#m,2); eq(m[1],"Peer One"); eq(m[2],"Peer Two-Other"); eq(D.count("hh"),2)
+    ChannelFrame={IsShown=function() return true end}; no(D.refresh("hh")); eq(#selected,1); ChannelFrame=nil
+    combat=true; no(D.refresh("hh")); combat=false
+    inInstance=true; no(D.refresh("hh")); inInstance=false
+    -- unreadable names are skipped; at most 500 read
+    chanMembers.HeadHunterSync={}; for i=1,600 do chanMembers.HeadHunterSync[i]="Peer"..string.char(97+i%26)..string.char(97+math.floor(i/26)%26) end
+    yes(D.refresh("hh")); advance(3.1); drain(); eq(#D.members("hh"),500)
+    -- the first read 10 s after joining, then every 300 s while public; none after switching off
+    local function hhSel() local n=0; for _,c in ipairs(selected) do if c=="HeadHunterSync" then n=n+1 end end; return n end
+    local before=hhSel(); advance(4); eq(hhSel(),before+1,"10 s after joining")
+    advance(299); eq(hhSel(),before+1); advance(1); eq(hhSel(),before+2,"the 300 s refresh")
+    N.Net.setSwitch("hh",false); advance(600); eq(hhSel(),before+2); eq(D.members("hh"),nil,"forgotten on switch-off")
+    eq(forbidden,0)
+end)
+test("1.0 T3: nothing is ever sent to a channel; channel calls only from Directory.lua",function()
+    local N=loadAddon(); for prefix,kinds in pairs(N.Wire.ROUTES) do eq(kinds.CHANNEL,nil,prefix) end
+    JoinChannelByName("x"); LeaveChannelByName("x"); SetSelectedDisplayChannel(1); eq(forbidden,3)
+    forbidden=0
+    for _,file in ipairs(addonFiles()) do
+        local text=assert(io.open("LayerEnemies/"..file..".lua")):read("*a")
+        for _,word in ipairs({"JoinChannelByName","LeaveChannelByName","SetSelectedDisplayChannel","JoinTemporaryChannel","JoinPermanentChannel"}) do
+            local n=0; for _ in text:gmatch("%f[%w_]"..word.."%f[^%w_]") do n=n+1 end
+            if file~="Directory" or word:find("Temporary") or word:find("Permanent") then eq(n,0,file.." "..word) else yes(n==1,file.." "..word.." "..n) end
+        end
+    end
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

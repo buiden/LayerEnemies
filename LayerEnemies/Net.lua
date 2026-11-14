@@ -37,12 +37,16 @@ end
 function Net.consent() return state.consent end
 function Net.setConsent(level)
     if not Net.CONSENT[level] then return false end
-    state.consent = level; save(); return true
+    state.consent = level; save()
+    if N.Directory then N.Directory.sync() end
+    return true
 end
 function Net.switch(key) return state.switches[key] ~= false end
 function Net.setSwitch(key, on)
     if not Net.LIST[key] then return false end
-    state.switches[key] = on == true; save(); return true
+    state.switches[key] = on == true; save()
+    if N.Directory then N.Directory.sync() end
+    return true
 end
 local function loaded(name)
     local A = N.Adapters

@@ -25,7 +25,7 @@ def main():
     assert '## Interface: 16001' in toc
     assert '## SavedVariablesPerCharacter: LayerEnemiesDB' in toc
     addon_text = '\n'.join(p.read_text() for p in (ROOT / 'LayerEnemies').glob('*.lua'))
-    for forbidden in ('JoinChannelByName', 'SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED',
+    for forbidden in ('SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED', 'JoinTemporaryChannel', 'JoinPermanentChannel',
                       'RunMacroText', 'UninviteUnit', 'ConfirmInviteUnit', 'ConfirmLeaveParty',
                       'ConvertToRaid', 'DeclineGroup', 'RequestInviteFromUnit'):
         assert forbidden not in addon_text, 'Unexpected outgoing/forbidden API: ' + forbidden
@@ -39,6 +39,13 @@ def main():
     for word in ('InviteUnit', 'AcceptGroup', 'LeaveParty'):
         calls = len(re.findall(r'\b' + word + r'\b', wire))
         assert calls == 1, word + ' must appear exactly once in Wire.lua, found %d' % calls
+    # 1.0 directory channels: join, leave and roster selection exactly once each, in Directory.lua only
+    for word in ('JoinChannelByName', 'LeaveChannelByName', 'SetSelectedDisplayChannel'):
+        users = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua')
+                       if re.search(r'\b' + word + r'\b', p.read_text()))
+        assert users == ['Directory.lua'], word + ' outside Directory.lua: ' + ', '.join(users)
+        calls = len(re.findall(r'\b' + word + r'\b', (ROOT / 'LayerEnemies/Directory.lua').read_text()))
+        assert calls == 1, word + ' must appear exactly once in Directory.lua, found %d' % calls
     senders = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua') if 'SendAddonMessage' in p.read_text())
     assert senders == ['Wire.lua'], 'SendAddonMessage outside Wire.lua: ' + ', '.join(senders)
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
