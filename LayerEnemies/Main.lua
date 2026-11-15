@@ -1346,7 +1346,11 @@ function M.hhHelloPump()
     local ctx=hhCtx(now())
     if not ctx.side then return end
     local who=N.HhNet.nextHello(st,now(),ctx.side)
-    if who then hhSend(N.HhNet.frame(ctx.side,"N",N.HhNet.HELLO),who) end
+    -- not queued: a hello Wire refuses now is owed again and tried at the next paced turn, so a backlog never leaves
+    -- in a burst when the budget refills
+    if who and not N.Wire.send("HeadHunter",N.HhNet.frame(ctx.side,"N",N.HhNet.HELLO),"WHISPER",who,{net="hh",prio="mesh"}) then
+        N.HhNet.unsent(st,who)
+    end
     if N.HhNet.owed(st) and not M.hhHelloTimer then
         M.hhHelloTimer=true
         if not N.Net.after("hh",N.HhNet.HELLO_EVERY+0.05,function() M.hhHelloTimer=nil; guarded(M.hhHelloPump) end,"public") then M.hhHelloTimer=nil end
@@ -1388,7 +1392,7 @@ function M.hhMesh(text,sender,time)
             local text2,target=o.text,o.target
             -- a pull's frames: about one per 2 s, on the pull's own allowance
             local delay=pull and 2*i or (o.delay or 0)
-            local extra=pull and {catchup=true} or nil
+            local extra=pull and {catchup=true,prio="catchup"} or nil
             i=i+1
             if delay>0 then
                 if not N.Net.after("hh",delay,function() hhSend(text2,target,extra) end,"public") then hhSend(text2,target,extra) end

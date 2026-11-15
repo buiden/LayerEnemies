@@ -11,7 +11,7 @@ HN.HELLO_EVERY, HN.FANOUT, HN.DISCOVER, HN.MAX_HOPS = 2, 3, 1, 5
 HN.LIFETIME, HN.SKEW, HN.RING, HN.PER_TARGET, HN.PEERS = 600, 300, 4000, 6, 500
 HN.ASK_AFTER, HN.ASK_PEERS, HN.COLLECT, HN.PULL_WAIT, HN.ANSWERED, HN.OFFER_TARGET = 20, 5, 5, 60, 300, 5
 HN.HOLD, HN.LINK_EVERY, HN.SINCE = 300, 600, 3600
-HN.SERVE, HN.ASKERS, HN.FRESH = 15, 256, 3600   -- records per pull; requesters remembered; a peer is known if heard this long ago
+HN.SERVE, HN.ASKERS, HN.FRESH = 10, 256, 3600   -- records per pull; requesters remembered; a peer is known if heard this long ago
 HN.TOLD_MAX = 2000                               -- peers greeted this session (a rejoining peer is not greeted twice)
 HN.HELLO = "LayerEnemies"
 -- carried in envelopes (HeadHunter's list); T is diagnostic and stops here
@@ -136,6 +136,11 @@ function HN.nextHello(st, now, side)
         end
     end
 end
+-- unsent(st, name): the hello to name was not sent (Wire refused it): owed again, tried at the next paced turn
+function HN.unsent(st, name)
+    local p = st.peers[HN.compact(name) or "?"]
+    if p then p.replyOwed = true end
+end
 -- owed(st) -> true while a hello reply waits
 function HN.owed(st) for _, p in pairs(st.peers) do if p.replyOwed then return true end end return false end
 -- sameWorld(a, b): "region-ruleset"; a part one side does not know ("?") does not split it
@@ -217,7 +222,8 @@ function HN.carry(st, rec, carrier, carrierSide, now, ctx)
     end
     return out, "forwarded"
 end
--- records(st, since) -> the newest records (at most 15) held since then that fit a frame alone, oldest first
+-- records(st, since) -> the newest records (at most 10, so a pull paced one frame per 2 s ends well inside
+-- HeadHunter's 60 s give-up) held since then that fit a frame alone, oldest first
 function HN.records(st, since)
     local out = {}
     for i = #st.history, 1, -1 do
@@ -251,9 +257,10 @@ function HN.query(st, body, sender, now, ctx, side)
         st.offered[who] = now
         return { { target = sender, text = HN.frame(ctx.side, "O", HN.b36(#recs)), delay = (ctx.rand or math.random)() * 3 } }
     end
-    -- a pull is served only to a known peer of our faction
+    -- a pull is served only to a known peer of our faction, heard within 3600 s
     local p = st.peers[who]
     if not p or (side and side ~= ctx.side) or (p.faction and p.faction ~= ctx.side) then return {} end
+    if not (p.heardAt and now >= p.heardAt and now - p.heardAt <= HN.FRESH) then return {} end
     if not room(st.answered, now) then return {} end
     st.answered[who] = now
     recs[#recs + 1] = "E" .. HN.b36(#recs)

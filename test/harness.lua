@@ -5069,7 +5069,7 @@ end)
 
 -- مانع on 9b803aa (r040c/9b8): HeadHunter mesh fixes
 local function hctx(over) local c={world="eu-pvp",serverNow=HHT,me="me",side="A",online=2,rand=function() return 0 end}; for k,v in pairs(over or {}) do c[k]=v end; return c end
-local function peerOf(HN,st,name,side) HN.heard(st,name,side or "A","eu-pvp",false) end
+local function peerOf(HN,st,name,side) HN.heard(st,name,side or "A","eu-pvp",false,0) end   -- (heard at 0: known)
 test("9b8 B: answered and offered are pruned after 300 s and capped at 256",function()
     local N=loadAddon(); local HN=N.HhNet; local st=HN.new(); st.history={{rec="DAa Bb;1",at=HHT}}
     for i=1,300 do local n="Asker"..abc(i%26+1)..abc(math.floor(i/26)+1); peerOf(HN,st,n); HN.query(st,"p0",n,i,hctx()); HN.query(st,"h0",n,i,hctx()) end
@@ -5088,33 +5088,36 @@ test("9b8 B: the history keeps the newest 300 records",function()
     for i=1,301 do HN.carry(st,"eu-pvp;Mira Vale;A;5cy;1;"..b36(HHT)..";DAa Bb;"..i,"Mira Vale","A",1,hctx()) end
     eq(#st.history,300); eq(st.history[1].rec,"DAa Bb;2","the oldest went"); eq(st.history[300].rec,"DAa Bb;301")
 end)
-test("9b8 B: catch-up serves the newest 15 records that fit, counted exactly in O and the end marker, byte for byte",function()
+test("9b8 B: catch-up serves the newest 10 records that fit, counted exactly in O and the end marker, byte for byte",function()
     local N=loadAddon(); local HN=N.HhNet; local st=HN.new(); peerOf(HN,st,"Asker")
     for i=1,40 do st.history[i]={rec="DAa Bb;"..i,at=HHT} end
     st.history[41]={rec="KCc  Dd;000x;  end",at=HHT}                          -- spaces and padded base 36 kept as sent
-    local o=HN.query(st,"h0","Asker",10,hctx()); eq(o[1].text,"1AO:f","15")
+    -- (r040c 6c5: at most 10 records, so the pull ends inside HeadHunter's 60 s give-up)
+    local o=HN.query(st,"h0","Asker",10,hctx()); eq(o[1].text,"1AO:a","10")
     local s=HN.query(st,"p0","Asker",10,hctx()); local all={}
     for _,f in ipairs(s) do yes(#f.text<=255); all[#all+1]=f.text:sub(5) end
     local body=table.concat(all,"~"); local recs={}; for r in (body.."~"):gmatch("([^~]*)~") do recs[#recs+1]=r end
-    eq(#recs,16); eq(recs[16],"E"..HN.b36(15)); eq(recs[15],"KCc  Dd;000x;  end","byte for byte"); eq(recs[1],"DAa Bb;27","the newest 15")
+    eq(#recs,11); eq(recs[11],"E"..HN.b36(10)); eq(recs[10],"KCc  Dd;000x;  end","byte for byte"); eq(recs[1],"DAa Bb;32","the newest 10")
 end)
-test("9b8 B: a pull gets its own allowance (up to 16 frames, about one per 2 s) inside the public budget",function()
+test("9b8 B: a pull gets its own allowance (up to 16 frames, about one per 2 s) inside the public budget; 10 records served",function()
     local N=loadAddon(); hhReady(N,{"Asker One"}); steps(25)
     for i=1,30 do N.Main.hhNet.history[i]={rec="DAa Bb;"..string.rep("x",241)..i,at=server} end   -- (at most 250 bytes: one record a frame, the marker alone)
     hhIn("1AN:HeadHunter 1.1.1","Asker One"); hhIn("1AQ:p"..b36(server-600),"Asker One")
     for _=1,40 do advance(1) end
     local times={}; for _,m in ipairs(hw("1AS:","Asker One")) do times[#times+1]=m.at end
-    eq(#times,16,"15 records in 15 frames and the end marker"); for i=2,#times do yes(times[i]-times[i-1]>=2,"paced") end
-    local last=hw("1AS:","Asker One"); yes(last[#last].text:find("E"..N.HhNet.b36(15).."$"),last[#last].text)
+    eq(#times,11,"10 records in 10 frames and the end marker"); for i=2,#times do yes(times[i]-times[i-1]>=2,"paced") end
+    local last=hw("1AS:","Asker One"); yes(last[#last].text:find("E"..N.HhNet.b36(10).."$"),last[#last].text)
     -- a requester outside the guild: the pull's frames are not held to 4 a minute, and at most 16 go
     N=loadAddon(); hhReady(N,{}); steps(25)
     for i=1,30 do N.Main.hhNet.history[i]={rec="DAa Bb;"..string.rep("x",241)..i,at=server} end
     hhIn("1AN:HeadHunter 1.1.1","Asker Out"); steps(3)
     for i=1,3 do N.Wire.send("HeadHunter","1AH:"..i,"WHISPER","Asker Out",{net="hh",prio="mesh"}) end   -- their 4 a minute spent
     hhIn("1AQ:p"..b36(server-600),"Asker Out"); for _=1,40 do advance(1) end
-    eq(#hw("1AS:","Asker Out"),16)
-    local okC=0; for i=1,3 do if N.Wire.send("HeadHunter","1AS:x"..i,"WHISPER","Asker Out",{net="hh",prio="mesh",catchup=true}) then okC=okC+1 end end
-    eq(okC,0,"the allowance is spent")
+    eq(#hw("1AS:","Asker Out"),11)
+    -- (r040c 6c5) once the public minute is free again, the allowance of 16 frames per 300 s holds: 5 more, then none
+    advance(61); local okC=0
+    for i=1,8 do if N.Wire.send("HeadHunter","1AS:x"..i,"WHISPER","Asker Out",{net="hh",prio="catchup",catchup=true}) then okC=okC+1 end; advance(3) end
+    eq(okC,5,"16 frames in all, not more")
     -- everything else still keeps 4 a minute to that player
     local Wr=N.Wire; local ok=0; for i=1,6 do if Wr.send("HeadHunter","1AH:"..i,"WHISPER","Asker One",{net="hh",scope="public",prio="mesh"}) then ok=ok+1 end end
     yes(ok<=4,ok)
@@ -5284,6 +5287,39 @@ test("A3 close: a hello's received count (field 14) and ambiguity flag (field 15
     -- a bridged guild hello through the embassy keeps both (G in)
     local inner="H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1|42|1"
     local g=P.decode("G|"..hx("Kora Reed").."||"..inner); yes(g and g.inner); eq(W.rebuild(g.inner),inner)
+end)
+
+-- مانع's lane B closing round (r040c/6c5)
+test("6c5 B: a pull's end marker leaves within 60 s of the Q:p even with the public budget saturated by mesh lines",function()
+    local N=loadAddon(); hhReady(N,{}); steps(25)
+    for i=1,30 do N.Main.hhNet.history[i]={rec="DAa Bb;"..string.rep("x",241)..i,at=server} end
+    hhIn("1AN:HeadHunter 1.1.1","Asker Out"); steps(3)
+    local Wr=N.Wire; local function mesh(t) for i=1,6 do Wr.send("HeadHunter","1AE:"..t.."."..i,"WHISPER","Meshpeer"..abc(i)..abc(t%26+1),{net="hh",prio="mesh",queue=true}) end end
+    for t=1,20 do mesh(t); advance(1) end                    -- a full queue of mesh forwards, the public minute spent
+    local q=clock; hhIn("1AQ:p"..b36(server-600),"Asker Out")
+    local endAt; for t=1,70 do mesh(t+20); advance(1); for _,m in ipairs(hw("1AS:","Asker Out")) do if m.text:find("~?E%w+$") and m.text:find("E"..N.HhNet.b36(10).."$") then endAt=endAt or m.at end end end
+    yes(endAt,"the end marker went"); yes(endAt and endAt-q<=60,"within 60 s: "..tostring(endAt and endAt-q))
+    eq(#hw("1AS:","Asker Out"),11)
+end)
+test("6c5 B: hello replies stay 2 s apart after a backlog (no burst when the budget refills)",function()
+    local N=loadAddon(); hhReady(N,{}); netOn(N,"we"); steps(25); local Wr=N.Wire
+    -- the public minute spent (20 whispers to players outside the guild)
+    local spent,start=0,clock
+    while spent<20 and clock-start<60 do
+        for _=1,5 do if spent<20 and Wr.send("WEFF1","E|1|1|1|abc:H:60|1","WHISPER","Fill"..abc(spent%26+1)..abc(math.floor(spent/26)+1),{net="we",prio="own"}) then spent=spent+1 end end
+        if spent<20 then advance(.5) end
+    end
+    eq(spent,20)
+    sent={}; for i=1,5 do hhIn("1AN:HeadHunter 1.1.1","Hello"..abc(i)) end
+    for _=1,120 do advance(1) end
+    local times={}; for _,m in ipairs(hw("1AN:")) do times[#times+1]=m.at end
+    eq(#times,5,"every reply went"); for i=2,#times do yes(times[i]-times[i-1]>=2,"apart "..(times[i]-times[i-1])) end
+end)
+test("6c5 B: a peer last heard more than 3600 s ago gets no pull",function()
+    local N=loadAddon(); local HN=N.HhNet; local st=HN.new(); st.history={{rec="DAa Bb;1",at=HHT}}
+    HN.heard(st,"Old Peer","A","eu-pvp",true,0)
+    eq(#HN.query(st,"p0","Old Peer",3601,hctx(),"A"),0,"3601 s")
+    HN.heard(st,"New Peer","A","eu-pvp",true,0); yes(#HN.query(st,"p0","New Peer",3600,hctx(),"A")>0,"3600 s: still known")
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

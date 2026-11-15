@@ -110,8 +110,10 @@ Hop you click still whispers that one host.
   catch-up `Q:h` after 20 seconds to up to 5 known peers plus 1 unknown one,
   and one `Q:p` to the
   biggest offer, `O` and `S` answers to other members' catch-up (each
-  requester once per 300 seconds; no `O` while we hold nothing; `S` only to a
-  known peer of our faction, the newest 15 records that fit plus the end
+  requester once per 300 seconds; no `O` while we hold nothing; `O` states the
+  number a pull then gets; `S` only to a
+  known peer of our faction heard within 3600 seconds, the newest 10 records
+  that fit plus the end
   marker, one frame about every 2 seconds), and `H` with
   our home server once per 600 seconds per asker. We never author `P`, `L`
   or `D`: HeadHunter has no honest line for a sighting of ours.
@@ -124,8 +126,13 @@ frames per requester, still inside the 20). In combat every send costs double an
 every minute cap is halved. A client throttle pauses that prefix 30 seconds;
 an offline player is skipped for an hour. A queue of 40 lines waits for budget
 (clicks first, then our own lines, answers owed, embassy and guild relay lines,
-and HeadHunter lines last); full, the oldest line of the lowest rank goes
-first. Embassy and HeadHunter lines leave a reserve (2 sends of the shared
+catch-up answers, and other HeadHunter lines last); full, the oldest line of
+the lowest rank goes first, and when every queued line ranks above or equal to
+the new one, the new line is refused. A catch-up answer (10 records and the end
+marker, one frame about every 2 seconds) ranks above mesh forwards so it ends
+inside HeadHunter's 60-second give-up. Hello replies are never queued: one Wire
+refuses waits for the next paced turn, so they stay 2 seconds apart. Embassy
+and HeadHunter lines leave a reserve (2 sends of the shared
 bucket, 10 of the 40 a minute, 5 of the guild's 20; halved in combat), so our
 own lines still go under a busy mesh.
 

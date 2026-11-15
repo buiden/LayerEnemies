@@ -80,7 +80,7 @@ for prefix, r in pairs(ROUTES) do Wr.ROUTES[prefix] = {}; for k in pairs(r.kinds
 -- forwards, hellos and catch-up), last. Lines from embassy down may not spend the reserve: they leave at least
 -- RESERVE_TOKENS in the shared bucket and RESERVE_MINUTE (GUILD: RESERVE_GUILD) of each minute cap (halved in combat),
 -- so our own lines are never starved by a busy mesh.
-Wr.PRIO = { click = 1, own = 2, owed = 3, embassy = 4, forward = 4, mesh = 5 }
+Wr.PRIO = { click = 1, own = 2, owed = 3, embassy = 4, forward = 4, catchup = 5, mesh = 6 }
 Wr.RESERVE_TOKENS, Wr.RESERVE_MINUTE, Wr.RESERVE_GUILD = 2, 10, 5
 -- a catch-up pull's frames (opts.catchup) have their own allowance per requester instead of the 4 a minute: 16
 -- frames per 300 s, still inside the public budget
@@ -231,7 +231,7 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
     if key and offline[key] and (now < offline[key] or now - offline[key] < Wr.OFFLINE) then return false, "offline" end
     local cost = inCombat() and 2 or 1
     -- the reserve binds the lines that say they rank low (embassy, mesh); an unmarked line keeps the old rules
-    local low = opts.prio == "embassy" or opts.prio == "mesh"
+    local low = opts.prio == "embassy" or opts.prio == "catchup" or opts.prio == "mesh"
     local catchup = opts.catchup == true and prefix == "HeadHunter"
     if not room(prefix, kind, key, public, now, cost, low, catchup) then
         if opts.queue and not fromQueue then return enqueue(prefix, text, kind, target, opts, prio) end
