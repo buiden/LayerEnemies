@@ -78,6 +78,27 @@ local function wrapper(f, kind)
     if inner.type == "C" and inner.sync then return nil end        -- only live C travels wrapped
     return { type = kind, origin = origin, realm = realm ~= "" and tonumber(realm) or nil, inner = inner }
 end
+-- Q: a hello request (any fields after it ignored). Y: a sync request, Y|continent|<unused>|a:<max age>,...
+-- (the age clamped to 60..900, default 900). J: a layer request, J|id|map|layer|x|y[|stamp].
+local function Q() return { type = "Q" } end
+local function Y(f)
+    local r = { type = "Y", continent = int(f[2], 1, 999999), maxAge = 900 }
+    if not r.continent then return nil end
+    local n = 0
+    for pair in ((f[4] or "") .. ","):gmatch("([^,]*),") do
+        n = n + 1
+        if n > 8 then break end
+        local k, v = pair:match("^(%l):(%d+)$")
+        if k == "a" and #v <= 10 then r.maxAge = math.max(60, math.min(900, tonumber(v))) end
+    end
+    return r
+end
+local function J(f)
+    if #f < 6 then return nil end
+    local r = { type = "J", id = int(f[2], 1, 65535), map = int(f[3], 1, 999999), layer = int(f[4], 1, 99999999), x = coord(f[5]), y = coord(f[6]) }
+    if not (r.id and r.map and r.layer and r.x and r.y) then return nil end
+    return r
+end
 decodeInner = function(f)
     local t = f[1]
     if t == "C" then return C(f) elseif t == "E" then return E(f) elseif t == "H" then return H(f) end
@@ -92,6 +113,9 @@ function P.decode(text)
     local t = f[1]
     local msg
     if t == "C" or t == "E" or t == "H" then msg = decodeInner(f)
+    elseif t == "Q" then msg = Q()
+    elseif t == "Y" then msg = Y(f)
+    elseif t == "J" then msg = J(f)
     elseif t == "G" or t == "X" then msg = wrapper(f, t)
     else return nil, "ignored" end
     if not msg then return nil, "invalid" end

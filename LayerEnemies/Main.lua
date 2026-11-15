@@ -102,7 +102,7 @@ function M.poll()
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
-    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick()
+    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick()
     N.Directory.sync()
     M.findAlerts()
     if N.UI then N.UI.refresh() end
@@ -193,6 +193,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     end
     M.lastHeard=time
     if inner.type=="H" then N.Peers.hello(M.peers,origin,inner.minor,time); return end
+    if inner.type=="Q" or inner.type=="Y" or inner.type=="J" then return M.weAsked(inner,kind,sender,time) end
     local record
     record,why=N.Reports.receive(M.receiver,msg,{sender=sender,route=kind,now=time,
         serverNow=S.num(S.call(GetServerTime)),zoneFn=A.zone,peers=M.peers})
@@ -987,10 +988,88 @@ function M.shareTick()
     for _,e in ipairs(rep.enemies) do list[#list+1]={hash=N.Hash.player(e.name,e.realm),class=e.class,level=e.level} end
     local c=N.WeOut.cluster(rid,zone,x,y,tonumber(key) or 0,rep.count,stamp)
     local parts=N.WeOut.enemies(rid,list,stamp)
+    local any=false
     for _,kind in ipairs(routes) do
         if N.Wire.send("WEFF1",c,kind,nil,{net="we",prio="own"}) then
+            any=true
             for _,p in ipairs(parts) do N.Wire.send("WEFF1",p,kind,nil,{net="we",prio="own"}) end
         end
+    end
+    -- kept for sync answers (lane A2): only what went to War Effort, dated by the server time it was seen
+    if any and M.we then
+        N.WeNet.keep(M.we,{rid=rid,t=time,server=stamp-math.max(0,math.floor(time-rep.at)),map=zone,x=x,y=y,
+            layer=tonumber(key) or 0,count=rep.count,enemies=list})
+    end
+end
+-- War Effort membership (lane A2): hello at login and every 180 s to the guild (and to a group with players outside
+-- the guild), Q once at login, answers to a guild Q and Y, K "off" to a J. Never in an instance.
+local function weOutsiders()
+    if not A.grouped() then return false end
+    for i=1,4 do
+        local u="party"..i
+        if S.call(UnitExists,u)==true then
+            local n,realm=S.call(UnitName,u)
+            n,realm=S.str(n,60),S.str(realm,60)
+            local full=n and (realm and realm~="" and (n.."-"..realm) or n)
+            if full and A.guildMember(full)~=true then return true end
+        end
+    end
+    return false
+end
+function M.weHello(reason)
+    local st,time=M.we,now()
+    if not st or A.inInstance()~=false then return false end
+    local stamp=S.num(S.call(GetServerTime))
+    if not stamp then return false end
+    local zone=A.location()
+    local _,class=S.call(UnitClass,"player")
+    local t={map=zone or 0,layer=not M.store.ambiguous(time) and tonumber(L.key(M.store.bulo)) or nil,
+        class=S.str(class,20),level=S.num(S.call(UnitLevel,"player")),public=N.Net.allowed("we","public")==true,
+        ambiguous=M.store.ambiguous(time)==true}
+    t.stamp=0; local said=N.WeOut.hello(t); t.stamp=stamp; local text=N.WeOut.hello(t)
+    local any=false
+    if S.call(IsInGuild)==true then
+        local last=st.saidAt.GUILD
+        if reason=="request" or said~=st.said.GUILD or not last or time<last or time-last>=N.WeNet.SAME then
+            if N.Wire.send("WEFF1",text,"GUILD",nil,{net="we",prio="own"}) then st.said.GUILD,st.saidAt.GUILD,any=said,time,true end
+        end
+    end
+    if weOutsiders() then
+        local kind=S.call(IsInRaid)==true and "RAID" or "PARTY"
+        local last=st.saidAt.group
+        if said~=st.said.group or not last or time<last or time-last>=N.WeNet.GROUP_EVERY then
+            if N.Wire.send("WEFF1",text,kind,nil,{net="we",prio="own"}) then st.said.group,st.saidAt.group,any=said,time,true end
+        end
+    end
+    return any
+end
+function M.weTick()
+    local st=M.we
+    if not st or not N.Net.allowed("we","guild") then return end
+    local time=now()
+    if time>=st.helloDue and A.inInstance()==false then
+        M.weHello("timer")
+        st.helloDue=time+N.WeNet.EVERY+math.random()*N.WeNet.JITTER
+    end
+    if not st.queried and time-st.start>=N.WeNet.QUERY and A.inInstance()==false and S.call(IsInGuild)==true then
+        if N.Wire.send("WEFF1",N.WeOut.query(),"GUILD",nil,{net="we",prio="own"}) then st.queried=true end
+    end
+    local who,text=N.WeNet.nextAnswer(st,time)
+    if who then N.Wire.send("WEFF1",text,"WHISPER",who,{net="we",prio="owed"}) end
+end
+function M.weAsked(msg,kind,sender,time)
+    local st=M.we
+    if not st or not N.Net.allowed("we","guild") or M.isMe(sender) then return end
+    if msg.type=="Q" and kind=="GUILD" then
+        if st.askedAt and time>=st.askedAt and time-st.askedAt<N.WeNet.ASKED then return end
+        st.askedAt=time; M.weHello("request")
+    elseif msg.type=="Y" and kind=="GUILD" then
+        local ok,why=N.WeNet.request(st,sender,msg.continent,msg.maxAge,time,A.continent)
+        M.lastDrop=ok and "sync queued" or ("sync: "..tostring(why))
+    elseif msg.type=="J" and kind=="WHISPER" then
+        if not N.WeNet.join(st,sender,time) then return end
+        local stamp=S.num(S.call(GetServerTime))
+        if stamp then N.Wire.send("WEFF1",N.WeOut.joinOff(msg.id,stamp),"WHISPER",sender,{net="we",prio="owed"}) end
     end
 end
 -- The hop is over (moved and left, failed, or 120 s without an invite): no ask is pending any more.
@@ -1063,7 +1142,7 @@ function M.start()
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new(); M.hh=N.HeadHunter.new()
     M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
-    M.invite=I.new(); M.wasGrouped=A.grouped(); M.share=N.Share.new(); M.weHeard={}
+    M.invite=I.new(); M.wasGrouped=A.grouped(); M.share=N.Share.new(); M.weHeard={}; M.we=N.WeNet.new(now())
     M.host=N.GuildHost.new()   -- guild-only hosting; the wish (want) is saved as LayerEnemiesDB.guildHost
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end

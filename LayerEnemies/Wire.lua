@@ -40,10 +40,20 @@ local function legw1Text(text)
 end
 -- War Effort (WEFF1): the type letter, then "|" or the end. Types per kind, from the 1.0 plan section 7; each lane
 -- narrows its own grammar further.
-local WE_TYPES = { GUILD = "HQCEKDG", PARTY = "HQCEK", RAID = "HQCEK", WHISPER = "PW" }
+local WE_TYPES = { GUILD = "HQCEKDG", PARTY = "HQCEK", RAID = "HQCEK", WHISPER = "PWCEK" }
 local function weText(text, kind)
     local t = text:match("^(%u)|") or text:match("^(%u)$")
-    return t and WE_TYPES[kind] and WE_TYPES[kind]:find(t, 1, true) and t or nil
+    if not (t and WE_TYPES[kind] and WE_TYPES[kind]:find(t, 1, true)) then return nil end
+    -- Q is bare; by whisper (lane A2) a C only as a sync answer (marker i:n, n at most 3) and a K only saying "off"
+    if t == "Q" then return text == "Q" and t or nil end
+    if kind == "WHISPER" then
+        if t == "K" then return text:match("^K|%d+|2|%d+$") and t or nil end
+        if t == "C" then
+            local i, n = text:match("^C|[^|]*|[^|]*|[^|]*|[^|]*|[^|]*|[^|]*|[^|]*|[^|]*|([1-3]):([1-3])$")
+            return i and tonumber(i) <= tonumber(n) and t or nil
+        end
+    end
+    return t
 end
 -- HeadHunter: "1" (protocol version), our faction A or H, a type we may send, ":" and a nonempty body. We never
 -- author P, L or D.

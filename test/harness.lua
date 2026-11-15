@@ -442,8 +442,10 @@ test("we decodes C/E/H 1.6.6 vectors",function()
     eq(P.decode("H|1.6.6|100|7086|1").minor,0)                    -- absent minor is 0
     eq(P.decode("H|1.6.6|100|7086|1|x9").minor,nil)               -- unreadable minor is unknown
     -- other well-formed types are ignored, not errors
-    for _,text in ipairs({"Q","T|100|0.400|0.500|100","J|7|100|7086|0.400|0.500|100","K|7|3|100|4","S|1234|20|100|2|1|0|4|3|100",
-        "R|anything","Y|12|100|a:480","L|1|100","P|19|456|0|a","D|g789","W|"..SCOUT.."|123|"..VC:sub(1)}) do
+    -- (Q, Y and J are read since lane A2)
+    eq(P.decode("Q").type,"Q"); eq(P.decode("J|7|100|7086|0.400|0.500|100").type,"J"); eq(P.decode("Y|12|100|a:480").maxAge,480)
+    for _,text in ipairs({"T|100|0.400|0.500|100","K|7|3|100|4","S|1234|20|100|2|1|0|4|3|100",
+        "R|anything","L|1|100","P|19|456|0|a","D|g789","W|"..SCOUT.."|123|"..VC:sub(1)}) do
         local m,why=P.decode(text); eq(m,nil,text); eq(why,"ignored",text)
     end
 end)
@@ -759,7 +761,7 @@ end)
 test("we drops whisper and channel, and types a route does not carry",function()
     local N=loadAddon(); establish(N); advance(1)
     local stamp=math.floor(server)%3600; local c="C|1|100|0|0|7|1|"..stamp
-    deliver("CHAT_MSG_ADDON","WEFF1",c,"WHISPER","Other"); eq(N.Main.lastDrop,"route")
+    deliver("CHAT_MSG_ADDON","WEFF1",c,"WHISPER","Other"); eq(N.Main.lastDrop,"C is not read on WHISPER","(only J by whisper, lane A2)")
     deliver("CHAT_MSG_ADDON","WEFF1",c,"CHANNEL","Other",nil,nil,7,"WarEffortPubA"); eq(N.Main.lastDrop,"route")
     deliver("CHAT_MSG_ADDON","WEFF1",VX,"GUILD","Relay"); eq(N.Main.lastDrop,"X is not read on GUILD")
     deliver("CHAT_MSG_ADDON","WEFF1",VG,"PARTY","Relay"); eq(N.Main.lastDrop,"G is not read on PARTY")
@@ -3297,7 +3299,7 @@ test("1.0 T1: whispers outside guild and group: 4 a minute to one player, 20 a m
     eq(forbidden,0)
 end)
 test("1.0 T1: guild budget: 20 a minute over all prefixes",function()
-    local N=loadAddon(); local Wr=N.Wire; netOn(N,"we")
+    local N=loadAddon(); N.Main.we=nil; local Wr=N.Wire; netOn(N,"we")
     local okN=0
     for i=1,30 do
         if Wr.send(i%2==0 and "LEGW1" or "WEFF1",i%2==0 and "R|"..i or GOOD_WE,"GUILD",nil,{net="we",prio="own"}) then okN=okN+1 end
@@ -3810,10 +3812,10 @@ test("1.0 T1-1: in combat the minute caps halve too: GUILD 10, public 10, one pl
     eq(sentCount("LEGW1"),10,"GUILD 10 per minute in combat")
     N=loadAddon(); Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public"); combat=true
     for i=1,4 do Wr.send("WEFF1","P|"..i,"WHISPER","Stranger",{net="we",prio="own"}); advance(5) end
-    eq(sentCount("WEFF1"),2,"one player 2 per minute in combat")
+    eq(sentCount("WEFF1","WHISPER"),2,"one player 2 per minute in combat")
     N=loadAddon(); Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public"); combat=true
     for i=1,15 do Wr.send("WEFF1","P|"..i,"WHISPER","Strang"..abc(i),{net="we",prio="own"}); advance(4.1) end
-    eq(sentCount("WEFF1"),10,"public 10 per minute in combat")
+    eq(sentCount("WEFF1","WHISPER"),10,"public 10 per minute in combat")
     N=loadAddon(); Wr=N.Wire; combat=true
     for i=1,30 do Wr.send(i%2==0 and "LEGW1" or "LayerSwap",i%2==0 and ("R|"..i) or LSX,i%2==0 and "PARTY" or "WHISPER",i%2==0 and nil or "Bob",{prio="own"}); advance(2.05) end
     yes(#sent<=20,"all 20 per minute in combat: "..#sent)
@@ -3825,7 +3827,7 @@ test("1.0 T1-2: a network whisper is public unless the target is a checked onlin
     ok,why=Wr.send("WEFF1","P|1","WHISPER","Bob",{net="we",scope="public"}); yes(ok,why)
     -- a guildmate does not spend the public budget
     N=loadAddon(); Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public"); roster={{"Bob-TestRealm",true}}
-    for i=1,6 do Wr.send("WEFF1","P|"..i,"WHISPER","Bob",{net="we",prio="own"}); advance(5) end; eq(sentCount("WEFF1"),6)
+    for i=1,6 do Wr.send("WEFF1","P|"..i,"WHISPER","Bob",{net="we",prio="own"}); advance(5) end; eq(sentCount("WEFF1","WHISPER"),6)
 end)
 test("1.0 T1-3: a clock stepping back counts as just sent; the limits hold",function()
     local N=loadAddon(); local Wr=N.Wire; establish(N)
@@ -3846,7 +3848,7 @@ test("1.0 T1-3: a clock stepping back counts as just sent; the limits hold",func
     yes(Wr.accept(clock)); ok,why=Wr.accept(clock-1); no(ok); eq(why,"throttled")
 end)
 test("1.0 T1: one player is one key for the per-player limit; the target tables are pruned",function()
-    local N=loadAddon(); local Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public")
+    local N=loadAddon(); N.Main.we=nil; local Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public")
     for i,name in ipairs({"Stranger","stranger","Stranger-TestRealm","STRANGER","Stranger"}) do Wr.send("WEFF1","P|"..i,"WHISPER",name,{net="we",prio="own"}); advance(3) end
     eq(sentCount("WEFF1"),4,"spellings of one player share the 4 per minute")
     for i=1,30 do Wr.send("WEFF1","P|"..i,"WHISPER","Other"..abc(i),{net="we",prio="own"}); advance(3.1) end
@@ -4341,6 +4343,118 @@ test("e4c: an unknown or just-changed layer is sent as unknown, never a guessed 
     -- mixed servers sharing the zone (ambiguous): unknown too
     N=loadAddon(); establish(N); advance(1); N.Main.store.ambiguous=function() return true end
     seeFoe("Kora Reed","Player-1-901"); units.target=nil; advance(10); yes(oLines()[1].text:find("^O|1|%d+|100|0.250|0.750||"),oLines()[1].text)
+end)
+
+-- 1.0 lane A2: War Effort hello, Q, guild Q answers, Y answers from our own reports, K (off) to J
+local function weGuild(t) local out={}; for _,m in ipairs(sent) do if m.prefix=="WEFF1" and m.kind=="GUILD" and (not t or m.text:sub(1,#t)==t) then out[#out+1]=m end end; return out end
+local function weTo(who) local out={}; for _,m in ipairs(sent) do if m.prefix=="WEFF1" and m.kind=="WHISPER" and m.target==who then out[#out+1]=m end end; return out end
+local function we(text,kind,from) deliver("CHAT_MSG_ADDON","WEFF1",text,kind or "GUILD",from or "Wes"); drain() end
+local function weReady(N) netOn(N,"we"); units.player={name="Me",class="MAGE",level=60}; establish(N) end
+local function steps(n) for _=1,n do advance(1) end end   -- (advance jumps the clock before due timers run)
+test("1.0 A2: WeOut builds H, Q, K and sync-marked C; our decoder reads them back",function()
+    local N=loadAddon(); local W,P=N.WeOut,N.Protocol
+    local h=W.hello({map=100,layer=7086,class="MAGE",level=60,public=true,stamp=720100})
+    eq(h,"H|"..W.VERSION.."|100|7086|1|19|0|0|"..(720100%3600).."||H|60|1")
+    local d=P.decode(h); eq(d.type,"H"); eq(d.minor,19); eq(d.layer,7086); eq(d.map,100); eq(d.stamp,720100%3600)
+    eq(W.hello({map=100,layer=nil,public=false,ambiguous=true,stamp=5}),"H|"..W.VERSION.."|100|0|1|19|0|0|5||-|0|0|0|1")
+    eq(W.query(),"Q"); eq(W.joinOff(77,3605),"K|77|2|5")
+    local c=W.cluster(9,100,.25,.75,7086,2,100,2,3); eq(c,"C|9|100|0.250|0.750|7086|2|100||2:3")
+    local dc=P.decode(c); yes(dc.sync); eq(dc.rid,9)
+    eq(P.decode("Q").type,"Q"); eq(P.decode("Q|x").type,"Q")
+    local y=P.decode("Y|1||a:600"); eq(y.type,"Y"); eq(y.continent,1); eq(y.maxAge,600)
+    eq(P.decode("Y|1").maxAge,900); eq(P.decode("Y|1||a:5").maxAge,60); eq(P.decode("Y|1||a:99999").maxAge,900); eq(P.decode("Y|x"),nil)
+    local j=P.decode("J|5|100|7086|0.5|0.5|12"); eq(j.type,"J"); eq(j.id,5); eq(P.decode("J|0|100|7086|0.5|0.5"),nil); eq(P.decode("J|5|100|7086|0.5"),nil)
+    -- Wire: on WHISPER only a sync-marked C, an E, or a K saying "off"
+    local Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("public")
+    yes(Wr.send("WEFF1",c,"WHISPER","Bob",{net="we"})); yes(Wr.send("WEFF1","K|77|2|5","WHISPER","Bob",{net="we"}))
+    for _,bad in ipairs({"C|9|100|0.250|0.750|7086|2|100","K|77|1|5","K|77|2|5|x","H|1","Q","C|9|100|0.250|0.750|7086|2|100||4:3"}) do
+        local ok,why=Wr.send("WEFF1",bad,"WHISPER","Bob",{net="we"}); no(ok,bad); eq(why,"bad text") end
+    local ok,why=Wr.send("WEFF1","Q|1","GUILD",nil,{net="we"}); no(ok); eq(why,"bad text","Q is bare")
+end)
+test("1.0 A2: hello at login and every 180 s to the guild; not in an instance; an identical one not within 30 s",function()
+    local N=loadAddon(); weReady(N); advance(12)
+    local h=weGuild("H|"); eq(#h,1,"login hello"); local d=N.Protocol.decode(h[1].text); eq(d.minor,19); eq(d.layer,7086); eq(d.map,100)
+    advance(170); eq(#weGuild("H|"),1); advance(25); eq(#weGuild("H|"),2,"about 180 s later")
+    -- a guild Q is answered with a hello at once (not again within 10 s); the timer then skips an identical one within 30 s
+    -- (the next timer hello is due 180 to 190 s after the last one)
+    local due=N.Main.we.helloDue; sent={}; steps(math.floor(due-clock)-5)
+    we("Q"); eq(#weGuild("H|"),1,"Q answered"); we("Q","GUILD","Wesb"); eq(#weGuild("H|"),1,"one answer per 10 s")
+    steps(10); eq(#weGuild("H|"),1,"the timer skips an identical hello within 30 s")
+    steps(200); eq(#weGuild("H|"),2,"and sends the next")
+    -- a Q on PARTY or from ourselves is not answered
+    sent={}; grouped=true; we("Q","PARTY","Pam"); we("Q","GUILD","Me"); eq(#weGuild("H|"),0); grouped=false
+    -- no hello in an instance; it goes once outside again
+    N=loadAddon(); weReady(N); inInstance=true; advance(30); eq(#weGuild("H|"),0); inInstance=false; advance(6); eq(#weGuild("H|"),1)
+    -- shipped off, switched off, War Effort loaded, not in a guild: nothing
+    for _,c in ipairs({"ship","switch","loaded","guild"}) do
+        N=loadAddon(); netOn(N,"we"); establish(N)
+        if c=="ship" then N.Net.SHIP.we=false elseif c=="switch" then N.Net.setSwitch("we",false) elseif c=="loaded" then loaded.WarEffortScout=true else inGuild=false end
+        advance(200); eq(#weGuild(),0,c); loaded.WarEffortScout=nil; inGuild=true
+    end
+end)
+test("1.0 A2: a group with players outside the guild gets a hello too",function()
+    local N=loadAddon(); weReady(N); roster={{"Bob-TestRealm",true}}; deliver("GUILD_ROSTER_UPDATE",true); drain()
+    grouped=true; units.party1={name="Bob"}; advance(12)
+    local function party() local n=0; for _,m in ipairs(sent) do if m.prefix=="WEFF1" and m.kind=="PARTY" then n=n+1 end end; return n end
+    eq(party(),0,"only guildmates in the group"); units.party1={name="Stranger"}; steps(200); eq(party(),1)
+end)
+test("1.0 A2: Q once at login, to the guild",function()
+    local N=loadAddon(); weReady(N); advance(16); eq(#weGuild("Q"),1); eq(weGuild("Q")[1].text,"Q"); advance(1200); eq(#weGuild("Q"),1)
+    N=loadAddon(); inGuild=false; weReady(N); advance(30); eq(#weGuild("Q"),0)
+end)
+test("1.0 A2: a guild Y is answered by whisper from our own last three reports, slowly, once per 600 s",function()
+    local N=loadAddon(); weReady(N); roster={{"Wes-TestRealm",true},{"Wesb-TestRealm",true},{"Wesc-TestRealm",true},{"Wesd-TestRealm",true},{"Wese-TestRealm",true}}
+    deliver("GUILD_ROSTER_UPDATE",true); drain()
+    -- a report before any War Effort reader was heard: not sent to War Effort, so never in an answer
+    foe(N,1,{key="Player-1-701",name="Ee Ff"}); foe(N,2,{key="Player-1-702",name="Gg Hh"}); steps(20); eq(#weSent("C"),0)
+    hello("Wes",19)
+    -- a report the client refused (throttled) is not kept either
+    sendResult=3; foe(N,1,{key="Player-1-703",name="Ii Jj"}); foe(N,2,{key="Player-1-704",name="Kk Ll"}); steps(20); sendResult=0
+    we("Y|1","GUILD","Wese"); steps(100); eq(#weTo("Wese"),0,"unsent reports are not ours to answer with")
+    advance(20)
+    -- four reports of our own, each with two new enemies; a received report too
+    for i=0,3 do units.target=nil; foe(N,1,{key="Player-1-8"..i.."1",name="Aa Bb"..string.char(97+i)}); foe(N,2,{key="Player-1-8"..i.."2",name="Cc Dd"..string.char(97+i)}); steps(20) end
+    report(9,9000,"Scout")
+    local mine=weSent("C"); yes(#mine>=4,#mine)
+    sent={}; N.WeNet.rand=function() return .5 end; WorldMapFrame={IsShown=function() return true end}   -- (2 s heartbeat)
+    we("Y|1||a:900"); steps(25); eq(#weTo("Wes"),0,"a random start, here 30 s")
+    local times={}; for _=1,100 do advance(1); local n=#weTo("Wes"); if n>#times then times[#times+1]=clock end end
+    WorldMapFrame=nil
+    for i=2,#times do yes(times[i]-times[i-1]>=4.9,"paced "..(times[i]-times[i-1])) end
+    local out=weTo("Wes"); local cs={}
+    for _,m in ipairs(out) do if m.text:sub(1,2)=="C|" then cs[#cs+1]=m.text end end
+    eq(#cs,3,"three reports"); for i,c in ipairs(cs) do yes(c:find("|"..i..":3$"),c); no(c:find("^C|9|"),"never a received report") end
+    eq(#out,6,"each C followed by its E")
+    -- the asked age is kept: our reports are older than 60 s now
+    we("Y|1||a:60","GUILD","Wesd"); steps(120); eq(#weTo("Wesd"),0,"all older than the asked age")
+    N.WeNet.rand=nil
+    -- paced: never two within 5 s
+    -- (the heartbeat sends one per tick)
+    advance(100); we("Y|1||a:900"); advance(120); eq(#weTo("Wes"),6,"once per 600 s")
+    -- another continent, a too-short age, a Y on PARTY, a Y from ourselves: nothing
+    sent={}; we("Y|999","GUILD","Wesb"); grouped=true; we("Y|1","PARTY","Pam"); grouped=false; we("Y|1","GUILD","Me"); advance(120)
+    eq(#weTo("Wesb"),0); eq(#weTo("Pam"),0); eq(#weTo("Me"),0)
+    advance(500); we("Y|1||a:60","GUILD","Wesc"); advance(120); eq(#weTo("Wesc"),0,"all older than the asked age")
+end)
+test("1.0 A2: WeNet: a report that grows older than the asked age while queued is skipped",function()
+    local N=loadAddon(); local Wn=N.WeNet; local st=Wn.new(0); local cont=function() return 1 end
+    Wn.keep(st,{rid=1,t=100,server=1000,map=100,x=.5,y=.5,layer=0,count=2,enemies={{hash="abc"}}})
+    yes(Wn.request(st,"Wes",1,60,130,cont,function() return 1 end))           -- 30 s old when asked, starts at 190
+    eq(Wn.nextAnswer(st,189),nil); eq(Wn.nextAnswer(st,190),nil,"90 s old by then: skipped")
+    st=Wn.new(0); Wn.keep(st,{rid=1,t=100,server=1000,map=100,x=.5,y=.5,layer=0,count=2,enemies={{hash="abc"}}})
+    yes(Wn.request(st,"Wes",1,60,130,cont,function() return .2 end)); local who,c=Wn.nextAnswer(st,142); eq(who,"Wes"); yes(c:find("|1:1$"))
+end)
+test("1.0 A2: a J gets one K saying off (status 2) per 60 s, by whisper, and never an invite",function()
+    local N=loadAddon(); weReady(N); N.Net.setConsent("public"); advance(1)
+    we("J|5|100|7086|0.5|0.5|"..math.floor(server)%3600,"WHISPER","Stranger")
+    local k=weTo("Stranger"); eq(#k,1); yes(k[1].text:find("^K|5|2|%d+$"),k[1].text)
+    we("J|6|100|7086|0.5|0.5","WHISPER","Stranger"); eq(#weTo("Stranger"),1,"one per 60 s")
+    advance(61); we("J|7|100|7086|0.5|0.5","WHISPER","Stranger"); eq(#weTo("Stranger"),2)
+    eq(#invites,0)
+    -- a malformed J, a J on GUILD, and anything else by whisper: nothing
+    we("J|x","WHISPER","Other"); we("J|8|100|7086|0.5|0.5","GUILD","Other"); we("C|1|100|0|0|7|1|1","WHISPER","Other"); eq(#weTo("Other"),0)
+    -- guild-only consent: a stranger's J gets no answer (public whisper)
+    N=loadAddon(); weReady(N); N.Net.setConsent("guild"); advance(1); we("J|5|100|7086|0.5|0.5","WHISPER","Stranger"); eq(#weTo("Stranger"),0)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

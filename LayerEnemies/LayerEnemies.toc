@@ -23,6 +23,7 @@ Hosts.lua
 GuildHost.lua
 Relay.lua
 WeOut.lua
+WeNet.lua
 Share.lua
 Directory.lua
 Find.lua

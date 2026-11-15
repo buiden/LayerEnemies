@@ -248,7 +248,7 @@ end
 function A.policy(prefix,kind,sender)
     local ok,allowed,reason=pcall(function()
         if prefix~="WEFF1" then return false,"prefix" end
-        if kind~="GUILD" and kind~="PARTY" and kind~="RAID" then return false,"route" end
+        if kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return false,"route" end
         local mine=echo(sender); if mine then return false,mine end
         local ignored,why=A.ignored(sender)
         if ignored then return false,why end
@@ -256,10 +256,23 @@ function A.policy(prefix,kind,sender)
             if S.call(IsInGuild)~=true then return false,"guild unavailable" end
             return true,"guild"
         end
+        if kind=="WHISPER" then return true,"whisper" end
         return true,"group"
     end)
     if not ok then return false,"policy unavailable" end
     return allowed,reason
 end
--- Types each route may carry (WEFF1): guild C E H G, home group C E H X.
-A.WE_TYPES={GUILD={C=true,E=true,H=true,G=true},PARTY={C=true,E=true,H=true,X=true},RAID={C=true,E=true,H=true,X=true}}
+-- Types each route may carry (WEFF1): guild C E H G, Q Y (lane A2), home group C E H X, whisper J (a layer request).
+A.WE_TYPES={GUILD={C=true,E=true,H=true,G=true,Q=true,Y=true},PARTY={C=true,E=true,H=true,X=true},RAID={C=true,E=true,H=true,X=true},
+    WHISPER={J=true}}
+-- The continent a map is on (C_Map parents up to mapType 2), or nil
+function A.continent(map)
+    local id=S.num(map)
+    for _=1,8 do
+        if not id or id<1 then return nil end
+        local info=S.tab(C_Map) and S.call(C_Map.GetMapInfo,id)
+        if not S.tab(info) then return nil end
+        if S.num(info.mapType)==2 then return id end
+        id=S.num(info.parentMapID)
+    end
+end
