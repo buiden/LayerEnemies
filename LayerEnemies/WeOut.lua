@@ -90,7 +90,9 @@ function W.rebuild(m)
         local f = { "H", m.version, tostring(m.map), tostring(m.layer), tostring(m.sharing), m.minor and tostring(m.minor) or "",
             "0", "0", m.stamp and tostring(m.stamp) or "", guild, m.class and code(m.class) or "-", tostring(m.level or 0),
             m.public == true and "1" or m.public == false and "0" or "" }
-        if m.ambiguous then f[14] = "0"; f[15] = "1" end
+        -- the received count and the ambiguity flag as read (an unknown count stays empty before a flag)
+        if m.received or m.ambiguous then f[14] = m.received and tostring(m.received) or "" end
+        if m.ambiguous then f[15] = "1" end
         return table.concat(f, "|")
     end
 end

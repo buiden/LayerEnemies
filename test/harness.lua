@@ -5268,5 +5268,22 @@ test("b5c: a hosting blink ends on the next request or F when the guild name is 
     -- readable but another guild's name: not resumed, nothing acts
     guildName="Guild B"; advance(16); lsw("inv layer <LS 100 want 7086-0>","Bob"); no(N.Main.host.on); eq(#invites,0); guildName="Test Guild"
 end)
+
+-- مانع's A3 closing round: field 14 is War Effort's received count, field 15 alone the ambiguity flag
+test("A3 close: a hello's received count (field 14) and ambiguity flag (field 15) are read and kept in a rebuilt line",function()
+    local N=loadAddon(); local P,W=N.Protocol,N.WeOut
+    local h=P.decode("H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1|42|1"); yes(h); eq(h.received,42); eq(h.ambiguous,true)
+    eq(W.rebuild(h),"H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1|42|1","count and flag kept")
+    h=P.decode("H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1|42"); eq(h.received,42); no(h.ambiguous); eq(W.rebuild(h),"H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1|42")
+    h=P.decode("H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1||1"); eq(h.received,nil); eq(h.ambiguous,true); eq(W.rebuild(h),"H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1||1")
+    h=P.decode("H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1|x|2"); eq(h.received,nil); no(h.ambiguous)
+    h=P.decode("H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1|100000000|1"); eq(h.received,nil,"over War Effort's maximum")
+    eq(P.decode("H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1|99999999").received,99999999)
+    -- our own hello still says count 0 with the flag
+    eq(W.hello({map=100,layer=7086,class="MAGE",level=60,public=true,ambiguous=true,stamp=110}):sub(-4),"|0|1")
+    -- a bridged guild hello through the embassy keeps both (G in)
+    local inner="H|1.6.6|100|7086|1|19|0|0|110|456|H|60|1|42|1"
+    local g=P.decode("G|"..hx("Kora Reed").."||"..inner); yes(g and g.inner); eq(W.rebuild(g.inner),inner)
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
