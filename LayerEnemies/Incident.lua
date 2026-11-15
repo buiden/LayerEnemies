@@ -85,7 +85,7 @@ end
 function Ic.record(prefix, d, ctx)
     local x, y = d.x, d.y
     if d.map and d.map ~= ctx.zone then x, y = nil, nil end
-    local hash = N.Hash.hash3(d.enemy.name:lower())
+    local hash = N.Spy.key(d.enemy.name)
     return N.Record.new({ src = Ic.SRC[prefix], kind = d.kind, origin = ctx.sender, via = ctx.sender, route = ctx.route,
         rid = hash, zone = ctx.zone, x = x, y = y, count = 1,
         enemies = { { name = d.enemy.name, hash = hash, class = d.enemy.class, level = d.enemy.level } },

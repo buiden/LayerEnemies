@@ -5187,5 +5187,51 @@ test("9b8 B: hello replies are paced to one per 2 s; a peer counts as known only
     local names=HN.pick(st,3,{},3601,"A","eu-pvp"); eq(#names,4)
     local old=0; for _,n in ipairs(names) do if n:find("^Old") then old=old+1 end end; eq(old,1)
 end)
+
+-- مانع on C1 e0d9513 and C2 7a094b2 (r040c/7a0)
+test("7a0 C1/C2: one row per enemy whatever the spelling: First-Last and First-Last-7102 fold to one key",function()
+    local N=loadAddon(); establish(N)
+    spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","GUILD","Spyuser"); advance(1)
+    spyIn("[Spy]","1.3.8|Kora-Reed-7102|ROGUE|60|Orc|Ashenvale||0.5|0.6||100","GUILD","Spyuser")
+    local rows=spyRows(N,"spy"); eq(#rows,1); eq(rows[1].record.rid,N.Hash.hash3("kora reed")); eq(rows[1].record.enemies[1].hash,N.Hash.hash3("kora reed"))
+    spyIn("FSENT03","1~Player-7103-00AB12~Kora-Reed-7102~MAGE~60~Ashenvale~0","RAID","Seuser"); advance(1)
+    spyIn("FSENT03","1~Player-7103-00AB12~Kora-Reed~MAGE~60~Ashenvale~0","RAID","Seuser"); eq(#spyRows(N,"sent"),1)
+    spyIn("WALLOFSHAME","D|60|Ashenvale|MAGE|4|Kora Reed-7102|60|","GUILD","Victim"); advance(1)
+    spyIn("WALLOFSHAME","D|60|Ashenvale|MAGE|4|Kora Reed|60|","GUILD","Victim")
+    local w=0; for _,r in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do if r.record.src~="spy" and r.record.src~="sent" then w=w+1; eq(r.record.rid,N.Hash.hash3("kora reed")) end end
+    eq(w,1)
+end)
+test("7a0 C1: the zone-name table is kept only when both lookups gave data; otherwise tried again",function()
+    local N=loadAddon(); establish(N); local real=C_Map.GetMapChildrenInfo
+    C_Map.GetMapChildrenInfo=function(id,kind,all) if id==947 then return nil end return real(id,kind,all) end
+    spyIn("ForeverSpy1","1\tKora Reed\tAshenvale","PARTY","Fsx")    -- 947 not ready: answered from our continent, not kept
+    C_Map.GetMapChildrenInfo=function(id,kind,all) if id==947 then return {{mapID=300,name="Elwynn Forest"}} end return real(id,kind,all) end
+    eq(#spyRows(N,"fspy"),1,"answered all the same"); eq(N.Adapters.zoneByName("Elwynn Forest"),300,"the table was built again with 947")
+    N=loadAddon(); establish(N); local miss=true
+    C_Map.GetMapChildrenInfo=function(id,kind,all) if id==1 and miss then return nil end return real(id,kind,all) end
+    spyIn("ForeverSpy1","1\tKora Reed\tAshenvale","PARTY","Fsx"); miss=false
+    C_Map.GetMapChildrenInfo=function(id,kind,all) if id==1 then return {{mapID=100,name="Ashenvale"},{mapID=400,name="Mulgore"}} end return real(id,kind,all) end
+    eq(N.Adapters.zoneByName("Mulgore"),400,"the continent lookup counted too")
+end)
+test("7a0 C1: the sender in Spy spelling: our own line is refused, and the rate bucket is the folded name",function()
+    local N=loadAddon(); establish(N); local realUnitName=UnitName
+    _G.UnitName=function(u) if u=="player" then return "Lo Cal","Test Realm" end; return realUnitName(u) end
+    for _,s in ipairs({"Lo-Cal","Lo-Cal-7102"}) do
+        spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","GUILD",s); eq(#spyRows(N,"spy"),0,s)
+    end
+    _G.UnitName=realUnitName
+    local who={"Ann-Lee","Bo-Dyl","Cy-Fen","Di-Gar","Ed-Hal","Fa-Ivo","Gu-Jem"}
+    for i=1,7 do spyIn("[Spy]","1.3.8|"..who[i].."|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","GUILD",i%2==0 and "Mira-Vale" or "Mira Vale") end
+    eq(#spyRows(N,"spy"),6,"two spellings, one bucket")
+end)
+test("7a0 C1: an ambiguous zone name is no answer whichever map comes first; a C1 row never goes out as our O",function()
+    local N=loadAddon(); establish(N)
+    C_Map.GetMapChildrenInfo=function() return {{mapID=100,name="Twin"},{mapID=200,name="Twin"}} end
+    spyIn("ForeverSpy1","1\tKora Reed\tTwin","PARTY","Fsx"); eq(#spyRows(N,"fspy"),0)
+    N=loadAddon(); establish(N)
+    spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","GUILD","Spyuser"); eq(#spyRows(N,"spy"),1)
+    for _=1,20 do advance(1); N.Main.shareTick() end; eq(#oLines(),0,"not ours")
+    foe(N,2); for _=1,5 do advance(1); N.Main.shareTick() end; eq(#oLines(),1,"our own sighting still goes")
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

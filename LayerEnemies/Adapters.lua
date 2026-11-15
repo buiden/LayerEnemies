@@ -262,23 +262,28 @@ function A.zoneByName(name)
     if not S.tab(api) or type(api.GetMapChildrenInfo)~="function" then return nil end
     if not zoneNames then
         local found={}
+        -- add(root) -> true when that lookup gave a list with at least one readable zone
         local function add(root)
             local list=S.call(api.GetMapChildrenInfo,root,3,true)
-            if not S.tab(list) then return end
+            if not S.tab(list) then return false end
+            local any=false
             for _,info in ipairs(list) do
                 local id,n=S.tab(info) and S.num(info.mapID),S.tab(info) and S.str(info.name,70)
                 if id and n then
+                    any=true
                     if found[n]==nil then found[n]=id elseif found[n]~=id then found[n]=false end
                 end
             end
+            return any
         end
         local here=A.zone(S.num(S.call(api.GetBestMapForUnit,"player")))
         local info=here and S.call(api.GetMapInfo,here)
         local continent=S.tab(info) and S.num(info.parentMapID)
-        if continent and continent>0 then add(continent) end
-        add(947)
-        -- an empty lookup (map data not ready) is tried again next time
-        if next(found) then zoneNames=found else return nil end
+        local near=continent~=nil and continent>0 and add(continent)
+        local world=add(947)
+        -- kept only when both lookups gave data; otherwise this answer stands alone and the next line looks again
+        if near and world then zoneNames=found end
+        return found[name] or nil
     end
     return zoneNames[name] or nil
 end

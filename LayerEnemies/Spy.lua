@@ -106,8 +106,11 @@ function Sp.decode(prefix, text)
 end
 -- record(prefix, d, ctx) -> record or nil, why; ctx = { sender, route, heard, zone }
 -- One row per observer and enemy: the rid is the enemy's name hash, so a repeat refreshes nothing and is one row.
+-- key(name) -> the enemy's hash from the folded key (Invite.key: our realm stripped, case folded), so "First-Last" and
+-- "First-Last-7102" are one row and one enemy hash
+function Sp.key(name) return N.Hash.hash3(N.Invite.rateKey(name)) end
 function Sp.record(prefix, d, ctx)
-    local hash = N.Hash.hash3(d.enemy.name:lower())
+    local hash = Sp.key(d.enemy.name)
     return N.Record.new({ src = Sp.SRC[prefix], kind = "seen", origin = ctx.sender, via = ctx.sender, route = ctx.route,
         rid = hash, zone = ctx.zone, x = d.x, y = d.y, count = 1,
         enemies = { { name = d.enemy.name, hash = hash, class = d.enemy.class, level = d.enemy.level } },

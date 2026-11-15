@@ -221,7 +221,12 @@ function M.spyIn(prefix,text,kind,sender)
     local allowed,reason=A.spyPolicy(prefix,kind,sender)
     if not allowed then M.lastDrop=reason; return end
     local time=now()
-    if not N.Reports.allow(M.spyRates,sender,false,time) then return end
+    -- the sender in the Spy family's spelling ("First-Last", "First-Last-<realm>") read by the one name rule: the rate
+    -- bucket is the folded name, and our own line in any spelling is refused
+    local who=N.Spy.name(sender)
+    if not who then M.lastDrop="Spy: sender name"; return end
+    if M.isMe(who) then M.lastDrop="own echo"; return end
+    if not N.Reports.allow(M.spyRates,who,false,time) then return end
     local mod=N.Spy.SRC[prefix] and N.Spy or N.Incident
     local d,why=mod.decode(prefix,text)
     if not d then M.lastDrop="Spy: "..tostring(why); return end
