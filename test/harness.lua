@@ -3966,7 +3966,8 @@ test("a7: leaving the guild makes hosting inactive; a new guild's H waits for th
     deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on,"active on the new roster"); eq(#legwSent("H|"),0,"activation sends nothing")
     advance(61); legw("F|1","Cy"); advance(7); drain(); eq(#legwSent("H|"),1)
     -- announceHost itself refuses while not in a guild
-    inGuild=false; advance(61); no(N.Main.announceHost()); inGuild=true
+    -- (r040c 1f: through events) out of the guild without the event seen yet: an F gets no H
+    inGuild=false; advance(61); legw("F|1","Cy"); advance(7); drain(); eq(#legwSent("H|"),1); inGuild=true
 end)
 test("a7: leaving the guild drops a scheduled F answer and an owed H",function()
     local N=loadAddon(); hReady(N); advance(61)
@@ -3981,8 +3982,10 @@ test("a7: leaving the guild drops a scheduled F answer and an owed H",function()
     -- a guild update that changes nothing (same guild, still in it) keeps everything, also the first one
     N=loadAddon(); hReady(N); deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on); yes(N.Adapters.roster.at)
     deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on)
-    -- guild name unreadable for a moment (loading): no change either
-    guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on); guildName="Test Guild"
+    -- (r040c 1f) a guild name unreadable on a guild event is "unknown": inactive until a readable name and its roster
+    guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on); guildName="Test Guild"
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); no(N.Main.host.on,"first readable name: its roster is asked for")
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
     -- another guild without leaving in between: a change
     guildName="Third Guild"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on); eq(N.Adapters.roster.at,nil)
 end)
@@ -4247,6 +4250,61 @@ test("cc: Directory lists nobody while our own name or home realm is unreadable;
     -- our own name unreadable
     local was=UnitName; UnitName=function(u) if u=="player" then return nil end; return was(u) end
     yes(D.refresh("hh")); advance(3.1); eq(D.members("hh"),nil,"own name unreadable"); UnitName=was
+end)
+
+-- مانع on 1f7cd69 (r040c/1f): guild changes through events, in every order
+local function hostF() legw("F|1","Cy"); advance(7); drain(); return #legwSent("H|") end
+test("1f M2: leave, a roster while guildless, join: no H until the new guild's roster",function()
+    local N=loadAddon(); hReady(N); advance(61)
+    inGuild=false; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on)
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(N.Adapters.roster.at,nil,"a guildless roster is no roster"); no(N.Main.host.on)
+    local calls=rosterCalls; advance(16)
+    inGuild=true; guildName="Guild B"; deliver("PLAYER_GUILD_UPDATE","player"); drain()
+    eq(rosterCalls,calls+1,"the new guild's roster is asked for"); no(N.Main.host.on); advance(61); eq(hostF(),0,"no H before B's roster")
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on); advance(61); eq(hostF(),1)
+    -- a guildless login: a roster then joining and turning hosting on sends no H before B's roster
+    N=loadAddon(); inGuild=false; establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(N.Adapters.roster.at,nil)
+    inGuild=true; guildName="Guild B"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); slash("host on"); eq(#legwSent("H|"),0)
+    advance(61); eq(hostF(),0); deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#legwSent("H|"),1,"the owed H on B's roster")
+end)
+test("1f: joining B with no leave seen is a switch, by the guild event or by a roster alone",function()
+    local N=loadAddon(); hReady(N); advance(61); guildName="Guild B"; deliver("PLAYER_GUILD_UPDATE","player"); drain()
+    no(N.Main.host.on); eq(N.Adapters.roster.at,nil); eq(hostF(),0)
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
+    -- the event missed: a roster arriving under B's name is noticed as the switch (and not counted as B's roster)
+    N=loadAddon(); hReady(N); advance(61); local calls=rosterCalls; advance(16); guildName="Guild B"
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); no(N.Main.host.on,"switch noticed on the roster"); eq(rosterCalls,calls+1,"a fresh roster asked for")
+    eq(hostF(),0); deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on); advance(61); eq(hostF(),1)
+end)
+test("1f: B's roster before the guild event: the switch asks for a roster; the late event changes nothing more",function()
+    local N=loadAddon(); hReady(N); advance(61); local calls=rosterCalls; advance(16)
+    guildName="Guild B"; deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(rosterCalls,calls+1); no(N.Main.host.on)
+    deliver("PLAYER_GUILD_UPDATE","player"); drain(); eq(rosterCalls,calls+1,"no second request inside 15 s")
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on,"the asked-for roster restores hosting")
+end)
+test("1f: an unreadable guild name in a switch keeps nothing of the old guild",function()
+    local N=loadAddon(); hReady(N); advance(61)
+    inGuild=false; deliver("PLAYER_GUILD_UPDATE","player"); drain()
+    inGuild=true; guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); deliver("GUILD_ROSTER_UPDATE",true); drain()
+    no(N.Main.host.on,"name unknown"); eq(hostF(),0)
+    guildName="Guild B"; deliver("GUILD_ROSTER_UPDATE",true); drain(); no(N.Main.host.on,"first readable name: its roster is asked for")
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
+    -- at login an unreadable name is still no change
+    N=loadAddon(); guildName=nil; hReady(N); yes(N.Main.host.on); deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on)
+    -- known guild, then a roster while its name blinks: not counted, nothing dropped
+    N=loadAddon(); hReady(N); local at=N.Adapters.roster.at; advance(5); guildName=nil; deliver("GUILD_ROSTER_UPDATE",true); drain()
+    eq(N.Adapters.roster.at,at,"not counted"); yes(N.Main.host.on,"nothing dropped"); guildName="Test Guild"
+    guildName="Test Guild"; deliver("PLAYER_GUILD_UPDATE","player"); deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
+end)
+test("1f: a request held for the roster is dropped by a guild switch, even if the requester is in the new guild",function()
+    local N=loadAddon(); establish(N); roster={{"Bob",true}}; deliver("GUILD_ROSTER_UPDATE",true); drain(); slash("host on"); sent={}
+    advance(121); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); yes(N.Main.host.held)
+    guildName="Guild B"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); eq(N.Main.host.held,nil)
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on); eq(#invites,0,"the old guild's request is not served")
+    -- same with the switch noticed on the roster itself
+    N=loadAddon(); establish(N); roster={{"Bob",true}}; deliver("GUILD_ROSTER_UPDATE",true); drain(); slash("host on")
+    advance(121); lsw("inv layer <LS 100 want 7086-0>","Bob"); guildName="Guild B"; advance(1); deliver("GUILD_ROSTER_UPDATE",true); drain()
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#invites,0)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

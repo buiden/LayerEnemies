@@ -429,6 +429,9 @@ function M.hostRequest(text,sender,held)
 end
 function M.rosterUpdate()
     local time=now()
+    -- a roster counts only in a known guild: never while guildless (or IsInGuild unreadable), and a switch noticed
+    -- here (a missed or late guild event) asks for that guild's own roster instead of counting this one
+    if not M.guildCheck(true) then return end
     A.rosterSeen(time)
     if M.host and M.host.want and not M.host.on then M.hostResume(false) end
     if M.host and M.host.announceOwed then M.host.announceOwed=nil; if M.host.on then guarded(M.announceHost) end end
@@ -899,12 +902,41 @@ end
 -- PLAYER_GUILD_UPDATE: out of the guild, or in another one, hosting goes inactive (still saved on), the owed H and
 -- a scheduled F answer are dropped, and the roster-seen flag is reset, so an H in a new guild waits for its roster.
 -- An update that changes nothing (same guild) keeps everything.
-function M.guildChanged()
+--
+-- guildSeen: the guild name known this session; guildLeft: a leave was seen this session; guildUnknown: a switch
+-- was seen but the new guild's name is not readable yet (hosting stays inactive until a readable name and then
+-- that guild's roster). At login an unreadable name is no change.
+local function guildSwitch(name)
+    M.guildSeen=name; M.guildUnknown=(name==nil)
+    M.guildReset()
+    A.rosterRefresh(now())
+end
+-- guildCheck(fromRoster) -> true when a roster arriving now may count as our guild's roster
+function M.guildCheck(fromRoster)
     local inGuild=S.call(IsInGuild)==true
-    local name=inGuild and S.str((S.call(GetGuildInfo,"player")),100) or nil
-    -- still in a guild and not known to be another one (its name unread yet, or the same): nothing changed
-    if inGuild and (not name or not M.guildSeen or name==M.guildSeen) then M.guildSeen=name or M.guildSeen; return end
-    M.guildSeen=name
+    if not inGuild then
+        if not fromRoster then M.guildLeft=true; M.guildSeen=nil; M.guildUnknown=nil; M.guildReset() end
+        return false
+    end
+    local name=S.str((S.call(GetGuildInfo,"player")),100)
+    if M.guildUnknown then
+        if not name then return false end
+        -- the first readable name after a switch: ask for that guild's roster
+        M.guildSeen=name; M.guildUnknown=nil; A.rosterRefresh(now()); return false
+    end
+    if name then
+        if M.guildSeen==name then return true end
+        if M.guildSeen==nil and not M.guildLeft then M.guildSeen=name; return true end   -- login
+        guildSwitch(name); return false
+    end
+    -- name unreadable: at login (nothing known, no leave seen) no change; otherwise a switch to an unknown guild
+    if M.guildSeen==nil and not M.guildLeft then return true end
+    -- a roster while the name blinks: not counted (it could be another guild's), nothing reset; the next one decides
+    if fromRoster then return false end
+    guildSwitch(nil); return false
+end
+function M.guildChanged() M.guildCheck(false) end
+function M.guildReset()
     if not M.host then return end
     M.host.guildToken=(M.host.guildToken or 0)+1
     M.host.announceOwed=nil; M.host.answerDue=nil; M.host.held=nil
