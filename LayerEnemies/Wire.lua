@@ -156,7 +156,7 @@ local function check(prefix, text, kind, target, opts)
     end
     return route, tag, target, opts, public
 end
--- the client call and its result
+-- the client call and its result; a third value true once the client was asked (whatever it answered)
 local OFFLINE_MAX = 256
 local function deliver(prefix, text, kind, target, now, key)
     local CI = _G.C_ChatInfo
@@ -164,10 +164,10 @@ local function deliver(prefix, text, kind, target, now, key)
     local okFn, fn = pcall(function() return CI.SendAddonMessage end)
     if not okFn or type(fn) ~= "function" then return false, "error" end
     local ok, result = pcall(fn, prefix, text, kind, target)
-    if not ok then return false, "error" end
-    if S.secret(result) then return false, "refused" end
-    if result == 0 or result == true then return true, "sent" end   -- (true: older clients return a boolean)
-    if result == 3 or result == 8 then if now then paused[prefix] = now + Wr.PAUSE end; return false, "throttled" end
+    if not ok then return false, "error", true end
+    if S.secret(result) then return false, "refused", true end
+    if result == 0 or result == true then return true, "sent", true end   -- (true: older clients return a boolean)
+    if result == 3 or result == 8 then if now then paused[prefix] = now + Wr.PAUSE end; return false, "throttled", true end
     if result == 12 and key and now then
         -- skipped for an hour; at most 256 names, expired ones and then the oldest go first
         local n, oldest, okey = 0, nil, nil
@@ -177,9 +177,9 @@ local function deliver(prefix, text, kind, target, now, key)
         end
         if n >= OFFLINE_MAX then offline[okey] = nil end
         offline[key] = now
-        return false, "offline"
+        return false, "offline", true
     end
-    return false, "refused"
+    return false, "refused", true
 end
 
 -- send(prefix, text, kind, target[, opts]) -> ok, why

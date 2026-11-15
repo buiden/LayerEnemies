@@ -10,10 +10,11 @@ Wn.GROUP_EVERY = 175                    -- a group hello at the same rhythm (a l
 Wn.KEEP, Wn.KEEP_AGE = 3, 900           -- our own last reports kept to answer with, and how long
 Wn.COOLDOWN, Wn.WAITING, Wn.START, Wn.QUEUED, Wn.GAP = 600, 5, 60, 300, 5
 Wn.J_EVERY = 60
+Wn.QUERY_TRIES = 2                      -- the login Q: at most two attempts
 
 function Wn.new(now)
     return { start = now, helloDue = now + Wn.FIRST, queried = false, said = {}, saidAt = {}, askedAt = nil,
-        kept = {}, answered = {}, waiting = {}, laneAt = nil, joinAt = {} }
+        kept = {}, answered = {}, waiting = {}, lastSent = nil, joinAt = {}, queryTries = 0 }
 end
 -- keep(st, rep): our own report as sent (C+E), for sync answers; the newest three
 function Wn.keep(st, rep)
@@ -47,7 +48,8 @@ function Wn.nextAnswer(st, now)
         local j = st.waiting[i]
         if not j.started and now - j.at > Wn.QUEUED then table.remove(st.waiting, i) end
     end
-    if st.laneAt and now < st.laneAt and now >= st.laneAt - Wn.GAP then return nil end
+    -- paced from the last send itself (a clock stepping back counts as just sent)
+    if st.lastSent and (now < st.lastSent or now - st.lastSent < Wn.GAP) then return nil end
     local job
     for _, j in ipairs(st.waiting) do if now >= j.startAt then job = j; break end end
     if not job then return nil end
@@ -60,12 +62,13 @@ function Wn.nextAnswer(st, now)
             else
                 job.parts = N.WeOut.enemies(r.rid, r.enemies, r.server)
                 job.part = 1
-                st.laneAt = now + Wn.GAP
+                st.lastSent = now
                 return job.name, N.WeOut.cluster(r.rid, r.map, r.x, r.y, r.layer, r.count, r.server, job.i, #job.recs)
             end
         else
             local e = job.parts[job.part]
-            if e then job.part = job.part + 1; st.laneAt = now + Wn.GAP; return job.name, e end
+            -- each E is checked against the asked age at its own send, like its C
+            if e and now - r.t <= job.maxAge then job.part = job.part + 1; st.lastSent = now; return job.name, e end
             job.i, job.part = job.i + 1, 0
         end
     end

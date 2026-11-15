@@ -4924,5 +4924,49 @@ test("21e 56dbb3c: with Bulo refreshing every second, our own sightings still go
     advance(1); b.Radar.seen["Player-1-902"]={at=clock,hostile=true,src="target"}; N.Main.poll(); advance(3); N.Main.shareTick()
     local o=oLines()[1]; yes(o); eq(tonumber(o.text:match("^O|1|%d+|%d+|[^|]*|[^|]*|[^|]*|(%d+)|")),math.floor(o.at-t0),"age from our own sighting")
 end)
+
+-- مانع on 21eacaf (r040c/21e astra-a2)
+test("21e 21eacaf: answer pacing compares against the last send time (no float edge: two sends at one timestamp)",function()
+    local N=loadAddon(); local Wn=N.WeNet; local st=Wn.new(0); local cont=function() return 1 end
+    Wn.keep(st,{rid=1,t=50,server=1000,map=100,x=.5,y=.5,layer=0,count=2,enemies={{hash="abc"}}})
+    yes(Wn.request(st,"Wes",1,900,55,cont,function() return 0 end)); yes(Wn.request(st,"Wesb",1,900,55,cont,function() return 0 end))
+    local who=Wn.nextAnswer(st,61.9); eq(who,"Wes"); eq(Wn.nextAnswer(st,61.9),nil,"not twice at 61.9 (61.9+5-5 < 61.9 in floating point)")
+    eq(Wn.nextAnswer(st,66.8),nil); yes(Wn.nextAnswer(st,66.9))
+end)
+test("21e 21eacaf: the answer queue holds five requesters; the sixth is refused",function()
+    local N=loadAddon(); local Wn=N.WeNet; local st=Wn.new(0); local cont=function() return 1 end
+    Wn.keep(st,{rid=1,t=50,server=1000,map=100,x=.5,y=.5,layer=0,count=2,enemies={{hash="abc"}}})
+    for _,n in ipairs({"Wes","Wesb","Wesc","Wesd","Wese"}) do yes(Wn.request(st,n,1,900,55,cont,function() return .9 end)) end
+    local ok,why=Wn.request(st,"Wesf",1,900,55,cont,function() return .9 end); no(ok); eq(why,"queue full")
+end)
+test("21e 21eacaf: a War Effort C or E whisper to a non-guildmate needs public consent like any other",function()
+    local N=loadAddon(); local Wr=N.Wire; netOn(N,"we"); N.Net.setConsent("guild"); roster={{"Wes",true}}; deliver("GUILD_ROSTER_UPDATE",true); drain()
+    local c=N.WeOut.cluster(5,100,.5,.5,7086,2,100,1,1); local e=N.WeOut.enemies(5,{{hash="abc",class="MAGE",level=60}},100)[1]
+    for _,t in ipairs({c,e}) do
+        local ok,why=Wr.send("WEFF1",t,"WHISPER","Stranger",{net="we",prio="owed"}); no(ok,t); eq(why,"no consent")
+        yes((Wr.send("WEFF1",t,"WHISPER","Wes",{net="we",prio="owed"})),"a guildmate needs none")
+    end
+end)
+test("21e 21eacaf: a raid with players outside the guild (raid units only) gets a raid hello",function()
+    local N=loadAddon(); weReady(N); roster={{"Bob",true}}; deliver("GUILD_ROSTER_UPDATE",true); drain()
+    grouped=true; raid=true; units.raid1={name="Me"}; units.raid2={name="Bob"}; advance(12)
+    local function raidN() local n=0; for _,m in ipairs(sent) do if m.prefix=="WEFF1" and m.kind=="RAID" then n=n+1 end end; return n end
+    eq(raidN(),0,"only guildmates"); units.raid3={name="Stranger"}; steps(200); eq(raidN(),1)
+    raid=false; grouped=false; units.raid1=nil; units.raid2=nil; units.raid3=nil
+end)
+test("21e 21eacaf: the login Q is tried at most twice",function()
+    local N=loadAddon(); weReady(N); sendResult=3; steps(200); local n=#weGuild("Q"); yes(n>=1 and n<=2,n)
+    sendResult=0; steps(200); eq(#weGuild("Q"),2,"no third attempt")
+    N=loadAddon(); weReady(N); steps(200); eq(#weGuild("Q"),1,"sent the first time: once")
+end)
+test("21e 21eacaf: answer ages are the observation's, rechecked at each send (C and E)",function()
+    local N=loadAddon(); local Wn=N.WeNet; local st=Wn.new(0); local cont=function() return 1 end
+    Wn.keep(st,{rid=1,t=100,server=1000,map=100,x=.5,y=.5,layer=0,count=2,enemies={{hash="abc"}}})
+    yes(Wn.request(st,"Wes",1,60,155,cont,function() return 0 end))
+    local who,c=Wn.nextAnswer(st,155); yes(c and c:sub(1,2)=="C|"); eq(Wn.nextAnswer(st,160.5),nil,"the E would be 60.5 s old: not sent")
+    -- Main keeps a report dated by its own sighting, not by the send
+    N=loadAddon(); netOn(N,"we"); establish(N); hello("Wes",19); local t0=clock; foe(N,1); foe(N,2); advance(3); N.Main.shareTick()
+    eq(#weSent("C"),1); eq(N.Main.we.kept[1].t,t0)
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

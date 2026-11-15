@@ -1074,7 +1074,8 @@ function M.shareTick()
     end
     -- kept for sync answers (lane A2): only what went to War Effort, dated by the server time it was seen
     if any and M.we then
-        N.WeNet.keep(M.we,{rid=rid,t=time,server=stamp-math.max(0,math.floor(time-rep.at)),map=zone,x=x,y=y,
+        -- t: when we saw it (the asked age counts from the sighting, not from our send)
+        N.WeNet.keep(M.we,{rid=rid,t=rep.at,server=stamp-math.max(0,math.floor(time-rep.at)),map=zone,x=x,y=y,
             layer=tonumber(key) or 0,count=rep.count,enemies=list})
     end
 end
@@ -1082,13 +1083,15 @@ end
 -- the guild), Q once at login, answers to a guild Q and Y, K "off" to a J. Never in an instance.
 local function weOutsiders()
     if not A.grouped() then return false end
-    for i=1,4 do
-        local u="party"..i
+    -- in a raid the raid units (raid1..40, ourselves among them), else party1..4
+    local raid=S.call(IsInRaid)==true
+    for i=1,raid and 40 or 4 do
+        local u=(raid and "raid" or "party")..i
         if S.call(UnitExists,u)==true then
             local n,realm=S.call(UnitName,u)
             n,realm=S.str(n,60),S.str(realm,60)
             local full=n and (realm and realm~="" and (n.."-"..realm) or n)
-            if full and A.guildMember(full)~=true then return true end
+            if full and not M.isMe(full) and A.guildMember(full)~=true then return true end
         end
     end
     return false
@@ -1131,8 +1134,12 @@ function M.weTick()
         M.weHello("timer")
         st.helloDue=time+N.WeNet.EVERY+math.random()*N.WeNet.JITTER
     end
-    if not st.queried and time-st.start>=N.WeNet.QUERY and A.inInstance()==false and S.call(IsInGuild)==true then
-        if N.Wire.send("WEFF1",N.WeOut.query(),"GUILD",nil,{net="we",prio="own"}) then st.queried=true end
+    if not st.queried and st.queryTries<N.WeNet.QUERY_TRIES and time-st.start>=N.WeNet.QUERY and A.inInstance()==false
+        and S.call(IsInGuild)==true then
+        local ok,_,called=N.Wire.send("WEFF1",N.WeOut.query(),"GUILD",nil,{net="we",prio="own"})
+        if ok then st.queried=true end
+        -- an attempt is a send the client was asked for (Wire's own pause or budget is no attempt)
+        if called then st.queryTries=st.queryTries+1 end
     end
     local who,text=N.WeNet.nextAnswer(st,time)
     if who then N.Wire.send("WEFF1",text,"WHISPER",who,{net="we",prio="owed"}) end
