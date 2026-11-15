@@ -35,7 +35,8 @@ Five prefixes are allowed. Two scopes matter for your settings: guild scope
 (guild, party and raid lines, and whispers to guildmates online in your roster)
 and public scope (whispers to anyone else, and the two public channels joined
 for reading). `/le net guild` turns every public send and both channel joins
-off; guild scope keeps working.
+off; guild scope keeps working. Guild only stops all automatic public sends; a
+Hop you click still whispers that one host.
 
 - LayerSwap prefix, WHISPER: one hop request to one host, only when you click
   a Hop button or run `/le hop <number>` or `/le hop host <number>`. No retry,
@@ -47,9 +48,11 @@ off; guild scope keeps working.
   guild answer with their own layer line. Our own Bulo `L` line is never sent,
   and an incoming `Q` is never answered.
 - LEGW1 prefix, GUILD: enemies your own client saw (an O line: zone, your
-  position, layer if known, up to four names; at most one per 15 seconds, 3
-  seconds after the first sighting, the same enemy again only after 60
-  seconds; `/le share off` stops it), and a relay of a report you heard
+  position, layer if known, up to four names). An O goes 3 seconds after the
+  first sighting of an enemy not shared in the last 60 seconds, at most one
+  per 15 seconds, and lists everyone your own client saw in the last 15
+  seconds, so a name can repeat in the next O 15 seconds later. `/le share off`
+  stops it. Also a relay of a report you heard
   first-hand in your party, raid or whispers, so guildmates running
   LayerEnemies see both. A relay waits a
   random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
@@ -68,7 +71,7 @@ off; guild scope keeps working.
 - WEFF1 prefix (War Effort network; its switch, `/le net wareffort on|off`;
   never while War Effort itself is loaded, never in an instance):
   - GUILD: our hello `H|1.0.0|<map>|<layer>|1|19|0|0|<stamp>||<class>|<level>|<public>`
-    10 seconds after login, then every 180-190 seconds (an identical one not
+    (followed by `|0|1` while your layer key is ambiguous) 10 seconds after login, then every 180-190 seconds (an identical one not
     within 30 seconds; a guildmate's `Q` gets one at most every 10 seconds).
     It tells guildmates your map, layer, class and level, never your name
     or position. One `Q` about 15 seconds after login (at most two
@@ -76,19 +79,27 @@ off; guild scope keeps working.
     two or more enemies seen together and only while a War Effort user's
     hello was heard on the guild in the last 600 seconds (`/le share off`
     stops it). Embassy lines (below): `D` (the foreign guilds we link to)
-    and `G` (a partner's report passed into your guild, at most 10 a minute).
+    and `G` (a partner's line passed into your guild: at most 10 reports a
+    minute, each a `C` with the `E` lines that belong to it, and at most 6
+    hellos a minute, one per origin per 600 seconds).
   - PARTY and RAID: the same hello when the group has players outside your
     guild (at most once per 175 seconds), and the same `C` and `E` rule.
   - WHISPER, guild scope: to a guildmate's sync request `Y`, our own last
     three reports (`C` marked as a sync answer, then `E`), only those sent
     to War Effort, within the age asked, one line per 5 seconds, each
     requester once per 600 seconds, at most five waiting; to a `J` (a layer
-    request), `K` saying "off", once per 60 seconds per player.
+    request), `K` saying "off", once per 60 seconds per player. `/le share
+    off` drops waiting sync answers and the reports kept for them.
+  - WHISPER, public scope: the same `K` to a `J` from a player outside your
+    guild, while public networks are on.
   - WHISPER, public scope (embassy, see "War Effort network"): `P` presence
     to players of other guilds in the War Effort channel (one new one a
     minute, answers at most 6 a minute, keepalive every 300 seconds), and
-    `W` forwards of our guild's reports to the partner chosen for them (0.2
-    a second, burst 6).
+    `W` forwards to the partner chosen for them (0.2 a second, burst 6): our
+    guild's reports (C and its first E) and hellos (each guildmate's, and
+    ours, at most once per 600 seconds). A W names its origin, so a partner
+    sees the reporter's name with the report or hello. With `/le share off`
+    our own W lines, also ones still queued, are not sent.
 - HeadHunter prefix, WHISPER only (HeadHunter network; its switch,
   `/le net headhunter on|off`; public scope; never while HeadHunter itself is
   loaded, never in an instance): our hello `1<A|H>N:LayerEnemies` once per
@@ -96,7 +107,8 @@ off; guild scope keeps working.
   envelopes with only the hop count raised (to 3 known peers and 1 unknown,
   never the author or the carrier, at most 6 a minute per peer, never past
   hop 5, a queued forward dropped once the envelope is over 600 seconds old),
-  catch-up `Q:h` after 20 seconds to up to 5 peers and one `Q:p` to the
+  catch-up `Q:h` after 20 seconds to up to 5 known peers plus 1 unknown one,
+  and one `Q:p` to the
   biggest offer, `O` and `S` answers to other members' catch-up (each
   requester once per 300 seconds; no `O` while we hold nothing; `S` only to a
   known peer of our faction, the newest 15 records that fit plus the end
@@ -164,7 +176,8 @@ shape is reported as data unavailable.
   level; `/le net wareffort on|off` (or `we`) and `/le net headhunter on|off`
   (or `hh`) set each network. All saved.
 - `/le share on|off`: share your own sightings (on by default, saved). Off
-  sends no O line and no War Effort report; you still receive everyone
+  sends no O line and no War Effort report (waiting sync answers and our own
+  embassy lines still queued are dropped too); you still receive everyone
   else's.
 - Window switches, on every tab: Share, Guild only, War Effort and
   HeadHunter (the same settings as the commands).
@@ -569,7 +582,11 @@ loaded, no `C_PartyInfo.InviteUnit`, not in a guild), it stays saved as on but
 inactive, answers nothing, and the line says why; the window shows "Hosting is
 on but inactive: <why>". When guild data arrives after login, it becomes
 active then, with one line. Nothing is sent at login: the `H` line goes out
-only from turning it on or in answer to an `F`.
+only from turning it on or in answer to an `F`. Hosting acts only while your
+guild's name is readable and equal to the guild seen this session; when the
+name blinks unreadable it goes inactive, and the next request or `F` checks
+again: readable and equal makes it active at once, otherwise a guild roster is
+asked (at most once per 15 seconds).
 
 A guildmate's request is the LayerSwap whisper line above. It is answered only
 when all of these hold, in this order (a failure before the guild check gets no
@@ -603,7 +620,8 @@ explicitly entered tracked names, and window position. It never persists
 sightings, discovered identities, GUIDs, hashes, locations, report payloads,
 asked names, alert history or source settings. Besides those three it holds
 `guildHost` (hosting for your guild) and `autoHop` (Auto accept and leave),
-`consent` ("guild" after `/le net guild`, else absent: public), `nets` (one
+`consent` ("guild" after `/le net guild`, "public" after `/le net public`,
+absent until either: public), `nets` (one
 switch per network), `share` (sharing your sightings), `netNotice` (the
 first-login line was shown) and `weReportId` (War Effort's report id, which
 must keep rising across sessions, 1 to 65535). Reloading keeps your watchlist,

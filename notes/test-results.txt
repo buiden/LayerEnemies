@@ -347,4 +347,7 @@ PASS 7a0 C1/C2: one row per enemy whatever the spelling: First-Last and First-La
 PASS 7a0 C1: the zone-name table is kept only when both lookups gave data; otherwise tried again
 PASS 7a0 C1: the sender in Spy spelling: our own line is refused, and the rate bucket is the folded name
 PASS 7a0 C1: an ambiguous zone name is no answer whichever map comes first; a C1 row never goes out as our O
-RESULT: 349 tests passed, 0 failed, 23546 assertions
+PASS b5c d744383: /le share off drops sync answers with our C/E and the reports kept for them
+PASS b5c d744383: /le share off drops our own W lines still queued for an embassy partner
+PASS b5c: a hosting blink ends on the next request or F when the guild name is readable and equal; else a roster is asked
+RESULT: 352 tests passed, 0 failed, 23671 assertions
