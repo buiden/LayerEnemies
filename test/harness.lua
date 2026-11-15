@@ -4026,7 +4026,8 @@ test("1.0 A1: a guildmate's O line is a first-hand row with names; our own is no
     local N=loadAddon(); establish(N); local R=N.Relay
     local line=R.ownLine({rid=7,zone=100,x=.25,y=.75,layer="7086",age=2,count=3,enemies={{name="Kora Reed",class="MAGE",level=60},{name="Ann Lee"}}})
     legw(line,"Scout"); local rows=N.Store.rows(N.Main.store,clock,"reported"); yes(#rows>=1)
-    local r=rows[1].record; eq(r.src,"le"); eq(r.hand,"first"); eq(r.origin,"Scout"); eq(r.enemies[1].name,"Kora Reed"); eq(r.count,3); eq(r.pos,"enemy")
+    local r=rows[1].record; eq(r.src,"le"); eq(r.hand,"first"); eq(r.origin,"Scout"); eq(r.enemies[1].name,"Kora Reed"); eq(r.count,3); eq(r.pos,"observer")
+    eq(rows[1].positionKind,"observer's position","the O line carries where the sender stood")
     eq(r.layer.ns,"server"); eq(r.layer.value,"7086"); eq(r.at,clock-2)
     local n=N.Safe.count(N.Main.store.reports); legw(line,"Me"); eq(N.Safe.count(N.Main.store.reports),n,"own echo")
     local five={}; for i=1,5 do five[i]="4b6f7261"..string.format("%02x",96+i)..":MAGE:60" end
@@ -4305,6 +4306,41 @@ test("1f: a request held for the roster is dropped by a guild switch, even if th
     N=loadAddon(); establish(N); roster={{"Bob",true}}; deliver("GUILD_ROSTER_UPDATE",true); drain(); slash("host on")
     advance(121); lsw("inv layer <LS 100 want 7086-0>","Bob"); guildName="Guild B"; advance(1); deliver("GUILD_ROSTER_UPDATE",true); drain()
     deliver("GUILD_ROSTER_UPDATE",true); drain(); eq(#invites,0)
+end)
+
+-- مانع on ded1bee (r040c/e4c), through events
+local function seeFoe(name,guid) units.target=player(name,"Horde",guid); deliver("PLAYER_TARGET_CHANGED"); drain() end
+test("e4c: an enemy re-seen every second is reported 3 s after its first sighting",function()
+    local N=loadAddon(); establish(N); advance(1)
+    for i=1,9 do seeFoe("Kora Reed","Player-1-901"); advance(1) end
+    eq(#oLines(),1,"reported while still being seen")
+    -- an enemy that left view before settling starts again on its next sighting
+    local Sh=N.Share; local st=Sh.new(); local e={key="k",faction="opposite",zone=100,source="own target",at=0}
+    eq(Sh.pick(st,{k=e},1,100),nil); eq(Sh.pick(st,{k=e},20,100),nil,"gone")
+    e.at=40; eq(Sh.pick(st,{k=e},40,100),nil,"settles again"); yes(Sh.pick(st,{k=e},43,100)); yes(oLines()[1].text:find("^O|1|%d+|100|"),oLines()[1].text)
+end)
+test("e4c: only our own unit sightings are shared, never a Bulo copy (also not one refreshing our own row)",function()
+    local N=loadAddon(); local b=fakeBulo("7086-7"); establish(N); advance(1)
+    seeFoe("Kora Reed","Player-1-901"); units.target=nil; advance(10); eq(#oLines(),1)
+    -- 61 s later Bulo reports the same player (keeps our classification): not ours to share
+    advance(61); b.Radar.seen["Player-1-901"]={at=clock,hostile=true,src="target"}; N.Main.poll(); b.Radar.seen={}
+    yes(N.Main.store.localSeen["Player-1-901"].source:find("^Bulo")); advance(10); eq(#oLines(),1,"Bulo copy not shared")
+    -- a Bulo-only player, and reports received from guildmates or War Effort, are never shared as ours
+    b.Radar.seen["Player-2-5"]={at=clock,hostile=true,src="target"}; N.Main.poll(); b.Radar.seen={}
+    hello("Wes",19); report(3,8000,"Wes"); legw(N.Relay.ownLine({rid=9,zone=100,x=.2,y=.2,layer="7086",age=0,count=2,enemies={{name="Ann Lee"}}}),"Scout")
+    advance(30); eq(#oLines(),1)
+end)
+test("e4c: an unknown or just-changed layer is sent as unknown, never a guessed key",function()
+    local N=loadAddon(); establish(N); advance(1)
+    deliver("SHARD_TRANSFER"); drain(); advance(1); eq(N.Main.store.bulo,nil,"layer not known again yet")
+    seeFoe("Kora Reed","Player-1-901"); units.target=nil; advance(10)
+    local o=oLines()[1]; yes(o,"sent anyway"); yes(o.text:find("^O|1|%d+|100|0.250|0.750||"),o.text)
+    -- the receiver shows it as layer unknown
+    local M=loadAddon(); establish(M); legw(o.text,"Scout"); local rows=M.Store.rows(M.Main.store,clock,"reported")
+    eq(rows[1].record.layer.ns,"unknown")
+    -- mixed servers sharing the zone (ambiguous): unknown too
+    N=loadAddon(); establish(N); advance(1); N.Main.store.ambiguous=function() return true end
+    seeFoe("Kora Reed","Player-1-901"); units.target=nil; advance(10); yes(oLines()[1].text:find("^O|1|%d+|100|0.250|0.750||"),oLines()[1].text)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

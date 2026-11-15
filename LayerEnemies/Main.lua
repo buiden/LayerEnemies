@@ -964,7 +964,8 @@ function M.shareTick()
     if not zone or zone~=M.store.zone then return end
     local rep=N.Share.pick(M.share,M.store.localSeen,time,zone)
     if not rep then return end
-    local key=L.key(M.store.bulo)
+    -- our layer as known now; unknown or ambiguous (mixed servers in the zone) is sent as unknown, never guessed
+    local key=not M.store.ambiguous(time) and L.key(M.store.bulo) or nil
     local rid=M.nextReportId()
     local inGuild=S.call(IsInGuild)==true
     -- to the guild: one O line with up to four names

@@ -257,7 +257,7 @@ function Rl.decodeOwn(text, sender, now)
     end
     local record, why = N.Record.new({ src = "le", kind = "group", origin = sender, via = sender, route = "GUILD",
         rid = tostring(rid), zone = zone, x = x, y = y, count = count, enemies = enemies, layer = layer,
-        heard = now, age = age, share = "guild" })
+        heard = now, age = age, share = "guild", pos = "observer" })              -- where the sender stood
     if not record then return nil, "record: " .. tostring(why) end
     return record
 end

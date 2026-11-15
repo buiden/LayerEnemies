@@ -21,8 +21,10 @@ Every addon message goes through one file (Wire.lua), on exactly two routes:
 
 - LayerSwap prefix, WHISPER: one hop request to one host, only when you click
   a Hop button or run `/le hop <number>`. No retry, no fan-out.
-- LEGW1 prefix, GUILD: a relay of a report you heard first-hand in your party,
-  raid or whispers, so guildmates running LayerEnemies see it. It waits a
+- LEGW1 prefix, GUILD: enemies your own client saw (an O line: zone, your
+  position, layer if known, up to four names; at most one per 15 seconds),
+  and a relay of a report you heard first-hand in your party, raid or
+  whispers, so guildmates running LayerEnemies see both. A relay waits a
   random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
   Guild membership, guild name and instance state are read when it is offered
   and again when it is due; not in a guild, another guild, in an instance, or
