@@ -11,6 +11,8 @@ HN.HELLO_EVERY, HN.FANOUT, HN.DISCOVER, HN.MAX_HOPS = 2, 3, 1, 5
 HN.LIFETIME, HN.SKEW, HN.RING, HN.PER_TARGET, HN.PEERS = 600, 300, 4000, 6, 500
 HN.ASK_AFTER, HN.ASK_PEERS, HN.COLLECT, HN.PULL_WAIT, HN.ANSWERED, HN.OFFER_TARGET = 20, 5, 5, 60, 300, 5
 HN.HOLD, HN.LINK_EVERY, HN.SINCE = 300, 600, 3600
+HN.SERVE, HN.ASKERS, HN.FRESH = 15, 256, 3600   -- records per pull; requesters remembered; a peer is known if heard this long ago
+HN.TOLD_MAX = 2000                               -- peers greeted this session (a rejoining peer is not greeted twice)
 HN.HELLO = "LayerEnemies"
 -- carried in envelopes (HeadHunter's list); T is diagnostic and stops here
 HN.CARRIED = { D = true, K = true, F = true, X = true, W = true, R = true, Y = true, U = true, J = true, L = true, N = true,
@@ -54,7 +56,12 @@ function HN.key(author, t, record) return (HN.compact(author) or "?") .. t .. HN
 
 function HN.new()
     return { peers = {}, n = 0, ring = {}, order = {}, head = 1, count = 0, history = {}, answered = {}, helloAt = nil,
-        asked = nil, offers = {}, pulling = nil, links = {}, started = nil }
+        asked = nil, offers = {}, pulling = nil, links = {}, started = nil, offered = {}, told = {}, ntold = 0, helloLast = nil }
+end
+-- hold(st, rec, at): a record kept to serve; full, the oldest goes
+function HN.hold(st, rec, at)
+    st.history[#st.history + 1] = { rec = rec, at = at }
+    while #st.history > HN.HOLD do table.remove(st.history, 1) end
 end
 function HN.remember(st, key)
     if st.ring[key] then return end
@@ -93,31 +100,44 @@ local function peer(st, name)
     end
     return p, c
 end
--- heard(st, sender, faction, world, hello) -> true when our hello is owed to them now
-function HN.heard(st, sender, faction, world, hello)
-    local p = peer(st, sender)
+local function told(st, c) return st.told[c] == true end
+local function tell(st, c)
+    if st.told[c] then return end
+    if st.ntold >= HN.TOLD_MAX then st.told, st.ntold = {}, 0 end
+    st.told[c], st.ntold = true, st.ntold + 1
+end
+-- heard(st, sender, faction, world, hello, now) -> true when a hello reply is now owed (sent by nextHello, paced)
+function HN.heard(st, sender, faction, world, hello, now)
+    local p, c = peer(st, sender)
     if not p then return false end
     p.faction = faction or p.faction
     p.world = world or p.world
     p.modern = p.modern or world ~= nil or hello == true
     p.unreachable = nil
-    if hello and not p.told then p.told = true; return true end
+    if now then p.heardAt = now end
+    if hello and not told(st, c) then tell(st, c); p.replyOwed = true; return true end
     return false
 end
--- nextHello(st, now, side, me) -> a peer name to greet now (one every 2 s), or nil
+-- nextHello(st, now, side) -> a peer name to greet now (one every 2 s; owed replies first), or nil
 function HN.nextHello(st, now, side)
-    if st.helloAt and now < st.helloAt and now >= st.helloAt - HN.HELLO_EVERY then return nil end
+    if st.helloLast and now >= st.helloLast and now - st.helloLast < HN.HELLO_EVERY then return nil end
     local names = {}
     for c in pairs(st.peers) do names[#names + 1] = c end
     table.sort(names)
     for _, c in ipairs(names) do
         local p = st.peers[c]
-        if not p.told and not p.unreachable and (not p.faction or p.faction == side) then
-            p.told = true; st.helloAt = now + HN.HELLO_EVERY
+        if p.replyOwed then p.replyOwed = nil; st.helloLast = now; return p.name end
+    end
+    for _, c in ipairs(names) do
+        local p = st.peers[c]
+        if not told(st, c) and not p.unreachable and (not p.faction or p.faction == side) then
+            tell(st, c); st.helloLast = now
             return p.name
         end
     end
 end
+-- owed(st) -> true while a hello reply waits
+function HN.owed(st) for _, p in pairs(st.peers) do if p.replyOwed then return true end end return false end
 -- sameWorld(a, b): "region-ruleset"; a part one side does not know ("?") does not split it
 function HN.sameWorld(a, b)
     if type(a) ~= "string" or type(b) ~= "string" then return false end
@@ -132,12 +152,15 @@ function HN.envelope(rec)
     if type(rec) ~= "string" then return nil end
     local world, author, f, server, hops, at, t, record = rec:match("^([^;]+);([^;]+);([AH]);([0-9a-z]+);([0-9a-z]+);([0-9a-z]+);(%u)(.+)$")
     if not world or #world > 40 or world:find("%c") or #author > 80 or author:find("[%c|:,~]") then return nil end
+    local atRaw = at
     hops, at = unb36(hops), unb36(at)
     if not hops or not at or #server > 10 then return nil end
-    return { world = world, author = author, faction = f, server = server, hops = hops, at = at, type = t, record = record }
+    return { world = world, author = author, faction = f, server = server, hops = hops, at = at, atRaw = atRaw, type = t,
+        record = record }
 end
+-- the envelope as received, with only its hop count changed (faction letter, server and timestamp bytes kept)
 local function rebuild(e, hops)
-    return table.concat({ e.world, e.author, e.faction, e.server, HN.b36(hops), HN.b36(e.at) }, ";") .. ";" .. e.type .. e.record
+    return table.concat({ e.world, e.author, e.faction, e.server, HN.b36(hops), e.atRaw }, ";") .. ";" .. e.type .. e.record
 end
 -- pick(st, count, exclude, now, side) -> names: up to count known peers, then max(1, count - known) unknown ones
 function HN.pick(st, count, exclude, now, side, world)
@@ -147,7 +170,9 @@ function HN.pick(st, count, exclude, now, side, world)
             and (not p.world or HN.sameWorld(p.world, world)) then
             local sentN = 0
             for _, at in ipairs(p.sentAt or {}) do if now - at < 60 and now >= at then sentN = sentN + 1 end end
-            if sentN < HN.PER_TARGET then (p.modern and known or unknown)[#(p.modern and known or unknown) + 1] = p end
+            -- known: a modern peer heard within 3600 s; anyone else is only a discovery candidate
+            local fresh = p.modern and p.heardAt and now >= p.heardAt and now - p.heardAt <= HN.FRESH
+            if sentN < HN.PER_TARGET then (fresh and known or unknown)[#(fresh and known or unknown) + 1] = p end
         end
     end
     local function shuffle(l) for i = #l, 2, -1 do local j = math.floor((HN.rand or math.random)() * i) + 1; l[i], l[j] = l[j], l[i] end end
@@ -173,46 +198,64 @@ function HN.carry(st, rec, carrier, carrierSide, now, ctx)
     local fromAuthor = HN.compact(e.author) == HN.compact(carrier)
     if not HN.sameWorld(e.world, ctx.world) or e.hops < 1 or e.hops > HN.MAX_HOPS or e.at > ctx.serverNow + HN.SKEW
         or ctx.serverNow - e.at > HN.LIFETIME or (fromAuthor and e.hops ~= 1) then return {}, "refused" end
-    HN.heard(st, carrier, carrierSide, e.world, false)
+    HN.heard(st, carrier, carrierSide, e.world, false, now)
     if HN.compact(e.author) == ctx.me then return {}, "own echo" end
     if e.faction ~= ctx.side and not HN.CROSS[e.type] then return {}, "other faction" end
     local key = HN.key(e.author, e.type, e.record)
     if HN.seen(st, key) then return {}, "duplicate" end
     HN.remember(st, key)
-    if HN.HISTORY[e.type] and #st.history < HN.HOLD then st.history[#st.history + 1] = { rec = e.type .. e.record, at = ctx.serverNow } end
+    if HN.HISTORY[e.type] then HN.hold(st, e.type .. e.record, ctx.serverNow) end
     if e.type == "T" or e.hops >= HN.MAX_HOPS then return {}, "kept" end
     local exclude = { [HN.compact(e.author) or "?"] = true, [HN.compact(carrier) or "?"] = true, [ctx.me] = true }
     local out = {}
+    -- still(serverNow): a queued forward goes only while the envelope is at most 600 s old
+    local at = e.at
+    local function still(serverNow) return type(serverNow) == "number" and serverNow - at <= HN.LIFETIME end
     for _, name in ipairs(HN.pick(st, HN.FANOUT, exclude, now, ctx.side, ctx.world)) do
         local text = HN.frame(ctx.side, "E", rebuild(e, e.hops + 1))
-        if text then out[#out + 1] = { target = name, text = text } end
+        if text then out[#out + 1] = { target = name, text = text, still = still } end
     end
     return out, "forwarded"
 end
--- records(st, since) -> what we hold received at or after since (server time)
+-- records(st, since) -> the newest records (at most 15) held since then that fit a frame alone, oldest first
 function HN.records(st, since)
     local out = {}
-    for _, r in ipairs(st.history) do if r.at >= since then out[#out + 1] = r.rec end end
+    for i = #st.history, 1, -1 do
+        local r = st.history[i]
+        if #out >= HN.SERVE then break end
+        if r.at >= since and 5 + #r.rec <= 255 then table.insert(out, 1, r.rec) end
+    end
     return out
+end
+-- requester maps: entries older than 300 s go; at most 256 (full: no answer)
+local function room(map, now)
+    local n = 0
+    for k, at in pairs(map) do if now < at or now - at >= HN.ANSWERED then map[k] = nil else n = n + 1 end end
+    return n < HN.ASKERS
 end
 function HN.chance(online) return math.min(1, HN.OFFER_TARGET / math.max(1, (online or 1) - 1)) end
 local function answeredLately(st, who, now)
     local at = st.answered[HN.compact(who) or "?"]
     return at ~= nil and now >= at and now - at < HN.ANSWERED
 end
--- query(st, body, sender, now, ctx) -> { target, text, delay } list
-function HN.query(st, body, sender, now, ctx)
+-- query(st, body, sender, now, ctx, side) -> { target, text, delay } list; side: the frame's faction letter
+function HN.query(st, body, sender, now, ctx, side)
     local kind, since = body:sub(1, 1), unb36(body:sub(2))
     if not since or (kind ~= "h" and kind ~= "p") or answeredLately(st, sender, now) then return {} end
+    local who = HN.compact(sender) or "?"
     local recs = HN.records(st, since)
     if kind == "h" then
         if #recs == 0 or (ctx.rand or math.random)() >= HN.chance(ctx.online) then return {} end
-        st.offered = st.offered or {}
-        if st.offered[HN.compact(sender)] and now - st.offered[HN.compact(sender)] < HN.ANSWERED then return {} end
-        st.offered[HN.compact(sender)] = now
+        if st.offered[who] and now >= st.offered[who] and now - st.offered[who] < HN.ANSWERED then return {} end
+        if not room(st.offered, now) then return {} end
+        st.offered[who] = now
         return { { target = sender, text = HN.frame(ctx.side, "O", HN.b36(#recs)), delay = (ctx.rand or math.random)() * 3 } }
     end
-    st.answered[HN.compact(sender)] = now
+    -- a pull is served only to a known peer of our faction
+    local p = st.peers[who]
+    if not p or (side and side ~= ctx.side) or (p.faction and p.faction ~= ctx.side) then return {} end
+    if not room(st.answered, now) then return {} end
+    st.answered[who] = now
     recs[#recs + 1] = "E" .. HN.b36(#recs)
     -- packed into frames of at most 255 bytes ("~" between records); a record that cannot fit alone is skipped
     local out, cur = {}, {}
@@ -258,15 +301,16 @@ function HN.pull(st, now, ctx)
     st.offers = {}
     return { { target = best.name, text = HN.frame(ctx.side, "Q", "p" .. HN.b36(ctx.serverNow - HN.SINCE)) } }
 end
--- snapshot(st, sender, body, ctx): S records from the sender we pull from, kept verbatim until its end marker
-function HN.snapshot(st, sender, body, ctx)
+-- snapshot(st, sender, body, ctx, side): S records from the sender we pull from, kept verbatim until its end marker;
+-- from the other faction only the kinds HeadHunter takes across (as for envelopes)
+function HN.snapshot(st, sender, body, ctx, side)
     local p = st.pulling
     if not p or p.done or HN.compact(p.name) ~= HN.compact(sender) then return false end
     for rec in (body .. "~"):gmatch("([^~]*)~") do
         local k = rec:sub(1, 1)
         if k == "E" then p.done = true; break end
-        if k:match("%u") and #rec >= 2 and #st.history < HN.HOLD and not rec:find("[%c|]") then
-            st.history[#st.history + 1] = { rec = rec, at = ctx.serverNow }
+        if k:match("%u") and #rec >= 2 and not rec:find("[%c|]") and (not side or side == ctx.side or HN.CROSS[k]) then
+            HN.hold(st, rec, ctx.serverNow)
         end
     end
     return true

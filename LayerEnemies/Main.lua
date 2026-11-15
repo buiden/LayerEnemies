@@ -1244,22 +1244,22 @@ function M.embassyTick()
     ctx.members=(type(m)=="table" and m[1]) and m or nil
     for _,o in ipairs(N.WeEmb.tick(M.emb,time,ctx)) do
         if o.kind=="GUILD" then
-            if N.Wire.send("WEFF1",o.text,"GUILD",nil,{net="we",prio="own"}) then N.WeEmb.announced(M.emb,o.text,o.links,time) end
-        else N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="owed",queue=true,still=embassyOn}) end
+            if N.Wire.send("WEFF1",o.text,"GUILD",nil,{net="we",prio="embassy"}) then N.WeEmb.announced(M.emb,o.text,o.links,time) end
+        else N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="embassy",queue=true,still=embassyOn}) end
     end
 end
 function M.embassyIn(msg,kind,sender,time)
     local ctx=embCtx(time)
     if msg.type=="P" and kind=="WHISPER" then
         local reply=N.WeEmb.presence(M.emb,msg,sender,time,ctx)
-        if reply then N.Wire.send("WEFF1",reply.text,"WHISPER",reply.target,{net="we",prio="owed",queue=true,still=embassyOn}) end
+        if reply then N.Wire.send("WEFF1",reply.text,"WHISPER",reply.target,{net="we",prio="embassy",queue=true,still=embassyOn}) end
     elseif msg.type=="D" and kind=="GUILD" then
         N.WeEmb.links(M.emb,msg,sender,time)
     elseif msg.type=="W" and kind=="WHISPER" then
         local g,why=N.WeEmb.bridge(M.emb,msg,sender,time,ctx)
         M.lastDrop=g and "bridged" or ("embassy: "..tostring(why))
         if not g then return end
-        if S.call(IsInGuild)==true then N.Wire.send("WEFF1",g,"GUILD",nil,{net="we",prio="forward",queue=true,still=embassyOn}) end
+        if S.call(IsInGuild)==true then N.Wire.send("WEFF1",g,"GUILD",nil,{net="we",prio="embassy",queue=true,still=embassyOn}) end
         -- stored as a relayed public report (never passed on to another partner)
         if msg.inner.type~="H" then
             local record=N.Reports.receive(M.receiver,{type="G",origin=msg.origin,inner=msg.inner},{sender=sender,route="WHISPER",now=time,
@@ -1282,7 +1282,7 @@ function M.embassyForward(origin,msg,text,time,guildmate)
             if guildmate and not publicMate(origin,t) then return false end
             return embassyOn() and N.WeEmb.seat(M.emb,key,target,t,embCtx(t))
         end
-        N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="forward",queue=true,still=still})
+        N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="embassy",queue=true,still=still})
     end
 end
 -- HeadHunter mesh (lanes B1, B2): all by whisper, all public; nothing while public networks are off.
@@ -1314,8 +1314,25 @@ local function hhCtx(time)
     return {world=M.hhWorld(),serverNow=S.num(S.call(GetServerTime)),me=N.HhNet.compact(M.weName() or "?") or "?",side=hhSide(),
         online=N.Directory.count("hh")}
 end
-local function hhSend(text,target)
-    if text and target then N.Wire.send("HeadHunter",text,"WHISPER",target,{net="hh",prio="forward",queue=true}) end
+-- every HeadHunter line ranks last (mesh); extra opts: still (a queued forward's age check), catchup (a pull's frame)
+local function hhSend(text,target,extra)
+    if not (text and target) then return end
+    local opts={net="hh",prio="mesh",queue=true}
+    for k,v in pairs(extra or {}) do opts[k]=v end
+    N.Wire.send("HeadHunter",text,"WHISPER",target,opts)
+end
+-- hello replies, one per 2 s: sent now when the pace allows, else on a timer (one at a time)
+function M.hhHelloPump()
+    local st=M.hhNet
+    if not st or not N.Net.allowed("hh","public") then return end
+    local ctx=hhCtx(now())
+    if not ctx.side then return end
+    local who=N.HhNet.nextHello(st,now(),ctx.side)
+    if who then hhSend(N.HhNet.frame(ctx.side,"N",N.HhNet.HELLO),who) end
+    if N.HhNet.owed(st) and not M.hhHelloTimer then
+        M.hhHelloTimer=true
+        if not N.Net.after("hh",N.HhNet.HELLO_EVERY+0.05,function() M.hhHelloTimer=nil; guarded(M.hhHelloPump) end,"public") then M.hhHelloTimer=nil end
+    end
 end
 function M.hhTick()
     local st=M.hhNet
@@ -1325,8 +1342,7 @@ function M.hhTick()
     if not ctx.side or not ctx.serverNow then return end
     local members=N.Directory.members("hh")
     if type(members)=="table" and members[1] then N.HhNet.roster(st,members,ctx.me) end
-    local who=N.HhNet.nextHello(st,time,ctx.side)
-    if who then hhSend(N.HhNet.frame(ctx.side,"N",N.HhNet.HELLO),who) end
+    M.hhHelloPump()
     for _,o in ipairs(N.HhNet.ask(st,time,ctx)) do hhSend(o.text,o.target) end
     for _,o in ipairs(N.HhNet.pull(st,time,ctx)) do hhSend(o.text,o.target) end
 end
@@ -1338,21 +1354,30 @@ function M.hhMesh(text,sender,time)
     local side,t,body=text:match("^1([AH])(%u):(.+)$")
     if not body then return end
     if t=="N" then
-        if N.HhNet.heard(st,sender,side,nil,true) then hhSend(N.HhNet.frame(ctx.side,"N",N.HhNet.HELLO),sender) end
+        if N.HhNet.heard(st,sender,side,nil,true,time) then M.hhHelloPump() end
     elseif t=="E" then
         for rec in (body.."~"):gmatch("([^~]*)~") do
             local out=N.HhNet.carry(st,rec,sender,side,time,ctx)
-            for _,o in ipairs(out) do hhSend(o.text,o.target) end
+            for _,o in ipairs(out) do
+                local check=o.still
+                hhSend(o.text,o.target,{still=function() return check(S.num(S.call(GetServerTime))) end})
+            end
         end
     elseif t=="Q" then
-        for _,o in ipairs(N.HhNet.query(st,body,sender,time,ctx)) do
-            if o.delay and o.delay>0 then
-                local text2,target=o.text,o.target
-                if not N.Net.after("hh",o.delay,function() hhSend(text2,target) end,"public") then hhSend(text2,target) end
-            else hhSend(o.text,o.target) end
+        local pull=body:sub(1,1)=="p"
+        local i=0
+        for _,o in ipairs(N.HhNet.query(st,body,sender,time,ctx,side)) do
+            local text2,target=o.text,o.target
+            -- a pull's frames: about one per 2 s, on the pull's own allowance
+            local delay=pull and 2*i or (o.delay or 0)
+            local extra=pull and {catchup=true} or nil
+            i=i+1
+            if delay>0 then
+                if not N.Net.after("hh",delay,function() hhSend(text2,target,extra) end,"public") then hhSend(text2,target,extra) end
+            else hhSend(text2,target,extra) end
         end
     elseif t=="O" then N.HhNet.offer(st,sender,body,time)
-    elseif t=="S" then N.HhNet.snapshot(st,sender,body,ctx)
+    elseif t=="S" then N.HhNet.snapshot(st,sender,body,ctx,side)
     elseif t=="H" then
         local guid=S.str(S.call(UnitGUID,"player"),120)
         local home=guid and tonumber(guid:match("^Player%-(%d+)%-"))

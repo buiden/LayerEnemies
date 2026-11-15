@@ -76,7 +76,16 @@ for prefix, r in pairs(ROUTES) do Wr.ROUTES[prefix] = {}; for k in pairs(r.kinds
 --   In combat a send costs double and every minute cap is halved. In an instance only clicks go. A clock that steps
 --   back counts as "just sent": nothing refills and nothing leaves a window. A client throttle (3 or 8) pauses that prefix
 --   30 s and the line is dropped; an offline target (12) is skipped for an hour.
-Wr.PRIO = { click = 1, own = 2, owed = 3, forward = 4 }
+-- click > own (our sightings, hello) > owed (host H, answers) > embassy and guild relay (forward) > mesh (HeadHunter
+-- forwards, hellos and catch-up), last. Lines from embassy down may not spend the reserve: they leave at least
+-- RESERVE_TOKENS in the shared bucket and RESERVE_MINUTE (GUILD: RESERVE_GUILD) of each minute cap (halved in combat),
+-- so our own lines are never starved by a busy mesh.
+Wr.PRIO = { click = 1, own = 2, owed = 3, embassy = 4, forward = 4, mesh = 5 }
+Wr.RESERVE_TOKENS, Wr.RESERVE_MINUTE, Wr.RESERVE_GUILD = 2, 10, 5
+-- a catch-up pull's frames (opts.catchup) have their own allowance per requester instead of the 4 a minute: 16
+-- frames per 300 s, still inside the public budget
+Wr.CATCHUP_FRAMES, Wr.CATCHUP_WINDOW = 16, 300
+local catchupTo = {}
 Wr.QUEUE_MAX, Wr.PAUSE, Wr.OFFLINE = 40, 30, 3600
 local PREFIX_CAP, PREFIX_REFILL, ALL_CAP, ALL_REFILL, ALL_MINUTE = 5, 2, 8, 1.5, 40
 local GUILD_MINUTE, PUBLIC_MINUTE, PUBLIC_ONE = 20, 20, 4
@@ -103,22 +112,30 @@ local function inCombat()
     local a, b = S.call(InCombatLockdown), S.call(UnitAffectingCombat, "player")
     return a == true or b == true
 end
--- room(prefix, kind, target, public, now) -> ok: every budget has room for one send
-local function room(prefix, kind, target, public, now, cost)
+-- room(prefix, kind, target, public, now, cost, low, catchup) -> ok: every budget has room for one send; low: a line
+-- that may not spend the reserve; catchup: a pull's frame (its own allowance instead of the per-player cap)
+local function room(prefix, kind, target, public, now, cost, low, catchup)
     local b = buckets[prefix] or { tokens = PREFIX_CAP, at = nil }
     buckets[prefix] = b
     refill(b, PREFIX_CAP, PREFIX_REFILL, now); refill(all, ALL_CAP, ALL_REFILL, now)
-    if b.tokens < cost or all.tokens < cost then return false end
+    if b.tokens < cost or all.tokens < cost + (low and Wr.RESERVE_TOKENS or 0) then return false end
     -- in combat (cost 2) every minute cap is halved
     local function cap(n) return math.floor(n / cost) end
     allTimes = recent(allTimes, now)
-    if #allTimes >= cap(ALL_MINUTE) then return false end
-    if kind == "GUILD" then guildTimes = recent(guildTimes, now); if #guildTimes >= cap(GUILD_MINUTE) then return false end end
+    if #allTimes >= cap(ALL_MINUTE) - (low and cap(Wr.RESERVE_MINUTE) or 0) then return false end
+    if kind == "GUILD" then
+        guildTimes = recent(guildTimes, now)
+        if #guildTimes >= cap(GUILD_MINUTE) - (low and cap(Wr.RESERVE_GUILD) or 0) then return false end
+    end
     if public then
         publicTimes = recent(publicTimes, now)
         if #publicTimes >= cap(PUBLIC_MINUTE) then return false end
         for k, l in pairs(publicTo) do l = recent(l, now); publicTo[k] = l[1] and l or nil end   -- pruned
-        if #(publicTo[target] or {}) >= cap(PUBLIC_ONE) then return false end
+        if catchup then
+            local c = catchupTo[target]
+            if c and (now < c.at or now - c.at >= Wr.CATCHUP_WINDOW) then c = nil; catchupTo[target] = nil end
+            if c and c.n >= Wr.CATCHUP_FRAMES then return false end
+        elseif #(publicTo[target] or {}) >= cap(PUBLIC_ONE) then return false end
     end
     return true
 end
@@ -128,6 +145,16 @@ local function spend(prefix, kind, target, public, now, cost)
     allTimes[#allTimes + 1] = now
     if kind == "GUILD" then guildTimes[#guildTimes + 1] = now end
     if public then publicTimes[#publicTimes + 1] = now; local l = publicTo[target] or {}; l[#l + 1] = now; publicTo[target] = l end
+end
+local function spendCatchup(target, now)
+    local c = catchupTo[target]
+    if not c then
+        local n = 0
+        for k, v in pairs(catchupTo) do if now < v.at or now - v.at >= Wr.CATCHUP_WINDOW then catchupTo[k] = nil else n = n + 1 end end
+        if n >= 256 then return end
+        c = { at = now, n = 0 }; catchupTo[target] = c
+    end
+    c.n = c.n + 1
 end
 
 local enqueue
@@ -203,7 +230,10 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
     local key = target and who(target)
     if key and offline[key] and (now < offline[key] or now - offline[key] < Wr.OFFLINE) then return false, "offline" end
     local cost = inCombat() and 2 or 1
-    if not room(prefix, kind, key, public, now, cost) then
+    -- the reserve binds the lines that say they rank low (embassy, mesh); an unmarked line keeps the old rules
+    local low = opts.prio == "embassy" or opts.prio == "mesh"
+    local catchup = opts.catchup == true and prefix == "HeadHunter"
+    if not room(prefix, kind, key, public, now, cost, low, catchup) then
         if opts.queue and not fromQueue then return enqueue(prefix, text, kind, target, opts, prio) end
         return false, "throttled"
     end
@@ -221,7 +251,16 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
         if replyAt and (now < replyAt or now - replyAt < Wr.REPLY_EVERY) then return false, "throttled" end
         replyAt = now
     end
-    spend(prefix, kind, key, public, now, cost)
+    if catchup then
+        -- a pull's frame counts in the public minute cap but not in the per-player one
+        buckets[prefix].tokens = buckets[prefix].tokens - cost
+        all.tokens = all.tokens - cost
+        allTimes[#allTimes + 1] = now
+        if public then publicTimes[#publicTimes + 1] = now end
+        spendCatchup(key, now)
+    else
+        spend(prefix, kind, key, public, now, cost)
+    end
     return deliver(prefix, text, kind, target, now, key)
 end
 function Wr.send(prefix, text, kind, target, opts) return sendNow(prefix, text, kind, target, opts, false) end
@@ -231,9 +270,10 @@ function Wr.send(prefix, text, kind, target, opts) return sendNow(prefix, text, 
 local pump
 enqueue = function(prefix, text, kind, target, opts, prio)
     if #queue >= Wr.QUEUE_MAX then
+        -- the oldest line of the lowest priority present goes (mesh first, then embassy and relay lines)
         local drop
         for i, q in ipairs(queue) do
-            if q.prio == Wr.PRIO.forward and (not drop or q.seq < queue[drop].seq) then drop = i end
+            if q.prio >= Wr.PRIO.embassy and (not drop or q.prio > queue[drop].prio or (q.prio == queue[drop].prio and q.seq < queue[drop].seq)) then drop = i end
         end
         if not drop then return false, "queue full" end
         table.remove(queue, drop)
