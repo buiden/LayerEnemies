@@ -48,7 +48,8 @@ local function rowFrame()
     r.sub=font(r,10,colors.muted); r.sub:SetPoint("TOPLEFT",r,"TOPLEFT",42,-26); r.sub:SetWidth(294); r.sub:SetHeight(31); r.sub:SetJustifyV("TOP")
     r.age=font(r,10,colors.muted); r.age:SetPoint("TOPRIGHT",r,"TOPRIGHT",-8,-8); r.age:SetJustifyH("RIGHT")
     r.ask=button(r,220,20,"Ask for invite",function()
-        if r.hopRecord then N.Main.hopTo(r.hopRecord,r.hopShown); U.render()
+        if r.hostRow then N.Main.hopHostTo(r.hostRow,r.hostShown); U.render()
+        elseif r.hopRecord then N.Main.hopTo(r.hopRecord,r.hopShown); U.render()
         elseif r.spotter then N.AskInvite(r.spotter); U.render() end
     end)
     -- a disabled Hop button says why on mouse-over
@@ -60,7 +61,7 @@ local function rowFrame()
     end)
     r.ask:SetScript("OnLeave",function() local tip=_G.GameTooltip; if S.tab(tip) then pcall(tip.Hide,tip) end end)
     r.ask:SetPoint("BOTTOMLEFT",r,"BOTTOMLEFT",42,6)
-    r.hopRecord=false; r.hopShown=false; r.spotter=false; r.ask.reason=false
+    r.hopRecord=false; r.hopShown=false; r.hostRow=false; r.hostShown=false; r.spotter=false; r.ask.reason=false
     r.clear=button(r,42,18,"Clear",function() if r.tracked then N.Main.track(r.tracked,true); U.render() end end)
     r.clear:SetPoint("BOTTOMRIGHT",r,"BOTTOMRIGHT",-6,6)
     return r
@@ -71,15 +72,28 @@ function U.cooldown(name)
     if at and GetTime()-at<N.Invite.NAME_COOLDOWN then return math.ceil(N.Invite.NAME_COOLDOWN-(GetTime()-at)) end
 end
 -- The Hop button of a report row: who will be asked and how; disabled with the reason.
+-- A Friendly row with a host record: Hop via that host (one whisper per click), disabled with the reason.
+local function hostState(r,e,p)
+    r.spotter=false; r.hopRecord=false; r.hostRow=e; r.hostShown=p
+    r.ask:Show(); r.ask.label:SetText(p.label); r.ask.reason=p.enabled and p.detail or p.reason
+    r.ask.bg:SetColorTexture(unpack(p.enabled and {.137,.227,.11} or {.11,.13,.16}))
+    if p.enabled then r.ask:Enable() else r.ask:Disable() end
+end
+-- A row listed while our own layer is unknown: no ask, the hint says what to do.
+local function unknownState(r)
+    r.spotter=false; r.hopRecord=false; r.hostRow=false; r.hostShown=false
+    r.ask:Show(); r.ask.label:SetText("Ask for invite"); r.ask.reason=N.Invite.HINT
+    r.ask.bg:SetColorTexture(.11,.13,.16); r.ask:Disable()
+end
 local function hopState(r,record)
-    r.spotter=false; r.hopRecord=record
+    r.spotter=false; r.hostRow=false; r.hostShown=false; r.hopRecord=record
     local p=N.Main.hopPreview(record); r.hopShown=p
     r.ask:Show(); r.ask.label:SetText(p.label); r.ask.reason=p.enabled and p.detail or p.reason
     r.ask.bg:SetColorTexture(unpack(p.enabled and {.137,.227,.11} or {.11,.13,.16}))
     if p.enabled then r.ask:Enable() else r.ask:Disable() end
 end
 local function askState(r,name,label)
-    r.spotter=name or false; r.hopRecord=false; r.hopShown=false; r.ask.reason=false
+    r.spotter=name or false; r.hopRecord=false; r.hopShown=false; r.hostRow=false; r.hostShown=false; r.ask.reason=false
     if not name then r.ask:Hide(); return end
     r.ask:Show()
     local remaining=U.cooldown(name)
@@ -107,16 +121,33 @@ function U.render()
         b.bg:SetColorTexture(unpack(key==U.tab and colors.bg or {.055,.071,.086}))
         b.line:SetShown(key==U.tab)
     end
-    U.layer:SetText(N.Layer.key(M.store.bulo) or "?")
-    U.meta:SetText(M.zoneName(M.store.zone).." · "..(M.layerSource or "unknown"))
+    local known=N.Layer.key(M.store.bulo)
+    U.layer:SetText(known or "?")
+    U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or "layer unknown: mouse over or target two different kinds of NPC within 15 s"))
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
-    U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or "")
+    U.findHosts:SetShown(U.tab=="friendly")
+    local wait=N.Hosts.askWait(M.heard,time)
+    U.findHosts.label:SetText(wait and ("Asked · "..wait.."s") or "Find hosts")
+    if wait then U.findHosts:Disable() else U.findHosts:Enable() end
+    local hosting,want=M.host and M.host.on,M.host and M.host.want
+    U.host:SetShown(U.tab=="friendly"); U.host.label:SetText(want and "Host: on" or "Host: off")
+    U.hosting:SetText(hosting and "Hosting for your guild (stays on after reload)"
+        or ("Hosting is on but inactive: "..tostring(M.host and M.host.inactive or "")))
+    U.hosting:SetShown(want==true)
+    U.auto:SetShown(U.tab=="friendly"); U.auto.label:SetText(M.autoHop() and "Auto: on" or "Auto: off")
+    U.share.label:SetText(M.sharing() and "Share: on" or "Share: off")
+    U.guildOnly.label:SetText(N.Net.consent()=="public" and "Guild only: off" or "Guild only: on")
+    -- a network not in this version shows n/a; otherwise its own switch (stand-down and guild only show in /le net)
+    local function netLabel(key,name) return name..": "..(N.Net.SHIP[key]~=true and "n/a" or N.Net.switch(key) and "on" or "off") end
+    U.netWe.label:SetText(netLabel("we","War Effort")); U.netHh.label:SetText(netLabel("hh","HeadHunter"))
+    local hint=U.tab=="friendly" and not known
+    U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
     local height=U.tab=="local" and 48 or U.tab=="find" and 106 or U.tab=="friendly" and 68 or 80
-    local top=U.tab=="find" and 56 or U.tab=="reported" and 23 or 0
+    local top=U.tab=="find" and 56 or (U.tab=="reported" or U.tab=="friendly") and 23 or 0
     local visible=math.floor((300-top)/height)
     local maximum=math.max(0,#rows-visible)
     U.offset=math.min(U.offset,maximum)
-    for _,r in ipairs(U.pool) do r:Hide(); r.spotter=false; r.tracked=nil; r.hopRecord=false end
+    for _,r in ipairs(U.pool) do r:Hide(); r.spotter=false; r.tracked=nil; r.hopRecord=false; r.hostRow=false end
     for index=1,math.min(visible,#rows-U.offset) do
         local e=rows[index+U.offset]
         local r=U.pool[index]
@@ -140,11 +171,14 @@ function U.render()
             r.sub:SetText(className(e.class).." · "..M.zoneName(e.zone)); askState(r,nil)
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))
-            r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or ""))
+            r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or ""))
             hopState(r,e.record)
         elseif U.tab=="friendly" then
             r.sub:SetText(table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.layer and "layer "..e.layer or "layer not known"))
-            askState(r,e.name,"Ask for invite")
+            local p=not e.unknownOwn and M.hostPreview(e)
+            if e.unknownOwn then unknownState(r)
+            elseif p then hostState(r,e,p)
+            else askState(r,e.name,"Ask for invite") end
         else
             r.tracked=e.name; r.clear:Show()
             r.sub:SetText(e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or e.status)
@@ -186,7 +220,7 @@ function U.create()
     if U.frame then return end
     local f=CreateFrame("Frame","LayerEnemiesWindow",UIParent)
     f:Hide() -- Native frames start shown; never flash on login.
-    U.frame=f; f:SetSize(360,468); f:SetFrameStrata("MEDIUM"); paint(f,colors.bg); border(f,{.18,.22,.26})
+    U.frame=f; f:SetSize(360,492); f:SetFrameStrata("MEDIUM"); paint(f,colors.bg); border(f,{.18,.22,.26})
     f:SetMovable(true); f:SetClampedToScreen(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart",function() f:StartMoving() end); f:SetScript("OnDragStop",U.savePosition)
     local p=U.position(LayerEnemiesDB.position)
@@ -212,7 +246,7 @@ function U.create()
     U.body=CreateFrame("Frame",nil,f); U.body:SetSize(348,300); U.body:SetPoint("TOPLEFT",6,-114)
     U.body:EnableMouseWheel(true)
     U.body:SetScript("OnMouseWheel",function(_,delta) U.offset=math.max(0,U.offset-(delta>0 and 1 or -1)); U.render() end)
-    U.banner=font(U.body,10,{.94,.76,.48}); U.banner:SetPoint("TOPLEFT",4,0); U.banner:SetWidth(340)
+    U.banner=font(U.body,10,{.94,.76,.48}); U.banner:SetPoint("TOPLEFT",4,0); U.banner:SetWidth(250)
     U.input=CreateFrame("EditBox",nil,U.body); U.input:Hide(); U.input:SetSize(248,24); U.input:SetPoint("TOPLEFT",4,-23)
     U.input:SetFont("Fonts\\FRIZQT__.TTF",12,""); U.input:SetAutoFocus(false); U.input:SetMaxLetters(100); paint(U.input,colors.bar)
     local function add()
@@ -221,7 +255,26 @@ function U.create()
     end
     U.input:SetScript("OnEnterPressed",add); U.input:SetScript("OnEscapePressed",function() U.input:ClearFocus() end)
     U.add=button(U.body,76,24,"Track",add); U.add:SetPoint("TOPRIGHT",-4,-23)
+    -- one LFSw guild question per click, at most once a minute (Hosts.ask, Wire)
+    U.findHosts=button(U.body,84,18,"Find hosts",function() N.Main.findHosts(); U.render() end); U.findHosts:SetPoint("TOPRIGHT",-4,0); U.findHosts:Hide()
+    -- guild-only hosting, saved (LayerEnemiesDB.guildHost); the line stays visible on every tab while it is on
+    U.host=button(U.body,70,18,"Host: off",function() local M=N.Main; M.setHost(not (M.host and M.host.want)); U.render() end)
+    U.host:SetPoint("TOPRIGHT",-92,0); U.host:Hide()
+    -- Auto accept and leave: accept the asked host's invite, leave that group after the move (saved, on by default)
+    U.auto=button(U.body,70,18,"Auto: on",function() local M=N.Main; M.setAutoHop(not M.autoHop()); U.render() end)
+    U.auto:SetPoint("TOPRIGHT",-166,0); U.auto:Hide()
+    U.hosting=font(f,10,{.79,.96,.65}); U.hosting:SetPoint("TOPLEFT",86,-64); U.hosting:Hide()
     U.hint=font(f,10,colors.muted); U.hint:SetPoint("TOPLEFT",10,-420); U.hint:SetWidth(340)
+    -- 1.0 settings, saved, on every tab: sharing our own sightings, guild only (no public networks), each network
+    local M=N.Main
+    U.share=button(f,70,18,"Share: on",function() M.setShare(not M.sharing()); U.render() end)
+    U.share:SetPoint("TOPLEFT",6,-440)
+    U.guildOnly=button(f,92,18,"Guild only: off",function() M.setConsent(N.Net.consent()=="public" and "guild" or "public"); U.render() end)
+    U.guildOnly:SetPoint("TOPLEFT",80,-440)
+    U.netWe=button(f,86,18,"War Effort: on",function() M.setNet("we",not N.Net.switch("we")); U.render() end)
+    U.netWe:SetPoint("TOPLEFT",176,-440)
+    U.netHh=button(f,86,18,"HeadHunter: on",function() M.setNet("hh",not N.Net.switch("hh")); U.render() end)
+    U.netHh:SetPoint("TOPLEFT",266,-440)
     local footer=font(f,10,colors.muted); footer:SetPoint("BOTTOMLEFT",10,9); footer:SetWidth(340)
     footer:SetText("Only players seen by you or reported by other players' addons.")
     f:SetScript("OnShow",function() U.generation=(U.generation or 0)+1; U.tick(U.generation) end)

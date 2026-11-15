@@ -104,7 +104,7 @@ function HH.decode(text, sender, serverNow, ownFaction, ctx)
     if kind ~= "P" and kind ~= "L" and kind ~= "E" then return out, "ignored" end
     local why = "none"
     for rec in (body .. "~"):gmatch("([^~]*)~") do
-        local origin, side2, inner, innerKind = sender, side, rec, kind
+        local origin, side2, inner, innerKind, hopsN = sender, side, rec, kind, nil
         if kind == "E" then
             local w, author, f2, server, hops, first, rest = rec:match("^([^;]*);([^;]*);([^;]*);([^;]*);([^;]*);([^;]*);(.+)$")
             innerKind = rest and rest:sub(1, 1)
@@ -114,7 +114,7 @@ function HH.decode(text, sender, serverNow, ownFaction, ctx)
             local h = b36(hops)
             if innerKind and not (#w >= 1 and #w <= 40 and not w:find("%c") and server:match("^[0-9a-z]+$") and #server <= 10
                 and h and h >= 1 and h <= 5 and b36(first)) then innerKind = nil end
-            origin, side2, inner = author, f2, rest and rest:sub(2)
+            origin, side2, inner, hopsN = author, f2, rest and rest:sub(2), h
         end
         local d
         if innerKind == "P" then d = P(fields(inner)) elseif innerKind == "L" then d = L(fields(inner)) end
@@ -127,6 +127,7 @@ function HH.decode(text, sender, serverNow, ownFaction, ctx)
             local t = {
                 src = "hh", origin = origin, via = sender, route = ctx.route, zone = zone, x = d.x, y = d.y,
                 heard = ctx.heard, age = math.max(0, math.floor(serverNow - d.t)), share = "public",
+                wrapped = kind == "E", hops = kind == "E" and hopsN or nil, pos = "observer",
             }
             if d.type == "P" then
                 t.kind = "fight"; t.rid = tostring(d.t); t.count = d.count; t.enemies = d.enemies
@@ -147,7 +148,7 @@ end
 -- Receive state: 6 frames per sender per 10 s.
 function HH.new() return { rates = {}, n = 0 } end
 function HH.allow(st, sender, now)
-    local k = tostring(sender):lower()
+    local k = N.Invite.rateKey(sender)
     for key2, v in pairs(st.rates) do if now - v.at >= 10 then st.rates[key2] = nil; st.n = st.n - 1 end end
     local v = st.rates[k]
     if not v then

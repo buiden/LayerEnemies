@@ -6,13 +6,9 @@ local Pe = {}
 N.Peers = Pe
 Pe.TTL, Pe.MAX = 900, 256
 
--- Names are compared whole, without case, as War Effort does: "Scout-RealmA" and "Scout-RealmB" are two reporters.
--- A sender seen with and without its realm is then two keys; a missed match leaves a layer unknown (the safe side).
-function Pe.key(name)
-    name = S.str(name, 100)
-    if not name then return nil end
-    return name:lower()
-end
+-- One key per player (Invite.key): case folded, our own realm stripped; "Scout-RealmA" and "Scout-RealmB" stay two
+-- reporters. A name outside the one name rule has no key.
+function Pe.key(name) return N.Invite.key(name) end
 function Pe.new() return { list = {}, n = 0 } end
 function Pe.hello(st, name, minor, now)
     local key = Pe.key(name)

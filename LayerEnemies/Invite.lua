@@ -5,30 +5,67 @@ local _, N = ...
 local I,S,L = {},N.Safe,N.Layer
 N.Invite=I
 I.MESSAGE="Hi! Could you invite me to your layer please?"
+-- The 15 s is the vote window of Layer.lua, which counts distinct NPC ids (kinds), not individual creatures.
+I.HINT="Your layer is not known yet: target or mouse over two different kinds of NPC within 15 seconds."
 I.NAME_COOLDOWN,I.GLOBAL_COOLDOWN=60,10
 I.JOIN_WINDOW,I.WATCH=300,60
 I.BULO_STALE,I.BOOK_FRESH,I.REPORT_FRESH=720,900,600
 I.MAX_SCAN,I.MAX_ROWS=512,40
 function I.new() return { asked={}, lastAsk=nil, pending=nil, watch=nil } end
--- A whisper target: letters only, optionally "-Realm". Returns name, dedupe key.
+-- The one name rule (whisper, guild check, guild host, invite): "Name" or "First Surname" (Forever), letters only,
+-- optionally "-Realm" (letters, digits, apostrophes; no spaces, as the client writes it). Anything else is nil.
+-- Returns name, key, target. The key is the whole name, realm included: Scout-RealmA and Scout-RealmB are two
+-- players. Our own realm is dropped from key and target, so "Bob" and "Bob-<our realm>" are one; any other realm
+-- stays in both, and the target is what an invite names.
+-- letters(w, digits): ASCII letters (and digits when allowed) or well-formed UTF-8 letters. Refused: the Latin-1
+-- punctuation block (no-break space, soft hyphen, middle dot, U+00A0-U+00BF), U+00D7 and U+00F7, general
+-- punctuation and invisible marks (U+2000-U+206F, U+FEFF, U+3000-U+303F), specials and surrogates, and any broken
+-- byte sequence.
+local function letters(w,digits)
+    local i,n=1,#w
+    while i<=n do
+        local b=w:byte(i)
+        if b<128 then
+            if not ((b>=65 and b<=90) or (b>=97 and b<=122) or (digits and ((b>=48 and b<=57) or b==39))) then return false end
+            i=i+1
+        else
+            local len=b>=0xF0 and b<=0xF4 and 4 or b>=0xE0 and 3 or b>=0xC2 and b<0xE0 and 2 or nil
+            if not len or i+len-1>n then return false end
+            local cp=b%(len==2 and 32 or len==3 and 16 or 8)
+            for k=1,len-1 do
+                local c=w:byte(i+k)
+                if c<0x80 or c>0xBF then return false end
+                cp=cp*64+(c-0x80)
+            end
+            if (len==3 and cp<0x800) or (len==4 and (cp<0x10000 or cp>0x10FFFF)) then return false end
+            if cp<0xC0 or cp==0xD7 or cp==0xF7 or (cp>=0x2000 and cp<=0x206F) or cp==0xFEFF or (cp>=0x3000 and cp<=0x303F)
+                or (cp>=0xD800 and cp<=0xDFFF) or cp>=0xFFF0 and cp<=0xFFFF then return false end
+            i=i+len
+        end
+    end
+    return true
+end
 function I.name(name)
-    name=S.str(name,60)
+    name=S.str(name,100)
     if not name then return nil end
-    local first,surname=name:match("^([%a\128-\255]+) ([%a\128-\255]+)$")
-    if first and #first>=2 and #first<=36 and #surname<=36 then return name,name:lower() end
-    local short,rest=name:match("^([^%-]+)(.*)$")
-    if not short or #short<2 or #short>36 or not short:match("^[%a\128-\255]+$") then return nil end
-    if rest~="" and not rest:match("^%-[%w'\128-\255]+$") then return nil end
-    -- the key is the whole name, realm included: Scout-RealmA and Scout-RealmB are two players; our own realm
-    -- is dropped, so "Bob" and "Bob-<our realm>" are one
-    if rest~="" then
+    local base,realm=name:match("^(.-)%-([%w'\128-\255]+)$")
+    if realm and not letters(realm,true) then return nil end
+    base=base or name                                 -- a dash outside a realm suffix fails the letters check below
+    local first,surname=base:match("^([%a\128-\255]+) ([%a\128-\255]+)$")
+    if first then
+        if #first<2 or #first>36 or #surname>36 or not letters(first) or not letters(surname) then return nil end
+    elseif #base<2 or #base>36 or not base:match("^[%a\128-\255]+$") or not letters(base) then return nil end
+    if realm then
         local home=I.home and S.str(I.home(),60)
         local function norm(v) return (v:lower():gsub("[%s%-']","")) end
-        if home and norm(rest:sub(2))==norm(home) then return name,short:lower() end
+        if home and norm(realm)==norm(home) then return name,base:lower(),base end
     end
-    return name,name:lower()
+    return name,name:lower(),name
 end
 I.home=nil                                                      -- set by Main: our realm name
+-- the folded key of a player (our realm stripped, lower case) or nil; rate keys fall back to the raw name lowered
+function I.key(name) local _,key=I.name(name); return key end
+function I.rateKey(name) return I.key(name) or tostring(name):lower() end
 function I.line(name) return "/w "..name.." "..I.MESSAGE end
 local function zoneText(v)
     v=S.clean(v)
@@ -104,10 +141,11 @@ function I.collect(env)
         if not S.tab(raw) then status[field]="data unavailable"; return end
         if not env.self then status[field]="own name unreadable"; return end
         if not env.wall or not env.zoneText then status[field]="clock or zone unavailable"; return end
-        if not env.ownKey then status[field]="your layer is not known yet"; return end
         local ok,claims=pcall(scan,raw,env,label,maxAge)
         if not ok then status[field]="data unavailable"; return end
         for _,c in ipairs(claims) do
+            -- listed while our own key is unknown, so a host is visible; no hop or ask goes through such a row
+            c.unknownOwn=not env.ownKey or nil
             local cur=byName[c.short]
             if not cur then
                 c.sources={c.source}; byName[c.short]=c
@@ -125,7 +163,7 @@ function I.collect(env)
                 cur.hosts=cur.hosts or {}; cur.hosts[c.source]=cur.hosts[c.source] or c.host
             end
         end
-        status[field]=#claims.." fresh in this zone"
+        status[field]=#claims.." fresh in this zone"..(env.ownKey and "" or " (your layer is not known yet)")
     end
     source("Bulo","bulo",env.bulo,I.BULO_STALE)
     source("LayerSwap","book",env.book,I.BOOK_FRESH)
@@ -205,5 +243,5 @@ function I.tick(st,now,key,zone,ambiguous)
         return "Still on your layer - leave, wait a minute, try again."
     end
     if now>=w.stop then st.watch=nil; return "Layer check ended - your layer could not be confirmed." end
-    if not w.warned then w.warned=true; return "Layer not confirmed yet - target or mouse over two different NPCs." end
+    if not w.warned then w.warned=true; return "Layer not confirmed yet - target or mouse over two different kinds of NPC." end
 end

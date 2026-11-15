@@ -99,18 +99,87 @@ function A.inInstance()
     local v=S.call(IsInInstance)
     if type(v)=="boolean" then return v end
 end
--- Bulo's guild layer lines, heard on LFSw/GUILD: "L <key>|<zone>|<h or ->" (Bulo Guild.lua:118). We never send on
--- LFSw. Kept in the shape of Bulo's own Guild.list, so they fill the host list when Bulo is not installed.
+-- Guild host state (read only). Each answer fails closed: unreadable is nil (or "in combat").
+-- guildMember(name) -> true (exactly one online roster entry), false (none, offline, or ambiguous), nil (unreadable).
+-- Compared by Invite.name keys (our realm dropped, any other kept): a foreign-realm sender never matches a bare
+-- entry or one of our realm; a sender of our realm is ambiguous while a namesake of another realm is listed.
+A.ROSTER_FRESH,A.ROSTER_EVERY,A.ROSTER_MAX=120,15,1000
+A.roster={at=nil,askedAt=nil}
+local function base(name) return name:match("^([^%-]+)%-") or name end
+function A.guildMember(name)
+    local _,want,target=N.Invite.name(name)
+    if not want or S.call(IsInGuild)~=true then return nil end
+    local spelled=base(target)                         -- the name part as the client spells it, case included
+    local local_=not want:find("-",1,true)
+    local count=S.num(S.call(GetNumGuildMembers))
+    if not count or count<1 or count>A.ROSTER_MAX or count%1~=0 then return nil end
+    local read=_G.GetGuildRosterInfo
+    if S.secret(read) or type(read)~="function" then return nil end
+    local found,other={},false
+    for i=1,count do
+        local ok,entry,_,_,_,_,_,_,_,online=pcall(read,i)
+        if not ok or S.secret(entry) or S.secret(online) or type(entry)~="string" then return nil end
+        local _,key,etarget=N.Invite.name(entry)
+        if key==want and base(etarget)==spelled then found[#found+1]=online==true
+        elseif key and local_ and base(key)==want then other=true end
+    end
+    if other then return false end
+    return #found==1 and found[1]
+end
+-- Seconds since the last GUILD_ROSTER_UPDATE, or nil.
+function A.rosterSeen(now) A.roster.at=S.num(now) end
+function A.rosterAge(now) if A.roster.at and S.num(now) then return now-A.roster.at end end
+-- Asks the server for a new roster, at most once per 15 s. Returns true when it asked; inside the 15 s it returns
+-- false and the seconds left, and marks the request owed (Main retries an owed one when the limit has passed).
+function A.rosterRefresh(now)
+    now=S.num(now)
+    if not now then return false end
+    if A.roster.askedAt and now-A.roster.askedAt<A.ROSTER_EVERY and now>=A.roster.askedAt then
+        A.roster.owed=true
+        return false,A.roster.askedAt+A.ROSTER_EVERY-now
+    end
+    A.roster.owed=nil
+    local gi=_G.C_GuildInfo
+    if not S.tab(gi) or S.secret(gi.GuildRoster) or type(gi.GuildRoster)~="function" then return false end
+    A.roster.askedAt=now
+    return pcall(gi.GuildRoster)==true
+end
+function A.inCombat()
+    local a,b=S.call(InCombatLockdown),S.call(UnitAffectingCombat,"player")
+    if type(a)~="boolean" or type(b)~="boolean" then return true end
+    return a or b
+end
+-- {raid, leader, members = {names}} or nil when unreadable.
+function A.party()
+    local raid,leader,count=S.call(IsInRaid),S.call(UnitIsGroupLeader,"player"),S.num(S.call(GetNumGroupMembers))
+    if type(raid)~="boolean" or type(leader)~="boolean" or not count or count<0 then return nil end
+    local members={}
+    for i=1,4 do
+        -- every unit read must answer true or false; nil, secret, a throw or a missing API is unreadable
+        local exists=S.call(UnitExists,"party"..i)
+        if type(exists)~="boolean" then return nil end
+        if exists then
+            local n,realm=S.call(UnitName,"party"..i)
+            n,realm=S.str(n,60),S.str(realm,60)
+            if not n then return nil end
+            members[#members+1]=realm and realm~="" and (n.."-"..realm) or n
+        end
+    end
+    -- outside a raid the count must be ourselves plus the listed party units (0 when alone)
+    if not raid and count~=(#members>0 and #members+1 or 0) and not (count==1 and #members==0) then return nil end
+    return {raid=raid,leader=leader,members=members}
+end
+-- Bulo's guild layer lines, heard on LFSw/GUILD: "L <key>|<zone>|<h or ->" (Bulo Guild.lua:118). We never send an
+-- L line; the only LFSw send is the one-letter question "Q" from a click (Hosts.ask, Wire). Kept in the shape of Bulo's own Guild.list, so they fill the host list when Bulo is not installed.
 A.GUILD_LINES,A.GUILD_MAX=720,256
 function A.guildLine(list,text,sender,wall)
     if type(text)~="string" or #text>80 or not S.num(wall) then return false,"invalid" end
     local key,zone,host=text:match("^L ([^|]+)|([^|]*)|([h%-])$")
     if not key or not N.Layer.key(key) or key~=N.Layer.key(key) then return false,"invalid" end
     if zone~="" and not zone:match("^%d+$") then return false,"invalid" end
-    -- the sender's own line; a cross-realm "First Surname-Realm" keeps the name only
-    local name=sender
-    if name:find(" ",1,true) then name=name:match("^(.-)%-[^ ]*$") or name end
-    if not N.Invite.name(name) then return false,"name" end
+    -- the sender's own line, named by the one name rule: our realm dropped, any other realm kept
+    local _,_,name=N.Invite.name(sender)
+    if not name then return false,"name" end
     for k,v in pairs(list) do if wall-v.at>=A.GUILD_LINES then list[k]=nil end end
     if not list[name] then
         local n,oldest,ok=0,nil,nil
@@ -123,7 +192,9 @@ end
 -- Foreign friend lists, never written to. nil = addon absent, false = unreadable.
 -- Shapes read from Bulo Layer Forever 3.0.24 (Guild.lua) and LayerSwap 1.14.18.
 -- guildLines: our own list of heard LFSw lines, used in Bulo's place when Bulo is not installed.
-function A.friendLists(guildLines)
+-- heard: hosts from LayerSwap replies to our own requests (Hosts.lua), used in the book's place when LayerSwap is not
+-- installed.
+function A.friendLists(guildLines,heard)
     local out={}
     local ok,list=pcall(function()
         local ns=_G.BuloLayerForever
@@ -143,6 +214,10 @@ function A.friendLists(guildLines)
         return type(book)=="table" and book or false
     end)
     if ok then out.book=list else out.book=false end
+    -- LayerSwap loaded: its book only (empty until its saved table exists); our remembered replies stand in only
+    -- while it is not loaded
+    if out.book==nil and A.loaded("LayerSwap") then out.book={} end
+    if out.book==nil and S.tab(heard) and next(heard)~=nil then out.book=heard end
     return out
 end
 -- Client ignore list for any name (immediate sender or a wrapper's origin). Unreadable counts as ignored.
@@ -164,6 +239,54 @@ local function echo(sender)
     name=name or sender; remoteRealm=remoteRealm or realm
     if N.Hash.nameKey(name,remoteRealm)==N.Hash.nameKey(me,realm) or sender:lower()==me:lower() then return "own echo" end
 end
+-- Spy family (lane C1): each prefix on its own routes (Spy.ROUTES); never our own lines; the ignore lists apply.
+function A.spyPolicy(prefix,kind,sender)
+    local ok,allowed,reason=pcall(function()
+        local routes=N.Spy.ROUTES[prefix] or N.Incident.ROUTES[prefix]
+        if not routes then return false,"prefix" end
+        if not routes[kind] then return false,"route" end
+        local mine=echo(sender); if mine then return false,mine end
+        local ignored,why=A.ignored(sender)
+        if ignored then return false,why end
+        return true,"spy"
+    end)
+    if not ok then return false,"policy unavailable" end
+    return allowed,reason
+end
+-- zoneByName(name) -> the zone (uiMapID, map type 3) shown under that name, or nil. Looked up among the zones of our
+-- continent and of Azeroth (947); a name two zones share is no answer. Cached per session.
+local zoneNames
+function A.zoneByName(name)
+    if type(name)~="string" or name=="" then return nil end
+    local api=C_Map
+    if not S.tab(api) or type(api.GetMapChildrenInfo)~="function" then return nil end
+    if not zoneNames then
+        local found={}
+        -- add(root) -> true when that lookup gave a list with at least one readable zone
+        local function add(root)
+            local list=S.call(api.GetMapChildrenInfo,root,3,true)
+            if not S.tab(list) then return false end
+            local any=false
+            for _,info in ipairs(list) do
+                local id,n=S.tab(info) and S.num(info.mapID),S.tab(info) and S.str(info.name,70)
+                if id and n then
+                    any=true
+                    if found[n]==nil then found[n]=id elseif found[n]~=id then found[n]=false end
+                end
+            end
+            return any
+        end
+        local here=A.zone(S.num(S.call(api.GetBestMapForUnit,"player")))
+        local info=here and S.call(api.GetMapInfo,here)
+        local continent=S.tab(info) and S.num(info.parentMapID)
+        local near=continent~=nil and continent>0 and add(continent)
+        local world=add(947)
+        -- kept only when both lookups gave data; otherwise this answer stands alone and the next line looks again
+        if near and world then zoneNames=found end
+        return found[name] or nil
+    end
+    return zoneNames[name] or nil
+end
 -- HeadHunter: read on PARTY, RAID and WHISPER only. Never sent on, never joined, never answered.
 function A.hhPolicy(kind,sender)
     local ok,allowed,reason=pcall(function()
@@ -179,7 +302,7 @@ end
 function A.policy(prefix,kind,sender)
     local ok,allowed,reason=pcall(function()
         if prefix~="WEFF1" then return false,"prefix" end
-        if kind~="GUILD" and kind~="PARTY" and kind~="RAID" then return false,"route" end
+        if kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return false,"route" end
         local mine=echo(sender); if mine then return false,mine end
         local ignored,why=A.ignored(sender)
         if ignored then return false,why end
@@ -187,10 +310,23 @@ function A.policy(prefix,kind,sender)
             if S.call(IsInGuild)~=true then return false,"guild unavailable" end
             return true,"guild"
         end
+        if kind=="WHISPER" then return true,"whisper" end
         return true,"group"
     end)
     if not ok then return false,"policy unavailable" end
     return allowed,reason
 end
--- Types each route may carry (WEFF1): guild C E H G, home group C E H X.
-A.WE_TYPES={GUILD={C=true,E=true,H=true,G=true},PARTY={C=true,E=true,H=true,X=true},RAID={C=true,E=true,H=true,X=true}}
+-- Types each route may carry (WEFF1): guild C E H G, Q Y (lane A2), home group C E H X, whisper J (a layer request).
+A.WE_TYPES={GUILD={C=true,E=true,H=true,G=true,Q=true,Y=true,D=true},PARTY={C=true,E=true,H=true,X=true},RAID={C=true,E=true,H=true,X=true},
+    WHISPER={J=true,P=true,W=true}}
+-- The continent a map is on (C_Map parents up to mapType 2), or nil
+function A.continent(map)
+    local id=S.num(map)
+    for _=1,8 do
+        if not id or id<1 then return nil end
+        local info=S.tab(C_Map) and S.call(C_Map.GetMapInfo,id)
+        if not S.tab(info) then return nil end
+        if S.num(info.mapType)==2 then return id end
+        id=S.num(info.parentMapID)
+    end
+end

@@ -30,7 +30,7 @@ end
 
 -- The first-hand id a record stands for: a relayed copy counts as the same report as the original.
 function Rl.key(record)
-    return (record.label or record.src) .. ":" .. record.origin:lower() .. ":" .. record.rid
+    return (record.label or record.src) .. ":" .. (record.okey or N.Invite.rateKey(record.origin)) .. ":" .. record.rid
 end
 
 -- encode(record, now) -> "R|1|src|kind|originHex|rid|zone|x3|y3|count|ns|layer|age|enemies" or nil
@@ -44,10 +44,12 @@ function Rl.encode(record, now)
     local ns = NS[record.layer.ns]
     if record.src == "hh" then ns, layer = "u", "" end            -- HeadHunter never carries a usable layer
     if not layer:match("^[%w%-]*$") or #layer > 32 then return nil end
-    local age = math.max(0, math.floor(now - record.heard)) + (record.age or 0)
+    -- the origin's time (Record.at) is what travels, as an age at sending
+    local at = S.num(record.at) or (record.heard - (record.age or 0))
+    local age = math.max(0, math.floor(now - at))
     if age > 900 then return nil end                             -- too old for any receiver
     local head = table.concat({ "R", Rl.VERSION, record.src, record.kind, hex(record.origin), rid, tostring(record.zone),
-        c3(record.x), c3(record.y), record.count and tostring(record.count) or "", ns, layer, tostring(age) }, "|") .. "|"
+        c3(record.x), c3(record.y), record.count and tostring(math.min(80, record.count)) or "", ns, layer, tostring(age) }, "|") .. "|"
     if #head > 255 then return nil end
     local items = {}
     local used = #head
@@ -105,7 +107,9 @@ function Rl.decode(text, sender, now)
     end
     local record, why = N.Record.new({ src = "guild", kind = kind, origin = origin, via = sender, route = "GUILD", rid = rid,
         zone = zone, x = x, y = y, count = count, enemies = enemies, layer = { ns = ns, value = value },
-        heard = now - age, share = "guild", label = src })
+        heard = now - age, share = "guild", label = src,
+        -- one guild hop (the format carries no upstream count); HeadHunter positions stay the observer's
+        hops = 1, pos = src == "hh" and x and "observer" or nil })
     if not record then return nil, "record: " .. tostring(why) end
     return record
 end
@@ -114,7 +118,7 @@ Rl.RATE = 12                                                   -- LEGW1 messages
 function Rl.new() return { seen = {}, n = 0, pending = {}, rates = {}, nrates = 0 } end
 -- Receive limit per guildmate; excess is dropped silently. 512 senders at most.
 function Rl.allow(st, sender, now)
-    local k = tostring(sender):lower()
+    local k = N.Invite.rateKey(sender)
     local v = st.rates[k]
     if not v or now - v.at >= 10 then
         if not v then
@@ -176,10 +180,93 @@ function Rl.tick(st, now, ctx)
             if ctx.inGuild == true and ctx.inInstance == false and ctx.guild == p.guild then
                 text = Rl.encode(p.record, now); why = "does not fit"
             end
-            if text then ok, why = N.Wire.send("LEGW1", text, "GUILD") end
+            if text then ok, why = N.Wire.send("LEGW1", text, "GUILD", nil, { prio = "forward" }) end
             out[#out + 1] = { key = key, ok = ok, why = why }
         end
     end
     return out
 end
 function Rl.clear(st) S.clear(st.pending) end
+
+-- Finding a LayerEnemies guild host (0.4.0): two control lines on LEGW1/GUILD, outside the "R" format, so a 0.3.x
+-- decoder drops them as invalid.
+--   F|1                  "which LayerEnemies hosts are on?", from the Find hosts click only
+--   H|1|<key>|<zone>     a host's answer: our server key and uiMapID; once on enabling and once per F (60 s)
+function Rl.findLine() return "F|1" end
+function Rl.hostLine(key, zone)
+    key = N.Layer.key(key); zone = S.num(zone)
+    if not key or not zone or zone < 1 or zone > 999999 or zone % 1 ~= 0 then return nil end
+    return "H|1|" .. key .. "|" .. string.format("%d", zone)
+end
+-- control(text) -> {kind = "F"} | {kind = "H", key, zone} | nil
+-- A LayerEnemies guildmate's own sighting (1.0 lane A1), on LEGW1/GUILD:
+--   O|1|<report id>|<zone>|<x 0.000>|<y 0.000>|<server key or empty>|<age s>|<count>|<hexname:CLASS:level>,... (up to 4)
+-- x and y are both empty when the sender had no position. Never relayed again.
+Rl.OWN_NAMES = 4
+local function o3(v) return v and string.format("%.3f", math.max(0, math.min(1, v))) or "" end
+function Rl.ownLine(rep)
+    if not S.tab(rep) then return nil end
+    local rid, zone, count = S.num(rep.rid), S.num(rep.zone), S.num(rep.count)
+    if not rid or rid < 1 or rid > 65535 or not zone or not count or count < 1 then return nil end
+    local x, y = S.num(rep.x), S.num(rep.y)
+    if not (x and y) then x, y = nil, nil end
+    local layer = rep.layer and N.Layer.key(rep.layer) or ""
+    local items = {}
+    for _, e in ipairs(rep.enemies or {}) do
+        if #items >= Rl.OWN_NAMES then break end
+        local name = S.str(e.name, 100)
+        if name and not name:find("[%c|]") then
+            local class = CLASSES[e.class] and e.class or ""
+            local lvl = S.num(e.level)
+            items[#items + 1] = hex(name) .. ":" .. class .. ":" .. ((lvl and (lvl == -1 or (lvl >= 1 and lvl <= 100))) and tostring(lvl) or "")
+        end
+    end
+    local line = table.concat({ "O", "1", tostring(math.floor(rid)), tostring(math.floor(zone)), o3(x), o3(y), layer,
+        tostring(math.max(0, math.min(900, math.floor(S.num(rep.age) or 0)))), tostring(math.min(200, math.floor(count))),
+        table.concat(items, ",") }, "|")
+    while #line > 255 and #items > 0 do items[#items] = nil; line = line:gsub("[^|]*$", table.concat(items, ",")) end
+    return #line <= 255 and line or nil
+end
+-- decodeOwn(text, sender, now) -> record (src "le", first-hand) or nil, why
+function Rl.decodeOwn(text, sender, now)
+    if S.secret(text) or type(text) ~= "string" or #text > 255 or not S.num(now) then return nil, "invalid" end
+    local f = {}
+    for v in (text .. "|"):gmatch("([^|]*)|") do f[#f + 1] = v end
+    if f[1] ~= "O" or #f ~= 10 then return nil, "invalid" end
+    if f[2] ~= "1" then return nil, "version" end
+    local rid, zone, age, count = int(f[3], 1, 65535), int(f[4], 1, 999999), int(f[8], 0, 900), int(f[9], 1, 200)
+    if not (rid and zone and age and count) then return nil, "invalid" end
+    local function c(s) if s:match("^[01]%.%d%d%d$") then local n = tonumber(s); if n <= 1 then return n end end end
+    local x, y
+    if f[5] ~= "" or f[6] ~= "" then x, y = c(f[5]), c(f[6]); if not (x and y) then return nil, "invalid" end end
+    local layer
+    if f[7] == "" then layer = { ns = "unknown" }
+    elseif f[7]:match("^%d+$") and #f[7] <= 15 and N.Layer.key(f[7]) then layer = { ns = "server", value = f[7] }
+    else return nil, "invalid" end
+    local enemies = {}
+    if f[10] ~= "" then
+        for item in (f[10] .. ","):gmatch("([^,]*),") do
+            local id, class, level = item:match("^(%x+):(%u*):(%-?%d*)$")
+            if not id or #enemies >= Rl.OWN_NAMES then return nil, "invalid" end
+            local name = unhex(id)
+            if not name or (class ~= "" and not CLASSES[class]) then return nil, "invalid" end
+            local lvl = level ~= "" and tonumber(level) or nil
+            if lvl and (lvl < -1 or lvl > 100 or lvl == 0) then return nil, "invalid" end
+            enemies[#enemies + 1] = { name = name, class = class ~= "" and class or nil, level = lvl }
+        end
+    end
+    local record, why = N.Record.new({ src = "le", kind = "group", origin = sender, via = sender, route = "GUILD",
+        rid = tostring(rid), zone = zone, x = x, y = y, count = count, enemies = enemies, layer = layer,
+        heard = now, age = age, share = "guild", pos = "observer" })              -- where the sender stood
+    if not record then return nil, "record: " .. tostring(why) end
+    return record
+end
+function Rl.control(text)
+    if S.secret(text) or type(text) ~= "string" or #text > 64 then return nil end
+    if text == "F|1" then return { kind = "F" } end
+    local key, zone = text:match("^H|1|(%d+)|(%d+)$")
+    if not key or #key > 15 then return nil end
+    zone = int(zone, 1, 999999)
+    if not zone or not N.Layer.key(key) then return nil end
+    return { kind = "H", key = N.Layer.key(key), zone = zone }
+end

@@ -1,23 +1,60 @@
 # LayerEnemies
 
-WoW Forever addon 0.3.0, Interface 16001, Lua 5.1.
+WoW Forever addon 1.0.0, Interface 16001, Lua 5.1.
 
 Find a tracked enemy through your own sightings or possible War Effort hash
 matches, then hop: ask a host on that layer for an invite. Approved design B is
 implemented as a movable dark window with Seen by you, Reported, Friendly and
 Find tabs. It starts hidden. No minimap button or map pins. This is not a
-complete layer roster or a global player locator. 0.3.0 is no longer passive:
-it sends two kinds of addon message, listed under "What is sent". None of it
-has been tested on a live client yet (see the last section).
+complete layer roster or a global player locator. Since 0.3.0 it is not
+passive: it sends the addon messages listed under "What is sent", and from
+0.4.0 it can host for your guild (off unless you turn it on, see "Hosting for
+your guild"). It has had one live trial (0.3.0, two guildmates in one zone on
+different layers): the player without Bulo or LayerSwap could not see the
+host, because their own layer stayed unknown and neither addon announces its
+hosts unprompted. 0.3.1 and 0.4.0 answer that (hosts listed while your layer is
+unknown, a direct hop to a host, Find hosts, a guild-chat request, guild
+hosting); none of that has been tried live yet (see the last section).
+
+1.0.0 joins the War Effort and HeadHunter networks as a member (public
+networks are ON by default; `/le net guild` limits everything to your guild
+and group), shares your own sightings with your guild (`/le share off` stops
+it), and reads the Spy family and three guild incident addons. At the first
+login it prints once:
+
+    LayerEnemies: public networks ON (War Effort, HeadHunter…). /le net guild to limit to guild only.
+
+Every network has its own switch (`/le net`, and the switches at the bottom
+of the window). Nothing of 1.0.0 has been tried on a live client yet; the
+checklist is at the end.
 
 ## What is sent
 
-Every addon message goes through one file (Wire.lua), on exactly two routes:
+Every addon message and the one party invite go through one file (Wire.lua).
+Five prefixes are allowed. Two scopes matter for your settings: guild scope
+(guild, party and raid lines, and whispers to guildmates online in your roster)
+and public scope (whispers to anyone else, and the two public channels joined
+for reading). `/le net guild` turns every public send and both channel joins
+off; guild scope keeps working. Guild only stops all automatic public sends; a
+Hop you click still whispers that one host.
 
 - LayerSwap prefix, WHISPER: one hop request to one host, only when you click
-  a Hop button or run `/le hop <number>`. No retry, no fan-out.
-- LEGW1 prefix, GUILD: a relay of a report you heard first-hand in your party,
-  raid or whispers, so guildmates running LayerEnemies see it. It waits a
+  a Hop button or run `/le hop <number>` or `/le hop host <number>`. No retry,
+  no fan-out. While you host for your guild, also the answer to a guildmate's
+  request: `same` or `heard <name>|<layer>|<zone>|<h or ->`, at most one per 6
+  seconds. Wire refuses any other text on this route.
+- LFSw prefix, GUILD: Bulo's one-letter question `Q`, only from the Find hosts
+  button or `/le hosts find`, at most once per 60 seconds. Bulo users in the
+  guild answer with their own layer line. Our own Bulo `L` line is never sent,
+  and an incoming `Q` is never answered.
+- LEGW1 prefix, GUILD: enemies your own client saw (an O line: zone, your
+  position, layer if known, up to four names). An O goes 3 seconds after the
+  first sighting of an enemy not shared in the last 60 seconds, at most one
+  per 15 seconds, and lists everyone your own client saw in the last 15
+  seconds, so a name can repeat in the next O 15 seconds later. `/le share off`
+  stops it. Also a relay of a report you heard
+  first-hand in your party, raid or whispers, so guildmates running
+  LayerEnemies see both. A relay waits a
   random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
   Guild membership, guild name and instance state are read when it is offered
   and again when it is due; not in a guild, another guild, in an instance, or
@@ -26,11 +63,104 @@ Every addon message goes through one file (Wire.lua), on exactly two routes:
   wait, and only while the id is remembered (256 ids; a flood of more ids can
   let one repeat). At
   most 128 offers wait at once. A local budget allows 5 quick sends, then one
-  per 2 seconds.
+  per 2 seconds. From 0.4.0 the same route carries two short lines older
+  versions ignore: `F|1` ("which LayerEnemies hosts are on?", from the Find
+  hosts click, at most once per 60 seconds) and `H|1|<server key>|<zone>` (a
+  host's answer: once when you turn hosting on and once in answer to an `F`,
+  1 to 6 seconds later, at most once per 60 seconds, only while hosting).
+- WEFF1 prefix (War Effort network; its switch, `/le net wareffort on|off`;
+  never while War Effort itself is loaded, never in an instance):
+  - GUILD: our hello `H|1.0.0|<map>|<layer>|1|19|0|0|<stamp>||<class>|<level>|<public>`
+    (followed by `|0|1` while your layer key is ambiguous) 10 seconds after login, then every 180-190 seconds (an identical one not
+    within 30 seconds; a guildmate's `Q` gets one at most every 10 seconds).
+    It tells guildmates your map, layer, class and level, never your name
+    or position. One `Q` about 15 seconds after login (at most two
+    attempts). Your own sighting as War Effort's `C` and `E` lines, only for
+    two or more enemies seen together and only while a War Effort user's
+    hello was heard on the guild in the last 600 seconds (`/le share off`
+    stops it). Embassy lines (below): `D` (the foreign guilds we link to)
+    and `G` (a partner's line passed into your guild: at most 10 reports a
+    minute, each a `C` with the `E` lines that belong to it, and at most 6
+    hellos a minute, one per origin per 600 seconds).
+  - PARTY and RAID: the same hello when the group has players outside your
+    guild (at most once per 175 seconds), and the same `C` and `E` rule.
+  - WHISPER, guild scope: to a guildmate's sync request `Y`, our own last
+    three reports (`C` marked as a sync answer, then `E`), only those sent
+    to War Effort, within the age asked, one line per 5 seconds, each
+    requester once per 600 seconds, at most five waiting; to a `J` (a layer
+    request), `K` saying "off", once per 60 seconds per player. `/le share
+    off` drops waiting sync answers and the reports kept for them.
+  - WHISPER, public scope: the same `K` to a `J` from a player outside your
+    guild, while public networks are on.
+  - WHISPER, public scope (embassy, see "War Effort network"): `P` presence
+    to players of other guilds in the War Effort channel (one new one a
+    minute, answers at most 6 a minute, keepalive every 300 seconds), and
+    `W` forwards to the partner chosen for them (0.2 a second, burst 6): our
+    guild's reports (C and its first E) and hellos (each guildmate's, and
+    ours, at most once per 600 seconds). A W names its origin, so a partner
+    sees the reporter's name with the report or hello. With `/le share off`
+    our own W lines, also ones still queued, are not sent.
+- HeadHunter prefix, WHISPER only (HeadHunter network; its switch,
+  `/le net headhunter on|off`; public scope; never while HeadHunter itself is
+  loaded, never in an instance): our hello `1<A|H>N:LayerEnemies` once per
+  peer per session (hellos and replies one every 2 seconds at most), forwards of HeadHunter's
+  envelopes with only the hop count raised (to 3 known peers and 1 unknown,
+  never the author or the carrier, at most 6 a minute per peer, never past
+  hop 5, a queued forward dropped once the envelope is over 600 seconds old),
+  catch-up `Q:h` after 20 seconds to up to 5 known peers plus 1 unknown one,
+  and one `Q:p` to the
+  biggest offer, `O` and `S` answers to other members' catch-up (each
+  requester once per 300 seconds; no `O` while we hold nothing; `O` states the
+  number a pull then gets; `S` only to a
+  known peer of our faction heard within 3600 seconds, the newest 10 records
+  that fit plus the end
+  marker, one frame about every 2 seconds), and `H` with
+  our home server once per 600 seconds per asker. We never author `P`, `L`
+  or `D`: HeadHunter has no honest line for a sighting of ours.
 
-Nothing is ever sent on WEFF1, HeadHunter or LFSw, and the addon never sends
-chat, joins channels, invites, accepts invites or leaves a group. HeadHunter
-and LEGW1 messages of an unknown version are ignored. A War Effort hello is
+Budgets, all in Wire.lua and spent before the client is asked: each prefix 5
+at once then one per 2 seconds; all sends 8 at once, then one per 1.5 seconds
+and never more than 40 a minute; GUILD 20 a minute; public whispers 20 a minute
+in total and 4 a minute to one player (a catch-up answer instead has its own 16
+frames per requester, still inside the 20). In combat every send costs double and
+every minute cap is halved. A client throttle pauses that prefix 30 seconds;
+an offline player is skipped for an hour. A queue of 40 lines waits for budget
+(clicks first, then our own lines, answers owed, embassy and guild relay lines,
+catch-up answers, and other HeadHunter lines last); full, the oldest line of
+the lowest rank goes first, and when every queued line ranks above or equal to
+the new one, the new line is refused. A catch-up answer (10 records and the end
+marker, one frame about every 2 seconds) ranks above mesh forwards so it ends
+inside HeadHunter's 60-second give-up. Hello replies are never queued: one Wire
+refuses waits for the next paced turn, so they stay 2 seconds apart. Embassy
+and HeadHunter lines leave a reserve (2 sends of the shared
+bucket, 10 of the 40 a minute, 5 of the guild's 20; halved in combat), so our
+own lines still go under a busy mesh.
+
+Channels (Directory.lua): with public networks on, the addon joins the
+HeadHunter channel `HeadHunterSync` and War Effort's channel for your realm and
+faction, only to read who is in them (the peers and embassy candidates). It
+never sends to a channel. A channel you already had is read and never joined or
+left by the addon; one the addon joined (confirmed by the client's own join
+notice) is left when public networks or that network are switched off. No
+join in an instance or combat, or before the client's channel list is filled;
+a channel you leave by hand is not joined again that session.
+
+Party calls, all in Wire.lua:
+
+- `C_PartyInfo.InviteUnit`: while you host for your guild, a guildmate's
+  request can get one invite (see "Hosting for your guild"). At most one per
+  10 seconds, 6 per 10 minutes and one per name per minute.
+- `AcceptGroup` and `C_PartyInfo.LeaveParty`: with "Auto accept and leave"
+  on, the invite of the host your own hop asked is accepted, and that group
+  is left after the move (see "Auto accept and leave"). At most one of each
+  per 10 seconds.
+
+Received only, never sent: `[Spy]`, `ForeverSpy1`, `FSENT03`, `GBOUNTY`,
+`WALLOFSHAME` and `FTold1`. Nothing on LFSw but `Q`, and the addon never sends
+chat, sends to a channel, joins any channel but the two above, declines
+invites, accepts any other invite, leaves any other group, or removes or
+converts group members. HeadHunter and LEGW1 messages of an unknown version are
+ignored. A War Effort hello is
 judged by its minor number, not its version text: a known minor (13 to 19)
 gives a server key even when the version string is unusual, and an unknown
 minor is accepted but its reports keep an unknown layer.
@@ -43,8 +173,21 @@ source is reported as not installed; a loaded source with an incompatible
 shape is reported as data unavailable.
 
 - `/le`: toggle the window.
-- `/le list`: current layer/source, source statuses and directly observed
-  opposite-faction players. Reports are counted separately, never mixed in.
+- `/le list`: current layer/source, source statuses, the War Effort embassy
+  state (or why it is off), the network level, each network, whether your
+  sightings are shared, and directly observed opposite-faction players.
+  Reports are counted separately, never mixed in.
+- `/le net`: the network level (public or guild only) and each network, with
+  the reason when one is off (switched off, the real addon loaded, guild
+  only, not in this version). `/le net guild` and `/le net public` set the
+  level; `/le net wareffort on|off` (or `we`) and `/le net headhunter on|off`
+  (or `hh`) set each network. All saved.
+- `/le share on|off`: share your own sightings (on by default, saved). Off
+  sends no O line and no War Effort report (waiting sync answers and our own
+  embassy lines still queued are dropped too); you still receive everyone
+  else's.
+- Window switches, on every tab: Share, Guild only, War Effort and
+  HeadHunter (the same settings as the commands).
 - `/le find <name>`: add a tracked enemy (maximum five). Names may include a
   Forever surname or an explicit `-Realm`. `/le find` clears all tracked names.
   The Find tab also has a Track field and individual Clear buttons.
@@ -57,8 +200,19 @@ shape is reported as data unavailable.
   another layer, with source and age (see "Hop" for who is listed).
 - `/le ask <number>`: puts a whisper to that player into your chat box. You
   press Enter. The list from `/le hosts` is valid for two minutes.
+- `/le hop host <number>` and the "Hop via <name>" button on a Friendly row ask
+  that host directly (one hop request per click, see "Hop"). The list from
+  `/le hosts` is valid for two minutes.
 - `/le hop <number>` and the Hop buttons on report rows send the hop request
   described below.
+- `/le hosts find` and the "Find hosts" button on the Friendly tab ask the
+  guild once (Bulo's `Q` and LayerEnemies' `F|1`), at most once per 60
+  seconds. Hosts that answer appear in `/le hosts` and on the Friendly tab.
+- `/le hop auto on`, `/le hop auto off` and the "Auto" toggle on the Friendly
+  tab: Auto accept and leave (on by default, saved; see below).
+- `/le host on`, `/le host off`, `/le host` and the Host toggle on the Friendly
+  tab: hosting for your guild (see below). The setting is saved and stays on
+  after login and reload until you turn it off.
 
 Text rows show readable name or Unknown, class, level, zone ID, age, source
 and confidence. The window adds class colours and invite buttons. Use the
@@ -130,28 +284,52 @@ it is treated as a server key only when the reporter's hello announced a
 version that uses one (minor 13 to 19) and the value is not 0. Otherwise the
 report's layer is unknown.
 
-## War Effort: read-only, reported not confirmed
+## War Effort network
 
-The addon reads War Effort 1.6.x traffic on WEFF1 and never sends on it. It
-does not inspect War Effort's local namespace or hook its functions, and the
-0.2.13 requirement is gone: no War Effort install is needed. Its independent
-decoder implements the C (cluster), E (enemy list) and H (hello) lines, plus
-one level of G (guild) and X (party/raid) wrapping; any other type letter is
-ignored. No War Effort code is bundled or loaded. The legacy ZRAD1 prefix is
-no longer registered.
+The addon reads War Effort 1.6.x traffic on WEFF1 and, from 1.0.0, takes part
+as a member (what it sends is listed under "What is sent"). It does not inspect
+War Effort's local namespace or hook its functions; no War Effort install is
+needed. Its independent decoder implements the C (cluster), E (enemy list), H
+(hello), Q, Y, J, P, D and W lines, plus one level of G (guild) and X
+(party/raid) wrapping; any other type letter is ignored. No War Effort code is
+bundled or loaded. With War Effort itself loaded, the addon sends nothing on
+WEFF1 and runs no embassy (two senders on one character would collide); it
+still reads.
 
-Accepted routes: GUILD carries C, E, H and G; PARTY and RAID carry C, E, H and
-X. Whispers, channels and other routes are ignored. Messages are 1 to 255
+Accepted routes: GUILD carries C, E, H, G, Q, Y and D; PARTY and RAID carry C,
+E, H and X; WHISPER carries J, P and W. Channels and other routes are ignored.
+
+Embassy (War Effort's link between guilds): with public networks on, in a
+guild whose id the client gives (`C_Club.GetGuildClubId`), on a realm with a
+War Effort channel name, the addon greets its share of the War Effort channel's
+players from other guilds (a share elected among guildmates heard on the
+guild), keeps those who answer as partners, and lists the partner guilds in
+one `D` line. For each report, one guildmate is elected (War Effort's own
+score) to forward it as `W` to one partner; a guildmate's report goes out only
+if that guildmate's own hello said public. A partner's `W` comes into the guild
+as `G` once and is shown as a relayed report; it is never passed on to another
+partner. A presence counts only from a player in the War Effort channel, one we
+greeted in the last 10 minutes, or a partner we already have; anyone else gets
+no answer and no W of theirs is taken. Wrapped lines (W out, G in) are rebuilt
+from the fields we read, so nothing else a sender added travels on. A
+guildmate's "public" counts for up to and including 600 seconds after their last hello. A queued W
+is dropped if the embassy stops, the guild's forwarding seat moves to another
+guildmate, or the origin's public lapses. When the embassy stops (public
+networks off, the War Effort switch off, War Effort loaded) one `D|` takes our
+links back within seconds, through the guild budget, and our partners are dropped. `/le list` says "War Effort embassy: off (<why>)" when it cannot run,
+e.g. "no War Effort channel on this realm (all-digit realm name)". Messages are 1 to 255
 bytes from a fixed character set. Own echoes (your name, with or without your
 realm), ignored senders, and a wrapper naming its own sender as the origin
 are dropped. Reporters are compared by full name and realm.
 
 ### How long reports are listed
 
-A War Effort report is listed under "Reported, not confirmed" for ten minutes
-from receipt; a HeadHunter report for five minutes. A guild-relayed copy is
-dated from its origin (receipt minus the age it carries) and lives as long as
-a direct one. A real zone change drops reports from the old zone. Each row
+Rows expire by the origin's time (receipt minus the age a report carries):
+HeadHunter after 300 seconds; War Effort, guildmates' own O lines and the Spy
+family after 600 seconds; the guild incident addons after 900 seconds. A
+guild-relayed copy lives as long as a direct one. One sighting heard twice
+across networks (a guildmate's O line and its War Effort C) is one row: the
+first-hand copy wins, then the copy with more names. A real zone change drops reports from the old zone. Each row
 shows the reporter ("via <name>" when someone else carried the message) and
 the age; `/le reports` also shows how the reported layer relates to yours:
 same, other, or unknown.
@@ -166,6 +344,47 @@ direct or inside a checked forwarding envelope. They never carry a usable
 layer, so they can never be hopped to. The inner record's own time must be
 within 300 seconds of the server clock; an envelope's first-sent time is
 checked for form only.
+
+## HeadHunter network
+
+With public networks on, the addon is a member of HeadHunter's whisper mesh:
+the peers are the players in `HeadHunterSync`, each greeted once a session with
+an honest hello naming LayerEnemies. Envelopes are carried on as HeadHunter
+does (same world: region and ruleset; hop 1 to 5; at most 600 seconds old and
+300 seconds ahead; never our own; another faction only for the kinds HeadHunter
+allows), each one once (a ring of 4000 keys). After login it asks up to five
+peers what they hold, pulls from the one with the most, and serves its own
+held records (those carried in envelopes and pulled, the newest 300, this
+session only; from the other faction only the kinds HeadHunter allows) byte for
+byte to others who ask. A peer counts as known for 3600 seconds after it was
+last heard. It forwards less than HeadHunter does
+under load (the budgets above), and drops the oldest forward when its queue is
+full.
+
+## Spy family and guild incidents (received only)
+
+- Spy Forever (`[Spy]`, guild, party, raid): one enemy, its class and level,
+  the sender's map and position (shown as the observer's position).
+- Forever Spy (`ForeverSpy1`, party, raid): one enemy and the sender's zone.
+- Forever Sentinel PVP (`FSENT03`, party, raid): one enemy, class, level, zone
+  and age.
+- PvP Guild Bounty (`GBOUNTY` D, guild): the sender died to this player, with
+  the victim's position when it is on the zone map itself.
+- Wall of Shame (`WALLOFSHAME` D, guild): the sender's own death and the
+  killer as the game named it (a creature can show too; environment deaths
+  do not).
+- Forever Told (`FTold1` S, guild): a wanted player seen, by zone.
+
+Spy and Sentinel's "First-Last" become "First Last"; a part after a hyphen is a
+realm only when it is all digits. The row and the enemy are keyed by the
+folded name (our own realm stripped), so "First-Last" and "First-Last-<our
+realm>" are one row. The sender's name is read the same way: our own line in
+any spelling is refused, and the rate limit counts one sender once. Zone names
+are looked up on the map (the zones of our continent and of the world map; the
+table is kept only once both lookups gave data); a name two zones share is not
+used. One row per sender and enemy (a newer line replaces it), 6 lines per
+sender per 10 seconds over these six prefixes. These rows are never relayed,
+never sent as our own sighting, and nothing is ever sent on these prefixes.
 
 What this does not prove:
 
@@ -191,8 +410,9 @@ the reporter's position.
 ## Finding a tracked player
 
 A target can only be located when you see him yourself, or a report naming or
-hashing him reaches you (War Effort, HeadHunter or a guild relay; one enemy
-entry is enough, the rest of the list need not arrive). There is no
+hashing him reaches you (War Effort, HeadHunter, the Spy family and guild
+incident addons, or a guild relay; one enemy entry is enough, the rest of the
+list need not arrive). There is no
 server lookup, discovery broadcast, request to another addon, or background
 scan of the world. Enter the name before a report arrives; current-zone
 reports already retained can also be matched when adding a name.
@@ -274,7 +494,45 @@ installed; never sent by this addon), and the LayerSwap book
 (`LayerSwapDB.book`, entries younger than 15 minutes). Left out: yourself,
 anyone on your server key (while it is ambiguous they stay, marked probably),
 other zones, stale entries, entries dated more than five seconds ahead and
-unreadable names. Bulo and LayerSwap entries need your own layer to be known.
+unreadable names.
+
+While your own layer is not known yet, Bulo and LayerSwap entries are still
+listed with their layer, so a host is visible even with no layer addon of your
+own, but they cannot be hopped to or asked: `/le list`, `/le hosts`, the
+window's layer line and the Friendly tab say "Your layer is not known yet:
+target or mouse over two different kinds of NPC within 15 seconds." Readings
+of two different NPC kinds that agree within 15 seconds give your layer. A
+report row's Hop and `/le hop <number>` are refused with the same message, and
+nothing is drafted, not even a whisper to the report's War Effort origin.
+
+A Friendly row with a layer from Bulo or LayerSwap shows "Hop via <name>"
+(`/le hop host <number>` in chat): the same single request, the same limits and
+the same "what was shown is what is asked" rule as a report row's Hop, aimed at
+that host's layer. A row whose layer, host flag or LayerSwap uid changed since
+it was shown sends nothing. A Bulo user without the host flag is asked too,
+and the tooltip says "not hosting; may not answer".
+A War Effort origin row keeps "Ask for invite" (the chat whisper);
+`/le hop host` on such a row points to `/le ask <number>`.
+
+When a host answers your request with LayerSwap's `heard <you>|<layer>|<zone>|h`
+(the asked player only, by whisper, within 120 seconds), the addon remembers
+them as a LayerSwap host on that layer for 12 minutes (at most 64 names), used
+only when LayerSwap itself is not installed. A `-` answer (not hosting)
+removes them. Nothing is sent for this.
+
+When nobody on a report's layer is known and everything else allows a hop,
+the row offers "Ask guild (chat)": the click puts LayerSwap's own guild request
+into your chat box,
+
+    /g inv layer <LS <zone> want <server>-0 <x>,<y>>
+
+and you press Enter; the addon sends nothing itself. Every guild member sees
+the line, and any LayerSwap or Bulo host on that layer who reads guild chat may
+invite you, so more than one may answer. One guild ask per 60 seconds, within
+the 10-second overall limit below. For 120 seconds after your own guild ask, a
+LayerSwap `heard <you>|<layer>|<zone>|h` answer on GUILD is remembered like a
+whispered one.
+
 `/le ask <number>` and `LE.AskInvite(name)` open the whisper above for you to
 send. The foreign tables are read inside protected calls and never written.
 
@@ -291,12 +549,89 @@ layer - leave, wait a minute, try again.` (`Probably still on your layer`
 while your key is ambiguous). If your layer cannot be confirmed it keeps
 checking for up to 180 seconds, then says so. A zone change cancels the check.
 
+## Auto accept and leave
+
+On by default and saved (`LayerEnemiesDB.autoHop`); `/le hop auto off` or the
+Auto toggle on the Friendly tab turns it off, and then invites and groups are
+left to you.
+
+Accept: when an invite arrives, it is accepted only if your own hop asked for
+it (a Hop button, `/le hop`, `/le hop host` or "Ask guild (chat)"; not
+`/le ask`), within 120 seconds of that ask, from the player you asked (whole
+name, realm included; for the guild ask, a guild member online in your
+roster), while you are not grouped, not in an instance and not in combat
+(unreadable counts as in combat). One accept per ask. The client's invite
+popup is hidden as accepted. Any other invite is left to you. Chat says
+"accepted <host>'s invite".
+
+Leave: only the group joined through that accepted invite, and only while
+the host leads it, it is not a raid and you do not lead it; otherwise the
+addon stops watching and never leaves. When your server key, learned after
+joining (two NPC kinds agreeing, or Bulo), becomes the target layer, chat
+says "moved to layer X, leaving the group" and the group is left 3 seconds
+later. With no move within 30 seconds of joining, the group is left and chat
+says "hop failed: <host> could not move you".
+
+## Hosting for your guild
+
+Off until you turn it on with `/le host on` or the Host toggle on the Friendly
+tab. It refuses to turn on, and says why, while LayerSwap or BuloLayerForever
+is loaded (they host already), when the client has no `C_PartyInfo.InviteUnit`,
+or when you are not in a guild. Turning it on asks the server for a fresh guild
+roster and sends one `H` line. While it is on, the window shows "Hosting for
+your guild (stays on after reload)" on every tab.
+
+The setting is saved (`LayerEnemiesDB.guildHost`, true or false) and stays on
+across login and reload until `/le host off` or the toggle turns it off. At
+login, while it is on, one chat line says so: "LayerEnemies: hosting for your
+guild is ON (/le host off to stop)." If it cannot run then (LayerSwap or Bulo
+loaded, no `C_PartyInfo.InviteUnit`, not in a guild), it stays saved as on but
+inactive, answers nothing, and the line says why; the window shows "Hosting is
+on but inactive: <why>". When guild data arrives after login, it becomes
+active then, with one line. Nothing is sent at login: the `H` line goes out
+only from turning it on or in answer to an `F`. Hosting acts only while your
+guild's name is readable and equal to the guild seen this session; when the
+name blinks unreadable it goes inactive, and the next request or `F` checks
+again: readable and equal makes it active at once, otherwise a guild roster is
+asked (at most once per 15 seconds).
+
+A guildmate's request is the LayerSwap whisper line above. It is answered only
+when all of these hold, in this order (a failure before the guild check gets no
+answer at all):
+
+- the line is exactly `inv layer <LS <zone> want <d>-<d>[ <x>,<y>]>` or
+  `... not <d>-<d>[ not <d>-<d>]...`, at most 255 bytes;
+- the sender is not you and not on your ignore list, and has not asked in the
+  last 60 seconds;
+- your live map zone is the request's zone, your own layer is known, and you
+  are not in an instance or in combat (unreadable counts as in combat);
+- the sender is in your guild roster exactly once and online (unreadable or
+  ambiguous counts as no). A roster older than 120 seconds is refreshed first
+  (at most once per 15 seconds) and the request waits up to 5 seconds for it;
+  a newer request replaces a waiting one.
+
+Then: `want` your layer gets `heard <name>|<your layer>|<zone>|h` and one
+invite; `want` another layer gets `heard ...|-` with your real layer, so their
+list corrects itself; your layer as the first `not` gets `same`; your layer as
+a later `not` gets nothing. No invite (and `heard ...|-`) while you are in a
+raid, in a party you do not lead, in a party with someone this feature did not
+invite, at five with pending invites, while your own hop request waits, within
+10 seconds of the last invite, or after 6 invites in 10 minutes. Each invite
+prints one line with the name. Guests are never removed. `/le host` shows the state and the invites of the
+last 10 minutes.
+
 ## Storage and performance limits
 
 LayerEnemiesDB is SavedVariablesPerCharacter. It stores options, up to five
 explicitly entered tracked names, and window position. It never persists
 sightings, discovered identities, GUIDs, hashes, locations, report payloads,
-asked names, alert history or source settings. Reloading keeps your watchlist,
+asked names, alert history or source settings. Besides those three it holds
+`guildHost` (hosting for your guild) and `autoHop` (Auto accept and leave),
+`consent` ("guild" after `/le net guild`, "public" after `/le net public`,
+absent until either: public), `nets` (one
+switch per network), `share` (sharing your sightings), `netNotice` (the
+first-login line was shown) and `weReportId` (War Effort's report id, which
+must keep rising across sessions, 1 to 65535). Reloading keeps your watchlist,
 not its locations. Epoch boundaries also clear locations. Your own server key and its
 30-minute "ambiguous" window are not saved either: after /reload the window is
 gone, and a new one starts only at the next qualifying layer change.
@@ -307,8 +642,9 @@ one report can show as several rows), 256 remembered relay ids, 255 bytes per
 message. Held enemy lists: 200 entries per origin and
 256 in total, for 15 seconds. Report-id order is remembered for 512 origins
 for an hour. Receive rates per sender per ten seconds: 6 War Effort messages
-(20 for G/X wrappers), 6 HeadHunter P/L/E frames (other HeadHunter types are
-ignored without counting), 12 LEGW1; excess is dropped silently, and
+(20 for G/X/W wrappers), 6 HeadHunter frames we read (P, L, E, and by whisper
+N, Q, O, S, H; other types are ignored without counting), 6 Spy-family and
+incident lines, 12 LEGW1; excess is dropped silently, and
 each rate table holds at most 512 senders. Unchanged Bulo timestamps do not allocate duplicate
 observation records. Friend lists are read for hosts/asks, tracked-target
 status/alerts, and shown-window refreshes. The UI reuses at most six row
@@ -325,9 +661,16 @@ mock harness with the Lua 5.1 binary (`LAYERENEMIES_LUA` overrides its path;
 whatever binary is given is trusted to run the harness, and at least one test
 must pass) and builds the local package. The mock client starts frames
 shown, errors on unknown methods, delivers CHAT_MSG_ADDON, models secret
-values, and fails any test that reaches an invite, accept, leave, join or chat
-call, or an addon message sent from anywhere but Wire.lua or on any route but
-LayerSwap/WHISPER and LEGW1/GUILD.
+values, and fails any test that reaches a decline or chat call, a party
+call other than `C_PartyInfo.InviteUnit`, `AcceptGroup` or
+`C_PartyInfo.LeaveParty`, one of those from anywhere but Wire.lua, a hidden
+invite popup not marked as accepted, or an addon message sent from anywhere
+but Wire.lua or on any route but LayerSwap/WHISPER, LEGW1/GUILD, LFSw/GUILD,
+WEFF1 (GUILD, PARTY, RAID, WHISPER) and HeadHunter/WHISPER. verify.py also
+fails if `InviteUnit`, `AcceptGroup` or `LeaveParty` appears outside Wire.lua
+or more than once, if a channel join, leave or roster select appears outside
+Directory.lua or more than once, or if a HeadHunter frame of a type we never
+send (anything but N, E, Q, O, S, H) is built.
 The randomized parser test uses 5,000 deterministic malformed inputs.
 
 Current results are in notes/test-results.txt and notes/verification.json,
@@ -338,7 +681,10 @@ still needs in-game verification.
 
 ## Not tested on a live client
 
-Everything above is checked against a mock client only. Still open:
+Apart from the one 0.3.0 trial described at the top (host discovery failed for
+a player without Bulo or LayerSwap), everything above is checked against a
+mock client only. Still open (items 16 on are new in 1.0.0; the checklist
+after the list is the order to try them in):
 
 1. Does `inv layer <LS zone want S-0 x,y>` by addon whisper produce an invite
    from a LayerSwap 1.14.20 host and from a Bulo 3.0.25 host? Also with the
@@ -350,6 +696,95 @@ Everything above is checked against a mock client only. Still open:
 4. Does LEGW1 on GUILD deliver between two guildmates, and does HeadHunter
    whisper traffic reach a second addon registered on the same prefix?
 5. The same-zone swap test (Bulo id before and after a transfer).
+6. 0.3.1: a host listed while your layer is unknown (Bulo's guild line heard
+   before any NPC reading), and the hint clearing after two NPC readings.
+7. 0.3.1: `/le hop host <number>` and "Hop via <name>" producing an invite from
+   a Bulo host and from a LayerSwap host (the `want <server>-0` and
+   `want <server>-<uid>` forms).
+8. 0.3.1: a LayerSwap host's `heard …|h` reply being remembered and listed for
+   12 minutes, and a `-` reply removing it.
+9. 0.4.0: does `C_PartyInfo.InviteUnit` work on Forever 1.60.1 when called from
+   an addon-message event rather than a click? Guild hosting depends on it.
+10. 0.4.0: the guild roster on Forever: `GetGuildRosterInfo` return order and
+    name format, `GUILD_ROSTER_UPDATE` after `C_GuildInfo.GuildRoster()`, and
+    the server's limit on roster requests.
+11. 0.4.0: Find hosts: Bulo hosts answering `Q` within 6 seconds, and a
+    LayerEnemies host answering `F|1` with `H`, both listed and hoppable.
+12. 0.4.0: "Ask guild (chat)": the `/g` line drafted correctly, and a
+    LayerSwap or Bulo host on that layer inviting from it.
+13. 0.4.0: two LayerEnemies guildmates, one hosting: the request, the
+    `heard`/`same` reply, one invite, the 60-second and 10-second limits, and
+    no invite in combat or in a raid.
+14. 0.4.0: a saved-on host after `/reload` and after a fresh login: the ON
+    line, and whether guild data is ready at login or the host turns active
+    on the first guild roster update.
+15. 0.4.0: Auto accept and leave: does `AcceptGroup` work from
+    `PARTY_INVITE_REQUEST` on 1.60.1, does the popup close without declining,
+    does `C_PartyInfo.LeaveParty` leave from a timer, and does leaving 3
+    seconds after the move keep you on the new layer? Also the 30-second
+    failure leave, and that an invite from anyone else stays untouched.
+16. Names: the CHAT_MSG_ADDON sender format on Forever 1.60.1 (bare "First
+    Last" for your realm? "First Last-<digits>" for others?) and the
+    `GetGuildRosterInfo` name format; the guild host, the invite and every
+    network read both through one name rule. Whether two hidden realms can
+    hold the same name, and whether `InviteUnit("First Last-7105")` works.
+17. `GetRealmName` and `GetNormalizedRealmName` on Forever: an all-digit realm
+    name gives War Effort no ruleset tag, so no War Effort channel name (for
+    War Effort itself as for us) and no embassy.
+18. Directory: what `JoinChannelByName` returns (nil, false or empty counts as
+    no join); whether `CHAT_MSG_CHANNEL_NOTICE` YOU_JOINED or YOU_CHANGED
+    arrives for our join, with which name fields (only that notice makes a
+    channel ours, so only then is it ever left); when the channel list is
+    filled after login; whether a new channel shows in it at once or after
+    `CHANNEL_UI_UPDATE`; that a hand-left channel is not rejoined.
+19. War Effort's reaction to our hello: does War Effort list us as a guild
+    reader (minor 19) and start sending C/E to our groups; does the fixed
+    version 1.0.0 never trigger its update notice; does a guild Y get our
+    whispered C (sync marker) and E, shown in its window; does a J get
+    `K|id|2`.
+20. Embassy: `C_Club.GetGuildClubId` on Forever (without it the embassy stays
+    off and `/le list` says why); `UnitName("player")`'s second return (our
+    election name uses it as the surname, as War Effort does); a partner's W
+    arriving as G in the guild; at most two forwarded reports a minute per
+    partner (the 4-a-minute whisper cap).
+21. HeadHunter: our world tag (region from `GetCurrentRegion`, ruleset from
+    `C_GameRules` or the realm name) and whether HeadHunter takes our
+    forwards; our hello listed by HeadHunter; catch-up offers and pulls
+    between us and a HeadHunter client.
+22. Spy family and incidents: Spy's and Sentinel's real name field ("First-
+    Last"?); Forever Spy's and Sentinel's zone names found by
+    `C_Map.GetMapChildrenInfo`; how often Wall of Shame names a creature.
+23. Guild relay hops: the `R|1` relay format has no upstream hop field, so a
+    relayed record shows one hop (a format change would break 0.3 and 0.4
+    guildmates).
+24. Guild changes on a live client: the order of `PLAYER_GUILD_UPDATE` and
+    `GUILD_ROSTER_UPDATE` after leaving or joining, the guild name blinking
+    unreadable, and the roster request limit.
+
+Live-test checklist for the PR build (two characters in one guild, A and B,
+then a War Effort and a HeadHunter user if one is around; if a network fails
+its part, its constant is turned off before release):
+
+1. Login on A: the public-networks line once; `/le list` and `/le net` show
+   both networks on (or why not); the realm name and `/le list`'s embassy
+   line (items 17, 20).
+2. Channels: `HeadHunterSync` and the War Effort channel joined, the join
+   notice seen, both left by `/le net guild` and joined again by `/le net
+   public`; a channel left by hand stays left (item 18).
+3. Names: A and B whisper and see each other's LEGW1 lines; note the sender
+   names printed by `/le reports` and the roster names (item 16).
+4. Own sightings: A targets an enemy; B's Reported tab shows A's O line within
+   about 3 seconds; `/le share off` on A stops it.
+5. Hosting: A hosts (`/le host on`), B hops through the guild: one invite from
+   `InviteUnit` on an addon-message event; B's Auto accept takes it from
+   `PARTY_INVITE_REQUEST`, and B leaves by `LeaveParty` from a timer 3 seconds
+   after the move (items 9, 15); a guild change on A makes hosting inactive.
+6. War Effort: with a War Effort user in the guild, its window lists A; A's C
+   and E show there; no update notice; a Y and a J answered (item 19).
+7. HeadHunter: with a HeadHunter user, its peer list shows LayerEnemies;
+   envelopes forwarded and catch-up served (item 21).
+8. Spy family: a guildmate with Spy targets an enemy; A and B show the row
+   with "observer's position" (item 22).
 
 Footer used in slash output and the window:
 

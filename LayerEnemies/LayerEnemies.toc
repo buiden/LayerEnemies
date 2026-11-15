@@ -2,13 +2,14 @@
 ## Title: LayerEnemies
 ## Notes: Enemy players seen by you or reported by other players' addons, and friendly players to ask for a layer invite.
 ## Author: buiden
-## Version: 0.3.0
+## Version: 1.0.0
 ## SavedVariablesPerCharacter: LayerEnemiesDB
 ## OptionalDeps: BuloLayerForever, WarEffortScout, LayerSwap
 Safe.lua
 Hash.lua
 Layer.lua
 Record.lua
+Net.lua
 Wire.lua
 Protocol.lua
 Peers.lua
@@ -18,7 +19,17 @@ HeadHunter.lua
 Adapters.lua
 Invite.lua
 Hop.lua
+Hosts.lua
+GuildHost.lua
 Relay.lua
+WeOut.lua
+WeNet.lua
+WeEmb.lua
+HhNet.lua
+Spy.lua
+Incident.lua
+Share.lua
+Directory.lua
 Find.lua
 UI.lua
 Main.lua
