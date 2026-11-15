@@ -327,4 +327,11 @@ PASS 21e 21eacaf: a raid with players outside the guild (raid units only) gets a
 PASS 21e 21eacaf: the login Q is tried at most twice
 PASS 21e 21eacaf: answer ages are the observation's, rechecked at each send (C and E)
 PASS 1.0.0 release: both networks ship on; the first login says so once
-RESULT: 329 tests passed, 0 failed, 22732 assertions
+PASS 124 A3: held keys: an empty holder set is dropped and the table is capped at 256
+PASS 124 A3: wrapped lines are rebuilt from decoded fields: no trailing text travels, W out or G in
+PASS 124 A3: a P makes a partner only from a channel member or someone we greeted in the last 10 min
+PASS 124 A3: queued embassy lines are dropped when the embassy stops, the seat is lost or the origin revokes public
+PASS 124 A3: D| goes out at once when the War Effort switch goes off or War Effort is loaded; then former partners are dropped
+PASS 124 A3: a guildmate's public=1 expires 600 s after their last hello
+PASS 124 A3: a queued greeting is dropped when the embassy stops
+RESULT: 336 tests passed, 0 failed, 23050 assertions

@@ -281,7 +281,15 @@ one `D` line. For each report, one guildmate is elected (War Effort's own
 score) to forward it as `W` to one partner; a guildmate's report goes out only
 if that guildmate's own hello said public. A partner's `W` comes into the guild
 as `G` once and is shown as a relayed report; it is never passed on to another
-partner. `/le list` says "War Effort embassy: off (<why>)" when it cannot run,
+partner. A presence counts only from a player in the War Effort channel, one we
+greeted in the last 10 minutes, or a partner we already have; anyone else gets
+no answer and no W of theirs is taken. Wrapped lines (W out, G in) are rebuilt
+from the fields we read, so nothing else a sender added travels on. A
+guildmate's "public" counts for 600 seconds after their last hello. A queued W
+is dropped if the embassy stops, the guild's forwarding seat moves to another
+guildmate, or the origin's public lapses. When the embassy stops (public
+networks off, the War Effort switch off, War Effort loaded) one `D|` takes our
+links back at once and our partners are dropped. `/le list` says "War Effort embassy: off (<why>)" when it cannot run,
 e.g. "no War Effort channel on this realm (all-digit realm name)". Messages are 1 to 255
 bytes from a fixed character set. Own echoes (your name, with or without your
 realm), ignored senders, and a wrapper naming its own sender as the origin
