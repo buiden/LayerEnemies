@@ -343,4 +343,8 @@ PASS 9b8 B: Q:p only from a known peer of our faction; S records from the other 
 PASS 9b8 B: own lines are never starved by a busy mesh, in or out of combat; embassy and owed lines go before mesh ones
 PASS 9b8 B: a forward keeps the timestamp bytes and changes only the hop; a queued forward over 600 s old is dropped
 PASS 9b8 B: hello replies are paced to one per 2 s; a peer counts as known only if heard within 3600 s
-RESULT: 345 tests passed, 0 failed, 23404 assertions
+PASS 7a0 C1/C2: one row per enemy whatever the spelling: First-Last and First-Last-7102 fold to one key
+PASS 7a0 C1: the zone-name table is kept only when both lookups gave data; otherwise tried again
+PASS 7a0 C1: the sender in Spy spelling: our own line is refused, and the rate bucket is the folded name
+PASS 7a0 C1: an ambiguous zone name is no answer whichever map comes first; a C1 row never goes out as our O
+RESULT: 349 tests passed, 0 failed, 23546 assertions

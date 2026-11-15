@@ -356,10 +356,15 @@ full.
 - Forever Told (`FTold1` S, guild): a wanted player seen, by zone.
 
 Spy and Sentinel's "First-Last" become "First Last"; a part after a hyphen is a
-realm only when it is all digits. Zone names are looked up on the map; a name
-two zones share is not used. One row per sender and enemy (a newer line
-replaces it), 6 lines per sender per 10 seconds over these six prefixes. These
-rows are never relayed, and nothing is ever sent on these prefixes.
+realm only when it is all digits. The row and the enemy are keyed by the
+folded name (our own realm stripped), so "First-Last" and "First-Last-<our
+realm>" are one row. The sender's name is read the same way: our own line in
+any spelling is refused, and the rate limit counts one sender once. Zone names
+are looked up on the map (the zones of our continent and of the world map; the
+table is kept only once both lookups gave data); a name two zones share is not
+used. One row per sender and enemy (a newer line replaces it), 6 lines per
+sender per 10 seconds over these six prefixes. These rows are never relayed,
+never sent as our own sighting, and nothing is ever sent on these prefixes.
 
 What this does not prove:
 
