@@ -327,6 +327,7 @@ function M.layerswap(text,kind,sender)
     if kind=="GUILD" then return M.layerswapGuild(text,sender) end
     -- a request whispered to us goes to the guild host, and only while hosting is on; it never reaches Hop
     if kind=="WHISPER" and type(text)=="string" and text:sub(1,10)=="inv layer " then
+        if M.host and M.host.want and not M.host.on then M.guildRetry() end
         if M.host and M.host.on then M.hostRequest(text,sender) end
         return
     end
@@ -370,6 +371,16 @@ function M.hostCheck()
     M.say("LayerEnemies: hosting for your guild is ON but inactive: "..why:gsub("%.$","").." (/le host off to stop).")
     if N.UI then N.UI.refresh() end
     return false
+end
+-- guildRetry(): a saved-on host left inactive by a guild name that blinked: on a request or an F, the guild is
+-- checked again: readable and equal to the guild seen ends the blink and hosting acts again at once; otherwise a
+-- roster is asked (askRoster: through the 15 s limit)
+function M.guildRetry()
+    if M.hostBlocked() or not M.guildWhy() or S.call(IsInGuild)~=true then return end
+    local name=S.call(IsInGuild)==true and S.str((S.call(GetGuildInfo,"player")),100)
+    if name and M.guildBlink and not M.guildUnknown and name==M.guildSeen then
+        M.guildBlink=nil; M.hostResume(false)
+    else M.askRoster(now()) end
 end
 -- askRoster(time): a guild roster now, or (inside the 15 s limit) once the limit has passed; one retry timer
 function M.askRoster(time)
@@ -446,6 +457,7 @@ function M.hostControl(c,sender,time)
         if N.UI then N.UI.refresh() end
         return
     end
+    if M.host and M.host.want and not M.host.on then M.guildRetry() end
     if not (M.host and M.host.on) or M.host.answerDue then return end
     if M.host.announcedAt and time-M.host.announcedAt<N.Wire.CONTROL_EVERY and time>=M.host.announcedAt then return end
     M.host.answerDue=true
@@ -1285,6 +1297,7 @@ function M.embassyForward(origin,msg,text,time,guildmate)
         local function still()
             local t=now()
             if guildmate and not publicMate(origin,t) then return false end
+            if not guildmate and not M.sharing() then return false end
             return embassyOn() and N.WeEmb.seat(M.emb,key,target,t,embCtx(t))
         end
         N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="embassy",queue=true,still=still})
@@ -1415,6 +1428,9 @@ M.NET_NOTICE="LayerEnemies: public networks ON (War Effort, HeadHunter…). /le 
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
+    -- off: nothing we authored goes out any more: sync answers and the reports kept for them are dropped now, our own
+    -- W lines still queued for embassy partners are dropped by their still check (M.sharing)
+    if not on and M.we then N.WeNet.forget(M.we) end
     M.say(on and "LayerEnemies: your sightings are shared again: an O line with your guild, War Effort reports where a reader was heard."
         or "LayerEnemies: your sightings are no longer shared (no O line, no War Effort reports). You still receive everyone else's.")
     if N.UI then N.UI.refresh() end

@@ -5233,5 +5233,40 @@ test("7a0 C1: an ambiguous zone name is no answer whichever map comes first; a C
     for _=1,20 do advance(1); N.Main.shareTick() end; eq(#oLines(),0,"not ours")
     foe(N,2); for _=1,5 do advance(1); N.Main.shareTick() end; eq(#oLines(),1,"our own sighting still goes")
 end)
+
+-- مانع's 1.0.0 final review (r040c/b5c)
+test("b5c d744383: /le share off drops sync answers with our C/E and the reports kept for them",function()
+    local N=loadAddon(); weReady(N); roster={{"Wes-TestRealm",true},{"Wesb-TestRealm",true}}; deliver("GUILD_ROSTER_UPDATE",true); drain()
+    hello("Wes",19); advance(20)
+    foe(N,1,{key="Player-1-801",name="Aa Bb"}); foe(N,2,{key="Player-1-802",name="Cc Dd"}); steps(20); yes(#weSent("C")>=1)
+    sent={}; N.WeNet.rand=function() return .5 end
+    we("Y|1||a:900"); steps(5)                                    -- queued: a random start 30 s later
+    slash("share off"); steps(120); eq(#weTo("Wes"),0,"the waiting answer is dropped")
+    eq(#N.Main.we.kept,0,"nothing of ours is kept"); we("Y|1||a:900","GUILD","Wesb"); steps(120); eq(#weTo("Wesb"),0)
+    -- the C+E on another route goes no further either
+    eq(#weSent("C"),0); eq(#weSent("E"),0)
+end)
+test("b5c d744383: /le share off drops our own W lines still queued for an embassy partner",function()
+    local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13)
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); steps(25); hello("Wes",19)
+    for i=1,4 do N.Wire.send("WEFF1","K|"..i.."|2|5","WHISPER","Ann Lee",{net="we",prio="owed"}) end   -- Ann Lee's 4 a minute spent
+    local function mine() local n=0; for _,m in ipairs(wh("W|","Ann Lee")) do local d=N.Protocol.decode(m.text); if d and d.origin=="Me" and d.inner.type~="H" then n=n+1 end end; return n end
+    foe(N,1); foe(N,2); steps(15); eq(mine(),0,"waiting for the budget"); yes(#weSent("C")>=1,"our C went to the guild"); yes(N.Wire.queued()>0)
+    slash("share off"); steps(90); eq(mine(),0,"dropped, not sent")
+end)
+test("b5c: a hosting blink ends on the next request or F when the guild name is readable and equal; else a roster is asked",function()
+    local N=loadAddon(); hReady(N); roster={{"Bob",true}}; advance(61)
+    guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on)
+    guildName="Test Guild"                                       -- readable again, but no event or roster says so
+    lsw("inv layer <LS 100 want 7086-0>","Bob"); yes(N.Main.host.on,"the request itself re-checks"); eq(#invites,1,"and is answered")
+    N=loadAddon(); hReady(N); advance(61)
+    guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on)
+    guildName="Test Guild"; eq(hostF(),1,"an F re-checks too")
+    -- still unreadable: a roster is asked (through the 15 s limit), hosting stays inactive
+    N=loadAddon(); hReady(N); advance(61); guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain()
+    local calls=rosterCalls; advance(16); lsw("inv layer <LS 100 want 7086-0>","Bob"); no(N.Main.host.on); eq(#invites,0); eq(rosterCalls,calls+1)
+    -- readable but another guild's name: not resumed, nothing acts
+    guildName="Guild B"; advance(16); lsw("inv layer <LS 100 want 7086-0>","Bob"); no(N.Main.host.on); eq(#invites,0); guildName="Test Guild"
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

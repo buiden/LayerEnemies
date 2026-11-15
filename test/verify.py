@@ -73,7 +73,12 @@ def main():
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
     archive = dist / 'LayerEnemies-1.0.0.zip'
-    expected = ['LayerEnemies/' + p.name for p in sorted((ROOT / 'LayerEnemies').iterdir()) if p.is_file()]
+    # the archive is the TOC's file set (its .lua files and the .toc) plus the README, and nothing else: anything else
+    # in the addon folder (a stray file, a test folder) fails here instead of shipping
+    shipped = sorted(listed + ['LayerEnemies.toc'])
+    present = sorted(p.relative_to(ROOT / 'LayerEnemies').as_posix() for p in (ROOT / 'LayerEnemies').rglob('*'))
+    assert present == shipped, 'addon folder holds files outside the TOC set: %s' % sorted(set(present) - set(shipped))
+    expected = ['LayerEnemies/' + name for name in shipped]
     expected.append('LayerEnemies/README.md')
     # deterministic archive: fixed time and mode per member, so the same sources give the same sha256 in any clone
     def add(out, path, name):
@@ -82,16 +87,14 @@ def main():
         info.external_attr = 0o644 << 16
         out.writestr(info, path.read_bytes())
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as out:
-        for file in sorted((ROOT / 'LayerEnemies').iterdir()):
-            if file.is_file():
-                add(out, file, 'LayerEnemies/' + file.name)
+        for name in shipped:
+            add(out, ROOT / 'LayerEnemies' / name, 'LayerEnemies/' + name)
         add(out, ROOT / 'README.md', 'LayerEnemies/README.md')
     with zipfile.ZipFile(archive) as zipped:
         assert zipped.testzip() is None
         assert sorted(zipped.namelist()) == sorted(expected)
-        for file in (ROOT / 'LayerEnemies').iterdir():
-            if file.is_file():
-                assert zipped.read('LayerEnemies/' + file.name) == file.read_bytes()
+        for name in shipped:
+            assert zipped.read('LayerEnemies/' + name) == (ROOT / 'LayerEnemies' / name).read_bytes()
         assert zipped.read('LayerEnemies/README.md') == (ROOT / 'README.md').read_bytes()
     result = {
         'lua_version': subprocess.run([str(LUA), '-v'], capture_output=True, text=True, check=True).stderr.strip(),

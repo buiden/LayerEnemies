@@ -24,6 +24,8 @@ end
 local function prune(map, now, keep)
     for k, at in pairs(map) do if now < at or now - at >= keep then map[k] = nil end end
 end
+-- forget(st): sharing off: our kept reports and every answer still waiting go (they carry our own C/E)
+function Wn.forget(st) st.kept, st.waiting = {}, {} end
 -- request(st, sender, continent, maxAge, now, continentOf, rand) -> true or nil, why
 function Wn.request(st, sender, continent, maxAge, now, continentOf, rand)
     local key = N.Invite.key(sender)
