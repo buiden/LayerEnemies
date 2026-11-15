@@ -14,6 +14,7 @@ HN.HOLD, HN.LINK_EVERY, HN.SINCE = 300, 600, 3600
 HN.SERVE, HN.ASKERS, HN.FRESH = 10, 256, 3600   -- records per pull; requesters remembered; a peer is known if heard this long ago
 HN.TOLD_MAX = 2000                               -- peers greeted this session (a rejoining peer is not greeted twice)
 HN.HELLO = "LayerEnemies"
+HN.HELLO_TRIES, HN.HELLO_DEADLINE, HN.HELLO_BACKOFF = 8, 120, 30
 -- carried in envelopes (HeadHunter's list); T is diagnostic and stops here
 HN.CARRIED = { D = true, K = true, F = true, X = true, W = true, R = true, Y = true, U = true, J = true, L = true, N = true,
     T = true, P = true, Z = true }
@@ -79,26 +80,61 @@ end
 function HN.seen(st, key) return st.ring[key] == true end
 function HN.held(st) return #st.history end
 
--- roster(st, names, me): the member list replaces the peer table (what we knew of present names stays)
-function HN.roster(st, names, me)
-    if type(names) ~= "table" then return end
-    local peers, n = {}, 0
+local function heardFresh(p, now)
+    return p.heardAt and now >= p.heardAt and now - p.heardAt <= HN.FRESH
+end
+local function live(p, now, ttl)
+    return heardFresh(p, now) or (p.directoryAt and now >= p.directoryAt and now - p.directoryAt < ttl)
+end
+-- A fresh snapshot replaces directory evidence, even when empty. Directly heard peers have their own lifetime.
+-- The protocol compact key is not a safe identity: a different realm/surname must never inherit peer state.
+function HN.roster(st, names, me, at)
+    at = S.num(at) or S.num(S.call(GetTime))
+    if type(names) ~= "table" or not at then return end
+    local peers, ambiguous, n = {}, {}, 0
     for _, name in ipairs(names) do
-        local c = HN.compact(name)
-        if c and c ~= me and not peers[c] and n < HN.PEERS then peers[c] = st.peers[c] or { name = name }; n = n + 1 end
+        local valid, key = N.Invite.name(name)
+        local c = valid and HN.compact(name)
+        if c and c ~= me and not ambiguous[c] then
+            if peers[c] and peers[c].key ~= key then
+                peers[c], ambiguous[c], n = nil, true, n - 1
+            elseif not peers[c] and n < HN.PEERS then
+                local p = st.peers[c]
+                if not p or p.key ~= key then p = { key = key } end
+                p.name, p.directoryAt = name, at
+                peers[c], n = p, n + 1
+            end
+        end
     end
-    -- peers heard by whisper but not listed stay until the next list (HeadHunter's: replaced then)
+    for c, p in pairs(st.peers) do
+        if not peers[c] and not ambiguous[c] and heardFresh(p, at) and n < HN.PEERS then
+            p.directoryAt = nil; peers[c], n = p, n + 1
+        end
+    end
     st.peers, st.n = peers, n
 end
+function HN.prune(st, now, ttl)
+    for c, p in pairs(st.peers) do
+        if not live(p, now, ttl) then st.peers[c] = nil; st.n = st.n - 1 end
+    end
+end
+-- Rechecked at dequeue: a queued directory-selected line must still name this same, fresh identity.
+function HN.candidate(st, name, now, ttl)
+    local p = st.peers[HN.compact(name) or "?"]
+    return p and p.key == N.Invite.key(name) and not p.unreachable and live(p, now, ttl) or false
+end
 local function peer(st, name)
-    local c = HN.compact(name)
+    local valid, key = N.Invite.name(name)
+    local c = valid and HN.compact(name)
     if not c then return nil end
     local p = st.peers[c]
-    if not p then
-        if st.n >= HN.PEERS then return nil end
-        p = { name = name }; st.peers[c] = p; st.n = st.n + 1
+    if not p or p.key ~= key then
+        if not p and st.n >= HN.PEERS then return nil end
+        if not p then st.n = st.n + 1 end
+        p = { key = key }; st.peers[c] = p
     end
-    return p, c
+    p.name = name
+    return p, key
 end
 local function told(st, c) return st.told[c] == true end
 local function tell(st, c)
@@ -118,30 +154,66 @@ function HN.heard(st, sender, faction, world, hello, now)
     if hello and not told(st, c) then tell(st, c); p.replyOwed = true; return true end
     return false
 end
--- nextHello(st, now, side) -> a peer name to greet now (one every 2 s; owed replies first), or nil
+-- Apply Wire's suppression before selecting any mesh work, including an owed hello. Incoming evidence cannot
+-- bypass that suppression; an expired one is released, but it does not restart a finished hello.
+function HN.suppress(st, offlineUntil, now)
+    for _, p in pairs(st.peers) do
+        local untilAt = offlineUntil(p.name, now)
+        if untilAt then p.unreachable = untilAt; p.replyOwed, p.helloNext = nil, nil
+        elseif type(p.unreachable) == "number" and now >= p.unreachable then p.unreachable = nil end
+    end
+end
+local function expireHello(p, now)
+    if p.replyOwed and (p.unreachable or (p.helloStart and (now < p.helloStart or now - p.helloStart >= HN.HELLO_DEADLINE))) then
+        p.replyOwed, p.helloNext = nil, nil
+    end
+end
+-- nextHello: one per 2 s, with unattempted peers ahead of retries. Fresh owed replies win ties, but a failed
+-- alphabetical-first peer cannot monopolize the scheduler. Counts include local (no client call) attempts.
 function HN.nextHello(st, now, side)
-    if st.helloLast and now >= st.helloLast and now - st.helloLast < HN.HELLO_EVERY then return nil end
+    if st.helloLast and now - st.helloLast < HN.HELLO_EVERY then return nil end
     local names = {}
-    for c in pairs(st.peers) do names[#names + 1] = c end
-    table.sort(names)
-    for _, c in ipairs(names) do
-        local p = st.peers[c]
-        if p.replyOwed then p.replyOwed = nil; st.helloLast = now; return p.name end
+    for c, p in pairs(st.peers) do
+        expireHello(p, now)
+        -- Explicit hello replies may cross faction, as before; spontaneous greetings may not.
+        if not p.unreachable and (p.replyOwed or not p.faction or p.faction == side)
+            and ((p.replyOwed and (not p.helloNext or now >= p.helloNext)) or not told(st, p.key)) then names[#names + 1] = c end
     end
-    for _, c in ipairs(names) do
-        local p = st.peers[c]
-        if not told(st, c) and not p.unreachable and (not p.faction or p.faction == side) then
-            tell(st, c); st.helloLast = now
-            return p.name
-        end
-    end
+    table.sort(names, function(a, b)
+        local x, y = st.peers[a], st.peers[b]
+        local nx, ny = x.helloTries or 0, y.helloTries or 0
+        if nx ~= ny then return nx < ny end
+        if not not x.replyOwed ~= not not y.replyOwed then return x.replyOwed == true end
+        return a < b
+    end)
+    local c = names[1]
+    if not c then return nil end
+    local p = st.peers[c]
+    p.replyOwed, p.helloNext = nil, nil
+    p.helloStart, p.helloTries = p.helloStart or now, (p.helloTries or 0) + 1
+    tell(st, p.key); st.helloLast = now
+    return p.name
 end
--- unsent(st, name): the hello to name was not sent (Wire refused it): owed again, tried at the next paced turn
-function HN.unsent(st, name)
+-- Only local budget/pause refusals are retried, with exponential backoff and a hard attempt/deadline bound.
+-- An actual client refusal (including a client throttle), offline, invalid text or a privacy refusal is terminal.
+function HN.unsent(st, name, why, attempted, now)
     local p = st.peers[HN.compact(name) or "?"]
-    if p then p.replyOwed = true end
+    if not p then return end
+    p.replyOwed, p.helloNext = nil, nil
+    if attempted or (why ~= "throttled" and why ~= "paused") or not now or not p.helloStart then return end
+    if (p.helloTries or 0) >= HN.HELLO_TRIES or now < p.helloStart then return end
+    local delay = math.min(HN.HELLO_BACKOFF, 2 ^ (p.helloTries or 1))
+    if now + delay - p.helloStart >= HN.HELLO_DEADLINE then return end
+    p.replyOwed, p.helloNext = true, now + delay
 end
--- owed(st) -> true while a hello reply waits
+function HN.helloDelay(st, now)
+    local due
+    for _, p in pairs(st.peers) do
+        expireHello(p, now)
+        if p.replyOwed then due = math.min(due or math.huge, p.helloNext or now) end
+    end
+    return due and math.max(HN.HELLO_EVERY, due - now) or nil
+end
 function HN.owed(st) for _, p in pairs(st.peers) do if p.replyOwed then return true end end return false end
 -- sameWorld(a, b): "region-ruleset"; a part one side does not know ("?") does not split it
 function HN.sameWorld(a, b)

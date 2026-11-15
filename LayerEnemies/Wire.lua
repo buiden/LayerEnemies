@@ -108,6 +108,91 @@ local function recent(list, now)
 end
 -- one player, one key (Invite.name: case, and our realm, do not make another player)
 local function who(target) local _, key = N.Invite.name(target); return key end
+-- Correlation is session-only, metadata-only and bounded. A local refusal/queued line is NOT an actual whisper.
+Wr.RECENT_WINDOW, Wr.RECENT_MAX = 30, 64
+local whispers = {}
+local function pruneWhispers(now)
+    local keep = {}
+    for _, r in ipairs(whispers) do
+        if now >= r.at and now - r.at < Wr.RECENT_WINDOW then keep[#keep + 1] = r end
+    end
+    whispers = keep
+end
+local function rememberWhisper(target, key, now)
+    if not key then return end
+    pruneWhispers(now)
+    if #whispers >= Wr.RECENT_MAX then table.remove(whispers, 1) end
+    whispers[#whispers + 1] = { target = target, key = key, at = now }
+end
+local OFFLINE_MAX = 256
+-- Shared by the synchronous TargetOffline result and correlated asynchronous system failures.
+function Wr.markOffline(target, now)
+    local key = who(target)
+    now = S.num(now)
+    if not key or not now then return nil end
+    local n, oldest, okey = 0, nil, nil
+    for k, at in pairs(offline) do
+        if now - at >= Wr.OFFLINE then offline[k] = nil
+        else n = n + 1; if not oldest or at < oldest then oldest, okey = at, k end end
+    end
+    if not offline[key] and n >= OFFLINE_MAX then offline[okey] = nil end
+    offline[key] = now
+    -- Consume the evidence: duplicate chat lines cannot extend an hour into an indefinite suppression.
+    for i = #whispers, 1, -1 do if whispers[i].key == key then table.remove(whispers, i) end end
+    return key
+end
+function Wr.offlineUntil(target, now)
+    local key = who(target)
+    now = S.num(now)
+    local at = key and offline[key]
+    if not at or not now then return nil end
+    if now - at >= Wr.OFFLINE then offline[key] = nil; return nil end
+    return at + Wr.OFFLINE
+end
+-- Compile only a single %s (or %1$s) with literal text. Escape every Lua pattern character, interpret %% literally,
+-- and fail closed on missing/unsupported formats. No English fallback, chat filter, or broad chat capture.
+local template, failurePattern
+local function localizedPattern()
+    local raw = S.str(_G.ERR_CHAT_PLAYER_NOT_FOUND_S, 512)
+    if raw == template then return failurePattern end
+    template, failurePattern = raw, nil
+    if not raw then return nil end
+    local parts, captures, literals, i = {}, 0, 0, 1
+    while i <= #raw do
+        local c = raw:sub(i, i)
+        if c == "%" then
+            if raw:sub(i, i + 1) == "%%" then parts[#parts + 1] = "%%"; literals = literals + 1; i = i + 2
+            elseif raw:sub(i, i + 1) == "%s" or raw:sub(i, i + 3) == "%1$s" then
+                captures = captures + 1; parts[#parts + 1] = "(.-)"
+                i = i + (raw:sub(i, i + 1) == "%s" and 2 or 4)
+            else return nil end
+        else
+            parts[#parts + 1] = c:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+            literals = literals + 1; i = i + 1
+        end
+    end
+    if captures == 1 and literals > 0 then failurePattern = "^" .. table.concat(parts) .. "$" end
+    return failurePattern
+end
+function Wr.system(text)
+    text = S.str(text, 512)
+    local now = S.num(S.call(GetTime))
+    if not text or not now then return nil end
+    pruneWhispers(now)
+    local pattern = localizedPattern()
+    local name = pattern and text:match(pattern)
+    local key = name and who(name)
+    if not key then return nil end
+    local match
+    for _, r in ipairs(whispers) do
+        -- A bare error cannot distinguish namesakes on different realms. Never guess a foreign realm from it,
+        -- even if there is only one such attempt; surnames are never compacted here.
+        if not name:find("-", 1, true) and (r.target:match("^([^%-]+)") or r.target):lower() == name:lower()
+            and r.key ~= key then return nil end
+        if r.key == key then match = r end
+    end
+    if match then return Wr.markOffline(match.target, now) end
+end
 local function inCombat()
     local a, b = S.call(InCombatLockdown), S.call(UnitAffectingCombat, "player")
     return a == true or b == true
@@ -168,7 +253,10 @@ local function check(prefix, text, kind, target, opts)
     if not tag then return nil, "bad text" end
     if kind == "WHISPER" then
         local I = N.Invite
-        if not (I and I.name and I.name(target)) then return nil, "bad text" end
+        local valid, _, canonical
+        if I and I.name then valid, _, canonical = I.name(target) end
+        if not valid then return nil, "bad text" end
+        target = canonical
     else
         target = nil
     end
@@ -187,26 +275,19 @@ local function check(prefix, text, kind, target, opts)
     return route, tag, target, opts, public
 end
 -- the client call and its result; a third value true once the client was asked (whatever it answered)
-local OFFLINE_MAX = 256
 local function deliver(prefix, text, kind, target, now, key)
     local CI = _G.C_ChatInfo
     if S.secret(CI) or type(CI) ~= "table" then return false, "error" end
     local okFn, fn = pcall(function() return CI.SendAddonMessage end)
     if not okFn or type(fn) ~= "function" then return false, "error" end
     local ok, result = pcall(fn, prefix, text, kind, target)
+    if kind == "WHISPER" then rememberWhisper(target, key, now) end
     if not ok then return false, "error", true end
     if S.secret(result) then return false, "refused", true end
     if result == 0 or result == true then return true, "sent", true end   -- (true: older clients return a boolean)
     if result == 3 or result == 8 then if now then paused[prefix] = now + Wr.PAUSE end; return false, "throttled", true end
     if result == 12 and key and now then
-        -- skipped for an hour; at most 256 names, expired ones and then the oldest go first
-        local n, oldest, okey = 0, nil, nil
-        for k, at in pairs(offline) do
-            if now - at >= Wr.OFFLINE then offline[k] = nil
-            else n = n + 1; if not oldest or at < oldest then oldest, okey = at, k end end
-        end
-        if n >= OFFLINE_MAX then offline[okey] = nil end
-        offline[key] = now
+        Wr.markOffline(target, now)
         return false, "offline", true
     end
     return false, "refused", true
@@ -228,7 +309,7 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
     if S.call(IsInInstance) ~= false and prio ~= Wr.PRIO.click then return false, "instance" end
     if paused[prefix] and now < paused[prefix] then return false, "paused" end
     local key = target and who(target)
-    if key and offline[key] and (now < offline[key] or now - offline[key] < Wr.OFFLINE) then return false, "offline" end
+    if target and Wr.offlineUntil(target, now) then return false, "offline" end
     local cost = inCombat() and 2 or 1
     -- the reserve binds the lines that say they rank low (embassy, mesh); an unmarked line keeps the old rules
     local low = opts.prio == "embassy" or opts.prio == "catchup" or opts.prio == "mesh"

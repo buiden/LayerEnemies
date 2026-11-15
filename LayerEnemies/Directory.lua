@@ -9,6 +9,7 @@ local D = {}
 N.Directory = D
 
 D.WAIT, D.EVERY, D.FIRST, D.MAX, D.TAG_MAX = 3, 300, 10, 500, 10
+D.FRESH = 600   -- two refresh intervals; only a successful read renews this lifetime
 
 -- War Effort's ruleset tag from a realm name: "RPPvP", "RP", "PvP", "PvE", or the realm's own words (letters and
 -- digits, a trailing number word dropped, 10 characters at most). nil without a name.
@@ -51,6 +52,7 @@ end
 -- this channel's one timer fires (toggling never adds a second; a timer that fired while the network was off stops
 -- counting once its time has passed)
 local joined, members, pending, ours, due, asked, handLeft = {}, {}, {}, {}, {}, {}, {}
+local readAt = {}
 D.NOTICE_WAIT = 30
 local function calm()
     return S.call(IsInInstance) == false and S.call(InCombatLockdown) == false
@@ -89,22 +91,26 @@ local function read(key)
     local name = joined[key]
     local i = name and index(name)
     if not i then members[key] = nil; return end
+    local now = S.num(S.call(GetTime))
     local count = S.num((select(5, S.call(GetChannelDisplayInfo, i))))
     local CI = _G.C_ChatInfo
     -- an unreadable count forgets the list rather than keep an old one
-    if not count or count < 0 or not S.tab(CI) or type(CI.GetChannelRosterInfo) ~= "function" then members[key] = nil; return end
+    if not now or not count or count < 0 or count % 1 ~= 0 or not S.tab(CI) or type(CI.GetChannelRosterInfo) ~= "function" then members[key] = nil; return end
     local self = me()
     if not self then members[key] = nil; return end
-    if count == 0 then members[key] = {}; return end
+    if count == 0 then members[key], readAt[key] = {}, now; return end
     -- one entry per player (the folded key): "Peer" and "Peer-<our realm>" are one, the first spelling listed stays
     local list, seen = {}, {}
     for r = 1, math.min(count, D.MAX) do
         local ok, who = pcall(CI.GetChannelRosterInfo, i, r)
-        who = ok and S.str(who, 60)
+        -- A missing/secret/erroring row is a failed scan, not an authoritative empty roster. Readable strings
+        -- outside our name grammar are still skipped, as before. Never publish a partly readable snapshot.
+        if not ok or S.secret(who) or type(who) ~= "string" or who == "" then members[key] = nil; return end
+        who = S.str(who, 60)
         local _, pkey = N.Invite.name(who)
         if pkey and pkey ~= self and not seen[pkey] then seen[pkey] = true; list[#list + 1] = who end
     end
-    members[key] = list
+    members[key], readAt[key] = list, now
 end
 -- refresh(key) -> asked: select the channel now, read its list D.WAIT s later
 function D.refresh(key)
@@ -179,6 +185,12 @@ function D.notice(what, shown, base)
         end
     end
 end
-function D.members(key) return members[key] end
-function D.count(key) return members[key] and #members[key] or nil end
+-- nil = unknown/unreadable/expired; {} = a successful empty read. Consumers must not confuse the two.
+-- The table identity changes only on a successful read; returning it does not renew its age.
+function D.members(key)
+    local now, at = S.num(S.call(GetTime)), readAt[key]
+    if not now or not at or now < at or now - at >= D.FRESH then members[key], readAt[key] = nil, nil end
+    return members[key], members[key] and readAt[key] or nil
+end
+function D.count(key) local list = D.members(key); return list and #list or nil end
 function D.joined(key) return joined[key] end

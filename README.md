@@ -130,11 +130,23 @@ catch-up answers, and other HeadHunter lines last); full, the oldest line of
 the lowest rank goes first, and when every queued line ranks above or equal to
 the new one, the new line is refused. A catch-up answer (10 records and the end
 marker, one frame about every 2 seconds) ranks above mesh forwards so it ends
-inside HeadHunter's 60-second give-up. Hello replies are never queued: one Wire
-refuses waits for the next paced turn, so they stay 2 seconds apart. Embassy
+inside HeadHunter's 60-second give-up. Hellos are never queued. Only local
+budget or pause refusals retry, with exponential backoff up to 30 seconds,
+at most 8 attempts and a 120-second deadline from the first attempt. A client
+refusal, invalid target or offline result ends that hello; new peers get a
+turn ahead of retries. Successful hellos remain at least 2 seconds apart. Embassy
 and HeadHunter lines leave a reserve (2 sends of the shared
 bucket, 10 of the 40 a minute, 5 of the guild's 20; halved in combat), so our
 own lines still go under a busy mesh.
+
+A localized player-not-found system error marks a destination offline only
+when it matches an actual addon whisper from the last 30 seconds (at most
+64 attempts retained). Correlation uses the full name, including surnames
+and foreign realms; a bare error is ignored if recent realm identities are
+ambiguous, and is never guessed to mean a foreign realm. The same one-hour
+window as a synchronous offline result applies across prefixes and to queued
+lines (at most 256 offline identities). No chat errors are hidden or saved.
+Only the existing name rule's local-realm suffix is removed at send time.
 
 Channels (Directory.lua): with public networks on, the addon joins the
 HeadHunter channel `HeadHunterSync` and War Effort's channel for your realm and
@@ -143,7 +155,14 @@ never sends to a channel. A channel you already had is read and never joined or
 left by the addon; one the addon joined (confirmed by the client's own join
 notice) is left when public networks or that network are switched off. No
 join in an instance or combat, or before the client's channel list is filled;
-a channel you leave by hand is not joined again that session.
+a channel you leave by hand is not joined again that session. A successful
+empty roster clears directory-only HeadHunter candidates; a failed scan is
+not an empty roster. Directory snapshots and their candidates expire after
+600 seconds without a successful refresh. Directly heard peers instead expire
+after 3600 seconds without activity. Queued directory-selected queries and
+forwards recheck candidate freshness. Fresh validated roster/incoming names
+can update outgoing spelling; different identities sharing HeadHunter's
+compact comparison key never inherit each other's peer state.
 
 Party calls, all in Wire.lua:
 
@@ -760,6 +779,15 @@ after the list is the order to try them in):
 24. Guild changes on a live client: the order of `PLAYER_GUILD_UPDATE` and
     `GUILD_ROSTER_UPDATE` after leaving or joining, the guild name blinking
     unreadable, and the roster request limit.
+25. Invalid-whisper feedback: the live localized `ERR_CHAT_PLAYER_NOT_FOUND_S`
+    template and asynchronous `CHAT_MSG_SYSTEM` timing/name format. Matching
+    requires a single `%s` or `%1$s` placeholder and readable text within 30
+    seconds of an actual call; absent/unsupported templates, secret text,
+    late errors and realm-stripped foreign names deliberately do not match.
+    A manual whisper error for the same recently attempted identity cannot
+    be distinguished from an addon error, so it may also stop our sends but
+    is never hidden. The server's zero-member roster readiness and accepted
+    target spelling still need client validation. No camera/FPS fix is claimed.
 
 Live-test checklist for the PR build (two characters in one guild, A and B,
 then a War Effort and a HeadHunter user if one is around; if a network fails
