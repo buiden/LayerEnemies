@@ -33,6 +33,13 @@ function T.observe(t,e,now)
         if not own or (old.source and old.source:match("^own ")) then return false end
     end
     e.zone=t.zone; e.epoch=t.serial; e.layer=t.bulo; e.namespace="bulo-server"; e.confidence="seen by you"
+    -- our own unit sighting keeps its own time and origin (ownAt, ownSource) when a Bulo copy refreshes
+    -- the row (r040c 21e): Share reads only these, so a Bulo refresh neither makes a row ours nor starves the share
+    if e.source and e.source:match("^own ") then
+        e.ownAt,e.ownSource=e.at,e.source
+    elseif old and old.ownAt and old.epoch==t.serial then
+        e.ownAt,e.ownSource=old.ownAt,old.ownSource
+    end
     t.localSeen[e.key]=e
     if e.name and e.realm then
         local hash=N.Hash.player(e.name,e.realm)

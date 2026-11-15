@@ -4324,9 +4324,10 @@ test("e4c: an enemy re-seen every second is reported 3 s after its first sightin
     for i=1,9 do seeFoe("Kora Reed","Player-1-901"); advance(1) end
     eq(#oLines(),1,"reported while still being seen")
     -- an enemy that left view before settling starts again on its next sighting
-    local Sh=N.Share; local st=Sh.new(); local e={key="k",faction="opposite",zone=100,source="own target",at=0}
+    -- (r040c 21e: Share reads the row's own-sighting fields, ownAt and ownSource)
+    local Sh=N.Share; local st=Sh.new(); local e={key="k",faction="opposite",zone=100,source="own target",at=0,ownSource="own target",ownAt=0}
     eq(Sh.pick(st,{k=e},1,100),nil); eq(Sh.pick(st,{k=e},20,100),nil,"gone")
-    e.at=40; eq(Sh.pick(st,{k=e},40,100),nil,"settles again"); yes(Sh.pick(st,{k=e},43,100)); yes(oLines()[1].text:find("^O|1|%d+|100|"),oLines()[1].text)
+    e.at=40; e.ownAt=40; eq(Sh.pick(st,{k=e},40,100),nil,"settles again"); yes(Sh.pick(st,{k=e},43,100)); yes(oLines()[1].text:find("^O|1|%d+|100|"),oLines()[1].text)
 end)
 test("e4c: only our own unit sightings are shared, never a Bulo copy (also not one refreshing our own row)",function()
     local N=loadAddon(); local b=fakeBulo("7086-7"); establish(N); advance(1)
@@ -4891,6 +4892,37 @@ test("21e fab7253: a guild name that blinks unreadable on a guild event comes ba
     N=loadAddon(); hReady(N); advance(61); guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain()
     guildName="Guild B"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on); eq(N.Adapters.roster.at,nil)
     deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
+end)
+
+-- مانع on 56dbb3c (r040c/21e C2): our own sighting keeps its own time and origin under Bulo refreshes
+test("21e 56dbb3c: with Bulo refreshing every second, our own sightings still go out",function()
+    local N=loadAddon(); local b=fakeBulo("7086-7"); establish(N); advance(1)
+    -- one own sighting, then Bulo refreshes the same player every second
+    seeFoe("Kora Reed","Player-1-901"); units.target=nil
+    for i=1,10 do advance(1); b.Radar.seen["Player-1-901"]={at=clock,hostile=true,src="target"}; N.Main.poll() end
+    eq(#oLines(),1,"the own sighting is shared although Bulo refreshed its row")
+    local row=N.Main.store.localSeen["Player-1-901"]; yes(row.source:find("^Bulo")); eq(row.ownSource,"own target"); eq(row.ownAt,clock-10)
+    -- own sightings every 5 s among Bulo refreshes every second: shared again once 60 s have passed
+    for i=1,70 do advance(1); if i%5==0 then seeFoe("Kora Reed","Player-1-901"); units.target=nil end
+        b.Radar.seen["Player-1-901"]={at=clock,hostile=true,src="target"}; N.Main.poll() end
+    eq(#oLines(),2,"a re-share after 60 s")
+    -- Bulo refreshes alone never make a sighting ours again: 120 s with no own event, no new line
+    for i=1,120 do advance(1); b.Radar.seen["Player-1-901"]={at=clock,hostile=true,src="target"}; N.Main.poll() end
+    eq(#oLines(),2)
+    -- the settle runs from our own sighting, not from a Bulo refresh: out 3 s after it
+    N=loadAddon(); b=fakeBulo("7086-7"); establish(N); advance(1); local ts=clock; seeFoe("Cy Fen","Player-1-903"); units.target=nil
+    local sentAt; for i=1,6 do advance(1); b.Radar.seen["Player-1-903"]={at=clock,hostile=true,src="target"}; N.Main.poll(); if not sentAt and #oLines()>0 then sentAt=clock end end
+    eq(sentAt,ts+3)
+    local Sh=N.Share; local sh=Sh.new(); local r={key="r",faction="opposite",zone=100,source="Bulo target",at=1,ownSource="own target",ownAt=0}
+    eq(Sh.pick(sh,{r=r},1,100),nil); yes(Sh.pick(sh,{r=r},3,100),"settled 3 s after the own sighting, though first picked after a refresh")
+    -- an own sighting from before a layer boundary is not carried onto a later Bulo copy
+    local T=N.Store; local st=N.Main.store
+    st.localSeen.k={key="k",at=clock-1,epoch=st.serial-1,ownAt=clock-1,ownSource="own target",faction="opposite"}
+    T.observe(st,{key="k",at=clock,source="Bulo target",faction="opposite"},clock); eq(st.localSeen.k.ownAt,nil)
+    -- the O line's age is our own sighting's
+    N=loadAddon(); b=fakeBulo("7086-7"); establish(N); advance(1); local t0=clock; seeFoe("Ann Lee","Player-1-902"); units.target=nil
+    advance(1); b.Radar.seen["Player-1-902"]={at=clock,hostile=true,src="target"}; N.Main.poll(); advance(3); N.Main.shareTick()
+    local o=oLines()[1]; yes(o); eq(tonumber(o.text:match("^O|1|%d+|%d+|[^|]*|[^|]*|[^|]*|(%d+)|")),math.floor(o.at-t0),"age from our own sighting")
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
