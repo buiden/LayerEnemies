@@ -26,6 +26,7 @@ WeOut.lua
 WeNet.lua
 WeEmb.lua
 HhNet.lua
+Spy.lua
 Share.lua
 Directory.lua
 Find.lua

@@ -233,6 +233,49 @@ local function echo(sender)
     name=name or sender; remoteRealm=remoteRealm or realm
     if N.Hash.nameKey(name,remoteRealm)==N.Hash.nameKey(me,realm) or sender:lower()==me:lower() then return "own echo" end
 end
+-- Spy family (lane C1): each prefix on its own routes (Spy.ROUTES); never our own lines; the ignore lists apply.
+function A.spyPolicy(prefix,kind,sender)
+    local ok,allowed,reason=pcall(function()
+        local routes=N.Spy.ROUTES[prefix]
+        if not routes then return false,"prefix" end
+        if not routes[kind] then return false,"route" end
+        local mine=echo(sender); if mine then return false,mine end
+        local ignored,why=A.ignored(sender)
+        if ignored then return false,why end
+        return true,"spy"
+    end)
+    if not ok then return false,"policy unavailable" end
+    return allowed,reason
+end
+-- zoneByName(name) -> the zone (uiMapID, map type 3) shown under that name, or nil. Looked up among the zones of our
+-- continent and of Azeroth (947); a name two zones share is no answer. Cached per session.
+local zoneNames
+function A.zoneByName(name)
+    if type(name)~="string" or name=="" then return nil end
+    local api=C_Map
+    if not S.tab(api) or type(api.GetMapChildrenInfo)~="function" then return nil end
+    if not zoneNames then
+        local found={}
+        local function add(root)
+            local list=S.call(api.GetMapChildrenInfo,root,3,true)
+            if not S.tab(list) then return end
+            for _,info in ipairs(list) do
+                local id,n=S.tab(info) and S.num(info.mapID),S.tab(info) and S.str(info.name,70)
+                if id and n then
+                    if found[n]==nil then found[n]=id elseif found[n]~=id then found[n]=false end
+                end
+            end
+        end
+        local here=A.zone(S.num(S.call(api.GetBestMapForUnit,"player")))
+        local info=here and S.call(api.GetMapInfo,here)
+        local continent=S.tab(info) and S.num(info.parentMapID)
+        if continent and continent>0 then add(continent) end
+        add(947)
+        -- an empty lookup (map data not ready) is tried again next time
+        if next(found) then zoneNames=found else return nil end
+    end
+    return zoneNames[name] or nil
+end
 -- HeadHunter: read on PARTY, RAID and WHISPER only. Never sent on, never joined, never answered.
 function A.hhPolicy(kind,sender)
     local ok,allowed,reason=pcall(function()

@@ -31,7 +31,7 @@ local joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true},
     WEFF1={GUILD=true,PARTY=true,RAID=true,WHISPER=true},HeadHunter={WHISPER=true}}
 -- Prefixes the addon may register.
-local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true}
+local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true}
 -- The addon's source files, in load order, as the TOC lists them.
 local function addonFiles()
     local out={}
@@ -179,9 +179,14 @@ local function loadAddon()
     _G.C_Map={
         GetBestMapForUnit=function() return map end,
         GetMapInfo=function(id)
-            if id==100 or id==200 then return {mapType=3,parentMapID=1} end
-            if id==101 then return {mapType=4,parentMapID=100} end
-            if id==1 then return {mapType=2,parentMapID=0} end
+            if id==100 then return {mapType=3,parentMapID=1,name="Ashenvale"} end
+            if id==200 then return {mapType=3,parentMapID=1,name="Durotar"} end
+            if id==101 then return {mapType=4,parentMapID=100,name="Astranaar"} end
+            if id==1 then return {mapType=2,parentMapID=0,name="Kalimdor"} end
+        end,
+        GetMapChildrenInfo=function(id,kind,all)
+            if (id==1 or id==947) and kind==3 then return {{mapID=100,name="Ashenvale",mapType=3},{mapID=200,name="Durotar",mapType=3}} end
+            return {}
         end,
         GetPlayerMapPosition=function() return {GetXY=function() return .25,.75 end} end,
     }
@@ -1335,7 +1340,7 @@ test("Find integration: cross-zone privacy gate, same layer and persistence",fun
     deliver("CHAT_MSG_ADDON","WEFF1","C|61|200|0|0|9|1|"..stamp,"GUILD","Scout")
     deliver("CHAT_MSG_ADDON","WEFF1","E|61|1|1|"..hash..":M:40|"..stamp,"GUILD","Scout")
     local row=N.Main.findRows()[1]; yes(row.possible); yes(row.travel)
-    no(LE.AskInvite("Scout")); yes(logged("travel to zone 200 first")); eq(#opened,0)
+    no(LE.AskInvite("Scout")); yes(logged("travel to Durotar first")); eq(#opened,0)
     clientIgnored=true
     deliver("CHAT_MSG_ADDON","WEFF1","C|62|100|0|0|9|1|"..stamp,"GUILD","Scout")
     deliver("CHAT_MSG_ADDON","WEFF1","E|62|1|1|"..hash..":M:40|"..stamp,"GUILD","Scout")
@@ -4675,6 +4680,80 @@ test("1.0 B: off, guild-only, HeadHunter loaded or in an instance: nothing on He
         if c=="ship" then N.Net.SHIP.hh=false elseif c=="consent" then N.Net.setConsent("guild") elseif c=="loaded" then loaded.HeadHunter=true else inInstance=true end
         hhIn("1AN:HeadHunter 1.1.1","Kora Reed"); steps(40); eq(#hw(""),0,c); loaded.HeadHunter=nil; inInstance=false
     end
+end)
+
+-- 1.0 lane C1: the Spy family in ([Spy], ForeverSpy1, FSENT03), receive only
+local function spyRows(N,src) local out={}; for _,r in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do if r.record.src==src then out[#out+1]=r end end; return out end
+local function spyIn(prefix,text,kind,from) deliver("CHAT_MSG_ADDON",prefix,text,kind,from); drain() end
+test("1.0 C1: a [Spy] line: the enemy as First Last, observer position, map to zone, class and level checked",function()
+    local N=loadAddon(); establish(N)
+    spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.42|0.61|Some Guild|101","GUILD","Spyuser")
+    local rows=spyRows(N,"spy"); eq(#rows,1); local r=rows[1].record
+    eq(r.kind,"seen"); eq(r.origin,"Spyuser"); eq(r.hand,"first"); eq(r.at,clock,"Spy carries no age: heard now"); eq(r.zone,100); eq(r.pos,"observer"); eq(r.x,.42); eq(r.y,.61)
+    eq(r.enemies[1].name,"Kora Reed"); eq(r.enemies[1].class,"ROGUE"); eq(r.enemies[1].level,60); eq(r.count,1)
+    eq(rows[1].positionKind,"observer's position"); eq(rows[1].source,"seen (Spy)"); eq(r.layer.ns,"unknown")
+    -- numeric realm kept, our own stripped; one word alone; no coordinates
+    spyIn("[Spy]","1.3.8|Ann-Lee-7103|MAGE||Human|Ashenvale|||||100","PARTY","Spyuser")
+    spyIn("[Spy]","1.3.8|Bo-Dyl-7102|||||||||100","RAID","Spyuser")
+    spyIn("[Spy]","1.3.8|Cyra|||||||||100","GUILD","Spyuser")
+    local names={}; for _,row in ipairs(spyRows(N,"spy")) do names[row.record.enemies[1].name]=row.record end
+    yes(names["Ann Lee-7103"]); eq(names["Ann Lee-7103"].pos,"none"); eq(names["Ann Lee-7103"].enemies[1].level,nil); yes(names["Bo Dyl-7102"]); eq(N.Invite.key("Bo Dyl-7102"),"bo dyl","our realm folds away in the key"); yes(names["Cyra"])
+end)
+test("1.0 C1: [Spy] refusals: multi-part, field count, class, level, coordinates, guild, name, map, route, own",function()
+    local N=loadAddon(); establish(N)
+    local bad={"\0011.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","\0021.3.8|x","\0031.3.8|x",
+        "1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6|","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100|x",
+        "1.3.8|Kora-Reed|BADCLASS|60|Orc|Ashenvale||0.4|0.6||100","1.3.8|Kora-Reed|ROGUE|0|Orc|Ashenvale||0.4|0.6||100",
+        "1.3.8|Kora-Reed|ROGUE|61.5|Orc|Ashenvale||0.4|0.6||100","1.3.8|Kora-Reed|ROGUE|101|Orc|Ashenvale||0.4|0.6||100",
+        "1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||1.5|0.6||100","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|||100",
+        "1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6|"..string.rep("g",25).."|100",
+        "1.3.8|Kora2-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","1.3.8|Kora-Reed-Lee|ROGUE|60|Orc|Ashenvale||0.4|0.6||100",
+        "1.3.8|Kora Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100x","1.3.8||ROGUE|60|Orc|Ashenvale||0.4|0.6||100",
+        "1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||5"}
+    for i,t in ipairs(bad) do spyIn("[Spy]",t,"GUILD","Spyuser"..abc(i)) end
+    spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","WHISPER","Spyw")
+    spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","GUILD","Me")
+    spyIn("[Spy]","1.3.8|Me|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","GUILD","Spyz")
+    eq(#spyRows(N,"spy"),0)
+end)
+test("1.0 C1: ForeverSpy1 on a group: name and zone name; FSENT03: GUID, age, level",function()
+    local N=loadAddon(); establish(N)
+    spyIn("ForeverSpy1","1\tKora Reed\tAshenvale","PARTY","Fsuser")
+    local rows=spyRows(N,"fspy"); eq(#rows,1); local r=rows[1].record
+    eq(r.enemies[1].name,"Kora Reed"); eq(r.zone,100); eq(r.pos,"none"); eq(r.x,nil); eq(rows[1].source,"seen (Forever Spy)")
+    for i,t in ipairs({"2\tKora Reed\tAshenvale","1\tKora Reed\tNowhere","1\t[Kora]\tAshenvale","1\t Kora\tAshenvale","1\tKora Reed\tAshenvale\tx",
+        "1\tKora-Reed\tAshenvale"}) do spyIn("ForeverSpy1",t,"PARTY","Fsb"..abc(i)) end
+    spyIn("ForeverSpy1","1\tAnn Lee\tAshenvale","GUILD","Fsc")
+    eq(#spyRows(N,"fspy"),1)
+    spyIn("FSENT03","1~Player-7103-00AB12~Kora-Reed~MAGE~60~Ashenvale~5","RAID","Seuser")
+    rows=spyRows(N,"sent"); eq(#rows,1); r=rows[1].record
+    eq(r.enemies[1].name,"Kora Reed"); eq(r.enemies[1].class,"MAGE"); eq(r.at,clock-5); eq(r.age,5); eq(rows[1].source,"seen (Sentinel)")
+    spyIn("FSENT03","1~Player-7103-00AB13~Ann Lee~~-1~Ashenvale~0","PARTY","Seuser"); eq(#spyRows(N,"sent"),2)
+    for i,t in ipairs({"1~Player-7103-00AB14~Bo Dyl~MAGE~60~Ashenvale~121","1~Creature-0-1~Bo Dyl~MAGE~60~Ashenvale~1",
+        "2~Player-7103-00AB15~Bo Dyl~MAGE~60~Ashenvale~1","1~Player-7103-00AB16~Bo Dyl~MAGE~60~Ashenvale~1~x",
+        "1~Player-7103-00AB17~Bo Dyl~NOPE~60~Ashenvale~1","1~Player-7103-00AB18~Bo Dyl~MAGE~1001~Ashenvale~1",
+        "1~Player-7103-00AB19~Bo Dyl~MAGE~60~Ashenvale~1.5"}) do spyIn("FSENT03",t,"RAID","Seb"..abc(i)) end
+    spyIn("FSENT03","1~Player-7103-00AB20~Bo Dyl~MAGE~60~Ashenvale~1","GUILD","Sec")
+    eq(#spyRows(N,"sent"),2)
+end)
+test("1.0 C1: the same enemy again from one observer is one row; 6 lines per sender per 10 s; nothing is ever sent",function()
+    local N=loadAddon(); establish(N)
+    spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","GUILD","Spyuser"); advance(2)
+    spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.5|0.6||100","GUILD","Spyuser"); eq(#spyRows(N,"spy"),1)
+    eq(spyRows(N,"spy")[1].x,.5,"the newer sighting replaces the row"); eq(spyRows(N,"spy")[1].at,clock)
+    -- a refused newer line keeps the old row
+    spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.6|0.6||200","GUILD","Spyuser"); eq(#spyRows(N,"spy"),1); eq(spyRows(N,"spy")[1].x,.5)
+    -- a zone name two zones share is no answer
+    N=loadAddon(); establish(N)
+    C_Map.GetMapChildrenInfo=function() return {{mapID=200,name="Twin"},{mapID=100,name="Twin"},{mapID=100,name="Ashenvale"}} end
+    spyIn("ForeverSpy1","1\tKora Reed\tTwin","PARTY","Fsx"); eq(#spyRows(N,"fspy"),0)
+    spyIn("ForeverSpy1","1\tKora Reed\tAshenvale","PARTY","Fsx"); eq(#spyRows(N,"fspy"),1)
+    local who={"Ann Lee","Bo Dyl","Cy Fen","Di Gar","Ed Hal","Fa Ivo","Gu Jem"}
+    for i=1,7 do spyIn("ForeverSpy1","1\t"..who[i].."\tAshenvale","PARTY","Flood") end
+    local function flood() local n=0; for _,r in ipairs(spyRows(N,"fspy")) do if r.reporter=="Flood" then n=n+1 end end; return n end
+    eq(flood(),6,"the seventh in 10 s dropped")
+    advance(11); spyIn("ForeverSpy1","1\tGu Jem\tAshenvale","PARTY","Flood"); eq(flood(),7)
+    for _,m in ipairs(sent) do no(m.prefix=="[Spy]" or m.prefix=="ForeverSpy1" or m.prefix=="FSENT03",m.prefix) end
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

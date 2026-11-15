@@ -105,13 +105,24 @@ function T.report(t,record,now)
     t.reports[key]={record=record,epoch=t.serial,confidence="reported, not confirmed"}
     return true
 end
-local SOURCE={we="reported (War Effort)",fight="fight (HeadHunter)",outlaw="wanted (HeadHunter)"}
+local SOURCE={we="reported (War Effort)",fight="fight (HeadHunter)",outlaw="wanted (HeadHunter)",
+    spy="seen (Spy)",fspy="seen (Forever Spy)",sent="seen (Sentinel)"}
 local function source(r)
     if r.src=="guild" then
         local what=r.label=="hh" and (r.kind=="outlaw" and "HeadHunter wanted" or "HeadHunter fight") or "War Effort"
         return "relayed by "..r.via.." ("..what..")"
     end
-    return r.src=="hh" and SOURCE[r.kind] or SOURCE.we
+    return r.src=="hh" and SOURCE[r.kind] or SOURCE[r.src] or SOURCE.we
+end
+-- refresh(t, record, now): a newer sighting of the same record id replaces the row (the Spy family: one row per
+-- observer and enemy); the old row stays when the new one is refused
+function T.refresh(t,record,now)
+    local key=S.tab(record) and record.id
+    local old=type(key)=="string" and t.reports[key] or nil
+    if old then t.reports[key]=nil end
+    local ok,why=T.report(t,record,now)
+    if not ok and old then t.reports[key]=old end
+    return ok,why
 end
 local POSITION={enemy="reported cluster position",observer="observer's position",victim="victim's position"}
 local function newest(a,b) if a.at==b.at then return a.key<b.key end; return a.at>b.at end

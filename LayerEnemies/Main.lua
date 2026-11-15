@@ -168,6 +168,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     if prefix=="LayerSwap" then return M.layerswap(text,kind,sender) end
     if prefix=="LFSw" then return M.lfsw(text,kind,sender) end
     if prefix=="LEGW1" then return M.relayIn(text,kind,sender) end
+    if N.Spy.SRC[prefix] then return M.spyIn(prefix,text,kind,sender) end
     if prefix~="WEFF1" or type(text)~="string" or #text>255 or not S.str(sender,100) then return end
     local allowed,reason=A.policy(prefix,kind,sender)
     if not allowed then M.lastDrop=reason; return end
@@ -211,6 +212,30 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
         M.findAlerts()
         if N.UI then N.UI.refresh() end
     end
+end
+-- Spy family in (lane C1): a line is the sender's own sighting of one enemy; 6 lines per sender per 10 s over the
+-- three prefixes; never relayed and never answered.
+M.spyRates={rates={},nrates=0}
+function M.spyIn(prefix,text,kind,sender)
+    if type(text)~="string" or #text>255 or not S.str(sender,100) then return end
+    local allowed,reason=A.spyPolicy(prefix,kind,sender)
+    if not allowed then M.lastDrop=reason; return end
+    local time=now()
+    if not N.Reports.allow(M.spyRates,sender,false,time) then return end
+    local d,why=N.Spy.decode(prefix,text)
+    if not d then M.lastDrop="Spy: "..tostring(why); return end
+    if M.isMe(d.enemy.name) then M.lastDrop="Spy: names us"; return end
+    local zone=d.map and A.zone(d.map) or (d.zoneName and A.zoneByName(d.zoneName))
+    if not zone then M.lastDrop="Spy: zone unknown"; return end
+    local record
+    record,why=N.Spy.record(prefix,d,{sender=sender,route=kind,heard=time,zone=zone})
+    if not record then M.lastDrop="Spy: "..tostring(why); return end
+    M.lastHeard=time
+    local stored,whyNot=T.refresh(M.store,record,time)
+    if not stored then M.lastDrop=whyNot end
+    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+    M.findAlerts()
+    if N.UI then N.UI.refresh() end
 end
 -- HeadHunter P (fight) and L (wanted) records: PARTY/RAID/WHISPER, own faction only, 6 frames per sender per 10 s.
 function M.headhunter(text,kind,sender)
@@ -1365,6 +1390,10 @@ function M.start()
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LayerSwap")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LFSw")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LEGW1")
+        -- the Spy family: read only (lane C1)
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"[Spy]")
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"ForeverSpy1")
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FSENT03")
     end
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"
