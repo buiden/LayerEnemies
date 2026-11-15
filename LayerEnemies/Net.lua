@@ -17,9 +17,13 @@ Net.LIST = {
 Net.CONSENT = { guild = true, public = true }
 
 local state = { consent = nil, switches = {} }
+local function loaded(name)
+    local A = N.Adapters
+    return A and A.loaded and A.loaded(name) or false
+end
 
--- load(saved) -> sanitized { consent, nets }: consent is "guild", "public" or nil (not asked yet); a switch is off only
--- when saved as false.
+-- load(saved) -> sanitized { consent, nets }: consent is "guild", "public" or nil (no choice made: public, owner
+-- decision 2026-11-14); a switch is off only when saved as false.
 function Net.load(saved)
     saved = S.tab(saved) and saved or {}
     state.consent = Net.CONSENT[saved.consent] and saved.consent or nil
@@ -34,7 +38,18 @@ local function save()
     LayerEnemiesDB.nets = LayerEnemiesDB.nets or {}
     for key, on in pairs(state.switches) do LayerEnemiesDB.nets[key] = on end
 end
-function Net.consent() return state.consent end
+-- consent(): the level in force ("public" until the player chooses guild only); chosen(): the saved choice or nil
+function Net.consent() return state.consent or "public" end
+function Net.chosen() return state.consent end
+-- why(key) -> nil when the network may run at the level in force, else a reason for /le net and the window
+function Net.why(key)
+    local entry = Net.LIST[key]
+    if not entry or Net.SHIP[key] ~= true then return "not in this version" end
+    if not Net.switch(key) then return "switched off" end
+    if entry.standDown and loaded(entry.standDown) then return entry.name .. " is loaded: it sends, we only read" end
+    if Net.consent() ~= "public" then return "guild only" end
+    return nil
+end
 function Net.setConsent(level)
     if not Net.CONSENT[level] then return false end
     state.consent = level; save()
@@ -48,17 +63,13 @@ function Net.setSwitch(key, on)
     if N.Directory then N.Directory.sync() end
     return true
 end
-local function loaded(name)
-    local A = N.Adapters
-    return A and A.loaded and A.loaded(name) or false
-end
 -- allowed(key, scope) -> ok, why: "network off" (unknown, ship constant or switch), "stand down" (the real addon is
--- loaded) or "no consent" (a public scope without the player's "public" choice). Guild scope needs no choice.
+-- loaded) or "no consent" (a public scope while the player chose guild only). Guild scope needs no choice.
 function Net.allowed(key, scope)
     local entry = Net.LIST[key]
     if not entry or Net.SHIP[key] ~= true or not Net.switch(key) then return false, "network off" end
     if entry.standDown and loaded(entry.standDown) then return false, "stand down" end
-    if scope == "public" and state.consent ~= "public" then return false, "no consent" end
+    if scope == "public" and Net.consent() ~= "public" then return false, "no consent" end
     if scope ~= "public" and scope ~= "guild" and scope ~= nil then return false, "network off" end
     return true
 end

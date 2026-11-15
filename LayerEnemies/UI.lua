@@ -135,6 +135,11 @@ function U.render()
         or ("Hosting is on but inactive: "..tostring(M.host and M.host.inactive or "")))
     U.hosting:SetShown(want==true)
     U.auto:SetShown(U.tab=="friendly"); U.auto.label:SetText(M.autoHop() and "Auto: on" or "Auto: off")
+    U.share.label:SetText(M.sharing() and "Share: on" or "Share: off")
+    U.guildOnly.label:SetText(N.Net.consent()=="public" and "Guild only: off" or "Guild only: on")
+    -- a network not in this version shows n/a; otherwise its own switch (stand-down and guild only show in /le net)
+    local function netLabel(key,name) return name..": "..(N.Net.SHIP[key]~=true and "n/a" or N.Net.switch(key) and "on" or "off") end
+    U.netWe.label:SetText(netLabel("we","War Effort")); U.netHh.label:SetText(netLabel("hh","HeadHunter"))
     local hint=U.tab=="friendly" and not known
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
     local height=U.tab=="local" and 48 or U.tab=="find" and 106 or U.tab=="friendly" and 68 or 80
@@ -215,7 +220,7 @@ function U.create()
     if U.frame then return end
     local f=CreateFrame("Frame","LayerEnemiesWindow",UIParent)
     f:Hide() -- Native frames start shown; never flash on login.
-    U.frame=f; f:SetSize(360,468); f:SetFrameStrata("MEDIUM"); paint(f,colors.bg); border(f,{.18,.22,.26})
+    U.frame=f; f:SetSize(360,492); f:SetFrameStrata("MEDIUM"); paint(f,colors.bg); border(f,{.18,.22,.26})
     f:SetMovable(true); f:SetClampedToScreen(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart",function() f:StartMoving() end); f:SetScript("OnDragStop",U.savePosition)
     local p=U.position(LayerEnemiesDB.position)
@@ -260,6 +265,16 @@ function U.create()
     U.auto:SetPoint("TOPRIGHT",-166,0); U.auto:Hide()
     U.hosting=font(f,10,{.79,.96,.65}); U.hosting:SetPoint("TOPLEFT",86,-64); U.hosting:Hide()
     U.hint=font(f,10,colors.muted); U.hint:SetPoint("TOPLEFT",10,-420); U.hint:SetWidth(340)
+    -- 1.0 settings, saved, on every tab: sharing our own sightings, guild only (no public networks), each network
+    local M=N.Main
+    U.share=button(f,70,18,"Share: on",function() M.setShare(not M.sharing()); U.render() end)
+    U.share:SetPoint("TOPLEFT",6,-440)
+    U.guildOnly=button(f,92,18,"Guild only: off",function() M.setConsent(N.Net.consent()=="public" and "guild" or "public"); U.render() end)
+    U.guildOnly:SetPoint("TOPLEFT",80,-440)
+    U.netWe=button(f,86,18,"War Effort: on",function() M.setNet("we",not N.Net.switch("we")); U.render() end)
+    U.netWe:SetPoint("TOPLEFT",176,-440)
+    U.netHh=button(f,86,18,"HeadHunter: on",function() M.setNet("hh",not N.Net.switch("hh")); U.render() end)
+    U.netHh:SetPoint("TOPLEFT",266,-440)
     local footer=font(f,10,colors.muted); footer:SetPoint("BOTTOMLEFT",10,9); footer:SetWidth(340)
     footer:SetText("Only players seen by you or reported by other players' addons.")
     f:SetScript("OnShow",function() U.generation=(U.generation or 0)+1; U.tick(U.generation) end)

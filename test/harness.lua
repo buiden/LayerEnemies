@@ -309,7 +309,7 @@ end
 
 test("strict frames start shown, dispatcher hidden, no UI or OnUpdate",function()
     local N=loadAddon()
-    eq(#frames,14); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 14 from 0.4.0: the Find hosts, Host and Auto buttons
+    eq(#frames,18); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 14 from 0.4.0: the Find hosts, Host and Auto buttons; 18 from 1.0: the Share, Guild only and two network switches
     local f=CreateFrame("Frame"); yes(f:IsShown()); no(pcall(function() f:InventedMethod() end))
     eq(N.Main.statusBulo,"not installed"); eq(N.Main.statusWE,"not installed / listening on guild, party and raid (reported, not confirmed)")
 end)
@@ -609,13 +609,13 @@ test("headless map candidates only for shown zone, never fake enemy coordinates"
     eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
     local candidates=N.Store.mapCandidates(N.Main.store,clock,100)
     eq(#candidates,1); eq(candidates[1].x,.25); eq(candidates[1].positionKind,"approximate observer position")
-    eq(#frames,14)
+    eq(#frames,18)
 end)
 test("SavedVariables contain options only; no sightings survive reload",function()
     local N=loadAddon(); establish(N)
     units.target=player("PrivateName","Horde"); advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
     eq(LayerEnemiesDB.sightings,nil); eq(LayerEnemiesDB.localSeen,nil); yes(LayerEnemiesDB.options)
-    N.Main.start(); eq(#frames,14)
+    N.Main.start(); eq(#frames,18)
     N=loadAddon(); eq(N.Safe.count(N.Main.store.localSeen),0)
 end)
 test("heartbeat is five seconds idle, two while map shown",function()
@@ -1002,7 +1002,7 @@ test("we reports never enter LayerEnemiesDB (مانع T3 S4)",function()
         end
     end
     scan(LayerEnemiesDB,"LayerEnemiesDB",0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="netNotice",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
@@ -1299,7 +1299,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     -- the only registered events are passive
     -- 0.4.0 Task 8: PARTY_INVITE_REQUEST is read (auto-accept of the asked host only); no other invite event
     for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true) and event~="PARTY_INVITE_REQUEST",event) end
-    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,14)
+    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,18)
     eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
 end)
 test("Find hashes mirror upstream realm, realm-less and Forever surname keys",function()
@@ -1721,7 +1721,7 @@ test("hop state clears on zone change and reload",function()
     grouped=false; N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); yes(hopNow(N,rec(N)))
     N=loadAddon(); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
     deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); eq(lines("on their layer"),0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="netNotice",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("hop acts on the shown candidate only (مانع T5 F1)",function()
     -- shown "Ask Scout (chat)"; an LFSw host line arrives before the click: nothing is sent, nothing drafted
@@ -3099,7 +3099,7 @@ test("0.4 host saved: on survives a reload and is active; one login line; no H a
     lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(#sent,1)
     establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); advance(61); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,1)
     slash("host"); yes(logged("Hosting for your guild: on (saved) · 1 invite in the last 10 minutes"))
-    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets",k) end
+    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="netNotice",k) end
     eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("0.4 host saved: off persists; a bad saved value is off",function()
@@ -3243,7 +3243,7 @@ test("0.4 T8: Auto accept and leave: on by default, saved, /le hop auto and the 
     N=loadAddon(); BULO=nil; establish(N); local U=N.UI; U.toggle(); U.select("friendly")
     yes(U.auto:IsShown()); eq(U.auto.label.text,"Auto: on"); U.auto:Click(); drain(); no(N.Main.autoHop()); eq(U.auto.label.text,"Auto: off")
     U.select("reported"); no(U.auto:IsShown())
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets",k) end
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="netNotice",k) end
     eq(forbidden,0)
 end)
 
@@ -3300,8 +3300,8 @@ test("1.0 T1: whispers outside guild and group: 4 a minute to one player, 20 a m
     N=loadAddon(); Wr=N.Wire; netOn(N,"hh","we"); N.Net.setConsent("guild")
     ok,why=hh("Bob"); no(ok); eq(why,"no consent")
     yes(Wr.send("WEFF1",GOOD_WE,"GUILD",nil,{net="we",scope="guild"}))
-    -- no choice made yet: public refused too
-    N=loadAddon(); Wr=N.Wire; netOn(N,"hh"); ok,why=hh("Bob"); no(ok); eq(why,"no consent")
+    -- no choice made: public (owner decision 2026-11-14)
+    N=loadAddon(); Wr=N.Wire; netOn(N,"hh"); yes((hh("Bob")))
     eq(forbidden,0)
 end)
 test("1.0 T1: guild budget: 20 a minute over all prefixes",function()
@@ -3382,7 +3382,7 @@ test("1.0 T1: network off sends nothing and registers no timer; the real addon l
     -- consent and switches are saved; anything odd reads as no consent / default on
     eq(LayerEnemiesDB.consent,"public"); LayerEnemiesDB.consent="all"; LayerEnemiesDB.nets={we="x",hh=false}
     N.Main.started=false; N.Main.start(); drain()
-    eq(N.Net.consent(),nil); eq(LayerEnemiesDB.consent,nil); eq(LayerEnemiesDB.nets.we,true); eq(LayerEnemiesDB.nets.hh,false)
+    eq(N.Net.chosen(),nil); eq(LayerEnemiesDB.consent,nil); eq(LayerEnemiesDB.nets.we,true); eq(LayerEnemiesDB.nets.hh,false)
     eq(sent and #sent or 0,0); eq(forbidden,0)
 end)
 
@@ -3486,9 +3486,8 @@ test("1.0 T3: the War Effort channel name follows the realm's ruleset; HeadHunte
     eq(D.channel("we"),"WarEfforttestrealmA"); eq(D.channel("hh"),"HeadHunterSync")
     UnitFactionGroup=function() return "Neutral" end; eq(D.channel("we"),nil,"no faction letter: no channel")
 end)
-test("1.0 T3: no join below consent public; joins at public; leaves on switch-off or consent guild",function()
+test("1.0 T3: no join at consent guild; joins at public; leaves on switch-off or consent guild",function()
     local N=loadAddon(); local D=N.Directory; netOn(N,"we","hh")
-    D.sync(); eq(#joined,0,"not asked yet")
     N.Net.setConsent("guild"); D.sync(); eq(#joined,0,"guild only")
     N.Net.setConsent("public"); eq(#joined,2,"setting consent syncs"); eq(table.concat(joined,","),"HeadHunterSync,WarEfforttestrealmA")
     D.sync(); eq(#joined,2,"no second join")
@@ -4793,6 +4792,67 @@ test("1.0 C2: a Wall of Shame death names its killer by zone name; Forever Told 
     spyIn("FTold1","S~Bo Dyl~Ashenvale","RAID","Ftr")
     eq(#spyRows(N,"ft"),2)
     for _,m in ipairs(sent) do no(m.prefix=="GBOUNTY" or m.prefix=="WALLOFSHAME" or m.prefix=="FTold1",m.prefix) end
+end)
+
+-- 1.0 consent/status (owner decisions 2026-11-14 and on ded1bee): public by default, one first-login line, /le net,
+-- per-network switches, a Guild-only switch, /le share and its window switch
+local NOTICE="LayerEnemies: public networks ON (War Effort, HeadHunter…). /le net guild to limit to guild only."
+local function restart(N) N.Main.started=false; N.Main.start(); drain() end
+local function slash(cmd) SlashCmdList.LAYERENEMIES(cmd); drain() end
+test("1.0 consent: no choice saved reads as public: public whispers and channel joins run; guild only when chosen",function()
+    local N=loadAddon(); local Wr=N.Wire; netOn(N,"hh","we")
+    eq(N.Net.consent(),"public"); eq(N.Net.chosen(),nil)
+    local ok=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Bob",{net="hh",scope="public",prio="owed"}); yes(ok)
+    dirReady(N); eq(table.concat(joined,","),"HeadHunterSync,WarEfforttestrealmA")
+    N.Net.setConsent("guild"); eq(N.Net.consent(),"guild"); eq(N.Net.chosen(),"guild"); eq(LayerEnemiesDB.consent,"guild")
+    local why; ok,why=Wr.send("HeadHunter","1AN:LayerEnemies","WHISPER","Ann Lee",{net="hh",scope="public",prio="owed"}); no(ok); eq(why,"no consent")
+    restart(N); eq(N.Net.consent(),"guild","kept across a reload")
+    LayerEnemiesDB.consent="all"; restart(N); eq(N.Net.consent(),"public"); eq(LayerEnemiesDB.consent,nil,"an odd value is no choice")
+end)
+test("1.0 consent: the first-login line, once, only while a network ships; not after a guild choice",function()
+    local N=loadAddon(); eq(#log>0 and logged(NOTICE) or false,false,"nothing ships: no line"); eq(LayerEnemiesDB.netNotice,nil)
+    N.Net.SHIP.we=true; restart(N); yes(logged(NOTICE)); eq(LayerEnemiesDB.netNotice,true)
+    local n=0; for _,l in ipairs(log) do if l==NOTICE then n=n+1 end end; eq(n,1)
+    restart(N); n=0; for _,l in ipairs(log) do if l==NOTICE then n=n+1 end end; eq(n,1,"once per character")
+    N=loadAddon(); LayerEnemiesDB.consent="guild"; N.Net.SHIP.hh=true; restart(N); no(logged(NOTICE),"the player already chose guild only")
+end)
+test("1.0 consent: /le net shows and sets the level and each network's switch",function()
+    local N=loadAddon(); netOn(N,"we")
+    slash("net"); yes(logged("Networks: public")); yes(logged("War Effort: on")); yes(logged("HeadHunter: off (not in this version)"))
+    slash("net guild"); eq(N.Net.consent(),"guild"); yes(logged("LayerEnemies: guild only. War Effort, HeadHunter and the other public networks stay off; your guild and group still get your sightings."))
+    log={}; slash("net"); yes(logged("Networks: guild only")); yes(logged("War Effort: off (guild only)"))
+    slash("net public"); eq(N.Net.consent(),"public"); yes(logged("LayerEnemies: public networks ON"))
+    slash("net wareffort off"); no(N.Net.switch("we")); eq(LayerEnemiesDB.nets.we,false); log={}; slash("net"); yes(logged("War Effort: off (switched off)"))
+    slash("net we on"); yes(N.Net.switch("we")); slash("net headhunter off"); no(N.Net.switch("hh")); slash("net hh on"); yes(N.Net.switch("hh"))
+    loaded.WarEffortScout=true; log={}; slash("net"); yes(logged("War Effort: off (War Effort is loaded: it sends, we only read)")); loaded.WarEffortScout=nil
+    slash("net hh maybe"); yes(N.Net.switch("hh"),"neither on nor off: no change"); yes(logged("/le net; /le net guild"))
+    log={}; slash("net bogus"); yes(logged("/le net; /le net guild; /le net public; /le net wareffort on|off; /le net headhunter on|off"))
+    eq(forbidden,0)
+end)
+test("1.0 consent: /le share off stops every own-sighting send (O, C+E); saved; on again restores",function()
+    local N=loadAddon(); netOn(N,"we"); establish(N); local M=N.Main
+    eq(M.sharing(),true,"on by default"); hello("Wes",19)
+    slash("share off"); eq(LayerEnemiesDB.share,false); yes(logged("LayerEnemies: your sightings are no longer shared"))
+    foe(N,1); foe(N,2); advance(3); M.shareTick(); advance(3); M.shareTick(); eq(#oLines(),0); eq(#weSent("C"),0)
+    restart(N); eq(M.sharing(),false,"kept across a reload")
+    slash("share on"); eq(LayerEnemiesDB.share,true); hello("Wes",19); advance(16); foe(N,3); foe(N,4); advance(3); M.shareTick(); eq(#oLines(),1); eq(#weSent("C"),1)
+    LayerEnemiesDB.share="x"; restart(N); eq(M.sharing(),true,"only a saved false turns it off")
+end)
+test("1.0 consent: window switches for sharing, guild only and each network",function()
+    local N=loadAddon(); netOn(N,"we","hh"); local U=N.UI; U.toggle(); U.select("reported")
+    yes(U.share:IsShown()); eq(U.share.label.text,"Share: on"); U.share:Click(); drain(); eq(N.Main.sharing(),false); eq(U.share.label.text,"Share: off")
+    eq(U.guildOnly.label.text,"Guild only: off"); U.guildOnly:Click(); drain(); eq(N.Net.consent(),"guild"); eq(U.guildOnly.label.text,"Guild only: on")
+    U.guildOnly:Click(); drain(); eq(N.Net.consent(),"public","a second click opens again"); U.guildOnly:Click(); drain()
+    eq(U.netWe.label.text,"War Effort: on"); U.netWe:Click(); drain(); no(N.Net.switch("we")); eq(U.netWe.label.text,"War Effort: off")
+    eq(U.netHh.label.text,"HeadHunter: on"); U.netHh:Click(); drain(); no(N.Net.switch("hh"))
+    N.Net.SHIP.hh=false; U.render(); eq(U.netHh.label.text,"HeadHunter: n/a")
+    U.select("local"); yes(U.share:IsShown(),"on every tab")
+end)
+test("1.0 consent: /le status names the network level, sharing and each network",function()
+    local N=loadAddon(); netOn(N,"we"); establish(N); log={}; slash("status")
+    yes(logged("Networks: public (/le net guild for guild only)")); yes(logged("Sharing your sightings: on (/le share off)"))
+    yes(logged("War Effort: on")); N.Net.setConsent("guild"); slash("share off"); log={}; slash("status")
+    yes(logged("Networks: guild only (/le net public to open)")); yes(logged("Sharing your sightings: off (/le share on)"))
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

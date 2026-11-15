@@ -994,7 +994,7 @@ function M.nextReportId()
     return id
 end
 function M.shareTick()
-    if not M.share then return end
+    if not M.share or not M.sharing() then return end
     local time=now()
     local zone,x,y=A.location()
     if not zone or zone~=M.store.zone then return end
@@ -1311,6 +1311,49 @@ function M.inviteTick()
     if message then M.say("LayerEnemies: "..message) end
     if note then M.say("LayerEnemies: "..note) end
 end
+-- 1.0 consent/status: public networks by default (owner decision 2026-11-14), /le net, /le share.
+M.NET_NOTICE="LayerEnemies: public networks ON (War Effort, HeadHunter…). /le net guild to limit to guild only."
+function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
+function M.setShare(on)
+    if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
+    M.say(on and "LayerEnemies: your sightings are shared again: an O line with your guild, War Effort reports where a reader was heard."
+        or "LayerEnemies: your sightings are no longer shared (no O line, no War Effort reports). You still receive everyone else's.")
+    if N.UI then N.UI.refresh() end
+end
+local NET_KEYS={we="we",wareffort="we",hh="hh",headhunter="hh"}
+local NET_ORDER={"we","hh"}
+local function netLines(out)
+    for _,key in ipairs(NET_ORDER) do
+        local why=N.Net.why(key)
+        out(N.Net.LIST[key].name..": "..(why and ("off ("..why..")") or "on"))
+    end
+end
+function M.setConsent(level)
+    if not N.Net.setConsent(level) then return false end
+    M.say(level=="guild" and "LayerEnemies: guild only. War Effort, HeadHunter and the other public networks stay off; your guild and group still get your sightings."
+        or M.NET_NOTICE)
+    if N.UI then N.UI.refresh() end
+    return true
+end
+function M.setNet(key,on)
+    if not N.Net.setSwitch(key,on) then return false end
+    M.say("LayerEnemies: "..N.Net.LIST[key].name..(on and " switched on." or " switched off."))
+    if N.UI then N.UI.refresh() end
+    return true
+end
+function M.net(command)
+    local rest=command:match("^net%s*(.-)%s*$") or ""
+    if rest=="" then
+        M.say("Networks: "..(N.Net.consent()=="public" and "public" or "guild only"))
+        netLines(M.say)
+        return
+    end
+    if rest=="guild" or rest=="public" then M.setConsent(rest); return end
+    local name,state=rest:match("^(%a+)%s+(%a+)$")
+    local key=name and NET_KEYS[name]
+    if key and (state=="on" or state=="off") then M.setNet(key,state=="on"); return end
+    M.say("/le net; /le net guild; /le net public; /le net wareffort on|off; /le net headhunter on|off")
+end
 function M.text(command)
     guarded(M.poll)
     local id=M.store.bulo or "Unknown"
@@ -1321,6 +1364,9 @@ function M.text(command)
         if why then say("War Effort embassy: off ("..why..")")
         else local p,l=N.WeEmb.summary(M.emb,now()); say("War Effort embassy: on, "..p.." partner(s), "..l.." link(s)") end
     end
+    say(N.Net.consent()=="public" and "Networks: public (/le net guild for guild only)" or "Networks: guild only (/le net public to open)")
+    netLines(say)
+    say(M.sharing() and "Sharing your sightings: on (/le share off)" or "Sharing your sightings: off (/le share on)")
     if M.error then say("Runtime status: "..M.error) end
     say("Your server key: "..(L.key(M.store.bulo) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
         .." - zone-scoped; an equal key is not proof of the same layer")
@@ -1376,8 +1422,17 @@ function M.start()
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
     M.host.want=LayerEnemiesDB.guildHost
-    -- 1.0 networks: consent ("guild", "public" or not asked yet) and one switch per network
+    -- 1.0 networks: consent ("guild" when the player chose guild only, else nil = public) and one switch per network
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
+    -- sharing our own sightings (O, War Effort C+E): on by default; only a saved false turns it off
+    LayerEnemiesDB.share=saved.share~=false
+    -- the first-login line, once per character, while some network ships and no guild-only choice was made
+    LayerEnemiesDB.netNotice=saved.netNotice==true or nil
+    local ships=false; for key in pairs(N.Net.LIST) do if N.Net.SHIP[key]==true then ships=true end end
+    if ships and not LayerEnemiesDB.netNotice then
+        if N.Net.chosen()~="guild" then M.say(M.NET_NOTICE) end
+        LayerEnemiesDB.netNotice=true
+    end
     -- autoHop: on by default; only a saved false turns it off
     LayerEnemiesDB.autoHop=saved.autoHop~=false
     -- War Effort report id (lane A1): must keep rising across sessions; anything but 1..65535 starts again at 0
@@ -1408,6 +1463,8 @@ function M.start()
         if command=="find" then M.track(nil); return end
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
         if command=="hop auto on" then guarded(M.setAutoHop,true); return end
+        if command=="net" or command:match("^net%s") then guarded(M.net,command); return end
+        if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
         if command=="hop auto off" then guarded(M.setAutoHop,false); return end
         local index=command:match("^ask%s+(%d%d?)$")
         local host=command:match("^hop%s+host%s+(%d%d?)$")
