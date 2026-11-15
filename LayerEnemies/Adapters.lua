@@ -236,7 +236,7 @@ end
 -- Spy family (lane C1): each prefix on its own routes (Spy.ROUTES); never our own lines; the ignore lists apply.
 function A.spyPolicy(prefix,kind,sender)
     local ok,allowed,reason=pcall(function()
-        local routes=N.Spy.ROUTES[prefix]
+        local routes=N.Spy.ROUTES[prefix] or N.Incident.ROUTES[prefix]
         if not routes then return false,"prefix" end
         if not routes[kind] then return false,"route" end
         local mine=echo(sender); if mine then return false,mine end

@@ -31,7 +31,7 @@ local joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true},
     WEFF1={GUILD=true,PARTY=true,RAID=true,WHISPER=true},HeadHunter={WHISPER=true}}
 -- Prefixes the addon may register.
-local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true}
+local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true,GBOUNTY=true,WALLOFSHAME=true,FTold1=true}
 -- The addon's source files, in load order, as the TOC lists them.
 local function addonFiles()
     local out={}
@@ -4754,6 +4754,45 @@ test("1.0 C1: the same enemy again from one observer is one row; 6 lines per sen
     eq(flood(),6,"the seventh in 10 s dropped")
     advance(11); spyIn("ForeverSpy1","1\tGu Jem\tAshenvale","PARTY","Flood"); eq(flood(),7)
     for _,m in ipairs(sent) do no(m.prefix=="[Spy]" or m.prefix=="ForeverSpy1" or m.prefix=="FSENT03",m.prefix) end
+end)
+
+-- 1.0 lane C2: guild incidents in (GBOUNTY, WALLOFSHAME, FTold1), GUILD only, receive only
+test("1.0 C2: a Guild Bounty death: the killer as enemy, the victim's position (zone map only), class and level",function()
+    local N=loadAddon(); establish(N)
+    spyIn("GBOUNTY","D|Kora-Reed|100|42.5|61.0|Raynewood|60|2|ROGUE|Some Guild","GUILD","Victim")
+    local rows=spyRows(N,"gb"); eq(#rows,1); local r=rows[1].record
+    eq(r.kind,"death"); eq(r.origin,"Victim"); eq(r.zone,100); eq(r.pos,"victim"); eq(r.x,.425); eq(r.y,.61)
+    eq(r.enemies[1].name,"Kora Reed"); eq(r.enemies[1].class,"ROGUE"); eq(r.enemies[1].level,60)
+    eq(rows[1].positionKind,"victim's position"); eq(rows[1].source,"death (Guild Bounty)")
+    -- a child map: the zone, without coordinates (they are the child map's)
+    spyIn("GBOUNTY","D|Ann Lee|101|10.0|20.0||||MAGE|","GUILD","Victimb"); r=spyRows(N,"gb")[1].record
+    for _,row in ipairs(spyRows(N,"gb")) do if row.record.origin=="Victimb" then r=row.record end end
+    eq(r.zone,100); eq(r.x,nil); eq(r.pos,"none"); eq(r.enemies[1].name,"Ann Lee")
+    for i,t in ipairs({"D|Kora-Reed|100|42.5|61.0|Raynewood|60|2|ROGUE","D|Kora-Reed|100|42.5|61.0|Raynewood|60|2|ROGUE|g|x",
+        "D||100|42.5|61.0||60|2|ROGUE|","D|Kora-Reed|100|142.5|61.0||60|2|ROGUE|","D|Kora-Reed|100|42.5|||60|2|ROGUE|",
+        "D|Kora-Reed|100|42.5|61.0||61.5|2|ROGUE|","D|Kora-Reed|100|42.5|61.0||60|2|NOPE|","D|Kora-Reed||42.5|61.0||60|2|ROGUE|",
+        "K|Kora-Reed|2|20|Victim|T","A|Hunter|20|why","X|Kora-Reed|100|42.5|61.0|Raynewood|60|2|ROGUE|g","D|Kora2|100|42.5|61.0||60|2|ROGUE|"}) do spyIn("GBOUNTY",t,"GUILD","Gb"..abc(i)) end
+    spyIn("GBOUNTY","D|Bo Dyl|100|42.5|61.0||60|2|ROGUE|","PARTY","Gbp"); spyIn("GBOUNTY","D|Bo Dyl|100|42.5|61.0||60|2|ROGUE|","WHISPER","Gbw")
+    eq(#spyRows(N,"gb"),2)
+end)
+test("1.0 C2: a Wall of Shame death names its killer by zone name; Forever Told S is a wanted player seen",function()
+    local N=loadAddon(); establish(N)
+    spyIn("WALLOFSHAME","D|60|Ashenvale|MAGE|4|Kora Reed|60|","GUILD","Victim")
+    local rows=spyRows(N,"wos"); eq(#rows,1); local r=rows[1].record
+    eq(r.kind,"death"); eq(r.zone,100); eq(r.pos,"none"); eq(r.enemies[1].name,"Kora Reed"); eq(r.enemies[1].level,60); eq(r.enemies[1].class,nil)
+    eq(rows[1].source,"death (Wall of Shame)")
+    for i,t in ipairs({"D|60|Ashenvale|MAGE|4||60|","D|60|Ashenvale|MAGE|4|FALLING||","D|60|Nowhere|MAGE|4|Ann Lee|60|",
+        "D|60|Ashenvale|MAGE|4|Ann Lee|60","S|60|Ashenvale|MAGE|3","P|1413|0.5000|0.6000|Ashenvale","D|60|Ashenvale|MAGE|4|Ann Lee|x|",
+        "D|60|Ashenvale|MAGE|4|Me|60|"}) do spyIn("WALLOFSHAME",t,"GUILD","Wos"..abc(i)) end
+    spyIn("WALLOFSHAME","D|60|Ashenvale|MAGE|4|Bo Dyl|60|","PARTY","Wosp")
+    eq(#spyRows(N,"wos"),1)
+    spyIn("FTold1","S~Kora-Reed~Astranaar, Ashenvale","GUILD","Teller"); spyIn("FTold1","S~Ann Lee~Ashenvale","GUILD","Tellerb")
+    rows=spyRows(N,"ft"); eq(#rows,2); for _,row in ipairs(rows) do eq(row.record.kind,"seen"); eq(row.record.zone,100); eq(row.source,"wanted, seen (Forever Told)") end
+    for i,t in ipairs({"S~Kora-Reed","S~Kora-Reed~Astranaar, Nowhere","S~~Ashenvale","C~Kora-Reed","P~Kora-Reed~1~1~MAGE~Mage~60~Ashenvale~5",
+        "S~Kora-Reed~Ashenvale~x","X~Kora-Reed~Ashenvale"}) do spyIn("FTold1",t,"GUILD","Ft"..abc(i)) end
+    spyIn("FTold1","S~Bo Dyl~Ashenvale","RAID","Ftr")
+    eq(#spyRows(N,"ft"),2)
+    for _,m in ipairs(sent) do no(m.prefix=="GBOUNTY" or m.prefix=="WALLOFSHAME" or m.prefix=="FTold1",m.prefix) end
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

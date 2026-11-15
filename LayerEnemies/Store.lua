@@ -106,7 +106,8 @@ function T.report(t,record,now)
     return true
 end
 local SOURCE={we="reported (War Effort)",fight="fight (HeadHunter)",outlaw="wanted (HeadHunter)",
-    spy="seen (Spy)",fspy="seen (Forever Spy)",sent="seen (Sentinel)"}
+    spy="seen (Spy)",fspy="seen (Forever Spy)",sent="seen (Sentinel)",gb="death (Guild Bounty)",wos="death (Wall of Shame)",
+    ft="wanted, seen (Forever Told)"}
 local function source(r)
     if r.src=="guild" then
         local what=r.label=="hh" and (r.kind=="outlaw" and "HeadHunter wanted" or "HeadHunter fight") or "War Effort"
