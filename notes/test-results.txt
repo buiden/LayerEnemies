@@ -334,4 +334,13 @@ PASS 124 A3: queued embassy lines are dropped when the embassy stops, the seat i
 PASS 124 A3: D| goes out at once when the War Effort switch goes off or War Effort is loaded; then former partners are dropped
 PASS 124 A3: a guildmate's public=1 expires 600 s after their last hello
 PASS 124 A3: a queued greeting is dropped when the embassy stops
-RESULT: 336 tests passed, 0 failed, 23050 assertions
+PASS 9b8 B: answered and offered are pruned after 300 s and capped at 256
+PASS 9b8 B: a record too long for a frame on its own is not served
+PASS 9b8 B: the history keeps the newest 300 records
+PASS 9b8 B: catch-up serves the newest 15 records that fit, counted exactly in O and the end marker, byte for byte
+PASS 9b8 B: a pull gets its own allowance (up to 16 frames, about one per 2 s) inside the public budget
+PASS 9b8 B: Q:p only from a known peer of our faction; S records from the other faction only of the kinds allowed across
+PASS 9b8 B: own lines are never starved by a busy mesh, in or out of combat; embassy and owed lines go before mesh ones
+PASS 9b8 B: a forward keeps the timestamp bytes and changes only the hop; a queued forward over 600 s old is dropped
+PASS 9b8 B: hello replies are paced to one per 2 s; a peer counts as known only if heard within 3600 s
+RESULT: 345 tests passed, 0 failed, 23404 assertions

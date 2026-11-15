@@ -92,23 +92,30 @@ off; guild scope keeps working.
 - HeadHunter prefix, WHISPER only (HeadHunter network; its switch,
   `/le net headhunter on|off`; public scope; never while HeadHunter itself is
   loaded, never in an instance): our hello `1<A|H>N:LayerEnemies` once per
-  peer per session (one every 2 seconds at most), forwards of HeadHunter's
+  peer per session (hellos and replies one every 2 seconds at most), forwards of HeadHunter's
   envelopes with only the hop count raised (to 3 known peers and 1 unknown,
   never the author or the carrier, at most 6 a minute per peer, never past
-  hop 5), catch-up `Q:h` after 20 seconds to up to 5 peers and one `Q:p` to
-  the biggest offer, `O` and `S` answers to other members' catch-up (each
-  requester once per 300 seconds; no `O` while we hold nothing), and `H` with
+  hop 5, a queued forward dropped once the envelope is over 600 seconds old),
+  catch-up `Q:h` after 20 seconds to up to 5 peers and one `Q:p` to the
+  biggest offer, `O` and `S` answers to other members' catch-up (each
+  requester once per 300 seconds; no `O` while we hold nothing; `S` only to a
+  known peer of our faction, the newest 15 records that fit plus the end
+  marker, one frame about every 2 seconds), and `H` with
   our home server once per 600 seconds per asker. We never author `P`, `L`
   or `D`: HeadHunter has no honest line for a sighting of ours.
 
 Budgets, all in Wire.lua and spent before the client is asked: each prefix 5
 at once then one per 2 seconds; all sends 8 at once, then one per 1.5 seconds
 and never more than 40 a minute; GUILD 20 a minute; public whispers 20 a minute
-in total and 4 a minute to one player. In combat every send costs double and
+in total and 4 a minute to one player (a catch-up answer instead has its own 16
+frames per requester, still inside the 20). In combat every send costs double and
 every minute cap is halved. A client throttle pauses that prefix 30 seconds;
 an offline player is skipped for an hour. A queue of 40 lines waits for budget
-(clicks first, then our own lines, answers owed, forwards); full, the oldest
-forward goes first.
+(clicks first, then our own lines, answers owed, embassy and guild relay lines,
+and HeadHunter lines last); full, the oldest line of the lowest rank goes
+first. Embassy and HeadHunter lines leave a reserve (2 sends of the shared
+bucket, 10 of the 40 a minute, 5 of the guild's 20; halved in combat), so our
+own lines still go under a busy mesh.
 
 Channels (Directory.lua): with public networks on, the addon joins the
 HeadHunter channel `HeadHunterSync` and War Effort's channel for your realm and
@@ -327,8 +334,10 @@ does (same world: region and ruleset; hop 1 to 5; at most 600 seconds old and
 300 seconds ahead; never our own; another faction only for the kinds HeadHunter
 allows), each one once (a ring of 4000 keys). After login it asks up to five
 peers what they hold, pulls from the one with the most, and serves its own
-held records (those carried in envelopes and pulled, at most 300, this session
-only) byte for byte to others who ask. It forwards less than HeadHunter does
+held records (those carried in envelopes and pulled, the newest 300, this
+session only; from the other faction only the kinds HeadHunter allows) byte for
+byte to others who ask. A peer counts as known for 3600 seconds after it was
+last heard. It forwards less than HeadHunter does
 under load (the budgets above), and drops the oldest forward when its queue is
 full.
 
