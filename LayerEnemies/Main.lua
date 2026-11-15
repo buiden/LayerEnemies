@@ -1198,7 +1198,7 @@ function M.weGuildHeard(sender,msg,time)
         p={}; M.weGuild[key]=p
     end
     p.name,p.at=sender,time
-    if msg.type=="H" then p.minor,p.public=msg.minor,msg.public end
+    if msg.type=="H" then p.minor,p.public,p.helloAt=msg.minor,msg.public,time end
 end
 local function embCtx(time)
     local mine=M.weName()
@@ -1206,6 +1206,12 @@ local function embCtx(time)
         isMe=function(n) return M.isMe(n) or (mine~=nil and type(n)=="string" and n:lower()==mine:lower()) end,
         isGuildmate=function(n) local k=I.key(n); return A.guildMember(n)==true or (k~=nil and M.weGuild[k]~=nil) end,
         heardInGuild=function(n) local k=I.key(n); local p=k and M.weGuild[k]; return p~=nil and time-p.at<=N.WeEmb.CANDIDATE end,
+        inChannel=function(n)
+            local list=N.Directory.members("we"); local k=I.key(n)
+            if type(list)~="table" or not k then return false end
+            for _,m in ipairs(list) do if I.key(m)==k then return true end end
+            return false
+        end,
         candidates=(function()
             local out={}
             for _,p in pairs(M.weGuild) do
@@ -1214,9 +1220,24 @@ local function embCtx(time)
             return out
         end)()}
 end
+-- the embassy still runs (a queued P or G is dropped when not)
+local function embassyOn() return M.emb~=nil and N.Net.allowed("we","guild") and M.embassyWhy()==nil end
+-- a guildmate's public=1 counts for 600 s after their last hello
+local function publicMate(origin,time)
+    local p=M.weGuild[I.key(origin) or ""]
+    return p~=nil and p.public==true and p.helloAt~=nil and time>=p.helloAt and time-p.helloAt<=N.WeEmb.HELLO
+end
 function M.embassyTick()
-    if not M.emb or not N.Net.allowed("we","guild") then return end
+    if not M.emb then return end
     local time=now()
+    -- the War Effort network off or stood down: links announced are taken back at once (Wire lets that one line go)
+    if not N.Net.allowed("we","guild") then
+        local st=M.emb
+        if st.announced and st.announced~="D|" and S.call(IsInGuild)==true then
+            if N.Wire.send("WEFF1","D|","GUILD",nil,{net="we",prio="own",withdraw=true}) then N.WeEmb.announced(st,"D|",{},time) end
+        end
+        return
+    end
     local ctx=embCtx(time)
     -- an empty or unreadable member list greets nobody
     local m=not ctx.why and N.Directory.members("we") or nil
@@ -1224,21 +1245,21 @@ function M.embassyTick()
     for _,o in ipairs(N.WeEmb.tick(M.emb,time,ctx)) do
         if o.kind=="GUILD" then
             if N.Wire.send("WEFF1",o.text,"GUILD",nil,{net="we",prio="own"}) then N.WeEmb.announced(M.emb,o.text,o.links,time) end
-        else N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="owed",queue=true}) end
+        else N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="owed",queue=true,still=embassyOn}) end
     end
 end
 function M.embassyIn(msg,kind,sender,time)
     local ctx=embCtx(time)
     if msg.type=="P" and kind=="WHISPER" then
         local reply=N.WeEmb.presence(M.emb,msg,sender,time,ctx)
-        if reply then N.Wire.send("WEFF1",reply.text,"WHISPER",reply.target,{net="we",prio="owed",queue=true}) end
+        if reply then N.Wire.send("WEFF1",reply.text,"WHISPER",reply.target,{net="we",prio="owed",queue=true,still=embassyOn}) end
     elseif msg.type=="D" and kind=="GUILD" then
         N.WeEmb.links(M.emb,msg,sender,time)
     elseif msg.type=="W" and kind=="WHISPER" then
         local g,why=N.WeEmb.bridge(M.emb,msg,sender,time,ctx)
         M.lastDrop=g and "bridged" or ("embassy: "..tostring(why))
         if not g then return end
-        if S.call(IsInGuild)==true then N.Wire.send("WEFF1",g,"GUILD",nil,{net="we",prio="forward",queue=true}) end
+        if S.call(IsInGuild)==true then N.Wire.send("WEFF1",g,"GUILD",nil,{net="we",prio="forward",queue=true,still=embassyOn}) end
         -- stored as a relayed public report (never passed on to another partner)
         if msg.inner.type~="H" then
             local record=N.Reports.receive(M.receiver,{type="G",origin=msg.origin,inner=msg.inner},{sender=sender,route="WHISPER",now=time,
@@ -1250,14 +1271,18 @@ end
 -- origin's own C, E or H to our partners; a guildmate's only if their hello said public = 1, ours only with public on
 function M.embassyForward(origin,msg,text,time,guildmate)
     if not M.emb or not origin then return end
-    if guildmate then
-        local p=M.weGuild[I.key(origin) or ""]
-        if not p or p.public~=true then return end
-    end
+    if guildmate and not publicMate(origin,time) then return end
     local ctx=embCtx(time)
     if ctx.why then return end
     for _,o in ipairs(N.WeEmb.forward(M.emb,origin,msg,text,time,ctx)) do
-        N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="forward",queue=true})
+        -- dropped from the queue when the embassy stops, we lose the seat for that guild, or the origin revokes public
+        local key,target=o.key,o.target
+        local function still()
+            local t=now()
+            if guildmate and not publicMate(origin,t) then return false end
+            return embassyOn() and N.WeEmb.seat(M.emb,key,target,t,embCtx(t))
+        end
+        N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="forward",queue=true,still=still})
     end
 end
 -- HeadHunter mesh (lanes B1, B2): all by whisper, all public; nothing while public networks are off.

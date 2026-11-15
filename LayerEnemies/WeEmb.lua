@@ -20,6 +20,8 @@ E.LINKS_SECONDS, E.LINKS_REPEAT, E.LINKS_GAP = 1500, 600, 120
 E.RATE, E.BURST = 0.2, 6                         -- forwards a second, and at once
 E.HELLO, E.CANDIDATE = 600, 600
 E.BRIDGE_PER_MINUTE, E.BRIDGE_HELLOS = 10, 6
+E.HELD_MAX = 256                                 -- foreign guild keys remembered from guildmates' D lines
+E.VOUCH = 600                                    -- a P counts from a channel member, or from someone we greeted this long ago
 
 -- The election score: (hash(name) * (hash(key) % 1048573 + 1)) % 2147483647, hash = DJB2 mod 2147483647.
 function E.hash(s)
@@ -81,6 +83,11 @@ function E.prune(st, now)
         for i = #list, 1, -1 do if now - list[i] >= 60 or now < list[i] then table.remove(list, i) end end
     end
     for k, at in pairs(st.bridgeHelloAt) do if now - at >= E.HELLO then st.bridgeHelloAt[k] = nil end end
+    -- held keys: expired holders go, and a key nobody holds any more is dropped
+    for key, holders in pairs(st.held) do
+        for k, h in pairs(holders) do if now - h.at > E.LINKS_SECONDS or now < h.at then holders[k] = nil end end
+        if next(holders) == nil then st.held[key] = nil end
+    end
     local nb = 0
     for _ in pairs(st.bridged) do nb = nb + 1 end
     if nb > 256 then st.bridged = {} end
@@ -174,16 +181,42 @@ function E.tick(st, now, ctx)
     local keys = E.holdings(st, now, ctx)
     local text = N.WeOut.links(keys)
     local due = not (text == st.announced and (#keys == 0 or now - (st.announcedAt or 0) < E.LINKS_REPEAT))
-    if due and not (#keys == 0 and not st.announced) and not (st.announcedAt and now - st.announcedAt < E.LINKS_GAP) then
+    -- a withdrawal (none any more) goes at once; a change waits 120 s after the last D
+    local gap = #keys > 0 and st.announcedAt and now - st.announcedAt < E.LINKS_GAP
+    if due and not (#keys == 0 and (not st.announced or st.announced == "D|")) and not gap then
         out[#out + 1] = { kind = "GUILD", text = text, links = keys }
     end
     return out
 end
--- announced(st, text, keys, now): Main tells us a D went out
-function E.announced(st, text, keys, now) st.announced, st.announcedAt, st.mine = text, now, keys end
+-- announced(st, text, keys, now): Main tells us a D went out; a withdrawal ("D|") drops our partners, so a former
+-- partner's W is no longer taken (they are partners again only after a new vouched presence)
+function E.announced(st, text, keys, now)
+    st.announced, st.announcedAt, st.mine = text, now, keys
+    if #keys == 0 then E.withdraw(st) end
+end
+function E.withdraw(st)
+    for _, r in pairs(st.rows) do r.heardAt = nil end
+    st.mine, st.forwarded = {}, {}
+end
+-- seat(st, key, target, now, ctx): are we still the forwarder for key, and target still its partner? (a queued W
+-- is dropped when not)
+function E.seat(st, key, target, now, ctx)
+    if ctx.why then return false end
+    local held = false
+    for _, k in ipairs(st.mine) do if k == key then held = true end end
+    if not held or not forwarder(st, key, now, ctx) then return false end
+    local r = partnerFor(st, key, now)
+    return r ~= nil and low(r.name) == low(target)
+end
 
 -- presence(st, msg, sender, now, ctx) -> a reply { kind, target, text } or nil
 function E.presence(st, msg, sender, now, ctx)
+    -- only a player in the War Effort channel, one we greeted in the last 10 minutes, or a live partner: anyone else
+    -- gets no reply and makes no partner
+    local old = st.rows[low(sender)]
+    local vouched = (ctx.inChannel and ctx.inChannel(sender)) or (old and old.greetedAt and now >= old.greetedAt
+        and now - old.greetedAt <= E.VOUCH) or (old and usable(old, now))
+    if not vouched then return nil end
     local r = row(st, sender)
     if not r then return nil end
     local was = usable(r, now)
@@ -200,8 +233,13 @@ end
 -- links(st, msg, sender, now): a guildmate's D
 function E.links(st, msg, sender, now)
     local k = low(sender)
-    for _, holders in pairs(st.held) do holders[k] = nil end
-    for _, key in ipairs(msg.links) do st.held[key] = st.held[key] or {}; st.held[key][k] = { name = sender, at = now } end
+    for key, holders in pairs(st.held) do holders[k] = nil; if next(holders) == nil then st.held[key] = nil end end
+    local n = 0
+    for _ in pairs(st.held) do n = n + 1 end
+    for _, key in ipairs(msg.links) do
+        if not st.held[key] and n < E.HELD_MAX then st.held[key] = {}; n = n + 1 end
+        if st.held[key] then st.held[key][k] = { name = sender, at = now } end
+    end
 end
 
 local function take(st, now)
@@ -227,12 +265,12 @@ function E.forward(st, origin, msg, text, now, ctx)
                 elseif msg.type == "C" then go = not msg.sync and f.rid ~= msg.rid
                 elseif msg.type == "E" then go = f.rid == msg.rid and not f.e end
                 if go and take(st, now) then
-                    local w = N.WeOut.wrap("W", origin, nil, text)
+                    local w = N.WeOut.wrap("W", origin, nil, N.WeOut.rebuild(msg))
                     if w then
                         st.forwarded[k] = f
                         if msg.type == "H" then f.helloAt = now elseif msg.type == "C" then f.rid, f.e = msg.rid, nil else f.e = true end
                         f.t = now
-                        out[#out + 1] = { kind = "WHISPER", target = r.name, text = w }
+                        out[#out + 1] = { kind = "WHISPER", target = r.name, text = w, key = key }
                     end
                 end
             end
@@ -264,7 +302,7 @@ function E.bridge(st, msg, sender, now, ctx)
     elseif inner.type ~= "E" or st.bridged[o] ~= inner.rid then
         return nil, "enemy list without its sighting"
     end
-    return N.WeOut.wrap("G", msg.origin, nil, msg.innerText)
+    return N.WeOut.wrap("G", msg.origin, nil, N.WeOut.rebuild(inner))
 end
 -- State for /le status
 function E.summary(st, now)

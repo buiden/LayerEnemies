@@ -148,7 +148,10 @@ local function check(prefix, text, kind, target, opts)
     opts = S.tab(opts) and opts or {}
     -- a network whisper is public unless its target is a checked online guildmate (never the caller's word)
     local public = false
-    if route.net then
+    -- the embassy's withdrawal "D|" to the guild goes even when the War Effort network is off or stood down (it
+    -- takes back links we announced while it was on); nothing else does
+    local withdraw = opts.withdraw == true and prefix == "WEFF1" and kind == "GUILD" and text == "D|"
+    if route.net and not withdraw then
         if opts.net ~= route.net then return nil, "network off" end
         public = kind == "WHISPER" and not (N.Adapters and N.Adapters.guildMember(target) == true)
         local ok, why = N.Net.allowed(route.net, public and "public" or "guild")
@@ -248,7 +251,13 @@ pump = function()
     table.sort(queue, function(a, b) if a.prio ~= b.prio then return a.prio < b.prio end return a.seq < b.seq end)
     while queue[1] do
         local q = queue[1]
-        local ok, why = sendNow(q.prefix, q.text, q.kind, q.target, q.opts, true)
+        local ok, why
+        -- a queued line whose caller says it no longer holds (opts.still) is dropped unsent
+        local stillOk, still = true, true
+        if type(q.opts.still) == "function" then stillOk, still = pcall(q.opts.still) end
+        if not stillOk or not still then ok, why = false, "stale" else
+            ok, why = sendNow(q.prefix, q.text, q.kind, q.target, q.opts, true)
+        end
         if not ok and why == "throttled" and not paused[q.prefix] then break end   -- no room yet: wait
         table.remove(queue, 1)                                                     -- sent, or refused for good
     end

@@ -66,6 +66,34 @@ function W.wrap(kind, origin, realm, inner)
     local s = kind .. "|" .. hex(origin) .. "|" .. r .. "|" .. inner
     return #s <= 255 and s or nil
 end
+-- rebuild(inner) -> the C, E or H line made again from its decoded fields (Protocol.decode), so nothing a sender put
+-- after them travels on: a wrapped line (W out, G in) carries only what we read. nil for any other type.
+function W.rebuild(m)
+    if type(m) ~= "table" then return nil end
+    if m.type == "C" then
+        local f = { "C", tostring(m.rid), tostring(m.map), coord(m.x), coord(m.y), tostring(m.layer), tostring(m.count),
+            m.stamp and tostring(m.stamp) or "" }
+        if m.spread then f[9] = tostring(m.spread) end
+        while f[#f] == "" do f[#f] = nil end
+        return table.concat(f, "|")
+    elseif m.type == "E" then
+        local items = {}
+        for _, e in ipairs(m.enemies or {}) do
+            local lvl = e.level == -1 and "-1" or (e.level and tostring(e.level)) or "?"
+            items[#items + 1] = e.hash .. ":" .. code(e.class) .. ":" .. lvl
+        end
+        local f = { "E", tostring(m.rid), tostring(m.part), tostring(m.total), table.concat(items, ",") }
+        if m.stamp then f[6] = tostring(m.stamp) end
+        return table.concat(f, "|")
+    elseif m.type == "H" then
+        local guild = m.guildId == false and "-" or (type(m.guildId) == "string" and m.guildId) or ""
+        local f = { "H", m.version, tostring(m.map), tostring(m.layer), tostring(m.sharing), m.minor and tostring(m.minor) or "",
+            "0", "0", m.stamp and tostring(m.stamp) or "", guild, m.class and code(m.class) or "-", tostring(m.level or 0),
+            m.public == true and "1" or m.public == false and "0" or "" }
+        if m.ambiguous then f[14] = "0"; f[15] = "1" end
+        return table.concat(f, "|")
+    end
+end
 -- joinOff(id, stamp) -> "K|id|2|stamp": we do not take layer requests
 function W.joinOff(id, stamp) return "K|" .. tostring(id) .. "|" .. tostring(W.JOIN_OFF) .. "|" .. stampOf(stamp) end
 -- enemies(rid, list, stamp) -> { "E|...", ... }: list entries { hash (3 letters or digits), class token, level };

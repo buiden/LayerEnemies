@@ -4522,7 +4522,9 @@ test("1.0 A3: we greet only our share, one a minute; an answer makes a partner; 
     eq(#wh("P|19|789|0|a",other),1)
 end)
 test("1.0 A3: a greeting is answered at most 6 times a minute over all players; a guildmate's P makes no partner",function()
-    local N=loadAddon(); embReady(N,{}); advance(1)
+    -- (r040c 124: only channel members, or players we greeted, get an answer)
+    local list={}; for i=1,8 do list[i]="Strang"..abc(i) end; list[9]="Strangx"; list[10]="Gilda"; list[11]="Olda"
+    local N=loadAddon(); embReady(N,list); steps(13); N.Main.emb.nextGreetAt=1e9
     for i=1,8 do deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Strang"..abc(i)); drain() end
     steps(5); eq(#wh("P|19|789|0|"),6,"6 replies a minute"); eq(#wh("P|","Strangg"),0)
     for i=1,8 do yes(N.WeEmb.partner(N.Main.emb,"Strang"..abc(i),clock)) end
@@ -4532,7 +4534,7 @@ test("1.0 A3: a greeting is answered at most 6 times a minute over all players; 
     deliver("CHAT_MSG_ADDON","WEFF1","P|18|456|0|a","WHISPER","Olda"); drain(); no(N.WeEmb.partner(N.Main.emb,"Olda",clock),"minor 18")
 end)
 test("1.0 A3: D lists only links we serve; withdrawn with D| when public networks go off",function()
-    local N=loadAddon(); embReady(N,{}); advance(1); eq(#weGuild("D|"),0,"nothing held, nothing said")
+    local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13); eq(#weGuild("D|"),0,"nothing held, nothing said")
     deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); steps(25)
     local d=weGuild("D|"); eq(#d,1); eq(d[1].text,"D|g456")
     local function annP() deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|","WHISPER","Ann Lee"); drain() end
@@ -4542,7 +4544,7 @@ test("1.0 A3: D lists only links we serve; withdrawn with D| when public network
     steps(700); eq(weGuild("D|")[#weGuild("D|")].text,"D|"); local n=#weGuild("D|"); steps(700); eq(#weGuild("D|"),n,"said once")
 end)
 test("1.0 A3: forwarding: a guildmate's own report only if their hello said public; ours; H once per 600 s; never a wrapped one",function()
-    local N=loadAddon(); embReady(N,{}); advance(1)
+    local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13)
     local function from(who) local n=0; for _,m in ipairs(wh("W|","Ann Lee")) do local d=N.Protocol.decode(m.text); if d and d.origin==who then n=n+1 end end; return n end
     deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); steps(25)
     local st=math.floor(server)%3600
@@ -4560,7 +4562,7 @@ test("1.0 A3: forwarding: a guildmate's own report only if their hello said publ
     for _,m in ipairs(ws) do local d=N.Protocol.decode(m.text); if d and d.origin=="Me" and d.inner.type~="H" then mine=mine+1 end end; eq(mine,2,"our C and E")
 end)
 test("1.0 A3: only the top-scored holder of a guild forwards to it",function()
-    local N=loadAddon(); embReady(N,{}); advance(1)
+    local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13)
     deliver("CHAT_MSG_ADDON","WEFF1","P|19|457|0|a","WHISPER","Ann Lee"); drain(); steps(25)
     gHello("Wes",true); deliver("CHAT_MSG_ADDON","WEFF1","D|g457","GUILD","Wes"); drain()
     local st=math.floor(server)%3600; local n=#wh("W|")
@@ -4568,17 +4570,18 @@ test("1.0 A3: only the top-scored holder of a guild forwards to it",function()
     deliver("CHAT_MSG_ADDON","WEFF1","C|8|100|0.4|0.5|7086|2|"..st,"GUILD","Bob"); drain()
     yes(#wh("W|")>n,"we rank first for g457 (1824785540 > 1080776665)")
     -- g450: Wes ranks first (1873690060 > 1783740291): we hold it but stand by
-    N=loadAddon(); embReady(N,{}); advance(1)
+    N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13)
     deliver("CHAT_MSG_ADDON","WEFF1","P|19|450|0|a","WHISPER","Ann Lee"); drain(); steps(25)
     gHello("Wes",true); gHello("Bob",true); deliver("CHAT_MSG_ADDON","WEFF1","D|g450","GUILD","Wes"); drain(); steps(61); n=#wh("W|")
     deliver("CHAT_MSG_ADDON","WEFF1","C|9|100|0.4|0.5|7086|2|"..math.floor(server)%3600,"GUILD","Bob"); drain(); steps(61); eq(#wh("W|"),n,"Wes forwards to g450, not us")
 end)
 test("1.0 A3: a W from a live partner of another guild goes into the guild as G and is stored as relayed; from others it is dropped",function()
-    local N=loadAddon(); embReady(N,{}); advance(1)
+    local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13)
     deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); hello("Kora Reed",19,"WHISPER")
     local st=math.floor(server)%3600; local inner="C|5|100|0.4|0.5|7086|2|"..st
     deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||"..inner,"WHISPER","Ann Lee"); drain()
-    local g=weGuild("G|"); eq(#g,1); eq(g[1].text,"G|"..hx("Kora Reed").."||"..inner)
+    -- (r040c 124: the inner line is rebuilt from its decoded fields: coordinates with three decimals)
+    local g=weGuild("G|"); eq(#g,1); eq(g[1].text,"G|"..hx("Kora Reed").."||C|5|100|0.400|0.500|7086|2|"..st)
     local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].record.hand,"relayed"); eq(rows[1].record.share,"public")
     -- the same report again: not bridged twice; a W from a stranger or a guildmate: dropped
     deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||"..inner,"WHISPER","Ann Lee"); drain(); eq(#weGuild("G|"),1)
@@ -4591,7 +4594,7 @@ test("1.0 A3: a W from a live partner of another guild goes into the guild as G 
     -- a W we got is never forwarded to another partner
     eq(#wh("W|"),0)
     -- a partner gone quiet (no presence for 600 s) is no partner
-    N=loadAddon(); embReady(N,{}); advance(1); deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); steps(605)
+    N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13); deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); steps(605)
     deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||C|5|100|0.4|0.5|7086|2|"..math.floor(server)%3600,"WHISPER","Ann Lee"); drain(); steps(5)
     eq(#weGuild("G|"),0,"expired partner")
 end)
@@ -4978,6 +4981,87 @@ test("1.0.0 release: both networks ship on; the first login says so once",functi
     for k,v in pairs(N.shipped) do N.Net.SHIP[k]=v end; N.Main.started=false; N.Main.start(); drain()
     yes(logged("LayerEnemies: public networks ON (War Effort, HeadHunter…). /le net guild to limit to guild only."))
     log={}; SlashCmdList.LAYERENEMIES("net"); drain(); yes(logged("War Effort: on")); yes(logged("HeadHunter: on"))
+end)
+
+-- مانع on 124b7d1 (r040c/124): embassy fixes
+local function annPartner(N) deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain() end
+test("124 A3: held keys: an empty holder set is dropped and the table is capped at 256",function()
+    local N=loadAddon(); local E=N.WeEmb; local st=E.new()
+    E.links(st,{links={"g1"}},"Wes",10); yes(st.held.g1); E.links(st,{links={}},"Wes",11); eq(st.held.g1,nil,"D| drops it")
+    for i=1,300 do E.links(st,{links={"g"..(1000+i)}},"Mate"..i,12) end
+    eq(N.Safe.count(st.held),256,"capped")
+    -- expired holders go with their key at the next prune
+    E.prune(st,12+E.LINKS_SECONDS+1); eq(N.Safe.count(st.held),0)
+end)
+test("124 A3: wrapped lines are rebuilt from decoded fields: no trailing text travels, W out or G in",function()
+    local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13); annPartner(N); steps(25)
+    local st=math.floor(server)%3600
+    -- G in: the junk after the decoded fields is gone
+    deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||C|5|100|0.4|0.5|7086|2|"..st.."|12|evil:text|more","WHISPER","Ann Lee"); drain()
+    local g=weGuild("G|"); eq(#g,1); eq(g[1].text,"G|"..hx("Kora Reed").."||C|5|100|0.400|0.500|7086|2|"..st.."|12")
+    deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||E|5|1|1|abc:H:60,xyz:?:?|"..st.."|junk","WHISPER","Ann Lee"); drain()
+    eq(weGuild("G|")[2].text,"G|"..hx("Kora Reed").."||E|5|1|1|abc:H:60,xyz:?:?|"..st)
+    -- W out: a guildmate's C with trailing fields, and a hello, go out rebuilt
+    gHello("Wes",true); steps(3)
+    local hw=wh("W|","Ann Lee"); local h=N.Protocol.decode(hw[#hw].text)
+    eq(h.innerText,"H|1.6.6|100|7086|1|19|0|0|"..st.."|789|H|60|1","the hello as decoded")
+    deliver("CHAT_MSG_ADDON","WEFF1","C|6|100|0.4|0.5|7086|2|"..st.."|12||4f4c594d505553:4","GUILD","Wes"); drain(); steps(61)
+    local c; for _,m in ipairs(wh("W|","Ann Lee")) do local d=N.Protocol.decode(m.text); if d and d.inner.type=="C" then c=d end end
+    yes(c); eq(c.innerText,"C|6|100|0.400|0.500|7086|2|"..st.."|12")
+end)
+test("124 A3: a P makes a partner only from a channel member or someone we greeted in the last 10 min",function()
+    local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13)
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Stranger"); drain(); steps(5)
+    no(N.WeEmb.partner(N.Main.emb,"Stranger",clock)); eq(#wh("P|","Stranger"),0,"no reply to a stranger")
+    deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||C|5|100|0.4|0.5|7086|2|"..math.floor(server)%3600,"WHISPER","Stranger"); drain(); eq(#weGuild("G|"),0)
+    annPartner(N); yes(N.WeEmb.partner(N.Main.emb,"Ann Lee",clock),"a channel member")
+    -- greeted by us, then gone from the list: their answer within 10 minutes counts
+    N=loadAddon(); embReady(N,{"Bo Dyl"}); steps(100); yes(#wh("P|19|789|0|a","Bo Dyl")>=1); chanMembers[WECH]={"Cy Fen"}
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|","WHISPER","Bo Dyl"); drain(); yes(N.WeEmb.partner(N.Main.emb,"Bo Dyl",clock))
+    -- after 10 minutes the greeting no longer vouches
+    N=loadAddon(); embReady(N,{"Bo Dyl"}); steps(100); chanMembers[WECH]={"Cy Fen"}; steps(601)
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|","WHISPER","Bo Dyl"); drain(); no(N.WeEmb.partner(N.Main.emb,"Bo Dyl",clock))
+end)
+test("124 A3: queued embassy lines are dropped when the embassy stops, the seat is lost or the origin revokes public",function()
+    for _,c in ipairs({"revoke","off","seat"}) do
+        -- (g450: Wes outranks us there, so his D for it takes our seat)
+        local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13)
+        deliver("CHAT_MSG_ADDON","WEFF1","P|19|450|0|a","WHISPER","Ann Lee"); drain(); steps(25); gHello("Wes",true); steps(3)
+        local st=math.floor(server)%3600
+        -- fill Ann Lee's 4 whispers a minute, so the next W waits in Wire's queue
+        for i=1,4 do deliver("CHAT_MSG_ADDON","WEFF1","C|"..(10+i).."|100|0.4|0.5|7086|2|"..st,"GUILD","Wes"); drain() end
+        local n=#wh("W|","Ann Lee")
+        if c=="revoke" then gHello("Wes",false) elseif c=="off" then C_Club=nil
+        else deliver("CHAT_MSG_ADDON","WEFF1","D|g450","GUILD","Wes"); drain() end
+        steps(70); eq(#wh("W|","Ann Lee"),n,c)
+    end
+end)
+test("124 A3: D| goes out at once when the War Effort switch goes off or War Effort is loaded; then former partners are dropped",function()
+    for _,c in ipairs({"switch","standdown","consent"}) do
+        local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13); annPartner(N); steps(25); eq(weGuild("D|")[1].text,"D|g456")
+        if c=="switch" then N.Net.setSwitch("we",false) elseif c=="standdown" then loaded.WarEffortScout=true else N.Net.setConsent("guild") end
+        steps(6); local d=weGuild("D|"); eq(d[#d].text,"D|",c); eq(#d,2)
+        no(N.WeEmb.partner(N.Main.emb,"Ann Lee",clock),c..": dropped from the partner table")
+        loaded.WarEffortScout=nil; N.Net.setSwitch("we",true); N.Net.setConsent("public")
+        deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||C|5|100|0.4|0.5|7086|2|"..math.floor(server)%3600,"WHISPER","Ann Lee"); drain()
+        eq(#weGuild("G|"),0,c..": no W from a former partner")
+        steps(700); eq(#weGuild("D|"),2,c..": said once")
+    end
+end)
+test("124 A3: a guildmate's public=1 expires 600 s after their last hello",function()
+    local N=loadAddon(); embReady(N,{"Ann Lee"}); steps(13); annPartner(N); steps(25); gHello("Wes",true)
+    local function cs() local n=0; for _,m in ipairs(wh("W|","Ann Lee")) do local d=N.Protocol.decode(m.text); if d and d.inner.type=="C" then n=n+1 end end; return n end
+    for i=1,6 do steps(100); deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|","WHISPER","Ann Lee"); drain() end   -- Ann Lee stays a partner
+    steps(2)
+    deliver("CHAT_MSG_ADDON","WEFF1","C|30|100|0.4|0.5|7086|2|"..math.floor(server)%3600,"GUILD","Wes"); drain(); steps(5); eq(cs(),0,"601 s after Wes's hello")
+    gHello("Wes",true); deliver("CHAT_MSG_ADDON","WEFF1","C|31|100|0.4|0.5|7086|2|"..math.floor(server)%3600,"GUILD","Wes"); drain(); steps(5); eq(cs(),1)
+end)
+
+test("124 A3: a queued greeting is dropped when the embassy stops",function()
+    local N=loadAddon(); embReady(N,{"Bo Dyl"}); steps(5)
+    for i=1,4 do yes((N.Wire.send("WEFF1","K|"..i.."|2|5","WHISPER","Bo Dyl",{net="we",prio="owed"}))) end
+    steps(20); yes(N.Wire.isQueued("P|19|789|0|a"),"the greeting waits for Bo Dyl's budget")
+    C_Club=nil; steps(70); eq(#wh("P|","Bo Dyl"),0); no(N.Wire.isQueued("P|19|789|0|a"))
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -69,6 +69,10 @@ local function H(f)
     -- guild id (digits, "-" none; else unknown) and "shares publicly" (1/0; else unknown)
     if f[10] == "-" then r.guildId = false elseif f[10] and f[10]:match("^%d+$") and #f[10] <= 20 then r.guildId = f[10] end
     if f[13] == "1" then r.public = true elseif f[13] == "0" then r.public = false end
+    -- class code and level (for rebuilding the line, WeOut.rebuild); the ambiguity suffix "|0|1"
+    r.class = f[11] and P.classes[f[11]] or nil
+    r.level = int(f[12] or "", 1, 100)
+    r.ambiguous = f[14] == "0" and f[15] == "1"
     return r
 end
 local function wrapper(f, kind)
