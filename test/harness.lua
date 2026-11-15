@@ -5974,5 +5974,107 @@ test("own identity: a guild host does not act while its own identity is unreadab
         eq(#invites,1,"readable identity recovers without consuming the earlier request"); no(N.Main.error)
     end
 end)
+-- Guild O uses the observed display identity, not an alias reconstructed from metadata.
+test("guild O full name: split and combined observations round-trip without first-name aliases",function()
+    local N=loadAddon(); local R=N.Relay
+    for _,e in ipairs({{name="Cedar",realm="Vale",displayName="Cedar Vale",class="ROGUE",level=47},
+        {name="Cedar Vale",realm="Vale",displayName="Cedar Vale",class="ROGUE",level=47}}) do
+        local line=R.ownLine({rid=7,zone=200,count=1,enemies={e}}); yes(line)
+        local r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(#r.enemies,1)
+        eq(r.enemies[1].name,"Cedar Vale","the full observed identity survives encoding")
+        eq(r.enemies[1].class,"ROGUE"); eq(r.enemies[1].level,47); eq(r.enemies[1].hash,nil)
+        local f=N.Find.new(); for _,name in ipairs({"Cedar Vale","Cedar","Cedar Grove"}) do yes(N.Find.add(f,name)) end
+        N.Find.report(f,{sender=r.origin,zone=r.zone,at=r.at,enemies=r.enemies},"Test Realm")
+        yes(f.locations["Cedar Vale"]); eq(f.locations.Cedar,nil); eq(f.locations["Cedar Grove"],nil)
+    end
+end)
+test("guild O full name: malformed display identity is omitted, never replaced by the first name",function()
+    local N=loadAddon(); local R=N.Relay
+    for i,bad in ipairs({"Cedar  Vale","Cedar Vale Extra"," Cedar Vale","Cedar Vale ","Cedar_Vale","Cedar|Vale",
+        "Cedar\nVale","Cedar\tVale","",false,123,{},secret,"C",string.char(255).."Vale",string.rep("C",101)}) do
+        local line=R.ownLine({rid=7,zone=200,count=2,enemies={{name="Cedar",displayName=bad,class="ROGUE",level=47},
+            {name="Birch",displayName="Birch Grove",class="MAGE",level=60}}})
+        yes(line,"malformed display case "..i); local r=R.decodeOwn(line,"Other Scout",clock); yes(r)
+        eq(r.count,2,"group count is not an identity count"); eq(#r.enemies,1,"omit malformed display case "..i)
+        eq(r.enemies[1].name,"Birch Grove","a valid neighbor still survives")
+    end
+    for _,e in ipairs({{displayName="Cedar Vale"},{name=secret,displayName="Cedar Vale"}}) do
+        local r=R.decodeOwn(R.ownLine({rid=7,zone=200,count=1,enemies={e}}),"Other Scout",clock)
+        yes(r); eq(r.enemies[1].name,"Cedar Vale","a valid full identity does not depend on the fallback")
+    end
+end)
+test("guild O full name: legacy single and combined names retain their O1 bytes",function()
+    local N=loadAddon(); local R=N.Relay
+    local rep={rid=7,zone=200,count=2,enemies={{name="Cedar",realm="Notasurname",class="ROGUE",level=47},{name="Birch Grove"}}}
+    local legacy="O|1|7|200||||0|2|4365646172:ROGUE:47,42697263682047726f7665::"
+    eq(R.ownLine(rep),legacy,"missing displayName uses name unchanged, never realm concatenation")
+    rep.enemies[1].displayName="Cedar"; rep.enemies[2].displayName="Birch Grove"
+    eq(R.ownLine(rep),legacy,"matching display identity does not change legacy bytes")
+    local r=R.decodeOwn(legacy,"Other Scout",clock); yes(r); eq(r.count,2); eq(#r.enemies,2)
+    eq(r.enemies[1].name,"Cedar"); eq(r.enemies[2].name,"Birch Grove")
+    local f=N.Find.new(); yes(N.Find.add(f,"Cedar")); yes(N.Find.add(f,"Cedar Vale"))
+    N.Find.report(f,{sender=r.origin,zone=r.zone,at=r.at,enemies=r.enemies},"Test Realm")
+    yes(f.locations.Cedar); eq(f.locations["Cedar Vale"],nil,"old truncated records cannot invent a full identity")
+    for _,name in ipairs({"Cedar Vale-TestRealm","Cedar Vale-8124","Élan Rivage"}) do
+        local line=R.ownLine({rid=7,zone=200,count=1,enemies={{name="Cedar",displayName=name}}})
+        r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(r.enemies[1].name,name,"preserve full bytes, including realm and UTF-8")
+    end
+end)
+test("guild O full name: four-entry cap counts intact full identities, not first-name aliases",function()
+    local N=loadAddon(); local R=N.Relay; local enemies={}
+    for _,surname in ipairs({"Vale","Grove","Moss","Leaf","Fern"}) do
+        enemies[#enemies+1]={name="Cedar",displayName="Cedar "..surname,class="ROGUE",level=47}
+    end
+    local line=R.ownLine({rid=7,zone=200,count=5,enemies=enemies}); yes(line); yes(#line<=255)
+    local r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(r.count,5); eq(#r.enemies,4)
+    for i,e in ipairs(r.enemies) do eq(e.name,enemies[i].displayName) end
+    no(line:find("4665726e",1,true),"fifth full name omitted")
+end)
+test("guild O full name: 100-byte names and the 255-byte line boundary keep whole entries",function()
+    local N=loadAddon(); local R=N.Relay
+    local full=string.rep("C",36).." "..string.rep("V",36).."-"..string.rep("R",26); eq(#full,100)
+    local rep={rid=7,zone=200,count=2,enemies={{name="Cedar",displayName=full,class="MAGE",level=60},
+        {name="Birch",displayName=string.rep("B",13),level=1}}}
+    local line=R.ownLine(rep); yes(line); eq(#line,255,"exactly 255 bytes is allowed")
+    local r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(#r.enemies,2)
+    eq(r.enemies[1].name,full); eq(r.enemies[2].name,string.rep("B",13))
+    rep.enemies[2].level=10                 -- one more byte: omit the whole last entry, never shorten its identity
+    line=R.ownLine(rep); yes(line); yes(#line<255)
+    r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(#r.enemies,1); eq(r.enemies[1].name,full); eq(r.count,2)
+    rep.enemies[1].displayName=full.."R"    -- 101 bytes: no fallback to Cedar
+    line=R.ownLine(rep); yes(line); r=R.decodeOwn(line,"Other Scout",clock); yes(r)
+    eq(#r.enemies,1); eq(r.enemies[1].name,string.rep("B",13))
+end)
+test("guild O full name: oversized legacy packets trim the tail once without duplicating the retained name",function()
+    local N=loadAddon(); local full=string.rep("C",36).." "..string.rep("V",36).."-"..string.rep("R",26)
+    local line=N.Relay.ownLine({rid=7,zone=200,count=2,enemies={{name=full,class="MAGE",level=60},
+        {name=string.rep("B",13),level=10}}})
+    yes(line); yes(#line<=255); local r=N.Relay.decodeOwn(line,"Other Scout",clock); yes(r)
+    eq(#r.enemies,1,"keep the first name that fits rather than duplicate then drop it")
+    eq(r.enemies[1].name,full); eq(r.count,2)
+end)
+test("guild O full name: observed split identity crosses share, Wire and cross-zone Find without donor traffic",function()
+    for _,otherZone in ipairs({false,true}) do
+        local N=loadAddon(); netOn(N,"we"); establish(N); hello("Other Scout",19)
+        units.target={guid="Player-1-777",player=true,name="Cedar",realm="Vale",class="ROGUE",level=47,faction="Horde"}
+        deliver("PLAYER_TARGET_CHANGED"); drain(); N.Main.shareTick(); eq(#oLines(),0)
+        advance(3); N.Main.shareTick(); eq(#oLines(),1)
+        local line=oLines()[1].text; eq(oLines()[1].kind,"GUILD"); yes(#line<=255)
+        eq(#weSent("C"),0,"War Effort still requires at least two"); eq(#weSent("E"),0)
+        local seen=N.Store.rows(N.Main.store,clock,"seen"); eq(#seen,1); eq(seen[1].displayName,"Cedar Vale")
+        N=loadAddon()
+        if otherZone then map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain() end
+        advance(.1)                       -- a report received at the exact reset instant is deliberately stale
+        local before=#sent
+        N.Main.track("Cedar Vale"); N.Main.track("Cedar"); N.Main.track("Cedar Grove")
+        eq(#sent,before,"Find remains passive")
+        deliver("CHAT_MSG_ADDON","LEGW1",line,"GUILD","Other Scout")
+        local loc=N.Main.find.locations["Cedar Vale"]; yes(loc,"full-name watch receives the guild O sighting")
+        eq(loc.zone,100); eq(loc.spotter,"Other Scout"); eq(loc.class,"ROGUE"); eq(loc.level,47)
+        eq(N.Main.find.locations.Cedar,nil); eq(N.Main.find.locations["Cedar Grove"],nil)
+        eq(#N.Store.rows(N.Main.store,clock,"reported"),otherZone and 0 or 1)
+        no(N.Main.error)
+    end
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
