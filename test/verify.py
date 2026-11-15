@@ -46,6 +46,15 @@ def main():
         assert users == ['Directory.lua'], word + ' outside Directory.lua: ' + ', '.join(users)
         calls = len(re.findall(r'\b' + word + r'\b', (ROOT / 'LayerEnemies/Directory.lua').read_text()))
         assert calls == 1, word + ' must appear exactly once in Directory.lua, found %d' % calls
+    # 1.0 lane B: HeadHunter frames are built only by HhNet.frame, for our own types N E Q O S H; never P, L or D
+    hhnet = (ROOT / 'LayerEnemies/HhNet.lua').read_text()
+    ours = re.search(r'local OURS = \{([^}]*)\}', hhnet)
+    assert ours and sorted(re.findall(r'(\w) = true', ours[1])) == sorted('NEQOSH'), 'HhNet OURS must be exactly N E Q O S H'
+    for t in re.findall(r'frame\([^,()]*,\s*"([^"]*)"', addon_text):
+        assert t in 'NEQOSH' and len(t) == 1, 'HeadHunter frame of a type we never send: ' + t
+    for file in (ROOT / 'LayerEnemies').glob('*.lua'):
+        if file.name != 'HhNet.lua':
+            assert not re.search(r'"1"\s*\.\.\s*side', file.read_text()), 'HeadHunter frames are built only in HhNet.lua: ' + file.name
     senders = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua') if 'SendAddonMessage' in p.read_text())
     assert senders == ['Wire.lua'], 'SendAddonMessage outside Wire.lua: ' + ', '.join(senders)
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):

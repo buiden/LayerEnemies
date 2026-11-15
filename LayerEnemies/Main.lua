@@ -102,7 +102,7 @@ function M.poll()
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
-    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick()
+    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
     N.Directory.sync()
     M.findAlerts()
     if N.UI then N.UI.refresh() end
@@ -218,10 +218,14 @@ function M.headhunter(text,kind,sender)
     local allowed,reason=A.hhPolicy(kind,sender)
     if not allowed then M.lastDrop=reason; return end
     local time=now()
-    -- only frames we read (P, L, E) count against the sender's 6 per 10 s; the rest are ignored uncounted
+    -- only frames we read (P, L, E, and the mesh's N Q O S H) count against the sender's 6 per 10 s
     local frameType=text:match("^%d[AH](%u):")
-    if frameType~="P" and frameType~="L" and frameType~="E" then return end
+    -- (the mesh frames are read by whisper only; on a party or raid they are ignored uncounted)
+    local mesh=kind=="WHISPER" and (frameType=="N" or frameType=="Q" or frameType=="O" or frameType=="S" or frameType=="H")
+    if frameType~="P" and frameType~="L" and frameType~="E" and not mesh then return end
     if not N.HeadHunter.allow(M.hh,sender,time) then return end
+    if kind=="WHISPER" and (mesh or frameType=="E") then guarded(M.hhMesh,text,sender,time) end
+    if mesh then return end
     local records,why=N.HeadHunter.decode(text,sender,S.num(S.call(GetServerTime)),S.str((S.call(UnitFactionGroup,"player")),20),
         {heard=time,route=kind,zoneFn=A.zone})
     M.lastDrop=why~="ignored" and why or M.lastDrop
@@ -1186,6 +1190,80 @@ function M.embassyForward(origin,msg,text,time,guildmate)
         N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="forward",queue=true})
     end
 end
+-- HeadHunter mesh (lanes B1, B2): all by whisper, all public; nothing while public networks are off.
+local function hhSide()
+    local f=S.call(UnitFactionGroup,"player")
+    return f=="Alliance" and "A" or f=="Horde" and "H" or nil
+end
+function M.hhWorld()
+    local regions={[1]="us",[2]="kr",[3]="eu",[4]="tw",[5]="cn"}
+    local region=regions[S.num(S.call(GetCurrentRegion)) or 0] or "?"
+    local rules
+    local G,E=_G.C_GameRules,_G.Enum
+    if S.tab(G) and type(G.IsGameRuleActive)=="function" and S.tab(E) and S.tab(E.GameRule) then
+        local function on(rule) if rule==nil then return nil end; local ok,v=pcall(G.IsGameRuleActive,rule); return ok and v==true end
+        rules=(on(E.GameRule.HardcoreRuleset) and "hc") or (on(E.GameRule.RPRuleset) and "rp") or (on(E.GameRule.PvPRuleset) and "pvp") or nil
+    end
+    if not rules then
+        local name=S.str(S.call(GetRealmName),60)
+        name=name and (" "..name:lower().." ")
+        if name then
+            if name:find("hardcore",1,true) then rules="hc" elseif name:find("roleplay",1,true) or name:find("[%s%-]rp[%s%-%d]") then rules="rp"
+            elseif name:find("pvp",1,true) then rules="pvp" elseif name:find("pve",1,true) or name:find("normal",1,true) then rules="pve" end
+        end
+    end
+    return region.."-"..(rules or "?")
+end
+local function hhCtx(time)
+    local mine=HN_me and HN_me() or nil
+    return {world=M.hhWorld(),serverNow=S.num(S.call(GetServerTime)),me=N.HhNet.compact(M.weName() or "?") or "?",side=hhSide(),
+        online=N.Directory.count("hh")}
+end
+local function hhSend(text,target)
+    if text and target then N.Wire.send("HeadHunter",text,"WHISPER",target,{net="hh",prio="forward",queue=true}) end
+end
+function M.hhTick()
+    local st=M.hhNet
+    if not st or not N.Net.allowed("hh","public") then return end
+    local time=now()
+    local ctx=hhCtx(time)
+    if not ctx.side or not ctx.serverNow then return end
+    local members=N.Directory.members("hh")
+    if type(members)=="table" and members[1] then N.HhNet.roster(st,members,ctx.me) end
+    local who=N.HhNet.nextHello(st,time,ctx.side)
+    if who then hhSend(N.HhNet.frame(ctx.side,"N",N.HhNet.HELLO),who) end
+    for _,o in ipairs(N.HhNet.ask(st,time,ctx)) do hhSend(o.text,o.target) end
+    for _,o in ipairs(N.HhNet.pull(st,time,ctx)) do hhSend(o.text,o.target) end
+end
+function M.hhMesh(text,sender,time)
+    local st=M.hhNet
+    if not st or not N.Net.allowed("hh","public") then return end
+    local ctx=hhCtx(time)
+    if not ctx.side or not ctx.serverNow then return end
+    local side,t,body=text:match("^1([AH])(%u):(.+)$")
+    if not body then return end
+    if t=="N" then
+        if N.HhNet.heard(st,sender,side,nil,true) then hhSend(N.HhNet.frame(ctx.side,"N",N.HhNet.HELLO),sender) end
+    elseif t=="E" then
+        for rec in (body.."~"):gmatch("([^~]*)~") do
+            local out=N.HhNet.carry(st,rec,sender,side,time,ctx)
+            for _,o in ipairs(out) do hhSend(o.text,o.target) end
+        end
+    elseif t=="Q" then
+        for _,o in ipairs(N.HhNet.query(st,body,sender,time,ctx)) do
+            if o.delay and o.delay>0 then
+                local text2,target=o.text,o.target
+                if not N.Net.after("hh",o.delay,function() hhSend(text2,target) end,"public") then hhSend(text2,target) end
+            else hhSend(o.text,o.target) end
+        end
+    elseif t=="O" then N.HhNet.offer(st,sender,body,time)
+    elseif t=="S" then N.HhNet.snapshot(st,sender,body,ctx)
+    elseif t=="H" then
+        local guid=S.str(S.call(UnitGUID,"player"),120)
+        local home=guid and tonumber(guid:match("^Player%-(%d+)%-"))
+        hhSend(N.HhNet.link(st,sender,time,ctx.side,home),sender)
+    end
+end
 -- The hop is over (moved and left, failed, or 120 s without an invite): no ask is pending any more.
 function M.hopDone() N.Hop.clear(M.hop); M.invite.pending=nil end
 function M.groupCheck()
@@ -1262,7 +1340,7 @@ function M.start()
     M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped(); M.share=N.Share.new(); M.weHeard={}; M.we=N.WeNet.new(now())
-    M.emb=N.WeEmb.new(); M.weGuild={}
+    M.emb=N.WeEmb.new(); M.weGuild={}; M.hhNet=N.HhNet.new(); M.hhNet.started=now()
     M.host=N.GuildHost.new()   -- guild-only hosting; the wish (want) is saved as LayerEnemiesDB.guildHost
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end

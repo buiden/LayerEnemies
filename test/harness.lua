@@ -4501,10 +4501,11 @@ test("1.0 A3: the embassy stays off with a reason; an empty or missing member li
 end)
 test("1.0 A3: we greet only our share, one a minute; an answer makes a partner; no answer leaves them alone 1800 s",function()
     local N=loadAddon(); embReady(N,{"Kora Reed","Ann Lee","Bo Dyl","Wes"}); gHello("Wes",true)
-    steps(40); local p=wh("P|"); eq(#p,1); eq(p[1].text,"P|19|789|0|a"); yes(p[1].target=="Ann Lee" or p[1].target=="Bo Dyl",p[1].target)
+    local tg; for _=1,40 do advance(1); if not tg and #wh("P|")>0 then tg=clock end end
+    local p=wh("P|"); eq(#p,1); eq(p[1].text,"P|19|789|0|a"); yes(p[1].target=="Ann Lee" or p[1].target=="Bo Dyl",p[1].target)
     local first=p[1].target; eq(#wh("P|","Kora Reed"),0,"Kora Reed is Wes's share"); eq(#wh("P|","Wes"),0,"never a guildmate")
-    steps(50); eq(#wh("P|"),1,"one greeting a minute at most")
-    deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|","WHISPER",first); drain(); yes(N.WeEmb.partner(N.Main.emb,first,clock))
+    while clock<tg+59 do advance(1) end; eq(#wh("P|"),1,"one greeting a minute at most")
+    local t1=clock; deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|","WHISPER",first); drain(); yes(N.WeEmb.partner(N.Main.emb,first,clock))
     steps(100); local other=first=="Ann Lee" and "Bo Dyl" or "Ann Lee"; eq(#wh("P|",other),1,"the next of our share")
     steps(40); no(N.WeEmb.partner(N.Main.emb,other,clock)); steps(1700); eq(#wh("P|"..""..""),#wh("P|"),"(count)")
     -- the unanswered one is left alone: not greeted again for 1800 s
@@ -4583,6 +4584,97 @@ test("1.0 A3: a W from a live partner of another guild goes into the guild as G 
     N=loadAddon(); embReady(N,{}); advance(1); deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); steps(605)
     deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||C|5|100|0.4|0.5|7086|2|"..math.floor(server)%3600,"WHISPER","Ann Lee"); drain(); steps(5)
     eq(#weGuild("G|"),0,"expired partner")
+end)
+
+-- 1.0 lane B: HeadHunter mesh (B1) and catch-up (B2)
+local function hhReady(N,members)
+    netOn(N,"hh"); N.Net.setConsent("public"); units.player={name="Me",class="MAGE",level=60,guid="Player-7091-00000001"}
+    GetCurrentRegion=function() return 3 end; chanMembers.HeadHunterSync=members; establish(N); server=HHT
+end
+local function hw(t,who) local out={}; for _,m in ipairs(sent) do if m.prefix=="HeadHunter" and m.kind=="WHISPER" and (not who or m.target==who) and m.text:sub(1,#t)==t then out[#out+1]=m end end; return out end
+local function hhIn(text,from) deliver("CHAT_MSG_ADDON","HeadHunter",text,"WHISPER",from); drain() end
+local function env(author,hops,t,inner,world,f) return "1AE:"..(world or "eu-pvp")..";"..author..";"..(f or "A")..";5cy;"..b36(hops)..";"..b36(t or HHT)..";"..inner end
+test("1.0 B1: hello is exactly LayerEnemies, once per peer per session, one per tick at most; an N is answered once",function()
+    local N=loadAddon(); hhReady(N,{"Peer One","Peer Two","Peer Three","Me"}); steps(30)
+    local h=hw("1AN:"); eq(#h,3); for _,m in ipairs(h) do eq(m.text,"1AN:LayerEnemies") end
+    local seen={}; for _,m in ipairs(h) do no(seen[m.target],m.target); seen[m.target]=true end; no(seen.Me,"never ourselves")
+    steps(600); eq(#hw("1AN:"),3,"once per peer per session")
+    -- paced: never two hellos in the same 2 s
+    local times={}; N=loadAddon(); hhReady(N,{"Ann Lee","Bo Dyl","Cy Fen","Di Gar"}); for _=1,40 do advance(1); times[#times+1]=#hw("1AN:") end
+    for i=3,#times do yes(times[i]-times[i-2]<=1,"one per 2 s") end
+    -- an N from a new peer gets ours once
+    N=loadAddon(); hhReady(N,{}); advance(1); hhIn("1AN:HeadHunter 1.1.1","Kora Reed"); eq(#hw("1AN:","Kora Reed"),1)
+    hhIn("1AN:HeadHunter 1.1.1","Kora Reed"); steps(10); eq(#hw("1AN:","Kora Reed"),1)
+end)
+test("1.0 B1: an envelope is forwarded unchanged but its hops, to peers that are neither author nor carrier",function()
+    local N=loadAddon(); hhReady(N,{"Peer One","Peer Two","Peer Three","Peer Four","Peer Five","Mira Vale","Sera Dawn"}); steps(30); sent={}
+    local e=env("Mira Vale",1,HHT,"LKora Reed;13k;"..b36(HHT)..";dw;6y")
+    hhIn(e,"Mira Vale"); steps(5)
+    local f=hw("1AE:"); yes(#f>=1 and #f<=4,#f)
+    for _,m in ipairs(f) do eq(m.text,env("Mira Vale",2,HHT,"LKora Reed;13k;"..b36(HHT)..";dw;6y")); yes(m.target~="Mira Vale" and m.target~="Me") end
+    -- the same envelope again (another carrier): not forwarded again
+    local n=#hw("1AE:"); hhIn(env("Mira Vale",2,HHT,"LKora Reed;13k;"..b36(HHT)..";dw;6y"),"Sera Dawn"); steps(5); eq(#hw("1AE:"),n)
+    -- a carried one: never back to its carrier or author
+    sent={}; hhIn(env("Mira Vale",3,HHT,"DKora Reed;x"),"Sera Dawn"); steps(5)
+    for _,m in ipairs(hw("1AE:")) do yes(m.target~="Sera Dawn" and m.target~="Mira Vale",m.target); yes(m.text:find(";4;",1,true)) end
+end)
+test("1.0 B1: hops 5, too old, from the future, another world, our own, author-carried after hop 1, T: not forwarded",function()
+    local N=loadAddon(); hhReady(N,{"Peer One","Peer Two","Peer Three","Mira Vale","Sera Dawn"}); steps(30); sent={}
+    local L="LKora Reed;13k;"..b36(HHT)..";dw;6y"
+    hhIn(env("Mira Vale",5,HHT,L),"Sera Dawn"); hhIn(env("Mira Vale",6,HHT,"DAa Bb;1"),"Sera Dawn")
+    hhIn(env("Mira Vale",1,server-601,"DAa Bb;2"),"Mira Vale"); hhIn(env("Mira Vale",1,server+301,"DAa Bb;3"),"Mira Vale")
+    hhIn(env("Mira Vale",1,HHT,"DAa Bb;4","us-pvp"),"Mira Vale"); hhIn(env("Me",1,HHT,"DAa Bb;5"),"Sera Dawn")
+    hhIn(env("Mira Vale",2,HHT,"DAa Bb;6"),"Mira Vale"); hhIn(env("Mira Vale",1,HHT,"Thello"),"Mira Vale")
+    hhIn(env("Mira Vale",1,HHT,"Fx;y","eu-pvp","H"),"Mira Vale")
+    steps(5); eq(#hw("1AE:"),0)
+    eq(N.HhNet.held(N.Main.hhNet),0,"none of them stored for catch-up")
+    -- (another author and carrier: Mira Vale has used up her 6 frames in 10 s)
+    hhIn(env("Kora Reed",1,server,"DAa Bb;7","eu-?"),"Kora Reed"); steps(5); yes(#hw("1AE:")>=1,"a world part unknown on one side does not split it")
+end)
+test("1.0 B1: the duplicate ring holds 4000 keys",function()
+    local N=loadAddon(); local HN=N.HhNet; local st=HN.new()
+    for i=1,4000 do HN.remember(st,"k"..i) end; yes(HN.seen(st,"k1")); HN.remember(st,"k4001"); no(HN.seen(st,"k1")); yes(HN.seen(st,"k2")); yes(HN.seen(st,"k4001"))
+    eq(HN.key("Mira Vale","L","x"),"miravaleL"..(N.HhNet.hash("x")))
+    eq(HN.hash("abc"),193485963); eq(HN.compact("Mira Vale-7102"),"miravale")
+    -- offers are collected 5 s from the first one
+    st=HN.new(); st.asked=0; local ctx={side="A",serverNow=HHT}
+    HN.offer(st,"Peer One","3",1); eq(#HN.pull(st,3,ctx),0); eq(#HN.pull(st,5.9,ctx),0); local p=HN.pull(st,6,ctx); eq(p[1].target,"Peer One")
+end)
+test("1.0 B2: catch-up: Q:h after login, offers collected, pulled from one, S taken only from that sender",function()
+    local N=loadAddon(); hhReady(N,{"Peer One","Peer Two","Peer Three"}); steps(25)
+    local q=hw("1AQ:h"); yes(#q>=1 and #q<=6,#q)
+    hhIn("1AO:3","Peer One"); steps(3); eq(#hw("1AQ:p"),0,"collecting for 5 s"); hhIn("1AO:5","Peer Two"); steps(4)
+    local p=hw("1AQ:p"); eq(#p,1); eq(p[1].target,"Peer Two","the biggest offer")
+    hhIn("1AS:DAa Bb;1~KCc;2","Peer One"); eq(N.HhNet.held(N.Main.hhNet),0,"not the pulled sender")
+    hhIn("1AS:DAa Bb;1~KCc;2","Peer Two"); hhIn("1AS:E2","Peer Two"); eq(N.HhNet.held(N.Main.hhNet),2)
+    hhIn("1AS:DDd;3","Peer Two"); eq(N.HhNet.held(N.Main.hhNet),2,"after its end marker")
+end)
+test("1.0 B2: serving: no O with an empty store; O counts what a pull then sends, byte-equal; E0; once per requester per 300 s",function()
+    local N=loadAddon(); hhReady(N,{}); steps(25); N.HhNet.chance=function() return 1 end
+    hhIn("1AQ:h"..b36(HHT-600),"Asker One"); steps(5); eq(#hw("1AO:"),0,"empty store: no offer")
+    hhIn("1AQ:p"..b36(HHT-600),"Asker One"); steps(5); local e=hw("1AS:","Asker One"); eq(#e,1); eq(e[1].text,"1AS:E0")
+    -- records carried in envelopes are held and served byte for byte
+    hhIn(env("Mira Vale",1,server,"DAa Bb;1;x"),"Mira Vale"); hhIn(env("Sera Dawn",1,server,"KCc Dd;2"),"Sera Dawn"); hhIn(env("Sera Dawn",1,server,"LKora Reed;13k;"..b36(server)..";dw;6y"),"Sera Dawn")
+    eq(N.HhNet.held(N.Main.hhNet),2,"D and K are history; L is not")
+    hhIn("1AQ:h"..b36(HHT-600),"Asker Two"); steps(5); local o=hw("1AO:","Asker Two"); eq(#o,1); eq(o[1].text,"1AO:2")
+    hhIn("1AQ:p"..b36(HHT-600),"Asker Two"); steps(5)
+    local body={}; for _,m in ipairs(hw("1AS:","Asker Two")) do body[#body+1]=m.text:sub(5) end
+    local all=table.concat(body,"~"); yes(all:find("DAa Bb;1;x",1,true)); yes(all:find("KCc Dd;2",1,true)); yes(all:find("E2$"),all)
+    local n=#hw("1AS:","Asker Two"); hhIn("1AQ:p"..b36(HHT-600),"Asker Two"); steps(5); eq(#hw("1AS:","Asker Two"),n,"once per 300 s")
+    -- Q:h answered at most once per requester per 300 s too
+    hhIn("1AQ:h"..b36(HHT-600),"Asker Three"); hhIn("1AQ:h"..b36(HHT-600),"Asker Three"); steps(5); eq(#hw("1AO:","Asker Three"),1)
+end)
+test("1.0 B2: a link H is answered with our home server, once per 600 s",function()
+    local N=loadAddon(); hhReady(N,{}); advance(1)
+    hhIn("1AH:5cy","Kora Reed"); local h=hw("1AH:","Kora Reed"); eq(#h,1); eq(h[1].text,"1AH:"..b36(7091))
+    hhIn("1AH:5cy","Kora Reed"); steps(10); eq(#hw("1AH:","Kora Reed"),1)
+end)
+test("1.0 B: off, guild-only, HeadHunter loaded or in an instance: nothing on HeadHunter",function()
+    for _,c in ipairs({"ship","consent","loaded","instance"}) do
+        local N=loadAddon(); hhReady(N,{"Peer One"})
+        if c=="ship" then N.Net.SHIP.hh=false elseif c=="consent" then N.Net.setConsent("guild") elseif c=="loaded" then loaded.HeadHunter=true else inInstance=true end
+        hhIn("1AN:HeadHunter 1.1.1","Kora Reed"); steps(40); eq(#hw(""),0,c); loaded.HeadHunter=nil; inInstance=false
+    end
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
