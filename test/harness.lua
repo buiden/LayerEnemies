@@ -1306,6 +1306,145 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,18)
     eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
 end)
+test("Find fold: Latin and Cyrillic tables, exclusions and unchanged UTF-8",function()
+    local N=loadAddon(); local F=N.Find
+    eq(type(F.fold),"function","Find has a pure folding helper")
+    local vectors={
+        {"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"},
+        {"ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ","àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþ"},
+        {"ĀĂĄĆĈĊČĎĐĒĔĖĘĚĜĞĠĢĤĦĨĪĬĮĲĴĶ","āăąćĉċčďđēĕėęěĝğġģĥħĩīĭįĳĵķ"},
+        {"ĹĻĽĿŁŃŅŇ","ĺļľŀłńņň"},
+        {"ŊŌŎŐŒŔŖŘŚŜŞŠŢŤŦŨŪŬŮŰŲŴŶ","ŋōŏőœŕŗřśŝşšţťŧũūŭůűųŵŷ"},
+        {"ŸŹŻŽ","ÿźżž"},
+        {"АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ","абвгдежзийклмнопрстуфхцчшщъыьэюя"},
+        {"ЀЁЂЃЄЅІЇЈЉЊЋЌЍЎЏ","ѐёђѓєѕіїјљњћќѝўџ"},
+        {"×÷İıĸŉſßµ","×÷İıĸŉſßµ"},
+        {"ΑΩαωԱա Georgian Ⴀა 漢字 Ａａ","ΑΩαωԱա georgian Ⴀა 漢字 Ａａ"},
+        {"A-é Élodie Łukasz Ёлка","a-é élodie łukasz ёлка"},
+    }
+    for _,v in ipairs(vectors) do
+        eq(F.fold(v[1]),v[2],v[1]); eq(F.fold(v[2]),v[2],"idempotent "..v[2])
+    end
+    eq(F.fold(""),""); eq(select("#",F.fold("Élodie")),1,"one return, not gsub's count")
+end)
+
+-- Synthetic Find fixtures, shared across sighting and wire paths.
+do
+    local cases={
+        {"élodie","Élodie"},{"ÉLODIE","Élodie"},{"Élodie","Élodie"},
+        {"ZOÉ","Zoé"},{"zoé","Zoé"},
+        {"ялора","Ялора"},{"ЯЛОРА","Ялора"},{"ёлва","Ёлва"},
+        {"łukasz","Łukasz"},{"ŁUKASZ","Łukasz"},
+        {"ÿlune","Ÿlune"},{"ĺava","Ĺava"},{"źora","Źora"},
+        {"mira élune","Mira Élune"},{"MIRA ÉLUNE","Mira Élune"},{"élodie łava","Élodie Łava"},
+        {"cedar vale","Cedar Vale"},{"CEDAR VALE","Cedar Vale"},
+        {"élodie-TestRealm","Élodie"},
+    }
+    for _,v in ipairs(cases) do
+        test("Find casefold own: "..v[1],function()
+            local N=loadAddon(); local F=N.Find; local st=F.new(); yes(F.add(st,v[1]))
+            local given,surname=v[2]:match("^([^ ]+) (.+)$")
+            F.own(st,{name=given or v[2],displayName=given and v[2],realm=surname or "Test Realm",
+                faction="opposite",source="own target",class="MAGE",level=39},100,50)
+            local row=F.rows(st,50,100)[1]
+            yes(row.own,"own sighting matched"); yes(row.same); no(row.possible); no(row.canAsk)
+            eq(row.name,v[1],"keep typed spelling"); eq(row.zone,100); eq(row.at,50)
+            eq(row.class,"MAGE"); eq(row.level,39); eq(#sent,0)
+        end)
+        test("Find casefold named: "..v[1],function()
+            local N=loadAddon(); local F=N.Find
+            for _,relayed in ipairs({false,true}) do
+                local st=F.new(); yes(F.add(st,v[1]))
+                F.report(st,{sender="Scout",zone=100,at=50,relayed=relayed,
+                    enemies={{name=v[2],class="MAGE",level=39}}},"Test Realm")
+                local row=F.rows(st,50,100)[1]
+                yes(row.possible,"named report matched"); no(row.own); no(row.same)
+                eq(row.canAsk,not relayed); eq(row.relayed,relayed); eq(row.name,v[1]); eq(row.spotter,"Scout")
+                eq(row.zone,100); eq(row.at,50); eq(row.class,"MAGE"); eq(row.level,39)
+            end
+            eq(#sent,0)
+        end)
+        test("Find casefold hash: "..v[1],function()
+            local N=loadAddon(); local F,H=N.Find,N.Hash
+            local hashes={H.player(v[2],"Test Realm"),H.player(v[2],"")}
+            local given,surname=v[2]:match("^([^ ]+) (.+)$")
+            if given then hashes[#hashes+1]=H.player(given,surname) end
+            for _,hash in ipairs(hashes) do
+                local st=F.new(); yes(F.add(st,v[1]))
+                F.report(st,{sender="Scout",zone=100,at=50,enemies={{hash=hash,class="MAGE",level=39}}},"Test Realm")
+                local row=F.rows(st,50,100)[1]
+                yes(row.possible,"hash-only report matched "..hash); no(row.own); no(row.same); yes(row.canAsk)
+                eq(row.name,v[1]); eq(row.spotter,"Scout"); eq(row.zone,100); eq(row.at,50)
+                eq(row.class,"MAGE"); eq(row.level,39)
+            end
+            eq(#sent,0)
+        end)
+    end
+end
+
+test("Find casefold key: trim display, fold single and full names, keep validation",function()
+    local N=loadAddon(); local F=N.Find
+    local name,key=F.name("  ÉLODIE  "); eq(name,"ÉLODIE"); eq(key,"élodie")
+    name,key=F.name("  ÉLODIE ŁAVA  "); eq(name,"ÉLODIE ŁAVA"); eq(key,"élodie łava")
+    name,key=F.name("ÉLODIE-ÉLUNE"); eq(name,"ÉLODIE-ÉLUNE"); eq(key,"élodie-élune")
+    for _,bad in ipairs({false,secret,42,"/g Élodie","Élodie|r","Élodie2","One Two Three"}) do no(F.name(bad)) end
+end)
+test("Find casefold add: duplicate spelling preserves one entry and session state",function()
+    local N=loadAddon(); local F=N.Find
+    for _,v in ipairs({{"Élodie","élodie"},{"Zoé","ZOÉ"},{"Łukasz","łukasz"},{"Ялора","ялора"},{"Mira Élune","MIRA ÉLUNE"}}) do
+        local st=F.new(); yes(F.add(st,v[1]))
+        local loc,alert={at=50,zone=100},{at=50,zone=100}; st.locations[v[1]]=loc; st.alerts[v[1]]=alert
+        yes(F.add(st,v[2])); eq(#st.names,1); eq(st.names[1],v[1]); eq(st.locations[v[1]],loc); eq(st.alerts[v[1]],alert)
+        local saved=F.new({v[1],v[2]}); eq(#saved.names,1); eq(saved.names[1],v[1])
+    end
+    local st=F.new({"Élodie","Cedar","Birch","Linden","Rowan"}); yes(F.add(st,"élodie")); eq(#st.names,F.MAX)
+end)
+
+test("Find casefold hash candidates: both spellings per part, bounded and wire unchanged",function()
+    local N=loadAddon(); local F,H=N.Find,N.Hash
+    eq(H.nameKey("ÉLODIE","ŁAVA"),"Élodie-Łava","wire still lowers ASCII only")
+    local function exact(name,home,parts)
+        local want,got={},F.hashes(name,home)
+        for _,v in ipairs(parts) do want[H.player(v[1],v[2])]=true end
+        for h in pairs(want) do yes(got[h],"missing candidate "..h) end
+        for h in pairs(got) do yes(want[h],"unexpected candidate "..h) end
+    end
+    exact("ÉLODIE ŁAVA","ÉLUNE ŁAND",{
+        {"élodie łava","élune łand"},{"Élodie Łava","Élune Łand"},
+        {"élodie łava",""},{"Élodie Łava",""},{"élodie","łava"},{"Élodie","Łava"},
+    })
+    exact("ÉLODIE-ŁAVA","Other Realm",{
+        {"élodie","łava"},{"Élodie","Łava"},{"élodie",""},{"Élodie",""},
+    })
+    exact("ÉLODIE",nil,{{"élodie",""},{"Élodie",""}})
+    exact("ALICE","Test Realm",{{"Alice","Test Realm"},{"Alice",""}})
+    -- No global folding of hash inputs, and no titlecasing of unsupported three-byte letters.
+    exact("Ⴀlune",nil,{{"Ⴀlune",""}})
+end)
+
+test("Find casefold remove: other case clears stored location and alert, not a neighbour",function()
+    local N=loadAddon(); local F=N.Find
+    for _,v in ipairs({{"Élodie","élodie"},{"Zoé","ZOÉ"},{"Łukasz","łukasz"},{"Ялора","ялора"},
+        {"Mira Élune","MIRA ÉLUNE"},{"Cedar","CEDAR"}}) do
+        for i=1,2 do
+            local stored,typed=v[i],v[3-i]
+            local st=F.new({stored,"Linden"})
+            local loc,alert={at=50,zone=100},{at=50,zone=100}
+            st.locations[stored]=loc; st.alerts[stored]=alert
+            st.locations.Linden=loc; st.alerts.Linden=alert
+            F.remove(st,"Unknown"); eq(#st.names,2); eq(st.locations[stored],loc); eq(st.alerts[stored],alert)
+            F.remove(st,typed)
+            eq(#st.names,1); eq(st.names[1],"Linden"); eq(st.locations[stored],nil); eq(st.alerts[stored],nil)
+            eq(st.locations.Linden,loc); eq(st.alerts.Linden,alert)
+            F.remove(st,nil); eq(#st.names,0); eq(next(st.locations),nil); eq(next(st.alerts),nil)
+        end
+    end
+    -- Backward iteration also clears duplicate spellings left in an old session.
+    local st=F.new(); st.names={"Élodie","élodie"}
+    for _,name in ipairs(st.names) do st.locations[name]={}; st.alerts[name]={} end
+    F.remove(st,"ÉLODIE"); eq(#st.names,0); eq(next(st.locations),nil); eq(next(st.alerts),nil)
+end)
+
 test("Find hashes mirror upstream realm, realm-less and Forever surname keys",function()
     local N=loadAddon(); local H=N.Hash
     eq(H.nameKey("Alice","Test Realm"),"alice-testrealm"); eq(H.nameKey("Alice",""),"alice-")
