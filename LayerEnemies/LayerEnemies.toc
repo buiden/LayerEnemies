@@ -24,6 +24,7 @@ GuildHost.lua
 Relay.lua
 WeOut.lua
 WeNet.lua
+WeEmb.lua
 Share.lua
 Directory.lua
 Find.lua

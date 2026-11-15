@@ -66,6 +66,9 @@ local function H(f)
     if not (r.map and r.layer and r.sharing) then return nil end
     if f[6] == nil or f[6] == "" then r.minor = 0 else r.minor = int(f[6], 0, 999) end   -- invalid: unknown (nil)
     r.stamp = int(f[9], 0, 3599)
+    -- guild id (digits, "-" none; else unknown) and "shares publicly" (1/0; else unknown)
+    if f[10] == "-" then r.guildId = false elseif f[10] and f[10]:match("^%d+$") and #f[10] <= 20 then r.guildId = f[10] end
+    if f[13] == "1" then r.public = true elseif f[13] == "0" then r.public = false end
     return r
 end
 local function wrapper(f, kind)
@@ -76,11 +79,37 @@ local function wrapper(f, kind)
     local inner = decodeInner({ unpack(f, 4) })
     if not inner then return nil end
     if inner.type == "C" and inner.sync then return nil end        -- only live C travels wrapped
-    return { type = kind, origin = origin, realm = realm ~= "" and tonumber(realm) or nil, inner = inner }
+    return { type = kind, origin = origin, realm = realm ~= "" and tonumber(realm) or nil, inner = inner,
+        innerText = table.concat({ unpack(f, 4) }, "|") }
 end
 -- Q: a hello request (any fields after it ignored). Y: a sync request, Y|continent|<unused>|a:<max age>,...
 -- (the age clamped to 60..900, default 900). J: a layer request, J|id|map|layer|x|y[|stamp].
 local function Q() return { type = "Q" } end
+-- P: a presence (embassy), P|minor|guild id or -|continent|flags ("a": answer me). D: links held, D|g<id>|n<hex>,...
+-- (at most 3). W: a guild member's own C, E or H whispered to a partner of another guild (as a wrapper).
+local function Pr(f)
+    if #f < 4 then return nil end
+    local r = { type = "P", minor = int(f[2], 0, 999), continent = int(f[4], 0, 999999) }
+    if f[3] == "-" then r.guild = false elseif f[3]:match("^%d+$") and #f[3] <= 20 then r.guild = f[3] else return nil end
+    local flags = f[5] or ""
+    if not (r.minor and r.continent) or #flags > 8 or not flags:match("^%l*$") then return nil end
+    r.ask = flags:find("a", 1, true) ~= nil
+    return r
+end
+local function D(f)
+    local r = { type = "D", links = {} }
+    local list = f[2] or ""
+    if list ~= "" then
+        for entry in (list .. ","):gmatch("([^,]*),") do
+            local kind, rest = entry:sub(1, 1), entry:sub(2)
+            if kind == "g" and rest:match("^%d+$") and #rest <= 20 then r.links[#r.links + 1] = entry
+            elseif kind == "n" and hexname(rest) then r.links[#r.links + 1] = "n" .. rest:lower()
+            else return nil end
+            if #r.links > 3 then return nil end
+        end
+    end
+    return r
+end
 local function Y(f)
     local r = { type = "Y", continent = int(f[2], 1, 999999), maxAge = 900 }
     if not r.continent then return nil end
@@ -114,6 +143,9 @@ function P.decode(text)
     local msg
     if t == "C" or t == "E" or t == "H" then msg = decodeInner(f)
     elseif t == "Q" then msg = Q()
+    elseif t == "P" then msg = Pr(f)
+    elseif t == "D" then msg = D(f)
+    elseif t == "W" then msg = wrapper(f, "W")
     elseif t == "Y" then msg = Y(f)
     elseif t == "J" then msg = J(f)
     elseif t == "G" or t == "X" then msg = wrapper(f, t)

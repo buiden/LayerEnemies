@@ -263,8 +263,8 @@ function A.policy(prefix,kind,sender)
     return allowed,reason
 end
 -- Types each route may carry (WEFF1): guild C E H G, Q Y (lane A2), home group C E H X, whisper J (a layer request).
-A.WE_TYPES={GUILD={C=true,E=true,H=true,G=true,Q=true,Y=true},PARTY={C=true,E=true,H=true,X=true},RAID={C=true,E=true,H=true,X=true},
-    WHISPER={J=true}}
+A.WE_TYPES={GUILD={C=true,E=true,H=true,G=true,Q=true,Y=true,D=true},PARTY={C=true,E=true,H=true,X=true},RAID={C=true,E=true,H=true,X=true},
+    WHISPER={J=true,P=true,W=true}}
 -- The continent a map is on (C_Map parents up to mapType 2), or nil
 function A.continent(map)
     local id=S.num(map)

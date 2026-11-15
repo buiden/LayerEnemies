@@ -46,6 +46,26 @@ function W.hello(t)
     return table.concat(f, "|")
 end
 function W.query() return "Q" end
+-- presence(guild id or nil, ask) -> "P|19|<id or ->|0|<a or empty>" (the continent field is always 0)
+function W.presence(guild, ask)
+    local g = type(guild) == "string" and guild:match("^%d+$") and #guild <= 20 and guild or "-"
+    return "P|" .. tostring(W.MINOR) .. "|" .. g .. "|0|" .. (ask and "a" or "")
+end
+-- links(keys) -> "D|key,key,key" (at most 3; "D|": none any more)
+function W.links(keys)
+    local out = {}
+    for i = 1, math.min(#keys, 3) do out[i] = keys[i] end
+    return "D|" .. table.concat(out, ",")
+end
+local function hex(s) return (s:gsub(".", function(c) return string.format("%02x", c:byte()) end)) end
+W.hex = hex
+-- wrap(kind, origin, realm, inner) -> "W|hexorigin|realm|inner" or "G|..."; nil when it would not fit 255 bytes
+function W.wrap(kind, origin, realm, inner)
+    if type(origin) ~= "string" or #origin < 2 or #origin > 100 or origin:find("[%c|]") or type(inner) ~= "string" then return nil end
+    local r = tonumber(realm) and tonumber(realm) >= 1 and tostring(math.floor(tonumber(realm))) or ""
+    local s = kind .. "|" .. hex(origin) .. "|" .. r .. "|" .. inner
+    return #s <= 255 and s or nil
+end
 -- joinOff(id, stamp) -> "K|id|2|stamp": we do not take layer requests
 function W.joinOff(id, stamp) return "K|" .. tostring(id) .. "|" .. tostring(W.JOIN_OFF) .. "|" .. stampOf(stamp) end
 -- enemies(rid, list, stamp) -> { "E|...", ... }: list entries { hash (3 letters or digits), class token, level };

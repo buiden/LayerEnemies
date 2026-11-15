@@ -102,7 +102,7 @@ function M.poll()
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
-    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick()
+    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick()
     N.Directory.sync()
     M.findAlerts()
     if N.UI then N.UI.refresh() end
@@ -176,7 +176,9 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     if not A.WE_TYPES[kind][msg.type] then M.lastDrop=msg.type.." is not read on "..kind; return end
     local time=now()
     -- Over the per-sender limit: dropped without a note.
-    if not N.Reports.allow(M.receiver,sender,msg.type=="G" or msg.type=="X",time) then return end
+    if not N.Reports.allow(M.receiver,sender,msg.type=="G" or msg.type=="X" or msg.type=="W",time) then return end
+    -- guildmates heard on the guild (lane A3: who may hold embassies, whose reports may be forwarded)
+    if kind=="GUILD" and not M.isMe(sender) then M.weGuildHeard(sender,msg,time) end
     -- a War Effort reader heard on this route (its hello): our C and E may go there for 600 s (lane A1)
     if msg.type=="H" and (kind=="GUILD" or kind=="PARTY" or kind=="RAID") and not M.isMe(sender) then M.weHeard[kind]=time end
     local inner,origin=msg.inner or msg,msg.origin or sender
@@ -192,6 +194,9 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
         if ignored then M.lastDrop=whyIgnored; return end
     end
     M.lastHeard=time
+    if msg.type=="P" or msg.type=="D" or msg.type=="W" then return M.embassyIn(msg,kind,sender,time) end
+    -- a guildmate's own C, E or H on the guild: to our embassy partners (if their hello said public)
+    if kind=="GUILD" and not msg.origin and (inner.type=="C" or inner.type=="E" or inner.type=="H") then M.embassyForward(sender,inner,text,time,true) end
     if inner.type=="H" then N.Peers.hello(M.peers,origin,inner.minor,time); return end
     if inner.type=="Q" or inner.type=="Y" or inner.type=="J" then return M.weAsked(inner,kind,sender,time) end
     local record
@@ -995,6 +1000,11 @@ function M.shareTick()
             for _,p in ipairs(parts) do N.Wire.send("WEFF1",p,kind,nil,{net="we",prio="own"}) end
         end
     end
+    -- to our embassy partners (lane A3): our C and its first E
+    if any then
+        local dc=N.Protocol.decode(c); if dc then M.embassyForward(M.weName(),dc,c,time,false) end
+        local de=parts[1] and N.Protocol.decode(parts[1]); if de then M.embassyForward(M.weName(),de,parts[1],time,false) end
+    end
     -- kept for sync answers (lane A2): only what went to War Effort, dated by the server time it was seen
     if any and M.we then
         N.WeNet.keep(M.we,{rid=rid,t=time,server=stamp-math.max(0,math.floor(time-rep.at)),map=zone,x=x,y=y,
@@ -1031,7 +1041,10 @@ function M.weHello(reason)
     if S.call(IsInGuild)==true then
         local last=st.saidAt.GUILD
         if reason=="request" or said~=st.said.GUILD or not last or time<last or time-last>=N.WeNet.SAME then
-            if N.Wire.send("WEFF1",text,"GUILD",nil,{net="we",prio="own"}) then st.said.GUILD,st.saidAt.GUILD,any=said,time,true end
+            if N.Wire.send("WEFF1",text,"GUILD",nil,{net="we",prio="own"}) then
+                st.said.GUILD,st.saidAt.GUILD,any=said,time,true
+                local d=N.Protocol.decode(text); if d then M.embassyForward(M.weName(),d,text,time,false) end
+            end
         end
     end
     if weOutsiders() then
@@ -1072,6 +1085,107 @@ function M.weAsked(msg,kind,sender,time)
         if stamp then N.Wire.send("WEFF1",N.WeOut.joinOff(msg.id,stamp),"WHISPER",sender,{net="we",prio="owed"}) end
     end
 end
+-- War Effort embassy (lane A3). Our name as War Effort users see it: UnitName's first return, plus its second when
+-- that is not our realm (on Forever the second return is the surname: "First Last").
+function M.weName()
+    local n,second=S.call(UnitName,"player")
+    n,second=S.str(n,60),S.str(second,60)
+    if not n then return nil end
+    local home=S.str(M.homeRealm(),60)
+    if second and second~="" and second~=home and (S.str(S.call(GetRealmName),60) or "")~=second then return n.." "..second end
+    return n
+end
+function M.weGuildId()
+    if S.call(IsInGuild)~=true or not S.tab(C_Club) then return nil end
+    local id=S.call(C_Club.GetGuildClubId)
+    if S.num(id) and id>=0 and id%1==0 then return string.format("%d",id) end
+    return S.str(id,20) and tostring(id):match("^%d+$") or nil
+end
+-- why the embassy does not run (nil: it does)
+function M.embassyWhy()
+    if not N.Net.allowed("we","guild") then return "the War Effort network is off" end
+    if not N.Net.allowed("we","public") then return "public networks are off" end
+    if S.call(IsInGuild)~=true then return "not in a guild" end
+    if not M.weGuildId() then return "your guild's id is not readable" end
+    if not N.Directory.channel("we") then
+        local realm=S.str(S.call(GetRealmName),60)
+        if realm and realm:match("^%d+$") then return "no War Effort channel on this realm (all-digit realm name)" end
+        return "no War Effort channel name (realm or faction unreadable)"
+    end
+    return nil
+end
+function M.weGuildHeard(sender,msg,time)
+    local key=I.key(sender)
+    if not key then return end
+    local p=M.weGuild[key]
+    if not p then
+        local n=0; for k,v in pairs(M.weGuild) do if time-v.at>N.WeEmb.CANDIDATE then M.weGuild[k]=nil else n=n+1 end end
+        if n>=256 then return end
+        p={}; M.weGuild[key]=p
+    end
+    p.name,p.at=sender,time
+    if msg.type=="H" then p.minor,p.public=msg.minor,msg.public end
+end
+local function embCtx(time)
+    local mine=M.weName()
+    return {why=M.embassyWhy(),me=mine and mine:lower() or "?",guild=M.weGuildId(),
+        isMe=function(n) return M.isMe(n) or (mine~=nil and type(n)=="string" and n:lower()==mine:lower()) end,
+        isGuildmate=function(n) local k=I.key(n); return A.guildMember(n)==true or (k~=nil and M.weGuild[k]~=nil) end,
+        heardInGuild=function(n) local k=I.key(n); local p=k and M.weGuild[k]; return p~=nil and time-p.at<=N.WeEmb.CANDIDATE end,
+        candidates=(function()
+            local out={}
+            for _,p in pairs(M.weGuild) do
+                if time-p.at<=N.WeEmb.CANDIDATE and (p.minor or 0)>=N.WeEmb.MINOR and p.public~=false then out[#out+1]=p.name end
+            end
+            return out
+        end)()}
+end
+function M.embassyTick()
+    if not M.emb or not N.Net.allowed("we","guild") then return end
+    local time=now()
+    local ctx=embCtx(time)
+    -- an empty or unreadable member list greets nobody
+    local m=not ctx.why and N.Directory.members("we") or nil
+    ctx.members=(type(m)=="table" and m[1]) and m or nil
+    for _,o in ipairs(N.WeEmb.tick(M.emb,time,ctx)) do
+        if o.kind=="GUILD" then
+            if N.Wire.send("WEFF1",o.text,"GUILD",nil,{net="we",prio="own"}) then N.WeEmb.announced(M.emb,o.text,o.links,time) end
+        else N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="owed",queue=true}) end
+    end
+end
+function M.embassyIn(msg,kind,sender,time)
+    local ctx=embCtx(time)
+    if msg.type=="P" and kind=="WHISPER" then
+        local reply=N.WeEmb.presence(M.emb,msg,sender,time,ctx)
+        if reply then N.Wire.send("WEFF1",reply.text,"WHISPER",reply.target,{net="we",prio="owed",queue=true}) end
+    elseif msg.type=="D" and kind=="GUILD" then
+        N.WeEmb.links(M.emb,msg,sender,time)
+    elseif msg.type=="W" and kind=="WHISPER" then
+        local g,why=N.WeEmb.bridge(M.emb,msg,sender,time,ctx)
+        M.lastDrop=g and "bridged" or ("embassy: "..tostring(why))
+        if not g then return end
+        if S.call(IsInGuild)==true then N.Wire.send("WEFF1",g,"GUILD",nil,{net="we",prio="forward",queue=true}) end
+        -- stored as a relayed public report (never passed on to another partner)
+        if msg.inner.type~="H" then
+            local record=N.Reports.receive(M.receiver,{type="G",origin=msg.origin,inner=msg.inner},{sender=sender,route="WHISPER",now=time,
+                serverNow=S.num(S.call(GetServerTime)),zoneFn=A.zone,peers=M.peers})
+            if record then T.report(M.store,record,time) end
+        end
+    end
+end
+-- origin's own C, E or H to our partners; a guildmate's only if their hello said public = 1, ours only with public on
+function M.embassyForward(origin,msg,text,time,guildmate)
+    if not M.emb or not origin then return end
+    if guildmate then
+        local p=M.weGuild[I.key(origin) or ""]
+        if not p or p.public~=true then return end
+    end
+    local ctx=embCtx(time)
+    if ctx.why then return end
+    for _,o in ipairs(N.WeEmb.forward(M.emb,origin,msg,text,time,ctx)) do
+        N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="forward",queue=true})
+    end
+end
 -- The hop is over (moved and left, failed, or 120 s without an invite): no ask is pending any more.
 function M.hopDone() N.Hop.clear(M.hop); M.invite.pending=nil end
 function M.groupCheck()
@@ -1098,6 +1212,11 @@ function M.text(command)
     local id=M.store.bulo or "Unknown"
     say("LayerEnemies - Your layer: "..id.." ("..(M.layerSource or "unknown")..")")
     say("Bulo: "..M.statusBulo); say("War Effort: "..M.statusWE)
+    if M.emb then
+        local why=M.embassyWhy()
+        if why then say("War Effort embassy: off ("..why..")")
+        else local p,l=N.WeEmb.summary(M.emb,now()); say("War Effort embassy: on, "..p.." partner(s), "..l.." link(s)") end
+    end
     if M.error then say("Runtime status: "..M.error) end
     say("Your server key: "..(L.key(M.store.bulo) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
         .." - zone-scoped; an equal key is not proof of the same layer")
@@ -1143,6 +1262,7 @@ function M.start()
     M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
     M.invite=I.new(); M.wasGrouped=A.grouped(); M.share=N.Share.new(); M.weHeard={}; M.we=N.WeNet.new(now())
+    M.emb=N.WeEmb.new(); M.weGuild={}
     M.host=N.GuildHost.new()   -- guild-only hosting; the wish (want) is saved as LayerEnemiesDB.guildHost
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end

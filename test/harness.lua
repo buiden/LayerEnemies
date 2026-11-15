@@ -442,10 +442,11 @@ test("we decodes C/E/H 1.6.6 vectors",function()
     eq(P.decode("H|1.6.6|100|7086|1").minor,0)                    -- absent minor is 0
     eq(P.decode("H|1.6.6|100|7086|1|x9").minor,nil)               -- unreadable minor is unknown
     -- other well-formed types are ignored, not errors
-    -- (Q, Y and J are read since lane A2)
+    -- (Q, Y and J are read since lane A2; P, D and W since A3)
     eq(P.decode("Q").type,"Q"); eq(P.decode("J|7|100|7086|0.400|0.500|100").type,"J"); eq(P.decode("Y|12|100|a:480").maxAge,480)
+    eq(P.decode("P|19|456|0|a").type,"P"); eq(P.decode("D|g789").type,"D"); eq(P.decode("W|"..SCOUT.."|123|"..VC:sub(1)).type,"W")
     for _,text in ipairs({"T|100|0.400|0.500|100","K|7|3|100|4","S|1234|20|100|2|1|0|4|3|100",
-        "R|anything","L|1|100","P|19|456|0|a","D|g789","W|"..SCOUT.."|123|"..VC:sub(1)}) do
+        "R|anything","L|1|100"}) do
         local m,why=P.decode(text); eq(m,nil,text); eq(why,"ignored",text)
     end
 end)
@@ -4455,6 +4456,133 @@ test("1.0 A2: a J gets one K saying off (status 2) per 60 s, by whisper, and nev
     we("J|x","WHISPER","Other"); we("J|8|100|7086|0.5|0.5","GUILD","Other"); we("C|1|100|0|0|7|1|1","WHISPER","Other"); eq(#weTo("Other"),0)
     -- guild-only consent: a stranger's J gets no answer (public whisper)
     N=loadAddon(); weReady(N); N.Net.setConsent("guild"); advance(1); we("J|5|100|7086|0.5|0.5","WHISPER","Stranger"); eq(#weTo("Stranger"),0)
+end)
+
+-- 1.0 lane A3: War Effort embassy (P presence, partners, elections, D links, W out, W in as G)
+local WECH="WarEfforttestrealmA"
+local function embReady(N,members)
+    netOn(N,"we"); N.Net.setConsent("public"); units.player={name="Me",class="MAGE",level=60}
+    C_Club={GetGuildClubId=function() return 789 end}
+    roster={{"Wes-TestRealm",true},{"Bob-TestRealm",true}}; chanMembers[WECH]=members
+    establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain()
+end
+local function wh(t,who) local out={}; for _,m in ipairs(sent) do if m.prefix=="WEFF1" and m.kind=="WHISPER" and (not who or m.target==who) and m.text:sub(1,#t)==t then out[#out+1]=m end end; return out end
+local function gHello(who,public) deliver("CHAT_MSG_ADDON","WEFF1","H|1.6.6|100|7086|1|19|0|0|"..math.floor(server)%3600 .."|789|H|60|"..(public and "1" or "0"),"GUILD",who); drain() end
+test("1.0 A3: the election score is War Effort's (DJB2, highest wins, lower name on ties)",function()
+    local N=loadAddon(); local E=N.WeEmb
+    eq(E.score("me","greet|kora reed"),52895520); eq(E.score("wes","greet|kora reed"),582354751)
+    eq(E.score("me","fwd|g456"),1818921933); eq(E.score("wes","fwd|g456"),887266629)
+    eq(E.score("kora reed","pair|g456"),1166973082); eq(E.score("ann lee","pair|g456"),2027833503)
+    no(E.first("me",{"Wes"},"greet|kora reed")); yes(E.first("me",{"Wes"},"greet|ann lee")); yes(E.first("me",{},"x"))
+    yes(E.first("me",{"Wes"},"fwd|g456")); yes(E.first("me",{"me"},"x"),"ourselves are skipped")
+    -- P, W, D read and built as War Effort's
+    local P=N.Protocol
+    local p=P.decode("P|19|789|0|"); eq(p.type,"P"); eq(p.minor,19); eq(p.guild,"789"); eq(p.ask,false)
+    eq(P.decode("P|19|-|0|a").guild,false); eq(P.decode("P|19|-|0|a").ask,true); eq(P.decode("P|19|x|0|"),nil); eq(P.decode("P|19|789"),nil)
+    eq(N.WeOut.presence("789",false),"P|19|789|0|"); eq(N.WeOut.presence(nil,true),"P|19|-|0|a")
+    local d=P.decode("D|g456,n4b6f7261"); eq(#d.links,2); eq(d.links[1],"g456"); eq(#P.decode("D|").links,0); eq(P.decode("D|g1,g2,g3,g4"),nil); eq(P.decode("D|x9"),nil)
+    eq(N.WeOut.links({"g456"}),"D|g456"); eq(N.WeOut.links({}),"D|")
+    local w=P.decode("W|"..hx("Kora Reed").."||C|5|100|0.4|0.5|7086|2|100"); eq(w.type,"W"); eq(w.origin,"Kora Reed"); eq(w.inner.type,"C")
+    eq(P.decode("W|"..hx("Kora Reed").."||C|5|100|0.4|0.5|7086|2|100||1:1"),nil,"a sync answer never travels wrapped")
+    eq(N.WeOut.wrap("W","Kora Reed",nil,"C|5|100|0.4|0.5|7086|2|100"),"W|"..hx("Kora Reed").."||C|5|100|0.4|0.5|7086|2|100")
+end)
+test("1.0 A3: the embassy stays off with a reason; an empty or missing member list greets nobody",function()
+    local N=loadAddon(); embReady(N,nil); steps(300); eq(#wh("P|"),0,"no member list")
+    N=loadAddon(); embReady(N,{}); steps(300); eq(#wh("P|"),0,"an empty list")
+    eq(N.Main.embassyWhy(),nil,"(otherwise on)")
+    -- guild-only consent, no guild, no guild id, an all-digit realm (no War Effort channel)
+    N=loadAddon(); embReady(N,{"Ann Lee"}); N.Net.setConsent("guild"); eq(N.Main.embassyWhy(),"public networks are off"); steps(120); eq(#wh("P|"),0)
+    N=loadAddon(); embReady(N,{"Ann Lee"}); C_Club=nil; eq(N.Main.embassyWhy(),"your guild's id is not readable"); steps(120); eq(#wh("P|"),0)
+    N=loadAddon(); embReady(N,{"Ann Lee"}); inGuild=false; eq(N.Main.embassyWhy(),"not in a guild"); inGuild=true
+    N=loadAddon(); embReady(N,{"Ann Lee"}); GetRealmName=function() return "7102" end; GetNormalizedRealmName=function() return "7102" end
+    eq(N.Main.embassyWhy(),"no War Effort channel on this realm (all-digit realm name)"); steps(120); eq(#wh("P|"),0)
+    log={}; SlashCmdList.LAYERENEMIES("status"); yes(logged("War Effort embassy: off (no War Effort channel on this realm (all-digit realm name))"))
+    N=loadAddon(); embReady(N,{"Ann Lee"}); log={}; SlashCmdList.LAYERENEMIES("status"); yes(logged("War Effort embassy: on"))
+end)
+test("1.0 A3: we greet only our share, one a minute; an answer makes a partner; no answer leaves them alone 1800 s",function()
+    local N=loadAddon(); embReady(N,{"Kora Reed","Ann Lee","Bo Dyl","Wes"}); gHello("Wes",true)
+    steps(40); local p=wh("P|"); eq(#p,1); eq(p[1].text,"P|19|789|0|a"); yes(p[1].target=="Ann Lee" or p[1].target=="Bo Dyl",p[1].target)
+    local first=p[1].target; eq(#wh("P|","Kora Reed"),0,"Kora Reed is Wes's share"); eq(#wh("P|","Wes"),0,"never a guildmate")
+    steps(50); eq(#wh("P|"),1,"one greeting a minute at most")
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|","WHISPER",first); drain(); yes(N.WeEmb.partner(N.Main.emb,first,clock))
+    steps(100); local other=first=="Ann Lee" and "Bo Dyl" or "Ann Lee"; eq(#wh("P|",other),1,"the next of our share")
+    steps(40); no(N.WeEmb.partner(N.Main.emb,other,clock)); steps(1700); eq(#wh("P|"..""..""),#wh("P|"),"(count)")
+    -- the unanswered one is left alone: not greeted again for 1800 s
+    eq(#wh("P|19|789|0|a",other),1)
+end)
+test("1.0 A3: a greeting is answered at most 6 times a minute over all players; a guildmate's P makes no partner",function()
+    local N=loadAddon(); embReady(N,{}); advance(1)
+    for i=1,8 do deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Strang"..abc(i)); drain() end
+    steps(5); eq(#wh("P|19|789|0|"),6,"6 replies a minute"); eq(#wh("P|","Strangg"),0)
+    for i=1,8 do yes(N.WeEmb.partner(N.Main.emb,"Strang"..abc(i),clock)) end
+    steps(61); deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Strangx"); drain(); steps(3); eq(#wh("P|","Strangx"),1)
+    eq(#wh("P|","Strangg"),0,"(the partner we hold gets keepalives; Strangg is not it)")
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|789|0|a","WHISPER","Gilda"); drain(); no(N.WeEmb.partner(N.Main.emb,"Gilda",clock),"our guild's id")
+    deliver("CHAT_MSG_ADDON","WEFF1","P|18|456|0|a","WHISPER","Olda"); drain(); no(N.WeEmb.partner(N.Main.emb,"Olda",clock),"minor 18")
+end)
+test("1.0 A3: D lists only links we serve; withdrawn with D| when public networks go off",function()
+    local N=loadAddon(); embReady(N,{}); advance(1); eq(#weGuild("D|"),0,"nothing held, nothing said")
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); steps(25)
+    local d=weGuild("D|"); eq(#d,1); eq(d[1].text,"D|g456")
+    local function annP() deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|","WHISPER","Ann Lee"); drain() end
+    steps(130); eq(#weGuild("D|"),1,"unchanged: again only after 600 s"); annP(); steps(240); annP(); steps(240); annP(); eq(#weGuild("D|"),2)
+    eq(weGuild("D|")[2].text,"D|g456","repeated while held")
+    N.Net.setConsent("guild"); steps(130); local d2=weGuild("D|"); eq(d2[#d2].text,"D|","withdrawn although the partner is alive")
+    steps(700); eq(weGuild("D|")[#weGuild("D|")].text,"D|"); local n=#weGuild("D|"); steps(700); eq(#weGuild("D|"),n,"said once")
+end)
+test("1.0 A3: forwarding: a guildmate's own report only if their hello said public; ours; H once per 600 s; never a wrapped one",function()
+    local N=loadAddon(); embReady(N,{}); advance(1)
+    local function from(who) local n=0; for _,m in ipairs(wh("W|","Ann Lee")) do local d=N.Protocol.decode(m.text); if d and d.origin==who then n=n+1 end end; return n end
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); steps(25)
+    local st=math.floor(server)%3600
+    gHello("Wes",true); gHello("Bob",false)
+    steps(3); eq(from("Wes"),1,"Wes's hello forwarded")
+    deliver("CHAT_MSG_ADDON","WEFF1","C|5|100|0.4|0.5|7086|2|"..st,"GUILD","Wes"); deliver("CHAT_MSG_ADDON","WEFF1","E|5|1|1|abc:H:60|"..st,"GUILD","Wes"); drain(); steps(61)
+    eq(from("Wes"),3,"C and its first E (Wire's 4 public whispers a minute to one player: the E waits in the queue)")
+    deliver("CHAT_MSG_ADDON","WEFF1","E|5|1|1|abd:H:60|"..st,"GUILD","Wes"); drain(); eq(from("Wes"),3,"only the first E")
+    deliver("CHAT_MSG_ADDON","WEFF1","C|6|100|0.4|0.5|7086|2|"..st,"GUILD","Bob"); drain(); eq(from("Bob"),0,"Bob said public 0")
+    deliver("CHAT_MSG_ADDON","WEFF1","C|7|100|0.4|0.5|7086|2|"..st,"GUILD","Cyd"); drain(); steps(5); eq(from("Cyd"),0,"no hello heard: unknown")
+    local raw=#wh("W|","Ann Lee"); deliver("CHAT_MSG_ADDON","WEFF1",VG,"GUILD","Wes"); drain(); steps(61); eq(#wh("W|","Ann Lee"),raw,"never a G")
+    gHello("Wes",true); eq(from("Wes"),3,"a hello once per 600 s")
+    -- our own report goes too
+    hello("Wes",19); foe(N,1); foe(N,2); steps(20); local ws=wh("W|","Ann Lee"); local mine=0
+    for _,m in ipairs(ws) do local d=N.Protocol.decode(m.text); if d and d.origin=="Me" and d.inner.type~="H" then mine=mine+1 end end; eq(mine,2,"our C and E")
+end)
+test("1.0 A3: only the top-scored holder of a guild forwards to it",function()
+    local N=loadAddon(); embReady(N,{}); advance(1)
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|457|0|a","WHISPER","Ann Lee"); drain(); steps(25)
+    gHello("Wes",true); deliver("CHAT_MSG_ADDON","WEFF1","D|g457","GUILD","Wes"); drain()
+    local st=math.floor(server)%3600; local n=#wh("W|")
+    deliver("CHAT_MSG_ADDON","WEFF1","C|5|100|0.4|0.5|7086|2|"..st,"GUILD","Bob"); gHello("Bob",true)
+    deliver("CHAT_MSG_ADDON","WEFF1","C|8|100|0.4|0.5|7086|2|"..st,"GUILD","Bob"); drain()
+    yes(#wh("W|")>n,"we rank first for g457 (1824785540 > 1080776665)")
+    -- g450: Wes ranks first (1873690060 > 1783740291): we hold it but stand by
+    N=loadAddon(); embReady(N,{}); advance(1)
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|450|0|a","WHISPER","Ann Lee"); drain(); steps(25)
+    gHello("Wes",true); gHello("Bob",true); deliver("CHAT_MSG_ADDON","WEFF1","D|g450","GUILD","Wes"); drain(); steps(61); n=#wh("W|")
+    deliver("CHAT_MSG_ADDON","WEFF1","C|9|100|0.4|0.5|7086|2|"..math.floor(server)%3600,"GUILD","Bob"); drain(); steps(61); eq(#wh("W|"),n,"Wes forwards to g450, not us")
+end)
+test("1.0 A3: a W from a live partner of another guild goes into the guild as G and is stored as relayed; from others it is dropped",function()
+    local N=loadAddon(); embReady(N,{}); advance(1)
+    deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); hello("Kora Reed",19,"WHISPER")
+    local st=math.floor(server)%3600; local inner="C|5|100|0.4|0.5|7086|2|"..st
+    deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||"..inner,"WHISPER","Ann Lee"); drain()
+    local g=weGuild("G|"); eq(#g,1); eq(g[1].text,"G|"..hx("Kora Reed").."||"..inner)
+    local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].record.hand,"relayed"); eq(rows[1].record.share,"public")
+    -- the same report again: not bridged twice; a W from a stranger or a guildmate: dropped
+    deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||"..inner,"WHISPER","Ann Lee"); drain(); eq(#weGuild("G|"),1)
+    deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||C|6|100|0.4|0.5|7086|2|"..st,"WHISPER","Stranger"); drain(); eq(#weGuild("G|"),1)
+    deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||C|7|100|0.4|0.5|7086|2|"..st,"WHISPER","Wes"); drain(); eq(#weGuild("G|"),1)
+    -- a W naming ourselves, or naming its own sender, is refused; at most 10 bridged sightings a minute
+    deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Me").."||C|8|100|0.4|0.5|7086|2|"..st,"WHISPER","Ann Lee"); drain(); steps(5); eq(#weGuild("G|"),1,"naming us")
+    for i=1,12 do deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Scout"..abc(i)).."||C|9|100|0.4|0.5|7086|2|"..st,"WHISPER","Ann Lee"); drain() end
+    steps(40); eq(#weGuild("G|"),10,"10 a minute (the first included)")
+    -- a W we got is never forwarded to another partner
+    eq(#wh("W|"),0)
+    -- a partner gone quiet (no presence for 600 s) is no partner
+    N=loadAddon(); embReady(N,{}); advance(1); deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Ann Lee"); drain(); steps(605)
+    deliver("CHAT_MSG_ADDON","WEFF1","W|"..hx("Kora Reed").."||C|5|100|0.4|0.5|7086|2|"..math.floor(server)%3600,"WHISPER","Ann Lee"); drain(); steps(5)
+    eq(#weGuild("G|"),0,"expired partner")
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
