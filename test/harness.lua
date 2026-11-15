@@ -5613,5 +5613,164 @@ test("invalid-whisper B: a new peer outranks a due retry on the same paced turn"
     H.unsent(st,"Amber Ghost","throttled",false,clock)
     eq(H.nextHello(st,clock+2,"A"),"Later Reed")
 end)
+test("invalid-whisper R2: consumed foreign async evidence still makes a bare namesake error ambiguous",function()
+    local N=loadAddon(); netOn(N,"hh"); GetNormalizedRealmName=nil
+    ERR_CHAT_PLAYER_NOT_FOUND_S="Absent [%s]."
+    yes(whisper(N,"Fable Reed")); clock=clock+3
+    yes(whisper(N,"Fable Reed-7105")); eq(#sent,2); clock=clock+1
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+    no(N.Wire.offlineUntil("Fable Reed",clock),"ambiguous before consumption")
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed-7105].")
+    local untilAt=N.Wire.offlineUntil("Fable Reed-7105",clock); eq(untilAt,clock+3600)
+    clock=clock+1; deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+    no(N.Wire.offlineUntil("Fable Reed",clock),"consumed foreign identity still makes a bare error ambiguous")
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed-7105].")
+    eq(N.Wire.offlineUntil("Fable Reed-7105",clock),untilAt,"consumed evidence cannot renew suppression")
+    clock=clock+61
+    local ok,why,attempted=whisper(N,"Fable Reed")
+    yes(ok); eq(why,"sent"); yes(attempted); eq(#sent,3); no(N.Main.error)
+end)
+test("invalid-whisper R2: synchronous foreign offline retains ambiguity without renewing suppression",function()
+    local N=loadAddon(); netOn(N,"hh"); GetNormalizedRealmName=nil
+    ERR_CHAT_PLAYER_NOT_FOUND_S="Absent [%s]."
+    yes(whisper(N,"Fable Reed")); clock=clock+3; sendResult=12
+    local ok,why,attempted=whisper(N,"Fable Reed-7105")
+    no(ok); eq(why,"offline"); yes(attempted); eq(#sent,2)
+    local untilAt=N.Wire.offlineUntil("Fable Reed-7105",clock); eq(untilAt,clock+3600)
+    sendResult=0; clock=clock+1
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed-7105].")
+    eq(N.Wire.offlineUntil("Fable Reed-7105",clock),untilAt,"sync evidence cannot renew suppression")
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+    no(N.Wire.offlineUntil("Fable Reed",clock),"consumed synchronous evidence still makes a bare error ambiguous")
+    clock=clock+61; ok,why,attempted=whisper(N,"Fable Reed")
+    yes(ok); eq(why,"sent"); yes(attempted); eq(#sent,3); no(N.Main.error)
+end)
+test("invalid-whisper R2: repeated failures consume every matching attempt without extending the hour",function()
+    for _,sync in ipairs({false,true}) do
+        local N=loadAddon(); netOn(N,"hh"); GetNormalizedRealmName=nil
+        ERR_CHAT_PLAYER_NOT_FOUND_S="Absent [%s]."
+        yes(whisper(N,"Fable Reed")); clock=clock+3
+        sendResult=sync and 12 or 0
+        local ok,why,attempted=whisper(N,"Fable Reed-TestRealm")
+        eq(ok,not sync); eq(why,sync and "offline" or "sent"); yes(attempted); eq(#sent,2)
+        if not sync then clock=clock+1; deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].") end
+        local untilAt=N.Wire.offlineUntil("Fable Reed",clock); eq(untilAt,clock+3600)
+        sendResult=0
+        for _=1,8 do
+            clock=clock+1; deliver("CHAT_MSG_SYSTEM","Absent [fable reed-TestRealm].")
+            eq(N.Wire.offlineUntil("Fable Reed",clock),untilAt,"no renewal from either consumed attempt")
+        end
+        clock=untilAt-1; no(whisper(N,"Fable Reed")); eq(#sent,2)
+        clock=untilAt; yes(whisper(N,"Fable Reed")); eq(#sent,3,"suppression expires at its original deadline")
+        clock=clock+1; deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+        eq(N.Wire.offlineUntil("Fable Reed",clock),clock+3600,"a new actual send supplies fresh evidence")
+        no(N.Main.error)
+    end
+end)
+test("invalid-whisper R2: consumed ambiguity expires at the original send timestamp, not failure time",function()
+    for _,sync in ipairs({false,true}) do
+        local N=loadAddon(); netOn(N,"hh"); GetNormalizedRealmName=nil
+        ERR_CHAT_PLAYER_NOT_FOUND_S="Absent [%s]."
+        local sentAt=clock; sendResult=sync and 12 or 0
+        local ok,why,attempted=whisper(N,"Fable Reed-7105")
+        eq(ok,not sync); eq(why,sync and "offline" or "sent"); yes(attempted)
+        sendResult=0; clock=clock+3; yes(whisper(N,"Fable Reed")); eq(#sent,2)
+        if not sync then clock=clock+7; deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed-7105].") end
+        local untilAt=N.Wire.offlineUntil("Fable Reed-7105",clock); yes(untilAt)
+        clock=sentAt+29.99; deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+        no(N.Wire.offlineUntil("Fable Reed",clock),"consumed namesake still ambiguous before 30 seconds")
+        deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed-7105].")
+        eq(N.Wire.offlineUntil("Fable Reed-7105",clock),untilAt)
+        clock=sentAt+30; deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+        eq(N.Wire.offlineUntil("Fable Reed",clock),clock+3600,"expired foreign evidence no longer blocks a recent home match")
+        no(N.Main.error)
+    end
+end)
+test("invalid-whisper R2: consumed records count toward the same recent cap and oldest records are evicted",function()
+    for _,sync in ipairs({false,true}) do
+        local N=loadAddon(); netOn(N,"hh"); GetNormalizedRealmName=nil
+        ERR_CHAT_PLAYER_NOT_FOUND_S="Absent [%s]."
+        eq(N.Wire.RECENT_MAX,64); eq(N.Wire.RECENT_WINDOW,30)
+        -- Reduce only the ledger cap to exercise its overflow within the unchanged send budgets.
+        N.Wire.RECENT_MAX=2
+        yes(whisper(N,"Oldest Reed"))
+        for _,name in ipairs({"Fable Reed-7105","Newest Reed"}) do
+            clock=clock+3; sendResult=sync and 12 or 0
+            local ok,why,attempted=whisper(N,name)
+            eq(ok,not sync); eq(why,sync and "offline" or "sent"); yes(attempted)
+            if not sync then deliver("CHAT_MSG_SYSTEM","Absent ["..name.."].") end
+            yes(N.Wire.offlineUntil(name,clock))
+        end
+        eq(#sent,3); deliver("CHAT_MSG_SYSTEM","Absent [Oldest Reed].")
+        no(N.Wire.offlineUntil("Oldest Reed",clock),"consumed entries are bounded with active entries, not deleted or uncapped")
+        sendResult=0; clock=clock+3; yes(whisper(N,"Latest Reed"))
+        deliver("CHAT_MSG_SYSTEM","Absent [Latest Reed].")
+        eq(N.Wire.offlineUntil("Latest Reed",clock),clock+3600,"newest evidence admitted at capacity")
+        no(N.Main.error)
+    end
+end)
+test("invalid-whisper R2: offline-cap eviction does not revive consumed evidence",function()
+    local N=loadAddon(); netOn(N,"hh"); GetNormalizedRealmName=nil
+    ERR_CHAT_PLAYER_NOT_FOUND_S="Absent [%s]."
+    yes(whisper(N,"Fable Reed")); deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+    yes(N.Wire.offlineUntil("Fable Reed",clock))
+    for i=1,256 do clock=clock+.01; N.Wire.markOffline("Capped"..abc(i),clock) end
+    local _,count=N.Wire.sizes(); eq(count,256)
+    no(N.Wire.offlineUntil("Fable Reed",clock),"oldest suppression evicted")
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+    no(N.Wire.offlineUntil("Fable Reed",clock),"consumed evidence cannot recreate an evicted suppression")
+    clock=clock+3; yes(whisper(N,"Fable Reed")); eq(#sent,2)
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+    eq(N.Wire.offlineUntil("Fable Reed",clock),clock+3600,"new actual send may suppress again")
+    _,count=N.Wire.sizes(); eq(count,256); no(N.Main.error)
+end)
+test("invalid-whisper R2: an unsent queued foreign namesake is not ambiguity evidence",function()
+    local N=loadAddon(); netOn(N,"hh"); GetNormalizedRealmName=nil
+    ERR_CHAT_PLAYER_NOT_FOUND_S="Absent [%s]."
+    yes(whisper(N,"Fable Reed")); for i=1,4 do yes(whisper(N,"Filler"..abc(i))) end
+    local ok,why,attempted=whisper(N,"Fable Reed-7105",{net="hh",prio="mesh",queue=true})
+    yes(ok); eq(why,"queued"); no(attempted); eq(#sent,5); eq(N.Wire.queued(),1)
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed-7105].")
+    no(N.Wire.offlineUntil("Fable Reed-7105",clock),"queue insertion never supplies actual-send evidence")
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+    eq(N.Wire.offlineUntil("Fable Reed",clock),clock+3600,"an unsent namesake cannot prevent correlation")
+    N.Net.setSwitch("hh",false); clock=clock+61; drain()
+    eq(#sent,5); eq(N.Wire.queued(),0); no(N.Main.error)
+end)
+test("invalid-whisper R2: a dequeued foreign failure retains ambiguity for home sends and queued work",function()
+    for _,sync in ipairs({false,true}) do
+        local N=loadAddon(); netOn(N,"hh"); GetNormalizedRealmName=nil
+        ERR_CHAT_PLAYER_NOT_FOUND_S="Absent [%s]."
+        yes(whisper(N,"Fable Reed")); for i=1,4 do yes(whisper(N,"Filler"..abc(i))) end
+        local opts={net="hh",prio="mesh",queue=true}
+        local ok,why,attempted=whisper(N,"Fable Reed-7105",opts)
+        yes(ok); eq(why,"queued"); no(attempted); eq(#sent,5)
+        ok,why,attempted=whisper(N,"Fable Reed",opts)
+        yes(ok); eq(why,"queued"); no(attempted); eq(N.Wire.queued(),2)
+        clock=clock+3; sendResult=sync and 12 or 0; drain()
+        eq(#hw("1AN:","Fable Reed-7105"),1,"foreign line actually dequeued")
+        eq(#hw("1AN:","Fable Reed"),1,"home line still waiting for prefix budget"); eq(N.Wire.queued(),1)
+        if not sync then deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed-7105].") end
+        yes(N.Wire.offlineUntil("Fable Reed-7105",clock)); sendResult=0
+        clock=clock+1; deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+        no(N.Wire.offlineUntil("Fable Reed",clock),"dequeued consumed evidence is still ambiguous")
+        clock=clock+2; drain()
+        eq(#hw("1AN:","Fable Reed"),2,"home queued work is not falsely suppressed"); eq(N.Wire.queued(),0)
+        clock=clock+61; yes(whisper(N,"Fable Reed")); eq(#hw("1AN:","Fable Reed"),3)
+        no(N.Main.error)
+    end
+end)
+test("invalid-whisper R2: a qualified home error still matches beside a consumed foreign identity",function()
+    local N=loadAddon(); netOn(N,"hh"); GetNormalizedRealmName=nil
+    ERR_CHAT_PLAYER_NOT_FOUND_S="Absent [%s]."
+    yes(whisper(N,"Fable Reed")); clock=clock+3; yes(whisper(N,"Fable Reed-7105"))
+    deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed-7105].")
+    local untilAt=N.Wire.offlineUntil("Fable Reed-7105",clock); yes(untilAt)
+    clock=clock+1; deliver("CHAT_MSG_SYSTEM","Absent [Fable Reed].")
+    no(N.Wire.offlineUntil("Fable Reed",clock))
+    deliver("CHAT_MSG_SYSTEM","Absent [fable reed-TestRealm].")
+    eq(N.Wire.offlineUntil("Fable Reed",clock),clock+3600,"qualified local suffix is not ambiguous")
+    eq(N.Wire.offlineUntil("Fable Reed-7105",clock),untilAt); no(N.Main.error)
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -143,9 +143,12 @@ A localized player-not-found system error marks a destination offline only
 when it matches an actual addon whisper from the last 30 seconds (at most
 64 attempts retained). Correlation uses the full name, including surnames
 and foreign realms; a bare error is ignored if recent realm identities are
-ambiguous, and is never guessed to mean a foreign realm. The same one-hour
-window as a synchronous offline result applies across prefixes and to queued
-lines (at most 256 offline identities). No chat errors are hidden or saved.
+ambiguous, and is never guessed to mean a foreign realm. A matched failure
+consumes its suppression evidence, but the retained identity still counts for
+ambiguity until its original expiry or eviction; repeated errors do not renew
+suppression. The same one-hour window as a synchronous offline result applies
+across prefixes and to queued lines (at most 256 offline identities). No chat
+errors are hidden or saved.
 Only the existing name rule's local-realm suffix is removed at send time.
 
 Channels (Directory.lua): with public networks on, the addon joins the

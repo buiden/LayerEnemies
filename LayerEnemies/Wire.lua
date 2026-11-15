@@ -137,8 +137,9 @@ function Wr.markOffline(target, now)
     end
     if not offline[key] and n >= OFFLINE_MAX then offline[okey] = nil end
     offline[key] = now
-    -- Consume the evidence: duplicate chat lines cannot extend an hour into an indefinite suppression.
-    for i = #whispers, 1, -1 do if whispers[i].key == key then table.remove(whispers, i) end end
+    -- Consume once, but keep identities until their original expiry/cap for bare-name ambiguity checks.
+    -- Duplicate errors cannot renew suppression or make a recent namesake look unambiguous.
+    for _, r in ipairs(whispers) do if r.key == key then r.consumed = true end end
     return key
 end
 function Wr.offlineUntil(target, now)
@@ -189,7 +190,7 @@ function Wr.system(text)
         -- even if there is only one such attempt; surnames are never compacted here.
         if not name:find("-", 1, true) and (r.target:match("^([^%-]+)") or r.target):lower() == name:lower()
             and r.key ~= key then return nil end
-        if r.key == key then match = r end
+        if r.key == key and not r.consumed then match = r end
     end
     if match then return Wr.markOffline(match.target, now) end
 end
