@@ -263,6 +263,9 @@ local function loadAddon()
     for _,file in ipairs(addonFiles()) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
     end
+    -- 1.0.0 ships both networks on; the harness records the shipped constants and starts every test with them off,
+    -- so a test opts in with netOn (the tests written before the flip keep their world)
+    N.shipped={}; for k,v in pairs(N.Net.SHIP) do N.shipped[k]=v; N.Net.SHIP[k]=false end
     deliver("ADDON_LOADED","LayerEnemies"); drain()
     no(N.Main.error,"startup error")
     return N
@@ -4967,6 +4970,14 @@ test("21e 21eacaf: answer ages are the observation's, rechecked at each send (C 
     -- Main keeps a report dated by its own sighting, not by the send
     N=loadAddon(); netOn(N,"we"); establish(N); hello("Wes",19); local t0=clock; foe(N,1); foe(N,2); advance(3); N.Main.shareTick()
     eq(#weSent("C"),1); eq(N.Main.we.kept[1].t,t0)
+end)
+
+test("1.0.0 release: both networks ship on; the first login says so once",function()
+    local N=loadAddon(); eq(N.shipped.we,true); eq(N.shipped.hh,true)
+    local src=io.open("LayerEnemies/Net.lua"):read("*a"); yes(src:find("Net.SHIP = { we = true, hh = true }",1,true))
+    for k,v in pairs(N.shipped) do N.Net.SHIP[k]=v end; N.Main.started=false; N.Main.start(); drain()
+    yes(logged("LayerEnemies: public networks ON (War Effort, HeadHunter…). /le net guild to limit to guild only."))
+    log={}; SlashCmdList.LAYERENEMIES("net"); drain(); yes(logged("War Effort: on")); yes(logged("HeadHunter: on"))
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -6,9 +6,9 @@ local S = N.Safe
 local Net = {}
 N.Net = Net
 
--- Ship constants: a network whose constant is false never sends, whatever the player chose. Each lane turns its own
--- constant on when it is built; a network that fails its live-test step ships with its constant off.
-Net.SHIP = { we = false, hh = false }
+-- Ship constants: a network whose constant is false never sends, whatever the player chose. 1.0.0 ships both on
+-- (owner decision); a network that fails its live-test step on the PR build is turned off here before release.
+Net.SHIP = { we = true, hh = true }
 -- name: shown in /le net; standDown: the real addon whose presence makes us receive-only on its prefix.
 Net.LIST = {
     we = { name = "War Effort", standDown = "WarEffortScout" },

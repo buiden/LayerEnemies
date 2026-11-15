@@ -147,8 +147,184 @@ PASS relayed reporters are never invite candidates
 PASS relay receive limit: 12 per 10 s per sender
 PASS the send mock counts any caller but Wire.lua as forbidden
 PASS wire routes cannot be opened from outside
-PASS wire sends only on the two allowed routes
+PASS wire sends only on the allowed routes
 PASS wire rejects oversize and secret text
 PASS wire maps client results
 PASS wire guild bucket
-RESULT: 153 tests passed, 0 failed, 11949 assertions
+PASS 0.3.1 T3: hosts are listed while our own layer is unknown; nothing is sent or drafted
+PASS 0.3.1 T3: Invite.collect marks rows while unknown; a report hop never picks them
+PASS 0.3.1 T3: the window shows the hint and disables the row button while unknown
+PASS 0.3.1 T2: /le hop host sends one LayerSwap whisper through Hop.request, with its cooldowns
+PASS 0.3.1 T2: hop host refuses stale lists, bad numbers, changed rows, reporters and our own layer
+PASS 0.3.1 T2: the Friendly button hops via the host, one message per click
+PASS 0.3.1 T4: a heard|h reply from the asked player is remembered for 12 minutes, read-only
+PASS 0.3.1 T4: replies not from the asked player, not on WHISPER, late or for someone else are not stored
+PASS 0.3.1 T4: with LayerSwap installed its own book is used and ours is ignored; the store is capped
+PASS 0.3.1 guardrails: 20 idle minutes with the new paths send nothing
+PASS 0.4 T1: /le hosts find sends exactly one LFSw Q on GUILD, then waits 60 s
+PASS 0.4 T1: the 60 s limit is in Wire itself, and Wire takes only the literal Q
+PASS 0.4 T1: not in a guild, nothing is sent; an incoming Q is never answered
+PASS 0.4 T1: the Find hosts button on the Friendly tab, one Q per click
+PASS 0.3.1 fix S1: own layer unknown, a report hop refuses with the hint, no draft even via the reporter
+PASS 0.3.1 fix S2: hop host refuses when the host flag or the LayerSwap uid changed since the preview
+PASS 0.3.1 fix S3 and note: the hint names two different kinds of NPC; a non-host Bulo row says it may not answer
+PASS 0.4 T5: no one known on the layer: Ask guild (chat) drafts the exact /g line and sends nothing
+PASS 0.4 T5: a known host or another precondition means no guild ask
+PASS 0.4 T5: GUILD heard replies are read for 120 s after our own guild ask, naming us, and stored as hosts
+PASS 0.4 T5: the Reported row button drafts the guild line
+PASS 0.4 T7.1: parse accepts only the full want/not grammar
+PASS 0.4 T7.1: decide order: hosting, name, 60 s per asker, zone, key, instance, combat, guild
+PASS 0.4 T7.1: want and not rules with their replies
+PASS 0.4 T7.1: group rule, own request, 10 s overall and 6 per 600 s give busy
+PASS 0.4 T7.1: the asker table is capped at 128 and the 60 s counts from the guild check
+PASS 0.4 T7.2: guild membership: one online roster entry, exact name first, bare name only when unique
+PASS 0.4 T7.2: roster age from GUILD_ROSTER_UPDATE, refresh at most every 15 s
+PASS 0.4 T7.2: combat and party state; unreadable combat is in combat, unreadable party is nil
+PASS 0.4 T7.3: Wire.invite keeps its own limits: 10 s, 60 s per name, 6 per 600 s; our realm dropped
+PASS 0.4 T7.3: LayerSwap whispers carry only the request, same or heard; replies one per 6 s
+PASS 0.4 T7.3: hosting: off at load, on refused beside LayerSwap or Bulo or without the invite call
+PASS 0.4 T7.3: a guild member's request: one reply, at most one invite, one line
+PASS 0.4 T7.3: unreadable party, combat or own layer fails closed
+PASS 0.4 T7.3: a stale roster: one refresh, the request held in one slot for 5 s
+PASS 0.4 T7.3: 20 idle minutes with hosting on: nothing sent, nothing invited
+PASS 0.4 T7.3: the window toggle and the hosting line
+PASS 0.4 T7.4: a 0.3.1 decoder rejects F and H lines as invalid; Relay builds and reads them strictly
+PASS 0.4 T7.4: Find hosts sends one Q and one F|1, once per 60 s; outside a guild neither
+PASS 0.4 T7.4: turning hosting on announces H once; an F gets one H 1 to 6 s later, at most once per 60 s
+PASS 0.4 T7.4: no H when hosting is off, our layer or zone unknown, or LayerSwap loaded
+PASS 0.4 T7.4: a guild H is remembered 12 minutes as a host on <key>-0; /le hop host asks it
+PASS 0.4 host saved: on survives a reload and is active; one login line; no H at login
+PASS 0.4 host saved: off persists; a bad saved value is off
+PASS 0.4 host saved: on but inactive at login says why, answers nothing, stays saved
+PASS 0.4 host saved: the window line and toggle
+PASS 0.4 T8: the asked host's invite is accepted, the popup hidden as accepted; the move then leaves after 3 s
+PASS 0.4 T8: Wire keeps its own limits on accept and leave (10 s each)
+PASS 0.4 T8: no move within 30 s of joining: leave and say the hop failed
+PASS 0.4 T8: another inviter, a late invite, grouped, instance or combat: nothing is accepted
+PASS 0.4 T8: a group not joined through our hop is never left; leader changes, raid or our lead stop the leave
+PASS 0.4 T8: the guild ask accepts an online guild member's invite only
+PASS 0.4 T8: hostOwn carries our own name key (it was dropped by an and-expression in 7.3)
+PASS 0.4 T8: Auto accept and leave: on by default, saved, /le hop auto and the toggle; off means manual
+PASS 1.0 T1: each route's text check: WEFF1 and HeadHunter carry only their planned types
+PASS 1.0 T1: global budget: 8 at once, 1 per 1.5 s, never more than 40 in 60 s
+PASS 1.0 T1: whispers outside guild and group: 4 a minute to one player, 20 a minute in total; consent guild sends none
+PASS 1.0 T1: guild budget: 20 a minute over all prefixes
+PASS 1.0 T1: throttled by the client: dropped, never retried, that prefix pauses 30 s; offline target skipped 1 h
+PASS 1.0 T1: the queue: over budget a queued line waits; full, the oldest forward goes and a click stays; priority order
+PASS 1.0 T1: in combat every rate halves; in an instance only clicks go
+PASS 1.0 T1: network off sends nothing and registers no timer; the real addon loaded stands its prefix down
+PASS 1.0 T1: callers carry their priority: a hop click and Find hosts go in an instance, host and relay lines do not
+PASS 1.0 T2: a wrapped, enveloped, relayed or synced record is never first-hand
+PASS 1.0 T2: at is the origin's time, never the time we heard it
+PASS 1.0 T2: positions are labelled: enemy, observer, victim or none
+PASS 1.0 T2: a record older than its network's limit is dropped, counted from the origin's time
+PASS 1.0 T2: one row per origin, zone and 5 s; first-hand first, then the copy with names
+PASS 1.0 T3: the War Effort channel name follows the realm's ruleset; HeadHunter's is fixed
+PASS 1.0 T3: no join at consent guild; joins at public; leaves on switch-off or consent guild
+PASS 1.0 T3: the member list is read after selecting the channel, never with the Channels window open, in combat or an instance
+PASS 1.0 T3: nothing is ever sent to a channel; channel calls only from Directory.lua
+PASS 0.3.1 S1 narrowed: only a reporter who is himself a Bulo/LayerSwap row seen while unknown is refused
+PASS 0.3.1 extra: a readable zone change clears the /le hosts numbers
+PASS 0.3.1 extra: /le ask from a list taken while our layer was unknown re-checks before drafting
+PASS 0.3.1 extra: with LayerSwap loaded our remembered replies are never used, even while its saved table is missing
+PASS 0.4 fix M1: the player checked is the player invited; realms are kept unless they are ours
+PASS 0.4 fix S1: the party is unreadable (busy) when the count and the party units disagree or a unit read fails
+PASS 0.4 fix S2: a spaced name with a realm is one rule everywhere: guild check, host and Wire
+PASS 0.4 fix S3: an asker already in our party gets same; a guest who joined frees the pending slot at once
+PASS 0.4 host saved (review 6c): a host resumed at login answers no F before the first guild roster
+PASS 0.4 fix S2 (must): First Last, numeric realms; double, leading and trailing spaces and three words refused
+PASS 0.4 fix S2 (must): the LayerSwap reply grammar takes the spaced name and nothing looser
+PASS 0.3.x name paths: a Bulo guild line from First Last-OtherRealm keeps the realm; ours is dropped
+PASS 0.4 host (review 6c): no H before this session's first guild roster; turning hosting on then announces once on it
+PASS 1.0 T2 names: every network's sender and origin pass the one name rule (First Last, numeric realms)
+PASS 0.4 T8 B1: a drafted whisper arms auto-accept only once we see it go out to that host
+PASS 0.4 T8 B1: the guild ask arms on our own /g line; then only an answerer or a listed host is accepted
+PASS 0.4 T8 B1: a request whose line cannot be built leaves nothing armed
+PASS 0.4 T8 B2: the hop group ends: tracking stops at once; a later group of the same host is never left
+PASS 0.4 T8: never auto-leave inside an instance; in combat the leave waits for combat to end
+PASS 0.4 L2: a finished or expired hop no longer counts as asking for the guild host
+PASS 0.4 L1: isMe uses the one name rule; letters refuse a no-break space, zero-width and invalid bytes
+PASS 1.0 T1-1: in combat the minute caps halve too: GUILD 10, public 10, one player 2, all 20
+PASS 1.0 T1-2: a network whisper is public unless the target is a checked online guildmate; opts.scope is not trusted
+PASS 1.0 T1-3: a clock stepping back counts as just sent; the limits hold
+PASS 1.0 T1: one player is one key for the per-player limit; the target tables are pruned
+PASS 1.0 T2-1: across networks a first-hand copy wins before the name count
+PASS 1.0 T2: a War Effort sync answer is not first-hand
+PASS 1.0 T2: a relayed HeadHunter record keeps its observer position and a hop count; the relay codes the origin's time
+PASS 1.0 T2: a record with no timestamp uses receipt time and says so
+PASS 1.0 T3-1: a channel we were already in is read but never joined or left by us
+PASS 1.0 T3-2: the delayed read rechecks combat, instance and the Channels window; an unreadable count forgets
+PASS 1.0 T3-2: a join that fails is not marked joined; toggling never stacks timers
+PASS names end to end: a foreign spaced host First Last-7103 on realm 7102: line, hop, whisper, auto-accept
+PASS a7: leaving the guild makes hosting inactive; a new guild's H waits for that guild's roster
+PASS a7: leaving the guild drops a scheduled F answer and an owed H
+PASS 1.0 A1: WeOut encodes C and E as War Effort does; they decode back to the same values
+PASS 1.0 A1: an O line to the guild: 3 s settle, one per 15 s, the same enemy again only after 60 s
+PASS 1.0 A1: a guildmate's O line is a first-hand row with names; our own is not stored
+PASS 1.0 A1: C and E for two or more enemies, only where a War Effort reader was heard; the id rises and is saved
+PASS 1.0 A1: no C or E with the network off, War Effort loaded, in an instance, without a position; groups get them too
+PASS e4 M1: an own-realm suffixed origin heard first-hand and through the guild relay is one row, in both orders
+PASS e4 S1: the folded key everywhere a player is keyed (peers, report order, rates, relay ids, reporters)
+PASS e4 S3: decoders through CHAT_MSG_ADDON with spaced and suffixed names (War Effort, HeadHunter, guild relay)
+PASS e4 S1b: one key in the remembered hosts and the offline skip ('Gone' and 'Gone-TestRealm' are one player)
+PASS r040c G1: a listed Bulo or LayerSwap row counts as a host only with its host flag
+PASS r040c G2/G3: an answer before our guild line goes out does not count; the window runs from the send
+PASS r040c: an AcceptGroup that throws spends the ask
+PASS r040c D1: no join while the channel display list is unreadable or empty
+PASS r040c D2: ours only by our own join notice; a hand leave and rejoin is the player's; a nil or empty return is no join
+PASS cc: Directory lists nobody while our own name or home realm is unreadable; one entry per player
+PASS 1f M2: leave, a roster while guildless, join: no H until the new guild's roster
+PASS 1f: joining B with no leave seen is a switch, by the guild event or by a roster alone
+PASS 1f: B's roster before the guild event: the switch asks for a roster; the late event changes nothing more
+PASS 1f: an unreadable guild name in a switch keeps nothing of the old guild
+PASS 1f: a request held for the roster is dropped by a guild switch, even if the requester is in the new guild
+PASS e4c: an enemy re-seen every second is reported 3 s after its first sighting
+PASS e4c: only our own unit sightings are shared, never a Bulo copy (also not one refreshing our own row)
+PASS e4c: an unknown or just-changed layer is sent as unknown, never a guessed key
+PASS 1.0 A2: WeOut builds H, Q, K and sync-marked C; our decoder reads them back
+PASS 1.0 A2: hello at login and every 180 s to the guild; not in an instance; an identical one not within 30 s
+PASS 1.0 A2: a group with players outside the guild gets a hello too
+PASS 1.0 A2: Q once at login, to the guild
+PASS 1.0 A2: a guild Y is answered by whisper from our own last three reports, slowly, once per 600 s
+PASS 1.0 A2: WeNet: a report that grows older than the asked age while queued is skipped
+PASS 1.0 A2: a J gets one K saying off (status 2) per 60 s, by whisper, and never an invite
+PASS 1.0 A3: the election score is War Effort's (DJB2, highest wins, lower name on ties)
+PASS 1.0 A3: the embassy stays off with a reason; an empty or missing member list greets nobody
+PASS 1.0 A3: we greet only our share, one a minute; an answer makes a partner; no answer leaves them alone 1800 s
+PASS 1.0 A3: a greeting is answered at most 6 times a minute over all players; a guildmate's P makes no partner
+PASS 1.0 A3: D lists only links we serve; withdrawn with D| when public networks go off
+PASS 1.0 A3: forwarding: a guildmate's own report only if their hello said public; ours; H once per 600 s; never a wrapped one
+PASS 1.0 A3: only the top-scored holder of a guild forwards to it
+PASS 1.0 A3: a W from a live partner of another guild goes into the guild as G and is stored as relayed; from others it is dropped
+PASS 1.0 B1: hello is exactly LayerEnemies, once per peer per session, one per tick at most; an N is answered once
+PASS 1.0 B1: an envelope is forwarded unchanged but its hops, to peers that are neither author nor carrier
+PASS 1.0 B1: hops 5, too old, from the future, another world, our own, author-carried after hop 1, T: not forwarded
+PASS 1.0 B1: the duplicate ring holds 4000 keys
+PASS 1.0 B2: catch-up: Q:h after login, offers collected, pulled from one, S taken only from that sender
+PASS 1.0 B2: serving: no O with an empty store; O counts what a pull then sends, byte-equal; E0; once per requester per 300 s
+PASS 1.0 B2: a link H is answered with our home server, once per 600 s
+PASS 1.0 B: off, guild-only, HeadHunter loaded or in an instance: nothing on HeadHunter
+PASS 1.0 C1: a [Spy] line: the enemy as First Last, observer position, map to zone, class and level checked
+PASS 1.0 C1: [Spy] refusals: multi-part, field count, class, level, coordinates, guild, name, map, route, own
+PASS 1.0 C1: ForeverSpy1 on a group: name and zone name; FSENT03: GUID, age, level
+PASS 1.0 C1: the same enemy again from one observer is one row; 6 lines per sender per 10 s; nothing is ever sent
+PASS 1.0 C2: a Guild Bounty death: the killer as enemy, the victim's position (zone map only), class and level
+PASS 1.0 C2: a Wall of Shame death names its killer by zone name; Forever Told S is a wanted player seen
+PASS 1.0 consent: no choice saved reads as public: public whispers and channel joins run; guild only when chosen
+PASS 1.0 consent: the first-login line, once, only while a network ships; not after a guild choice
+PASS 1.0 consent: /le net shows and sets the level and each network's switch
+PASS 1.0 consent: /le share off stops every own-sighting send (O, C+E); saved; on again restores
+PASS 1.0 consent: window switches for sharing, guild only and each network
+PASS 1.0 consent: /le status names the network level, sharing and each network
+PASS 21e fab7253: hosting acts only while the guild name is readable and equal to the guild seen
+PASS 21e fab7253: the post-switch roster request is retried once the 15 s limit has passed
+PASS 21e fab7253: a guild name that blinks unreadable on a guild event comes back on the next readable event or roster
+PASS 21e 56dbb3c: with Bulo refreshing every second, our own sightings still go out
+PASS 21e 21eacaf: answer pacing compares against the last send time (no float edge: two sends at one timestamp)
+PASS 21e 21eacaf: the answer queue holds five requesters; the sixth is refused
+PASS 21e 21eacaf: a War Effort C or E whisper to a non-guildmate needs public consent like any other
+PASS 21e 21eacaf: a raid with players outside the guild (raid units only) gets a raid hello
+PASS 21e 21eacaf: the login Q is tried at most twice
+PASS 21e 21eacaf: answer ages are the observation's, rechecked at each send (C and E)
+PASS 1.0.0 release: both networks ship on; the first login says so once
+RESULT: 329 tests passed, 0 failed, 22732 assertions

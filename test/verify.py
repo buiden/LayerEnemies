@@ -60,7 +60,7 @@ def main():
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         if file.name != 'UI.lua':
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
-    assert '## Version: 0.3.0' in toc
+    assert '## Version: 1.0.0' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
     (notes / 'test-results.txt').write_text(tests.stdout + tests.stderr)
@@ -72,14 +72,20 @@ def main():
     subprocess.run(['git', 'diff', '--check'], cwd=ROOT, check=True)
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    archive = dist / 'LayerEnemies-0.3.0.zip'
+    archive = dist / 'LayerEnemies-1.0.0.zip'
     expected = ['LayerEnemies/' + p.name for p in sorted((ROOT / 'LayerEnemies').iterdir()) if p.is_file()]
     expected.append('LayerEnemies/README.md')
+    # deterministic archive: fixed time and mode per member, so the same sources give the same sha256 in any clone
+    def add(out, path, name):
+        info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = 0o644 << 16
+        out.writestr(info, path.read_bytes())
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as out:
         for file in sorted((ROOT / 'LayerEnemies').iterdir()):
             if file.is_file():
-                out.write(file, 'LayerEnemies/' + file.name)
-        out.write(ROOT / 'README.md', 'LayerEnemies/README.md')
+                add(out, file, 'LayerEnemies/' + file.name)
+        add(out, ROOT / 'README.md', 'LayerEnemies/README.md')
     with zipfile.ZipFile(archive) as zipped:
         assert zipped.testzip() is None
         assert sorted(zipped.namelist()) == sorted(expected)
@@ -101,10 +107,15 @@ def main():
         'archive_members': len(expected),
         'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
         'real_client_verified': False,
-        'live_remote_reports': 'War Effort 1.6.x and HeadHunter read-only, plus LEGW1 guild relays; dated by '
-                               'time of receipt; shown as reported, not confirmed',
-        'ask_for_invite': 'One click sends one LayerSwap-format request to one host; never invites, accepts or leaves',
-        'sends': 'LayerSwap/WHISPER hop request and LEGW1/GUILD relay only',
+        'live_remote_reports': 'War Effort 1.6.x and HeadHunter as a member, the Spy family and three guild '
+                               'incident addons read-only, LEGW1 own sightings and relays; shown as reported, '
+                               'not confirmed',
+        'ask_for_invite': 'One click sends one LayerSwap-format request to one host (report row or host row), or drafts a /g guild request the player sends',
+        'auto_accept_leave': 'On by default, saved: accepts only the asked host invite (120 s, not grouped/instance/combat), leaves only that group 3 s after the move or 30 s without one',
+        'guild_host': 'Off until turned on, then saved (guildHost boolean, ON line at login); guild members only, guild name readable and unchanged; at most one InviteUnit per request, 10 s apart, 6 per 600 s; never in combat; refused beside LayerSwap or Bulo',
+        'networks': 'Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches',
+        'sends': 'LayerSwap/WHISPER, LEGW1/GUILD, LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and '
+                 'HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope)',
         'visual_design': 'Approved B implemented with fourth Find tab; native client appearance unverified',
     }
     (notes / 'verification.json').write_text(json.dumps(result, indent=2) + '\n')
