@@ -60,7 +60,7 @@ def main():
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         if file.name != 'UI.lua':
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
-    assert '## Version: 1.0.0' in toc
+    assert '## Version: 1.0.1' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
     (notes / 'test-results.txt').write_text(tests.stdout + tests.stderr)
@@ -72,7 +72,7 @@ def main():
     subprocess.run(['git', 'diff', '--check'], cwd=ROOT, check=True)
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    archive = dist / 'LayerEnemies-1.0.0.zip'
+    archive = dist / 'LayerEnemies-1.0.1.zip'
     # the archive is the TOC's file set (its .lua files and the .toc) plus the README, and nothing else: anything else
     # in the addon folder (a stray file, a test folder) fails here instead of shipping
     shipped = sorted(listed + ['LayerEnemies.toc'])

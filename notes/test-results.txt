@@ -354,4 +354,57 @@ PASS A3 close: a hello's received count (field 14) and ambiguity flag (field 15)
 PASS 6c5 B: a pull's end marker leaves within 60 s of the Q:p even with the public budget saturated by mesh lines
 PASS 6c5 B: hello replies stay 2 s apart after a backlog (no burst when the budget refills)
 PASS 6c5 B: a peer last heard more than 3600 s ago gets no pull
-RESULT: 356 tests passed, 0 failed, 23774 assertions
+PASS invalid-whisper A: accepted API call then localized failure blocks the identity for one hour
+PASS invalid-whisper A: exact correlation leaves unknown, ambiguous, unrelated and secret system errors alone
+PASS invalid-whisper A: localized literals are escaped, unsupported templates fail closed, evidence is consumed
+PASS invalid-whisper A: only recent actual whisper calls supply evidence, never queued or locally refused lines
+PASS invalid-whisper A: synchronous offline and async offline share the same bounded window across prefixes
+PASS invalid-whisper A: outgoing target uses only the existing home-realm canonicalization
+PASS invalid-whisper B: terminal hello results clear owed state and do not starve the next peer
+PASS invalid-whisper B: transient local refusals back off, expire and give other peers a turn
+PASS invalid-whisper B: offline evidence cancels an owed hello before another Wire attempt
+PASS invalid-whisper C: successful empty directory is applied by the hello timer, retaining only direct fresh peers
+PASS invalid-whisper C: failed or blocked roster reads are not empty success and old candidates expire
+PASS invalid-whisper C: valid fresh roster and incoming evidence replace spelling, never compact-key identity
+PASS invalid-whisper C: cached directory does not overwrite a newer incoming spelling or renew candidate age
+PASS invalid-whisper C: queued directory-selected queries cannot outlive an empty or expired snapshot
+PASS invalid-whisper B: retry attempts and deadline are independently bounded; terminal reasons are not retryable
+PASS invalid-whisper B: switching off cancels pending retries and switching on does not strand the timer
+PASS invalid-whisper B: async offline clears owed state immediately without consuming a timer turn
+PASS invalid-whisper A: queued-only evidence and backward clocks cannot mark a target offline
+PASS invalid-whisper C: queued envelope forwards recheck an empty directory as well as envelope age
+PASS invalid-whisper B: an opposite-faction hello keeps its one-reply behavior without an idle debt
+PASS invalid-whisper B: a new peer outranks a due retry on the same paced turn
+PASS invalid-whisper R2: consumed foreign async evidence still makes a bare namesake error ambiguous
+PASS invalid-whisper R2: synchronous foreign offline retains ambiguity without renewing suppression
+PASS invalid-whisper R2: repeated failures consume every matching attempt without extending the hour
+PASS invalid-whisper R2: consumed ambiguity expires at the original send timestamp, not failure time
+PASS invalid-whisper R2: consumed records count toward the same recent cap and oldest records are evicted
+PASS invalid-whisper R2: offline-cap eviction does not revive consumed evidence
+PASS invalid-whisper R2: an unsent queued foreign namesake is not ambiguity evidence
+PASS invalid-whisper R2: a dequeued foreign failure retains ambiguity for home sends and queued work
+PASS invalid-whisper R2: a qualified home error still matches beside a consumed foreign identity
+PASS own identity: split direct self C/E is refused while local and independent Unknown rows survive
+PASS own identity: split and combined forms share exact full-name and home-realm keys
+PASS own identity: unreadable or ambiguous own data fails closed and recovers without stale aliases
+PASS own identity: G/GUILD rejects self origins, not different surnames or realms
+PASS own identity: X/PARTY rejects self origins, not different surnames or realms
+PASS own identity: X/RAID rejects self origins, not different surnames or realms
+PASS own identity: W/WHISPER rejects self origins, not different surnames or realms
+PASS own identity: distinct first-only names, surnames and foreign realms remain real direct reporters
+PASS own identity: LEGW1 refuses our sender and relayed origin without suppressing independent reports
+PASS own identity: unknown identity refuses LEGW1 reports, control and LFSw claims
+PASS own identity: HeadHunter and Spy receive gates use the same split full name
+PASS own identity: host self key and candidate lists use the full identity
+PASS own identity: Directory excludes only the full own identity and refuses unknown identity
+PASS own identity: LayerSwap heard and guild claim readers use our full name, never a bare-first alias
+PASS own identity: our split-name raid unit is not mistaken for an outside-guild peer
+PASS own identity: a guild host does not act while its own identity is unreadable or ambiguous
+PASS guild O full name: split and combined observations round-trip without first-name aliases
+PASS guild O full name: malformed display identity is omitted, never replaced by the first name
+PASS guild O full name: legacy single and combined names retain their O1 bytes
+PASS guild O full name: four-entry cap counts intact full identities, not first-name aliases
+PASS guild O full name: 100-byte names and the 255-byte line boundary keep whole entries
+PASS guild O full name: oversized legacy packets trim the tail once without duplicating the retained name
+PASS guild O full name: observed split identity crosses share, Wire and cross-zone Find without donor traffic
+RESULT: 409 tests passed, 0 failed, 27096 assertions

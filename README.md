@@ -1,6 +1,6 @@
 # LayerEnemies
 
-WoW Forever addon 1.0.0, Interface 16001, Lua 5.1.
+WoW Forever addon 1.0.1, Interface 16001, Lua 5.1.
 
 Find a tracked enemy through your own sightings or possible War Effort hash
 matches, then hop: ask a host on that layer for an invite. Approved design B is
@@ -27,6 +27,37 @@ login it prints once:
 Every network has its own switch (`/le net`, and the switches at the bottom
 of the window). Nothing of 1.0.0 has been tried on a live client yet; the
 checklist is at the end.
+
+## 1.0.1 — own identity, guild sightings and whisper lifecycle
+
+- Guild O sightings preserve the full observed name when Forever returns first
+  name and surname separately. Find matches that full identity, not a first-name
+  alias. An invalid full display name is omitted, not replaced with its first
+  name. The O1 format stays compatible with 1.0.0 receivers; the observing
+  sender needs the update. Up to four names still fit within 255 bytes, with
+  whole trailing entries removed when necessary, never shortened identities.
+  Find remains a passive watch, not a request for a remote scan. One enemy can
+  use this LE-to-LE guild path; the War Effort path still requires at least two.
+- Own echoes now use one full-name resolver when Forever returns first name
+  and surname separately, or an already-combined name. Your home-realm suffix
+  is folded; a different surname or foreign realm is still a different player.
+  Unreadable or ambiguous own identity fails closed at receive/list boundaries.
+  The same identity is used for host candidates, replies addressed to you and
+  directory self-exclusion; your own raid unit is not an outside-guild peer.
+- Includes the merged invalid-whisper lifecycle fix: recent localized
+  player-not-found feedback shares the existing one-hour offline suppression;
+  ambiguous identities are not guessed, chat errors stay visible, terminal
+  hello failures stop retrying, and stale directory candidates expire. See the
+  existing budget and directory sections below for exact limits.
+- No new send routes or network defaults. Local sightings remain separate from
+  other players' reports. Matching class, level or a short enemy hash never
+  proves identity: independent hash-only reports still say Unknown, including
+  collisions.
+
+Reload after updating to clear old session-only reports. The fixes have offline
+regression coverage; their live-client identity and message behavior still need
+validation (items 25–27 below). War Effort's compatibility hello version
+stays fixed at 1.0.0; it is not the addon's release version.
 
 ## What is sent
 
@@ -791,6 +822,19 @@ after the list is the order to try them in):
     be distinguished from an addon error, so it may also stop our sends but
     is never hidden. The server's zero-member roster readiness and accepted
     target spelling still need client validation. No camera/FPS fix is claimed.
+26. Own identity: the readable first/second returns of `UnitName("player")`
+    and the actual home realm on Forever. Confirm split and already-combined
+    forms do not create a self-reported row, while an independent guild
+    reporter remains visible. A reload clears old session-only rows; existing
+    rows from before the update are not a receive test. A surname equal to a
+    realm in a single-word split is deliberately ambiguous and fails closed.
+27. Guild full names: with LE on two guildmates, enable sharing on the updated
+    observer and add the exact full-name Find watch on the receiver before a
+    fresh enemy target or mouseover. Verify the full name arrives, including
+    from another zone (Find, not the current-zone Reported tab). Re-observe
+    after the repeat cooldown for a second trial. This does not test a
+    War Effort-only observer's two-enemy threshold or establish why any earlier
+    donor-only sighting was absent.
 
 Live-test checklist for the PR build (two characters in one guild, A and B,
 then a War Effort and a HeadHunter user if one is around; if a network fails
