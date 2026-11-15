@@ -489,7 +489,7 @@ function M.hostRequest(text,sender,held)
     req.name=sender
     local time=now()
     local own=M.hostOwn()
-    if not G.early(M.host,req,own,time) then return end
+    if not own.self or not G.early(M.host,req,own,time) then return end
     -- a roster older than 120 s: ask for a new one and decide on its update (5 s, one slot, newest wins)
     local age=A.rosterAge(time)
     if not held and (not age or age>A.ROSTER_FRESH) then

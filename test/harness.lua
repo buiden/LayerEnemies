@@ -5963,5 +5963,16 @@ test("own identity: our split-name raid unit is not mistaken for an outside-guil
     eq(sentCount("WEFF1","RAID"),1,"a real outsider still gets the existing hello")
     no(N.Main.error)
 end)
+test("own identity: a guild host does not act while its own identity is unreadable or ambiguous",function()
+    for _,shape in ipairs({{nil,"Reed","8123"},{"Fable",secret,"8123"},{"Fable","Reed","Reed"}}) do
+        local N=loadAddon(); hReady(N); roster={{"Other Scout",true}}
+        ownShape(shape[1],shape[2],shape[3])
+        lsw("inv layer <LS 100 want 7086-0>","Other Scout")
+        eq(#invites,0,"unknown own identity must not invite"); eq(#sent,0,"or answer the request")
+        ownShape("Fable","Reed","8123")
+        lsw("inv layer <LS 100 want 7086-0>","Other Scout")
+        eq(#invites,1,"readable identity recovers without consuming the earlier request"); no(N.Main.error)
+    end
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
