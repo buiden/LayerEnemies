@@ -214,8 +214,11 @@ function Rl.ownLine(rep)
     local items = {}
     for _, e in ipairs(rep.enemies or {}) do
         if #items >= Rl.OWN_NAMES then break end
-        local name = S.str(e.name, 100)
-        if name and not name:find("[%c|]") then
+        -- The observed full name is authoritative; only legacy records without it may use name.
+        local raw = e.displayName
+        if not S.secret(raw) and raw == nil then raw = e.name end
+        local name = N.Invite.name(raw)
+        if name then
             local class = CLASSES[e.class] and e.class or ""
             local lvl = S.num(e.level)
             items[#items + 1] = hex(name) .. ":" .. class .. ":" .. ((lvl and (lvl == -1 or (lvl >= 1 and lvl <= 100))) and tostring(lvl) or "")
@@ -224,7 +227,8 @@ function Rl.ownLine(rep)
     local line = table.concat({ "O", "1", tostring(math.floor(rid)), tostring(math.floor(zone)), o3(x), o3(y), layer,
         tostring(math.max(0, math.min(900, math.floor(S.num(rep.age) or 0)))), tostring(math.min(200, math.floor(count))),
         table.concat(items, ",") }, "|")
-    while #line > 255 and #items > 0 do items[#items] = nil; line = line:gsub("[^|]*$", table.concat(items, ",")) end
+    -- Limit the replacement: Lua 5.1 also matches the empty suffix after the nonempty enemy list.
+    while #line > 255 and #items > 0 do items[#items] = nil; line = line:gsub("[^|]*$", table.concat(items, ","), 1) end
     return #line <= 255 and line or nil
 end
 -- decodeOwn(text, sender, now) -> record (src "le", first-hand) or nil, why

@@ -79,9 +79,7 @@ end
 -- ourselves by the one name rule (Invite.name keys); nil while our name or our home realm cannot be read (then our
 -- own "-<realm>" entries cannot be told from peers)
 local function me()
-    local home = N.Invite.home and S.str(N.Invite.home(), 60)
-    if not home or home == "" then return nil end
-    local _, key = N.Invite.name((S.call(UnitName, "player")))
+    local _, key = N.Adapters.ownIdentity()
     return key
 end
 local function read(key)

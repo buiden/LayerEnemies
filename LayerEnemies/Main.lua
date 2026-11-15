@@ -157,7 +157,7 @@ end
 -- Ourselves, by the one name rule (Invite.name keys: our realm dropped, any other realm is someone else).
 function M.isMe(name)
     local _,key=I.name(name)
-    local _,me=I.name((S.call(UnitName,"player")))
+    local _,me=A.ownIdentity()
     return key~=nil and me~=nil and key==me
 end
 function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelName)
@@ -260,7 +260,6 @@ function M.headhunter(text,kind,sender)
     local records,why=N.HeadHunter.decode(text,sender,S.num(S.call(GetServerTime)),S.str((S.call(UnitFactionGroup,"player")),20),
         {heard=time,route=kind,zoneFn=A.zone})
     M.lastDrop=why~="ignored" and why or M.lastDrop
-    local me=S.str((S.call(UnitName,"player")))
     for _,record in ipairs(records) do
         local ignored,whyIgnored=false,nil
         if record.origin~=sender then
@@ -300,6 +299,7 @@ end
 -- relayed again.
 function M.relayIn(text,kind,sender)
     if kind~="GUILD" or not S.str(sender,100) or S.call(IsInGuild)~=true then return end
+    if not A.ownIdentity() then M.lastDrop="own identity unavailable"; return end
     if M.isMe(sender) then return end
     if A.ignored(sender) then M.lastDrop="ignored sender"; return end
     local time=now()
@@ -332,7 +332,7 @@ function M.layerswap(text,kind,sender)
         return
     end
     if kind~="WHISPER" or type(text)~="string" or not S.str(sender,100) or not M.hop.pending then return end
-    local me=S.str((S.call(UnitName,"player")))
+    local me=A.ownIdentity()
     local time=now()
     local asked=M.hop.pending
     local shown,reply=N.Hop.receive(M.hop,text,sender,me,time,M.store.ambiguous(time))
@@ -442,9 +442,7 @@ function M.hostOwn()
     local zone=A.location()
     local id=S.str(M.store.bulo,32)
     local party=A.party()
-    local me=S.str((S.call(UnitName,"player")))
-    local _,self
-    if me then _,self=I.name(me) end
+    local _,self=A.ownIdentity()
     return {self=self,zone=zone and zone==M.store.zone and zone or nil,key=L.key(M.store.bulo),id=id,
         inInstance=A.inInstance(),inCombat=A.inCombat(),raid=party and party.raid,leader=party and party.leader,
         members=party and party.members or {},asking=M.asking()}
@@ -491,7 +489,7 @@ function M.hostRequest(text,sender,held)
     req.name=sender
     local time=now()
     local own=M.hostOwn()
-    if not G.early(M.host,req,own,time) then return end
+    if not own.self or not G.early(M.host,req,own,time) then return end
     -- a roster older than 120 s: ask for a new one and decide on its update (5 s, one slot, newest wins)
     local age=A.rosterAge(time)
     if not held and (not age or age>A.ROSTER_FRESH) then
@@ -532,7 +530,7 @@ function M.layerswapGuild(text,sender)
     if M.isMe(sender) or A.ignored(sender) then return end
     -- answers count only once our guild line has gone out (draftSent); the window then runs from the send
     local sent=g.sent
-    local me=S.str((S.call(UnitName,"player")))
+    local me=A.ownIdentity()
     local reply=N.Hop.reply(text,sender,me)
     if reply and reply.kind=="heard" then N.Hosts.heard(M.heard,sender,reply,A.wall()) end
     -- who answered our ask: a hosting heard naming us, or a LayerSwap/Bulo claim naming us (Bulo Host.lua:521);
@@ -574,6 +572,7 @@ end
 -- LFSw prefix: Bulo guild layer lines, GUILD only, read and never answered.
 function M.lfsw(text,kind,sender)
     if kind~="GUILD" or not S.str(sender,100) or S.call(IsInGuild)~=true then return end
+    if not A.ownIdentity() then return end
     if M.isMe(sender) then return end
     if A.ignored(sender) then return end
     if not N.HeadHunter.allow(M.lfswRate,sender,now()) then return end
@@ -642,7 +641,7 @@ end
 function M.candidates(listed)
     local time=now()
     local lists=A.friendLists(M.guildLines,not listed and M.heardBook() or nil)
-    local _,short=I.name((S.call(UnitName,"player")))
+    local _,short=A.ownIdentity()
     return I.collect({now=time,wall=A.wall(),zone=M.store.zone,ownKey=L.key(M.store.bulo),ambiguous=M.store.ambiguous(time),self=short,
         reporters=T.reporters(M.store,time),bulo=lists.bulo,book=lists.book})
 end
@@ -1104,7 +1103,8 @@ local function weOutsiders()
     local raid=S.call(IsInRaid)==true
     for i=1,raid and 40 or 4 do
         local u=(raid and "raid" or "party")..i
-        if S.call(UnitExists,u)==true then
+        -- Our raid slot can also have split first/surname returns; do not reinterpret it as a remote name.
+        if S.call(UnitExists,u)==true and S.call(UnitIsUnit,u,"player")~=true then
             local n,realm=S.call(UnitName,u)
             n,realm=S.str(n,60),S.str(realm,60)
             local full=n and (realm and realm~="" and (n.."-"..realm) or n)
@@ -1176,16 +1176,8 @@ function M.weAsked(msg,kind,sender,time)
         if stamp then N.Wire.send("WEFF1",N.WeOut.joinOff(msg.id,stamp),"WHISPER",sender,{net="we",prio="owed"}) end
     end
 end
--- War Effort embassy (lane A3). Our name as War Effort users see it: UnitName's first return, plus its second when
--- that is not our realm (on Forever the second return is the surname: "First Last").
-function M.weName()
-    local n,second=S.call(UnitName,"player")
-    n,second=S.str(n,60),S.str(second,60)
-    if not n then return nil end
-    local home=S.str(M.homeRealm(),60)
-    if second and second~="" and second~=home and (S.str(S.call(GetRealmName),60) or "")~=second then return n.." "..second end
-    return n
-end
+-- War Effort embassy (lane A3): the same full own name used by the receive gates.
+function M.weName() return (A.ownIdentity()) end
 function M.weGuildId()
     if S.call(IsInGuild)~=true or not S.tab(C_Club) then return nil end
     local id=S.call(C_Club.GetGuildClubId)
@@ -1220,7 +1212,7 @@ end
 local function embCtx(time)
     local mine=M.weName()
     return {why=M.embassyWhy(),me=mine and mine:lower() or "?",guild=M.weGuildId(),
-        isMe=function(n) return M.isMe(n) or (mine~=nil and type(n)=="string" and n:lower()==mine:lower()) end,
+        isMe=M.isMe,
         isGuildmate=function(n) local k=I.key(n); return A.guildMember(n)==true or (k~=nil and M.weGuild[k]~=nil) end,
         heardInGuild=function(n) local k=I.key(n); local p=k and M.weGuild[k]; return p~=nil and time-p.at<=N.WeEmb.CANDIDATE end,
         inChannel=function(n)

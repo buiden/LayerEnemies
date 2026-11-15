@@ -5772,5 +5772,309 @@ test("invalid-whisper R2: a qualified home error still matches beside a consumed
     eq(N.Wire.offlineUntil("Fable Reed",clock),clock+3600,"qualified local suffix is not ambiguous")
     eq(N.Wire.offlineUntil("Fable Reed-7105",clock),untilAt); no(N.Main.error)
 end)
+-- Own-identity regression: invented player names only, real module and event paths.
+local function ownShape(first,second,home)
+    local old=UnitName
+    UnitName=function(u) if u=="player" then return first,second end; return old(u) end
+    GetNormalizedRealmName=nil
+    GetRealmName=function() return home end
+end
+local function ownReport(hash)
+    local stamp=math.floor(server)%3600
+    return "C|87|100|0.400|0.500|7086|1|"..stamp,"E|87|1|1|"..hash..":D:47|"..stamp
+end
+test("own identity: split direct self C/E is refused while local and independent Unknown rows survive",function()
+    local N=loadAddon(); establish(N); ownShape("Fable","Reed","8123")
+    units.target={guid="Player-1-777",player=true,name="Cedar",realm="Vale",class="ROGUE",level=47,faction="Horde"}
+    deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+    local h=N.Hash.player("Cedar","Vale"); local c,e=ownReport(h)
+    for _,text in ipairs({c,e}) do deliver("CHAT_MSG_ADDON","WEFF1",text,"GUILD","Fable Reed") end
+    eq(#N.Store.rows(N.Main.store,clock,"reported"),0,"self must not become a reported Unknown")
+    eq(N.Main.lastDrop,"own echo"); yes(N.Main.isMe("Fable Reed")); eq(N.Main.weName(),"Fable Reed")
+    local seen=N.Store.rows(N.Main.store,clock,"seen"); eq(#seen,1); eq(seen[1].displayName,"Cedar Vale")
+    for _,text in ipairs({c,e}) do deliver("CHAT_MSG_ADDON","WEFF1",text,"GUILD","Other Scout") end
+    local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1); eq(rows[1].reporter,"Other Scout")
+    eq(rows[1].name,"Unknown"); eq(rows[1].class,"ROGUE"); eq(rows[1].level,47)
+    yes(rows[1].possible:find("Cedar-Vale",1,true)); eq(#N.Store.rows(N.Main.store,clock,"seen"),1)
+    N.Main.store.identities[h]["Birch-Grove"]=clock
+    rows=N.Store.rows(N.Main.store,clock,"reported"); eq(rows[1].name,"Unknown")
+    yes(rows[1].possible:find("Cedar-Vale",1,true)); yes(rows[1].possible:find("Birch-Grove",1,true)); no(N.Main.error)
+end)
+test("own identity: split and combined forms share exact full-name and home-realm keys",function()
+    for _,shape in ipairs({{"Fable","Reed"},{"Fable Reed"},{"Fable Reed",""},{"Fable Reed","Reed"},
+        {"Fable Reed","8123"},{"Fable Reed-8123","8123"}}) do
+        local N=loadAddon(); ownShape(shape[1],shape[2],"8123")
+        eq(N.Main.weName(),"Fable Reed","canonical own name")
+        for _,name in ipairs({"Fable Reed","fable reed","Fable Reed-8123"}) do
+            yes(N.Main.isMe(name),name); local ok,why=N.Adapters.policy("WEFF1","GUILD",name)
+            no(ok,name); eq(why,"own echo")
+        end
+        for _,name in ipairs({"Fable","Fable Other","Fable Reed-8124","Fable Reed-Elsewhere"}) do
+            no(N.Main.isMe(name),name); yes(N.Adapters.policy("WEFF1","GUILD",name),name)
+        end
+    end
+    local N=loadAddon(); ownShape("Fable Reed","Home Realm","Home Realm")
+    GetNormalizedRealmName=function() return "HomeRealm" end
+    eq(N.Main.weName(),"Fable Reed"); yes(N.Main.isMe("Fable Reed-HomeRealm")); no(N.Main.isMe("Fable Reed-Away"))
+    N=loadAddon(); ownShape("Fable","8123","8123")
+    eq(N.Main.weName(),"Fable"); yes(N.Main.isMe("Fable-8123")); no(N.Main.isMe("Fable-8124"))
+end)
+test("own identity: unreadable or ambiguous own data fails closed and recovers without stale aliases",function()
+    local cases={{nil,"Reed","8123"},{secret,"Reed","8123"},{"Fable",secret,"8123"},
+        {"Fable Reed",secret,"8123"},{"Fable","Reed",nil},{"Fable","Reed",secret},
+        {"Fable","Reed","Reed"},{"Fable","rEEd","Reed"},{"Fable Reed","Other","8123"},
+        {"Fable",false,"8123"},{"Fable Reed",123,"8123"},{"Fable  Reed",nil,"8123"},
+        {"Fable Reed-8124",nil,"8123"},{"Fable","Reed-8123","8123"},{"Fable","Reed-8124","8123"}}
+    for _,shape in ipairs(cases) do
+        local N=loadAddon(); ownShape(shape[1],shape[2],shape[3])
+        eq(N.Main.weName(),nil,"unavailable identity")
+        no(N.Main.isMe("Fable")); no(N.Main.isMe("Fable Reed"))
+        local ok,why=N.Adapters.policy("WEFF1","GUILD","Other Scout"); no(ok); eq(why,"own identity unavailable")
+        ownShape("Fable","Reed","8123"); yes(N.Main.isMe("Fable Reed")); no(N.Main.isMe("Fable"))
+    end
+    local N=loadAddon(); ownShape("Fable","Reed","8123")
+    UnitName=function() error("unavailable") end
+    eq(N.Main.weName(),nil); no(N.Adapters.policy("WEFF1","GUILD","Other Scout"))
+    ownShape("Fable","Reed","8123"); GetRealmName=function() error("unavailable") end
+    eq(N.Main.weName(),nil); no(N.Adapters.policy("WEFF1","GUILD","Other Scout"))
+    ownShape("Fable Reed","Reed","Reed"); eq(N.Main.weName(),"Fable Reed","complete name removes surname/realm ambiguity")
+end)
+for _,wrapper in ipairs({{kind="G",route="GUILD"},{kind="X",route="PARTY"},{kind="X",route="RAID"},{kind="W",route="WHISPER"}}) do
+    test("own identity: "..wrapper.kind.."/"..wrapper.route.." rejects self origins, not different surnames or realms",function()
+        for _,origin in ipairs({"Fable Reed","Fable Reed-TestRealm","Fable Other","Fable Reed-Elsewhere"}) do
+            local N=loadAddon()
+            if wrapper.kind=="W" then
+                embReady(N,{"Other Scout"}); steps(13)
+                deliver("CHAT_MSG_ADDON","WEFF1","P|19|456|0|a","WHISPER","Other Scout"); drain()
+                yes(N.WeEmb.partner(N.Main.emb,"Other Scout",clock),"live partner")
+            else establish(N) end
+            ownShape("Fable","Reed","Test Realm")
+            local c,e=ownReport("abc")
+            for _,text in ipairs({c,e}) do
+                local line=N.WeOut.wrap(wrapper.kind,origin,nil,text); yes(line)
+                deliver("CHAT_MSG_ADDON","WEFF1",line,wrapper.route,"Other Scout")
+            end
+            local mine=origin=="Fable Reed" or origin=="Fable Reed-TestRealm"
+            eq(#N.Store.rows(N.Main.store,clock,"reported"),mine and 0 or 1,origin)
+            if mine then yes(N.Main.lastDrop:find("own echo",1,true)) end
+            no(N.Main.error)
+        end
+    end)
+end
+test("own identity: distinct first-only names, surnames and foreign realms remain real direct reporters",function()
+    for _,origin in ipairs({"Fable","Fable Other","Fable Reed-8124","Fable Reed-Elsewhere"}) do
+        local N=loadAddon(); establish(N); ownShape("Fable","Reed","8123")
+        local c,e=ownReport("abc")
+        for _,text in ipairs({c,e}) do deliver("CHAT_MSG_ADDON","WEFF1",text,"GUILD",origin) end
+        local rows=N.Store.rows(N.Main.store,clock,"reported"); eq(#rows,1,origin)
+        eq(rows[1].reporter,origin); eq(rows[1].name,"Unknown"); no(N.Main.error)
+    end
+end)
+test("own identity: LEGW1 refuses our sender and relayed origin without suppressing independent reports",function()
+    for _,origin in ipairs({"Fable Reed","Fable Reed-8123","Fable Other","Fable Reed-8124"}) do
+        local N=loadAddon(); establish(N); ownShape("Fable","Reed","8123")
+        local line=N.Relay.encode(weRec(N,{origin=origin,heard=clock,age=0}),clock); yes(line)
+        deliver("CHAT_MSG_ADDON","LEGW1",line,"GUILD","Other Scout")
+        local mine=origin=="Fable Reed" or origin=="Fable Reed-8123"
+        eq(N.Safe.count(N.Main.store.reports),mine and 0 or 1,origin)
+        N=loadAddon(); establish(N); ownShape("Fable","Reed","8123")
+        local own=N.Relay.ownLine({rid=1,zone=100,layer="7086",count=1,enemies={{name="Cedar Vale",class="ROGUE",level=47}}}); yes(own)
+        deliver("CHAT_MSG_ADDON","LEGW1",own,"GUILD",origin)
+        eq(#N.Store.rows(N.Main.store,clock,"reported"),mine and 0 or 1,origin); no(N.Main.error)
+    end
+end)
+test("own identity: unknown identity refuses LEGW1 reports, control and LFSw claims",function()
+    for _,shape in ipairs({{nil,"Reed","8123"},{"Fable",secret,"8123"},{"Fable","Reed","Reed"},{"Fable","Reed",nil}}) do
+        local N=loadAddon(); establish(N); ownShape(shape[1],shape[2],shape[3])
+        local line=N.Relay.encode(weRec(N,{origin="Fable Reed",heard=clock,age=0}),clock); yes(line)
+        deliver("CHAT_MSG_ADDON","LEGW1",line,"GUILD","Other Scout")
+        local own=N.Relay.ownLine({rid=1,zone=100,layer="7086",count=1,enemies={{name="Cedar Vale"}}}); yes(own)
+        deliver("CHAT_MSG_ADDON","LEGW1",own,"GUILD","Other Scout")
+        eq(#N.Store.rows(N.Main.store,clock,"reported"),0,"unknown is not a different player")
+        deliver("CHAT_MSG_ADDON","LEGW1","H|1|9000|100","GUILD","Other Scout")
+        deliver("CHAT_MSG_ADDON","LFSw","L 9000|100|h","GUILD","Other Scout")
+        eq(next(N.Main.heard.heard),nil); eq(next(N.Main.guildLines),nil); eq(#sent,0); no(N.Main.error)
+    end
+end)
+test("own identity: HeadHunter and Spy receive gates use the same split full name",function()
+    local N=loadAddon(); establish(N); ownShape("Fable","Reed","8123")
+    server=HHT
+    local fight="P2s;"..b36(server)..";dw;6y;a1"
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AP:"..fight:sub(2),"PARTY","Fable Reed-8123")
+    eq(N.Main.lastDrop,"own echo"); eq(#N.Store.rows(N.Main.store,clock,"reported"),0)
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AE:eu-pvp;Fable Reed;A;5cy;1;"..b36(server)..";"..fight,"WHISPER","Other Scout")
+    eq(N.Main.lastDrop,"own echo"); eq(#N.Store.rows(N.Main.store,clock,"reported"),0)
+    deliver("CHAT_MSG_ADDON","[Spy]","1.3.8|Cedar-Vale|ROGUE|47|Orc|Ashenvale||0.4|0.6||100","GUILD","Fable-Reed")
+    eq(N.Main.lastDrop,"own echo"); eq(#N.Store.rows(N.Main.store,clock,"reported"),0)
+    deliver("CHAT_MSG_ADDON","HeadHunter","1AP:"..fight:sub(2),"PARTY","Fable Other")
+    eq(#N.Store.rows(N.Main.store,clock,"reported"),1); no(N.Main.error)
+end)
+test("own identity: host self key and candidate lists use the full identity",function()
+    local N=loadAddon(); establish(N); ownShape("Fable","Reed","8123")
+    eq(N.Main.hostOwn().self,"fable reed")
+    LayerSwapDB={book={}}
+    for _,name in ipairs({"Fable Reed","Fable Reed-8123","Fable","Fable Other","Fable Reed-8124"}) do
+        LayerSwapDB.book[name]={layer="9000-1",zone=100,at=wall,host=true}
+    end
+    local rows=N.Main.candidates(); eq(#rows,3)
+    local keys={}; for _,r in ipairs(rows) do keys[r.short]=true end
+    yes(keys.fable); yes(keys["fable other"]); yes(keys["fable reed-8124"]); no(keys["fable reed"])
+    ownShape("Fable",secret,"8123")
+    eq(N.Main.hostOwn().self,nil); rows=N.Main.candidates(); eq(#rows,0)
+end)
+test("own identity: Directory excludes only the full own identity and refuses unknown identity",function()
+    local N=loadAddon(); ownShape("Fable","Reed","8123"); netOn(N,"hh"); N.Net.setConsent("public")
+    chanMembers.HeadHunterSync={"Fable Reed","Fable Reed-8123","Fable","Fable Other","Fable Reed-8124"}
+    advance(10); advance(3.1)
+    local list=N.Directory.members("hh"); yes(list,"directory read"); eq(#list,3)
+    local keys={}; for _,name in ipairs(list) do keys[N.Invite.key(name)]=true end
+    yes(keys.fable); yes(keys["fable other"]); yes(keys["fable reed-8124"]); no(keys["fable reed"])
+    ownShape("Fable",secret,"8123"); yes(N.Directory.refresh("hh")); advance(3.1); eq(N.Directory.members("hh"),nil)
+end)
+test("own identity: LayerSwap heard and guild claim readers use our full name, never a bare-first alias",function()
+    local N=loadAddon(); establish(N); ownShape("Fable","Reed","8123")
+    N.Main.hop.pending={name="Other Scout",short="other scout",at=clock,layer="9000"}
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Fable|9000-1|100|h","WHISPER","Other Scout")
+    eq(next(N.Main.heard.heard),nil)
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Fable Reed|9000-1|100|h","WHISPER","Other Scout")
+    yes(N.Main.heard.heard["Other Scout"])
+    N.Main.hop.guildAsk={at=clock,sent=true}; N.Main.heard.heard={}
+    deliver("CHAT_MSG_ADDON","LayerSwap","claim Fable","GUILD","Other Scout")
+    eq(N.Main.hop.guildAsk.answered,nil)
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Fable Reed|9000-1|100|h","GUILD","Other Scout")
+    yes(N.Main.heard.heard["Other Scout"]); yes(N.Main.hop.guildAsk.answered["other scout"])
+    deliver("CHAT_MSG_ADDON","LayerSwap","claim Fable Reed","GUILD","Another Scout")
+    yes(N.Main.hop.guildAsk.answered["another scout"])
+    ownShape("Fable",secret,"8123"); N.Main.hop.guildAsk.answered=nil; N.Main.heard.heard={}
+    deliver("CHAT_MSG_ADDON","LayerSwap","claim Fable","GUILD","Other Scout")
+    deliver("CHAT_MSG_ADDON","LayerSwap","heard Fable Reed|9000-1|100|h","WHISPER","Other Scout")
+    eq(N.Main.hop.guildAsk.answered,nil); eq(next(N.Main.heard.heard),nil); no(N.Main.error)
+end)
+test("own identity: our split-name raid unit is not mistaken for an outside-guild peer",function()
+    local N=loadAddon(); weReady(N); ownShape("Fable","Reed","8123")
+    raid,grouped=true,true
+    units.raid1=player("Fable","Alliance"); units.raid1.realm="Reed"
+    local old=UnitIsUnit
+    UnitIsUnit=function(u,v) return (u=="raid1" and v=="player") or old(u,v) end
+    sent={}; N.Main.weHello("test")
+    eq(sentCount("WEFF1","RAID"),0,"our own unit does not need a group hello")
+    units.raid2=player("Other Scout","Alliance"); units.raid2.realm="8124"
+    N.Main.weHello("test")
+    eq(sentCount("WEFF1","RAID"),1,"a real outsider still gets the existing hello")
+    no(N.Main.error)
+end)
+test("own identity: a guild host does not act while its own identity is unreadable or ambiguous",function()
+    for _,shape in ipairs({{nil,"Reed","8123"},{"Fable",secret,"8123"},{"Fable","Reed","Reed"}}) do
+        local N=loadAddon(); hReady(N); roster={{"Other Scout",true}}
+        ownShape(shape[1],shape[2],shape[3])
+        lsw("inv layer <LS 100 want 7086-0>","Other Scout")
+        eq(#invites,0,"unknown own identity must not invite"); eq(#sent,0,"or answer the request")
+        ownShape("Fable","Reed","8123")
+        lsw("inv layer <LS 100 want 7086-0>","Other Scout")
+        eq(#invites,1,"readable identity recovers without consuming the earlier request"); no(N.Main.error)
+    end
+end)
+-- Guild O uses the observed display identity, not an alias reconstructed from metadata.
+test("guild O full name: split and combined observations round-trip without first-name aliases",function()
+    local N=loadAddon(); local R=N.Relay
+    for _,e in ipairs({{name="Cedar",realm="Vale",displayName="Cedar Vale",class="ROGUE",level=47},
+        {name="Cedar Vale",realm="Vale",displayName="Cedar Vale",class="ROGUE",level=47}}) do
+        local line=R.ownLine({rid=7,zone=200,count=1,enemies={e}}); yes(line)
+        local r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(#r.enemies,1)
+        eq(r.enemies[1].name,"Cedar Vale","the full observed identity survives encoding")
+        eq(r.enemies[1].class,"ROGUE"); eq(r.enemies[1].level,47); eq(r.enemies[1].hash,nil)
+        local f=N.Find.new(); for _,name in ipairs({"Cedar Vale","Cedar","Cedar Grove"}) do yes(N.Find.add(f,name)) end
+        N.Find.report(f,{sender=r.origin,zone=r.zone,at=r.at,enemies=r.enemies},"Test Realm")
+        yes(f.locations["Cedar Vale"]); eq(f.locations.Cedar,nil); eq(f.locations["Cedar Grove"],nil)
+    end
+end)
+test("guild O full name: malformed display identity is omitted, never replaced by the first name",function()
+    local N=loadAddon(); local R=N.Relay
+    for i,bad in ipairs({"Cedar  Vale","Cedar Vale Extra"," Cedar Vale","Cedar Vale ","Cedar_Vale","Cedar|Vale",
+        "Cedar\nVale","Cedar\tVale","",false,123,{},secret,"C",string.char(255).."Vale",string.rep("C",101)}) do
+        local line=R.ownLine({rid=7,zone=200,count=2,enemies={{name="Cedar",displayName=bad,class="ROGUE",level=47},
+            {name="Birch",displayName="Birch Grove",class="MAGE",level=60}}})
+        yes(line,"malformed display case "..i); local r=R.decodeOwn(line,"Other Scout",clock); yes(r)
+        eq(r.count,2,"group count is not an identity count"); eq(#r.enemies,1,"omit malformed display case "..i)
+        eq(r.enemies[1].name,"Birch Grove","a valid neighbor still survives")
+    end
+    for _,e in ipairs({{displayName="Cedar Vale"},{name=secret,displayName="Cedar Vale"}}) do
+        local r=R.decodeOwn(R.ownLine({rid=7,zone=200,count=1,enemies={e}}),"Other Scout",clock)
+        yes(r); eq(r.enemies[1].name,"Cedar Vale","a valid full identity does not depend on the fallback")
+    end
+end)
+test("guild O full name: legacy single and combined names retain their O1 bytes",function()
+    local N=loadAddon(); local R=N.Relay
+    local rep={rid=7,zone=200,count=2,enemies={{name="Cedar",realm="Notasurname",class="ROGUE",level=47},{name="Birch Grove"}}}
+    local legacy="O|1|7|200||||0|2|4365646172:ROGUE:47,42697263682047726f7665::"
+    eq(R.ownLine(rep),legacy,"missing displayName uses name unchanged, never realm concatenation")
+    rep.enemies[1].displayName="Cedar"; rep.enemies[2].displayName="Birch Grove"
+    eq(R.ownLine(rep),legacy,"matching display identity does not change legacy bytes")
+    local r=R.decodeOwn(legacy,"Other Scout",clock); yes(r); eq(r.count,2); eq(#r.enemies,2)
+    eq(r.enemies[1].name,"Cedar"); eq(r.enemies[2].name,"Birch Grove")
+    local f=N.Find.new(); yes(N.Find.add(f,"Cedar")); yes(N.Find.add(f,"Cedar Vale"))
+    N.Find.report(f,{sender=r.origin,zone=r.zone,at=r.at,enemies=r.enemies},"Test Realm")
+    yes(f.locations.Cedar); eq(f.locations["Cedar Vale"],nil,"old truncated records cannot invent a full identity")
+    for _,name in ipairs({"Cedar Vale-TestRealm","Cedar Vale-8124","Élan Rivage"}) do
+        local line=R.ownLine({rid=7,zone=200,count=1,enemies={{name="Cedar",displayName=name}}})
+        r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(r.enemies[1].name,name,"preserve full bytes, including realm and UTF-8")
+    end
+end)
+test("guild O full name: four-entry cap counts intact full identities, not first-name aliases",function()
+    local N=loadAddon(); local R=N.Relay; local enemies={}
+    for _,surname in ipairs({"Vale","Grove","Moss","Leaf","Fern"}) do
+        enemies[#enemies+1]={name="Cedar",displayName="Cedar "..surname,class="ROGUE",level=47}
+    end
+    local line=R.ownLine({rid=7,zone=200,count=5,enemies=enemies}); yes(line); yes(#line<=255)
+    local r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(r.count,5); eq(#r.enemies,4)
+    for i,e in ipairs(r.enemies) do eq(e.name,enemies[i].displayName) end
+    no(line:find("4665726e",1,true),"fifth full name omitted")
+end)
+test("guild O full name: 100-byte names and the 255-byte line boundary keep whole entries",function()
+    local N=loadAddon(); local R=N.Relay
+    local full=string.rep("C",36).." "..string.rep("V",36).."-"..string.rep("R",26); eq(#full,100)
+    local rep={rid=7,zone=200,count=2,enemies={{name="Cedar",displayName=full,class="MAGE",level=60},
+        {name="Birch",displayName=string.rep("B",13),level=1}}}
+    local line=R.ownLine(rep); yes(line); eq(#line,255,"exactly 255 bytes is allowed")
+    local r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(#r.enemies,2)
+    eq(r.enemies[1].name,full); eq(r.enemies[2].name,string.rep("B",13))
+    rep.enemies[2].level=10                 -- one more byte: omit the whole last entry, never shorten its identity
+    line=R.ownLine(rep); yes(line); yes(#line<255)
+    r=R.decodeOwn(line,"Other Scout",clock); yes(r); eq(#r.enemies,1); eq(r.enemies[1].name,full); eq(r.count,2)
+    rep.enemies[1].displayName=full.."R"    -- 101 bytes: no fallback to Cedar
+    line=R.ownLine(rep); yes(line); r=R.decodeOwn(line,"Other Scout",clock); yes(r)
+    eq(#r.enemies,1); eq(r.enemies[1].name,string.rep("B",13))
+end)
+test("guild O full name: oversized legacy packets trim the tail once without duplicating the retained name",function()
+    local N=loadAddon(); local full=string.rep("C",36).." "..string.rep("V",36).."-"..string.rep("R",26)
+    local line=N.Relay.ownLine({rid=7,zone=200,count=2,enemies={{name=full,class="MAGE",level=60},
+        {name=string.rep("B",13),level=10}}})
+    yes(line); yes(#line<=255); local r=N.Relay.decodeOwn(line,"Other Scout",clock); yes(r)
+    eq(#r.enemies,1,"keep the first name that fits rather than duplicate then drop it")
+    eq(r.enemies[1].name,full); eq(r.count,2)
+end)
+test("guild O full name: observed split identity crosses share, Wire and cross-zone Find without donor traffic",function()
+    for _,otherZone in ipairs({false,true}) do
+        local N=loadAddon(); netOn(N,"we"); establish(N); hello("Other Scout",19)
+        units.target={guid="Player-1-777",player=true,name="Cedar",realm="Vale",class="ROGUE",level=47,faction="Horde"}
+        deliver("PLAYER_TARGET_CHANGED"); drain(); N.Main.shareTick(); eq(#oLines(),0)
+        advance(3); N.Main.shareTick(); eq(#oLines(),1)
+        local line=oLines()[1].text; eq(oLines()[1].kind,"GUILD"); yes(#line<=255)
+        eq(#weSent("C"),0,"War Effort still requires at least two"); eq(#weSent("E"),0)
+        local seen=N.Store.rows(N.Main.store,clock,"seen"); eq(#seen,1); eq(seen[1].displayName,"Cedar Vale")
+        N=loadAddon()
+        if otherZone then map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain() end
+        advance(.1)                       -- a report received at the exact reset instant is deliberately stale
+        local before=#sent
+        N.Main.track("Cedar Vale"); N.Main.track("Cedar"); N.Main.track("Cedar Grove")
+        eq(#sent,before,"Find remains passive")
+        deliver("CHAT_MSG_ADDON","LEGW1",line,"GUILD","Other Scout")
+        local loc=N.Main.find.locations["Cedar Vale"]; yes(loc,"full-name watch receives the guild O sighting")
+        eq(loc.zone,100); eq(loc.spotter,"Other Scout"); eq(loc.class,"ROGUE"); eq(loc.level,47)
+        eq(N.Main.find.locations.Cedar,nil); eq(N.Main.find.locations["Cedar Grove"],nil)
+        eq(#N.Store.rows(N.Main.store,clock,"reported"),otherZone and 0 or 1)
+        no(N.Main.error)
+    end
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -230,14 +230,44 @@ function A.ignored(name)
 end
 -- War Effort 1.6.6 traffic is read whether or not War Effort is installed: WEFF1 on GUILD, PARTY or RAID only.
 -- Whispers (embassy partner state) and channels are Phase 2. Which types each route carries is checked after decode.
--- Own name (with or without realm) -> "own echo"; unreadable identity -> refused.
+-- Our own full name and Invite key. Forever may return first/surname instead of name/realm.
+-- Read the raw pair under pcall: Safe.call cleans a secret second value to nil, which would create a bare-first alias.
+-- Only the actual home realm is folded; no surname or foreign realm becomes an alias.
+function A.ownIdentity()
+    if S.secret(UnitName) or type(UnitName)~="function" then return nil end
+    local ok,name,second=pcall(UnitName,"player")
+    if not ok or S.secret(name) or S.secret(second) then return nil end
+    name=S.str(name,100)
+    local home=S.str(S.call(N.Invite.home),60)
+    if not name or not home then return nil end
+    local _,key,full=N.Invite.name(name)
+    if not key or key:find("-",1,true) then return nil end
+    if second~=nil and second~="" then
+        second=S.str(second,60)
+        if not second then return nil end
+        local function norm(v) return (v:lower():gsub("[%s%-']","")) end
+        local realm=S.str(S.call(GetRealmName),60)
+        local isRealm=norm(second)==norm(home) or (realm and norm(second)==norm(realm))
+        local surname=full:match("^%S+ (%S+)$")
+        if isRealm then
+            -- A single word plus a surname-shaped realm could be either representation: do not guess.
+            if not surname and N.Invite.name(full.." "..second) then return nil end
+        elseif surname then
+            if second:lower()~=surname:lower() then return nil end
+        else
+            if second:find("-",1,true) then return nil end
+            full=full.." "..second
+        end
+    end
+    local _,ownKey,target=N.Invite.name(full)
+    return target,ownKey
+end
+-- Own name (with or without home realm) -> "own echo"; unreadable identity -> refused.
 local function echo(sender)
-    local me,realm=S.call(UnitName,"player"); me,realm=S.str(me),S.str(realm)
-    realm=realm or S.str(S.call(GetRealmName))
-    if not me or not realm then return "own identity unavailable" end
-    local name,remoteRealm=sender:match("^([^%-]+)%-(.+)$")
-    name=name or sender; remoteRealm=remoteRealm or realm
-    if N.Hash.nameKey(name,remoteRealm)==N.Hash.nameKey(me,realm) or sender:lower()==me:lower() then return "own echo" end
+    local _,me=A.ownIdentity()
+    if not me then return "own identity unavailable" end
+    local _,key=N.Invite.name(sender)
+    if key and key==me then return "own echo" end
 end
 -- Spy family (lane C1): each prefix on its own routes (Spy.ROUTES); never our own lines; the ignore lists apply.
 function A.spyPolicy(prefix,kind,sender)
