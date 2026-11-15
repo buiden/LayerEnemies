@@ -343,8 +343,36 @@ function M.hostBlocked()
     end
     if not N.Wire.canInvite() then return "hosting is not available: this client has no party invite call." end
 end
+-- guildWhy() -> nil while the guild name is readable and equal to the guild seen this session (r040c 21e: every
+-- hosting action checks it, so a switch or a blink nothing has reported yet never keeps the old guild's authority)
+function M.guildWhy()
+    if S.call(IsInGuild)~=true then return "you are not in a guild." end
+    local name=S.str((S.call(GetGuildInfo,"player")),100)
+    if not name then return "your guild's name is not readable right now." end
+    -- login: the first readable name is our guild
+    if M.guildSeen==nil and not M.guildLeft and not M.guildUnknown then M.guildSeen=name end
+    if M.guildUnknown or M.guildBlink or name~=M.guildSeen then return "waiting for your guild's roster." end
+end
 function M.hostWhyNot()
-    return M.hostBlocked() or (S.call(IsInGuild)~=true and "you are not in a guild.")
+    return M.hostBlocked() or M.guildWhy()
+end
+-- hostCheck(): an active host whose guild no longer checks out goes inactive (still saved on), with one line
+function M.hostCheck()
+    if not (M.host and M.host.on) then return true end
+    local why=M.hostWhyNot()
+    if not why then return true end
+    M.host.on=false; M.host.inactive=why
+    M.say("LayerEnemies: hosting for your guild is ON but inactive: "..why:gsub("%.$","").." (/le host off to stop).")
+    if N.UI then N.UI.refresh() end
+    return false
+end
+-- askRoster(time): a guild roster now, or (inside the 15 s limit) once the limit has passed; one retry timer
+function M.askRoster(time)
+    local ok,wait=A.rosterRefresh(time)
+    if ok or not wait or M.rosterRetry then return ok end
+    M.rosterRetry=true
+    if not after(wait+0.05,function() M.rosterRetry=nil; if A.roster.owed then guarded(M.askRoster,now()) end end) then M.rosterRetry=nil end
+    return false
 end
 local function saveHost(want) M.host.want=want; if S.tab(LayerEnemiesDB) then LayerEnemiesDB.guildHost=want end end
 function M.setHost(on)
@@ -429,7 +457,7 @@ end
 -- One H line: only while hosting, after this session's first guild roster (a host resumed at login or turned on
 -- early is not yet checked against it), with our key and live zone known, and nothing blocking hosting.
 function M.announceHost()
-    if not (M.host and M.host.on) or M.hostWhyNot() or not A.rosterAge(now()) then return false end
+    if not (M.host and M.host.on) or not M.hostCheck() or not A.rosterAge(now()) then return false end
     local own=M.hostOwn()
     local line=N.Relay.hostLine(own.key,own.zone)
     if not line then return false end
@@ -438,7 +466,7 @@ function M.announceHost()
     return ok
 end
 function M.hostRequest(text,sender,held)
-    if M.hostBlocked() then return end
+    if M.hostBlocked() or not M.hostCheck() then return end
     if S.secret(sender) or not S.str(sender,100) or M.isMe(sender) or A.ignored(sender) then return end
     local G=N.GuildHost
     local req=G.parse(text)
@@ -467,7 +495,7 @@ function M.rosterUpdate()
     local time=now()
     -- a roster counts only in a known guild: never while guildless (or IsInGuild unreadable), and a switch noticed
     -- here (a missed or late guild event) asks for that guild's own roster instead of counting this one
-    if not M.guildCheck(true) then return end
+    if not M.guildCheck(true) then M.hostCheck(); return end
     A.rosterSeen(time)
     if M.host and M.host.want and not M.host.on then M.hostResume(false) end
     if M.host and M.host.announceOwed then M.host.announceOwed=nil; if M.host.on then guarded(M.announceHost) end end
@@ -943,25 +971,26 @@ end
 -- was seen but the new guild's name is not readable yet (hosting stays inactive until a readable name and then
 -- that guild's roster). At login an unreadable name is no change.
 local function guildSwitch(name)
-    M.guildSeen=name; M.guildUnknown=(name==nil)
+    M.guildSeen=name; M.guildUnknown=(name==nil); M.guildBlink=nil
     M.guildReset()
-    A.rosterRefresh(now())
+    M.askRoster(now())
 end
 -- guildCheck(fromRoster) -> true when a roster arriving now may count as our guild's roster
 function M.guildCheck(fromRoster)
     local inGuild=S.call(IsInGuild)==true
     if not inGuild then
-        if not fromRoster then M.guildLeft=true; M.guildSeen=nil; M.guildUnknown=nil; M.guildReset() end
+        if not fromRoster then M.guildLeft=true; M.guildSeen=nil; M.guildUnknown=nil; M.guildBlink=nil; M.guildReset() end
         return false
     end
     local name=S.str((S.call(GetGuildInfo,"player")),100)
     if M.guildUnknown then
         if not name then return false end
         -- the first readable name after a switch: ask for that guild's roster
-        M.guildSeen=name; M.guildUnknown=nil; A.rosterRefresh(now()); return false
+        M.guildSeen=name; M.guildUnknown=nil; M.askRoster(now()); return false
     end
     if name then
-        if M.guildSeen==name then return true end
+        -- the same guild (also after a blink): counted; a blink ends here
+        if M.guildSeen==name then M.guildBlink=nil; return true end
         if M.guildSeen==nil and not M.guildLeft then M.guildSeen=name; return true end   -- login
         guildSwitch(name); return false
     end
@@ -969,9 +998,17 @@ function M.guildCheck(fromRoster)
     if M.guildSeen==nil and not M.guildLeft then return true end
     -- a roster while the name blinks: not counted (it could be another guild's), nothing reset; the next one decides
     if fromRoster then return false end
-    guildSwitch(nil); return false
+    -- a guild event with the name unreadable: after a leave, an unknown guild (its roster first); in a known guild,
+    -- a blink: nothing is dropped, hosting does not act (guildWhy) until a readable name says which guild it is
+    if M.guildSeen==nil then guildSwitch(nil) else M.guildBlink=true end
+    return false
 end
-function M.guildChanged() M.guildCheck(false) end
+function M.guildChanged()
+    local same=M.guildCheck(false)
+    if not M.hostCheck() then return end
+    -- a readable event naming the guild we know (after a blink): hosting acts again
+    if same and M.host and M.host.want and not M.host.on then M.hostResume(false) end
+end
 function M.guildReset()
     if not M.host then return end
     M.host.guildToken=(M.host.guildToken or 0)+1

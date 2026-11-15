@@ -129,10 +129,16 @@ end
 -- Seconds since the last GUILD_ROSTER_UPDATE, or nil.
 function A.rosterSeen(now) A.roster.at=S.num(now) end
 function A.rosterAge(now) if A.roster.at and S.num(now) then return now-A.roster.at end end
--- Asks the server for a new roster, at most once per 15 s. Returns true when it asked.
+-- Asks the server for a new roster, at most once per 15 s. Returns true when it asked; inside the 15 s it returns
+-- false and the seconds left, and marks the request owed (Main retries an owed one when the limit has passed).
 function A.rosterRefresh(now)
     now=S.num(now)
-    if not now or (A.roster.askedAt and now-A.roster.askedAt<A.ROSTER_EVERY and now>=A.roster.askedAt) then return false end
+    if not now then return false end
+    if A.roster.askedAt and now-A.roster.askedAt<A.ROSTER_EVERY and now>=A.roster.askedAt then
+        A.roster.owed=true
+        return false,A.roster.askedAt+A.ROSTER_EVERY-now
+    end
+    A.roster.owed=nil
     local gi=_G.C_GuildInfo
     if not S.tab(gi) or S.secret(gi.GuildRoster) or type(gi.GuildRoster)~="function" then return false end
     A.roster.askedAt=now

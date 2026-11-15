@@ -3990,8 +3990,8 @@ test("a7: leaving the guild drops a scheduled F answer and an owed H",function()
     N=loadAddon(); hReady(N); deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on); yes(N.Adapters.roster.at)
     deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on)
     -- (r040c 1f) a guild name unreadable on a guild event is "unknown": inactive until a readable name and its roster
+    -- (r040c 21e: a blink in a known guild drops nothing; the next readable roster or event of that guild restores)
     guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on); guildName="Test Guild"
-    deliver("GUILD_ROSTER_UPDATE",true); drain(); no(N.Main.host.on,"first readable name: its roster is asked for")
     deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
     -- another guild without leaving in between: a change
     guildName="Third Guild"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on); eq(N.Adapters.roster.at,nil)
@@ -4297,11 +4297,13 @@ test("1f: an unreadable guild name in a switch keeps nothing of the old guild",f
     no(N.Main.host.on,"name unknown"); eq(hostF(),0)
     guildName="Guild B"; deliver("GUILD_ROSTER_UPDATE",true); drain(); no(N.Main.host.on,"first readable name: its roster is asked for")
     deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
-    -- at login an unreadable name is still no change
-    N=loadAddon(); guildName=nil; hReady(N); yes(N.Main.host.on); deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on)
-    -- known guild, then a roster while its name blinks: not counted, nothing dropped
+    -- at login an unreadable name: hosting does not act until the name is readable (r040c 21e)
+    N=loadAddon(); hReady(N); guildName=nil; N.Main.started=false; N.Main.start(); drain(); N.Main.guildSeen=nil
+    no(N.Main.host.on); yes(N.Main.host.want); yes(logged("ON but inactive: your guild's name is not readable right now")); guildName="Test Guild"
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
+    -- known guild, then a roster while its name blinks: not counted, hosting inactive (r040c 21e), nothing dropped
     N=loadAddon(); hReady(N); local at=N.Adapters.roster.at; advance(5); guildName=nil; deliver("GUILD_ROSTER_UPDATE",true); drain()
-    eq(N.Adapters.roster.at,at,"not counted"); yes(N.Main.host.on,"nothing dropped"); guildName="Test Guild"
+    eq(N.Adapters.roster.at,at,"not counted"); no(N.Main.host.on,"inactive"); yes(N.Main.host.want); guildName="Test Guild"
     guildName="Test Guild"; deliver("PLAYER_GUILD_UPDATE","player"); deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
 end)
 test("1f: a request held for the roster is dropped by a guild switch, even if the requester is in the new guild",function()
@@ -4853,6 +4855,42 @@ test("1.0 consent: /le status names the network level, sharing and each network"
     yes(logged("Networks: public (/le net guild for guild only)")); yes(logged("Sharing your sightings: on (/le share off)"))
     yes(logged("War Effort: on")); N.Net.setConsent("guild"); slash("share off"); log={}; slash("status")
     yes(logged("Networks: guild only (/le net public to open)")); yes(logged("Sharing your sightings: off (/le share on)"))
+end)
+
+-- مانع on fab7253 (r040c/21e): guild identity checked at every hosting action; the roster request retried; a blink
+test("21e fab7253: hosting acts only while the guild name is readable and equal to the guild seen",function()
+    -- a switch noticed by nothing yet (no event, no roster): a request is refused and hosting goes inactive
+    local N=loadAddon(); hReady(N); roster={{"Bob",true}}; deliver("GUILD_ROSTER_UPDATE",true); drain(); advance(61); guildName="Guild B"
+    lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0,"no invite for the old guild's member"); no(N.Main.host.on)
+    yes(N.Main.host.want); eq(hostF(),0,"no H either")
+    -- a roster while the name is unreadable: hosting goes inactive, nothing acts
+    N=loadAddon(); hReady(N); advance(61); guildName=nil; deliver("GUILD_ROSTER_UPDATE",true); drain(); no(N.Main.host.on)
+    lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(hostF(),0)
+    -- readable and equal again: the next roster brings it back, and it acts
+    roster={{"Bob",true}}; guildName="Test Guild"; deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on); advance(61); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,1)
+    -- unreadable at the moment of an F answer: no H
+    N=loadAddon(); hReady(N); advance(61); legw("F|1","Cy"); guildName=nil; advance(7); drain(); eq(#legwSent("H|"),0); guildName="Test Guild"
+    -- /le host on while the name is unreadable: refused with the reason
+    N=loadAddon(); establish(N); guildName=nil; slash("host on"); no(N.Main.host.on); yes(logged("your guild's name is not readable")); guildName="Test Guild"
+end)
+test("21e fab7253: the post-switch roster request is retried once the 15 s limit has passed",function()
+    local N=loadAddon(); hReady(N); local calls=rosterCalls                      -- host on asked for a roster just now
+    advance(2); guildName="Guild B"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); eq(rosterCalls,calls,"inside 15 s: not asked yet")
+    advance(14); eq(rosterCalls,calls+1,"asked once the limit passed"); advance(30); eq(rosterCalls,calls+1,"once")
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
+end)
+test("21e fab7253: a guild name that blinks unreadable on a guild event comes back on the next readable event or roster",function()
+    local N=loadAddon(); hReady(N); advance(61)
+    guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on)
+    guildName="Test Guild"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); yes(N.Main.host.on,"the readable event alone")
+    eq(hostF(),1,"and it acts")
+    N=loadAddon(); hReady(N); advance(61)
+    guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on)
+    guildName="Test Guild"; deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on,"the readable roster alone")
+    -- the blink ends in another guild: a switch, that guild's roster first
+    N=loadAddon(); hReady(N); advance(61); guildName=nil; deliver("PLAYER_GUILD_UPDATE","player"); drain()
+    guildName="Guild B"; deliver("PLAYER_GUILD_UPDATE","player"); drain(); no(N.Main.host.on); eq(N.Adapters.roster.at,nil)
+    deliver("GUILD_ROSTER_UPDATE",true); drain(); yes(N.Main.host.on)
 end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
