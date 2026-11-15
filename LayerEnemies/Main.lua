@@ -1328,6 +1328,16 @@ function M.hhWorld()
     return region.."-"..(rules or "?")
 end
 local function hhCtx(time)
+    local st=M.hhNet
+    if st then
+        local members,at=N.Directory.members("hh")
+        if type(members)=="table" and members~=st.directory then
+            N.HhNet.roster(st,members,N.HhNet.compact(M.weName() or "?") or "?",at)
+            st.directory=members
+        end
+        N.HhNet.prune(st,time,N.Directory.FRESH)
+        N.HhNet.suppress(st,N.Wire.offlineUntil,time)
+    end
     local mine=HN_me and HN_me() or nil
     return {world=M.hhWorld(),serverNow=S.num(S.call(GetServerTime)),me=N.HhNet.compact(M.weName() or "?") or "?",side=hhSide(),
         online=N.Directory.count("hh")}
@@ -1337,23 +1347,46 @@ local function hhSend(text,target,extra)
     if not (text and target) then return end
     local opts={net="hh",prio="mesh",queue=true}
     for k,v in pairs(extra or {}) do opts[k]=v end
+    if opts.candidate then
+        local st,check=M.hhNet,opts.still
+        opts.still=function()
+            local time=now(); hhCtx(time) -- apply even a new empty snapshot before a queue pump can send
+            return M.hhNet==st and N.HhNet.candidate(st,target,time,N.Directory.FRESH) and (not check or check())
+        end
+    end
     N.Wire.send("HeadHunter",text,"WHISPER",target,opts)
 end
 -- hello replies, one per 2 s: sent now when the pace allows, else on a timer (one at a time)
 function M.hhHelloPump()
     local st=M.hhNet
     if not st or not N.Net.allowed("hh","public") then return end
-    local ctx=hhCtx(now())
+    local time=now()
+    local ctx=hhCtx(time)
     if not ctx.side then return end
-    local who=N.HhNet.nextHello(st,now(),ctx.side)
-    -- not queued: a hello Wire refuses now is owed again and tried at the next paced turn, so a backlog never leaves
-    -- in a burst when the budget refills
-    if who and not N.Wire.send("HeadHunter",N.HhNet.frame(ctx.side,"N",N.HhNet.HELLO),"WHISPER",who,{net="hh",prio="mesh"}) then
-        N.HhNet.unsent(st,who)
+    local who=N.HhNet.nextHello(st,time,ctx.side)
+    -- Never queued: a budget backlog must not turn paced hellos into a burst when it drains.
+    if who then
+        local ok,why,attempted=N.Wire.send("HeadHunter",N.HhNet.frame(ctx.side,"N",N.HhNet.HELLO),"WHISPER",who,{net="hh",prio="mesh"})
+        if not ok then N.HhNet.unsent(st,who,why,attempted,time) end
     end
-    if N.HhNet.owed(st) and not M.hhHelloTimer then
-        M.hhHelloTimer=true
-        if not N.Net.after("hh",N.HhNet.HELLO_EVERY+0.05,function() M.hhHelloTimer=nil; guarded(M.hhHelloPump) end,"public") then M.hhHelloTimer=nil end
+    local delay=N.HhNet.helloDelay(st,time)
+    -- Net.after may discard a callback while switched off. A due timestamp, not a sticky boolean, lets a later
+    -- enabled pump recover. Superseded callbacks cannot create a second retry chain.
+    if not delay then M.hhHelloTimer=nil
+    elseif not M.hhHelloTimer or M.hhHelloTimer<=time then
+        local due=time+delay+0.05
+        M.hhHelloTimer=due
+        if not N.Net.after("hh",delay+0.05,function()
+            if M.hhHelloTimer~=due then return end
+            M.hhHelloTimer=nil; guarded(M.hhHelloPump)
+        end,"public") then M.hhHelloTimer=nil end
+    end
+end
+-- Observe only; system errors remain visible in every chat frame.
+function M.whisperSystem(text)
+    if N.Wire.system(text) and M.hhNet then
+        N.HhNet.suppress(M.hhNet,N.Wire.offlineUntil,now())
+        if not N.HhNet.owed(M.hhNet) then M.hhHelloTimer=nil end
     end
 end
 function M.hhTick()
@@ -1362,10 +1395,8 @@ function M.hhTick()
     local time=now()
     local ctx=hhCtx(time)
     if not ctx.side or not ctx.serverNow then return end
-    local members=N.Directory.members("hh")
-    if type(members)=="table" and members[1] then N.HhNet.roster(st,members,ctx.me) end
     M.hhHelloPump()
-    for _,o in ipairs(N.HhNet.ask(st,time,ctx)) do hhSend(o.text,o.target) end
+    for _,o in ipairs(N.HhNet.ask(st,time,ctx)) do hhSend(o.text,o.target,{candidate=true}) end
     for _,o in ipairs(N.HhNet.pull(st,time,ctx)) do hhSend(o.text,o.target) end
 end
 function M.hhMesh(text,sender,time)
@@ -1382,7 +1413,7 @@ function M.hhMesh(text,sender,time)
             local out=N.HhNet.carry(st,rec,sender,side,time,ctx)
             for _,o in ipairs(out) do
                 local check=o.still
-                hhSend(o.text,o.target,{still=function() return check(S.num(S.call(GetServerTime))) end})
+                hhSend(o.text,o.target,{candidate=true,still=function() return check(S.num(S.call(GetServerTime))) end})
             end
         end
     elseif t=="Q" then
@@ -1606,7 +1637,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -1619,6 +1650,7 @@ local function dispatch(_,event,...)
     if event=="PLAYER_LOGIN" then guarded(M.start); return end
     if not M.started then return end
     if event=="CHAT_MSG_ADDON" then guarded(M.message,...)
+    elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then guarded(M.boundary,A.location()); M.queuePoll()
     elseif event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
         if A.location()~=M.store.zone then guarded(M.boundary,A.location()) end
