@@ -769,4 +769,18 @@ PASS Realm names: every hash tuple stays possible and never confirms even the ho
 PASS Realm names: late home discovery removes the named HeadHunter uncertainty only
 PASS Realm names: a hash cannot override an explicitly different named realm
 PASS Realm names: On my way adds the shown qualified killer and saves it without sends
-RESULT: 771 tests passed, 0 failed, 71244 assertions
+PASS Round1 realm: own sighting rejects colliding realm 1234/84860
+PASS Round1 realm: own sighting rejects colliding realm Home/ochg
+PASS Round1 cost: polling 20 tracked names visits only matching Known entries
+PASS Round1 cost: Known index follows aliases replacement eviction expiry and rollback
+PASS Round1 own: a newer guild O keeps fresh own evidence primary and both lines visible
+PASS Round1 own: an own sighting in another zone does not suppress fresh on-site evidence
+PASS Round1 hash: fresh Ask provenance is visible beside the old own sighting
+PASS Round1 long: legacy first names match adapter displays over 100 bytes
+PASS Round1 long: own display bound covers two adapter strings but remains finite
+PASS Round1 raid: the player member never relabels our own target
+PASS Round1 group: member existence and self identity are rechecked at drain
+PASS Round1 group: retarget without a new event cannot change a queued observation
+PASS Round1 hash: all evidence plus an independent place fits on a Find page
+PASS Round1 realm: own realm equality normalizes and folds full strings
+RESULT: 785 tests passed, 0 failed, 72650 assertions
