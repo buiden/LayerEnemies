@@ -41,10 +41,11 @@ function W.prune(st,now)
 end
 function W.roster(st,keys)
     if not keys then return end -- incomplete/unreadable roster proves no departures
+    st.roster=keys -- only a complete update can readmit a departed sender
     for key in pairs(st.held) do if not keys[key] then remove(st,key) end end
 end
 function W.reset(st,now)
-    S.clear(st.held); S.clear(st.byHash); st.count=0
+    S.clear(st.held); S.clear(st.byHash); st.count=0; st.roster=nil
     S.clear(st.noticed); st.notices={}; st.pending=nil
     st.due=now+20+math.random()*60
     st.dirty=st.on and next(st.own)~=nil
@@ -128,6 +129,7 @@ end
 function W.receive(st,text,sender,now)
     local name,key=N.Invite.name(sender)
     if not name then return end
+    if st.roster and not st.roster[key] then return end
     W.prune(st,now)
     local old=st.held[key]
     local function invalid()

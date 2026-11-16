@@ -69,8 +69,10 @@ per sighting.
 
 Lists and notice history are **session-only**. Complete lists expire 25 minutes
 after their last complete refresh, disappear on clear or guild leave/switch, and
-are removed when a complete roster update no longer lists their sender. Offline
-members remain; an unreadable roster proves no departures. A reload starts with
+are removed when a complete roster update no longer lists their sender. Further
+T lines from absent senders are refused until a complete update lists them again.
+Offline members remain; an unreadable roster proves neither departure nor
+readmission and preserves the last complete snapshot. A reload starts with
 no held lists. Older clients ignore T; there is no request for others' lists.
 
 A nonempty list is sent 20–80 seconds after login, 10 seconds after the last edit

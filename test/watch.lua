@@ -423,6 +423,34 @@ test("watch notice history: event-only operation still bounds remembered notices
     yes(N.Safe.count(st.noticed)<=10,"ten-minute notice history is bounded")
 end)
 
+test("watch R1 roster: removed senders stay rejected until a complete roster readmits them",function()
+    local N=ready()
+    H.roster({{"Me",true},{"Birch Scout",true}}); H.deliver("GUILD_ROSTER_UPDATE")
+    list(N,"Birch Scout","aa",{"Watch a"}); yes(holds(N,"Birch Scout","Watch a"))
+    H.roster({{"Me",true}}); H.deliver("GUILD_ROSTER_UPDATE")
+    eq(next(N.Main.watch.held),nil)
+    H.time(101); list(N,"Birch Scout","ab",{"Watch a"})
+    eq(next(N.Main.watch.held),nil,"a departed sender cannot resurrect a list")
+    sight(N,"Watch a"); eq(#notices(),0)
+    local read=GetGuildRosterInfo; GetGuildRosterInfo=function() return H.secret end
+    H.deliver("GUILD_ROSTER_UPDATE"); H.time(102)
+    receive(N,line("ac",1,2,{"Watch a"})); eq(next(N.Main.watch.held),nil,"unreadable roster cannot readmit")
+    GetGuildRosterInfo=read
+    H.roster({{"Me",true},{"Birch Scout",false}}); H.deliver("GUILD_ROSTER_UPDATE")
+    H.time(103); list(N,"Birch Scout","ad",{"Watch a"})
+    yes(holds(N,"Birch Scout","Watch a"),"offline membership is still membership")
+    sight(N,"Watch a"); eq(#notices(),1); no(N.Main.error)
+end)
+
+test("watch R1 roster: guild reset drops the previous guild admission snapshot",function()
+    local N=ready(); H.roster({{"Me",true}}); H.deliver("GUILD_ROSTER_UPDATE")
+    H.guild(false); H.deliver("PLAYER_GUILD_UPDATE","player")
+    H.guild(true,"New Guild"); H.deliver("PLAYER_GUILD_UPDATE","player")
+    H.roster({{"Me",true},{"Birch Scout",true}}); H.deliver("GUILD_ROSTER_UPDATE")
+    list(N,"Birch Scout","aa",{"Watch a"}); yes(holds(N,"Birch Scout","Watch a"))
+    sight(N,"Watch a"); eq(#notices(),1); no(N.Main.error)
+end)
+
 for _,command in ipairs({"share","notice"}) do
     test("watch R1 slash: bare "..command.." shows usage without tracking or sharing it",function()
         local N=ready({tracked={"Keep Name"}}); pump(N,100)
