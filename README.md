@@ -91,6 +91,8 @@ Known limits (a missed line is accepted; a false killer is not):
   and no row on record from an earlier death is stamped at or after them, they
   are taken as that death's rows. Recap timing on the live client is unknown,
   so this is not fully closed.
+- After a death whose recap held a row that could not be read, or more than
+  256 rows, the next death sends nothing (the one after that sends again).
 - Not covered: a recap that first appears after revive, or a death before the
   first world-entry seed.
 
@@ -101,9 +103,11 @@ down. When a death starts it is fixed for that death: a row the new death sees
 for the first time, stamped at or below it, happened before this death began.
 It is recorded as old and never names a killer, even if the cap has forgotten
 the original row. Only recap timestamps are compared with each other; no
-client clock is used. A row whose fields cannot be read is never owned and
-never named; the readable rows of the same recap are still recorded. A recap
-longer than 256 rows names nothing. Nothing is saved.
+client clock is used. A row whose identity or timestamp cannot be read (secret,
+missing, or erroring) is never recorded, owned or named; the readable rows of
+the same recap are still recorded. A recap longer than 256 rows names nothing.
+Because an unrecorded row could come back readable, the next death after one
+was seen treats every row it sees first as old. Nothing is saved.
 Known misses: an enemy pet alone (no owner resolution), empty/late recaps,
 and unavailable faction/identity data. Accepted over-count: a mob landing
 the last hit while an enemy player was hitting counts as PvP.

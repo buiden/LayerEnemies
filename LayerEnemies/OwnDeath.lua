@@ -151,12 +151,20 @@ local RECORD_LIMIT=256
 -- oldest-stamped row is forgotten; which one is forgotten cannot make an old row
 -- nameable, because seenHigh already covers it.
 local seenHigh,priorMark
+-- blind: some recap row seen since the current death began could not be recorded
+-- (unreadable, or past RECORD_LIMIT). Its identity and time are unknown, so it may
+-- come back readable at the next death. That death fixes priorBlind and treats
+-- every row it sees first as old: a miss, never a false killer.
+local blind,priorBlind=false,false
 local function rowId(row)
     if not S.tab(row) then return nil end
     local fields={}
     for _,field in ipairs({"sourceGUID","sourceName","timestamp"}) do
         local v=row[field]
         if S.secret(v) then return nil end
+        -- A row without a timestamp cannot be told apart from the same row once it
+        -- gains one, so it is not recorded (and makes the next death blind).
+        if v==nil and field=="timestamp" then return nil end
         if v==nil then fields[#fields+1]="-"
         elseif field=="sourceGUID" or field=="sourceName" then
             if type(v)~="string" or #v>120 then return nil end
@@ -179,7 +187,7 @@ local function capture()
     local list,n={},0
     for _,row in pairs(rows) do
         n=n+1
-        if n>RECORD_LIMIT then list.tooMany=true; break end
+        if n>RECORD_LIMIT then list.tooMany=true; blind=true; break end
         local ok,id=pcall(rowId,row)
         local okTs,ts=pcall(function() return S.num(row.timestamp) end)
         list[n]={row=row,id=ok and id or nil,ts=okTs and ts or nil}
@@ -207,9 +215,10 @@ local function remember(list,owner)
     if not list then return end
     for _,entry in ipairs(list) do
         local id=entry.id
+        if not id then blind=true end
         if id then
             if recapSeen[id]==nil then
-                local old=owner==recapDeath and priorMark~=nil and (entry.ts==nil or entry.ts<=priorMark)
+                local old=owner==recapDeath and (priorBlind or (priorMark~=nil and (entry.ts==nil or entry.ts<=priorMark)))
                 admit(id,entry.ts,old and 0 or owner)
             end
             entry.owned=recapSeen[id]~=nil and recapSeen[id].owner==owner
@@ -269,6 +278,7 @@ function D.dead()
     local ok=pcall(function()
         recapDeath=recapDeath+1
         priorMark=seenHigh
+        priorBlind=blind; blind=false
         local death=recapDeath
         local time=S.num(S.call(GetTime))
         D.recap(N.Main.store,time) -- remember even an ineligible/unsent death

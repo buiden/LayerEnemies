@@ -591,6 +591,32 @@ test("K fix check: a 65-row recap with a new killer sends; over 256 rows never n
         eq(#deaths(),count<=256 and 1 or 0,count.." rows"); no(N.Main.error)
     end
 end)
+test("K blind: a row an unsent death could not record never names a later death; the death after that sends",function()
+    for _,mode in ipairs({"secret-timestamp","nil-timestamp","secret-name","throwing-row","257-duplicates"}) do
+        local N=setup(); raceProof(); N.Main.setShare(false)
+        local stamp=H.clock()
+        local function old() local r=recapRow(); r.timestamp=stamp; return r end
+        local held
+        if mode=="secret-timestamp" then held={old()}; held[1].timestamp=H.secret
+        elseif mode=="nil-timestamp" then held={old()}; held[1].timestamp=nil
+        elseif mode=="secret-name" then held={old()}; held[1].sourceName=H.secret
+        elseif mode=="throwing-row" then held={setmetatable({},{__index=function() error("row accessor failure") end})}
+        else
+            local wolf={sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",sourceFlags=0x848,timestamp=stamp-1,overkill=-1}
+            held={}; for i=1,256 do held[i]=wolf end; held[257]=old()
+        end
+        C_DeathRecap.GetRecapEvents=function() return held end
+        H.deliver("PLAYER_DEAD"); H.advance(2.1); H.deliver("PLAYER_ALIVE"); H.advance(1)
+        N.Main.setShare(true); H.advance(1801)
+        held={old()}
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,mode..": the unrecorded row, now readable, is never named"); no(N.Main.error)
+        H.deliver("PLAYER_ALIVE"); H.advance(1801)
+        local fresh=recapRow(); fresh.timestamp=H.clock(); held={fresh}
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),1,mode..": the next clean death sends"); no(N.Main.error)
+    end
+end)
 test("K review F1: an ineligible fresh row set does not stop later eligible retries",function()
     local N,rows=setup(); raceProof(); local at=H.clock()
     C_DeathRecap.GetRecapEvents=function()
