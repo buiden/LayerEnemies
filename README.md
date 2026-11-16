@@ -162,7 +162,7 @@ in guild-only mode**, including a round already in progress.
   first sighting of an enemy not shared in the last 60 seconds, at most one
   per 15 seconds, and lists everyone your own client saw in the last 15
   seconds, so a name can repeat in the next O 15 seconds later. `/le share off`
-  stops it. Also a relay of a report you heard
+  stops all guild sends, including the relays below. Also a relay of a report you heard
   first-hand in your party, raid or whispers, so guildmates running
   LayerEnemies see both. A relay waits a
   random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
@@ -318,10 +318,12 @@ shape is reported as data unavailable.
   only, not in this version). `/le net guild` and `/le net public` set the
   level; `/le net wareffort on|off` (or `we`) and `/le net headhunter on|off`
   (or `hh`) set each network. All saved.
-- `/le share on|off`: share your own sightings (on by default, saved). Off
-  sends no O line and no War Effort report (waiting sync answers and our own
-  embassy lines still queued are dropped too); you still receive everyone
-  else's.
+- `/le share on|off`: share sightings and enable guild sends (on by default,
+  saved). Off stops all guild sends, including your O lines, every Spy,
+  HeadHunter and War Effort relay, host questions/answers and network guild
+  traffic. Pending relays and queued guild embassy lines are dropped, not
+  replayed when re-enabled. Your War Effort reports, waiting sync answers
+  and queued own embassy lines also stop; you still receive everyone else's.
 - Window switches, on every tab: Share, Call, Guild only, War Effort and
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).
@@ -545,8 +547,13 @@ Sightings heard on GUILD are not relayed: guildmates already hear them.
 A copy waits a random 0.5–2.5 seconds; a guildmate's copy heard during the
 wait cancels ours. At most 6 Spy relay attempts per rolling minute per
 client, and each full enemy name at most once per 60 seconds across all
-three family sources and observers. These are `forward` priority: an empty
-Wire bucket drops them, never queues them ahead of our own sightings.
+three family sources and observers. These are `forward` priority and never
+queue. All guild relays leave **two of the five LEGW1 prefix tokens** for our
+own lines (one send costs two tokens in combat; refill is one per two seconds).
+The relay gate accounts for other LEGW1 authors too, conservatively spending
+refused attempts, and drops a relay that would consume the reserve. Wire
+retains its existing shared/minute limits. `/le share off` stops every relay,
+including ones already waiting; turning sharing back on does not replay them.
 Instance, guild-only record sharing and the existing 128-pending cap still
 refuse relays; the guild/instance context is checked again after the wait.
 The caps count refused Wire attempts too, so nothing retries later.

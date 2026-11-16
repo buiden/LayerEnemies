@@ -10,6 +10,25 @@ Rl.VERSION, Rl.MEMORY, Rl.MAX, Rl.PENDING = "1", 120, 256, 128
 Rl.TTL = { we = 600, hh = 300, spy = 600 }                                 -- a relayed copy lives as long as a direct one
 Rl.rand = function() return 0.5 + math.random() * 2 end       -- 0.5..2.5 s wait before sending
 
+-- Mirror Wire's LEGW1 prefix budget (5 tokens, one refilled per 2 s) conservatively.
+-- Every LEGW1 author charges here before Wire; refused attempts still spend. Relays must leave
+-- 2 of those 5 tokens: two peaceful own lines, or one double-cost combat line. Wire remains the
+-- final authority for all routes/global/minute limits. Clearing pending work never refills this bucket.
+local PREFIX_CAP, PREFIX_REFILL, OWN_RESERVE = 5, 2, 2
+local tokens, tokenAt = PREFIX_CAP, nil
+function Rl.spend(now, relay)
+    if not S.num(now) then return false, "clock" end
+    if not tokenAt or now > tokenAt then
+        if tokenAt then tokens = math.min(PREFIX_CAP, tokens + (now - tokenAt) / PREFIX_REFILL) end
+        tokenAt = now
+    end
+    local fighting = S.call(InCombatLockdown) == true or S.call(UnitAffectingCombat, "player") == true
+    local cost = fighting and 2 or 1
+    if relay and tokens < cost + OWN_RESERVE then return false, "own reserve" end
+    tokens = math.max(0, tokens - cost)
+    return true
+end
+
 local SRC = { we = true, hh = true, spy = true }
 local KIND = { group = true, fight = true, outlaw = true, seen = true }
 local SPY = { spy = true, fspy = true, sent = true }
@@ -221,6 +240,7 @@ function Rl.tick(st, now, ctx)
             end
             if text then
                 ok, why = spyRoom(st, p.record, now, true)
+                if ok then ok, why = Rl.spend(now, true) end
                 if ok then ok, why = N.Wire.send("LEGW1", text, "GUILD", nil, { prio = "forward" }) end
             end
             out[#out + 1] = { key = key, ok = ok, why = why }

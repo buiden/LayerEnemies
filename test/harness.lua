@@ -9,6 +9,7 @@ local function no(v,msg) eq(not not v,false,msg) end
 local forbidden
 local function test(name,fn)
     if arg and arg[1]=="--spy-relay-only" and not name:find("Spy relay",1,true) then return end
+    if arg and arg[1]=="--relay-policy-only" and not name:find("Guild relay policy:",1,true) then return end
     local ok,err=pcall(fn)
     -- No test may reach an API that sends, invites, accepts or leaves.
     if ok and (forbidden or 0)>0 then ok,err=false,"forbidden API reached "..forbidden.." time(s)" end
@@ -2360,14 +2361,14 @@ test("relay sends each id once in 120 s",function()
     -- 256 remembered ids at most
     st=R.new(); for i=1,300 do R.offer(st,weRec(N,{rid=tostring(i)}),100,ctx); R.clear(st) end; eq(st.n,256)
 end)
-test("relay drops instead of queueing when the bucket is empty",function()
+test("relay drops instead of queueing when only the own reserve remains",function()
     local N=loadAddon(); establish(N); N.Relay.rand=function() return .5 end; advance(1)
     for i=1,7 do N.Main.offerRelay(weRec(N,{origin="Scout"..string.char(96+i),heard=clock})) end
-    advance(1); eq(#relayed(N),5); eq(N.Main.lastRelay,"throttled")
+    advance(1); eq(#relayed(N),3); eq(N.Main.lastRelay,"own reserve")
     eq(next(N.Main.relay.pending),nil)
-    advance(30); eq(#relayed(N),5)
+    advance(30); eq(#relayed(N),3)
     -- the bucket refills: a new record goes
-    N.Main.offerRelay(weRec(N,{origin="Later",heard=clock})); advance(1); eq(#relayed(N),6)
+    N.Main.offerRelay(weRec(N,{origin="Later",heard=clock})); advance(1); eq(#relayed(N),4)
 end)
 test("relayed record is labelled and not first-hand",function()
     local N=loadAddon(); establish(N); advance(20)
@@ -7745,6 +7746,11 @@ assert(loadfile("test/realm_names.lua"))({test=test,eq=eq,yes=yes,no=no,load=loa
 assert(loadfile("test/spy_relay.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,
     clock=function() return clock end,advance=advance,deliver=deliver,drain=drain,
     instance=function(v) inInstance=v end,sent=function() return sent end})
+
+assert(loadfile("test/relay_policy.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,
+    clock=function() return clock end,advance=advance,deliver=deliver,drain=drain,
+    units=function() return units end,player=player,establish=establish,
+    combat=function(v) combat=v end,sent=function() return sent end})
 
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

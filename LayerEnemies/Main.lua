@@ -367,6 +367,7 @@ end
 -- Guild relay out: a first-hand record heard on PARTY, RAID or WHISPER goes to the guild once, after a random wait
 -- in which a guildmate's copy makes us stand down.
 function M.offerRelay(record)
+    if not M.sharing() then return end
     local time=now()
     local ok=N.Relay.offer(M.relay,record,time,M.relayContext())
     if ok then
@@ -378,6 +379,7 @@ function M.relayContext()
     return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100)}
 end
 function M.relayTick()
+    if not M.sharing() then N.Relay.clear(M.relay); return end
     for _,r in ipairs(N.Relay.tick(M.relay,now(),M.relayContext())) do M.lastRelay=r.ok and "relayed" or r.why end
 end
 -- Guild relay in: GUILD only, never from us, stored as src "guild" with the claimed source as its label; never
@@ -569,10 +571,11 @@ end
 -- One H line: only while hosting, after this session's first guild roster (a host resumed at login or turned on
 -- early is not yet checked against it), with our key and live zone known, and nothing blocking hosting.
 function M.announceHost()
-    if not (M.host and M.host.on) or not M.hostCheck() or not A.rosterAge(now()) then return false end
+    if not M.sharing() or not (M.host and M.host.on) or not M.hostCheck() or not A.rosterAge(now()) then return false end
     local own=M.hostOwn()
     local line=N.Relay.hostLine(own.key,own.zone)
     if not line then return false end
+    N.Relay.spend(now(),false)
     local ok=N.Wire.send("LEGW1",line,"GUILD",nil,{prio="owed"})
     if ok then M.host.announcedAt=now() end
     return ok
@@ -1182,6 +1185,7 @@ function M.findHosts()
     local ok,message=N.Hosts.ask(M.heard,now(),S.call(IsInGuild)==true)
     -- the same click asks LayerEnemies hosts with one F|1 (sent only when the Q went out: guild, 60 s)
     if ok then
+        N.Relay.spend(now(),false)
         local sentF=N.Wire.send("LEGW1",N.Relay.findLine(),"GUILD",nil,{prio="click"})
         if sentF then message=message.."; LayerEnemies hosts were asked too" end
     end
@@ -1409,7 +1413,10 @@ function M.shareTick()
     local inGuild=S.call(IsInGuild)==true
     -- to the guild: one O line with up to four names
     local line=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=key,age=math.max(0,math.floor(time-rep.at)),count=rep.count,enemies=rep.enemies})
-    if line and inGuild then N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"}) end
+    if line and inGuild then
+        N.Relay.spend(time,false)
+        N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"})
+    end
     -- to War Effort: C then E, two or more enemies, a position, and only where a reader was heard in 600 s
     if rep.count<2 or not (x and y) then return end
     local stamp=S.num(S.call(GetServerTime))
@@ -1475,7 +1482,7 @@ function M.weHello(reason)
         ambiguous=M.store.ambiguous(time)==true}
     t.stamp=0; local said=N.WeOut.hello(t); t.stamp=stamp; local text=N.WeOut.hello(t)
     local any=false
-    if S.call(IsInGuild)==true then
+    if M.sharing() and S.call(IsInGuild)==true then
         local last=st.saidAt.GUILD
         if reason=="request" or said~=st.said.GUILD or not last or time<last or time-last>=N.WeNet.SAME then
             if N.Wire.send("WEFF1",text,"GUILD",nil,{net="we",prio="own"}) then
@@ -1502,7 +1509,7 @@ function M.weTick()
         st.helloDue=time+N.WeNet.EVERY+math.random()*N.WeNet.JITTER
     end
     if not st.queried and st.queryTries<N.WeNet.QUERY_TRIES and time-st.start>=N.WeNet.QUERY and A.inInstance()==false
-        and S.call(IsInGuild)==true then
+        and M.sharing() and S.call(IsInGuild)==true then
         local ok,_,called=N.Wire.send("WEFF1",N.WeOut.query(),"GUILD",nil,{net="we",prio="own"})
         if ok then st.queried=true end
         -- an attempt is a send the client was asked for (Wire's own pause or budget is no attempt)
@@ -1592,7 +1599,7 @@ function M.embassyTick()
     -- the War Effort network off or stood down: links announced are taken back at once (Wire lets that one line go)
     if not N.Net.allowed("we","guild") then
         local st=M.emb
-        if st.announced and st.announced~="D|" and S.call(IsInGuild)==true then
+        if M.sharing() and st.announced and st.announced~="D|" and S.call(IsInGuild)==true then
             if N.Wire.send("WEFF1","D|","GUILD",nil,{net="we",prio="own",withdraw=true}) then N.WeEmb.announced(st,"D|",{},time) end
         end
         return
@@ -1603,7 +1610,7 @@ function M.embassyTick()
     ctx.members=(type(m)=="table" and m[1]) and m or nil
     for _,o in ipairs(N.WeEmb.tick(M.emb,time,ctx)) do
         if o.kind=="GUILD" then
-            if N.Wire.send("WEFF1",o.text,"GUILD",nil,{net="we",prio="embassy"}) then N.WeEmb.announced(M.emb,o.text,o.links,time) end
+            if M.sharing() and N.Wire.send("WEFF1",o.text,"GUILD",nil,{net="we",prio="embassy"}) then N.WeEmb.announced(M.emb,o.text,o.links,time) end
         else N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="embassy",queue=true,still=embassyOn}) end
     end
 end
@@ -1618,7 +1625,8 @@ function M.embassyIn(msg,kind,sender,time)
         local g,why=N.WeEmb.bridge(M.emb,msg,sender,time,ctx)
         M.lastDrop=g and "bridged" or ("embassy: "..tostring(why))
         if not g then return end
-        if S.call(IsInGuild)==true then N.Wire.send("WEFF1",g,"GUILD",nil,{net="we",prio="embassy",queue=true,still=embassyOn}) end
+        local function still() return M.sharing() and embassyOn() end
+        if M.sharing() and S.call(IsInGuild)==true then N.Wire.send("WEFF1",g,"GUILD",nil,{net="we",prio="embassy",queue=true,still=still}) end
         -- stored as a relayed public report (never passed on to another partner)
         if msg.inner.type~="H" then
             local record=N.Reports.receive(M.receiver,{type="G",origin=msg.origin,inner=msg.inner},{sender=sender,route="WHISPER",now=time,
@@ -1812,11 +1820,12 @@ M.NET_NOTICE="LayerEnemies: public networks ON (War Effort, HeadHunter…). /le 
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
-    -- off: nothing we authored goes out any more: sync answers and the reports kept for them are dropped now, our own
-    -- W lines still queued for embassy partners are dropped by their still check (M.sharing)
+    -- Off cancels all pending guild relays as well as our sync answers. Queued guild/own embassy lines
+    -- are dropped by their still checks. A quick off/on must not revive the cancelled relay timers.
+    if not on and M.relay then N.Relay.clear(M.relay) end
     if not on and M.we then N.WeNet.forget(M.we) end
-    M.say(on and "LayerEnemies: your sightings are shared again: an O line with your guild, War Effort reports where a reader was heard."
-        or "LayerEnemies: your sightings are no longer shared (no O line, no War Effort reports). You still receive everyone else's.")
+    M.say(on and "LayerEnemies: your sightings are shared again; guild sends and relays are enabled."
+        or "LayerEnemies: your sightings are no longer shared; all guild sends and relays are off. You still receive everyone else's.")
     if N.UI then N.UI.refresh() end
 end
 local NET_KEYS={we="we",wareffort="we",hh="hh",headhunter="hh"}

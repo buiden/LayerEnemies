@@ -133,8 +133,9 @@ test("Spy relay cap: pending burst rechecks the cap at dispatch",function()
     eq(N.Safe.count(N.Main.relay.pending),7)
     local attempts=0; local send=N.Wire.send
     N.Wire.send=function(...) attempts=attempts+1; return send(...) end
-    H.advance(11); eq(attempts,6,"cap covers attempts, even when the Wire bucket drops one")
-    eq(#outgoing(),5); eq(next(N.Main.relay.pending),nil); H.advance(60); eq(attempts,6)
+    H.advance(11); eq(#N.Main.relay.spyTimes,6,"cap includes attempts refused by the own reserve")
+    eq(attempts,3,"only sends that leave the two-token reserve reach Wire")
+    eq(#outgoing(),3); eq(next(N.Main.relay.pending),nil); H.advance(60); eq(attempts,3)
 end)
 
 test("Spy relay cap: same full enemy name once per 60 seconds across origins, routes and family",function()
