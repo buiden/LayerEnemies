@@ -809,6 +809,15 @@ PASS Round1 group: member existence and self identity are rechecked at drain
 PASS Round1 group: retarget without a new event cannot change a queued observation
 PASS Round1 hash: all evidence plus an independent place fits on a Find page
 PASS Round1 realm: own realm equality normalizes and folds full strings
+PASS Round2 relayed: guild O survives a newer claim beside own history
+PASS Round2 death: guild O survives a newer claim beside own history
+PASS Round2 claims: guild O survives relay and death without an own entry
+PASS Round2 retention: own guild and claim expire independently without refreshing O
+PASS Round2 own: layer change releases priority to guild O
+PASS Round2 own: unknown layer never takes priority over guild O
+PASS Round2 own: current-layer 599-second sighting stays primary beside another zone
+PASS Round2 bounds: own storage participates in eviction and rollback indexing
+PASS Round2 UI: own guild claim current hash and OpenMap all fit
 PASS K: hostile opposite-player recap sends one exact guild line after PLAYER_DEAD
 PASS K: whole grammar refuses malformed lines at Wire, not just a K prefix
 PASS K: Wire rate is 120 seconds inclusive, rolls back closed and stamps refused API calls
@@ -976,4 +985,4 @@ PASS Kills R1 share: off then on while pending sends nothing on LEGW1
 PASS Kills R1 share: off at dispatch sends nothing on LEGW1
 PASS Kills R1 bounds: live event ledger refuses overflow and expires without renewal
 PASS Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear and rollback
-RESULT: 978 tests passed, 0 failed, 92464 assertions
+RESULT: 987 tests passed, 0 failed, 94571 assertions

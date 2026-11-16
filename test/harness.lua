@@ -7764,6 +7764,9 @@ assert(loadfile("test/round1.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddo
     units=function() return units end,player=player,establish=establish,
     sent=function() return sent end})
 
+assert(loadfile("test/round2.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,
+    clock=function(v) if v then clock=v end; return clock end,deliver=deliver,sent=function() return sent end})
+
 assert(loadfile("test/own_death.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,deliver=deliver,advance=advance,
     drain=drain,secret=secret,player=player,establish=establish,abc=abc,
     sent=function() return sent end,log=function() return log end,clock=function() return clock end,

@@ -245,25 +245,26 @@ end
 function F.rows(st,now,zone,sameSpotter)
     local out={}
     N.Known.prune(st.known,now)
-    local function ownEligible(e) return e.source=="own" and now-e.at<F.TTL and e.zone==zone end
+    local function ownEligible(e)
+        return e.source=="own" and now-e.at<F.TTL and e.zone==zone and e.layer~=nil and e.epoch==st.epoch
+    end
     for _,entry in ipairs(st.entries) do
         local name=entry.name
-        local seen,reported,seenUnknown,reportedUnknown
+        local seen,reported,seenUnknown,reportedUnknown,otherSeen,otherUnknown
         for _,pair in pairs(st.known.byName[entry.shortKey] or {}) do
-            for _,slot in ipairs({"seen","reported"}) do
+            for _,slot in ipairs({"own","seen","reported"}) do
                 local e=pair[slot]
                 if e then
                     local match,realmUnknown=matches(entry,e,st.homeKey)
                     if match then
-                        if slot=="seen" then
+                        if slot~="reported" then
                             if not seen or (ownEligible(e) and not ownEligible(seen))
                                 or (ownEligible(e)==ownEligible(seen) and e.at>seen.at) then
                                 e,realmUnknown,seen,seenUnknown=seen,seenUnknown,e,realmUnknown
                             end
-                        end
-                        -- A second matching first-hand identity (e.g. a realm alias)
-                        -- can also supply the other line without displacing our own.
-                        if e and (not reported or e.at>reported.at) then reported,reportedUnknown=e,realmUnknown end
+                            -- Retain the other first-hand line independently of claims.
+                            if e and (not otherSeen or e.at>otherSeen.at) then otherSeen,otherUnknown=e,realmUnknown end
+                        elseif not reported or e.at>reported.at then reported,reportedUnknown=e,realmUnknown end
                     end
                 end
             end
@@ -277,7 +278,7 @@ function F.rows(st,now,zone,sameSpotter)
             loc.realmUnknown=realmUnknown
         end
         -- Prefer a fresh first-hand finding. Otherwise display the newest evidence
-        -- as the summary, while retaining both independently aged detail lines.
+        -- as the summary, while retaining independently aged detail lines.
         local primary,primaryUnknown=seen,seenUnknown
         if reported and (not seen or ((now-seen.at>=F.TTL or (seen.source=="own" and seen.zone~=zone))
             and reported.at>seen.at)) then primary,primaryUnknown=reported,reportedUnknown end
@@ -287,6 +288,7 @@ function F.rows(st,now,zone,sameSpotter)
         local row=loc and project(st,loc,now,zone,sameSpotter) or {name=name,status="Not located — needs your sighting or a nearby War Effort user."}
         if seen then row.seen=project(st,location(seen,name,seenUnknown),now,zone,sameSpotter) end
         if loc and loc.source=="headhunter" and not loc.cached and (not seen or loc.at>seen.at) then row.seen=project(st,loc,now,zone,sameSpotter) end
+        if otherSeen then row.otherSeen=project(st,location(otherSeen,name,otherUnknown),now,zone,sameSpotter) end
         if reported then row.reported=project(st,location(reported,name,reportedUnknown),now,zone,sameSpotter) end
         -- Anonymous current evidence must remain visible beside older named lines,
         -- especially when its spotter is the row's Ask target.
