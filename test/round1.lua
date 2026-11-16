@@ -18,6 +18,59 @@ for _,realms in ipairs({{"1234","84860"},{"Home","ochg"}}) do
     end)
 end
 
+test("Round1 cost: polling 20 tracked names visits only matching Known entries",function()
+    local N=H.load(); local F,K,M=N.Find,N.Known,N.Main
+    for i=1,20 do yes(F.add(M.find,"Tracked "..H.abc(i))) end
+    for i=1,300 do
+        local name=i<=5 and "Tracked "..H.abc(i) or "Untracked "..H.abc(i)
+        K.put(M.find.known,{name=name,zone=100,at=H.clock(),source="spy",kind="seen",spotter="Scout"},H.clock())
+    end
+    eq(N.Safe.count(M.find.known.entries),300)
+    local known=M.find.known
+    for poll=1,2 do
+        local visits,lookups=0,0
+        local original=pairs; local index=known.byName
+        local counted={[known.entries]=true}
+        for _,bucket in original(index or {}) do counted[bucket]=true end
+        if index then known.byName=setmetatable({},{__index=function(_,key) lookups=lookups+1; return index[key] end}) end
+        pairs=function(t)
+            local iter,state,key=original(t)
+            if not counted[t] then return iter,state,key end
+            return function(s,k)
+                local nextKey,value=iter(s,k)
+                if nextKey~=nil then visits=visits+1 end
+                return nextKey,value
+            end,state,key
+        end
+        local ok,err=pcall(M.poll)
+        pairs=original; if index then known.byName=index end
+        yes(ok,err); no(M.error)
+        yes(visits+lookups<=25,"20 keys + 5 matching entries, not a cache scan: "..visits.." visits + "..lookups.." lookups")
+    end
+    local rows=M.findRows()
+    for i,r in ipairs(rows) do eq(r.at~=nil,i<=5,"index must still return every matching finding") end
+end)
+
+test("Round1 cost: Known index follows aliases replacement eviction expiry and rollback",function()
+    local N=H.load(); local F,K=N.Find,N.Known
+    local st=F.new({"Cedar","Cedar Vale","Cedar Vale-A"},"Home")
+    local function rows(at) return F.rows(st,at,100) end
+    F.own(st,{name="Cedar",displayName="Cedar Vale",realm="Vale",source="own target",faction="opposite"},100,10)
+    for _,r in ipairs(rows(10)) do yes(r.at) end
+    F.remove(st); F.add(st,"Cedar"); yes(rows(10)[1].own,"add reuses the own first-name alias")
+    -- A replacement without an own first-name alias must not inherit one.
+    F.report(st,{sender="Scout",zone=100,at=11,source="spy",enemies={{name="Cedar Vale"}}},"Home")
+    -- Whether an own slot remains is a separate precedence policy; expiry removes it.
+    eq(rows(3610)[1].at,nil)
+    F.add(st,"Cedar Vale"); yes(rows(3610)[2].at); eq(rows(3611)[2].at,nil)
+    for i=1,301 do K.put(st.known,{name="Enemy "..H.abc(i),zone=100,at=4000+i,source="spy",kind="seen"},4301) end
+    F.remove(st); F.add(st,"Enemy a"); F.add(st,"Enemy "..H.abc(301))
+    eq(rows(4301)[1].at,nil); yes(rows(4301)[2].at)
+    eq(rows(1)[2].at,nil,"clock rollback removes future evidence and aliases")
+    eq(next(st.known.entries),nil)
+    if st.known.byName then eq(next(st.known.byName),nil,"no dangling index entries") end
+end)
+
 test("Round1 realm: own realm equality normalizes and folds full strings",function()
     local N=H.load(); local st=N.Find.new({"Alice-Érea52"},"Home")
     N.Find.own(st,{name="Alice",realm="érea - 52",source="own target",faction="opposite"},100,H.clock())

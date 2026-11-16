@@ -220,8 +220,8 @@ function F.report(st,r,home)
         end
     end
 end
--- A bounded read projection, not a scan on receipt. The hot paths above still use
--- the prebuilt Find20 indices. Reusing memory on add does not hash incoming reports.
+-- Reads use Known base/own-name buckets, never the full cache per tracked name.
+-- Reusing memory on add does not hash incoming reports.
 local function project(st,loc,now,zone,sameSpotter)
     local row={}
     for k,v in pairs(loc) do row[k]=v end
@@ -247,7 +247,7 @@ function F.rows(st,now,zone,sameSpotter)
     for _,entry in ipairs(st.entries) do
         local name=entry.name
         local seen,reported,seenUnknown,reportedUnknown
-        for _,pair in pairs(st.known.entries) do
+        for _,pair in pairs(st.known.byName[entry.shortKey] or {}) do
             for _,slot in ipairs({"seen","reported"}) do
                 local e=pair[slot]
                 if e then
