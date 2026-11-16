@@ -745,6 +745,7 @@ function M.findDetails(row)
     local lines={}
     if row.current then lines[#lines+1]=currentLine(row.current) end
     if row.seen then lines[#lines+1]=knownLine(row.seen) end
+    if row.otherSeen then lines[#lines+1]=knownLine(row.otherSeen) end
     if row.reported then lines[#lines+1]=knownLine(row.reported) end
     return #lines>0 and table.concat(lines,"\n") or nil
 end
