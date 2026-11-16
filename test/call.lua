@@ -11,9 +11,9 @@ test("Call: guild bounty death shows victim killer zone and one sound without se
     local before=#H.sent(); bounty()
     yes(popup(N),"received death must show the popup")
     local U=N.CallUI
-    eq(U.victim:GetText(),"One of ours: Birch Moss")
-    eq(U.killer:GetText(),"Killer: Cedar Vale 60 ROGUE")
-    eq(U.where:GetText(),"Where: Ashenvale")
+    eq(U.victim:GetText(),"Birch Moss")
+    eq(U.killer:GetText(),"Cedar Vale 60 ROGUE")
+    eq(U.where:GetText(),"Ashenvale")
     eq(sounds,1); eq(#H.sent(),before); no(N.Main.error); PlaySound=nil
 end)
 
@@ -204,19 +204,45 @@ test("Call: Find full stays unchanged; partial names are never added",function()
         if not partial then yes(table.concat(H.log(),"\n"):find("five",1,true)) end
     end
 end)
-test("Call: Dismiss and x only close; swapping dismiss id changes label only",function()
-    local N=H.load(); bounty(); yes(N.CallUI.dismiss); local e=N.CallUI.event
-    N.CallText.dismiss_b.en="Close"; N.CallText.DISMISS="dismiss_b"; N.CallUI.render()
-    eq(N.CallUI.dismiss.label:GetText(),"Close"); eq(N.CallUI.help.label:GetText(),"On my way"); eq(N.CallUI.event,e)
-    local before=#H.log(); N.CallUI.dismiss:Click(); eq(#H.log(),before); eq(#N.Main.find.names,0); eq(#H.sent(),0)
-    H.advance(20); bounty("Other Victim"); yes(N.CallUI.closeButton); N.CallUI.closeButton:Click(); no(popup(N))
+test("Call: Dismiss and x only close; swapping dismiss id changes only its art path",function()
+    local N=H.load(); bounty(); local U,T=N.CallUI,N.CallText; local e=U.event
+    yes(U.dismiss); yes(rawget(U.dismiss,"art"),"dismiss image")
+    eq(T.HELP,"help"); eq(T.DISMISS,"dismiss_a")
+    eq(U.help.art.texture,"Interface\\AddOns\\LayerEnemies\\Media\\call-help.tga")
+    eq(U.dismiss.art.texture,"Interface\\AddOns\\LayerEnemies\\Media\\call-dismiss-a.tga")
+    for _,b in ipairs({U.help,U.dismiss}) do
+        yes(b.art:IsShown()); no(b.label:IsShown()); eq(b.label:GetText(),"")
+        eq(b.art.width,96); eq(b.art.height,24); eq(b.art.point[1],"CENTER")
+    end
+    local body,heading,help=U.body:GetText(),U.heading.texture,U.help.art.texture
+    local click,generation=U.dismiss.scripts.OnClick,U.generation
+    T.DISMISS="dismiss_b"; U.render()
+    eq(U.dismiss.art.texture,"Interface\\AddOns\\LayerEnemies\\Media\\call-dismiss-b.tga")
+    eq(U.help.art.texture,help); eq(U.body:GetText(),body); eq(U.heading.texture,heading)
+    eq(U.dismiss.label:GetText(),""); no(U.dismiss.label:IsShown())
+    eq(U.dismiss.scripts.OnClick,click); eq(U.generation,generation); eq(U.event,e)
+    local before=#H.log(); U.dismiss:Click(); eq(#H.log(),before); eq(#N.Main.find.names,0); eq(#H.sent(),0)
+    H.advance(20); bounty("Other Victim"); yes(U.closeButton); U.closeButton:Click(); no(popup(N))
 end)
-test("Call: exact three heading IDs and body IDs exist; buttons and labels remain text",function()
+test("Call: nil button art requests no texture and shows exact English including alternate Close",function()
+    for _,dismiss in ipairs({"dismiss_a","dismiss_b"}) do
+        local N=H.load(); local U,T=N.CallUI,N.CallText
+        T.HELP="help"; T.DISMISS=dismiss; T.help.art=nil; T[dismiss].art=nil
+        U.create(); yes(rawget(U.help,"art"),"help image"); yes(rawget(U.dismiss,"art"),"dismiss image")
+        local requests=0
+        U.help.art.SetTexture=function() requests=requests+1 end
+        U.dismiss.art.SetTexture=function() requests=requests+1 end
+        bounty(); yes(popup(N)); eq(requests,0)
+        no(U.help.art:IsShown()); no(U.dismiss.art:IsShown())
+        yes(U.help.label:IsShown()); yes(U.dismiss.label:IsShown())
+        eq(U.help.label:GetText(),"On my way"); eq(U.dismiss.label:GetText(),dismiss=="dismiss_a" and "Not now" or "Close")
+    end
+end)
+test("Call: exact three heading IDs and body IDs exist with swappable button art",function()
     local N=H.load(); local T=N.CallText
     yes(T); eq(table.concat(T.HEADINGS,","),"H2,H1,H6"); eq(table.concat(T.BODIES,","),"B1,B2,B3,B4,B5,B6")
     for _,id in ipairs(T.HEADINGS) do yes(T[id].art); yes(T[id].latin); yes(T[id].en); no(T[id].latin:find("%d")) end
-    for _,id in ipairs({"victim","killer","where",T.HELP,T.DISMISS,"dismiss_b"}) do eq(T[id].art,nil); yes(T[id].en) end
-    bounty(); eq(N.CallUI.help.label:GetText(),"On my way"); eq(N.CallUI.dismiss.label:GetText(),"Not now")
+    for _,id in ipairs({T.HELP,T.DISMISS,"dismiss_b"}) do yes(T[id].art); yes(T[id].en); yes(T[id].latin) end
 end)
 test("Call: art off persists and enlarges Latin; nil or failing texture retains Latin",function()
     for _,mode in ipairs({"off","nil","throw"}) do
@@ -245,7 +271,7 @@ test("Call: template percent and space slots are literal and text passed to clie
     eq(T.clean("Zo\195\171 \201\143"),"Zo\195\171 \201\143")
     eq(T.clean("A\201\144\216\167\240\159\152\128Z"),"A???Z")
     bounty(); N.CallUI.event.victim="Fir \216\167"; N.CallUI.render()
-    eq(N.CallUI.victim:GetText(),"One of ours: Fir ?")
+    eq(N.CallUI.victim:GetText(),"Fir ?")
 end)
 
 test("Call: tracked killer and popup share one sound for the same incoming death",function()
@@ -273,4 +299,65 @@ test("Call: all repeats stay within one shown frame and a bounded timer populati
     local N=H.load(); bounty(); local count=#H.frames()
     for i=1,100 do H.advance(20); bounty("Victim "..H.abc(i)); yes(popup(N)); eq(#H.frames(),count); yes(#H.timers()<10) end
     eq(#H.sent(),0); no(N.Main.error)
+end)
+
+test("Call: label art is on each row right edge with a right-justified value against its left",function()
+    local N=H.load(); bounty(); local U,T=N.CallUI,N.CallText
+    yes(U.rows,"dedicated label rows")
+    local bottom=0
+    for _,key in ipairs({"victim","killer","where"}) do
+        local row,value=U.rows[key],U[key]
+        eq(row.width,196); eq(row.point[1],"TOPLEFT"); eq(row.point[2],U.frame)
+        eq(row.point[3],"TOPLEFT"); eq(row.point[4],12)
+        eq(row.art.texture,"Interface\\AddOns\\LayerEnemies\\Media\\call-"..key..".tga")
+        eq(row.art.texture,T[key].art); yes(row.art:IsShown())
+        eq(row.art.width,96); eq(row.art.height,24)
+        eq(row.art.point[1],"TOPRIGHT"); eq(row.art.point[2],row)
+        eq(row.art.point[3],"TOPRIGHT"); eq(row.art.point[4],0); eq(row.art.point[5],0)
+        eq(value.justifyH,"RIGHT"); eq(value.width,100)
+        eq(value.point[1],"TOPRIGHT"); eq(value.point[2],row.art); eq(value.point[3],"TOPLEFT")
+        eq(value.point[4],0); eq(value.point[5],-4)
+        yes(-row.point[5]>=bottom); yes(row.height>=24)
+        bottom=-row.point[5]+row.height
+    end
+    yes(-U.body.point[5]>bottom,"English sentence is below the label rows")
+    U.killer.GetStringHeight=function() return 72 end; U.render()
+    yes(U.rows.killer.height>=76,"wrapped value is not clipped by a fixed-height row")
+    yes(-U.rows.where.point[5]>=-U.rows.killer.point[5]+U.rows.killer.height)
+end)
+test("Call: nil label art shows English LTR at full width and never requests a texture",function()
+    local N=H.load(); bounty(); local U,T=N.CallUI,N.CallText
+    yes(U.rows,"dedicated label rows")
+    local expected={victim="One of ours: Birch Moss",killer="Killer: Cedar Vale 60 ROGUE",where="Where: Ashenvale"}
+    for _,key in ipairs({"victim","killer","where"}) do
+        local row,value=U.rows[key],U[key]; local path=T[key].art; T[key].art=nil
+        local requested=0; local original=row.art.SetTexture
+        row.art.SetTexture=function() requested=requested+1 end
+        U.render(); eq(requested,0); no(row.art:IsShown()); yes(value:IsShown())
+        eq(value:GetText(),expected[key]); eq(value.justifyH,"LEFT"); eq(value.width,196)
+        eq(value.point[1],"TOPLEFT"); eq(value.point[2],row); eq(value.point[3],"TOPLEFT")
+        eq(value.point[4],0); eq(value.point[5],0)
+        T[key].art=path; row.art.SetTexture=original; U.render()
+        yes(row.art:IsShown()); eq(value.justifyH,"RIGHT"); eq(value.width,100)
+    end
+end)
+test("Call: art off or every nil art requests no texture and restores English for labels and buttons",function()
+    for _,mode in ipairs({"off","nil"}) do
+        local N=H.load(); local U,T=N.CallUI,N.CallText; U.create(); yes(U.rows)
+        local images={U.heading,U.help.art,U.dismiss.art}
+        for _,key in ipairs({"victim","killer","where"}) do images[#images+1]=U.rows[key].art end
+        local requests=0; for _,image in ipairs(images) do image.SetTexture=function() requests=requests+1 end end
+        if mode=="off" then SlashCmdList.LAYERENEMIES("call art off")
+        else for _,entry in pairs(T) do if type(entry)=="table" then entry.art=nil end end end
+        bounty(); yes(popup(N)); eq(requests,0)
+        for _,image in ipairs(images) do no(image:IsShown()) end
+        eq(U.victim:GetText(),"One of ours: Birch Moss"); eq(U.killer:GetText(),"Killer: Cedar Vale 60 ROGUE")
+        eq(U.where:GetText(),"Where: Ashenvale"); eq(U.help.label:GetText(),"On my way"); eq(U.dismiss.label:GetText(),"Not now")
+        yes(U.help.label:IsShown()); yes(U.dismiss.label:IsShown())
+        if mode=="off" then
+            SlashCmdList.LAYERENEMIES("call art on"); U.render(); yes(requests>0)
+            for _,image in ipairs(images) do yes(image:IsShown()) end
+            eq(U.victim:GetText(),"Birch Moss"); eq(U.victim.justifyH,"RIGHT")
+        end
+    end
 end)

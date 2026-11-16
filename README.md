@@ -60,10 +60,19 @@ It also adds the displayed full killer name to Find if a slot is available
 (maximum five). A full list stays unchanged with an explanation; partial
 names are not added. It does not send a message or ask for an invite.
 
-Only three Arabic headings ship, as pre-rendered images. English body lines,
-labels and buttons stay client text. Latin transliteration is always shown
-under the image; `/le call art off` hides the image and enlarges the Latin
-heading (`/le call art on` restores it, saved across reload). No Arabic text,
+Three Arabic headings, three fixed detail labels and three button labels
+ship as pre-rendered images. Each detail row puts its label image on the
+right, with the client-text value right-justified to its left, next to the
+colon. Killer level/class stay with the value. One English body sentence
+appears under the rows. Help uses the abshir image; dismiss defaults to
+i3dhirooni, with sakkir also included. In CallText.lua, changing DISMISS from
+"dismiss_a" to "dismiss_b" switches only the button image and its fallback.
+Latin heading transliteration is always shown under the heading image.
+`/le call art off` hides all call images, enlarges the Latin heading and
+uses English labels (One of ours:, Killer:, Where:) left-to-right, with
+On my way / Not now buttons (Close for sakkir). A nil art field in CallText.lua
+uses the same fallback without requesting a texture. `/le call art on`
+restores images; the switch is saved across reload. No Arabic text,
 font or shaping library runs in the client. Unsupported dynamic characters
 above U+024F are shown as `?` on this popup. B4's "last seen" line is eligible
 only through age 30 seconds. Art source and OFL font details: THIRD_PARTY.md.
@@ -289,7 +298,7 @@ shape is reported as data unavailable.
 - Window switches, on every tab: Share, Call, Guild only, War Effort and
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).
-  `/le call art on|off`: Arabic heading images (default on); Latin stays visible.
+  `/le call art on|off`: all Arabic call images (default on); heading Latin stays visible.
 - `/le find <name>`: add a tracked enemy (maximum five). Names may include a
   Forever surname or an explicit `-Realm`. `/le find` clears all tracked names.
   The Find tab also has a Track field and individual Clear buttons.
@@ -781,7 +790,7 @@ asked names, alert history or source settings. Besides those three it holds
 `consent` ("guild" after `/le net guild`, "public" after `/le net public`,
 absent until either: public), `nets` (one
 switch per network), `share` (sharing your sightings), `call` (death popup/sound),
-`callArt` (heading images; both call settings default on), `netNotice` (the
+`callArt` (call images; both call settings default on), `netNotice` (the
 first-login line was shown) and `weReportId` (War Effort's report id, which
 must keep rising across sessions, 1 to 65535). Reloading keeps your watchlist,
 not its locations. Epoch boundaries clear sighting locations; OpenMap shared
@@ -829,13 +838,18 @@ send (anything but N, E, Q, O, S, H) is built. Both `C_BattleNet.SendGameData`
 and `BNSendGameData` are forbidden; the harness also traps both calls and
 permits registering `OpenMapLoc` but never sending on it.
 The randomized parser test uses 5,000 deterministic malformed inputs.
-The package includes exactly the TOC's Lua files, TOC, README and three
-named Media TGAs (call-h1, call-h2, call-h6). Extra files or folders, including
-strays inside Media, fail the gate. The header gate requires type 2, 32-bit,
-256x64, bottom-left 0x08 and 65,580 bytes per image; alpha padding and ink
-width are checked too. Call source and the strict frame mock enforce the
-Latin client-text boundary. `test/call_assets_test.py` attacks the allowlist,
-header and text gate. `tools/render_call.py` is offline tooling, not shipped.
+The package includes exactly the TOC's Lua files, TOC, README and nine
+named Media TGAs: call-h1/h2/h6, call-victim/killer/where, and
+call-help/dismiss-a/dismiss-b. Extra files or folders, including strays
+inside Media, fail the gate. The header gate requires type 2, 32-bit,
+bottom-left 0x08: headings are 256x64 / 65,580 bytes and labels/buttons are
+128x32 / 16,428 bytes. All nine total 295,308 unpacked bytes. Headings draw
+at 192x48, labels/buttons at 96x24; each group has one offline font size.
+Alpha padding (at least four pixels) and ink width are checked too. Call
+source and the strict frame mock enforce the Latin client-text boundary.
+`test/call_assets_test.py` attacks the allowlist, header and text gate.
+`tools/render_call.py` is offline tooling, not shipped; its overflow and
+reproducibility probes are in `test/render_call_test.py` (see THIRD_PARTY.md).
 
 Current results are in notes/test-results.txt and notes/verification.json,
 both written by verify.py. notes/SUMMARY.md is the 0.2.0 summary, including

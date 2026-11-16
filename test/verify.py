@@ -12,8 +12,12 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 LUA = Path(os.environ.get('LAYERENEMIES_LUA', '/opt/data/tools/lua/lua-5.1.5/src/lua'))
 LUAC = LUA.with_name('luac')
-# Only these three fixed headings ship; never admit a wildcard or all Media contents.
-MEDIA = ('Media/call-h1.tga', 'Media/call-h2.tga', 'Media/call-h6.tga')
+# Exactly three headings, three labels and three buttons, with per-file dimensions.
+MEDIA = {
+    'Media/call-h1.tga': (256, 64), 'Media/call-h2.tga': (256, 64), 'Media/call-h6.tga': (256, 64),
+    'Media/call-victim.tga': (128, 32), 'Media/call-killer.tga': (128, 32), 'Media/call-where.tga': (128, 32),
+    'Media/call-help.tga': (128, 32), 'Media/call-dismiss-a.tga': (128, 32), 'Media/call-dismiss-b.tga': (128, 32),
+}
 
 
 def payload_files(listed, addon=None):
@@ -28,17 +32,17 @@ def payload_files(listed, addon=None):
 
 def check_media(addon=None):
     addon = addon or ROOT / 'LayerEnemies'
-    expected_header = struct.pack('<BBBHHBHHHHBB', 0, 0, 2, 0, 0, 0, 0, 0, 256, 64, 32, 0x08)
-    for name in MEDIA:
+    for name, (width, height) in MEDIA.items():
+        expected_header = struct.pack('<BBBHHBHHHHBB', 0, 0, 2, 0, 0, 0, 0, 0, width, height, 32, 0x08)
         raw = (addon / name).read_bytes()
-        assert len(raw) == 65580, 'TGA size: ' + name
+        assert len(raw) == 18 + width * height * 4 + 26, 'TGA size: ' + name
         assert raw[:18] == expected_header, 'TGA header: ' + name
         assert raw[-26:] == struct.pack('<II', 0, 0) + b'TRUEVISION-XFILE.\0', 'TGA footer: ' + name
         # Verify transparent padding and nonempty ink without an image-library dependency.
-        alpha = raw[21:65554:4]
-        ink = [(i % 256, i // 256) for i, a in enumerate(alpha) if a]
-        assert ink and all(4 <= x < 252 and 4 <= y < 60 for x, y in ink), 'TGA padding: ' + name
-        assert max(x for x, _ in ink) - min(x for x, _ in ink) + 1 <= 190, 'TGA ink width: ' + name
+        alpha = raw[21:-26:4]
+        ink = [(i % width, i // width) for i, a in enumerate(alpha) if a]
+        assert ink and all(4 <= x < width - 4 and 4 <= y < height - 4 for x, y in ink), 'TGA padding: ' + name
+        assert max(x for x, _ in ink) - min(x for x, _ in ink) + 1 <= (190 if width == 256 else 120), 'TGA ink width: ' + name
 
 
 def check_call_text(addon=None):
@@ -199,7 +203,7 @@ def main():
         'archive_bytes': archive.stat().st_size,
         'unpacked_bytes': sum((ROOT / 'LayerEnemies' / name).stat().st_size for name in shipped) + (ROOT / 'README.md').stat().st_size,
         'media_bytes': sum((ROOT / 'LayerEnemies' / name).stat().st_size for name in MEDIA),
-        'call_assets_tests': 5,
+        'call_assets_tests': 7,
         'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
         'real_client_verified': False,
         'live_remote_reports': 'War Effort 1.6.x and HeadHunter as a member, the Spy family and three guild '
