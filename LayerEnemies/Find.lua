@@ -83,7 +83,8 @@ function F.own(st,e,zone,now)
     for _,name in ipairs(st.names) do
         local short=name:match("^([^%-]+)") or name
         if F.fold(name)==F.fold(label) or (not name:find(" ",1,true) and F.fold(short)==F.fold(e.name) and (not name:find("-",1,true) or N.Hash.player(short,e.realm)==N.Hash.player(short,name:match("%-(.+)$")))) then
-            st.locations[name]={name=name,own=true,zone=zone,at=now,class=e.class,level=e.level}
+            -- layerKnown: our layer was known when we saw them; without it "on YOUR layer" would be a guess
+            st.locations[name]={name=name,own=true,zone=zone,at=now,class=e.class,level=e.level,layerKnown=e.layer~=nil}
         end
     end
 end
@@ -119,10 +120,11 @@ function F.rows(st,now,zone,sameSpotter)
             for k,v in pairs(loc) do row[k]=v end
             row.age=now-loc.at
             local spot=not loc.own and sameSpotter and sameSpotter(loc.spotter,loc.zone)
-            row.same=loc.own or spot==true
+            row.same=(loc.own and loc.layerKnown) or spot==true
             row.probably=spot=="probably"         -- an equal key while ours is ambiguous: not a certain same layer
             row.travel=loc.zone~=zone
-            row.status=loc.own and "is on YOUR layer" or loc.relayed and "possible match, seen in a relayed report"
+            row.status=loc.own and (loc.layerKnown and "is on YOUR layer" or "seen by you, layer unknown")
+                or loc.relayed and "possible match, seen in a relayed report"
                 or "possible match, seen by "..loc.spotter
             row.canAsk=not row.same and not row.travel and loc.spotter~=nil and not loc.relayed
         end

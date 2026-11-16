@@ -289,8 +289,11 @@ shape is reported as data unavailable.
 - `/le`: toggle the window.
 - `/le list`: current layer/source, source statuses, the War Effort embassy
   state (or why it is off), the network level, each network, whether your
-  sightings are shared, and directly observed opposite-faction players.
-  Reports are counted separately, never mixed in.
+  sightings are shared, and directly observed opposite-faction players, even
+  while your layer is unknown. Rows seen without a layer say "layer unknown
+  when seen", including after you learn your layer. Up to eight recent own
+  sightings from the zone just left follow the live rows, labelled with the
+  old zone and "previous zone". Reports are counted separately, never mixed in.
 - `/le net`: the network level (public or guild only) and each network, with
   the reason when one is off (switched off, the real addon loaded, guild
   only, not in this version). `/le net guild` and `/le net public` set the
@@ -362,11 +365,39 @@ can establish a local inferred server ID. Confirmation of zoneUID does not
 confirm the server field: the two agreeing readings must also agree on the
 full raw ID before it becomes a local layer label. No startup nameplate scan
 or combat-log listener is used; fresh target/mouseover/nameplate events are
-needed. Until a zone and layer label are known, confirmed-layer rows are hidden.
+needed. A readable zone is required; knowing your layer is not.
 
-All identifiers are scoped to the current zone. Real zone changes, world
+"Seen by you" includes opposite-faction players seen while your layer was
+unknown, labelled "layer unknown". Learning your layer keeps those rows,
+without assigning them the new layer. A fresh sighting replaces the old row
+with the then-known layer; a Bulo copy can also replace it, but only when the
+copy's observation time is later than when you learned the layer. An older or
+same-time copy leaves the row unknown. Bulo refreshes keep the earlier own-sighting
+time and do not upgrade Find's earlier "seen by you, layer unknown" location.
+Without a replacement, the row expires ten minutes after the original sighting.
+Such unknown-layer rows are not map candidates. Reports and possible identity
+matches are still cleared when your layer is learned. Sharing uses the existing
+unknown-layer value whenever any enemy in a report was seen without a layer:
+an empty field in the guild O line, or 0 in War Effort's C line. The message
+formats and send routes are unchanged.
+
+On a real, readable zone change, "Seen by you" also keeps the newest eight
+opposite-faction players your own client saw in the zone just left, for two
+minutes from each sighting (not from the crossing). They follow live rows,
+labelled with the old zone and "previous zone", and count in the tab title.
+A fresh sighting of the same player hides the carried row. A second crossing
+replaces this history with only sightings from the zone just left. Bulo-only
+copies and unreadable or same-faction sightings are not carried. These plain
+name/class/level/zone/time copies have no layer or position, are never shared,
+and never feed Find, map candidates, hop or ask. World entry, shard transfer,
+a real layer change, an NPC zoneUID change or an unreadable zone clears them.
+Learning your layer in the new zone keeps them until their original expiry.
+They are not saved.
+
+Active identifiers are scoped to the current zone. Real zone changes, world
 entry, transfer events, and exact Bulo ID changes wipe the observation epoch,
-identities, reports and pending fragments. Entries with timestamps at or
+identities, reports and pending fragments; only real zone crossings keep the
+separate display-only previous-zone copies above. Entries with timestamps at or
 before the new epoch are rejected. Captured carried-over units remain
 quarantined until their old unit token disappears or changes; this can miss
 sightings, but avoids attaching old observations to a new layer. Fresh

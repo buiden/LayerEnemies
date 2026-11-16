@@ -1381,7 +1381,7 @@ do
             local N=loadAddon(); local F=N.Find; local st=F.new(); yes(F.add(st,v[1]))
             local given,surname=v[2]:match("^([^ ]+) (.+)$")
             F.own(st,{name=given or v[2],displayName=given and v[2],realm=surname or "Test Realm",
-                faction="opposite",source="own target",class="MAGE",level=39},100,50)
+                faction="opposite",source="own target",class="MAGE",level=39,layer="7086-7"},100,50)
             local row=F.rows(st,50,100)[1]
             yes(row.own,"own sighting matched"); yes(row.same); no(row.possible); no(row.canAsk)
             eq(row.name,v[1],"keep typed spelling"); eq(row.zone,100); eq(row.at,50)
@@ -1520,7 +1520,9 @@ test("Find match, no match, collisions, expiry, own sighting and alerts",functio
     no(F.rows(st,912,100)[1].at)
     F.own(st,{name="Alice",faction="same",source="own target"},100,913); no(st.locations.Alice)
     F.own(st,{name="Alice",faction="opposite",source="own target"},100,913)
-    r=F.rows(st,913,100)[1]; yes(r.own); yes(r.same); no(r.canAsk)
+    r=F.rows(st,913,100)[1]; yes(r.own); no(r.same); no(r.canAsk); eq(r.status,"seen by you, layer unknown")
+    F.own(st,{name="Alice",faction="opposite",source="own target",layer="7086-7"},100,913)
+    r=F.rows(st,913,100)[1]; yes(r.own); yes(r.same); no(r.canAsk); eq(r.status,"is on YOUR layer")
     F.boundary(st); no(st.locations.Alice); eq(#st.names,2)
     -- A genuine three-character collision must remain possible, never confirmed.
     local a,b="PFKMEclrzj","CuhFVPbgzA"
@@ -6270,6 +6272,412 @@ test("guild O full name: observed split identity crosses share, Wire and cross-z
         no(N.Main.error)
     end
 end)
+-- Seen-without-layer regression cases (numbers follow the implementation plan).
+test("seen unknown 01: a targeted enemy is listed and labelled before the layer is known",function()
+    local N=loadAddon(); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local rows=N.Store.rows(N.Main.store,clock,"local")
+    eq(#rows,1); eq(rows[1].layer,nil); eq(rows[1].zone,100)
+    slash("list"); local line
+    for _,v in ipairs(log) do if v:find("Aster Vale |",1,true) then line=v end end
+    yes(line); yes(line:match(" | layer unknown when seen$")); no(N.Main.error)
+    N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (1)")
+    yes(N.UI.pool[1].sub.text:find("layer unknown",1,true))
+    eq(N.UI.layer.text,"?")
+    yes(N.UI.meta.text:find("layer unknown: mouse over or target two different kinds of NPC within 15 s",1,true))
+end)
+test("seen unknown 02: learning the layer preserves nil-layer rows but clears reports and identities",function()
+    local N=loadAddon(); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local t=N.Main.store; local old=t.serial; local at=t.localSeen["Player-1-901"].at
+    yes(next(t.identities)); report(1,7086); yes(next(t.reports)); advance(1); establish(N)
+    local rows=N.Store.rows(t,clock,"local")
+    eq(#rows,1); eq(rows[1].layer,nil); eq(rows[1].at,at); eq(rows[1].ownAt,at)
+    eq(rows[1].epoch,old+1); yes(rows[1].pre); eq(t.serial,old+1); eq(t.zoneUID,7)
+    yes(t.epoch>at); eq(next(t.identities),nil); eq(next(t.reports),nil); no(N.Main.error)
+    -- Only nil-layer rows of the old serial survive; learning is not a general reset bypass.
+    local other=N.Store.new(0); other.zone=100
+    yes(N.Store.observe(other,{key="kept",at=1,faction="opposite"},1))
+    yes(N.Store.observe(other,{key="old",at=1,faction="opposite"},1)); other.localSeen.old.epoch=0
+    yes(N.Store.observe(other,{key="layered",at=1,faction="opposite"},1)); other.localSeen.layered.layer="9000-7"
+    N.Store.learn(other,2,"7086-7",7)
+    eq(N.Safe.count(other.localSeen),1); yes(other.localSeen.kept); eq(other.localSeen.kept.layer,nil)
+end)
+test("seen unknown 08: a learned layer is never assigned to an earlier sighting on the wire",function()
+    local N=loadAddon(); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(1); establish(N); advance(1.8); N.Main.shareTick()
+    eq(#oLines(),1); yes(oLines()[1].text:find("^O|1|1|100|0.250|0.750||3|1|"),oLines()[1].text)
+    -- All known: the existing layered O1 bytes remain unchanged.
+    N=loadAddon(); establish(N); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil; advance(3); N.Main.shareTick()
+    eq(#oLines(),1)
+    eq(oLines()[1].text,"O|1|1|100|0.250|0.750|7086|3|1|41737465722056616c65:MAGE:60")
+    -- Mixed reports must check every enemy, not only the newest/first row.
+    N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(1); establish(N); seeFoe("Briar Stone","Player-1-902"); units.target=nil
+    advance(1.8); N.Main.shareTick(); eq(#oLines(),1)
+    yes(oLines()[1].text:find("^O|1|1|100|0.250|0.750||"),oLines()[1].text)
+    no(N.Main.error)
+end)
+test("seen unknown 10: nil-layer rows never become map candidates",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+    eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
+    advance(1); establish(N); eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
+    seeFoe("Briar Stone","Player-1-902"); units.target=nil
+    local rows=N.Store.mapCandidates(N.Main.store,clock,100)
+    eq(#rows,1); eq(rows[1].key,"Player-1-902"); eq(rows[1].layer,"7086-7")
+    eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
+end)
+test("seen unknown 03: a fresh sighting replaces the pre-layer row with the known layer",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(1); establish(N)
+    local before=N.Store.rows(N.Main.store,clock,"local"); eq(#before,1); eq(before[1].layer,nil)
+    advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local rows=N.Store.rows(N.Main.store,clock,"local")
+    eq(#rows,1); eq(rows[1].layer,"7086-7"); eq(rows[1].pre,nil); eq(rows[1].ownAt,clock)
+    no(rows[1]==before[1]); no(N.Main.error)
+end)
+test("seen unknown 03b: Bulo copies at or before learning cannot give a kept row a layer",function()
+    for _,offset in ipairs({-.5,0}) do
+        for _,delivery in ipairs({"learning poll","later poll"}) do
+            for _,tracked in ipairs({"before","after"}) do
+                local N=loadAddon(); local b=fakeBulo(nil); N.Main.setShare(false)
+                if tracked=="before" then N.Main.track("Aster Vale") end
+                advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+                local original=N.Main.store.localSeen["Player-1-901"]; local ownAt=clock
+                advance(1); local learned=clock; b.current="7086-7"
+                local copy={at=learned+offset,hostile=true,src="target"}
+                yes(copy.at>ownAt,"copy is newer than the own sighting, but not newer than learning")
+                if delivery=="learning poll" then b.Radar.seen["Player-1-901"]=copy end
+                N.Main.poll(); eq(N.Main.store.epoch,learned); eq(N.Main.store.bulo,"7086-7")
+                if delivery=="later poll" then
+                    advance(1); b.Radar.seen["Player-1-901"]=copy; N.Main.poll()
+                end
+                b.Radar.seen={}
+                local rows=N.Store.rows(N.Main.store,clock,"local"); eq(#rows,1)
+                eq(rows[1],original,"older Bulo copy cannot replace the kept unknown row")
+                yes(rows[1].pre); eq(rows[1].layer,nil); eq(rows[1].ownAt,ownAt); eq(rows[1].source,"own target")
+                if tracked=="after" then N.Main.track("Aster Vale") end
+                local found=N.Main.findRows()[1]; yes(found.own); no(found.same); no(found.canAsk)
+                eq(found.status,"seen by you, layer unknown"); eq(found.at,ownAt)
+                yes(N.Main.findText(found):find("seen by you, layer unknown",1,true))
+                N.UI.toggle(); N.UI.tabs.find:Click()
+                local r=N.UI.pool[1]; yes(r,"Find row exists"); yes(r:IsShown()); eq(r.title.text,"Aster Vale")
+                yes(r.sub.text:find("seen by you, layer unknown",1,true)); no(r.sub.text:find("already on your layer",1,true)); no(r.ask:IsShown())
+                N.Main.setShare(true); advance(3); N.Main.shareTick()
+                eq(#oLines(),1); yes(oLines()[1].text:find("|0.250|0.750||",1,true),oLines()[1].text)
+                no(N.Main.error)
+            end
+        end
+    end
+end)
+test("seen unknown 03c: a Bulo observation after learning may replace the kept unknown row",function()
+    local N=loadAddon(); local b=fakeBulo(nil); N.Main.setShare(false); N.Main.track("Aster Vale")
+    advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil; local ownAt=clock
+    local original=N.Main.store.localSeen["Player-1-901"]
+    advance(1); b.current="7086-7"; N.Main.poll(); local learned=N.Main.store.epoch
+    eq(original.layer,nil); yes(original.pre)
+    advance(1); local observed=clock; yes(observed>learned)
+    b.Radar.seen["Player-1-901"]={at=observed,hostile=true,src="target"}; N.Main.poll(); b.Radar.seen={}
+    local rows=N.Store.rows(N.Main.store,clock,"local"); eq(#rows,1)
+    no(rows[1]==original); eq(rows[1].source,"Bulo target"); eq(rows[1].layer,"7086-7"); eq(rows[1].pre,nil)
+    eq(rows[1].at,observed); eq(rows[1].ownAt,ownAt); eq(rows[1].ownSource,"own target")
+    eq(rows[1].x,nil); eq(rows[1].y,nil); eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
+    -- A copy refreshes the list, not Find's earlier first-hand observation.
+    local found=N.Main.findRows()[1]; eq(found.status,"seen by you, layer unknown"); eq(found.at,ownAt); no(found.same); no(found.canAsk)
+    N.UI.toggle(); eq(N.UI.pool[1].title.text,"Aster Vale")
+    no(N.UI.pool[1].sub.text:find("layer unknown",1,true))
+    N.Main.setShare(true); advance(3); N.Main.shareTick()
+    eq(#oLines(),1); yes(oLines()[1].text:find("|0.250|0.750|7086|",1,true),oLines()[1].text)
+    no(N.Main.error)
+end)
+test("seen unknown 04: kept rows expire 600 seconds after the original sighting",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local at=clock; advance(1); establish(N)
+    eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+    advance(at+599-clock); eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+    advance(1); eq(#N.Store.rows(N.Main.store,clock,"local"),0)
+end)
+test("seen unknown 05: unreadable faction stays unclassified with no layer",function()
+    local N=loadAddon(); advance(1)
+    units.target=player("Aster Vale",nil,"Player-1-901"); deliver("PLAYER_TARGET_CHANGED"); drain(); units.target=nil
+    eq(#N.Store.rows(N.Main.store,clock,"local"),0)
+    local rows=N.Store.rows(N.Main.store,clock,"unclassified"); eq(#rows,1); eq(rows[1].layer,nil)
+    advance(1); establish(N); eq(#N.Store.rows(N.Main.store,clock,"local"),0)
+    rows=N.Store.rows(N.Main.store,clock,"unclassified"); eq(#rows,1); eq(rows[1].layer,nil)
+end)
+test("seen unknown 01b: Find says layer unknown for an own sighting made before the layer is known",function()
+    local N=loadAddon(); N.Main.track("Aster Vale"); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local row=N.Main.findRows()[1]
+    yes(row.own,"own row"); no(row.same,"no same-layer claim without a known layer"); no(row.canAsk)
+    eq(row.status,"seen by you, layer unknown")
+    local text=N.Main.findText(row)
+    yes(text:find("seen by you, layer unknown",1,true),"slash find text: "..text); no(text:find("YOUR layer",1,true)); no(text:find("already on your layer",1,true))
+    N.UI.toggle(); N.UI.tabs.find:Click(); eq(N.UI.tab,"find")
+    local shown=N.UI.pool[1]; yes(shown,"Find row exists"); yes(shown:IsShown(),"Find row is visible")
+    eq(shown.tracked,"Aster Vale"); eq(shown.title.text,"Aster Vale")
+    local sub=shown.sub.text; yes(sub,"Find row text exists")
+    yes(sub:find("seen by you, layer unknown",1,true)); no(sub:find("YOUR layer",1,true)); no(sub:find("already on your layer",1,true))
+    no(shown.ask:IsShown(),"own unknown-layer sighting has no Ask button")
+    -- learning the layer later does not upgrade the old sighting into a same-layer claim
+    advance(1); establish(N); no(N.Main.findRows()[1].same); eq(N.Main.findRows()[1].status,"seen by you, layer unknown")
+    -- a fresh sighting with the layer known is the existing claim
+    advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    row=N.Main.findRows()[1]; yes(row.same,"fresh known-layer sighting"); eq(row.status,"is on YOUR layer"); no(N.Main.error)
+end)
+test("seen unknown 06: a real layer or raw-id change still wipes kept pre-layer rows",function()
+    for _,id in ipairs({"7086-8","8000-7"}) do
+        local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+        advance(1); establish(N); eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+        local b=fakeBulo(id); N.Main.poll()
+        eq(N.Main.store.bulo,id); eq(next(N.Main.store.localSeen),nil)
+        eq(#N.Store.rows(N.Main.store,clock,"local"),0); no(N.Main.error)
+    end
+end)
+test("seen unknown 07: shard transfer still wipes unknown and kept sightings",function()
+    for _,known in ipairs({false,true}) do
+        local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+        if known then advance(1); establish(N) end
+        eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+        deliver("SHARD_TRANSFER"); drain(); eq(next(N.Main.store.localSeen),nil)
+        eq(#N.Store.rows(N.Main.store,clock,"local"),0); no(N.Main.error)
+    end
+end)
+test("seen unknown 09: learning preserves the 60-second shared-enemy cooldown",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(3); N.Main.shareTick(); eq(#oLines(),1)
+    local at=clock; local shared=N.Main.share
+    advance(1); establish(N); eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+    eq(N.Main.share,shared); eq(shared.shared["Player-1-901"],at)
+    N.Main.shareTick(); eq(#oLines(),1)
+    advance(at+57-clock); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(2); N.Main.shareTick(); eq(#oLines(),1,"not before 60 seconds")
+    advance(1); N.Main.shareTick(); eq(#oLines(),2,"new report at 60 seconds")
+    no(N.Main.error)
+end)
+test("previous zone 11: real crossings carry an own row for 120 seconds from its sighting",function()
+    for _,route in ipairs({"ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","poll","observe"}) do
+        local N=loadAddon(); establish(N); advance(math.ceil(clock)+1-clock)
+        seeFoe("Aster Vale","Player-1-901"); local at=clock
+        map=200
+        if route=="poll" then N.Main.poll()
+        elseif route=="observe" then N.Main.observe("target")
+        else deliver(route); drain() end
+        eq(N.Main.store.zone,200); eq(#N.Store.rows(N.Main.store,clock,"local"),0)
+        yes(type(N.Store.previous)=="function","previous-zone reader exists")
+        local rows=N.Store.previous(N.Main.store,clock); eq(#rows,1,route)
+        local e=rows[1]; eq(e.key,"Player-1-901"); eq(e.name,"Aster Vale"); eq(e.zone,100); eq(e.at,at)
+        eq(e.layer,nil); eq(e.x,nil); eq(e.y,nil); eq(e.faction,nil); eq(e.ownSource,nil)
+        local allowed={key=true,name=true,displayName=true,class=true,level=true,zone=true,at=true}
+        for k in pairs(e) do yes(allowed[k],"plain previous-zone field: "..k) end
+        N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (1)")
+        yes(N.UI.pool[1].sub.text:find("MAGE · Ashenvale · previous zone",1,true),N.UI.pool[1].sub.text); no(N.UI.pool[1].ask:IsShown())
+        slash("list"); yes(logged("Aster Vale | MAGE · Ashenvale · previous zone")); no(logged("No eligible observations."))
+        -- Still-held units remain quarantined; the carried row covers the gap, it is not a fresh sighting.
+        advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
+        eq(next(N.Main.store.localSeen),nil); eq(#N.Store.previous(N.Main.store,clock),1)
+        advance(at+119-clock); eq(#N.Store.previous(N.Main.store,clock),1)
+        advance(1); eq(#N.Store.previous(N.Main.store,clock),0)
+        advance(1); eq(#N.Store.previous(N.Main.store,clock),0)
+        N.UI.render(); eq(N.UI.tabs["local"].label.text,"Seen by you (0)"); no(N.Main.error)
+    end
+end)
+test("previous zone 11b: learning the new zone layer keeps the carry until its original expiry",function()
+    for _,source in ipairs({"NPC","Bulo"}) do
+        local N=loadAddon(); establish(N); advance(math.ceil(clock)+1-clock)
+        seeFoe("Aster Vale","Player-1-901"); units.target=nil; local at=clock
+        advance(1); map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+        local carried=N.Store.previous(N.Main.store,clock); eq(#carried,1,source)
+        advance(3)
+        if source=="NPC" then
+            units.mouseover=nil; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); establish(N)
+        else
+            fakeBulo("8000-7"); N.Main.poll(); eq(N.Main.store.bulo,"8000-7")
+        end
+        local learned=clock
+        advance(10); eq(clock,learned+10)
+        local rows=N.Store.previous(N.Main.store,clock)
+        eq(#rows,1,"carry survives ten seconds after learning via "..source)
+        eq(rows[1],carried[1]); eq(rows[1].zone,100); eq(rows[1].at,at); eq(rows[1].layer,nil)
+        N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (1)")
+        yes(N.UI.pool[1]:IsShown()); yes(N.UI.pool[1].sub.text:find("Ashenvale · previous zone",1,true))
+        slash("list"); yes(logged("Aster Vale | MAGE · Ashenvale · previous zone"))
+        advance(at+119-clock); eq(#N.Store.previous(N.Main.store,clock),1)
+        advance(1); eq(#N.Store.previous(N.Main.store,clock),0)
+        N.UI.render(); eq(N.UI.tabs["local"].label.text,"Seen by you (0)"); no(N.Main.error)
+    end
+end)
+test("previous zone 12: expired own sightings are not revived by a crossing or Bulo refresh",function()
+    for _,age in ipairs({120,121}) do
+        local N=loadAddon(); local b=fakeBulo("7086-7"); N.Main.poll(); advance(1)
+        seeFoe("Aster Vale","Player-1-901"); units.target=nil; local at=clock
+        advance(age); b.Radar.seen["Player-1-901"]={at=clock,hostile=true,src="target"}; N.Main.poll(); b.Radar.seen={}
+        eq(N.Main.store.localSeen["Player-1-901"].ownAt,at)
+        eq(N.Main.store.localSeen["Player-1-901"].at,clock)
+        -- Do not let a new layer from Bulo clear a wrongly carried row before it can be asserted.
+        BuloLayerForever=nil; map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+        yes(type(N.Store.previous)=="function","previous-zone reader exists")
+        eq(#N.Store.previous(N.Main.store,clock),0); eq(#N.Main.store.prev,0)
+    end
+end)
+test("previous zone 13: only the newest eight sightings are carried as independent copies",function()
+    local N=loadAddon(); establish(N); local original
+    for i=1,9 do
+        advance(1); seeFoe("Aster "..abc(i),"Player-1-"..i); units.target=nil
+        if i==9 then original=N.Main.store.localSeen["Player-1-9"] end
+    end
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    local rows=N.Store.previous(N.Main.store,clock); eq(#rows,8); eq(#N.Main.store.prev,8)
+    for i,e in ipairs(rows) do eq(e.key,"Player-1-"..(10-i)); eq(e.zone,100) end
+    original.name="Changed"; original.at=clock+20
+    eq(rows[1].name,"Aster i"); no(rows[1]==original); yes(rows[1].at<=clock)
+    N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (8)")
+end)
+test("previous zone 14: only opposite-faction own-source current-epoch rows are eligible",function()
+    local N=loadAddon(); advance(1); local t=N.Main.store
+    local function put(key,faction,source,at)
+        yes(N.Store.observe(t,{key=key,name="Aster "..key,at=at or clock,faction=faction,source=source},clock))
+    end
+    put("Copy","opposite","Bulo target")
+    put("Friendly","same","own target"); put("Unreadable","unknown","own mouseover")
+    put("Old","opposite","own target"); t.localSeen.Old.epoch=t.serial-1
+    put("Far","opposite","own target"); t.localSeen.Far.zone=200
+    put("Future","opposite","own target"); t.localSeen.Future.ownAt=clock+50
+    put("Own","opposite","own nameplate1"); local at=clock
+    advance(1); put("Own","opposite","Bulo target") -- fresh Bulo copy keeps the earlier own proof
+    eq(t.localSeen.Own.ownAt,at); eq(t.localSeen.Own.source,"Bulo target")
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    local rows=N.Store.previous(t,clock); eq(#rows,1); eq(rows[1].key,"Own"); eq(rows[1].at,at)
+end)
+test("previous zone 15: non-zone boundaries clear carry-over even when the map also changes",function()
+    for _,event in ipairs({"SHARD_TRANSFER","PLAYER_ENTERING_WORLD","layer","npc","Bulo transfer","unreadable"}) do
+        local N=loadAddon(); establish(N); advance(1)
+        seeFoe("Aster Vale","Player-1-901"); units.target=nil
+        map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+        yes(type(N.Store.previous)=="function","previous-zone reader exists")
+        eq(#N.Store.previous(N.Main.store,clock),1,event)
+        advance(1); seeFoe("Briar Stone","Player-1-902"); units.target=nil
+        if event=="layer" then
+            units.mouseover=nil; deliver("UPDATE_MOUSEOVER_UNIT"); drain()
+            establish(N) -- learning preserves the carry; a subsequent real layer change clears it
+            eq(#N.Store.previous(N.Main.store,clock),1)
+            advance(1); N.Main.applyLayer("8000-7","test layer")
+        elseif event=="npc" then
+            for _,e in ipairs({{3,7,"7086"},{4,7,"8000"},{5,8,"7086"},{6,8,"8000"}}) do
+                units.target={guid=npc(e[1],e[2],e[3]),player=false}
+                deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+            end
+        elseif event=="Bulo transfer" then
+            local b=fakeBulo(nil); N.Main.poll(); map=100; b:Fire("LFS_TRANSFER"); drain()
+        elseif event=="unreadable" then map=nil; deliver("ZONE_CHANGED"); drain()
+        else map=100; deliver(event); drain() end
+        eq(#N.Store.previous(N.Main.store,clock),0,event); eq(#N.Main.store.prev,0,event)
+        no(N.Main.error)
+    end
+end)
+test("previous zone 16: reacquiring the same player replaces the carried display with one live row",function()
+    local N=loadAddon(); establish(N); advance(1)
+    seeFoe("Aster Vale","Player-1-901")
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    eq(#N.Store.previous(N.Main.store,clock),1)
+    units.target=nil; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local rows=N.Store.rows(N.Main.store,clock,"local"); eq(#rows,1); eq(rows[1].zone,200)
+    eq(#N.Store.previous(N.Main.store,clock),0)
+    N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (1)")
+    yes(N.UI.pool[1].sub.text:find("Durotar · layer unknown",1,true))
+    no(N.UI.pool[1].sub.text:find("previous zone",1,true))
+    slash("list"); eq(lines("Aster Vale |"),1); no(logged("previous zone")); no(N.Main.error)
+end)
+test("previous zone 17: carried rows never become sends, Find locations, maps or actions",function()
+    local N=loadAddon(); establish(N); advance(1); N.Main.track("Aster Vale")
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    yes(N.Main.findRows()[1].at); eq(#oLines(),0,"cross before sharing settles")
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    eq(#N.Store.previous(N.Main.store,clock),1)
+    -- Exercise presentation and background work, not just the reducer.
+    sent={}; log={}; N.UI.toggle(); slash("list"); advance(10); N.Main.shareTick()
+    eq(#oLines(),0); eq(#sent,0); eq(next(N.Main.find.locations),nil)
+    eq(N.Main.findRows()[1].at,nil); no(logged("is on YOUR layer"))
+    eq(#N.Store.mapCandidates(N.Main.store,clock,100),0); eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
+    eq(#N.Main.candidates(),0); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
+    no(N.UI.pool[1].ask:IsShown()); N.UI.pool[1].ask:Click(); eq(#sent,0); eq(#opened,0)
+    no(N.Main.error)
+end)
+test("previous zone 18: a second crossing keeps only the zone just left after live rows",function()
+    local N=loadAddon(); establish(N); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    eq(#N.Store.previous(N.Main.store,clock),1)
+    advance(1); seeFoe("Briar Stone","Player-1-902"); units.target=nil
+    N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (2)")
+    eq(N.UI.pool[1].title.text,"Briar Stone"); eq(N.UI.pool[2].title.text,"Aster Vale")
+    slash("list"); local first,second
+    for i,line in ipairs(log) do
+        if line:find("Briar Stone |",1,true) then first=i end
+        if line:find("Aster Vale |",1,true) then second=i end
+    end
+    yes(first and second and first<second,"live rows precede previous-zone rows")
+    map=100; deliver("ZONE_CHANGED"); drain()
+    local rows=N.Store.previous(N.Main.store,clock); eq(#rows,1); eq(rows[1].key,"Player-1-902"); eq(rows[1].zone,200)
+    map=200; deliver("ZONE_CHANGED"); drain(); eq(#N.Store.previous(N.Main.store,clock),0,"empty zone clears older carry")
+    no(N.Main.error)
+end)
+test("previous zone 19: scrolled live and carried rows keep their distinct labels",function()
+    local N=loadAddon(); establish(N)
+    for i=1,8 do advance(1); seeFoe("Aster "..abc(i),"Player-1-90"..i); units.target=nil end
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    eq(#N.Store.previous(N.Main.store,clock),8)
+    for i=1,7 do advance(.1); seeFoe("Briar "..abc(i),"Player-1-80"..i); units.target=nil end
+    N.Main.setShare(false); sent={}; N.UI.toggle()
+    eq(N.UI.tabs["local"].label.text,"Seen by you (15)")
+    local live=N.Store.rows(N.Main.store,clock,"local"); eq(#live,7)
+    local carried=N.Store.previous(N.Main.store,clock)
+    for _,offset in ipairs({0,2,9}) do
+        while N.UI.offset<offset do N.UI.body.scripts.OnMouseWheel(N.UI.body,-1) end
+        eq(N.UI.offset,offset)
+        local shown=0
+        for i,r in ipairs(N.UI.pool) do if r:IsShown() then
+            shown=shown+1
+            local index=i+offset
+            local previous=index>#live
+            local e=previous and carried[index-#live] or live[index]
+            yes(e,"expected scrolled row exists"); eq(r.title.text,e.name)
+            eq(r.sub.text,"MAGE · "..(previous and "Ashenvale · previous zone" or "Durotar · layer unknown"))
+            no(r.ask:IsShown()); r.ask:Click()
+        end end
+        eq(shown,6,"visible rows at offset "..offset)
+    end
+    eq(#sent,0); eq(#opened,0); no(N.Main.error)
+end)
+test("previous zone 20: carry rejects future own timestamps before the previous-row reader runs",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local t=N.Main.store; local at=t.localSeen["Player-1-901"].ownAt
+    eq(at,clock); eq(#N.Store.carry(t,clock),1)
+    clock=at-1
+    eq(#N.Store.carry(t,clock),0,"future own timestamp cannot enter the carry")
+    eq(#t.prev,0); eq(t.localSeen["Player-1-901"].ownAt,at)
+    clock=at; eq(#N.Store.carry(t,clock),1,"the original valid boundary remains eligible")
+    no(N.Main.error)
+end)
+test("previous zone 21: a backward clock permanently prunes future carried rows",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local at=clock; map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    local t=N.Main.store; eq(#t.prev,1); eq(#N.Store.previous(t,clock),1)
+    clock=at-1
+    eq(#N.Store.previous(t,clock),0,"clock reversal hides future carry")
+    eq(#t.prev,0,"clock reversal removes, not merely hides, the row")
+    clock=at+1; eq(#N.Store.previous(t,clock),0,"forward clock must not revive it")
+    no(N.Main.error)
+end)
 -- OpenMap is an independent receive-only Find source, never an enemy report.
 do
 local OM_LINE="L1\t200\t0.4200\t0.5700\tMAGE\t60"
@@ -6500,7 +6908,7 @@ end)
 
 local function sight(N,zone,at,own)
     local F,st=N.Find,N.Main.find
-    if own then F.own(st,{name="Cedar Vale",source="own target",faction="opposite",class="ROGUE",level=47},zone,at)
+    if own then F.own(st,{name="Cedar Vale",source="own target",faction="opposite",class="ROGUE",level=47,layer="7086-7"},zone,at)
     else F.report(st,{sender="Birch Scout",zone=zone,at=at,enemies={{name="Cedar Vale",class="ROGUE",level=47}}},"Test Realm") end
 end
 local function withoutPlace(row)
@@ -6513,7 +6921,7 @@ test("OpenMap tiers 1 sighting only: frozen legacy row fields stay identical",fu
     eq(snapshot(N.Main.findRows()[1]),snapshot(expected),"row projection from the pre-OpenMap Find implementation")
     sight(N,100,70,true)
     expected={name="Cedar Vale",own=true,zone=100,at=70,class="ROGUE",level=47,age=30,same=true,probably=false,travel=false,
-        status="is on YOUR layer",canAsk=false}
+        status="is on YOUR layer",canAsk=false,layerKnown=true} -- layerKnown: seen-unknown-layer adds it to own rows
     eq(snapshot(N.Main.findRows()[1]),snapshot(expected)); eq(N.Main.findRows()[1].place,nil)
 end)
 test("OpenMap tiers 2 place only: separate line, no layer, ask, hop, alert or relay",function()
