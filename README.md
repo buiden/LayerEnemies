@@ -81,6 +81,10 @@ also marks the held recap as old. Stale or ineligible rows leave the remaining
 retries active, so only a fresh qualifying set in the window can send.
 
 Known limits (a missed line is accepted; a false killer is not):
+- Environmental killing blows (falling, drowning, fatigue, lava, or another
+  readable row without a source GUID/name) are not announced, even if a player
+  hit appears in the same recap. Once recorded, that killing blow keeps its own
+  death silent even if a later look omits it; it does not suppress the next death.
 - Two deaths within 2 s: the first death's record-only look can take the
   second death's rows, so the second death sends nothing.
 - A genuinely new death whose row matches an old row's source and timestamp
@@ -113,9 +117,14 @@ down. When a death starts it is fixed for that death: a row the new death sees
 for the first time, stamped at or below it, happened before this death began.
 It is recorded as old and never names a killer, even if the cap has forgotten
 the original row. Only recap timestamps are compared with each other; no
-client clock is used. A row whose identity fields cannot be read (secret or
-erroring), or whose timestamp is missing, is never recorded, owned or named;
-the readable rows of the same recap are still recorded. A recap longer than
+client clock is used. A readable row with a nil or empty source GUID or name
+is still recorded, using its timestamp and whichever source fields exist (not
+amounts). It counts toward a non-empty, fully readable death and never names a
+killer; an ordinary environmental hit does not silence later deaths. A row
+whose identity fields cannot be read (secret or erroring), or whose timestamp
+is missing or not a readable number, is never recorded, owned or named; the
+readable rows of the same recap are still recorded. A secret/erroring overkill
+read on a no-source row also makes that row unreadable. A recap longer than
 256 rows names nothing. Because an unrecorded row could come back readable,
 following deaths treat every row they see first as old until a non-empty,
 fully readable death has been recorded. Any incomplete look, including a

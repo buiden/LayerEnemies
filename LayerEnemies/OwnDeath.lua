@@ -158,15 +158,21 @@ local seenHigh,priorMark
 -- every row it sees first is old. Carry that suppression across empty deaths;
 -- only a non-empty recap with no unrecordable rows lets the next death recover.
 local blind,priorBlind,recordedRows=false,false,false
+-- A readable no-source killing blow silences only its own death, even if a
+-- later look omits that row. It is not incomplete and must not blind the next death.
+local noSourceKill=false
 local function rowId(row)
     if not S.tab(row) then return nil end
-    local fields={}
+    local fields,noSource={},false
     for _,field in ipairs({"sourceGUID","sourceName","timestamp"}) do
         local v=row[field]
         if S.secret(v) then return nil end
         -- A row without a timestamp cannot be told apart from the same row once it
         -- gains one, so it is not recorded (and makes the next death blind).
         if v==nil and field=="timestamp" then return nil end
+        -- Successfully reading an absent/empty source is not an unreadable row.
+        -- Keep its timestamp and whichever source fields exist as its identity.
+        if field~="timestamp" and (v==nil or v=="") then noSource=true end
         if v==nil then fields[#fields+1]="-"
         elseif field=="sourceGUID" or field=="sourceName" then
             if type(v)~="string" or #v>120 then return nil end
@@ -176,7 +182,14 @@ local function rowId(row)
             fields[#fields+1]="n"..string.format("%.17g",v)
         end
     end
-    return table.concat(fields,"|")
+    local killingBlow=false
+    if noSource then
+        local overkill=row.overkill
+        if S.secret(overkill) then return nil end
+        overkill=S.num(overkill)
+        killingBlow=overkill~=nil and overkill>=0
+    end
+    return table.concat(fields,"|"),noSource,killingBlow
 end
 local function capture()
     local api=_G.C_DeathRecap
@@ -190,9 +203,10 @@ local function capture()
     for _,row in pairs(rows) do
         n=n+1
         if n>RECORD_LIMIT then list.tooMany=true; blind=true; break end
-        local ok,id=pcall(rowId,row)
+        local ok,id,noSource,killingBlow=pcall(rowId,row)
         local okTs,ts=pcall(function() return S.num(row.timestamp) end)
-        list[n]={row=row,id=ok and id or nil,ts=okTs and ts or nil}
+        list[n]={row=row,id=ok and id or nil,ts=okTs and ts or nil,
+            noSource=noSource,killingBlow=killingBlow}
     end
     return list
 end
@@ -225,6 +239,7 @@ local function remember(list,owner)
                 admit(id,entry.ts,old and 0 or owner)
             end
             entry.owned=recapSeen[id]~=nil and recapSeen[id].owner==owner
+            if entry.owned and owner==recapDeath and entry.noSource and entry.killingBlow then noSourceKill=true end
         end
     end
 end
@@ -247,10 +262,10 @@ function D.recap(store,time)
         local list=capture()
         if not list then return nil end
         remember(list,recapDeath)
-        if list.tooMany then return nil end
+        if list.tooMany or noSourceKill then return nil end
         local best
         for _,entry in ipairs(list) do
-            local candidate=entry.owned and source(entry.row,store,time)
+            local candidate=entry.owned and not entry.noSource and source(entry.row,store,time)
             if candidate and (not best or (candidate.conf=="e" and best.conf~="e")
                 or (candidate.conf==best.conf and candidate.stamp>best.stamp)) then best=candidate end
         end
@@ -287,7 +302,7 @@ function D.dead()
         recapDeath=recapDeath+1
         priorMark=seenHigh
         priorBlind=blind or (priorBlind and not recordedRows)
-        blind=false; recordedRows=false
+        blind=false; recordedRows=false; noSourceKill=false
         local death=recapDeath
         local time=S.num(S.call(GetTime))
         D.recap(N.Main.store,time) -- remember even an ineligible/unsent death

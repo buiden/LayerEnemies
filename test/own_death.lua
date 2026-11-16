@@ -328,6 +328,115 @@ end
 local function nextDeath()
     H.deliver("PLAYER_ALIVE"); H.advance(1901)
 end
+local function finishDeath()
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+end
+local function noSourceRow(field,empty,stamp,overkill)
+    local r=recapRow(); r.timestamp=stamp; r.overkill=overkill
+    r.amount=500; r.environmentalType="Falling"
+    if field=="both" or field=="sourceGUID" then r.sourceGUID=empty and "" or nil end
+    if field=="both" or field=="sourceName" then r.sourceName=empty and "" or nil end
+    return r
+end
+for _,field in ipairs({"both","sourceGUID","sourceName"}) do
+    for _,empty in ipairs({false,true}) do
+        local label=field..(empty and " empty" or " nil")
+        test("K environment: four readable no-source recaps keep their own killers ("..label..")",function()
+            local N=setup(); raceProof()
+            local held,old={},nil
+            C_DeathRecap.GetRecapEvents=function() return held end
+            for i,name in ipairs({"Birch","Aspen","Elm","Pine"}) do
+                local killer=recapRow(); killer.sourceGUID="Player-1-456"; killer.sourceName=name
+                local env=noSourceRow(field,empty,killer.timestamp-1,-1)
+                env.environmentalType=({"Falling","Drowning","Fatigue","Lava"})[i]
+                held={env,killer,old}
+                finishDeath()
+                eq(#deaths(),i,"readable no-source row must not silence death "..i)
+                eq(N.OwnDeath.decode(deaths()[i].text).enemies[1].name,name,"never the previous killer")
+                no(N.Main.error); old=killer; nextDeath()
+            end
+        end)
+        test("K environment: no-source killing blow never names a player hit ("..label..")",function()
+            for _,playerOverkill in ipairs({-1,0}) do
+                for _,reverse in ipairs({false,true}) do
+                    local N=setup(); raceProof()
+                    local player=recapRow(); player.overkill=playerOverkill
+                    local env=noSourceRow(field,empty,player.timestamp+1,0)
+                    local held=reverse and {env,player} or {player,env}
+                    C_DeathRecap.GetRecapEvents=function() return held end
+                    finishDeath()
+                    eq(#deaths(),0,"environmental finisher must not fall back to the player")
+                    no(N.Main.error)
+                    -- A complete environmental death must not suppress the next one.
+                    nextDeath()
+                    local fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"
+                    held={env,noSourceRow(field,empty,fresh.timestamp-1,-1),fresh}
+                    finishDeath()
+                    eq(#deaths(),1,"old environmental finisher does not poison a new death")
+                    eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Birch"); no(N.Main.error)
+                end
+            end
+        end)
+    end
+end
+for _,phase in ipairs({"death","retry"}) do
+    test("K environment: a no-source finisher seen at "..phase.." stays silent after its row disappears",function()
+        local N=setup(); raceProof()
+        local player=recapRow(); player.overkill=-1
+        local env=noSourceRow("both",false,player.timestamp+1,10)
+        local held=phase=="death" and {player,env} or {}
+        C_DeathRecap.GetRecapEvents=function() return held end
+        H.deliver("PLAYER_DEAD")
+        if phase=="retry" then held={player,env}; H.advance(.301) end
+        held={player}; H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,"a recorded environmental killing blow cannot turn into a player death")
+        no(N.Main.error)
+    end)
+end
+test("K environment: a no-source-only death is non-empty recovery after an unreadable death",function()
+    local N=setup(); raceProof()
+    local hidden=recapRow(); hidden.timestamp=H.secret
+    local held={hidden}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    finishDeath(); eq(#deaths(),0); nextDeath()
+    held={{timestamp=H.clock()}} -- readable absence of every optional source/damage field
+    finishDeath(); eq(#deaths(),0); nextDeath()
+    held={recapRow()}; finishDeath()
+    eq(#deaths(),1,"a readable no-source-only death clears suppression for the following death")
+    no(N.Main.error)
+end)
+test("K environment: recorded no-source rows stay old when amounts change or source fields arrive",function()
+    local N=setup(); raceProof()
+    local env=noSourceRow("both",false,H.clock(),-1)
+    local held={env}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    finishDeath(); eq(#deaths(),0); nextDeath()
+    local old=recapRow(); old.timestamp=env.timestamp; old.amount=999; old.overkill=20
+    held={old}; finishDeath(); eq(#deaths(),0,"the no-source timestamp was recorded, not skipped")
+    nextDeath(); held={recapRow()}; finishDeath(); eq(#deaths(),1); no(N.Main.error)
+end)
+for _,field in ipairs({"sourceGUID","sourceName","timestamp","overkill"}) do
+    for _,mode in ipairs({"secret","throwing","non-number","missing"}) do
+        if (mode~="non-number" and mode~="missing") or field=="timestamp" then
+            test("K environment: absent source does not hide an unreadable "..field.." ("..mode..")",function()
+                local N=setup(); raceProof()
+                local bad=noSourceRow("both",false,H.clock(),-1)
+                if mode=="secret" then bad[field]=H.secret
+                elseif mode=="non-number" then bad[field]="unknown"
+                elseif mode=="missing" then bad[field]=nil
+                else
+                    bad[field]=nil
+                    setmetatable(bad,{__index=function(_,k) if k==field then error("unreadable recap field") end end})
+                end
+                local held={bad}
+                C_DeathRecap.GetRecapEvents=function() return held end
+                finishDeath(); eq(#deaths(),0); nextDeath()
+                held={recapRow()}; finishDeath(); eq(#deaths(),0,"truly unreadable rows still suppress the next death")
+                nextDeath(); held={recapRow()}; finishDeath(); eq(#deaths(),1); no(N.Main.error)
+            end)
+        end
+    end
+end
 for _,mode in ipairs({"persistent","fresh mob","fresh player"}) do
     test("K review F1: earlier recap is refused while retrying for "..mode,function()
         local N,rows=setup(); raceProof(); die(); eq(#deaths(),1)
