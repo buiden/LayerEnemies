@@ -46,13 +46,14 @@ holding the detail:
   hidden addon requests for an invite, including to players not known to run a
   layer addon.
 - **Guild intelligence:** crowds are shared in up to three lines without
-  repeats or inflated counts; Spy sightings and HeadHunter kill records heard
-  in your group are relayed to the guild as claims; a shared watch list tells
+  repeats or inflated counts; Spy sightings heard in your group and HeadHunter
+  kill records from the HeadHunter network are relayed to the guild as claims; a shared watch list tells
   you when a guildmate may be tracking the player you just saw.
 - **New guild messages (all on the existing LEGW1 GUILD route):** `K` (own
   death), `R|1|spy|seen`, `R|1|hh|kill` / `killi`, and `T|1` (watch list as
   6-character hashes). `/le share off` stops every guild send, relays and the
-  watch list included. Relays always leave room for your own lines.
+  watch list included. Relays leave room for one of your own lines (two out
+  of combat).
 - **Upgrade notes:** saved settings carry over. An older client keeps only the
   first five Find names and drops realm-qualified ones. Older clients ignore
   the new message kinds.
