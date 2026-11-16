@@ -128,6 +128,32 @@ test("Round1 hash: fresh Ask provenance is visible beside the old own sighting",
     yes(M.findText(r):find("last known: Seen by you",1,true)); eq(#H.sent(),0); no(M.error)
 end)
 
+test("Round1 long: legacy first names match adapter displays over 100 bytes",function()
+    for _,realmSize in ipairs({30,160}) do
+        for _,trackAfter in ipairs({false,true}) do
+            local N=H.load(); H.advance(1); local name=string.rep("A",72)
+            if not trackAfter then yes(N.Main.track(name)) end
+            H.units().target=H.player(name,"Horde"); H.units().target.realm=string.rep("B",realmSize)
+            H.deliver("PLAYER_TARGET_CHANGED"); H.drain()
+            if trackAfter then yes(N.Main.track(name)) end
+            local r=N.Main.findRows()[1]
+            yes(r.own,"a bounded adapter display must not discard a legacy first-name match")
+            eq(LayerEnemiesDB.tracked[1],name); eq(N.Safe.count(N.Main.find.known.entries),1)
+            N.Main.boundary(200); yes(N.Main.findRows()[1].at); eq(#H.sent(),0); no(N.Main.error)
+        end
+    end
+end)
+
+test("Round1 long: own display bound covers two adapter strings but remains finite",function()
+    local N=H.load(); local K=N.Known; local st=K.new()
+    local function put(size,source)
+        return K.put(st,{name=string.rep("A",size),zone=100,at=H.clock(),source=source,kind="seen"},H.clock())
+    end
+    yes(put(321,"own"),"two 160-byte adapter strings plus a separating space")
+    eq(put(322,"own"),nil); eq(put(101,"spy"),nil,"external report bound is unchanged")
+    eq(N.Safe.count(st.entries),1); K.prune(st,H.clock()+3600); eq(next(st.entries),nil)
+end)
+
 test("Round1 realm: own realm equality normalizes and folds full strings",function()
     local N=H.load(); local st=N.Find.new({"Alice-Érea52"},"Home")
     N.Find.own(st,{name="Alice",realm="érea - 52",source="own target",faction="opposite"},100,H.clock())

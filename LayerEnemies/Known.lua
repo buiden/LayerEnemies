@@ -59,7 +59,9 @@ function K.get(st,name,now)
 end
 function K.put(st,e,now)
     K.prune(st,now)
-    if type(e.name)~="string" or #e.name<2 or #e.name>100 or e.name:find("[%c|]")
+    -- A.unit joins two Safe.str values (160 bytes each); preserve legacy first-name matches.
+    local limit=e.source=="own" and 321 or 100
+    if type(e.name)~="string" or #e.name<2 or #e.name>limit or e.name:find("[%c|]")
         or not sources[e.source] or (e.kind~="seen" and e.kind~="claim")
         or type(e.at)~="number" or not fresh(e,now) then return end
     local key=N.Find.fold(e.name)
