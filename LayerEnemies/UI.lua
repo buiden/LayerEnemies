@@ -46,6 +46,7 @@ local function rowFrame()
     r.level=font(r,13); r.level:SetPoint("TOPLEFT",r,"TOPLEFT",10,-16); r.level:SetWidth(25)
     r.title=font(r,12); r.title:SetPoint("TOPLEFT",r,"TOPLEFT",42,-8); r.title:SetWidth(225)
     r.sub=font(r,10,colors.muted); r.sub:SetPoint("TOPLEFT",r,"TOPLEFT",42,-26); r.sub:SetWidth(294); r.sub:SetHeight(31); r.sub:SetJustifyV("TOP")
+    r.place=font(r,10,colors.muted); r.place:SetWidth(294); r.place:SetHeight(40); r.place:SetJustifyV("TOP"); r.place:Hide()
     r.age=font(r,10,colors.muted); r.age:SetPoint("TOPRIGHT",r,"TOPRIGHT",-8,-8); r.age:SetJustifyH("RIGHT")
     r.ask=button(r,220,20,"Ask for invite",function()
         if r.hostRow then N.Main.hopHostTo(r.hostRow,r.hostShown); U.render()
@@ -138,13 +139,15 @@ function U.render()
     U.hosting:SetShown(want==true)
     U.auto:SetShown(U.tab=="friendly"); U.auto.label:SetText(M.autoHop() and "Auto: on" or "Auto: off")
     U.share.label:SetText(M.sharing() and "Share: on" or "Share: off")
+    U.call.label:SetText(M.calling() and "Call: on" or "Call: off")
     U.guildOnly.label:SetText(N.Net.consent()=="public" and "Guild only: off" or "Guild only: on")
     -- a network not in this version shows n/a; otherwise its own switch (stand-down and guild only show in /le net)
     local function netLabel(key,name) return name..": "..(N.Net.SHIP[key]~=true and "n/a" or N.Net.switch(key) and "on" or "off") end
     U.netWe.label:SetText(netLabel("we","War Effort")); U.netHh.label:SetText(netLabel("hh","HeadHunter"))
     local hint=U.tab=="friendly" and not known
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
-    local height=U.tab=="local" and 48 or U.tab=="find" and 106 or U.tab=="friendly" and 68 or 80
+    local hasPlaces=false; for _,row in ipairs(tracked) do if row.place then hasPlaces=true; break end end
+    local height=U.tab=="local" and 48 or U.tab=="find" and (hasPlaces and 146 or 106) or U.tab=="friendly" and 68 or 80
     local top=U.tab=="find" and 56 or (U.tab=="reported" or U.tab=="friendly") and 23 or 0
     local visible=math.floor((300-top)/height)
     local maximum=math.max(0,#rows-visible)
@@ -155,7 +158,7 @@ function U.render()
         local r=U.pool[index]
         if not r then r=rowFrame(); U.pool[index]=r end
         r:ClearAllPoints(); r:SetPoint("TOPLEFT",U.body,"TOPLEFT",0,-top-(index-1)*height)
-        r:SetHeight(height-4); r:Show(); r.clear:Hide()
+        r:SetHeight(height-4); r:Show(); r.clear:Hide(); r.place:Hide()
         local c=U.tab=="friendly" and colors.green or classColor(e.class)
         r.stripe:SetColorTexture(unpack(c)); r.title:SetTextColor(unpack(c))
         local friendly=U.tab=="friendly"
@@ -183,9 +186,13 @@ function U.render()
             else askState(r,e.name,"Ask for invite") end
         else
             r.tracked=e.name; r.clear:Show()
-            r.sub:SetText(e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or e.status)
+            r.sub:SetText(e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or (e.place and "" or e.status))
             askState(r,e.canAsk and e.spotter or nil,e.spotter and ("Ask "..e.spotter.." for invite") or "")
             if e.probably then r.sub:SetText(r.sub:GetText().." · probably your layer (key ambiguous)") end
+            if e.place then
+                r.place:ClearAllPoints(); r.place:SetPoint("TOPLEFT",r,"TOPLEFT",42,e.at and -73 or -26)
+                r.place:SetText(M.placeText(e.place)); r.place:Show()
+            end
         end
     end
     U.hint:SetText(#rows==0 and "No eligible observations yet." or (#rows>visible and ("Mouse wheel: "..(U.offset+1).."–"..math.min(#rows,U.offset+visible).." of "..#rows) or ""))
@@ -222,7 +229,7 @@ function U.create()
     if U.frame then return end
     local f=CreateFrame("Frame","LayerEnemiesWindow",UIParent)
     f:Hide() -- Native frames start shown; never flash on login.
-    U.frame=f; f:SetSize(360,492); f:SetFrameStrata("MEDIUM"); paint(f,colors.bg); border(f,{.18,.22,.26})
+    U.frame=f; f:SetSize(360,514); f:SetFrameStrata("MEDIUM"); paint(f,colors.bg); border(f,{.18,.22,.26})
     f:SetMovable(true); f:SetClampedToScreen(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart",function() f:StartMoving() end); f:SetScript("OnDragStop",U.savePosition)
     local p=U.position(LayerEnemiesDB.position)
@@ -271,6 +278,8 @@ function U.create()
     local M=N.Main
     U.share=button(f,70,18,"Share: on",function() M.setShare(not M.sharing()); U.render() end)
     U.share:SetPoint("TOPLEFT",6,-440)
+    U.call=button(f,70,18,"Call: on",function() M.setCall(not M.calling()); U.render() end)
+    U.call:SetPoint("TOPLEFT",6,-462)
     U.guildOnly=button(f,92,18,"Guild only: off",function() M.setConsent(N.Net.consent()=="public" and "guild" or "public"); U.render() end)
     U.guildOnly:SetPoint("TOPLEFT",80,-440)
     U.netWe=button(f,86,18,"War Effort: on",function() M.setNet("we",not N.Net.switch("we")); U.render() end)

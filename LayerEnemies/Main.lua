@@ -29,6 +29,7 @@ end
 function M.boundary(zone,zoneChange)
     local prev={}
     if zoneChange==true and zone~=nil and M.store.zone~=nil and zone~=M.store.zone then prev=T.carry(M.store,now()) end
+    N.CallUI.check()
     captureStale()
     M.blockedBulo=M.store.bulo
     -- A readable zone that differs from the last readable one ends the zone epoch (own raw id and ambiguity);
@@ -108,6 +109,7 @@ function M.poll()
     M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
     N.Directory.sync()
     M.findAlerts()
+    N.CallUI.check()
     if N.UI then N.UI.refresh() end
 end
 function M.queuePoll()
@@ -167,6 +169,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     -- Check every delivered value before comparing/indexing it.
     local args={prefix,text,kind,sender,target,zoneChannelID,localID,channelName}
     for i=1,8 do if S.secret(args[i]) then return end end
+    if prefix=="OpenMapLoc" then return M.openmapIn(text,kind,sender) end
     if prefix=="HeadHunter" then return M.headhunter(text,kind,sender) end
     if prefix=="LayerSwap" then return M.layerswap(text,kind,sender) end
     if prefix=="LFSw" then return M.lfsw(text,kind,sender) end
@@ -216,6 +219,43 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
         if N.UI then N.UI.refresh() end
     end
 end
+-- OpenMap places are private, session-only Find data: no alerts, reports, peers or outgoing work.
+local function openmapPlace(text,kind,sender,faction)
+    if not S.str(sender,100) then return end
+    local _,me=A.ownIdentity()
+    local name=N.OpenMap.match(M.find,sender,me)
+    if not name or A.ignored(sender) then return end
+    local place=N.OpenMap.decode(text)
+    if not place then return end
+    if place=="clear" then M.find.places[name]=nil
+    else
+        place.at,place.route,place.faction=now(),kind,faction
+        M.find.places[name]=place
+    end
+    if N.UI then N.UI.refresh() end
+end
+function M.openmapIn(text,kind,sender)
+    if S.secret(kind) or S.secret(text) or S.secret(sender) then return end
+    if kind~="GUILD" and kind~="WHISPER" then return end
+    if type(text)~="string" or #text>64 or not M.find or #M.find.names==0 then return end
+    pcall(openmapPlace,text,kind,sender)
+end
+function M.openmapBn(prefix,text,channel,id)
+    if S.secret(prefix) or S.secret(text) or S.secret(channel) or not S.num(id) then return end
+    if prefix~="OpenMapLoc" or type(text)~="string" or #text>64 or not M.find or #M.find.names==0 then return end
+    -- Optional lookup and all foreign fields are protected. Never read account names or retain account data.
+    pcall(function()
+        local info=S.tab(C_BattleNet) and S.call(C_BattleNet.GetGameAccountInfoByID,id)
+        if not S.tab(info) then return end
+        local sender=N.OpenMap.bnName(info.characterName,info.realmName)
+        if not sender then return end
+        local guid=S.str(info.playerGuid,160)
+        local own=S.str(S.call(UnitGUID,"player"),160)
+        if guid and own and guid==own then return end
+        local faction=N.OpenMap.faction(info.factionName,S.call(UnitFactionGroup,"player"))
+        openmapPlace(text,"BN",sender,faction)
+    end)
+end
 -- Spy family in (lane C1) and guild incidents in (lane C2): a line is the sender's own sighting of one enemy, or the
 -- sender's death to one; 6 lines per sender per 10 s over the six prefixes; never relayed and never answered.
 M.spyRates={rates={},nrates=0}
@@ -240,10 +280,12 @@ function M.spyIn(prefix,text,kind,sender)
     record,why=mod.record(prefix,d,{sender=sender,route=kind,heard=time,zone=zone})
     if not record then M.lastDrop="Spy: "..tostring(why); return end
     M.lastHeard=time
+    local ok,_,callAction=pcall(M.callReceive,record,who)
+    if not ok then M.error="data unavailable (API error)" end
     local stored,whyNot=T.refresh(M.store,record,time)
     if not stored then M.lastDrop=whyNot end
     N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
-    M.findAlerts()
+    M.findAlerts(ok and callAction=="show")
     if N.UI then N.UI.refresh() end
 end
 -- HeadHunter P (fight) and L (wanted) records: PARTY/RAID/WHISPER, own faction only, 6 frames per sender per 10 s.
@@ -602,18 +644,88 @@ function M.findRows()
             ambiguous=M.store.ambiguous(now()),bulo=lists.bulo,book=lists.book})
     end)
 end
-function M.findText(row)
-    if not row.at then return row.name.." — "..row.status end
-    local detail=" in "..M.zoneName(row.zone)..", "..math.floor(now()-row.at).." s ago ("..(row.class or "Unknown class").." "..tostring(row.level or "?")..")"
-    return row.name.." — "..row.status..detail..(row.same and " — already on your layer" or row.probably and " — probably on your layer (your server key is ambiguous)"
-        or row.travel and (" — travel to "..M.zoneName(row.zone).." first") or "")
+function M.placeText(place)
+    return "last shared position (OpenMap): "..M.zoneName(place.map).." "..math.floor(place.x*100+.5)..","..math.floor(place.y*100+.5)
+        .." · "..math.floor(place.age).." s ago"..(place.faction=="opposite" and " · enemy faction" or place.faction=="same" and " · your faction" or "")
 end
-function M.findAlerts()
+function M.findText(row,sightingOnly)
+    local text=row.name.." — "..row.status
+    if row.at then
+        local detail=" in "..M.zoneName(row.zone)..", "..math.floor(now()-row.at).." s ago ("..(row.class or "Unknown class").." "..tostring(row.level or "?")..")"
+        text=text..detail..(row.same and " — already on your layer" or row.probably and " — probably on your layer (your server key is ambiguous)"
+            or row.travel and (" — travel to "..M.zoneName(row.zone).." first") or "")
+    end
+    if row.place and not sightingOnly then
+        return (row.at and (text.."\n") or (row.name.." — "))..M.placeText(row.place)
+    end
+    return text
+end
+function M.calling() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.call~=false end
+function M.setCall(on)
+    LayerEnemiesDB.call=on==true
+    if not on then
+        M.call=N.Call.new()
+        N.CallUI.clear()
+    end
+    M.say(on and "LayerEnemies: Call is on." or "LayerEnemies: Call is off.")
+    if N.UI then N.UI.refresh() end
+end
+function M.setCallArt(on)
+    LayerEnemiesDB.callArt=on==true
+    N.CallUI.render()
+    M.say(on and "LayerEnemies: Call art is on." or "LayerEnemies: Call art is off (Latin headings).")
+end
+function M.callHelp(e)
+    local placed=false
+    if e.zone and e.x and e.y and S.tab(C_Map)
+        and S.call(C_Map.CanSetUserWaypointOnMap,e.zone)==true and type(C_Map.SetUserWaypoint)=="function" then
+        local point
+        if S.tab(UiMapPoint) then point=S.call(UiMapPoint.CreateFromCoordinates,e.zone,e.x,e.y)
+        else
+            -- UiMapPoint's convenience constructor loads only on Mainline. The native struct uses a Vector2D.
+            local position=S.call(CreateVector2D,e.x,e.y)
+            if position then point={uiMapID=e.zone,position=position} end
+        end
+        if point then
+            local ok,result=pcall(C_Map.SetUserWaypoint,point)
+            placed=ok and not S.secret(result) and result==true
+            if placed and S.tab(C_SuperTrack) then S.call(C_SuperTrack.SetSuperTrackedUserWaypoint,true) end
+        end
+    end
+    if not placed then
+        local position=e.x and e.y and string.format("%.1f, %.1f",e.x*100,e.y*100) or "position unavailable"
+        M.say("LayerEnemies: "..N.CallText.clean(M.zoneName(e.zone)).." - "..position..".")
+    end
+    if e.full and e.killer then
+        local ok,why=N.Find.add(M.find,e.killer)
+        if not ok then M.say("LayerEnemies: "..why)
+        else
+            LayerEnemiesDB.tracked=M.find.names
+            if N.UI then N.UI.refresh() end
+        end
+    end
+end
+function M.callReceive(record,victim)
+    local time=now()
+    local _,me=A.ownIdentity()
+    local enemy=record.enemies and record.enemies[1]
+    local e,action=N.Call.receive(M.call,record,victim,time,{on=M.calling(),instance=A.inInstance(),me=me,
+        known=enemy and N.Call.known(M.store,enemy.name,time)})
+    if e and (action=="show" or (N.CallUI.frame and N.CallUI.frame:IsShown())) then
+        N.CallUI.show(e,action)
+        if action=="show" then M.alertSound() end
+    end
+    return e,action
+end
+function M.alertSound()
+    S.call(PlaySound,S.tab(SOUNDKIT) and SOUNDKIT.RAID_WARNING or 8959,"Master")
+end
+function M.findAlerts(quiet)
     if not M.find or #M.find.names==0 then return end
     for _,row in ipairs(M.findRows()) do
         if N.Find.alert(M.find,row,now()) then
-            M.say("LayerEnemies: "..M.findText(row))
-            S.call(PlaySound,S.tab(SOUNDKIT) and SOUNDKIT.RAID_WARNING or 8959,"Master")
+            M.say("LayerEnemies: "..M.findText(row,true))
+            if not quiet then M.alertSound() end
         end
     end
 end
@@ -1569,7 +1681,7 @@ function M.start()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
     local saved=LayerEnemiesDB
-    M.find=N.Find.new(saved.tracked)
+    M.find=N.Find.new(saved.tracked); M.call=N.Call.new()
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
     M.host.want=LayerEnemiesDB.guildHost
@@ -1577,6 +1689,8 @@ function M.start()
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- sharing our own sightings (O, War Effort C+E): on by default; only a saved false turns it off
     LayerEnemiesDB.share=saved.share~=false
+    LayerEnemiesDB.call=saved.call~=false
+    LayerEnemiesDB.callArt=saved.callArt~=false
     -- the first-login line, once per character, while some network ships and no guild-only choice was made
     LayerEnemiesDB.netNotice=saved.netNotice==true or nil
     local ships=false; for key in pairs(N.Net.LIST) do if N.Net.SHIP[key]==true then ships=true end end
@@ -1605,6 +1719,7 @@ function M.start()
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"GBOUNTY")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WALLOFSHAME")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FTold1")
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OpenMapLoc") -- receive only, including hellos
     end
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"
@@ -1616,6 +1731,8 @@ function M.start()
         if command=="hop auto on" then guarded(M.setAutoHop,true); return end
         if command=="net" or command:match("^net%s") then guarded(M.net,command); return end
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
+        if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
+        if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
         if command=="hop auto off" then guarded(M.setAutoHop,false); return end
         local index=command:match("^ask%s+(%d%d?)$")
         local host=command:match("^hop%s+host%s+(%d%d?)$")
@@ -1638,7 +1755,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -1651,6 +1768,7 @@ local function dispatch(_,event,...)
     if event=="PLAYER_LOGIN" then guarded(M.start); return end
     if not M.started then return end
     if event=="CHAT_MSG_ADDON" then guarded(M.message,...)
+    elseif event=="BN_CHAT_MSG_ADDON" then guarded(M.openmapBn,...)
     elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then guarded(M.boundary,A.location()); M.queuePoll()
     elseif event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
