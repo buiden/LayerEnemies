@@ -2,7 +2,7 @@
 ## Title: LayerEnemies
 ## Notes: Enemy players seen by you or reported by other players' addons, and friendly players to ask for a layer invite.
 ## Author: buiden
-## Version: 1.0.1
+## Version: 1.1.0
 ## SavedVariablesPerCharacter: LayerEnemiesDB
 ## OptionalDeps: BuloLayerForever, WarEffortScout, LayerSwap
 Safe.lua
