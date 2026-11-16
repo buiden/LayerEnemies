@@ -154,6 +154,61 @@ test("Round1 long: own display bound covers two adapter strings but remains fini
     eq(N.Safe.count(st.entries),1); K.prune(st,H.clock()+3600); eq(next(st.entries),nil)
 end)
 
+test("Round1 raid: the player member never relabels our own target",function()
+    for _,raidFirst in ipairs({false,true}) do
+        local N=H.load(); H.advance(1); local units=H.units()
+        units.raid3={visible=true}; units.raid3target=H.player("Cedar Vale","Horde","Player-1-901")
+        units.raid3target.realm=nil; units.target=units.raid3target
+        local original=UnitIsUnit
+        UnitIsUnit=function(a,b) return (a=="raid3" and b=="player") or original(a,b) end
+        yes(N.Main.track("Cedar Vale"))
+        if raidFirst then H.deliver("UNIT_TARGET","raid3") end
+        H.deliver("PLAYER_TARGET_CHANGED")
+        if not raidFirst then H.deliver("UNIT_TARGET","raid3") end
+        eq(N.Main.pendingUnits.raid3target,nil,"the player's raid token is excluded")
+        H.drain(); local r=N.Main.findRows()[1]
+        eq(r.detail,"own target"); eq(N.Main.store.localSeen["Player-1-901"].source,"own target")
+        no(N.Main.findText(r):find("own (party target)",1,true)); no(N.Main.error)
+    end
+end)
+
+test("Round1 group: member existence and self identity are rechecked at drain",function()
+    for _,phase in ipairs({"enqueue","drain"}) do
+        for _,mode in ipairs({"absent","self","unknown-self"}) do
+            local N=H.load(); H.advance(1); local units=H.units()
+            units.party2={visible=true}; units.party2target=H.player("Cedar Vale","Horde","Player-1-901"); units.party2target.realm=nil
+            local exists,same=UnitExists,UnitIsUnit
+            if phase=="drain" then H.deliver("UNIT_TARGET","party2"); yes(N.Main.pendingUnits.party2target) end
+            UnitExists=function(u) if mode=="absent" and u=="party2" then return false end; return exists(u) end
+            UnitIsUnit=function(a,b)
+                if a=="party2" and b=="player" then
+                    if mode=="self" then return true elseif mode=="unknown-self" then return H.secret end
+                end
+                return same(a,b)
+            end
+            if phase=="enqueue" then H.deliver("UNIT_TARGET","party2") end
+            H.drain(); eq(N.Main.store.localSeen["Player-1-901"],nil,"ineligible member must not supply a sighting")
+            UnitExists,UnitIsUnit=exists,same
+            H.deliver("UNIT_TARGET","party2"); H.drain()
+            eq(N.Main.store.localSeen["Player-1-901"].source,"own (party target)","positive control still observes another member")
+            no(N.Main.error); eq(#H.sent(),0)
+        end
+    end
+end)
+
+test("Round1 group: retarget without a new event cannot change a queued observation",function()
+    for _,newEvent in ipairs({false,true}) do
+        local N=H.load(); H.advance(1); local units=H.units()
+        units.raid5={visible=true}; units.raid5target=H.player("Cedar Vale","Horde","Player-1-901"); units.raid5target.realm=nil
+        H.deliver("UNIT_TARGET","raid5"); yes(N.Main.pendingUnits.raid5target)
+        units.raid5target=H.player("Birch Grove","Horde","Player-1-902"); units.raid5target.realm=nil
+        if newEvent then H.deliver("UNIT_TARGET","raid5") end
+        H.drain(); eq(N.Main.store.localSeen["Player-1-901"],nil)
+        eq(N.Main.store.localSeen["Player-1-902"]~=nil,newEvent,"only an event for the new GUID authorizes the replacement")
+        no(N.Main.error); eq(#H.sent(),0)
+    end
+end)
+
 test("Round1 realm: own realm equality normalizes and folds full strings",function()
     local N=H.load(); local st=N.Find.new({"Alice-Érea52"},"Home")
     N.Find.own(st,{name="Alice",realm="érea - 52",source="own target",faction="opposite"},100,H.clock())

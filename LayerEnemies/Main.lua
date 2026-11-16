@@ -135,6 +135,7 @@ local function targetMember(unit)
 end
 local function groupReadable(member)
     return A.inInstance()==false and S.call(UnitIsVisible,member)==true
+        and S.call(UnitExists,member)==true and S.call(UnitIsUnit,member,"player")==false
 end
 function M.queueGroupTarget(unit)
     unit=S.str(unit,30)
@@ -177,12 +178,19 @@ function M.queueUnit(unit)
     if member and not groupReadable(member) then return end
     if M.staleUnits[unit] and S.str(S.call(UnitGUID,unit),160)~=M.staleUnits[unit] then M.releaseUnit(unit) end
     if S.count(M.pendingUnits)>=86 then return end
-    M.pendingUnits[unit]=true
+    local expected=member and S.str(S.call(UnitGUID,unit),160) or not member
+    if not expected then return end
+    M.pendingUnits[unit]=expected
     if M.unitsQueued then return end
     M.unitsQueued=true
     local function run()
         M.unitsQueued=false
-        for token in pairs(M.pendingUnits) do M.pendingUnits[token]=nil; guarded(M.observe,token) end
+        for token,expected in pairs(M.pendingUnits) do
+            M.pendingUnits[token]=nil
+            -- Group tokens can retarget before the queue drains. Only a new event
+            -- may replace the queued GUID; all other readability guards run again.
+            if expected==true or (S.str(token,30) and S.str(S.call(UnitGUID,token),160)==expected) then guarded(M.observe,token) end
+        end
         M.queuePoll()
     end
     if not after(0,run) then run() end
