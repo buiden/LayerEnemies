@@ -783,4 +783,13 @@ PASS Round1 group: member existence and self identity are rechecked at drain
 PASS Round1 group: retarget without a new event cannot change a queued observation
 PASS Round1 hash: all evidence plus an independent place fits on a Find page
 PASS Round1 realm: own realm equality normalizes and folds full strings
-RESULT: 785 tests passed, 0 failed, 72650 assertions
+PASS Round2 relayed: guild O survives a newer claim beside own history
+PASS Round2 death: guild O survives a newer claim beside own history
+PASS Round2 claims: guild O survives relay and death without an own entry
+PASS Round2 retention: own guild and claim expire independently without refreshing O
+PASS Round2 own: layer change releases priority to guild O
+PASS Round2 own: unknown layer never takes priority over guild O
+PASS Round2 own: current-layer 599-second sighting stays primary beside another zone
+PASS Round2 bounds: own storage participates in eviction and rollback indexing
+PASS Round2 UI: own guild claim current hash and OpenMap all fit
+RESULT: 794 tests passed, 0 failed, 74757 assertions
