@@ -4,6 +4,16 @@ local test,eq,yes,no=H.test,H.eq,H.yes,H.no
 local function fixture(saved)
     local N=H.load(saved); H.advance(1); H.establish(N)
     N.Relay.rand=function() return .5 end
+    local send=N.Wire.send
+    N.Wire.send=function(prefix,text,...)
+        if prefix=="LEGW1" and text:sub(1,2)=="O|" then
+            local report=N.Relay.decodeOwn(text,"Birch Scout",H.clock())
+            yes(report,"own O is valid at the real Wire boundary")
+            eq(#report.enemies,1,"a nameless O cannot satisfy the reserve tests")
+            eq(report.enemies[1].name,"Own Enemy")
+        end
+        return send(prefix,text,...)
+    end
     return N
 end
 local function incoming(prefix,text,sender)
@@ -23,7 +33,8 @@ local function hh(i)
         "Cedar Scout"..(i and ("-"..H.abc(i)) or ""))
 end
 local function own()
-    H.units().target=H.player("Ownenemy","Horde","Player-1-998")
+    -- Forever's full name prevents the mock realm becoming a third name word.
+    H.units().target=H.player("Own Enemy","Horde","Player-1-998")
     H.deliver("PLAYER_TARGET_CHANGED"); H.drain()
 end
 local function counts()
@@ -50,6 +61,34 @@ local function finish(N)
     for _=1,4 do H.advance(1) end
     N.Main.shareTick(); no(N.Main.error)
 end
+
+test("Guild relay policy: only a fitted guild O attempt spends the own reserve",function()
+    for _,mode in ipairs({"valid","invalid name","unguilded"}) do
+        local N=fixture(); local charged,attempts=0,0
+        local spend,send=N.Relay.spend,N.Wire.send
+        N.Relay.spend=function(at,relay)
+            no(relay,"this scenario has only our own sighting")
+            eq(at,H.clock()); charged=charged+1
+            return spend(at,relay)
+        end
+        N.Wire.send=function(prefix,text,...)
+            if prefix=="LEGW1" and text:sub(1,2)=="O|" then
+                attempts=attempts+1
+                eq(charged,attempts,"charge exactly once before the real O send")
+            end
+            return send(prefix,text,...)
+        end
+        if mode=="unguilded" then IsInGuild=function() return false end end
+        if mode=="invalid name" then
+            H.units().target=H.player("Ownenemy","Horde","Player-1-998")
+            H.deliver("PLAYER_TARGET_CHANGED"); H.drain()
+        else own() end
+        finish(N)
+        local expected=mode=="valid" and 1 or 0
+        eq(attempts,expected); eq(charged,expected); eq(counts().O,expected)
+        no(N.Main.error)
+    end
+end)
 
 test("Guild relay policy: sharing on sends own, Spy and HeadHunter lines",function()
     local N=fixture(); observe(N); finish(N)
@@ -217,7 +256,7 @@ test("Guild relay policy: combat relay then K then O has the documented one-line
     for i=1,5 do spy(i) end
     H.advance(.6)
     C_DeathRecap={HasRecapEvents=function() return true end,GetRecapEvents=function()
-        return {{sourceGUID="Player-1-998",sourceName="Ownenemy",sourceFlags=0x448,overkill=10,timestamp=H.clock()}}
+        return {{sourceGUID="Player-1-998",sourceName="Own Enemy",sourceFlags=0x448,overkill=10,timestamp=H.clock()}}
     end}
     H.deliver("PLAYER_DEAD"); H.advance(.3); N.Main.shareTick()
     local kills=0; for _,m in ipairs(H.sent()) do if m.text:sub(1,2)=="K|" then kills=kills+1 end end
@@ -233,7 +272,7 @@ for _,fighting in ipairs({false,true}) do
     test("Guild relay policy: merged K author preserves the reserve "..(fighting and "in combat" or "out of combat"),function()
         local N=fixture(); H.combat(fighting); own(); H.advance(2.1)
         C_DeathRecap={HasRecapEvents=function() return true end,GetRecapEvents=function()
-            return {{sourceGUID="Player-1-998",sourceName="Ownenemy",sourceFlags=0x448,overkill=10,timestamp=H.clock()}}
+            return {{sourceGUID="Player-1-998",sourceName="Own Enemy",sourceFlags=0x448,overkill=10,timestamp=H.clock()}}
         end}
         H.deliver("PLAYER_DEAD"); H.advance(.3)
         eq(counts().all,1,"K has really consumed the shared LEGW1 prefix budget")

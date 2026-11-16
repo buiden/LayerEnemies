@@ -262,12 +262,25 @@ in guild-only mode**, including a round already in progress.
   button or `/le hosts find`, at most once per 60 seconds. Bulo users in the
   guild answer with their own layer line. Our own Bulo `L` line is never sent,
   and an incoming `Q` is never answered.
-- LEGW1 prefix, GUILD: enemies your own client saw (an O line: zone, your
-  position, layer if known, up to four names). An O goes 3 seconds after the
-  first sighting of an enemy not shared in the last 60 seconds, at most one
-  per 15 seconds, and lists everyone your own client saw in the last 15
-  seconds, so a name can repeat in the next O 15 seconds later. `/le share off`
-  stops all guild sends, including the relays below. Also a relay of a report you heard
+- LEGW1 prefix, GUILD: enemies your own client saw (an `O|1` line: zone, your
+  position, layer if known, up to four names within 255 bytes). After the
+  existing 3-second settle, a crowd uses up to three consecutive 15-second
+  slots: nine names go as 4, 4 and 1, with no name repeated within 60 seconds.
+  Only names actually fitted in a client-accepted line are marked shared.
+  Own sightings remain eligible through age 45 seconds; older pending names
+  are dropped. The age is computed at each send from the actual own sighting,
+  not from a Bulo refresh or the burst start. The single age field dates the
+  oldest included sighting when their times differ.
+  A burst snapshots the eligible names at its first slot. After three attempts,
+  any overflow (including a 13th name or names displaced by the byte limit) is
+  dropped, not marked shared; a new own observation after that burst closes
+  can start another burst, still at most one O per 15 seconds. Refused sends
+  consume a slot too; no O is queued. `/le share off`, a guild leave/switch,
+  or a world/zone/layer reset cancels the remaining snapshot without resetting
+  the send or name cooldowns. Older receivers need no update: the `O|1` format
+  and its four-name/255-byte limits are unchanged.
+  `/le share off` stops all guild sends, including the relays below.
+  Also a relay of a report you heard
   first-hand in your party, raid or whispers, so guildmates running
   LayerEnemies see both. A relay waits a
   random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
