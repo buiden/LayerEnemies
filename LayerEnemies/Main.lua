@@ -111,7 +111,7 @@ function M.poll()
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
-    M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
+    M.groupCheck(); M.inviteTick(); M.watchTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
     N.Directory.sync()
     N.Find.home(M.find,M.homeRealm())
     N.Known.prune(M.find.known,time)
@@ -172,6 +172,7 @@ function M.observe(unit)
     e.at=time; e.source=member and "own (party target)" or "own "..unit; e.x=x; e.y=y; e.positionKind="approximate observer position"
     T.observe(M.store,e,time)
     N.Find.own(M.find,e,zone,time)
+    M.watchNotice(e)
 end
 function M.queueUnit(unit)
     unit=S.str(unit,30); if not unit then return end
@@ -383,7 +384,7 @@ function M.offerRelay(record)
     end
 end
 function M.relayContext()
-    return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100)}
+    return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100),watch=M.watch}
 end
 function M.relayTick()
     for _,r in ipairs(N.Relay.tick(M.relay,now(),M.relayContext())) do M.lastRelay=r.ok and "relayed" or r.why end
@@ -398,6 +399,12 @@ function M.relayIn(text,kind,sender)
     local time=now()
     if not N.Relay.allow(M.relay,sender,time) then return end
     if type(text)=="string" and text:sub(1,2)=="K|" then return N.OwnDeath.receive(text,sender,time) end
+    if type(text)=="string" and text:sub(1,2)=="T|" then
+        if not M.guildCheck(true) or M.guildWhy() then return end
+        local changed=N.Watch.receive(M.watch,text,sender,time)
+        if changed then N.Share.watch(M.share,M.store.localSeen,changed,time,M.store.zone) end
+        return
+    end
     local control=N.Relay.control(text)
     if control then return M.hostControl(control,sender,time) end
     local own=type(text)=="string" and text:sub(1,2)=="O|"
@@ -613,6 +620,7 @@ function M.rosterUpdate()
     -- here (a missed or late guild event) asks for that guild's own roster instead of counting this one
     if not M.guildCheck(true) then M.hostCheck(); return end
     A.rosterSeen(time)
+    if M.watch then N.Watch.roster(M.watch,A.guildNames()) end
     if M.host and M.host.want and not M.host.on then M.hostResume(false) end
     if M.host and M.host.announceOwed then M.host.announceOwed=nil; if M.host.on then guarded(M.announceHost) end end
     local held=M.host and M.host.held
@@ -789,6 +797,7 @@ function M.callHelp(e)
         if not ok then M.say("LayerEnemies: "..why)
         else
             LayerEnemiesDB.tracked=M.find.names
+            M.watchSync()
             if N.UI then N.UI.refresh() end
         end
     end
@@ -853,6 +862,7 @@ function M.track(name,remove)
             M.findRecord(r)
         end
     else N.Find.remove(M.find) end
+    M.watchSync()
     LayerEnemiesDB.tracked=M.find.names
     if #M.find.names==0 then M.say("LayerEnemies: tracked names cleared.") end
     local printed
@@ -1353,6 +1363,7 @@ end
 function M.guildCheck(fromRoster)
     local inGuild=S.call(IsInGuild)==true
     if not inGuild then
+        if M.watch then N.Watch.reset(M.watch,now()) end
         if not fromRoster then M.guildLeft=true; M.guildSeen=nil; M.guildUnknown=nil; M.guildBlink=nil; M.guildReset() end
         return false
     end
@@ -1384,6 +1395,7 @@ function M.guildChanged()
     if same and M.host and M.host.want and not M.host.on then M.hostResume(false) end
 end
 function M.guildReset()
+    if M.watch then N.Watch.reset(M.watch,now()) end
     if M.share then N.Share.cancel(M.share,M.store.localSeen,now()) end
     N.OwnDeath.cancel()
     if not M.host then return end
@@ -1418,7 +1430,7 @@ function M.shareTick()
     local time=now()
     local zone,x,y=A.location()
     if not zone or zone~=M.store.zone then return end
-    local rep=N.Share.pick(M.share,M.store.localSeen,time,zone)
+    local rep=N.Share.pick(M.share,M.store.localSeen,time,zone,M.watch)
     local public=N.Share.pickWe(M.share,M.store.localSeen,time,zone)
     if not rep and not public then return end
     local rid=M.nextReportId()
@@ -1833,6 +1845,33 @@ function M.inviteTick()
 end
 -- 1.0 consent/status: public networks by default (owner decision 2026-11-14), /le net, /le share.
 M.NET_NOTICE="LayerEnemies: public networks ON (War Effort, HeadHunter…). /le net guild to limit to guild only."
+function M.watchSync()
+    if M.watch and N.Watch.sync(M.watch,M.find,now()) then
+        N.Share.watch(M.share,M.store.localSeen,M.watch.own,now(),M.store.zone)
+    end
+end
+function M.watchTick()
+    if not M.watch then return end
+    M.watchSync()
+    local same=M.guildCheck(true)
+    local allowed=same and not M.guildWhy() and A.inInstance()==false and M.sharing()
+    N.Watch.tick(M.watch,now(),allowed)
+end
+function M.watchNotice(e)
+    if not M.watch then return end
+    M.watchSync()
+    local text=N.Watch.notice(M.watch,e,now(),LayerEnemiesDB.findNotice~=false,A.inInstance())
+    if text then M.say(text) end
+end
+function M.setFindShare(on)
+    LayerEnemiesDB.findShare=on==true
+    N.Watch.enable(M.watch,on==true,now()); M.watchTick()
+    M.say("LayerEnemies: sharing your Find list with the guild is "..(on and "on." or "off; clearing the shared list when guild sending is available."))
+end
+function M.setFindNotice(on)
+    LayerEnemiesDB.findNotice=on==true
+    M.say("LayerEnemies: on-site tracked-name notices are "..(on and "on." or "off."))
+end
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
     if not on then N.OwnDeath.cancel() end
@@ -1957,6 +1996,9 @@ function M.start()
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- sharing our own sightings (O, War Effort C+E) and deaths (K): only a saved false turns it off
     LayerEnemiesDB.share=saved.share~=false
+    LayerEnemiesDB.findShare=saved.findShare~=false
+    LayerEnemiesDB.findNotice=saved.findNotice~=false
+    M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
     LayerEnemiesDB.call=saved.call~=false
     LayerEnemiesDB.callArt=saved.callArt~=false
     -- the first-login line, once per character, while some network ships and no guild-only choice was made
@@ -1994,6 +2036,8 @@ function M.start()
     SlashCmdList.LAYERENEMIES=function(command)
         local raw=(S.str(command,110) or ""):match("^%s*(.-)%s*$")
         command=raw:lower()
+        if command=="find share on" or command=="find share off" then guarded(M.setFindShare,command=="find share on"); return end
+        if command=="find notice on" or command=="find notice off" then guarded(M.setFindNotice,command=="find notice on"); return end
         if command=="find" then M.track(nil); return end
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
         if command=="hop stop" then guarded(M.hopAnyStop); return end

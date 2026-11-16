@@ -29,6 +29,88 @@ Every network has its own switch (`/le net`, and the switches at the bottom
 of the window). Nothing of 1.0.0 has been tried on a live client yet; the
 checklist is at the end.
 
+## Unreleased - shared watch list and on-site notice
+
+**Rule for review:** "LayerEnemies now sends each member's Find names to
+the guild on LEGW1. This is a new kind of guild send. Guild route only, plain names, default on,
+with a per-user opt-out."
+
+**Wire clarification:** the approved compact format below sends **six-character
+hashes**, not plain names. The quoted rule records the new sharing policy; hashes
+are not secrecy: a guildmate can test a guessed name against a list.
+
+Your up-to-20 Find names are shared only on **LEGW1 / GUILD**. The hash is the
+32-bit `Hash.hash3` loop encoded as six little-endian base-62 digits, applied to
+`Find.fold(name)` **without its realm**. The name you actually see is what the
+notice prints. **The same name on another realm also matches for notices and
+forwarding priority. Your own Find rows retain their strict realm rules.** Class
+and level never establish a match.
+
+- `/le find share off` sends one clearing line when guild sending is available,
+  then stops list refreshes. `/le find share on` resumes. Find still works locally,
+  and you still use other guildmates' lists. Saved per character as `findShare`,
+  default on; a saved off choice stays silent after reload.
+- `/le find notice off` silences the on-site chat line; `on` restores it. Saved as
+  `findNotice`, default on. It does not change your list sharing or Find alerts.
+- `/le share off` also prevents T sends, including an owed clearing line; it waits
+  until sharing resumes. No T in an instance or outside a readable guild. Existing
+  Wire rules still apply. `/le net guild` permits this guild-only route: it is not
+  a blanket guild-send prohibition and does not require either public network.
+
+The line is `T|1|<id>|<part>|<parts>|<hash6><hash6>...`. Its two-character id changes
+with content. Up to 39 hashes fit per line; 20 distinct base names fit in one
+`1|1` line. `T|1|<id>|0|0|` clears the sender. Same-base realm variants need only
+one shared hash. A receiver accepts up to 100 hashes in three parts, replacing
+only a complete set. A new id replaces an incomplete set; incomplete sets expire
+at 120 seconds. Malformed, fourth-part or over-cap sets discard only that incoming
+set, not the previous complete list. At most 200 sender slots (including partial
+sets) are held. The hash-to-senders lookup is updated on changes, never rebuilt
+per sighting.
+
+Lists and notice history are **session-only**. Complete lists expire 25 minutes
+after their last complete refresh, disappear on clear or guild leave/switch, and
+are removed when a complete roster update no longer lists their sender. Offline
+members remain; an unreadable roster proves no departures. A reload starts with
+no held lists. Older clients ignore T; there is no request for others' lists.
+
+A nonempty list is sent 20–80 seconds after login, 10 seconds after the last edit
+(no earlier than its initial login delay; at most one content send per 60 seconds),
+and every 10 minutes with ±120 seconds of jitter. Ten quick adds coalesce into one
+send. An initially empty list is silent; removing names sends a clear. T has a
+hard **three actual attempts per sliding minute** limit, including client refusals.
+A blocked T waits in one bounded, coalescing owner queue and retries through Wire;
+it is not a dropped forward or a second, independently draining Wire queue.
+
+Listed enemies (your own or a guildmate's) go first in O bursts. A completed new
+or changed list can resend up to four held first-hand names under 45 seconds old
+on the next normal O slot, once per name per content change, even inside the
+usual 60-second name cooldown. Unchanged refreshes grant no repeat; a name no
+longer listed cannot spend an early ticket. Early repeats are guild O only, never extra
+War Effort C+E names. Normally eligible names keep their existing public path. O stays at
+one line per 15 seconds and three attempts per burst. Listed R relays go first
+and lose pending/bucket contention last; their caps and stand-down stay unchanged.
+
+When you yourself see a guildmate's tracked enemy, one quiet chat line says:
+`LayerEnemies: <name> is tracked by <guildmate>` (or `and N others`). At most one
+per name per ten minutes, three per sliding minute overall; never in an instance,
+for your own tracked names, or from reported/relayed sightings. No sound, frame,
+map pin, ask, or hop is added by this notice.
+
+**Budgets:** Wire is unchanged: 20 GUILD sends/minute within 40 overall, five-token
+prefix burst refilling one per two seconds, eight-token overall burst refilling
+one per 1.5 seconds, queue cap 40; combat doubles cost and halves minute caps.
+T normally uses one line per ten minutes (0.5% of the guild cap), one in a send
+minute (5%), at most three (15%). O remains at most four/minute. The planned
+combined budget with the separate Spy/kill relay lanes is 4 O + 6 Spy R + 4 kill R
++ 1 T = 15/20 (17/20 at the T hard limit); those two relay additions are not part
+of this change. Thirty simultaneous logins spread 30 T lines over about a minute,
+then average three/minute guild-wide; 100 members average ten/minute. Memory
+estimates from the design, not measured: ~250 KB at 200×20 hashes, under 40 KB for
+30 members, ~1.2 MB at the hard receiver caps.
+
+Native delivery/throttling and roster completeness: **not run (alpha, owner's
+decision)**. Client acceptance is not a delivery acknowledgement.
+
 ## Next release: Hop to another layer
 
 **Changed rule:** "one hop request to one host ... No retry, no fan-out"
@@ -172,7 +254,8 @@ It also offers the displayed full killer name to Find if a slot is available
 (maximum 20), including realm-qualified full killers (`First Last-Realm` or
 `First Last-1234`). Realm spaces and hyphens are removed; the base and casing
 are kept as typed. A full list stays unchanged with an explanation; partial
-names are not added. It does not send a message or ask for an invite.
+names are not added. It does not immediately send a message or ask for an invite;
+adding a Find name schedules the shared-list update described above.
 
 Three Arabic headings, three fixed detail labels and three button labels
 ship as pre-rendered images. Each detail row puts its label image on the
@@ -265,7 +348,8 @@ in guild-only mode**, including a round already in progress.
 - LEGW1 prefix, GUILD: enemies your own client saw (an `O|1` line: zone, your
   position, layer if known, up to four names within 255 bytes). After the
   existing 3-second settle, a crowd uses up to three consecutive 15-second
-  slots: nine names go as 4, 4 and 1, with no name repeated within 60 seconds.
+  slots: nine names go as 4, 4 and 1, normally without repeats within 60 seconds
+  (the changed-watch-list exception above allows four early names).
   Only names actually fitted in a client-accepted line are marked shared.
   Own sightings remain eligible through age 45 seconds; older pending names
   are dropped. The age is computed at each send from the actual own sighting,
@@ -1124,7 +1208,7 @@ last 10 minutes.
 
 ## Storage and performance limits
 
-LayerEnemiesDB is SavedVariablesPerCharacter. It stores options, up to five
+LayerEnemiesDB is SavedVariablesPerCharacter. It stores options, up to 20
 explicitly tracked names (typed or chosen with On my way), and window position. It never persists
 sightings, unselected identities, GUIDs, hashes, locations, report payloads,
 asked names, alert history or source settings. Besides those three it holds
@@ -1132,6 +1216,7 @@ asked names, alert history or source settings. Besides those three it holds
 `consent` ("guild" after `/le net guild`, "public" after `/le net public`,
 absent until either: public), `nets` (one
 switch per network), `share` (sharing your sightings and own PvP deaths), `call` (death popup/sound),
+`findShare` and `findNotice` (shared-list and on-site notice switches, default on),
 `callArt` (call images; both call settings default on), `netNotice` (the
 first-login line was shown) and `weReportId` (War Effort's report id, which
 must keep rising across sessions, 1 to 65535). Reloading keeps your watchlist,

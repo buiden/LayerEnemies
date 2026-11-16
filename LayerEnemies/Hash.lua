@@ -20,4 +20,17 @@ function H.hash3(text)
     end
     return out
 end
+-- Watch identities use the same 32-bit loop, without hash3's truncation.
+function H.hash6(text)
+    if not S.str(text, 330) then return nil end
+    local value = 5381
+    for i=1,#text do value = (value*33 + text:byte(i)) % 4294967296 end
+    local out = ""
+    for _=1,6 do
+        local digit = value % 62
+        out = out .. alphabet:sub(digit+1,digit+1)
+        value = math.floor(value/62)
+    end
+    return out
+end
 function H.player(name,realm) return H.hash3(H.nameKey(name,realm)) end

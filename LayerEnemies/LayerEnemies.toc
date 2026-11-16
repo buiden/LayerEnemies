@@ -33,6 +33,7 @@ Share.lua
 Directory.lua
 Known.lua
 Find.lua
+Watch.lua
 OpenMap.lua
 CallText.lua
 Call.lua
