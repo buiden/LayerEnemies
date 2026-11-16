@@ -741,6 +741,9 @@ PASS K fix check: a row first seen on an earlier death never names the killer (s
 PASS K fix check: a row first seen on an earlier death never names the killer (superset)
 PASS K fix check: a row first seen on an earlier death never names the killer (secret sibling)
 PASS K fix check: a new player row next to an old one still names the new killer
+PASS K fix check: a death whose recap cannot name still owns its rows (65 rows)
+PASS K fix check: a death whose recap cannot name still owns its rows (throwing sibling)
+PASS K fix check: a 64-row recap with a new killer still sends; 65 rows never name
 PASS K review F1: an ineligible fresh row set does not stop later eligible retries
 PASS K review F1: fingerprint history saturates closed instead of forgetting a prior death
 PASS K review S1: malformed UTF-8 after unhex is refused by codec Wire and receiver
@@ -752,4 +755,4 @@ PASS K review S2: recap killer matching our own name is not sent
 PASS K review S2: zone upper bound is 999999 not one million
 PASS K review S2: unhex must validate player syntax as well as UTF-8
 PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
-RESULT: 754 tests passed, 0 failed, 74292 assertions
+RESULT: 757 tests passed, 0 failed, 74474 assertions
