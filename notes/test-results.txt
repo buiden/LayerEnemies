@@ -803,6 +803,7 @@ PASS Guild relay policy: HeadHunter burst reserves own O capacity out of combat
 PASS Guild relay policy: HeadHunter burst reserves own O capacity in combat
 PASS Guild relay policy: mixed burst reserves own O capacity out of combat
 PASS Guild relay policy: mixed burst reserves own O capacity in combat
+PASS Guild relay policy: combat relay sends with a full prefix bucket and leaves one own line
 PASS Guild relay policy: sustained HH keeps all five own O slots combat=false every=1
 PASS Guild relay policy: sustained HH keeps all five own O slots combat=true every=1
 PASS Guild relay policy: sustained HH keeps all five own O slots combat=true every=4
@@ -810,7 +811,7 @@ PASS Guild relay policy: minute reserve includes other prefixes combat=false
 PASS Guild relay policy: minute reserve includes other prefixes combat=true
 PASS Guild relay policy: earlier guild control lines count against the relay reserve
 PASS Guild relay policy: clear and clock rollback cannot refill the reserve
-PASS Guild relay policy: combat relay burst cannot steal K then O capacity
+PASS Guild relay policy: combat relay then K then O has the documented one-line reserve limit
 PASS Guild relay policy: merged K author preserves the reserve out of combat
 PASS Guild relay policy: merged K author preserves the reserve in combat
 PASS Kills 11: D creates a timed killer claim in LE-only
@@ -1029,9 +1030,12 @@ PASS Kills R1 share: off then on while pending sends nothing on LEGW1
 PASS Kills R1 share: off at dispatch sends nothing on LEGW1
 PASS Kills R1 bounds: live event ledger evicts overflow and expires without renewal
 PASS Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear and rollback
+PASS Kills R2 reserve: full combat bucket sends a kill relay and leaves one own line
+PASS Kills R2 reserve: active combat relays keep all five own O slots every=1
+PASS Kills R2 reserve: active combat relays keep all five own O slots every=4
 PASS Kills R2 reserve: kill dispatch uses the shared spend gate
 PASS Kills R2 reserve: kill relays leave the guild-minute own slots
 PASS Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute
 PASS Kills R2 ledger: new kill stays visible after 300 guild kills at one per second
 PASS Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first
-RESULT: 1036 tests passed, 0 failed, 98680 assertions
+RESULT: 1040 tests passed, 0 failed, 99407 assertions

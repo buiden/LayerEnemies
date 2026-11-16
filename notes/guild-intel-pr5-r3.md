@@ -1,6 +1,50 @@
 # Guild-intel PR 5: shared reserve and kill-ledger eviction
 
-## Branch and implementation
+## Combat reserve correction (supersedes the earlier two-line ruling)
+
+Merged PR 4 head `d7da5dba85c96858764051353d81213d1a3e9f06` into `open-gi5-r3` in local merge commit `0e6bd2b8ec08b72401d989b7f0ec8378bdbec2bd`, with starting head `9efad902bed81fd3406a87825299940307d8d7c6` as first parent. PR 4 came from a local-filesystem fetch because these are separate repositories. Only generated verification notes conflicted; they are regenerated and committed separately. Backup ref `backup-open-gi5-r3-before-combat-reserve` retains the old head. No push, GitHub write or install.
+
+All relay families, including kills, use the same unchanged shared path. The only runtime delta from the starting head is removing the combat multiplier from `Relay.spend`'s two-token prefix reserve. It protects two own lines in peace, **one in combat**; combat relays can send when at least four tokens are available and other limits allow. Keep guild-minute reserves of three peace/two combat slots, every rate/age/dedupe/ledger limit, share-off and drop-without-queue behavior. `Wire.lua`, `OwnDeath.lua`, and `test/verify.py` are byte-unchanged. README documents relay -> K -> O losing O in combat.
+
+### Test-first and full verification
+
+- Added a full-bucket combat kill-forward test and 300-second sustained combat cases at 1/s and 1/4s, retaining own O=5/5. Restored the two inherited combat burst expectations from zero relays to one. The final tests were replayed against untouched starting production in a detached worktree: **50 passed, 5 failed, 4682 assertions**. All failures are missing combat relays; after the merge: **55 passed, 0 failed, 4808 assertions**.
+- One initial test wrongly demanded a positive kill subtotal under mixed traffic, rather than positive total forwarding; the unchanged reviewer probe proves that stronger fairness assumption does not hold. Keep the full-bucket and kill-only positive-send checks. A second fixture issue inspected pending work before the final input's existing due+0.05s callback; advance 0.1s after the 300-second counts before checking pending emptiness. Original failed GREEN and corrected detached RED logs are retained. No production timing or limit change.
+- Policy mutants **4/4 killed**; kill mutants **20/20 killed**, including restoring the oversized combat reserve (five kill-test failures); Spy mutants **7/7 killed**. Source restored and clean reruns pass: policy **23/0/2200**, kills **55/0/4808**, Spy **22/0/1852** (passed/failed/assertions).
+- `python3 test/verify.py`, foreground, Lua 5.1.5: exit 0, **RESULT: 1040 tests passed, 0 failed, 99407 assertions**. Syntax/API policy, strict send gate, media/TOC/package integrity/source parity and diff whitespace checks pass.
+- Archive SHA-256: `a7745dd84bcb7edb96378d0708850c2e79e62ba8d52e6e669502044efff5c806`.
+
+### Reviewer probes
+
+All **24 p2 sustained modes**, rerun on PR 5, match PR 4: O=5/5, zero refusals, with R=0 in every relays-off control. Relays-on results for 300 seconds:
+
+| Family/cadence | Peace O / R | Combat O / R |
+|---|---|---|
+| HH, 1/s | 5/5 / 80 | 5/5 / 35 |
+| HH, 1/4s | 5/5 / 75 | 5/5 / 35 |
+| Spy, 1/s | 5/5 / 26 | 5/5 / 10 |
+| Spy, 1/4s | 5/5 / 30 | 5/5 / 29 |
+| mixed, 1/s | 5/5 / 80 | 5/5 / 35 |
+| mixed, 1/4s | 5/5 / 30 | 5/5 / 29 |
+
+`p2 kafter`: peace K=1/O=1/R=3, no refusal; combat K=1/O=0/R=1, one O refusal (accepted known limit). `p2 off`: zero guild sends; only fresh O and WE Q after enabling. No runtime errors.
+
+| rp2 mode | Own O | R | Kill R | O refusals |
+|---|---:|---:|---:|---:|
+| Mixed HH 1/s, peace | 5/5 | 80 | 9 | 0 |
+| Mixed HH 1/s, combat | 5/5 | 35 | 0 | 0 |
+| Kill-only 1/4s, peace | 5/5 | 20 | 20 | 0 |
+| Kill-only 1/4s, combat | 5/5 | 15 | 15 | 0 |
+
+**Remaining limit:** mixed 1/s combat forwarding is active, but its kill subtotal is still zero. A separately instrumented private copy records 130 kill-budget refusals, 10 guild-reserve refusals and 10 prefix-reserve refusals. The four-attempt cap charges before shared admission; no relay-family fairness is promised. Kill-only combat sends 15, and a fresh full bucket sends one kill. Kept the owner's other-limit constraint rather than adding priority or changing charging. README records this distinction.
+
+Unchanged `rp2` ledger/share-off probes: 260 direct kills at 12s show all 260/R=207; 300 guild kills at 1s show all 300/R=0; 300 direct kills at 0.2s show all 300/R=3. Both later new kills are visible in each case. Share off before receipt/during wait gives zero guild sends and zero replay after enabling, while local kills remain shown.
+
+Evidence: `/opt/data/cache/scratch/gi-r3-evidence/combat-one-own/`, including `pr5-probe-results.json`, unmodified reviewer wrappers, traced-copy outcome logs, detached RED replays, mutant logs and full verify output. The p2 snippet and rp2 original are unchanged; p2 uses the previous builder's shared harness prefix.
+
+Files changed from the old PR 5 head: `LayerEnemies/Relay.lua`, `README.md`, `test/relay_policy.lua`, `test/relay_policy_mutants.py`, `test/kills_round1.lua`, `test/kills_round2.lua`, `test/kill_mutants.py`, inherited PR 4 note, this note, `notes/test-results.txt`, `notes/verification.json`. No other runtime file changed. Final review: self-review (no subagent tool); independent review remains the parent's lane. Native checks not run (alpha, owner's decision).
+
+## Earlier round-2 branch and implementation (historical)
 
 `open-gi5-r3` starts at PR 4 result `a342c7f672b06edf99d42b0c53410e26e800655a`. Merge `5fce2fe66b7d68ff5ed469dbf81ad011c824c23c` has that first parent and original `open-gi5-fix` head `586e114c2d39ed554087a6074764a627bbe105db` as its second parent. The old branch is unchanged. Ledger fix: `258bb66acd55c3ac4521698e19a3bf783bff98e5`. Local commits only; no push, GitHub write or install.
 
