@@ -1107,6 +1107,8 @@ PASS Kills R1 share: off then on while pending sends nothing on LEGW1
 PASS Kills R1 share: off at dispatch sends nothing on LEGW1
 PASS Kills R1 bounds: live event ledger evicts overflow and expires without renewal
 PASS Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear and rollback
+PASS Watch T + relays: own O goes out on time with T accounted combat=true
+PASS Watch T + relays: own O goes out on time with T accounted combat=false
 PASS Kills R2 reserve: full combat bucket sends a kill relay and leaves one own line
 PASS Kills R2 reserve: active combat relays keep all five own O slots every=1
 PASS Kills R2 reserve: active combat relays keep all five own O slots every=4
@@ -1115,4 +1117,4 @@ PASS Kills R2 reserve: kill relays leave the guild-minute own slots
 PASS Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute
 PASS Kills R2 ledger: new kill stays visible after 300 guild kills at one per second
 PASS Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first
-RESULT: 1117 tests passed, 0 failed, 118218 assertions
+RESULT: 1119 tests passed, 0 failed, 118428 assertions
