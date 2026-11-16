@@ -21,7 +21,7 @@ local frames,timers,log,units,loaded,metadata
 local clock,map,server,channels,inGuild,clientIgnored,inInstance
 local guildName="Test Guild"
 local wall,grouped,opened
-local sent,sendResult
+local sent,sendResult,registered,bnInfo,bnCalls
 local roster,rosterCalls,combat,raid,leader,invites,accepts,leaves,popupHidden,popup
 -- 1.0 T3: chat channels (display list, members), joins, leaves and roster selections; channel calls only from Directory.lua
 local joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn
@@ -31,7 +31,7 @@ local joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true},
     WEFF1={GUILD=true,PARTY=true,RAID=true,WHISPER=true},HeadHunter={WHISPER=true}}
 -- Prefixes the addon may register.
-local PREFIXES={WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true,GBOUNTY=true,WALLOFSHAME=true,FTold1=true}
+local PREFIXES={OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true,GBOUNTY=true,WALLOFSHAME=true,FTold1=true}
 -- The addon's source files, in load order, as the TOC lists them.
 local function addonFiles()
     local out={}
@@ -108,7 +108,13 @@ local function loadAddon()
     frames,timers,log,units,loaded,metadata={},{},{},{},{},{}
     clock,map,server,channels,inGuild,clientIgnored,inInstance=10,100,720100,{WarEffortPubA=7},true,false,false; guildName="Test Guild"
     wall,grouped,opened,forbidden=1800000000,false,{},0
-    sent,sendResult={},0
+    sent,sendResult,registered,bnInfo,bnCalls={},0,{},nil,0
+    _G.BNSendGameData=function() forbidden=forbidden+1; error("must never send BN data") end
+    _G.C_BattleNet={SendGameData=BNSendGameData,GetGameAccountInfoByID=function(id)
+        bnCalls=bnCalls+1
+        if type(bnInfo)=="function" then return bnInfo(id) end
+        return bnInfo
+    end}
     -- guild roster: {name, online}; combat, party and raid state for the guild host
     roster,rosterCalls,combat,raid,leader={},0,false,false,false
     _G.GetNumGuildMembers=function() return #roster end
@@ -195,6 +201,7 @@ local function loadAddon()
     _G.C_ChatInfo=setmetatable({
         GetChannelRosterInfo=function(index,r) local n=chanList[index]; local m=n and chanMembers[n] and chanMembers[n][r]; if m then return m,false,false,"Player-1-"..r end end,
         RegisterAddonMessagePrefix=function(prefix)
+            registered[prefix]=true
             if not PREFIXES[prefix] then forbidden=forbidden+1 end
             return true
         end,
@@ -6215,5 +6222,382 @@ test("guild O full name: observed split identity crosses share, Wire and cross-z
         no(N.Main.error)
     end
 end)
+-- OpenMap is an independent receive-only Find source, never an enemy report.
+do
+local OM_LINE="L1\t200\t0.4200\t0.5700\tMAGE\t60"
+local function om(text,kind,sender)
+    deliver("CHAT_MSG_ADDON","OpenMapLoc",text or OM_LINE,kind or "GUILD",sender or "Cedar Vale")
+end
+test("OpenMap guild tracer: exact tracked sender yields a session place without sends",function()
+    local N=loadAddon(); N.Main.track("Cedar Vale")
+    eq(registered.OpenMapLoc,true,"prefix is registered, not sent")
+    local nlog=#log; om()
+    local row=N.Main.findRows()[1]; yes(row.place,"tracked sender supplies a separate place")
+    eq(row.place.map,200); eq(row.place.x,.42); eq(row.place.y,.57)
+    eq(row.place.class,"MAGE"); eq(row.place.level,60); eq(row.place.at,clock); eq(row.place.route,"GUILD")
+    eq(row.place.faction,nil); eq(row.at,nil); eq(#sent,0); eq(#log,nlog)
+    eq(next(N.Main.store.localSeen),nil); eq(next(N.Main.store.reports),nil); no(N.Main.error)
+end)
+local function snapshot(value,seen)
+    if type(value)~="table" then return type(value)..":"..tostring(value) end
+    seen=seen or {}; if seen[value] then return "cycle" end; seen[value]=true
+    local out={}; for k,v in pairs(value) do out[#out+1]=snapshot(k,seen).."="..snapshot(v,seen) end
+    seen[value]=nil; table.sort(out); return "{"..table.concat(out,",").."}"
+end
+local function omReady(name)
+    local N=loadAddon(); GetNormalizedRealmName=nil
+    if name~=false then N.Main.track(name or "Cedar Vale") end
+    return N
+end
+local function noEffect(N,fn)
+    local before=snapshot({N.Main,LayerEnemiesDB,log,sent,timers,N.Wire,N.UI})
+    fn()
+    yes(snapshot({N.Main,LayerEnemiesDB,log,sent,timers,N.Wire,N.UI})==before,"discard without retaining, counting, scheduling or logging")
+    no(N.Main.error)
+end
+test("OpenMap untracked and empty watchlist: no state changes or decoding",function()
+    for _,tracked in ipairs({false,"Cedar Vale"}) do
+        local N=omReady(tracked); N.Main.lastDrop="earlier rejection"
+        if N.OpenMap then N.OpenMap.decode=function() error("untracked must not decode") end end
+        noEffect(N,function() om(nil,"GUILD","Birch Grove") end)
+    end
+end)
+test("OpenMap wire grammar: complete valid bounds and empty class",function()
+    local N=omReady()
+    for _,v in ipairs({{1,"0.0000","1.0000","",0},{999999,"1.0000","0.0000","WARRIOR",80}}) do
+        om(table.concat({"L1",v[1],v[2],v[3],v[4],v[5]},"\t"),"WHISPER")
+        local p=N.Main.findRows()[1].place; yes(p); eq(p.map,v[1]); eq(p.x,tonumber(v[2])); eq(p.y,tonumber(v[3]))
+        eq(p.class,v[4]~="" and v[4] or nil); eq(p.level,v[5]); eq(p.route,"WHISPER")
+    end
+    local line="L1\t100\t0.0001\t0.9999\t"..string.rep("A",40).."\t80"; eq(#line,64)
+    om(line); yes(N.Main.findRows()[1].place); eq(N.Main.findRows()[1].place.class,string.rep("A",40))
+end)
+test("OpenMap malformed lines cannot replace a live place",function()
+    local N=omReady(); om(); yes(N.Main.findRows()[1].place)
+    local lines={OM_LINE.."\textra", "L1\t200\t0.4200\t0.5700\tMAGE", "L1\t200\t1.5000\t0.5700\tMAGE\t60",
+        "L1\t200\t0.0000\t0.0000\tMAGE\t60", "L1\t0\t0.4200\t0.5700\tMAGE\t60",
+        "L1\t1000000\t0.4200\t0.5700\tMAGE\t60", "L1\t200\t0.4200\t0.5700\tmage\t60",
+        "L1\t200\t0.4200\t1.0001\tMAGE\t60", "L1\t200\t-0.4200\t0.5700\tMAGE\t60",
+        "L1\t200\t0.42\t0.5700\tMAGE\t60", "L1\t200\t0.42000\t0.5700\tMAGE\t60",
+        "L1\t200\t0.4200\t0.5700\tMAGE\t81", "L1\t200\t0.4200\t0.5700\tMAGE\t-1",
+        "L1\t200\t0.4200\t0.5700\tMAGE\t6.0", "L1\t+200\t0.4200\t0.5700\tMAGE\t60",
+        "L1\t200\t0.4200\t0.5700\tMAGE\t60\n", "L0\t", "H1", "H2", "P1", "", false, 123, {}, secret,
+        "L1\t100\t0.0001\t0.9999\t"..string.rep("A",41).."\t80"}
+    eq(#lines[#lines],65)
+    for _,line in ipairs(lines) do noEffect(N,function() deliver("CHAT_MSG_ADDON","OpenMapLoc",line,"GUILD","Cedar Vale") end) end
+    noEffect(N,function() deliver("CHAT_MSG_ADDON","OpenMapLoc",nil,"GUILD","Cedar Vale") end)
+end)
+test("OpenMap every secret event argument is discarded before indexing",function()
+    local N=omReady(); om(); yes(N.Main.findRows()[1].place)
+    for i=1,8 do
+        local args={"OpenMapLoc",OM_LINE,"GUILD","Cedar Vale","",0,0,""}; args[i]=secret
+        noEffect(N,function() deliver("CHAT_MSG_ADDON",unpack(args,1,8)) end)
+    end
+end)
+test("OpenMap routes and unreadable senders are refused silently",function()
+    local N=omReady(); om(); yes(N.Main.findRows()[1].place)
+    for _,route in ipairs({"PARTY","RAID","CHANNEL","BN","INSTANCE_CHAT",false,{},secret}) do
+        noEffect(N,function() deliver("CHAT_MSG_ADDON","OpenMapLoc","L0",route,"Cedar Vale") end)
+    end
+    for _,sender in ipairs({"",false,123,{},secret,"Cedar|Vale","Cedar  Vale"," Cedar Vale",string.rep("C",101)}) do
+        noEffect(N,function() deliver("CHAT_MSG_ADDON","OpenMapLoc","L0","GUILD",sender) end)
+    end
+end)
+test("OpenMap exact folded identity: no first-name alias and no foreign-realm alias",function()
+    local N=omReady("Cedar"); noEffect(N,function() om() end)
+    om(nil,"GUILD","Cedar-Foreign"); eq(N.Main.findRows()[1].place,nil)
+    om(nil,"GUILD","CEDAR-TestRealm"); yes(N.Main.findRows()[1].place)
+    N.Main.track("Cedar-Foreign"); om(nil,"WHISPER","CEDAR-FOREIGN")
+    local rows=N.Main.findRows(); eq(rows[1].place.route,"GUILD"); eq(rows[2].place.route,"WHISPER")
+    for _,v in ipairs({{"élodie","ÉLODIE"},{"zoé","Zoé"},{"łukasz","Łukasz"},{"мирон","Мирон"},{"élodie łan","Élodie Łan"}}) do
+        N=omReady(v[1]); om(nil,"WHISPER",v[2].."-TestRealm")
+        yes(N.Main.findRows()[1].place,"folded match "..v[1])
+    end
+end)
+test("OpenMap own identity and ignores fail closed then recover",function()
+    local N=omReady("Fable Reed"); ownShape("Fable","Reed","8123")
+    for _,who in ipairs({"Fable Reed","Fable Reed-8123"}) do noEffect(N,function() om(nil,"GUILD",who) end) end
+    N.Main.track("Cedar Vale")
+    for _,shape in ipairs({{nil,"Reed","8123"},{"Fable",secret,"8123"},{"Fable","Reed","Reed"},{"Fable","Reed",nil}}) do
+        ownShape(shape[1],shape[2],shape[3]); noEffect(N,function() om() end)
+    end
+    ownShape("Fable","Reed","8123")
+    clientIgnored=true; noEffect(N,function() om() end); clientIgnored=false
+    for _,read in ipairs({function() return nil end,function() return secret end,function() error("ignore unavailable") end}) do
+        C_FriendList.IsIgnored=read; noEffect(N,function() om() end)
+    end
+    C_FriendList.IsIgnored=function() return false end; om(); yes(N.Main.findRows()[2].place)
+end)
+test("OpenMap lifecycle: L0 and 150 second expiry, including backward clocks",function()
+    local N=omReady(); om(); yes(N.Main.findRows()[1].place)
+    clock=clock+149.9; yes(N.Main.findRows()[1].place)
+    clock=clock+.1; eq(N.Main.findRows()[1].place,nil); eq(next(N.Main.find.places),nil)
+    om(); om("L0","WHISPER"); eq(N.Main.findRows()[1].place,nil); eq(next(N.Main.find.places),nil)
+    om(); clock=clock-1; eq(N.Main.findRows()[1].place,nil)
+end)
+test("OpenMap lifecycle: casefold remove and clear delete stored spellings only",function()
+    local N=omReady("élodie"); N.Main.track("Birch Grove")
+    om(nil,"GUILD","Élodie"); om(nil,"GUILD","Birch Grove")
+    local st=N.Main.find; yes(st.places and st.places["élodie"]); local keep=st.places["Birch Grove"]
+    N.Find.remove(st,"ÉLODIE"); eq(st.places["élodie"],nil); eq(st.places["Birch Grove"],keep)
+    N.Find.remove(st); eq(next(st.places),nil)
+end)
+test("OpenMap places are bounded by the watchlist and are never saved",function()
+    local N=omReady(false)
+    for i=1,5 do N.Main.track("Cedar "..abc(i)) end
+    for i=1,50 do om(nil,"GUILD","Cedar "..abc(i)) end
+    yes(N.Main.find.places); eq(N.Safe.count(N.Main.find.places),5)
+    local db=snapshot(LayerEnemiesDB); om(); eq(snapshot(LayerEnemiesDB),db)
+    N.Main.started=false; N.Main.start(); eq(#N.Main.find.names,5); eq(next(N.Main.find.places),nil)
+end)
+
+local function bn(text,id,prefix,channel)
+    deliver("BN_CHAT_MSG_ADDON",prefix or "OpenMapLoc",text or OM_LINE,channel or "",id or 77)
+end
+local function bnReady(name)
+    local N=omReady(name)
+    bnInfo={characterName="Cedar Vale",realmName="Test Realm",factionName="Horde",playerGuid="Player-2-456"}
+    return N
+end
+test("OpenMap BN tracer: registered event yields a place with opposite faction, not account data",function()
+    local N=bnReady(); yes(N.Main.frame.events.BN_CHAT_MSG_ADDON,"optional BN event registered")
+    local nlog=#log; bn()
+    eq(bnCalls,1); local p=N.Main.findRows()[1].place; yes(p)
+    eq(p.map,200); eq(p.x,.42); eq(p.y,.57); eq(p.route,"BN"); eq(p.faction,"opposite"); eq(p.at,clock)
+    eq(p.id,nil); eq(p.playerGuid,nil); eq(p.characterName,nil); eq(p.realmName,nil)
+    eq(#sent,0); eq(#log,nlog); eq(next(N.Main.store.reports),nil); no(N.Main.error)
+end)
+
+test("OpenMap BN untracked and empty watchlist never retain lookup data or decode",function()
+    local N=bnReady(false); noEffect(N,function() bn() end); eq(bnCalls,0)
+    N.Main.track("Birch Grove")
+    if N.OpenMap then N.OpenMap.decode=function() error("untracked must not decode") end end
+    bnInfo=setmetatable(bnInfo,{__index=function(_,key) error("unexpected account field "..key) end})
+    noEffect(N,function() bn() end); eq(bnCalls,1,"one lookup for a possible tracked character")
+end)
+test("OpenMap BN lookup failures and invalid arguments are harmless",function()
+    local N=bnReady(); bn(); yes(N.Main.findRows()[1].place)
+    for _,bad in ipairs({false,"bad",123,secret,{}}) do bnInfo=bad; noEffect(N,function() bn() end) end
+    bnInfo=function() error("lookup unavailable") end; noEffect(N,function() bn() end)
+    bnInfo=setmetatable({},{__index=function() error("unreadable table field") end}); noEffect(N,function() bn() end)
+    bnInfo=nil; noEffect(N,function() bn() end)
+    C_BattleNet.GetGameAccountInfoByID=nil; noEffect(N,function() bn() end)
+    C_BattleNet=nil; noEffect(N,function() bn() end)
+    N=bnReady(); bn(); yes(N.Main.findRows()[1].place); bnCalls=0
+    for i=1,4 do
+        local args={"OpenMapLoc",OM_LINE,"",77}; args[i]=secret
+        noEffect(N,function() deliver("BN_CHAT_MSG_ADDON",unpack(args,1,4)) end)
+    end
+    for _,bad in ipairs({"77",false,{},0/0,math.huge,-math.huge}) do
+        noEffect(N,function() deliver("BN_CHAT_MSG_ADDON","OpenMapLoc",OM_LINE,"",bad) end)
+    end
+    for _,bad in ipairs({false,{},123,string.rep("A",65)}) do
+        noEffect(N,function() deliver("BN_CHAT_MSG_ADDON","OpenMapLoc",bad,"",77) end)
+    end
+    noEffect(N,function() deliver("BN_CHAT_MSG_ADDON","OpenMapLoc",nil,"",77) end)
+    noEffect(N,function() deliver("BN_CHAT_MSG_ADDON","OpenMap",OM_LINE,"",77) end)
+    noEffect(N,function() deliver("BN_CHAT_MSG_ADDON","OpenMapLoc",OM_LINE,"",nil) end)
+    eq(bnCalls,0,"invalid arguments dropped before lookup")
+end)
+test("OpenMap BN names require readable characters and realms without reading accounts",function()
+    local N=bnReady("élodie łan")
+    bnInfo={characterName="Élodie Łan",realmName="Test Realm",factionName="Horde",playerGuid="Player-2-456"}
+    setmetatable(bnInfo,{__index=function(_,key) error("must not read "..key) end})
+    bn(); yes(N.Main.findRows()[1].place,"full folded surname, not account fields")
+    for _,field in ipairs({"characterName","realmName"}) do
+        for _,bad in ipairs({false,secret,{},123,"","bad|name"}) do
+            local good=bnInfo[field]; bnInfo[field]=bad
+            noEffect(N,function() bn("L0") end); bnInfo[field]=good
+        end
+    end
+    bnInfo.realmName="Foreign"; noEffect(N,function() bn("L0") end)
+    N=bnReady("Cedar-Foreign"); bnInfo.characterName="Cedar"; bnInfo.realmName="Foreign"; bn()
+    yes(N.Main.findRows()[1].place)
+    bnInfo.characterName="Cedar-Foreign"; bn("L0"); eq(N.Main.findRows()[1].place,nil)
+    bnInfo.characterName="Cedar-Elsewhere"; noEffect(N,function() bn() end)
+end)
+test("OpenMap BN hellos, own character by name or GUID, and ignored friends are refused",function()
+    local N=bnReady()
+    for _,text in ipairs({"H1","H2","L1\t200\t0.4200\t0.5700\tMAGE\t81"}) do noEffect(N,function() bn(text) end) end
+    N.Main.track("Me"); bnInfo.characterName="Me"; noEffect(N,function() bn() end)
+    bnInfo.characterName="Cedar Vale"; units.player={guid="Player-2-456"}; noEffect(N,function() bn() end)
+    units.player=nil; clientIgnored=true; noEffect(N,function() bn() end); clientIgnored=false
+    ownShape("Fable",secret,"8123"); noEffect(N,function() bn() end)
+end)
+test("OpenMap BN faction classification never guesses unreadable values",function()
+    local N=bnReady(); bn(); local p=N.Main.findRows()[1].place; yes(p); eq(p.faction,"opposite")
+    bnInfo.factionName="Alliance"; bn(); eq(N.Main.findRows()[1].place.faction,"same")
+    for _,bad in ipairs({false,secret,{},123,"Neutral",""}) do
+        bnInfo.factionName=bad; bn(); eq(N.Main.findRows()[1].place.faction,nil)
+    end
+    bnInfo.factionName="Horde"
+    for _,read in ipairs({function() return secret end,function() return nil end,function() error("unavailable") end}) do
+        UnitFactionGroup=read; bn(); eq(N.Main.findRows()[1].place.faction,nil)
+    end
+end)
+test("OpenMap GUILD and BN share one newest place and either route can withdraw",function()
+    local N=bnReady(); om(); local a=N.Main.findRows()[1].place; yes(a); eq(a.route,"GUILD")
+    clock=clock+5; bn(); local p=N.Main.findRows()[1].place; yes(p); eq(p.route,"BN"); eq(p.at,clock); eq(p.faction,"opposite")
+    eq(N.Safe.count(N.Main.find.places),1); om("L0"); eq(N.Main.findRows()[1].place,nil)
+    om(); bn("L0"); eq(N.Main.findRows()[1].place,nil)
+    bn(); clock=clock+5; om(); p=N.Main.findRows()[1].place; eq(p.route,"GUILD"); eq(p.faction,nil); eq(p.at,clock)
+end)
+test("OpenMap optional BN event absent: loading and both chat routes still work",function()
+    local original=methods.RegisterEvent
+    methods.RegisterEvent=function(self,event) if event=="BN_CHAT_MSG_ADDON" then error("unsupported event") end; original(self,event) end
+    local ok,N=pcall(omReady); methods.RegisterEvent=original; yes(ok); no(N.Main.error)
+    eq(N.Main.frame.events.BN_CHAT_MSG_ADDON,nil); om(); yes(N.Main.findRows()[1].place)
+    om("L0"); om(nil,"WHISPER"); eq(N.Main.findRows()[1].place.route,"WHISPER")
+end)
+
+local function sight(N,zone,at,own)
+    local F,st=N.Find,N.Main.find
+    if own then F.own(st,{name="Cedar Vale",source="own target",faction="opposite",class="ROGUE",level=47},zone,at)
+    else F.report(st,{sender="Birch Scout",zone=zone,at=at,enemies={{name="Cedar Vale",class="ROGUE",level=47}}},"Test Realm") end
+end
+local function withoutPlace(row)
+    local out={}; for k,v in pairs(row) do if k~="place" then out[k]=v end end; return snapshot(out)
+end
+test("OpenMap tiers 1 sighting only: frozen legacy row fields stay identical",function()
+    local N=omReady(); clock=100; sight(N,100,60,false)
+    local expected={name="Cedar Vale",zone=100,at=60,spotter="Birch Scout",class="ROGUE",level=47,possible=true,relayed=false,
+        age=40,same=false,probably=false,travel=false,status="possible match, seen by Birch Scout",canAsk=true}
+    eq(snapshot(N.Main.findRows()[1]),snapshot(expected),"row projection from the pre-OpenMap Find implementation")
+    sight(N,100,70,true)
+    expected={name="Cedar Vale",own=true,zone=100,at=70,class="ROGUE",level=47,age=30,same=true,probably=false,travel=false,
+        status="is on YOUR layer",canAsk=false}
+    eq(snapshot(N.Main.findRows()[1]),snapshot(expected)); eq(N.Main.findRows()[1].place,nil)
+end)
+test("OpenMap tiers 2 place only: separate line, no layer, ask, hop, alert or relay",function()
+    local N=bnReady(); establish(N)
+    local before=snapshot({N.Main.store,N.Main.receiver,N.Main.peers,N.Main.relay,N.Main.share,N.Main.we,N.Main.emb,N.Main.hhNet,LayerEnemiesDB})
+    local attempts,alerts=0,0
+    N.Wire.send=function() attempts=attempts+1; error("OpenMap must never attempt any send") end
+    N.Main.offerRelay=function() attempts=attempts+1; error("OpenMap must never offer a relay") end
+    N.Main.findAlerts=function() alerts=alerts+1 end
+    bn(); local row=N.Main.findRows()[1]; yes(row.place); eq(row.status,"shared position"); eq(row.canAsk,false)
+    eq(row.at,nil); eq(row.zone,nil); eq(row.age,nil); eq(row.spotter,nil); eq(row.same,nil); eq(row.layer,nil)
+    eq(row.class,nil); eq(row.level,nil); eq(row.travel,nil); no(N.Find.alert(N.Main.find,row,clock))
+    eq(snapshot({N.Main.store,N.Main.receiver,N.Main.peers,N.Main.relay,N.Main.share,N.Main.we,N.Main.emb,N.Main.hhNet,LayerEnemiesDB}),before)
+    N.UI.toggle(); N.UI.select("find"); local ui=N.UI.pool[1]
+    no(ui.ask:IsShown()); eq(ui.spotter,false); eq(ui.hopRecord,false); eq(ui.hostRow,false); ui.ask:Click()
+    eq(#opened,0); eq(N.Wire.queued(),0); eq(attempts,0); eq(alerts,0); eq(#sent,0)
+    yes(N.Main.findText(row):find("last shared position (OpenMap): Durotar 42,57",1,true))
+    yes(N.Main.findText(row):find("enemy faction",1,true)); no(N.Main.findText(row):find("layer",1,true))
+end)
+test("OpenMap tiers 3 both same zone: sighting owns fields, place has its own age",function()
+    local N=omReady(); clock=100; sight(N,200,60,false)
+    om(); clock=110
+    local row=N.Main.findRows()[1]; local expected=N.Find.new({"Cedar Vale"}); expected.locations=N.Main.find.locations
+    eq(withoutPlace(row),snapshot(N.Find.rows(expected,clock,100,function() return false end)[1]))
+    yes(row.place); eq(row.age,50); eq(row.place.age,10); eq(row.place.at,100); eq(row.zone,200); eq(row.place.map,200)
+    eq(row.place.layer,nil); eq(row.place.spotter,nil); eq(row.place.zone,nil); no(N.Main.error)
+end)
+test("OpenMap tiers 4 conflicting zones and ages stay separate in text and UI",function()
+    local N=bnReady(); clock=100; sight(N,100,60,false); bn(); clock=120
+    local row=N.Main.findRows()[1]; eq(row.zone,100); eq(row.age,60); eq(row.at,60); eq(row.class,"ROGUE"); eq(row.level,47)
+    yes(row.place); eq(row.place.map,200); eq(row.place.age,20); eq(row.place.class,"MAGE"); eq(row.place.level,60); eq(row.place.at,100)
+    local text=N.Main.findText(row)
+    yes(text:find("Ashenvale, 60 s ago",1,true)); yes(text:find("\nlast shared position (OpenMap): Durotar 42,57 · 20 s ago · enemy faction",1,true))
+    N.UI.toggle(); N.UI.select("find"); local ui=N.UI.pool[1]
+    yes(ui.sub:GetText():find("Ashenvale",1,true)); no(ui.sub:GetText():find("Durotar",1,true))
+    yes(ui.place:GetText():find("Durotar 42,57 · 20 s ago · enemy faction",1,true)); no(ui.place:GetText():find("Ashenvale",1,true))
+    yes(ui.ask:IsShown()); eq(ui.spotter,"Birch Scout"); no(ui.place:GetText():find("layer",1,true))
+    yes(ui.place.point[5]-ui.place.height>-(ui.height-26),"place text fits above the action buttons")
+end)
+test("OpenMap tiers 5 arrival order is commutative and only the sighting alerts",function()
+    local rows={}
+    for _,placeFirst in ipairs({true,false}) do
+        local N=omReady(); clock=100
+        local sounds=0; PlaySound=function() sounds=sounds+1 end
+        local nlog=#log
+        if placeFirst then om(); N.Main.findAlerts(); eq(#log,nlog); eq(sounds,0) end
+        sight(N,100,90,false); N.Main.findAlerts(); eq(#log,nlog+1); eq(sounds,1)
+        if not placeFirst then om() end
+        N.Main.findAlerts(); eq(#log,nlog+1); eq(sounds,1)
+        no(log[#log]:find("OpenMap",1,true),"sighting alert does not carry a private place line")
+        local row=N.Main.findRows()[1]; yes(row.place); rows[#rows+1]=snapshot(row); PlaySound=nil
+    end
+    eq(rows[1],rows[2],"same records, irrespective of arrival order")
+end)
+test("OpenMap tiers 6 known layer belongs only to the sighting",function()
+    local N=omReady(); establish(N); clock=100; sight(N,100,90,false)
+    local function rows() return N.Find.rows(N.Main.find,clock,100,function() return true end) end
+    local before=withoutPlace(rows()[1]); om(); local row=rows()[1]
+    eq(withoutPlace(row),before); yes(row.same); eq(row.canAsk,false)
+    yes(row.place); eq(row.place.same,nil); eq(row.place.layer,nil); eq(row.place.zone,nil)
+    local text=N.Main.findText(row); yes(text:find("already on your layer",1,true))
+    local line=text:match("\n(.*)$"); yes(line); no(line:find("layer",1,true)); no(line:find("7086",1,true))
+end)
+test("OpenMap tiers 7 independent 600 and 150 second expiry falls back either way",function()
+    local N=omReady(); clock=100; sight(N,100,100,false); clock=690; om(); clock=699.9
+    local row=N.Main.findRows()[1]; yes(row.at); yes(row.place)
+    clock=700; row=N.Main.findRows()[1]; eq(row.at,nil); eq(row.status,"shared position"); eq(row.canAsk,false); eq(row.place.age,10)
+    N=omReady(); clock=100; sight(N,100,100,false); om(); clock=249.9; yes(N.Main.findRows()[1].place)
+    clock=250; row=N.Main.findRows()[1]; eq(row.place,nil); eq(row.at,100); eq(row.age,150)
+    local bare=N.Find.new({"Cedar Vale"}); bare.locations=N.Main.find.locations
+    eq(snapshot(row),snapshot(N.Find.rows(bare,clock,100,function() return false end)[1]))
+end)
+test("OpenMap tiers 8 ten-minute place stream never refreshes a sighting or calls findAlerts",function()
+    local N=omReady(); clock=100; sight(N,100,100,false); N.Main.findAlerts()
+    local loc=N.Main.find.locations["Cedar Vale"]; local alerts=snapshot(N.Main.find.alerts); local nlog=#log; local calls=0
+    N.Main.findAlerts=function() calls=calls+1 end
+    for i=1,60 do
+        clock=100+i*10; om(); local row=N.Main.findRows()[1]
+        yes(row.place); eq(row.place.at,clock); eq(row.place.age,0)
+        eq(loc.at,100); eq(loc.zone,100); eq(snapshot(N.Main.find.alerts),alerts); eq(#log,nlog); eq(calls,0)
+        if i<60 then eq(row.at,100); eq(row.age,i*10) else eq(row.at,nil); eq(row.status,"shared position") end
+    end
+    eq(#sent,0); eq(N.Wire.queued(),0)
+end)
+test("OpenMap tiers 9 L0 clears only place; layer boundary clears only sightings",function()
+    local N=omReady(); clock=100; sight(N,100,90,false); om()
+    local before=withoutPlace(N.Main.findRows()[1]); om("L0"); local row=N.Main.findRows()[1]
+    eq(withoutPlace(row),before); eq(row.place,nil)
+    om(); local place=snapshot(N.Main.findRows()[1].place); N.Find.boundary(N.Main.find)
+    row=N.Main.findRows()[1]; eq(row.at,nil); eq(row.canAsk,false); eq(snapshot(row.place),place)
+    sight(N,100,90,false); N.Main.boundary(200); eq(N.Main.findRows()[1].at,nil); eq(snapshot(N.Main.findRows()[1].place),place)
+end)
+
+test("OpenMap chat ignore API field failure stays silent like an unreadable lookup",function()
+    local N=omReady(); om(); yes(N.Main.findRows()[1].place)
+    C_FriendList=setmetatable({},{__index=function() error("API field unavailable") end})
+    noEffect(N,function() om("L0") end)
+end)
+test("OpenMap presentation: faction known or unknown, zone fallback and tracked slash output",function()
+    local N=bnReady(); bn()
+    local function text() return N.Main.findText(N.Main.findRows()[1]) end
+    yes(text():find("enemy faction",1,true))
+    bnInfo.factionName="Alliance"; bn(); yes(text():find("your faction",1,true)); no(text():find("enemy faction",1,true))
+    bnInfo.factionName=secret; bn(); no(text():find("faction",1,true))
+    om(); no(text():find("faction",1,true))
+    om("L1\t999999\t1.0000\t0.0000\t\t0"); yes(text():find("zone 999999 100,0",1,true))
+    local nlog=#log; SlashCmdList.LAYERENEMIES("find Cedar Vale")
+    eq(#log,nlog+1); yes(log[#log]:find("last shared position (OpenMap): zone 999999 100,0",1,true))
+    local saved=snapshot(LayerEnemiesDB); bn(); eq(snapshot(LayerEnemiesDB),saved)
+    SlashCmdList.LAYERENEMIES("find"); eq(next(N.Main.find.places),nil); eq(#N.Main.findRows(),0)
+end)
+test("OpenMap UI pool reuse hides stale places and drops former sighting actions",function()
+    local N=omReady(); clock=100; sight(N,100,90,false); om()
+    N.UI.toggle(); N.UI.select("find"); local ui=N.UI.pool[1]; yes(rawget(ui,"place")); yes(ui.place:IsShown()); yes(ui.ask:IsShown())
+    local normal=N.Main.findRows()[1]; eq(normal.canAsk,true)
+    N.Find.boundary(N.Main.find); N.UI.render(); no(ui.ask:IsShown()); eq(ui.spotter,false); eq(ui.hopRecord,false)
+    ui.ask.scripts.OnClick(); eq(#opened,0); eq(#sent,0)
+    om("L0"); N.UI.render(); no(ui.place:IsShown()); no(ui.ask:IsShown()); yes(ui.sub:GetText():find("Not located",1,true))
+    om(); N.UI.render(); yes(ui.place:IsShown())
+    N.Main.track("Cedar Vale",true); N.Main.track("Birch Grove"); N.UI.render()
+    no(ui.place:IsShown()); eq(ui.tracked,"Birch Grove"); no(ui.ask:IsShown()); eq(ui.spotter,false)
+end)
+
+test("OpenMap malformed precision cannot refresh an identical older place",function()
+    local N=omReady(); om(); local row=N.Main.findRows()[1]; yes(row.place); local at=row.place.at
+    clock=clock+5
+    for _,x in ipairs({"0.42","0.42000"}) do
+        om("L1\t200\t"..x.."\t0.5700\tMAGE\t60")
+        eq(N.Main.findRows()[1].place.at,at,"reject rather than refresh equal coordinates with invalid precision")
+    end
+end)
+
+end
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

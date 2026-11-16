@@ -31,5 +31,6 @@ Incident.lua
 Share.lua
 Directory.lua
 Find.lua
+OpenMap.lua
 UI.lua
 Main.lua

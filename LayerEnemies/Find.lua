@@ -27,7 +27,7 @@ function F.name(raw)
     if raw:match("^[%a\128-\255]+%-?[%a'\128-\255]*$") and #raw>=2 and #raw<=72 then return raw,F.fold(raw) end
 end
 function F.new(saved)
-    local st={names={},locations={},alerts={}}
+    local st={names={},locations={},alerts={},places={}}
     if S.tab(saved) then
         for i=1,F.MAX do local name=F.name(saved[i]); if name then F.add(st,name) end end
     end
@@ -41,13 +41,13 @@ function F.add(st,raw)
     st.names[#st.names+1]=name; return true
 end
 function F.remove(st,raw)
-    if raw==nil then st.names={}; st.locations={}; st.alerts={}; return end
+    if raw==nil then st.names={}; st.locations={}; st.alerts={}; st.places={}; return end
     local _,key=F.name(raw)
     if not key then return end
     for i=#st.names,1,-1 do
         local name=st.names[i]
         if F.fold(name)==key then
-            table.remove(st.names,i); st.locations[name]=nil; st.alerts[name]=nil
+            table.remove(st.names,i); st.locations[name]=nil; st.alerts[name]=nil; st.places[name]=nil
         end
     end
 end
@@ -122,6 +122,14 @@ function F.rows(st,now,zone,sameSpotter)
             row.status=loc.own and "is on YOUR layer" or loc.relayed and "possible match, seen in a relayed report"
                 or "possible match, seen by "..loc.spotter
             row.canAsk=not row.same and not row.travel and loc.spotter~=nil and not loc.relayed
+        end
+        local place=st.places[name]
+        if place and (now-place.at>=N.OpenMap.TTL or now<place.at) then st.places[name]=nil; place=nil end
+        if place then
+            row.place={}
+            for k,v in pairs(place) do row.place[k]=v end
+            row.place.age=now-place.at
+            if not loc then row.status="shared position"; row.canAsk=false end
         end
         out[#out+1]=row
     end

@@ -3,7 +3,8 @@
 WoW Forever addon 1.0.1, Interface 16001, Lua 5.1.
 
 Find a tracked enemy through your own sightings or possible War Effort hash
-matches, then hop: ask a host on that layer for an invite. Approved design B is
+matches, then hop: ask a host on that layer for an invite. Find can also show
+a tracked player's last self-shared OpenMap position, separately from sightings. Approved design B is
 implemented as a movable dark window with Seen by you, Reported, Friendly and
 Find tabs. It starts hidden. No minimap button or map pins. This is not a
 complete layer roster or a global player locator. Since 0.3.0 it is not
@@ -209,7 +210,8 @@ Party calls, all in Wire.lua:
   per 10 seconds.
 
 Received only, never sent: `[Spy]`, `ForeverSpy1`, `FSENT03`, `GBOUNTY`,
-`WALLOFSHAME` and `FTold1`. Nothing on LFSw but `Q`, and the addon never sends
+`WALLOFSHAME`, `FTold1` and `OpenMapLoc`. The OpenMap listener sends no hello,
+reply or position on any route, including Battle.net. Nothing on LFSw but `Q`, and the addon never sends
 chat, sends to a channel, joins any channel but the two above, declines
 invites, accepts any other invite, leaves any other group, or removes or
 converts group members. HeadHunter and LEGW1 messages of an unknown version are
@@ -462,7 +464,7 @@ the reporter's position.
 
 ## Finding a tracked player
 
-A target can only be located when you see him yourself, or a report naming or
+An enemy sighting is available only when you see the target yourself, or a report naming or
 hashing him reaches you (War Effort, HeadHunter, the Spy family and guild
 incident addons, or a guild relay; one enemy entry is enough, the rest of the
 list need not arrive). There is no
@@ -501,6 +503,55 @@ possible spotter is retained for each name; this is not a spotter history.
 World/zone/layer boundaries wipe findings and pending report fragments,
 not tracked names. Re-entering a zone needs fresh observations. Alerts and
 locations are never persisted, so a reload starts a new alert session.
+
+### OpenMap shared positions (receive only)
+
+A tracked full name can also have a second, independent line:
+
+    last shared position (OpenMap): Durotar 42,57 · 20 s ago · enemy faction
+
+Only senders already on your Find list are read; a first name alone does not
+match a Forever surname character. Matching uses Find's case folding and the
+existing home-realm name rule; a foreign realm remains a different identity.
+Nothing is kept, counted or logged for other senders. No friend roster,
+BattleTag or account name is read or retained.
+
+`OpenMapLoc` positions are received on GUILD, WHISPER and, when the client
+supports its event and lookup, Battle.net game data. A Battle.net lookup must
+give a readable character name and realm; missing or inconsistent identity
+is not guessed. Only Battle.net can supply the optional faction label:
+`enemy faction` or `your faction`, omitted when unreadable. GUILD and WHISPER
+positions have unknown faction. A character heard on more than one route
+has one place; the latest received position wins.
+
+A live sighting still owns the row's status, layer, Ask/Hop eligibility and
+alerts, exactly as without a shared position. The OpenMap line has its own
+zone, coordinates and age, even if they disagree with the sighting. It never
+carries a layer. With no live sighting, status is `shared position`, and the
+OpenMap line stands alone with no Ask, Hop, same-layer claim or alert. Shared
+positions never enter the enemy store and are never re-shared or relayed,
+including an opposite-faction friend's private position. They appear only
+on Find rows and tracked-name command output, not in sighting alerts.
+
+Sighting lifetime stays ten minutes; the shared position expires after 150
+seconds without a new line. An OpenMap withdrawal (`L0`) clears only the
+place. World/zone/layer boundaries clear sightings, not shared positions.
+Removing a tracked name clears both; reloading keeps only the configured
+watchlist, never either location. There is at most one place per tracked
+name (five total), with a 64-byte incoming-line limit. Find cards with shared
+positions are taller; scroll with the mouse wheel to see the other names.
+
+OpenMap sharing is off by default in OpenMap. Its sharing guildmates
+broadcast without a hello, so LayerEnemies alone can hear them. Non-guild
+character friends and Battle.net friends are sent positions only after the
+sharer has heard OpenMap from them: those routes depend on OpenMap running
+locally to exchange its hello. LayerEnemies sends none, never answers H1/H2,
+and does not read OpenMap's internals. Battle.net is faction-blind in the
+donor's code; cross-faction GUILD/WHISPER delivery is not established. No
+OpenMap install is required for LayerEnemies to load or for the guild route.
+
+Format credit: `OpenMapLoc` is from OpenMap (MIT, OpenMap contributors);
+this independent parser includes no OpenMap code or assets.
 
 ## Hop: asking for an invite
 
@@ -685,7 +736,8 @@ absent until either: public), `nets` (one
 switch per network), `share` (sharing your sightings), `netNotice` (the
 first-login line was shown) and `weReportId` (War Effort's report id, which
 must keep rising across sessions, 1 to 65535). Reloading keeps your watchlist,
-not its locations. Epoch boundaries also clear locations. Your own server key and its
+not its locations. Epoch boundaries clear sighting locations; OpenMap shared
+positions instead keep their independent 150-second lifetime. Your own server key and its
 30-minute "ambiguous" window are not saved either: after /reload the window is
 gone, and a new one starts only at the next qualifying layer change.
 
@@ -723,7 +775,9 @@ WEFF1 (GUILD, PARTY, RAID, WHISPER) and HeadHunter/WHISPER. verify.py also
 fails if `InviteUnit`, `AcceptGroup` or `LeaveParty` appears outside Wire.lua
 or more than once, if a channel join, leave or roster select appears outside
 Directory.lua or more than once, or if a HeadHunter frame of a type we never
-send (anything but N, E, Q, O, S, H) is built.
+send (anything but N, E, Q, O, S, H) is built. Both `C_BattleNet.SendGameData`
+and `BNSendGameData` are forbidden; the harness also traps both calls and
+permits registering `OpenMapLoc` but never sending on it.
 The randomized parser test uses 5,000 deterministic malformed inputs.
 
 Current results are in notes/test-results.txt and notes/verification.json,
@@ -835,6 +889,22 @@ after the list is the order to try them in):
     after the repeat cooldown for a second trial. This does not test a
     War Effort-only observer's two-enemy threshold or establish why any earlier
     donor-only sighting was absent.
+
+28. OpenMap guild reception with only LayerEnemies installed: a guildmate
+    enables OpenMap sharing, you track their full name and wait about a minute.
+    Verify the surname sender spelling, displayed zone/coordinates and Clear.
+    Check map-name lookup for the uiMapIDs encountered (`zone <id>` is the fallback).
+29. OpenMap Battle.net reception with both addons running locally: track an
+    opposite-faction BN friend's full name, check the place and `enemy faction`
+    label. The event, game-account lookup, Forever `characterName`/`realmName`
+    spelling and readable `factionName` remain unverified here; missing surname
+    or realm means no exact match. Check which route supplied the place. With
+    OpenMap disabled locally, expect guild positions only. Cross-faction
+    WHISPER/GUILD delivery is not assumed; record the route if it occurs.
+30. Find's two-tier card wrapping and scrolling on the native client: a
+    sighting plus a shared position, different zones/ages, and each expiring
+    separately. Shared-position lines must never display a layer or inherit
+    enemy actions, including when a pooled row is reused.
 
 Live-test checklist for the PR build (two characters in one guild, A and B,
 then a War Effort and a HeadHunter user if one is around; if a network fails

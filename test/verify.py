@@ -27,7 +27,8 @@ def main():
     addon_text = '\n'.join(p.read_text() for p in (ROOT / 'LayerEnemies').glob('*.lua'))
     for forbidden in ('SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED', 'JoinTemporaryChannel', 'JoinPermanentChannel',
                       'RunMacroText', 'UninviteUnit', 'ConfirmInviteUnit', 'ConfirmLeaveParty',
-                      'ConvertToRaid', 'DeclineGroup', 'RequestInviteFromUnit'):
+                      'ConvertToRaid', 'DeclineGroup', 'RequestInviteFromUnit',
+                      'C_BattleNet.SendGameData', 'BNSendGameData'):
         assert forbidden not in addon_text, 'Unexpected outgoing/forbidden API: ' + forbidden
     # the party calls (guild host invite, auto accept and leave): InviteUnit, AcceptGroup and LeaveParty exactly
     # once each and C_PartyInfo only in Wire.lua
