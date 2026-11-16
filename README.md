@@ -368,10 +368,10 @@ shape is reported as data unavailable.
   only, not in this version). `/le net guild` and `/le net public` set the
   level; `/le net wareffort on|off` (or `we`) and `/le net headhunter on|off`
   (or `hh`) set each network. All saved.
-- `/le share on|off`: share your own sightings (on by default, saved). Off
-  sends no O line and no War Effort report (waiting sync answers and our own
-  embassy lines still queued are dropped too); you still receive everyone
-  else's.
+- `/le share on|off`: share your own sightings and K own-death calls (on by
+  default, saved). Off sends no O or K line and no War Effort report (pending
+  death retries, waiting sync answers and our own embassy lines still queued
+  are dropped too); you still receive everyone else's.
 - Window switches, on every tab: Share, Call, Guild only, War Effort and
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).

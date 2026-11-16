@@ -431,3 +431,48 @@ test("K review S1: valid multi-byte names retain their exact bytes",function()
         local r=N.OwnDeath.decode(line); yes(r); eq(r.enemies[1].name,name); eq(N.OwnDeath.line(r),line)
     end
 end)
+
+test("K review S2: Wire refuses guildless K even at click priority",function()
+    local N=H.load(); IsInGuild=function() return false end
+    no(send(N,nil,{prio="click"})); eq(#deaths(),0)
+    IsInGuild=function() return true end; yes(send(N,nil,{prio="click"})); eq(#deaths(),1)
+end)
+test("K review S2: delayed callbacks honor the 2.5 second absolute deadline",function()
+    for _,delay in ipairs({2.5,2.501,30}) do
+        local N=setup(); raceProof(); H.advance(100-H.clock())
+        H.deliver("PLAYER_DEAD"); H.advance(delay)
+        eq(#deaths(),delay==2.5 and 1 or 0,"late callback at "..delay)
+        H.advance(3); eq(#deaths(),delay==2.5 and 1 or 0); no(N.Main.error)
+    end
+end)
+test("K review S2: retry binds the live guild even without a guild-change event",function()
+    local N=setup(); H.deliver("PLAYER_DEAD")
+    GetGuildInfo=function() return "Different Guild" end
+    H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0); no(N.Main.error)
+end)
+test("K review S2: recap killer matching our own name is not sent",function()
+    local N,rows=setup(); raceProof(); N.Main.store.localSeen={}
+    rows[1].sourceName=N.Adapters.ownIdentity(); yes(rows[1].sourceName)
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0); no(N.Main.error)
+end)
+test("K review S2: zone upper bound is 999999 not one million",function()
+    local N=H.load(); yes(N.OwnDeath.decode("K|1|999999||||0|e|"))
+    local line="K|1|1000000||||0|e|"
+    no(N.OwnDeath.decode(line)); no(send(N,line)); eq(#deaths(),0)
+end)
+test("K review S2: unhex must validate player syntax as well as UTF-8",function()
+    for _,raw in ipairs({"A|B","A\1B","A\nB","Cedar7","Cedar  Vale","Cedar-Vale-Other"}) do
+        local N=receiver(); local line="K|1|100||||0|e|"..encodedName(raw)..":::p"
+        no(N.OwnDeath.decode(line),"invalid player syntax")
+        no(send(N,line)); incoming(N,line); no(popup(N)); eq(#deaths(),0); no(N.Main.error)
+    end
+end)
+test("K review S2: K consumes the shared per-sender LEGW1 receive budget",function()
+    local N=receiver()
+    for i=1,30 do incoming(N) end
+    local rate=N.Main.relay.rates["birch moss"]
+    yes(rate,"K must enter the shared rate gate"); eq(rate.n,12)
+    yes(popup(N)); eq(#deaths(),0); no(N.Main.error)
+end)
