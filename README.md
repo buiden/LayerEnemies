@@ -52,6 +52,8 @@ and level never establish a match.
   default on; a saved off choice stays silent after reload.
 - `/le find notice off` silences the on-site chat line; `on` restores it. Saved as
   `findNotice`, default on. It does not change your list sharing or Find alerts.
+- Bare `/le find share` and `/le find notice` show `on|off` usage; neither adds a
+  player name or advertises a hash.
 - `/le share off` also prevents T sends, including an owed clearing line; it waits
   until sharing resumes. No T in an instance or outside a readable guild. Existing
   Wire rules still apply. `/le net guild` permits this guild-only route: it is not
@@ -93,8 +95,11 @@ and three attempts per burst. Listed R relays go first and lose pending/bucket
 contention last; their caps and stand-down stay unchanged.
 
 When you yourself see a guildmate's tracked enemy, one quiet chat line says:
-`LayerEnemies: <name> is tracked by <guildmate>` (or `and N others`). At most one
-per name per ten minutes, three per sliding minute overall; never in an instance,
+`LayerEnemies: <name> may be tracked by <guildmate>` (or `and N others`). All
+on-site notices use hash-only evidence: collisions and same-base names on other
+realms cannot prove an exact identity. There is no exact-name notice path; local
+Find's exact-name matching remains unchanged. At most one notice per name per
+ten minutes, three per sliding minute overall; never in an instance,
 for your own tracked names, or from reported/relayed sightings. No sound, frame,
 map pin, ask, or hop is added by this notice.
 

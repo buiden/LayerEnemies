@@ -194,5 +194,6 @@ function W.notice(st,e,now,enabled,instance)
     if #st.notices>=3 then return end
     st.notices[#st.notices+1]=now; st.noticed[hash]=now
     table.sort(senders)
-    return "LayerEnemies: "..name.." is tracked by "..senders[1]..(#senders>1 and (" and "..(#senders-1).." others") or "")
+    -- T carries hashes only: even an equal spelling is not exact-name evidence.
+    return "LayerEnemies: "..name.." may be tracked by "..senders[1]..(#senders>1 and (" and "..(#senders-1).." others") or "")
 end

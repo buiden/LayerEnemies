@@ -51,7 +51,7 @@ local function sight(N,name,unit)
     N.Main.observe(unit); no(N.Main.error)
 end
 local function notices()
-    local out={}; for _,text in ipairs(H.log()) do if text:find(" is tracked by ",1,true) then out[#out+1]=text end end
+    local out={}; for _,text in ipairs(H.log()) do if text:find(" tracked by ",1,true) then out[#out+1]=text end end
     return out
 end
 local function holds(N,who,name)
@@ -224,7 +224,7 @@ end)
 test("watch 21: own sighting prints one quiet notice, never inside ten minutes or an instance",function()
     local N=ready(); local sounds=0; PlaySound=function() sounds=sounds+1 end
     local frames=#H.frames(); list(N,"Birch Scout","aa",{"Watch a"}); sight(N,"Watch a")
-    eq(notices()[1],"LayerEnemies: Watch a is tracked by Birch Scout"); eq(#notices(),1)
+    eq(notices()[1],"LayerEnemies: Watch a may be tracked by Birch Scout"); eq(#notices(),1)
     H.time(699); sight(N,"Watch a"); eq(#notices(),1)
     H.time(700); H.instance(true); sight(N,"Watch a"); eq(#notices(),1)
     H.instance(false); sight(N,"Watch a"); eq(#notices(),2)
@@ -248,7 +248,7 @@ end)
 test("watch notice budget: three per sliding minute and sorted watcher attribution",function()
     local N=ready(); list(N,"Elm Scout","aa",names(5)); list(N,"Birch Scout","aa",names(5)); list(N,"Cedar Scout","aa",names(5))
     for i=1,4 do sight(N,"Watch "..H.abc(i)) end
-    eq(#notices(),3); eq(notices()[1],"LayerEnemies: Watch a is tracked by Birch Scout and 2 others")
+    eq(#notices(),3); eq(notices()[1],"LayerEnemies: Watch a may be tracked by Birch Scout and 2 others")
     H.time(159.999); sight(N,"Watch d"); eq(#notices(),3)
     H.time(160); sight(N,"Watch d"); eq(#notices(),4)
 end)
@@ -421,6 +421,18 @@ test("watch notice history: event-only operation still bounds remembered notices
         H.time(100+i*61); sight(N,"Watch "..H.abc(i))
     end
     yes(N.Safe.count(st.noticed)<=10,"ten-minute notice history is bounded")
+end)
+
+test("watch R1 wording: real hash collisions never claim definite identity",function()
+    for _,multiple in ipairs({false,true}) do
+        local N,W=ready(); local watched,sighted="tdlojwpniv","lvvaasbsmb"
+        yes(watched~=sighted); eq(W.hash(watched),W.hash(sighted)); eq(W.hash(watched),"WPokl2")
+        list(N,"Birch Scout","aa",{watched})
+        if multiple then list(N,"Cedar Scout","aa",{watched}) end
+        sight(N,sighted); eq(#notices(),1)
+        eq(notices()[1],"LayerEnemies: "..sighted.." may be tracked by Birch Scout"..(multiple and " and 1 others" or ""))
+        no(notices()[1]:find(" is tracked by ",1,true)); no(N.Main.error)
+    end
 end)
 
 test("watch R1 roster: removed senders stay rejected until a complete roster readmits them",function()
