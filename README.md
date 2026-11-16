@@ -790,8 +790,9 @@ queue. All guild relays leave **two tokens** in the five-token LEGW1 bucket
 (refill is one per two seconds): two own lines out of combat, **one own line
 in combat**. A combat relay costs two tokens, so it can send with at least
 four tokens when the other limits allow it. Known limit: a relay followed
-immediately by the rare K death line and then O can lose the O in combat;
-the reserve protects one own line, not both. Refused relays are dropped,
+immediately by the rare K death line (or a watch-list T line) and then O can
+delay the O in combat by one 15-second slot; the reserve protects one own line,
+not two back to back. Refused relays are dropped,
 not queued. The relay gate accounts for other LEGW1 authors too, conservatively
 spending refused attempts. Relays also leave the last **three guild-minute
 slots out of combat, two in combat**, using Wire's actual count across every
