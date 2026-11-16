@@ -10,7 +10,13 @@ Rl.TTL = { we = 600, hh = 300 }                                 -- a relayed cop
 Rl.rand = function() return 0.5 + math.random() * 2 end       -- 0.5..2.5 s wait before sending
 
 local SRC = { we = true, hh = true }
-local KIND = { group = true, fight = true, outlaw = true }
+local KIND = { group = true, fight = true, outlaw = true, kill = true, killi = true }
+Rl.KILL_RATE, Rl.KILL_AGAIN = 4, 60
+local function killName(record)
+    local enemies = record.enemies or {}
+    if #enemies ~= 1 or enemies[1].hash then return nil end
+    return N.Invite.name(enemies[1].name)
+end
 local NS = { server = "s", zoneuid = "z", unknown = "u" }
 local NSBACK = { s = "server", z = "zoneuid", u = "unknown" }
 local CLASSES = { WARRIOR = true, PALADIN = true, HUNTER = true, ROGUE = true, PRIEST = true, DEATHKNIGHT = true, SHAMAN = true,
@@ -36,6 +42,8 @@ end
 -- encode(record, now) -> "R|1|src|kind|originHex|rid|zone|x3|y3|count|ns|layer|age|enemies" or nil
 function Rl.encode(record, now)
     if not S.tab(record) or not SRC[record.src] or not KIND[record.kind] or not S.num(now) then return nil end
+    local kill = N.Record.isKill(record)
+    if kill and (record.src ~= "hh" or not killName(record) or record.count ~= nil) then return nil end
     local rid = record.rid
     if type(rid) ~= "string" or not rid:match("^[%w:%-]+$") then return nil end
     local function c3(v) return v and tostring(math.min(999, math.max(0, math.floor(v * 1000)))) or "" end
@@ -47,6 +55,7 @@ function Rl.encode(record, now)
     -- the origin's time (Record.at) is what travels, as an age at sending
     local at = S.num(record.at) or (record.heard - (record.age or 0))
     local age = math.max(0, math.floor(now - at))
+    if kill and age >= Rl.TTL.hh then return nil end
     if age > 900 then return nil end                             -- too old for any receiver
     local head = table.concat({ "R", Rl.VERSION, record.src, record.kind, hex(record.origin), rid, tostring(record.zone),
         c3(record.x), c3(record.y), record.count and tostring(math.min(80, record.count)) or "", ns, layer, tostring(age) }, "|") .. "|"
@@ -62,6 +71,7 @@ function Rl.encode(record, now)
             items[#items + 1] = item; used = used + extra
         end
     end
+    if kill and #items ~= 1 then return nil end              -- never send a nameless/truncated kill
     return head .. table.concat(items, ",")
 end
 
@@ -76,6 +86,8 @@ function Rl.decode(text, sender, now)
     if #f ~= 14 then return nil, "invalid" end
     local src, kind, origin, rid = f[3], f[4], unhex(f[5]), f[6]
     if not SRC[src] or not KIND[kind] or not origin or not rid:match("^[%w:%-]+$") then return nil, "invalid" end
+    local kill = kind == "kill" or kind == "killi"
+    if kill and (src ~= "hh" or f[10] ~= "" or f[11] ~= "u" or f[12] ~= "") then return nil, "invalid" end
     -- a copy naming its own sender as the origin is not a relay (as War Effort refuses its own wrapped origin)
     local function bare(n) return (n:match("^([^%-]+)") or n):lower() end
     if type(sender) == "string" and (origin:lower() == sender:lower()
@@ -105,17 +117,32 @@ function Rl.decode(text, sender, now)
             enemies[#enemies + 1] = e
         end
     end
+    if kill and not killName({ enemies = enemies }) then return nil, "invalid" end
     local record, why = N.Record.new({ src = "guild", kind = kind, origin = origin, via = sender, route = "GUILD", rid = rid,
         zone = zone, x = x, y = y, count = count, enemies = enemies, layer = { ns = ns, value = value },
         heard = now - age, share = "guild", label = src,
-        -- one guild hop (the format carries no upstream count); HeadHunter positions stay the observer's
-        hops = 1, pos = src == "hh" and x and "observer" or nil })
+        -- one guild hop; D locates the victim, P/L the observer
+        hops = 1, pos = kill and "victim" or src == "hh" and x and "observer" or nil })
     if not record then return nil, "record: " .. tostring(why) end
     return record
 end
 
 Rl.RATE = 12                                                   -- LEGW1 messages per sender per 10 s
-function Rl.new() return { seen = {}, n = 0, pending = {}, rates = {}, nrates = 0 } end
+function Rl.new() return { seen = {}, n = 0, pending = {}, rates = {}, nrates = 0, kills = {} } end
+-- A rolling minute, at most four attempted kill forwards; also one whole killer
+-- identity per minute. Spend before Wire, so a refusal cannot reopen the budget.
+-- This tiny list is bounded by the rate cap and survives pending clears.
+local function killSpend(st, record, now)
+    local _, name = killName(record)
+    if not name then return false end
+    for i = #st.kills, 1, -1 do
+        if now - st.kills[i].at >= Rl.KILL_AGAIN then table.remove(st.kills, i) end
+    end
+    if #st.kills >= Rl.KILL_RATE then return false end
+    for _, sent in ipairs(st.kills) do if sent.name == name then return false end end
+    st.kills[#st.kills + 1] = { name = name, at = now }
+    return true
+end
 -- Receive limit per guildmate; excess is dropped silently. 512 senders at most.
 function Rl.allow(st, sender, now)
     local k = N.Invite.rateKey(sender)
@@ -152,6 +179,10 @@ function Rl.seen(st, key, now) local at = st.seen[key]; return at ~= nil and now
 function Rl.offer(st, record, now, ctx)
     if not S.tab(record) or not SRC[record.src] then return false, "source" end
     if record.route ~= "PARTY" and record.route ~= "RAID" and record.route ~= "WHISPER" then return false, "route" end
+    if N.Record.isKill(record) then
+        if record.route ~= "WHISPER" then return false, "kill route" end
+        if now - record.at >= Rl.TTL.hh then return false, "too old" end
+    end
     if record.share == "guild" then return false, "guild share" end
     if ctx.inGuild ~= true or ctx.inInstance ~= false or type(ctx.guild) ~= "string" then return false, "not here" end
     local key = Rl.key(record)
@@ -180,8 +211,10 @@ function Rl.tick(st, now, ctx)
             if ctx.inGuild == true and ctx.inInstance == false and ctx.guild == p.guild then
                 text = Rl.encode(p.record, now); why = "does not fit"
             end
+            local kill = N.Record.isKill(p.record)
+            if text and kill and not killSpend(st, p.record, now) then text, why = nil, "kill budget" end
             if text then ok, why = N.Wire.send("LEGW1", text, "GUILD", nil, { prio = "forward" }) end
-            out[#out + 1] = { key = key, ok = ok, why = why }
+            out[#out + 1] = { key = key, ok = ok, why = why, kill = kill }
         end
     end
     return out

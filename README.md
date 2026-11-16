@@ -703,6 +703,21 @@ stored or shown. It cannot authorize Ask/Hop, even if the victim is a known
 host. Catch-up stays the age of the original event, is labelled `last known`
 after 10 minutes and expires at 60 minutes; adding an old name does not alert.
 
+Only D heard by **WHISPER** and still under 300 seconds old is offered to the
+guild, including in stand-down. It uses the existing `LEGW1` GUILD route:
+`R|1`, source `hh`, kind `kill` (exact) or `killi` (inferred), origin = victim,
+one fully named killer, victim coordinates, unknown layer and original age.
+Older clients reject these unknown kinds as invalid and ignore the line.
+The existing random 0.5–2.5-second wait and guild-copy stand-down apply.
+Freshness is checked again at send time. At most **4 kill-forward attempts
+per rolling minute**, and **one per whole killer name per 60 seconds**;
+foreign realms are distinct. These are `forward` priority: over budget or
+throttled means dropped, never queued/retried ahead of own sightings or clicks.
+Catch-up records at 300 seconds or older and all non-whisper records stay
+local. Received guild kills remain Find-only claims and are never forwarded
+again or turned into Ask/Hop targets. No new prefix, route or recipient is
+added; nothing is sent on HeadHunter's prefix in stand-down.
+
 `/le net` also prints memory-only HeadHunter session diagnostics in both
 modes: admitted P/L/E frames, inner E records by kind, accepted full-name kill
 records read, those under 300 seconds, and those successfully relayed to the

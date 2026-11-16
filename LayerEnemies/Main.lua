@@ -364,6 +364,7 @@ function M.headhunter(text,kind,sender)
         elseif N.Record.isKill(record) then
             -- Find only: no Reported row, reporter/host, count or Call popup.
             M.findRecord(record)
+            M.offerRelay(record)
             M.lastDrop="headhunter "..record.kind
         else
             local stored,whyNot=T.report(M.store,record,time)
@@ -391,7 +392,10 @@ function M.relayContext()
     return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100)}
 end
 function M.relayTick()
-    for _,r in ipairs(N.Relay.tick(M.relay,now(),M.relayContext())) do M.lastRelay=r.ok and "relayed" or r.why end
+    for _,r in ipairs(N.Relay.tick(M.relay,now(),M.relayContext())) do
+        M.lastRelay=r.ok and "relayed" or r.why
+        if r.ok and r.kill then M.hh.stats.kills.relayed=M.hh.stats.kills.relayed+1 end
+    end
 end
 -- Guild relay in: GUILD only, never from us, stored as src "guild" with the claimed source as its label; never
 -- relayed again.
@@ -410,6 +414,12 @@ function M.relayIn(text,kind,sender)
     if not record then M.lastDrop="relay "..tostring(why); return end
     if not own then N.Relay.heard(M.relay,record,time) end
     if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
+    if N.Record.isKill(record) then
+        M.findRecord(record); M.findAlerts()
+        M.lastDrop="relayed HeadHunter kill"
+        if N.UI then N.UI.refresh() end
+        return
+    end
     local stored,whyNot=T.report(M.store,record,time)
     M.lastDrop=stored and "relayed "..tostring(record.label) or whyNot
     -- a copy of a report already held (first-hand or relayed) adds nothing to Find
