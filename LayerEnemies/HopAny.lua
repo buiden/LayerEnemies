@@ -92,10 +92,14 @@ function H.who(st,rows,c)
     if #r.names==0 then H.close(st,c.now); return false,"nobody new to ask in this zone." end
     return true
 end
+-- Reserve before calling out: a reentrant pump must see the spent slot and pace.
 function H.next(st,time)
     local r=st.round
-    if not r or r.phase~="send" or r.count>=H.CAP or (r.lastAttempt and time-r.lastAttempt<H.PACE) then return nil end
-    return r.names[r.index]
+    if not r or r.sending or r.phase~="send" or r.count>=H.CAP or (r.lastAttempt and time-r.lastAttempt<H.PACE) then return nil end
+    local c=r.names[r.index]
+    if not c then return nil end
+    r.count=r.count+1; r.index=r.index+1; r.lastAttempt=time; r.sending=true
+    return c
 end
 local function asked(st,name,time)
     local r=st.round
@@ -132,7 +136,7 @@ function H.invite(st,name,time)
 end
 function H.sent(st,c,time,ok,why)
     local r=st.round
-    r.count=r.count+1; r.index=r.index+1; r.lastAttempt=time
+    r.sending=nil
     if ok then
         r.sent=r.sent+1; r.lastSend=time; r.asked[c.short]={name=c.name,at=time}
     elseif why~="offline" then

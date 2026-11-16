@@ -7626,5 +7626,60 @@ test("hop-any stale button mode cannot stop a later slash-started round",functio
     anyClick(N,true); no(N.Main.hopAnyState.round)
 end)
 
+test("hop-any reserves the final attempt before a reentrant send edge",function()
+    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
+    for _=1,6 do advance(1) end; eq(#sent,7)
+    local fired,observed=false,{}
+    sendResult=function()
+        if not fired then
+            fired=true
+            local r=N.Main.hopAnyState.round
+            observed={count=r.count,index=r.index,at=r.lastAttempt,nameAt=N.Main.invite.asked["seeker h"]}
+            N.Main.hopAnyPump()
+        end
+        return 0
+    end
+    advance(2); eq(#sent,8,"no ninth request at the reentrant edge")
+    eq(observed.count,8); eq(observed.index,9); eq(observed.at,clock); eq(observed.nameAt,clock)
+    eq(N.Main.hopAnyState.round.count,8); no(N.Main.error)
+    for i=2,#sent do yes(sent[i].at-sent[i-1].at>=1) end
+    advance(600); eq(#sent,8); eq(#whoCalls,1)
+end)
+
+test("hop-any reentrant Stop cannot recreate pending acceptance or fault",function()
+    local N=anyFixture(); anyClick(N)
+    sendResult=function() SlashCmdList.LAYERENEMIES("hop stop"); return 0 end
+    deliver("WHO_LIST_UPDATE")
+    no(N.Main.error,"Stop during send must not dereference the closed round")
+    no(N.Main.hopAnyState.round); no(N.Main.invite.pending); eq(#sent,1)
+    deliver("PARTY_INVITE_REQUEST","Seeker a"); eq(#accepts,0)
+    advance(600); eq(#sent,1)
+end)
+
+test("hop-any cannot dispatch again while a send is still in flight",function()
+    local N=anyFixture(); anyClick(N)
+    local fired=false
+    sendResult=function()
+        if not fired then fired=true; clock=clock+2; N.Main.hopAnyPump() end
+        return 0
+    end
+    deliver("WHO_LIST_UPDATE"); eq(#sent,1); eq(N.Main.hopAnyState.round.count,1)
+    advance(1); eq(#sent,2); no(N.Main.error)
+end)
+
+test("hop-any old send completion cannot mutate a replacement round",function()
+    local N=anyFixture(); anyClick(N); local old=N.Main.hopAnyState.round
+    sendResult=function()
+        N.Main.hopAnyStop(); clock=clock+30; anyClick(N)
+        return 0
+    end
+    deliver("WHO_LIST_UPDATE")
+    local replacement=N.Main.hopAnyState.round
+    no(N.Main.error); yes(replacement); no(old==replacement)
+    eq(replacement.phase,"who"); eq(replacement.count,0); eq(replacement.sent,0)
+    eq(N.Safe.count(replacement.asked),0); no(N.Main.invite.pending)
+    eq(#whoCalls,2); eq(#sent,1)
+end)
+
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

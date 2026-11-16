@@ -923,6 +923,8 @@ function M.hopAnyPump()
         local r=st.round
         M.invite.asked[c.short]=now()
         local ok,why=N.Wire.send("LayerSwap",r.line,"WHISPER",c.name,{prio="click"})
+        -- A foreign send hook may stop or replace the round before returning.
+        if st.round~=r then return end
         local message=N.HopAny.sent(st,c,now(),ok,why)
         if ok then M.invite.pending={any=true,auto=true,at=now(),from=r.from,zone=r.zone,asked=r.asked} end
         if message then
