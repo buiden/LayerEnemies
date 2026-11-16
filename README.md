@@ -62,8 +62,10 @@ names are not added. It does not send a message or ask for an invite.
 
 Three Arabic headings, three fixed detail labels and three button labels
 ship as pre-rendered images. Each detail row puts its label image on the
-right, with the client-text value right-justified to its left, next to the
-colon. Killer level/class stay with the value. One English body sentence
+right, with the ink aligned to the image's right padding. The client-text
+value is right-justified three pixels left of the colon, using each label's
+scaled ink-left metadata rather than the canvas edge. Killer level/class
+stay with the value. One English body sentence
 appears under the rows. Help uses the abshir image; dismiss defaults to
 i3dhirooni, with sakkir also included. In CallText.lua, changing DISMISS from
 "dismiss_a" to "dismiss_b" switches only the button image and its fallback.

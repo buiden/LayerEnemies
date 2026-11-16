@@ -203,7 +203,7 @@ def main():
         'archive_bytes': archive.stat().st_size,
         'unpacked_bytes': sum((ROOT / 'LayerEnemies' / name).stat().st_size for name in shipped) + (ROOT / 'README.md').stat().st_size,
         'media_bytes': sum((ROOT / 'LayerEnemies' / name).stat().st_size for name in MEDIA),
-        'call_assets_tests': 7,
+        'call_assets_tests': 8,
         'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
         'real_client_verified': False,
         'live_remote_reports': 'War Effort 1.6.x and HeadHunter as a member, the Spy family and three guild '

@@ -15,9 +15,13 @@ The renderer refuses other font bytes and requires Pillow with RAQM
 (HarfBuzz/FriBidi). Verified with Pillow 13.0.0. It chooses one common size
 per group: headings 29px, labels 21px, buttons 19px. The headings retain
 their original pixels, 190px ink box and 256x64 canvas. Labels/buttons use
-128x32 canvases and a 120px ink box, with the label colon's ink at x=4 so
-the dynamic value ends beside it. All groups enforce at least 4px padding
-and fail on overflow. The dismiss-b shadda is retained. Output is
+128x32 canvases and a 120px ink box. Label ink is right-aligned at x=124
+(exclusive), retaining four source pixels of right padding. Each label's
+CallText.lua inkLeft records its alpha box's left edge in source pixels;
+the 96px-wide client image uses that edge scaled by 96/128, minus a 3px gap,
+to anchor the right-justified value beside the leftmost colon. Asset tests
+check the alpha bounds against this metadata. All groups enforce at least
+4px padding and fail on overflow. The dismiss-b shadda is retained. Output is
 uncompressed bottom-left 32-bit TGA (type 2, descriptor 0x08) with a standard
 footer. No client-side font dependency. The OFL does not extend its license
 requirements to documents/artwork created with the font.

@@ -28,6 +28,12 @@ class CallRenderer(unittest.TestCase):
             lines = log.getvalue().splitlines()
             for group in ('headings', 'labels', 'buttons'):
                 self.assertEqual(sum(line.startswith(group + ': common size:') for line in lines), 1)
+            self.assertEqual([line for line in lines if ': common size:' in line],
+                             ['headings: common size: 29', 'labels: common size: 21', 'buttons: common size: 19'])
+            for key in r.LABELS:
+                with r.Image.open(root / 'art' / ('call-' + key + '.tga')) as image:
+                    ink = image.getchannel('A').getbbox()
+                    self.assertEqual(ink[2], image.width - 4, key + ' ink must sit at the right padding')
             expected = set(r.LINES) | set(r.LABELS) | set(r.BUTTONS)
             self.assertEqual({p.stem[5:] for p in (root / 'art').glob('*.tga')}, expected)
             for key in expected:

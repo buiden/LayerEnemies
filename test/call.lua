@@ -301,9 +301,10 @@ test("Call: all repeats stay within one shown frame and a bounded timer populati
     eq(#H.sent(),0); no(N.Main.error)
 end)
 
-test("Call: label art is on each row right edge with a right-justified value against its left",function()
+test("Call: label art right anchors each row and value ends three pixels before its colon ink",function()
     local N=H.load(); bounty(); local U,T=N.CallUI,N.CallText
     yes(U.rows,"dedicated label rows")
+    local expected={victim={inkLeft=53,offset=36.75},killer={inkLeft=74,offset=52.5},where={inkLeft=68,offset=48}}
     local bottom=0
     for _,key in ipairs({"victim","killer","where"}) do
         local row,value=U.rows[key],U[key]
@@ -316,7 +317,9 @@ test("Call: label art is on each row right edge with a right-justified value aga
         eq(row.art.point[3],"TOPRIGHT"); eq(row.art.point[4],0); eq(row.art.point[5],0)
         eq(value.justifyH,"RIGHT"); eq(value.width,100)
         eq(value.point[1],"TOPRIGHT"); eq(value.point[2],row.art); eq(value.point[3],"TOPLEFT")
-        eq(value.point[4],0); eq(value.point[5],-4)
+        eq(value.point[4],expected[key].offset,key.." colon-aligned offset"); eq(value.point[5],-4)
+        eq(T[key].inkLeft,expected[key].inkLeft,key.." source-pixel inkLeft")
+        eq(value.point[4],T[key].inkLeft*96/128-3,key.." scaled inkLeft minus gap")
         yes(-row.point[5]>=bottom); yes(row.height>=24)
         bottom=-row.point[5]+row.height
     end

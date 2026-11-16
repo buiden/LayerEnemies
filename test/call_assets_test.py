@@ -1,6 +1,7 @@
 """Exercise the exact binary allowlist and header gate, without client libraries."""
 from pathlib import Path
 import importlib.util
+import re
 import shutil
 import tempfile
 import unittest
@@ -90,9 +91,21 @@ class CallAssets(unittest.TestCase):
             self.assertTrue(ink)
             self.assertTrue(all(4 <= x < width - 4 and 4 <= y < height - 4 for x, y in ink))
             self.assertLessEqual(max(x for x, _ in ink) - min(x for x, _ in ink) + 1, 190 if name in HEADINGS else 120)
-            # The label's leftmost colon is only the required padding from the value.
-            if name in {'Media/call-victim.tga', 'Media/call-killer.tga', 'Media/call-where.tga'}:
-                self.assertEqual(min(x for x, _ in ink), 4)
+
+    def test_labels_right_aligned_and_ink_matches_metadata(self):
+        text = (self.addon / 'CallText.lua').read_text()
+        for key in ('victim', 'killer', 'where'):
+            with self.subTest(label=key):
+                raw = (self.addon / ('Media/call-' + key + '.tga')).read_bytes()
+                width = 128
+                xs = [i % width for i, value in enumerate(raw[21:-26:4]) if value]
+                self.assertTrue(xs, key + ' nonempty ink')
+                self.assertEqual(max(xs) + 1, width - 4, key + ' exclusive ink right edge')
+                entry = re.findall(r'^T\.' + key + r'=\{([^\n]+)\}$', text, re.M)
+                self.assertEqual(len(entry), 1, key + ' CallText entry')
+                ink_left = re.findall(r'\binkLeft=(\d+)\b', entry[0])
+                self.assertEqual(len(ink_left), 1, key + ' texture-pixel inkLeft metadata')
+                self.assertEqual(min(xs), int(ink_left[0]), key + ' inkLeft must match TGA alpha')
 
     def test_reject_small_padding_empty_and_footer_damage(self):
         path = self.addon / 'Media/call-victim.tga'

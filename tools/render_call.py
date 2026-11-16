@@ -45,10 +45,10 @@ def render_group(font_path, output, preview, group, lines, dimensions, max_width
         assert ink and ink[0] >= 4 and ink[1] >= 4 and ink[2] <= w - 4 and ink[3] <= h - 4, (key, 'padding', ink)
         assert ink[2]-ink[0] <= max_width, (key, 'ink overflow', ink)
         if group == 'labels':
-            # The RTL colon is leftmost: put its ink at the four-pixel padding,
-            # immediately beside the right-justified value at the image's left edge.
+            # Right-align the ink, not just its canvas. The leftmost colon is
+            # located by CallText.inkLeft so the client value can sit beside it.
             aligned = Image.new('RGBA', dimensions)
-            aligned.alpha_composite(image.crop(ink), (4, ink[1]))
+            aligned.alpha_composite(image.crop(ink), (w - 4 - (ink[2] - ink[0]), ink[1]))
             image = aligned
             ink = image.getchannel('A').getbbox()
         assert ink and ink[0] >= 4 and ink[1] >= 4 and ink[2] <= w - 4 and ink[3] <= h - 4, (key, 'aligned padding', ink)

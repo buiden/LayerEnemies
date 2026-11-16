@@ -29,7 +29,9 @@ local function detail(key,value,y)
     row.art:SetShown(not not art); f:ClearAllPoints()
     if art then
         pcall(row.art.SetTexture,row.art,art)
-        f:SetWidth(100); f:SetJustifyH("RIGHT"); f:SetPoint("TOPRIGHT",row.art,"TOPLEFT",0,-4)
+        -- Skip the texture's transparent lead-in, leaving a small gap before its colon.
+        local valueRight=entry.inkLeft*96/128-3
+        f:SetWidth(100); f:SetJustifyH("RIGHT"); f:SetPoint("TOPRIGHT",row.art,"TOPLEFT",valueRight,-4)
         set(f,value)
     else
         f:SetWidth(196); f:SetJustifyH("LEFT"); f:SetPoint("TOPLEFT",row,"TOPLEFT",0,0)

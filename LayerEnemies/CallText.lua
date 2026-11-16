@@ -11,9 +11,10 @@ T.B3={art=nil,en="{victim} needs you in {zone}. The enemy is {killer}."}
 T.B4={art=nil,en="{victim} will be avenged. {killer} was last seen in {zone}."}
 T.B5={art=nil,en="The kill on {victim} in {zone} won't stand. Wanted: {killer}."}
 T.B6={art=nil,en="{zone}: {killer} owes a debt for {victim}, and debts get paid."}
-T.victim={art="Interface\\AddOns\\LayerEnemies\\Media\\call-victim.tga",en="One of ours:"}
-T.killer={art="Interface\\AddOns\\LayerEnemies\\Media\\call-killer.tga",en="Killer:"}
-T.where={art="Interface\\AddOns\\LayerEnemies\\Media\\call-where.tga",en="Where:"}
+-- inkLeft is the label alpha box's left edge in the 128px source texture.
+T.victim={art="Interface\\AddOns\\LayerEnemies\\Media\\call-victim.tga",inkLeft=53,en="One of ours:"}
+T.killer={art="Interface\\AddOns\\LayerEnemies\\Media\\call-killer.tga",inkLeft=74,en="Killer:"}
+T.where={art="Interface\\AddOns\\LayerEnemies\\Media\\call-where.tga",inkLeft=68,en="Where:"}
 T.help={art="Interface\\AddOns\\LayerEnemies\\Media\\call-help.tga",latin="abshir",en="On my way"}
 T.dismiss_a={art="Interface\\AddOns\\LayerEnemies\\Media\\call-dismiss-a.tga",latin="i3dhirooni",en="Not now"}
 T.dismiss_b={art="Interface\\AddOns\\LayerEnemies\\Media\\call-dismiss-b.tga",latin="sakkir",en="Close"}
