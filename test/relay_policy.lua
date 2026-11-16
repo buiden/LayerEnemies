@@ -100,13 +100,23 @@ for _,family in ipairs({"Spy","HeadHunter","mixed"}) do
                 H.advance(.6); N.Main.shareTick()
                 local c=counts()
                 eq(c.O,cycle,"every own O survives the preceding relay burst")
-                eq(c.spy+c.hh,cycle*(fighting and 0 or 3),"relays leave capacity for two own lines")
+                eq(c.spy+c.hh,cycle*(fighting and 1 or 3),"relays leave two own tokens, including one combat line")
                 eq(next(N.Main.relay.pending),nil); eq(N.Wire.queued(),0,"reserve refusal never queues")
             end
             H.advance(30); eq(counts().O,4); no(N.Main.error)
         end)
     end
 end
+
+test("Guild relay policy: combat relay sends with a full prefix bucket and leaves one own line",function()
+    local N=fixture(); H.combat(true)
+    eq(#H.sent(),0,"no earlier send has spent the full bucket")
+    hh(); H.advance(.6)
+    eq(counts().hh,1,"a full bucket must allow a combat relay")
+    own(); H.advance(3.1); N.Main.shareTick()
+    eq(counts().O,1,"the relay leaves room for an own combat line")
+    eq(next(N.Main.relay.pending),nil); eq(N.Wire.queued(),0); no(N.Main.error)
+end)
 
 -- Reviewer round-2: a slow stream refills prefix tokens but can exhaust Wire's
 -- separate rolling guild-minute budget. Count actual sends, not our mirror.
@@ -126,6 +136,7 @@ for _,fighting in ipairs({false,true}) do
             end
             eq(counts().O,5,"all five own minute slots must reach Wire")
             eq(refused,0,"no own refusal under sustained relay load")
+            yes(counts().hh>0,"own priority must not be a vacuous pass with all relays suppressed")
             local cap=fighting and 10 or 20
             local reserve=fighting and 2 or 3
             for i,m in ipairs(H.sent()) do
@@ -195,8 +206,14 @@ test("Guild relay policy: clear and clock rollback cannot refill the reserve",fu
     eq(N.Wire.queued(),0); no(N.Main.error)
 end)
 
-test("Guild relay policy: combat relay burst cannot steal K then O capacity",function()
+test("Guild relay policy: combat relay then K then O has the documented one-line reserve limit",function()
     local N=fixture(); H.combat(true); own(); H.advance(2.1)
+    local refused=0; local send=N.Wire.send
+    N.Wire.send=function(prefix,text,...)
+        local ok,why,attempted=send(prefix,text,...)
+        if prefix=="LEGW1" and text:sub(1,2)=="O|" and not ok then refused=refused+1 end
+        return ok,why,attempted
+    end
     for i=1,5 do spy(i) end
     H.advance(.6)
     C_DeathRecap={HasRecapEvents=function() return true end,GetRecapEvents=function()
@@ -205,8 +222,10 @@ test("Guild relay policy: combat relay burst cannot steal K then O capacity",fun
     H.deliver("PLAYER_DEAD"); H.advance(.3); N.Main.shareTick()
     local kills=0; for _,m in ipairs(H.sent()) do if m.text:sub(1,2)=="K|" then kills=kills+1 end end
     eq(kills,1,"K still sends once")
-    eq(counts().O,1,"O must also send after K despite the earlier relay burst")
-    eq(counts().spy,0,"two double-cost own lines leave no room for a combat relay")
+    eq(counts().spy,1,"combat relays remain active with one own line reserved")
+    eq(counts().O,0,"known limit: K uses the one reserved own line, so the following O is dropped")
+    eq(refused,1,"the O really reached Wire and was refused, not silently omitted")
+    eq(next(N.Main.relay.pending),nil)
     eq(N.Wire.queued(),0); no(N.Main.error)
 end)
 
