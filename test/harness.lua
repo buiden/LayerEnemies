@@ -6234,6 +6234,31 @@ test("previous zone 11: real crossings carry an own row for 120 seconds from its
         N.UI.render(); eq(N.UI.tabs["local"].label.text,"Seen by you (0)"); no(N.Main.error)
     end
 end)
+test("previous zone 11b: learning the new zone layer keeps the carry until its original expiry",function()
+    for _,source in ipairs({"NPC","Bulo"}) do
+        local N=loadAddon(); establish(N); advance(math.ceil(clock)+1-clock)
+        seeFoe("Aster Vale","Player-1-901"); units.target=nil; local at=clock
+        advance(1); map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+        local carried=N.Store.previous(N.Main.store,clock); eq(#carried,1,source)
+        advance(3)
+        if source=="NPC" then
+            units.mouseover=nil; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); establish(N)
+        else
+            fakeBulo("8000-7"); N.Main.poll(); eq(N.Main.store.bulo,"8000-7")
+        end
+        local learned=clock
+        advance(10); eq(clock,learned+10)
+        local rows=N.Store.previous(N.Main.store,clock)
+        eq(#rows,1,"carry survives ten seconds after learning via "..source)
+        eq(rows[1],carried[1]); eq(rows[1].zone,100); eq(rows[1].at,at); eq(rows[1].layer,nil)
+        N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (1)")
+        yes(N.UI.pool[1]:IsShown()); yes(N.UI.pool[1].sub.text:find("Ashenvale · previous zone",1,true))
+        slash("list"); yes(logged("Aster Vale | MAGE · Ashenvale · previous zone"))
+        advance(at+119-clock); eq(#N.Store.previous(N.Main.store,clock),1)
+        advance(1); eq(#N.Store.previous(N.Main.store,clock),0)
+        N.UI.render(); eq(N.UI.tabs["local"].label.text,"Seen by you (0)"); no(N.Main.error)
+    end
+end)
 test("previous zone 12: expired own sightings are not revived by a crossing or Bulo refresh",function()
     for _,age in ipairs({120,121}) do
         local N=loadAddon(); local b=fakeBulo("7086-7"); N.Main.poll(); advance(1)
@@ -6288,7 +6313,8 @@ test("previous zone 15: non-zone boundaries clear carry-over even when the map a
         advance(1); seeFoe("Briar Stone","Player-1-902"); units.target=nil
         if event=="layer" then
             units.mouseover=nil; deliver("UPDATE_MOUSEOVER_UNIT"); drain()
-            establish(N) -- unknown to known is still a layer boundary for previous-zone rows
+            establish(N) -- learning preserves the carry; a subsequent real layer change clears it
+            eq(#N.Store.previous(N.Main.store,clock),1)
             advance(1); N.Main.applyLayer("8000-7","test layer")
         elseif event=="npc" then
             for _,e in ipairs({{3,7,"7086"},{4,7,"8000"},{5,8,"7086"},{6,8,"8000"}}) do

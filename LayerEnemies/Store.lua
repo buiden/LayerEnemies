@@ -14,7 +14,10 @@ function T.learn(t,now,bulo,zoneUID)
     for k,e in pairs(t.localSeen) do
         if e.epoch==t.serial and e.layer==nil then kept[k]=e end
     end
+    -- Learning in the new zone is not another crossing: preserve the display-only carry and its original ages.
+    local prev=t.prev; t.prev={}
     T.reset(t,now,t.zone,bulo,zoneUID)
+    t.prev=prev
     for k,e in pairs(kept) do e.epoch=t.serial; e.pre=true; t.localSeen[k]=e end
 end
 function T.prune(t,now)

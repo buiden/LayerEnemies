@@ -322,8 +322,9 @@ replaces this history with only sightings from the zone just left. Bulo-only
 copies and unreadable or same-faction sightings are not carried. These plain
 name/class/level/zone/time copies have no layer or position, are never shared,
 and never feed Find, map candidates, hop or ask. World entry, shard transfer,
-a layer change (including learning it), an NPC zoneUID change or an unreadable
-zone clears them. They are not saved.
+a real layer change, an NPC zoneUID change or an unreadable zone clears them.
+Learning your layer in the new zone keeps them until their original expiry.
+They are not saved.
 
 Active identifiers are scoped to the current zone. Real zone changes, world
 entry, transfer events, and exact Bulo ID changes wipe the observation epoch,
