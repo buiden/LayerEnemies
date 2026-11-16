@@ -7746,5 +7746,8 @@ assert(loadfile("test/round1.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddo
     units=function() return units end,player=player,establish=establish,
     sent=function() return sent end})
 
+assert(loadfile("test/round2.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,
+    clock=function(v) if v then clock=v end; return clock end,deliver=deliver,sent=function() return sent end})
+
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

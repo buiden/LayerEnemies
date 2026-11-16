@@ -19,7 +19,7 @@ end
 local function index(st,key,p)
     unindex(st,key,p)
     p.keys={}
-    for _,slot in ipairs({"seen","reported"}) do
+    for _,slot in ipairs({"own","seen","reported"}) do
         local e=p[slot]
         if e then
             p.keys[N.Find.fold(e.name:match("^([^%-]+)") or e.name)]=true
@@ -42,12 +42,14 @@ function K.prune(st,now)
     if forward and now<st.nextExpiry then return end
     st.nextExpiry=math.huge
     for key,p in pairs(st.entries) do
-        local seen,reported=p.seen,p.reported
+        local own,seen,reported=p.own,p.seen,p.reported
+        if not fresh(p.own,now) then p.own=nil end
         if not fresh(p.seen,now) then p.seen=nil end
         if not fresh(p.reported,now) then p.reported=nil end
-        if not p.seen and not p.reported then remove(st,key,p)
+        if not p.own and not p.seen and not p.reported then remove(st,key,p)
         else
-            if p.seen~=seen or p.reported~=reported then index(st,key,p) end
+            if p.own~=own or p.seen~=seen or p.reported~=reported then index(st,key,p) end
+            if p.own then st.nextExpiry=math.min(st.nextExpiry,p.own.at+K.TTL) end
             if p.seen then st.nextExpiry=math.min(st.nextExpiry,p.seen.at+K.TTL) end
             if p.reported then st.nextExpiry=math.min(st.nextExpiry,p.reported.at+K.TTL) end
         end
@@ -67,20 +69,14 @@ function K.put(st,e,now)
     local key=N.Find.fold(e.name)
     local p=st.entries[key]
     local firsthand=e.kind=="seen" and e.source~="relayed" and e.source~="death"
-    local slot=firsthand and "seen" or "reported"
-    -- Keep two entries: our own sighting, when present, and the newest other
-    -- evidence. A guild observation retains kind=seen; it is not a relay claim.
-    if firsthand and e.source~="own" and p and p.seen and p.seen.source=="own" then slot="reported" end
-    if e.source=="own" and p and p.seen and p.seen.source~="own" then
-        if not p.reported or p.seen.at>=p.reported.at then p.reported=p.seen end
-        p.seen=nil
-    end
+    -- Own and other first-hand sightings never share storage with weaker claims.
+    local slot=firsthand and (e.source=="own" and "own" or "seen") or "reported"
     if p and p[slot] and p[slot].at>e.at then return p[slot] end
     if not p then
         local n,oldest,oldAt=0,nil,nil
         for k,v in pairs(st.entries) do
             n=n+1
-            local at=math.max(v.seen and v.seen.at or -math.huge,v.reported and v.reported.at or -math.huge)
+            local at=math.max(v.own and v.own.at or -math.huge,v.seen and v.seen.at or -math.huge,v.reported and v.reported.at or -math.huge)
             if not oldAt or at<oldAt or (at==oldAt and k<oldest) then oldest,oldAt=k,at end
         end
         if n>=K.MAX then

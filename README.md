@@ -620,9 +620,10 @@ server lookup, discovery broadcast, request to another addon, or background
 scan of the world. A session cache remembers named sightings even before
 you track them, including other zones. Adding a name shows that memory.
 The cache is private to this session, bounded to 300 names (oldest newest-slot
-time evicted first), with at most two entries per folded name: your own
-sighting when available (otherwise the newest first-hand observation), plus
-the newest other observation or claim. It is never a general enemy list,
+time evicted first), with at most three entries per folded name: your own
+sighting, the newest other first-hand observation, and the newest reported
+claim. Relays and death claims cannot erase a guild O sighting, even when
+your own sighting is retained too. It is never a general enemy list,
 kill count, ranking, SavedVariables field or donor-cache import. Own displays
 can contain two adapter name strings, up to 321 bytes; other cached names
 remain capped at 100 bytes, so legacy first-name matches are not discarded.
@@ -680,7 +681,7 @@ three detailed alerts; additional alerts are counted in one summary at the end
 of that window, such as `LayerEnemies: 2 more tracked names located, see Find`.
 Sound API failure is harmless. Named evidence survives world, zone and layer
 boundaries for 60 minutes from its observation time. Each tracked name can
-show both lines, for example:
+show its own sighting, another first-hand line and a claim, for example:
 
     Seen by Birch Scout in Ashenvale, 4 min ago, layer 7085 (their claim)
     Reported: named as killer in Durotar, 12 min ago (death, claim)
@@ -689,8 +690,9 @@ At 600 seconds each line is prefixed `last known` and offers no Ask/Hop;
 at 3600 seconds it is removed. Adding old evidence does not alert. A fresh
 first-hand finding has action/alert priority over a claim, but both remain
 visible. Your own sighting remains primary over a newer guild observation
-while under 600 seconds old and in your current zone; both lines keep their
-own times and layer labels. Guild O lines are first-hand; R lines and indirect
+while under 600 seconds old, in your current zone and still valid for your
+current layer (known at sighting time, with no intervening boundary). Each
+line keeps its own time and layer label. Guild O lines are first-hand; R lines and indirect
 envelopes are claims and never authorize asking their origin. A fresh hash
 finding is displayed alongside last-known named lines, including its possible
 match warning, spotter and age, so the evidence behind Ask remains visible.
