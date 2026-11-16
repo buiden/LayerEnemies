@@ -1326,7 +1326,9 @@ test("Find match, no match, collisions, expiry, own sighting and alerts",functio
     no(F.rows(st,912,100)[1].at)
     F.own(st,{name="Alice",faction="same",source="own target"},100,913); no(st.locations.Alice)
     F.own(st,{name="Alice",faction="opposite",source="own target"},100,913)
-    r=F.rows(st,913,100)[1]; yes(r.own); yes(r.same); no(r.canAsk)
+    r=F.rows(st,913,100)[1]; yes(r.own); no(r.same); no(r.canAsk); eq(r.status,"seen by you, layer unknown")
+    F.own(st,{name="Alice",faction="opposite",source="own target",layer="7086-7"},100,913)
+    r=F.rows(st,913,100)[1]; yes(r.own); yes(r.same); no(r.canAsk); eq(r.status,"is on YOUR layer")
     F.boundary(st); no(st.locations.Alice); eq(#st.names,2)
     -- A genuine three-character collision must remain possible, never confirmed.
     local a,b="PFKMEclrzj","CuhFVPbgzA"
@@ -6157,6 +6159,23 @@ test("seen unknown 05: unreadable faction stays unclassified with no layer",func
     local rows=N.Store.rows(N.Main.store,clock,"unclassified"); eq(#rows,1); eq(rows[1].layer,nil)
     advance(1); establish(N); eq(#N.Store.rows(N.Main.store,clock,"local"),0)
     rows=N.Store.rows(N.Main.store,clock,"unclassified"); eq(#rows,1); eq(rows[1].layer,nil)
+end)
+test("seen unknown 01b: Find says layer unknown for an own sighting made before the layer is known",function()
+    local N=loadAddon(); N.Main.track("Aster Vale"); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local row=N.Main.findRows()[1]
+    yes(row.own,"own row"); no(row.same,"no same-layer claim without a known layer"); no(row.canAsk)
+    eq(row.status,"seen by you, layer unknown")
+    local text=N.Main.findText(row)
+    yes(text:find("seen by you, layer unknown",1,true),"slash find text: "..text); no(text:find("YOUR layer",1,true)); no(text:find("already on your layer",1,true))
+    N.UI.toggle(); local sub
+    for _,r in ipairs(N.UI.pool) do if r.sub and r.sub.text and r.sub.text:find("seen by you",1,true) then sub=r.sub.text end end
+    if sub then no(sub:find("already on your layer",1,true)) end
+    -- learning the layer later does not upgrade the old sighting into a same-layer claim
+    advance(1); establish(N); no(N.Main.findRows()[1].same); eq(N.Main.findRows()[1].status,"seen by you, layer unknown")
+    -- a fresh sighting with the layer known is the existing claim
+    advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    row=N.Main.findRows()[1]; yes(row.same,"fresh known-layer sighting"); eq(row.status,"is on YOUR layer"); no(N.Main.error)
 end)
 test("seen unknown 06: a real layer or raw-id change still wipes kept pre-layer rows",function()
     for _,id in ipairs({"7086-8","8000-7"}) do
