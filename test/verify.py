@@ -287,6 +287,12 @@ def main():
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         if file.name != 'HhNet.lua':
             assert not re.search(r'"1"\s*\.\.\s*side', file.read_text()), 'HeadHunter frames are built only in HhNet.lua: ' + file.name
+    # Only the K1 author is new. No new prefix, public scope, party call or direct client send site.
+    death = (ROOT / 'LayerEnemies/OwnDeath.lua').read_text()
+    assert death.count('N.Wire.send') == 1
+    assert 'N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"})' in death, 'K1 may send only on LEGW1/GUILD'
+    assert re.search(r'LEGW1 = \{ kinds = \{ GUILD = true \}', wire), 'LEGW1 route must stay GUILD-only'
+
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         if file.name not in ('UI.lua', 'CallUI.lua'):
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
@@ -355,7 +361,7 @@ def main():
         'auto_accept_leave': 'On by default, saved: accepts only the asked host invite (120 s, not grouped/instance/combat), leaves only that group 3 s after the move or 30 s without one',
         'guild_host': 'Off until turned on, then saved (guildHost boolean, ON line at login); guild members only, guild name readable and unchanged; at most one InviteUnit per request, 10 s apart, 6 per 600 s; never in combat; refused beside LayerSwap or Bulo',
         'networks': 'Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches',
-        'sends': 'LayerSwap/WHISPER, LEGW1/GUILD, LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and '
+        'sends': 'LayerSwap/WHISPER, LEGW1/GUILD (including K1 own-death, share switch, 1/120s and 5/30min), LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and '
                  'HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope)',
         'visual_design': 'Approved B implemented with fourth Find tab; native client appearance unverified',
     }

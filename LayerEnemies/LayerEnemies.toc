@@ -35,6 +35,7 @@ Find.lua
 OpenMap.lua
 CallText.lua
 Call.lua
+OwnDeath.lua
 CallUI.lua
 UI.lua
 Main.lua
