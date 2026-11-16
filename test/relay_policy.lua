@@ -121,6 +121,17 @@ test("Guild relay policy: earlier guild control lines count against the relay re
     no(N.Main.error)
 end)
 
+test("Guild relay policy: clear and clock rollback cannot refill the reserve",function()
+    local N=fixture(); N.Relay.rand=function() return 0 end
+    for i=1,3 do hh(i) end
+    H.advance(.05); eq(counts().hh,3,"relay capacity was consumed")
+    SlashCmdList.LAYERENEMIES("share off"); SlashCmdList.LAYERENEMIES("share on")
+    hh(4); H.advance(.05); eq(counts().hh,3,"clearing pending relays cannot refill tokens")
+    H.advance(-1); hh(5); H.advance(.05); eq(counts().hh,3,"a backwards clock cannot refill tokens")
+    H.advance(3); hh(6); H.advance(.05); eq(counts().hh,4,"forward time still refills normally")
+    eq(N.Wire.queued(),0); no(N.Main.error)
+end)
+
 for _,fighting in ipairs({false,true}) do
     test("Guild relay policy: merged K author preserves the reserve "..(fighting and "in combat" or "out of combat"),function()
         local N=fixture(); H.combat(fighting); own(); H.advance(2.1)
