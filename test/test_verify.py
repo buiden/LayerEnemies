@@ -1,4 +1,4 @@
-"""Regression tests for the verifier's source gate; no addon code is executed."""
+"""Source ownership and TOC coverage regressions; planted sends stay dormant."""
 import importlib.util
 from pathlib import Path
 import shutil
@@ -23,10 +23,14 @@ class SendGateTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         shutil.copytree(verify.ROOT / 'LayerEnemies', self.root / 'LayerEnemies')
 
-    def gate_error(self, source, filename='Main.lua'):
+    def gate_error(self, source, filename='Main.lua', replace=None):
         target = self.root / 'LayerEnemies' / filename
         original = target.read_text()
-        target.write_text(original + '\n' + source + '\n')
+        if replace is not None:
+            self.assertEqual(original.count(replace), 1, 'fixture replacement must be unique')
+            target.write_text(original.replace(replace, source))
+        else:
+            target.write_text(original + '\n' + source + '\n')
         run = subprocess.run
 
         def compile_or_stop(args, **kwargs):
@@ -82,8 +86,105 @@ class SendGateTests(unittest.TestCase):
                        'local c=C_ChatInfo; c.SendChatMessage(...)'):
             with self.subTest(source=source):
                 self.assertIsNotNone(self.gate_error('if false then ' + source + ' end'))
-        self.assertIsNone(self.gate_error('if false then C_ChatInfo.SendAddonMessage(...) end', 'Wire.lua'))
+        # Wire owns one existing access in deliver, not an unrestricted send exemption.
+        self.assertIsNotNone(self.gate_error('if false then C_ChatInfo.SendAddonMessage(...) end', 'Wire.lua'))
+        self.assertIsNone(self.gate_error('-- SendAddonMessage is owned by deliver', 'Wire.lua'))
         self.assertIsNotNone(self.gate_error('if false then SendChatMessage(...) end', 'Wire.lua'))
+
+    def test_indirect_addon_sends_fail_closed(self):
+        cases = (
+            'C_ChatInfo["Send".."AddonMessage"](...)',
+            '_G["Send".."AddonMessage"](...)',
+            '_G[("Se".."nd")..("Addon".."Message")](...)',
+            'local k="SendAddonMessage"; C_ChatInfo[k](...)',
+            'local k="Se".."nd".."AddonMessage"; C_ChatInfo[k](...)',
+            'C_ChatInfo[k](...)',
+            '_G["C_".."ChatInfo"][k](...)',
+            'local c=C_ChatInfo; local d=c; d[k](...)',
+            'local c=_G.C_ChatInfo; c[k](...)',
+            'local c=_G["C_".."ChatInfo"]; c[k](...)',
+            'local c=C_ChatInfo; local k="Send".."AddonMessage"; c[k](...)',
+            'local box={C_ChatInfo}; box[1][k](...)',
+            'local function send(c, ...) c[k](...) end; send(C_ChatInfo)',
+            'local f=C_ChatInfo.SendAddonMessage',
+        )
+        for source in cases:
+            with self.subTest(source=source):
+                self.assertIsNotNone(self.gate_error('if false then ' + source + ' end'))
+
+    def test_hidden_chat_sends_are_forbidden_even_in_wire(self):
+        cases = (
+            'local k="Send".."ChatMessage"; C_ChatInfo[k](...)',
+            '_G["Send".."ChatMessage"](...)',
+            '_G[("Se".."nd")..("Chat".."Message")](...)',
+            'C_ChatInfo["Send".."ChatMessage"](...)',
+            r'C_ChatInfo["\083end".."ChatMessage"](...)',
+            'C_ChatInfo[ [=[Send]=] .. [=[ChatMessage]=] ](...)',
+            'local c=C_ChatInfo; local k="SendChatMessage"; c[k](...)',
+            'local f=C_ChatInfo.SendChatMessage; f(...)',
+            'local f=SendChatMessage; f(...)',
+            'local c=C_ChatInfo; local d=c; d[k](...)',
+            '_G["C_".."ChatInfo"]["Send".."ChatMessage"](...)',
+            '_G["_G"]["Send".."ChatMessage"](...)',
+        )
+        for filename in ('Main.lua', 'Wire.lua'):
+            for source in cases:
+                with self.subTest(file=filename, source=source):
+                    self.assertIsNotNone(self.gate_error('if false then ' + source + ' end', filename))
+
+    def test_wire_send_access_belongs_to_deliver(self):
+        wire = (self.root / 'LayerEnemies/Wire.lua').read_text()
+        # Same single API reference, but moved to a second file-local function.
+        moved = ('local function extraSend() return C_ChatInfo.SendAddonMessage end\n' +
+                 wire.replace('CI.SendAddonMessage', 'extraSend()'))
+        self.assertIsNotNone(self.gate_error(moved, 'Wire.lua', replace=wire))
+
+    def test_extra_wire_access_in_deliver_is_rejected(self):
+        start = 'local function deliver(prefix, text, kind, target, now, key)\n'
+        # Exact reviewer plant from so-le17, dormant unless sending a raid K packet.
+        extra = '    if IsInRaid() and prefix=="LEGW1" and text:sub(1,2)=="K|" then C_ChatInfo.SendAddonMessage("WEFF1",text,"PARTY") end\n'
+        self.assertIsNotNone(self.gate_error(start + extra, 'Wire.lua', replace=start))
+        for source in ('local fn=C_ChatInfo.SendAddonMessage',
+                       'C_ChatInfo["Send".."AddonMessage"](...)',
+                       'local c=C_ChatInfo; c[k](...)'):
+            with self.subTest(source=source):
+                self.assertIsNotNone(self.gate_error('if false then ' + source + ' end', 'Wire.lua'))
+
+    def test_read_only_chat_access_and_inert_send_names_are_allowed(self):
+        sources = (
+            'local gateChat=_G.C_ChatInfo; local gateAlias=gateChat; local f=gateAlias.GetChannelRosterInfo',
+            'local gateChat=_G["C_".."ChatInfo"]; local f=gateChat["Register".."AddonMessagePrefix"]',
+            'local note="SendAddonMessage"; local text="Send".."ChatMessage"',
+            'local note=[=[SendChatMessage]=]; local SendAddonMessageCount=1',
+            '-- SendAddonMessage\n--[=[ SendChatMessage ]=]',
+        )
+        for filename in ('Main.lua', 'Wire.lua'):
+            for source in sources:
+                with self.subTest(file=filename, source=source):
+                    self.assertIsNone(self.gate_error(source, filename))
+        # Trivia changes at the actual access must not turn into a naive text count.
+        self.assertIsNone(self.gate_error('CI -- SendAddonMessage\n . SendAddonMessage',
+                                         'Wire.lua', replace='CI.SendAddonMessage'))
+
+    def test_harness_loads_every_toc_lua_filename(self):
+        # These are TOC addon modules, not separate test suites. The old %w+
+        # pattern silently skipped names containing underscores or punctuation.
+        shutil.copytree(verify.ROOT / 'test', self.root / 'test')
+        toc = self.root / 'LayerEnemies/LayerEnemies.toc'
+        original = toc.read_text()
+        for name in ('_ReviewProbe.lua', 'Review_probe.lua', 'Review-probe.lua'):
+            with self.subTest(name=name):
+                target = self.root / 'LayerEnemies' / name
+                target.write_text('error("TOC module must not be skipped")\n')
+                toc.write_text(original + name + '\n')
+                try:
+                    result = subprocess.run([str(verify.LUA), 'test/harness.lua'], cwd=self.root,
+                                            capture_output=True, text=True)
+                    self.assertNotEqual(result.returncode, 0, 'harness skipped ' + name)
+                    self.assertIn('TOC module must not be skipped', result.stdout + result.stderr)
+                finally:
+                    target.unlink()
+                    toc.write_text(original)
 
     def test_comments_and_strings_are_not_api_access(self):
         sources = (
