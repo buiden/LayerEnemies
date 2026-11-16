@@ -295,7 +295,8 @@ function M.openmapBn(prefix,text,channel,id)
     end)
 end
 -- Spy family in (lane C1) and guild incidents in (lane C2): a line is the sender's own sighting of one enemy, or the
--- sender's death to one; 6 lines per sender per 10 s over the six prefixes; never relayed and never answered.
+-- sender's death to one; 6 lines per sender per 10 s over the six prefixes. Spy-family PARTY/RAID sightings now
+-- go to the guild as relayed claims (reverses lane C1). Guild incidents stay local; donor prefixes are never answered.
 M.spyRates={rates={},nrates=0}
 function M.spyIn(prefix,text,kind,sender)
     if type(text)~="string" or #text>255 or not S.str(sender,100) then return end
@@ -315,7 +316,7 @@ function M.spyIn(prefix,text,kind,sender)
     local zone=d.map and A.zone(d.map) or (d.zoneName and A.zoneByName(d.zoneName))
     if not zone then M.lastDrop="Spy: zone unknown"; return end
     local record
-    record,why=mod.record(prefix,d,{sender=sender,route=kind,heard=time,zone=zone})
+    record,why=mod.record(prefix,d,{sender=mod==N.Spy and who or sender,route=kind,heard=time,zone=zone})
     if not record then M.lastDrop="Spy: "..tostring(why); return end
     M.lastHeard=time
     local ok,_,callAction=pcall(M.callReceive,record,who)
@@ -324,6 +325,7 @@ function M.spyIn(prefix,text,kind,sender)
     if not stored then M.lastDrop=whyNot end
     M.findRecord(record)
     M.findAlerts(ok and callAction=="show")
+    if mod==N.Spy then M.offerRelay(record) end
     if N.UI then N.UI.refresh() end
 end
 -- HeadHunter P (fight) and L (wanted) records: PARTY/RAID/WHISPER, own faction only, 6 frames per sender per 10 s.
@@ -395,7 +397,12 @@ function M.relayIn(text,kind,sender)
     if not record then M.lastDrop="relay "..tostring(why); return end
     if not own then N.Relay.heard(M.relay,record,time) end
     if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
-    local stored,whyNot=T.report(M.store,record,time)
+    -- Spy identities are stable per observer/enemy, not unique report sequence numbers.
+    -- Refresh only strictly newer evidence; another carrier must not rewind the stored sighting.
+    local old=M.store.reports[record.id]
+    local refresh=record.label=="spy" and (not old or record.at>old.record.at)
+    local stored,whyNot
+    if refresh then stored,whyNot=T.refresh(M.store,record,time) else stored,whyNot=T.report(M.store,record,time) end
     M.lastDrop=stored and "relayed "..tostring(record.label) or whyNot
     -- a copy of a report already held (first-hand or relayed) adds nothing to Find
     if not stored and whyNot=="duplicate" then return end

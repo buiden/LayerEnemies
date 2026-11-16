@@ -534,7 +534,31 @@ last heard. It forwards less than HeadHunter does
 under load (the budgets above), and drops the oldest forward when its queue is
 full.
 
-## Spy family and guild incidents (received only)
+## Spy family and guild incidents
+
+**Spy-family sightings from party/raid are now relayed to the guild.** This
+reverses the earlier "never relayed" rule. Each copy uses the existing
+`LEGW1`/GUILD route as `R|1`, source `spy`, kind `seen`: one named enemy,
+zone, no layer (`ns=unknown`), with the Spy user as origin, never us.
+Sightings heard on GUILD are not relayed: guildmates already hear them.
+
+A copy waits a random 0.5–2.5 seconds; a guildmate's copy heard during the
+wait cancels ours. At most 6 Spy relay attempts per rolling minute per
+client, and each full enemy name at most once per 60 seconds across all
+three family sources and observers. These are `forward` priority: an empty
+Wire bucket drops them, never queues them ahead of our own sightings.
+Instance, guild-only record sharing and the existing 128-pending cap still
+refuse relays; the guild/instance context is checked again after the wait.
+The caps count refused Wire attempts too, so nothing retries later.
+
+Receivers keep them as **relayed claims**, not first-hand sightings. Find
+can show a reported location, but the relayed Spy origin is never an ask
+or hop target. Older clients (the 1.0.x/previous decoder) ignore the line:
+unknown `src=spy` is invalid and nothing is stored. No protocol version
+bump. Spy's stable observer/enemy identity can refresh after 60 seconds;
+an older relayed copy cannot replace newer evidence.
+
+The donor prefixes below remain receive-only; no message is sent on them.
 
 - Spy Forever (`[Spy]`, guild, party, raid): one enemy, its class and level,
   the sender's map and position (shown as the observer's position).
@@ -556,8 +580,11 @@ any spelling is refused, and the rate limit counts one sender once. Zone names
 are looked up on the map (the zones of our continent and of the world map; the
 table is kept only once both lookups gave data); a name two zones share is not
 used. One row per sender and enemy (a newer line replaces it), 6 lines per
-sender per 10 seconds over these six prefixes. These rows are never relayed,
-never sent as our own sighting, and nothing is ever sent on these prefixes.
+sender per 10 seconds over these six prefixes. Guild incidents are never
+relayed. No received row is sent as our own sighting, and nothing is ever
+sent on these prefixes. The parsed Spy-family formats have no faction or
+friendly flag: existing validation and self-name rejection apply, but a
+claimed enemy's faction is not independently verified.
 
 What this does not prove:
 

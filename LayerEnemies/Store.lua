@@ -129,7 +129,7 @@ local SOURCE={we="reported (War Effort)",fight="fight (HeadHunter)",outlaw="want
     ft="wanted, seen (Forever Told)"}
 local function source(r)
     if r.src=="guild" then
-        local what=r.label=="hh" and (r.kind=="outlaw" and "HeadHunter wanted" or "HeadHunter fight") or "War Effort"
+        local what=r.label=="spy" and "Spy" or r.label=="hh" and (r.kind=="outlaw" and "HeadHunter wanted" or "HeadHunter fight") or "War Effort"
         return "relayed by "..r.via.." ("..what..")"
     end
     return r.src=="hh" and SOURCE[r.kind] or SOURCE[r.src] or SOURCE.we
