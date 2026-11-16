@@ -617,7 +617,7 @@ PASS Call review: explicit full false is not a Find identity
 PASS Call review: old Help closure cannot act after a replacement render
 PASS Call review: Help rechecks instance before the next event or timer
 PASS Call review: waypoint uses a displayed map other than the local map
-PASS Call review: Find keeps its existing two-word realm limitation
+PASS Call review: Find accepts realm-qualified two-word killers
 PASS Call review: victim value and row grow with measured text height
 PASS Call review: killer value and row grow with measured text height
 PASS Call review: where value and row grow with measured text height
@@ -711,6 +711,117 @@ PASS hop-any cannot dispatch again while a send is still in flight
 PASS hop-any old send completion cannot mutate a replacement round
 PASS hop-any rechecks ignore at dispatch and never trusts a skipped candidate
 PASS hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps
+PASS Find20 26: load builds at most 180 hash candidates once
+PASS Find20 26: report has zero list hashes and at most 10 plus 20 index reads
+PASS Find20 26: own sighting uses at most two name index reads
+PASS Find20 lookup rebuilds only on a list change or first readable home
+PASS Find20 home becomes known on the normal poll without waiting for a report
+PASS Find20 27: twenty adds fit, twenty-first refuses, duplicates remain idempotent
+PASS Find20 27: saved input is validated and deduplicated within its first twenty entries
+PASS Find20 matching preserves legacy aliases, realm checks, collisions and precedence
+PASS Find20 aliases preserve trailing-hyphen validation and full-name own guards
+PASS Find20 28: adding a name prints only its row, including a retained sighting
+PASS Find20 28: five names in one second give three details, one summary and one sound
+PASS Find20 sound cooldown is rolling and quiet alerts do not consume it
+PASS Find20 UI sorts located first, newest first, with compact missing status and paging
+PASS Find20 UI counts shared positions as located without changing their alert or layer meaning
+PASS Known 1: named evidence survives zone, layer and world boundaries
+PASS Known 2: at 600 and 601 seconds last known hides actions; at 3600 it expires
+PASS Known 3: first-hand and reported slots both show without a relay replacing first-hand
+PASS Known 4: add after receipt and a boundary finds old memory without an alert
+PASS Known 4: add a fresh cached name alerts once and remove does not destroy memory
+PASS Known A14: both guild death formats cache killer claims in another zone
+PASS Known guild O: first-hand server claim uses origin age and observer coordinates
+PASS Known Spy-family: all three named input formats populate memory before tracking
+PASS Known own: untracked sighting survives boundaries but never claims today's layer
+PASS Known A12: hashes stay possible and never populate named memory
+PASS Known A17: OpenMap remains independent and never refreshes either cached slot
+PASS Known 14: bounded 300-name cache evicts oldest evidence, not alphabetical first
+PASS Known retention: independent slots, old arrivals, clock rollback and bounded copied fields
+PASS Known 14: cache stays out of every saved table and reload starts empty
+PASS Known retention: idle untracked memory expires on the normal poll
+PASS Known source scope: existing HeadHunter P and L keep the legacy Find path
+PASS Known pure module runs without any WoW globals or SavedVariables
+PASS PartyTargets 13: UNIT_TARGET is registered and party2target uses the coalesced queue
+PASS PartyTargets 13: raid5target is a first-hand own sighting, shared by the existing path
+PASS PartyTargets guard: invisible or unreadable members are never observed
+PASS PartyTargets guard: instance or unreadable instance state refuses observation
+PASS PartyTargets guard: visibility and instance are rechecked after queuing
+PASS PartyTargets guard: secret unit payload is rejected before matching, concatenation or APIs
+PASS PartyTargets bounds: only party1-4 and raid1-40 members admit target tokens
+PASS PartyTargets boundaries: queued old work is discarded and stale targets stay quarantined
+PASS PartyTargets queue: all 44 member tokens fit alongside 42 existing unit tokens
+PASS Realm names: new forms normalize only the realm and preserve typed case
+PASS Realm names: new grammar enforces word realm and total byte limits
+PASS Realm names: every legacy accepted pattern keeps both return values
+PASS Realm names: saved display dedupe removal and base buckets keep separate realms
+PASS Realm names: spy bare tracked base accepts any reported realm
+PASS Realm names: spy different explicit realms never match
+PASS Realm names: spy explicit realms normalize and fold before matching
+PASS Realm names: spy realm-less evidence marks foreign realm unknown
+PASS Realm names: spy home realm needs no unknown note
+PASS Realm names: guild bare tracked base accepts any reported realm
+PASS Realm names: guild different explicit realms never match
+PASS Realm names: guild explicit realms normalize and fold before matching
+PASS Realm names: guild realm-less evidence marks foreign realm unknown
+PASS Realm names: guild home realm needs no unknown note
+PASS Realm names: relayed bare tracked base accepts any reported realm
+PASS Realm names: relayed different explicit realms never match
+PASS Realm names: relayed explicit realms normalize and fold before matching
+PASS Realm names: relayed realm-less evidence marks foreign realm unknown
+PASS Realm names: relayed home realm needs no unknown note
+PASS Realm names: death bare tracked base accepts any reported realm
+PASS Realm names: death different explicit realms never match
+PASS Realm names: death explicit realms normalize and fold before matching
+PASS Realm names: death realm-less evidence marks foreign realm unknown
+PASS Realm names: death home realm needs no unknown note
+PASS Realm names: headhunter bare tracked base accepts any reported realm
+PASS Realm names: headhunter different explicit realms never match
+PASS Realm names: headhunter explicit realms normalize and fold before matching
+PASS Realm names: headhunter realm-less evidence marks foreign realm unknown
+PASS Realm names: headhunter home realm needs no unknown note
+PASS Realm names: Known own rejects cross-realm memory before and after adding
+PASS Realm names: Known own realm-less evidence has per-entry unknown flags
+PASS Realm names: Known spy rejects cross-realm memory before and after adding
+PASS Realm names: Known spy realm-less evidence has per-entry unknown flags
+PASS Realm names: Known guild rejects cross-realm memory before and after adding
+PASS Realm names: Known guild realm-less evidence has per-entry unknown flags
+PASS Realm names: Known relayed rejects cross-realm memory before and after adding
+PASS Realm names: Known relayed realm-less evidence has per-entry unknown flags
+PASS Realm names: Known death rejects cross-realm memory before and after adding
+PASS Realm names: Known death realm-less evidence has per-entry unknown flags
+PASS Realm names: own full display uses its realm not the surname second return
+PASS Realm names: own realm-less surname sighting warns and alerts exactly once
+PASS Realm names: own home-realm exemption is recomputed when home becomes readable
+PASS Realm names: real guild O receive retains realm uncertainty in Find text
+PASS Realm names: surname hashes use the base and never a typed-realm home tuple
+PASS Realm names: every hash tuple stays possible and never confirms even the home realm
+PASS Realm names: late home discovery removes the named HeadHunter uncertainty only
+PASS Realm names: a hash cannot override an explicitly different named realm
+PASS Realm names: On my way adds the shown qualified killer and saves it without sends
+PASS Round1 realm: own sighting rejects colliding realm 1234/84860
+PASS Round1 realm: own sighting rejects colliding realm Home/ochg
+PASS Round1 cost: polling 20 tracked names visits only matching Known entries
+PASS Round1 cost: Known index follows aliases replacement eviction expiry and rollback
+PASS Round1 own: a newer guild O keeps fresh own evidence primary and both lines visible
+PASS Round1 own: an own sighting in another zone does not suppress fresh on-site evidence
+PASS Round1 hash: fresh Ask provenance is visible beside the old own sighting
+PASS Round1 long: legacy first names match adapter displays over 100 bytes
+PASS Round1 long: own display bound covers two adapter strings but remains finite
+PASS Round1 raid: the player member never relabels our own target
+PASS Round1 group: member existence and self identity are rechecked at drain
+PASS Round1 group: retarget without a new event cannot change a queued observation
+PASS Round1 hash: all evidence plus an independent place fits on a Find page
+PASS Round1 realm: own realm equality normalizes and folds full strings
+PASS Round2 relayed: guild O survives a newer claim beside own history
+PASS Round2 death: guild O survives a newer claim beside own history
+PASS Round2 claims: guild O survives relay and death without an own entry
+PASS Round2 retention: own guild and claim expire independently without refreshing O
+PASS Round2 own: layer change releases priority to guild O
+PASS Round2 own: unknown layer never takes priority over guild O
+PASS Round2 own: current-layer 599-second sighting stays primary beside another zone
+PASS Round2 bounds: own storage participates in eviction and rollback indexing
+PASS Round2 UI: own guild claim current hash and OpenMap all fit
 PASS K: hostile opposite-player recap sends one exact guild line after PLAYER_DEAD
 PASS K: whole grammar refuses malformed lines at Wire, not just a K prefix
 PASS K: Wire rate is 120 seconds inclusive, rolls back closed and stamps refused API calls
@@ -857,4 +968,4 @@ PASS K review S2: recap killer matching our own name is not sent
 PASS K review S2: zone upper bound is 999999 not one million
 PASS K review S2: unhex must validate player syntax as well as UTF-8
 PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
-RESULT: 859 tests passed, 0 failed, 89676 assertions
+RESULT: 970 tests passed, 0 failed, 100390 assertions
