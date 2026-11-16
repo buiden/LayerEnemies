@@ -49,7 +49,8 @@ local PREFIXES={OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=t
 local function addonFiles()
     local out={}
     for line in io.lines("LayerEnemies/LayerEnemies.toc") do
-        local name=line:match("^(%w+)%.lua%s*$")
+        -- Load every Lua entry, including names with underscores or punctuation.
+        local name=line:match("^(.*)%.lua%s*$")
         if name then out[#out+1]=name end
     end
     assert(#out>0,"no files in the TOC")
