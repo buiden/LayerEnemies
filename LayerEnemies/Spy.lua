@@ -105,7 +105,7 @@ function Sp.decode(prefix, text)
     end
 end
 -- record(prefix, d, ctx) -> record or nil, why; ctx = { sender, route, heard, zone }
--- One row per observer and enemy: the rid is the enemy's name hash, so a repeat refreshes nothing and is one row.
+-- One row per observer and enemy: the rid is the enemy's name hash; newer sightings refresh that row.
 -- key(name) -> the enemy's hash from the folded key (Invite.key: our realm stripped, case folded), so "First-Last" and
 -- "First-Last-7102" are one row and one enemy hash
 function Sp.key(name) return N.Hash.hash3(N.Invite.rateKey(name)) end
@@ -114,5 +114,7 @@ function Sp.record(prefix, d, ctx)
     return N.Record.new({ src = Sp.SRC[prefix], kind = "seen", origin = ctx.sender, via = ctx.sender, route = ctx.route,
         rid = hash, zone = ctx.zone, x = d.x, y = d.y, count = 1,
         enemies = { { name = d.enemy.name, hash = hash, class = d.enemy.class, level = d.enemy.level } },
-        layer = { ns = "unknown" }, heard = ctx.heard, age = d.age, share = "guild", pos = d.x and "observer" or nil })
+        layer = { ns = "unknown" }, heard = ctx.heard, age = d.age,
+        -- Group sightings may be relayed on LEGW1 only; guild copies already reached everyone.
+        share = (ctx.route == "PARTY" or ctx.route == "RAID") and "public" or "guild", pos = d.x and "observer" or nil })
 end

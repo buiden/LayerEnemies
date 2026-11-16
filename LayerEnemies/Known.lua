@@ -3,7 +3,7 @@
 local _,N=...
 local K={TTL=3600,MAX=300}
 N.Known=K
-local sources={own=true,guild=true,relayed=true,spy=true,death=true}
+local sources={own=true,guild=true,relayed=true,spy=true,death=true,headhunter=true}
 local fields={"name","zone","x","y","pos","at","source","spotter","class","level","layer","ns","kind",
     -- Own-source identity and epoch preserve the existing Find matcher and layer-unknown rule.
     "ownName","realm","epoch","detail"}

@@ -372,18 +372,28 @@ in guild-only mode**, including a round already in progress.
   or a world/zone/layer reset cancels the remaining snapshot without resetting
   the send or name cooldowns. Older receivers need no update: the `O|1` format
   and its four-name/255-byte limits are unchanged.
+  `/le share off` stops all guild sends, including the relays below.
   Also a relay of a report you heard
   first-hand in your party, raid or whispers, so guildmates running
   LayerEnemies see both. A relay waits a
   random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
   Guild membership, guild name and instance state are read when it is offered
   and again when it is due; not in a guild, another guild, in an instance, or
-  unreadable means it is dropped. Each report id is sent about once per 120
+  unreadable means it is dropped. Sharing is checked at receipt and dispatch;
+  switching off discards pending relays even if switched back on before their
+  timer fires. Each non-kill report id is sent about once per 120
   seconds: the 120 seconds count from when it is offered, before the random
   wait, and only while the id is remembered (256 ids; a flood of more ids can
   let one repeat). At
-  most 128 offers wait at once. A local budget allows 5 quick sends, then one
-  per 2 seconds. From 0.4.0 the same route carries two short lines older
+  most 128 offers wait at once. Wire permits 5 quick prefix sends, then one
+  per 2 seconds. One shared conservative `Relay.spend` mirror counts all
+  O/K/F/H/R attempts. Every R kind leaves two tokens: two own lines out of
+  combat, one in combat. Combat relays can send with at least four tokens,
+  subject to the other limits. A relay followed by K then O can lose the O
+  in combat; only one own line is reserved. Relays also leave the final three
+  guild-minute slots in peace, two in combat, across every prefix. Earlier own/control
+  traffic reduces the token allowance too; refused attempts are not refunded.
+  Budget refusals are dropped, not queued. From 0.4.0 the same route carries two short lines older
   versions ignore: `F|1` ("which LayerEnemies hosts are on?", from the Find
   hosts click, at most once per 60 seconds) and `H|1|<server key>|<zone>` (a
   host's answer: once when you turn hosting on and once in answer to an `F`,
@@ -453,7 +463,8 @@ in guild-only mode**, including a round already in progress.
   our home server once per 600 seconds per asker. We never author `P`, `L`
   or `D`: HeadHunter has no honest line for a sighting of ours.
 
-Budgets, all in Wire.lua and spent before the client is asked: each prefix 5
+Send budgets in Wire.lua, plus the stricter relay allowance above, are spent
+before the client is asked: each prefix 5
 at once then one per 2 seconds; all sends 8 at once, then one per 1.5 seconds
 and never more than 40 a minute; GUILD 20 a minute; public whispers 20 a minute
 in total and 4 a minute to one player (a catch-up answer instead has its own 16
@@ -543,10 +554,14 @@ shape is reported as data unavailable.
   only, not in this version). `/le net guild` and `/le net public` set the
   level; `/le net wareffort on|off` (or `we`) and `/le net headhunter on|off`
   (or `hh`) set each network. All saved.
-- `/le share on|off`: share your own sightings and K own-death calls (on by
-  default, saved). Off sends no O or K line and no War Effort report (pending
-  death retries, waiting sync answers and our own embassy lines still queued
-  are dropped too); you still receive everyone else's.
+- `/le share on|off`: share sightings and enable guild sends (on by default,
+  saved). Off stops all guild sends, including your O and K own-death lines,
+  every Spy, HeadHunter and War Effort relay, host questions/answers and
+  network guild traffic. Pending relays and death retries are cancelled
+  immediately and cannot replay when re-enabled. Queued guild embassy lines
+  are dropped if sharing is off at dispatch. Your War Effort reports, waiting
+  sync answers and queued own embassy lines also stop; you still receive
+  everyone else's.
 - Window switches, on every tab: Share, Call, Guild only, War Effort and
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).
@@ -759,7 +774,42 @@ last heard. It forwards less than HeadHunter does
 under load (the budgets above), and drops the oldest forward when its queue is
 full.
 
-## Spy family and guild incidents (received only)
+## Spy family and guild incidents
+
+**Spy-family sightings from party/raid are now relayed to the guild.** This
+reverses the earlier "never relayed" rule. Each copy uses the existing
+`LEGW1`/GUILD route as `R|1`, source `spy`, kind `seen`: one named enemy,
+zone, no layer (`ns=unknown`), with the Spy user as origin, never us.
+Sightings heard on GUILD are not relayed: guildmates already hear them.
+
+A copy waits a random 0.5–2.5 seconds; a guildmate's copy heard during the
+wait cancels ours. At most 6 Spy relay attempts per rolling minute per
+client, and each full enemy name at most once per 60 seconds across all
+three family sources and observers. These are `forward` priority and never
+queue. All guild relays leave **two tokens** in the five-token LEGW1 bucket
+(refill is one per two seconds): two own lines out of combat, **one own line
+in combat**. A combat relay costs two tokens, so it can send with at least
+four tokens when the other limits allow it. Known limit: a relay followed
+immediately by the rare K death line and then O can lose the O in combat;
+the reserve protects one own line, not both. Refused relays are dropped,
+not queued. The relay gate accounts for other LEGW1 authors too, conservatively
+spending refused attempts. Relays also leave the last **three guild-minute
+slots out of combat, two in combat**, using Wire's actual count across every
+prefix. Wire's send path and existing shared/minute caps are unchanged.
+`/le share off` stops every relay,
+including ones already waiting; turning sharing back on does not replay them.
+Instance, guild-only record sharing and the existing 128-pending cap still
+refuse relays; the guild/instance context is checked again after the wait.
+The caps count refused Wire attempts too, so nothing retries later.
+
+Receivers keep them as **relayed claims**, not first-hand sightings. Find
+can show a reported location, but the relayed Spy origin is never an ask
+or hop target. Older clients (the 1.0.x/previous decoder) ignore the line:
+unknown `src=spy` is invalid and nothing is stored. No protocol version
+bump. Spy's stable observer/enemy identity can refresh after 60 seconds;
+an older relayed copy cannot replace newer evidence.
+
+The donor prefixes below remain receive-only; no message is sent on them.
 
 - Spy Forever (`[Spy]`, guild, party, raid): one enemy, its class and level,
   the sender's map and position (shown as the observer's position).
@@ -781,8 +831,11 @@ any spelling is refused, and the rate limit counts one sender once. Zone names
 are looked up on the map (the zones of our continent and of the world map; the
 table is kept only once both lookups gave data); a name two zones share is not
 used. One row per sender and enemy (a newer line replaces it), 6 lines per
-sender per 10 seconds over these six prefixes. These rows are never relayed,
-never sent as our own sighting, and nothing is ever sent on these prefixes.
+sender per 10 seconds over these six prefixes. Guild incidents are never
+relayed. No received row is sent as our own sighting, and nothing is ever
+sent on these prefixes. The parsed Spy-family formats have no faction or
+friendly flag: existing validation and self-name rejection apply, but a
+claimed enemy's faction is not independently verified.
 
 What this does not prove:
 
@@ -924,8 +977,62 @@ match warning, spotter and age, so the evidence behind Ask remains visible.
 GBOUNTY and WALLOFSHAME killer names are claims in any zone, with victim
 coordinates when supplied.
 Direct HeadHunter P/L keeps its legacy ten-minute/boundary Find path outside
-the five-source cache; indirect HH reports still use the relayed category.
-HeadHunter D decoding and a HeadHunter cache source are not part of this change. No new send or relay is added.
+the named cache; indirect HH reports still use the relayed category.
+
+### HeadHunter kill records
+
+A victim's D record inside an E envelope supplies location evidence for its
+fully named killer, whether HeadHunter is also loaded (stand-down) or LE is
+its own mesh member. Find shows `killed <victim>`, `victim-reported`, zone,
+real age and the **victim's** coordinates, as a HeadHunter claim. It adds
+`via relay` when the whisper carrier differs from the victim, and `(inferred)`
+only for inferred confidence; exact confidence adds no extra label.
+Simulated records, incomplete names/GUIDs, mismatched author/victim and other
+factions are dropped. A killer matching ourselves or the victim under the
+whole-name rule is rejected on both direct and guild receive paths. No
+class/level guesses; assists are ignored.
+
+D never creates a row on the Reported tab, a per-enemy count, a kill list,
+a kill-based ordering, or a Call popup. Its private HeadHunter layer is never
+stored or shown. It cannot authorize Ask/Hop, even if the victim is a known
+host. Catch-up stays the age of the original event, is labelled `last known`
+after 10 minutes and expires at 60 minutes; adding an old name does not alert.
+
+Only D heard by **WHISPER** and still under 300 seconds old is offered to the
+guild, including in stand-down. It uses the existing `LEGW1` GUILD route:
+`R|1`, source `hh`, kind `kill` (exact) or `killi` (inferred), origin = victim,
+one fully named killer, victim coordinates, unknown layer and original age.
+Older clients reject these unknown kinds as invalid and ignore the line.
+The existing random 0.5–2.5-second wait and guild-copy stand-down apply.
+The same source/victim/record id is offered only once across all carriers
+while retained, not again after the legacy 120-second memory. Duplicate guild
+copies cannot reset Find's age. The separate session ledger keeps at most 256
+identities for the 60-minute evidence lifetime plus 300 seconds of accepted
+future skew. It drops expired ids first; if still full, it evicts the oldest
+admitted id so a new kill is always shown locally. A rare duplicate of an
+evicted id may be relayed again; it still obeys every send limit. The ledger is
+never saved. `/le share off` stops these relays too, not local receipt.
+Kill relays use the same `Relay.spend` token and guild-minute reserve as Spy,
+War Effort and legacy HeadHunter relays, with no separate reserve to bypass it.
+They can send in combat while leaving room for one own line, not both K and O.
+Shared admission gives no relay family priority over another; mixed traffic
+can still spend the kill-attempt budget without sending a kill relay.
+Freshness is checked again at send time. At most **4 kill-forward attempts
+per rolling minute**, and **one per whole killer name per 60 seconds**;
+foreign realms are distinct. These are `forward` priority: over budget or
+throttled means dropped, never queued/retried ahead of own sightings or clicks.
+Catch-up records at 300 seconds or older and all non-whisper records stay
+local. Received guild kills remain Find-only claims and are never forwarded
+again or turned into Ask/Hop targets. No new prefix, route or recipient is
+added; nothing is sent on HeadHunter's prefix in stand-down.
+
+`/le net` also prints memory-only HeadHunter session diagnostics in both
+modes: admitted P/L/E frames, inner E records by kind, accepted full-name kill
+records read, those under 300 seconds, and those successfully relayed to the
+guild. Counts are receive events (duplicates included), not unique kills;
+Decoder-rejected D records appear only in the inner-kind tally. Counters obey the
+existing receive policy and 6-frame-per-sender/10-second limit, survive zone
+changes, reset on reload, and never enter SavedVariables or `hhNet.history`.
 
 Coordinates are text only, labelled observer or victim, never cache-driven
 map pins. Only our own sightings and guild O lines carry a server-layer

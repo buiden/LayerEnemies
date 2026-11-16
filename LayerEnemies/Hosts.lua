@@ -12,6 +12,7 @@ function Hs.new() return { heard = {}, askedAt = nil } end
 -- ask(st, now, inGuild) -> ok, message. One LFSw "Q" on GUILD: Bulo users in the guild answer with their own layer
 -- line within 1 to 6 s (each at most once per 60 s, so a faster question is wasted). Only from a click.
 function Hs.ask(st, now, inGuild)
+    if not N.Main.sharing() then return false, "sharing is off; no guild question was sent (/le share on)." end
     if not inGuild then return false, "you are not in a guild; nothing was sent." end
     if not S.num(now) then return false, "the clock is unreadable; nothing was sent." end
     if st.askedAt and now - st.askedAt < Hs.ASK_EVERY and now >= st.askedAt then
