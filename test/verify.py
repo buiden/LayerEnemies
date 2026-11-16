@@ -5,12 +5,59 @@ import json
 import os
 import re
 import subprocess
+import struct
 import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = Path(os.environ.get('LAYERENEMIES_LUA', '/opt/data/tools/lua/lua-5.1.5/src/lua'))
 LUAC = LUA.with_name('luac')
+# Exactly three headings, three labels and three buttons, with per-file dimensions.
+MEDIA = {
+    'Media/call-h1.tga': (256, 64), 'Media/call-h2.tga': (256, 64), 'Media/call-h6.tga': (256, 64),
+    'Media/call-victim.tga': (128, 32), 'Media/call-killer.tga': (128, 32), 'Media/call-where.tga': (128, 32),
+    'Media/call-help.tga': (128, 32), 'Media/call-dismiss-a.tga': (128, 32), 'Media/call-dismiss-b.tga': (128, 32),
+}
+
+
+def payload_files(listed, addon=None):
+    addon = addon or ROOT / 'LayerEnemies'
+    shipped = sorted(listed + ['LayerEnemies.toc'] + list(MEDIA))
+    paths = list(addon.rglob('*'))
+    assert not any(p.is_symlink() for p in paths), 'addon folder holds a symlink'
+    present = sorted(p.relative_to(addon).as_posix() for p in paths)
+    assert present == sorted(shipped + ['Media']), 'addon folder holds files outside the TOC/Media set: %s' % sorted(set(present) ^ set(shipped + ['Media']))
+    return shipped
+
+
+def check_media(addon=None):
+    addon = addon or ROOT / 'LayerEnemies'
+    for name, (width, height) in MEDIA.items():
+        expected_header = struct.pack('<BBBHHBHHHHBB', 0, 0, 2, 0, 0, 0, 0, 0, width, height, 32, 0x08)
+        raw = (addon / name).read_bytes()
+        assert len(raw) == 18 + width * height * 4 + 26, 'TGA size: ' + name
+        assert raw[:18] == expected_header, 'TGA header: ' + name
+        assert raw[-26:] == struct.pack('<II', 0, 0) + b'TRUEVISION-XFILE.\0', 'TGA footer: ' + name
+        # Verify transparent padding and nonempty ink without an image-library dependency.
+        alpha = raw[21:-26:4]
+        ink = [(i % width, i // width) for i, a in enumerate(alpha) if a]
+        assert ink and all(4 <= x < width - 4 and 4 <= y < height - 4 for x, y in ink), 'TGA padding: ' + name
+        assert max(x for x, _ in ink) - min(x for x, _ in ink) + 1 <= (190 if width == 256 else 120), 'TGA ink width: ' + name
+
+
+def check_call_text(addon=None):
+    addon = addon or ROOT / 'LayerEnemies'
+    for path in addon.glob('Call*.lua'):
+        text = path.read_text()
+        assert all(ord(c) <= 0x024F for c in text), 'non-Latin client source: ' + path.name
+    text = (addon / 'CallText.lua').read_text()
+    art = re.findall(r'art="([^"]+)"', text)
+    sep = chr(92) * 2  # Lua source spells a literal backslash twice.
+    prefix = sep.join(('Interface', 'AddOns', 'LayerEnemies')) + sep
+    expected = [prefix + name.replace('/', sep) for name in MEDIA]
+    assert sorted(art) == sorted(expected), 'CallText art must match the exact Media allowlist'
+    assert text.count('.tga') == len(MEDIA), 'Unexpected CallText art path'
+
 
 
 def lua_identifiers(text):
@@ -100,11 +147,15 @@ def main():
         if file.name != 'HhNet.lua':
             assert not re.search(r'"1"\s*\.\.\s*side', file.read_text()), 'HeadHunter frames are built only in HhNet.lua: ' + file.name
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
-        if file.name != 'UI.lua':
+        if file.name not in ('UI.lua', 'CallUI.lua'):
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
     assert '## Version: 1.0.1' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
+    shipped = payload_files(listed)
+    check_media()
+    check_call_text()
+    subprocess.run([sys.executable, '-I', '-B', 'test/call_assets_test.py'], cwd=ROOT, check=True)
     tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
     (notes / 'test-results.txt').write_text(tests.stdout + tests.stderr)
     print(tests.stdout, end='')
@@ -116,11 +167,9 @@ def main():
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
     archive = dist / 'LayerEnemies-1.0.1.zip'
-    # the archive is the TOC's file set (its .lua files and the .toc) plus the README, and nothing else: anything else
+    # the archive is the TOC's files plus the exact MEDIA set and README; anything else
     # in the addon folder (a stray file, a test folder) fails here instead of shipping
-    shipped = sorted(listed + ['LayerEnemies.toc'])
-    present = sorted(p.relative_to(ROOT / 'LayerEnemies').as_posix() for p in (ROOT / 'LayerEnemies').rglob('*'))
-    assert present == shipped, 'addon folder holds files outside the TOC set: %s' % sorted(set(present) - set(shipped))
+    shipped = payload_files(listed)
     expected = ['LayerEnemies/' + name for name in shipped]
     expected.append('LayerEnemies/README.md')
     # deterministic archive: fixed time and mode per member, so the same sources give the same sha256 in any clone
@@ -151,6 +200,10 @@ def main():
         'archive_integrity_and_source_parity': 'PASS',
         'archive': archive.relative_to(ROOT).as_posix(),
         'archive_members': len(expected),
+        'archive_bytes': archive.stat().st_size,
+        'unpacked_bytes': sum((ROOT / 'LayerEnemies' / name).stat().st_size for name in shipped) + (ROOT / 'README.md').stat().st_size,
+        'media_bytes': sum((ROOT / 'LayerEnemies' / name).stat().st_size for name in MEDIA),
+        'call_assets_tests': 11,
         'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
         'real_client_verified': False,
         'live_remote_reports': 'War Effort 1.6.x and HeadHunter as a member, the Spy family and three guild '

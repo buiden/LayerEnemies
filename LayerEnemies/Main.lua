@@ -27,6 +27,7 @@ function M.releaseUnit(unit)
     end
 end
 function M.boundary(zone)
+    N.CallUI.check()
     captureStale()
     M.blockedBulo=M.store.bulo
     -- A readable zone that differs from the last readable one ends the zone epoch (own raw id and ambiguity);
@@ -105,6 +106,7 @@ function M.poll()
     M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
     N.Directory.sync()
     M.findAlerts()
+    N.CallUI.check()
     if N.UI then N.UI.refresh() end
 end
 function M.queuePoll()
@@ -275,10 +277,12 @@ function M.spyIn(prefix,text,kind,sender)
     record,why=mod.record(prefix,d,{sender=sender,route=kind,heard=time,zone=zone})
     if not record then M.lastDrop="Spy: "..tostring(why); return end
     M.lastHeard=time
+    local ok,_,callAction=pcall(M.callReceive,record,who)
+    if not ok then M.error="data unavailable (API error)" end
     local stored,whyNot=T.refresh(M.store,record,time)
     if not stored then M.lastDrop=whyNot end
     N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
-    M.findAlerts()
+    M.findAlerts(ok and callAction=="show")
     if N.UI then N.UI.refresh() end
 end
 -- HeadHunter P (fight) and L (wanted) records: PARTY/RAID/WHISPER, own faction only, 6 frames per sender per 10 s.
@@ -653,12 +657,72 @@ function M.findText(row,sightingOnly)
     end
     return text
 end
-function M.findAlerts()
+function M.calling() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.call~=false end
+function M.setCall(on)
+    LayerEnemiesDB.call=on==true
+    if not on then
+        M.call=N.Call.new()
+        N.CallUI.clear()
+    end
+    M.say(on and "LayerEnemies: Call is on." or "LayerEnemies: Call is off.")
+    if N.UI then N.UI.refresh() end
+end
+function M.setCallArt(on)
+    LayerEnemiesDB.callArt=on==true
+    N.CallUI.render()
+    M.say(on and "LayerEnemies: Call art is on." or "LayerEnemies: Call art is off (Latin headings).")
+end
+function M.callHelp(e)
+    local placed=false
+    if e.zone and e.x and e.y and S.tab(C_Map)
+        and S.call(C_Map.CanSetUserWaypointOnMap,e.zone)==true and type(C_Map.SetUserWaypoint)=="function" then
+        local point
+        if S.tab(UiMapPoint) then point=S.call(UiMapPoint.CreateFromCoordinates,e.zone,e.x,e.y)
+        else
+            -- UiMapPoint's convenience constructor loads only on Mainline. The native struct uses a Vector2D.
+            local position=S.call(CreateVector2D,e.x,e.y)
+            if position then point={uiMapID=e.zone,position=position} end
+        end
+        if point then
+            local ok,result=pcall(C_Map.SetUserWaypoint,point)
+            placed=ok and not S.secret(result) and result==true
+            if placed and S.tab(C_SuperTrack) then S.call(C_SuperTrack.SetSuperTrackedUserWaypoint,true) end
+        end
+    end
+    if not placed then
+        local position=e.x and e.y and string.format("%.1f, %.1f",e.x*100,e.y*100) or "position unavailable"
+        M.say("LayerEnemies: "..N.CallText.clean(M.zoneName(e.zone)).." - "..position..".")
+    end
+    if e.full and e.killer then
+        local ok,why=N.Find.add(M.find,e.killer)
+        if not ok then M.say("LayerEnemies: "..why)
+        else
+            LayerEnemiesDB.tracked=M.find.names
+            if N.UI then N.UI.refresh() end
+        end
+    end
+end
+function M.callReceive(record,victim)
+    local time=now()
+    local _,me=A.ownIdentity()
+    local enemy=record.enemies and record.enemies[1]
+    local e,action=N.Call.receive(M.call,record,victim,time,{on=M.calling(),instance=A.inInstance(),me=me,
+        known=enemy and N.Call.known(M.store,enemy.name,time)})
+    if e and (action=="show" or (N.CallUI.frame and N.CallUI.frame:IsShown())) then
+        N.CallUI.show(e,action)
+        if action=="show" then M.alertSound() end
+    end
+    return e,action
+end
+function M.alertSound()
+    S.call(PlaySound,S.tab(SOUNDKIT) and SOUNDKIT.RAID_WARNING or 8959,"Master")
+end
+function M.findAlerts(quiet)
     if not M.find or #M.find.names==0 then return end
     for _,row in ipairs(M.findRows()) do
         if N.Find.alert(M.find,row,now()) then
             M.say("LayerEnemies: "..M.findText(row,true))
-            S.call(PlaySound,S.tab(SOUNDKIT) and SOUNDKIT.RAID_WARNING or 8959,"Master")
+            if not quiet then M.alertSound() end
         end
     end
 end
@@ -1608,7 +1672,7 @@ function M.start()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
     local saved=LayerEnemiesDB
-    M.find=N.Find.new(saved.tracked)
+    M.find=N.Find.new(saved.tracked); M.call=N.Call.new()
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
     M.host.want=LayerEnemiesDB.guildHost
@@ -1616,6 +1680,8 @@ function M.start()
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- sharing our own sightings (O, War Effort C+E): on by default; only a saved false turns it off
     LayerEnemiesDB.share=saved.share~=false
+    LayerEnemiesDB.call=saved.call~=false
+    LayerEnemiesDB.callArt=saved.callArt~=false
     -- the first-login line, once per character, while some network ships and no guild-only choice was made
     LayerEnemiesDB.netNotice=saved.netNotice==true or nil
     local ships=false; for key in pairs(N.Net.LIST) do if N.Net.SHIP[key]==true then ships=true end end
@@ -1656,6 +1722,8 @@ function M.start()
         if command=="hop auto on" then guarded(M.setAutoHop,true); return end
         if command=="net" or command:match("^net%s") then guarded(M.net,command); return end
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
+        if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
+        if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
         if command=="hop auto off" then guarded(M.setAutoHop,false); return end
         local index=command:match("^ask%s+(%d%d?)$")
         local host=command:match("^hop%s+host%s+(%d%d?)$")

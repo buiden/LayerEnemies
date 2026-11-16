@@ -6,7 +6,7 @@ Find a tracked enemy through your own sightings or possible War Effort hash
 matches, then hop: ask a host on that layer for an invite. Find can also show
 a tracked player's last self-shared OpenMap position, separately from sightings. Approved design B is
 implemented as a movable dark window with Seen by you, Reported, Friendly and
-Find tabs. It starts hidden. No minimap button or map pins. This is not a
+Find tabs. It starts hidden. No minimap button or automatic map pins. This is not a
 complete layer roster or a global player locator. Since 0.3.0 it is not
 passive: it sends the addon messages listed under "What is sent", and from
 0.4.0 it can host for your guild (off unless you turn it on, see "Hosting for
@@ -28,6 +28,65 @@ login it prints once:
 Every network has its own switch (`/le net`, and the switches at the bottom
 of the window). Nothing of 1.0.0 has been tried on a live client yet; the
 checklist is at the end.
+
+## Unreleased - guild death calls (receive-only)
+
+**Call popups and their sound are ON by default for both new and existing
+users.** Turn them off with `/le call off` or the window's **Call: on/off**
+button; `/le call on` turns them back on. The per-character choice survives
+reload. This is independent of Share and the network switches.
+
+A Guild Bounty death with a killer class, or a Wall of Shame death whose
+killer is an opposite-faction player in your current local seen store, can
+show a call under the minimap. A class-less Guild Bounty death needs that
+same local proof. Unknown/creature killers, Forever Told sightings, your own
+death and HeadHunter D frames never trigger it. This feature sends nothing:
+it does not detect your own death, announce a death, reply, invite or relay.
+Two LayerEnemies-only guildmates cannot generate these incident lines yet.
+
+One popup at a time: at most one per victim per 180 seconds and one overall
+per 20 seconds, accepting events no older than 120 seconds. The incident
+protocols have no timestamp, so their age starts at receipt. Copies for the
+same victim within 60 seconds are one event; a matching killer/zone copy
+with coordinates improves the shown event without another sound or extending
+its lifetime. The latest admitted event replaces the old one. Each closes
+after 30 seconds, with x, Escape, or **Not now** closing it earlier. No zone
+mute. Popups are plain frames, allowed in combat but never in instances
+(or when instance status is unreadable).
+
+**On my way** tries a waypoint and super-tracking for the displayed victim's
+zone/coordinates; if unavailable or refused, it prints one location line.
+It also offers the displayed full killer name to Find if a slot is available
+(maximum five) and the existing Find name parser accepts it. Full two-word
+names must be bare (First Last): realm-qualified full killers (First Last-Realm)
+are shown but are not added to Find. A full list stays unchanged with an
+explanation; partial names are not added. It does not send a message or ask
+for an invite.
+
+Three Arabic headings, three fixed detail labels and three button labels
+ship as pre-rendered images. Each detail row puts its label image on the
+right, with the ink aligned to the image's right padding. The client-text
+value is right-justified three pixels left of the colon, using each label's
+scaled ink-left metadata rather than the canvas edge. Killer level/class
+stay with the value. One English body sentence
+appears under the rows. Help uses the abshir image; dismiss defaults to
+i3dhirooni, with sakkir also included. In CallText.lua, changing DISMISS from
+"dismiss_a" to "dismiss_b" switches only the button image and its fallback.
+Latin heading transliteration is always shown under the heading image.
+`/le call art off` hides all call images, enlarges the Latin heading and
+uses English labels (One of ours:, Killer:, Where:) left-to-right, with
+On my way / Not now buttons (Close for sakkir). A nil art field in CallText.lua
+uses the same fallback without requesting a texture. `/le call art on`
+restores images; the switch is saved across reload. No Arabic text,
+font or shaping library runs in the client. Unsupported dynamic characters
+above U+024F are shown as `?` on this popup. B4's "last seen" line is eligible
+only through age 30 seconds. Art source and OFL font details: THIRD_PARTY.md.
+
+Not tested on a live Forever client: these exact TGAs' alpha/orientation,
+readability at client scale and placement clear of other minimap frames;
+waypoint/super-track permission; actual Wall of Shame creature-death traffic;
+combat/taint behavior. Death-recap timing, fields and player/duel/pet flags
+remain outside this receive-only change.
 
 ## 1.0.1 — own identity, guild sightings and whisper lifecycle
 
@@ -241,8 +300,10 @@ shape is reported as data unavailable.
   sends no O line and no War Effort report (waiting sync answers and our own
   embassy lines still queued are dropped too); you still receive everyone
   else's.
-- Window switches, on every tab: Share, Guild only, War Effort and
+- Window switches, on every tab: Share, Call, Guild only, War Effort and
   HeadHunter (the same settings as the commands).
+- `/le call on|off`: guild death popups and sound (default on).
+  `/le call art on|off`: all Arabic call images (default on); heading Latin stays visible.
 - `/le find <name>`: add a tracked enemy (maximum five). Names may include a
   Forever surname or an explicit `-Realm`. `/le find` clears all tracked names.
   The Find tab also has a Track field and individual Clear buttons.
@@ -727,13 +788,14 @@ last 10 minutes.
 ## Storage and performance limits
 
 LayerEnemiesDB is SavedVariablesPerCharacter. It stores options, up to five
-explicitly entered tracked names, and window position. It never persists
-sightings, discovered identities, GUIDs, hashes, locations, report payloads,
+explicitly tracked names (typed or chosen with On my way), and window position. It never persists
+sightings, unselected identities, GUIDs, hashes, locations, report payloads,
 asked names, alert history or source settings. Besides those three it holds
 `guildHost` (hosting for your guild) and `autoHop` (Auto accept and leave),
 `consent` ("guild" after `/le net guild`, "public" after `/le net public`,
 absent until either: public), `nets` (one
-switch per network), `share` (sharing your sightings), `netNotice` (the
+switch per network), `share` (sharing your sightings), `call` (death popup/sound),
+`callArt` (call images; both call settings default on), `netNotice` (the
 first-login line was shown) and `weReportId` (War Effort's report id, which
 must keep rising across sessions, 1 to 65535). Reloading keeps your watchlist,
 not its locations. Epoch boundaries clear sighting locations; OpenMap shared
@@ -754,12 +816,14 @@ each rate table holds at most 512 senders. Unchanged Bulo timestamps do not allo
 observation records. Friend lists are read for hosts/asks, tracked-target
 status/alerts, and shown-window refreshes. The UI reuses at most six row
 frames; its hidden timer stops after any already-queued callback returns.
+Call uses one reusable popup, a 64-victim bounded session history with expiry and
+generation-guarded close/age timers. Turning Call off clears its event/history.
 
 ## Verification
 
 Run from the project root:
 
-    python3 test/verify.py
+    python3 -I test/verify.py
 
 It compile-checks each Lua file with luac -p, checks the TOC, runs the strict
 mock harness with the Lua 5.1 binary (`LAYERENEMIES_LUA` overrides its path;
@@ -779,6 +843,18 @@ send (anything but N, E, Q, O, S, H) is built. Both `C_BattleNet.SendGameData`
 and `BNSendGameData` are forbidden; the harness also traps both calls and
 permits registering `OpenMapLoc` but never sending on it.
 The randomized parser test uses 5,000 deterministic malformed inputs.
+The package includes exactly the TOC's Lua files, TOC, README and nine
+named Media TGAs: call-h1/h2/h6, call-victim/killer/where, and
+call-help/dismiss-a/dismiss-b. Extra files or folders, including strays
+inside Media, fail the gate. The header gate requires type 2, 32-bit,
+bottom-left 0x08: headings are 256x64 / 65,580 bytes and labels/buttons are
+128x32 / 16,428 bytes. All nine total 295,308 unpacked bytes. Headings draw
+at 192x48, labels/buttons at 96x24; each group has one offline font size.
+Alpha padding (at least four pixels) and ink width are checked too. Call
+source and the strict frame mock enforce the Latin client-text boundary.
+`test/call_assets_test.py` attacks the allowlist, header and text gate.
+`tools/render_call.py` is offline tooling, not shipped; its overflow and
+reproducibility probes are in `test/render_call_test.py` (see THIRD_PARTY.md).
 
 Current results are in notes/test-results.txt and notes/verification.json,
 both written by verify.py. notes/SUMMARY.md is the 0.2.0 summary, including
