@@ -49,7 +49,8 @@ local PREFIXES={OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=t
 local function addonFiles()
     local out={}
     for line in io.lines("LayerEnemies/LayerEnemies.toc") do
-        local name=line:match("^(%w+)%.lua%s*$")
+        -- Load every Lua entry, including names with underscores or punctuation.
+        local name=line:match("^(.*)%.lua%s*$")
         if name then out[#out+1]=name end
     end
     assert(#out>0,"no files in the TOC")
@@ -108,7 +109,10 @@ local function object(kind)
 end
 function methods:CreateTexture() return object("Texture") end
 function methods:CreateFontString() return object("FontString") end
-function methods:RegisterEvent(event) self.events[event]=true end
+function methods:RegisterEvent(event)
+    if event=="COMBAT_LOG_EVENT_UNFILTERED" then forbidden=(forbidden or 0)+1 end
+    self.events[event]=true
+end
 function methods:SetScript(key,fn)
     local allowed={OnEvent=true,OnUpdate=true,OnClick=true,OnDragStart=true,OnDragStop=true,OnMouseWheel=true,OnEnterPressed=true,OnEscapePressed=true,OnShow=true,OnHide=true,OnEnter=true,OnLeave=true}
     if not allowed[key] then error("unknown script: "..key) end
@@ -265,6 +269,15 @@ local function loadAddon(savedCallTest)
                 level=level+1
             end
             if caller~="@LayerEnemies/Wire.lua" then forbidden=forbidden+1 end
+            -- K1 is the only new send: exact version/shape and LEGW1/GUILD, still through Wire's caller frame.
+            if prefix=="LEGW1" and text:sub(1,2)=="K|" then
+                local zone,x,y,layer,age,conf,item=text:match("^K|1|(%d+)|([^|]*)|([^|]*)|(%d*)|(%d+)|([eh])|([^|]*)$")
+                local function coord(v) return v and v:match("^[01]%.%d%d%d$") and tonumber(v)<=1 end
+                local valid=zone and tonumber(zone)>=1 and tonumber(zone)<=999999 and tonumber(age)<=120 and #layer<=15
+                    and ((x=="" and y=="") or (coord(x) and coord(y)))
+                    and (item=="" or item:match("^%x+:%u*:%-?%d*:[fp]$")) and #text<=255
+                if kind~="GUILD" or not valid then forbidden=forbidden+1 end
+            end
             if type(sendResult)=="function" then return sendResult() end
             return sendResult
         end},
@@ -287,7 +300,7 @@ local function loadAddon(savedCallTest)
     _G.UnitClass=function(u) local e=units[u]; return e and e.class,e and e.class end
     _G.UnitLevel=function(u) return units[u] and units[u].level end
     _G.UnitFactionGroup=function(u) if u=="player" then return "Alliance" end; return units[u] and units[u].faction end
-    _G.GetPlayerInfoByGUID=nil
+    _G.GetPlayerInfoByGUID=nil; _G.C_DeathRecap=nil
     _G.DEFAULT_CHAT_FRAME={AddMessage=function(_,s) log[#log+1]=s end}
     _G.SlashCmdList={}; _G.WorldMapFrame=nil
     _G.UIParent={}; _G.Minimap=nil; _G.MinimapCluster=nil; _G.UISpecialFrames={}
@@ -7719,5 +7732,13 @@ test("hop-any unreadable ignore policy at dispatch fails closed without cooldown
     end
 end)
 
+assert(loadfile("test/own_death.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,deliver=deliver,advance=advance,
+    drain=drain,secret=secret,player=player,establish=establish,abc=abc,
+    sent=function() return sent end,log=function() return log end,clock=function() return clock end,
+    timers=function() return timers end,frames=function() return frames end,
+    instance=function(v) inInstance=v end,combat=function(v) combat=v end,
+    unit=function(k,v) units[k]=v end,roster=function(v) roster=v end,map=function(v) map=v end,
+    result=function(v) sendResult=v end,loaded=function(k,v) loaded[k]=v end,
+    forbidden=function() return forbidden end,clearForbidden=function() forbidden=0 end})
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
