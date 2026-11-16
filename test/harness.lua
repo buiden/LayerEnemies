@@ -6617,6 +6617,95 @@ test("OpenMap malformed precision cannot refresh an identical older place",funct
     end
 end)
 
+test("OpenMap BN qualified realm suffix is case folded",function()
+    local N=bnReady("Cedar")
+    bnInfo.characterName="Cedar-tEsTrEaLm"; bnInfo.realmName="Test Realm"; bn()
+    local p=N.Main.find.places.Cedar; yes(p,"a case-only suffix difference is the same realm"); eq(p.route,"BN")
+    bnInfo.characterName="Cedar-Foreign"; noEffect(N,function() bn("L0") end)
+end)
+test("OpenMap BN display realm removes both spaces and hyphens",function()
+    for _,realm in ipairs({"Test-Realm","Test - Realm"}) do
+        local N=bnReady("Cedar"); bnInfo.characterName="Cedar"; bnInfo.realmName=realm; bn()
+        local p=N.Main.find.places.Cedar; yes(p,"display realm normalizes to the home realm"); eq(p.route,"BN")
+    end
+end)
+test("OpenMap qualified home-realm watch entry matches only the full sender",function()
+    for _,route in ipairs({"GUILD","WHISPER","BN"}) do
+        local N=bnReady("Cedar-TestRealm")
+        if route=="BN" then bnInfo.characterName="CEDAR"; bn()
+        else om(nil,route,"CEDAR-TestRealm") end
+        local p=N.Main.find.places["Cedar-TestRealm"]; yes(p,"qualified watch match on "..route); eq(p.route,route)
+        noEffect(N,function() om("L0", "GUILD", "Cedar") end)
+        noEffect(N,function() om("L0", "GUILD", "Cedar-Foreign") end)
+    end
+end)
+test("OpenMap UTF-8 own identity is rejected even in a different case",function()
+    for _,route in ipairs({"GUILD","WHISPER","BN"}) do
+        local N=bnReady("élodie łan"); ownShape("Élodie","Łan","Test Realm")
+        bnInfo.characterName="élodie łan"
+        noEffect(N,function() if route=="BN" then bn() else om(nil,route,"élodie łan-TestRealm") end end)
+        eq(next(N.Main.find.places),nil,"self did not create a place")
+        N.Main.track("élodie vale"); om(nil,"GUILD","Élodie Vale-TestRealm")
+        yes(N.Main.find.places["élodie vale"],"different surname is not self")
+    end
+end)
+test("OpenMap decoder directly enforces the 64-byte limit",function()
+    local N=omReady()
+    local line="L1\t100\t0.0001\t0.9999\t"..string.rep("A",40).."\t80"; eq(#line,64)
+    local p=N.OpenMap.decode(line); yes(p); eq(p.class,string.rep("A",40))
+    line="L1\t100\t0.0001\t0.9999\t"..string.rep("A",41).."\t80"; eq(#line,65)
+    eq(N.OpenMap.decode(line),nil,"grammar-valid 65 bytes must fail without Main's guard")
+end)
+test("OpenMap stored BN place has only the location field allowlist",function()
+    local N=bnReady(); bnInfo.accountID=71; bn()
+    local p=N.Main.find.places["Cedar Vale"]; yes(p)
+    local expected={map=200,x=.42,y=.57,class="MAGE",level=60,at=clock,route="BN",faction="opposite"}
+    eq(snapshot(p),snapshot(expected),"no account data, identifiers or other extra keys retained")
+end)
+test("OpenMap row projection never aliases or mutates its stored place",function()
+    local N=omReady(); om(); local stored=N.Main.find.places["Cedar Vale"]; yes(stored)
+    local before=snapshot(stored); clock=clock+5
+    local row=N.Main.findRows()[1]; yes(row.place); no(rawequal(row.place,stored),"row owns its place copy")
+    eq(row.place.age,5); eq(snapshot(stored),before,"calculating age leaves storage untouched")
+    row.place.map=999; row.place.at=0; row.place.extra=true
+    eq(snapshot(stored),before,"editing a projected row cannot change storage")
+    local nextRow=N.Main.findRows()[1]; no(rawequal(nextRow.place,row.place)); eq(nextRow.place.map,200)
+    eq(nextRow.place.age,5); eq(nextRow.place.extra,nil)
+end)
+test("OpenMap place-only text stays inside its card above Clear",function()
+    local N=omReady(); om(); N.UI.toggle(); N.UI.select("find"); local r=N.UI.pool[1]
+    yes(r.place:IsShown()); eq(r.sub:GetText(),""); no(r.ask:IsShown())
+    eq(r.place.point[1],"TOPLEFT"); eq(r.place.point[2],r); eq(r.place.point[3],"TOPLEFT")
+    local left,top=r.place.point[4],-r.place.point[5]
+    yes(left>=0 and left+r.place.width<=r.width,"place fits horizontally inside card")
+    yes(top>=0 and top+r.place.height<=r.height,"place fits vertically inside card")
+    yes(top+r.place.height<=r.height-r.clear.point[5]-r.clear.height,"place stays above Clear")
+end)
+test("OpenMap combined-row text avoids both sighting text and buttons",function()
+    local N=omReady(); clock=100; sight(N,100,90,false); om(); N.UI.toggle(); N.UI.select("find")
+    local r=N.UI.pool[1]; yes(r.place:IsShown()); yes(r.ask:IsShown()); no(r.sub:GetText()=="")
+    eq(r.place.point[1],"TOPLEFT"); eq(r.place.point[2],r); eq(r.place.point[3],"TOPLEFT")
+    eq(r.sub.point[1],"TOPLEFT"); eq(r.sub.point[2],r); eq(r.sub.point[3],"TOPLEFT")
+    local top=-r.place.point[5]; local bottom=top+r.place.height
+    yes(top>=-r.sub.point[5]+r.sub.height,"place begins below the sighting text box")
+    yes(bottom<=r.height-r.ask.point[5]-r.ask.height,"place ends above Ask")
+    yes(bottom<=r.height-r.clear.point[5]-r.clear.height,"place ends above Clear")
+end)
+test("OpenMap last-place expiry restores compact rows and clamps five-name scrolling",function()
+    local N=omReady(); clock=100; om()
+    for _,name in ipairs({"Birch Grove","Cedar Moss","Dawn Vale","Elm Frost"}) do N.Main.track(name) end
+    N.UI.toggle(); N.UI.select("find"); local U=N.UI
+    eq(#N.Main.findRows(),5); eq(U.pool[1].height,142)
+    for _=1,9 do U.body.scripts.OnMouseWheel(nil,-1) end
+    eq(U.offset,4); eq(U.pool[1].tracked,"Elm Frost")
+    clock=249.9; U.render(); eq(U.offset,4); eq(U.pool[1].height,142)
+    clock=250; U.render(); eq(next(N.Main.find.places),nil)
+    eq(U.offset,3,"two compact rows fit after the last place expires")
+    for i=1,2 do yes(U.pool[i]:IsShown()); eq(U.pool[i].height,102); no(U.pool[i].place:IsShown()) end
+    eq(U.pool[1].tracked,"Dawn Vale"); eq(U.pool[2].tracked,"Elm Frost")
+    eq(U.pool[1].point[5],-56); eq(U.pool[2].point[5],-162); eq(U.hint:GetText(),"Mouse wheel: 4–5 of 5")
+end)
+
 end
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
