@@ -845,6 +845,32 @@ PASS Guild relay policy: clear and clock rollback cannot refill the reserve
 PASS Guild relay policy: combat relay then K then O has the documented one-line reserve limit
 PASS Guild relay policy: merged K author preserves the reserve out of combat
 PASS Guild relay policy: merged K author preserves the reserve in combat
+PASS Kills 11: D creates a timed killer claim in LE-only
+PASS Kills 11: D creates a timed killer claim in stand-down
+PASS Kills 11: incomplete killer never matches by partial name, class or level
+PASS Kills 11: author must be the victim under whole-name identity
+PASS Kills 12: inferred label, victim attribution and relay provenance without Reported rows
+PASS Kills 12: simulated and unknown confidence create no finding
+PASS Kills 12: assists and helpers never create entries or counts
+PASS Kills age: catch-up retains real age, hour boundary expires without fresh alerts
+PASS Kills decode: envelope validation, other faction, malformed names and future skew
+PASS Kills Find: claims cannot borrow the victim layer or replace first-hand evidence
+PASS Kills counters: session receive totals in LE-only
+PASS Kills counters: session receive totals in stand-down
+PASS Kills 12a: whispered D reaches Find and guild in LE-only
+PASS Kills 12a: whispered D reaches Find and guild in stand-down
+PASS Kills 12b: fresh whisper relays; old catch-up stays local with origin age
+PASS Kills relay: recheck freshness at dispatch and encoding
+PASS Kills relay: non-whisper fresh and catch-up records stay local
+PASS Kills relay: frozen main receiver ignores kill and killi as invalid
+PASS Kills relay: guild claims never reach Reported, Ask, Hop, or re-forward
+PASS Kills relay: malformed kill wire cannot smuggle counts, hashes, extra enemies or layer
+PASS Kills relay: guild copy during wait cancels our send
+PASS Kills relay budget: fifth within rolling minute is dropped, not queued
+PASS Kills relay budget: same whole killer name once per 60 seconds
+PASS Kills relay budget: realms stay distinct and backwards time never reopens allowance
+PASS Kills relay priority: full Wire bucket drops without queue or successful counter
+PASS Kills relay lifecycle: no guild, instance and guild switch invalidate pending
 PASS Round1 realm: own sighting rejects colliding realm 1234/84860
 PASS Round1 realm: own sighting rejects colliding realm Home/ochg
 PASS Round1 cost: polling 20 tracked names visits only matching Known entries
@@ -1014,4 +1040,33 @@ PASS K review S2: recap killer matching our own name is not sent
 PASS K review S2: zone upper bound is 999999 not one million
 PASS K review S2: unhex must validate player syntax as well as UTF-8
 PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
-RESULT: 1016 tests passed, 0 failed, 104730 assertions
+PASS Kills R1 S1: HeadHunter rejects ourselves and killer equals victim
+PASS Kills R1 S1: guild rejects ourselves and killer equals victim
+PASS Kills R1 M1: one D id across carriers for its lifetime skew=0
+PASS Kills R1 M1: one D id across carriers for its lifetime skew=-300
+PASS Kills R1 S2: identical guild kill preserves age at 240 seconds
+PASS Kills R1 S2: identical guild killi preserves age at 240 seconds
+PASS Kills R1 M1: guild and whisper carriers share identity and stand-down
+PASS Kills R1 M1: kill id survives legacy relay history eviction
+PASS Kills R1 M2: mixed relay burst leaves two own tokens
+PASS Kills R1 M2: real own sighting survives mixed burst combat=false
+PASS Kills R1 M2: real own sighting survives mixed burst combat=true
+PASS Kills R1 M2: legacy relay burst leaves two own tokens
+PASS Kills R1 M2: real own sighting survives legacy burst combat=false
+PASS Kills R1 M2: real own sighting survives legacy burst combat=true
+PASS Kills R1 M2: earlier own traffic also counts against the prefix reserve
+PASS Kills R1 share: off before receipt sends nothing on LEGW1
+PASS Kills R1 share: off while pending sends nothing on LEGW1
+PASS Kills R1 share: off then on while pending sends nothing on LEGW1
+PASS Kills R1 share: off at dispatch sends nothing on LEGW1
+PASS Kills R1 bounds: live event ledger evicts overflow and expires without renewal
+PASS Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear and rollback
+PASS Kills R2 reserve: full combat bucket sends a kill relay and leaves one own line
+PASS Kills R2 reserve: active combat relays keep all five own O slots every=1
+PASS Kills R2 reserve: active combat relays keep all five own O slots every=4
+PASS Kills R2 reserve: kill dispatch uses the shared spend gate
+PASS Kills R2 reserve: kill relays leave the guild-minute own slots
+PASS Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute
+PASS Kills R2 ledger: new kill stays visible after 300 guild kills at one per second
+PASS Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first
+RESULT: 1071 tests passed, 0 failed, 109538 assertions

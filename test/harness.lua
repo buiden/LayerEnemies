@@ -10,6 +10,8 @@ local forbidden
 local function test(name,fn)
     if arg and arg[1]=="--spy-relay-only" and not name:find("Spy relay",1,true) then return end
     if arg and arg[1]=="--relay-policy-only" and not name:find("Guild relay policy:",1,true) then return end
+    if arg and arg[1]=="--kills-only" and not name:find("Kills",1,true) then return end
+    if arg and arg[1]=="--kills-round2-only" and not name:find("Kills R2",1,true) then return end
     local ok,err=pcall(fn)
     -- No test may reach an API that sends, invites, accepts or leaves.
     if ok and (forbidden or 0)>0 then ok,err=false,"forbidden API reached "..forbidden.." time(s)" end
@@ -7773,6 +7775,10 @@ assert(loadfile("test/relay_policy.lua"))({test=test,eq=eq,yes=yes,no=no,load=lo
     units=function() return units end,player=player,establish=establish,
     combat=function(v) combat=v end,sent=function() return sent end})
 
+assert(loadfile("test/kills.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
+    advance=advance,clock=function() return clock end,deliver=deliver,drain=drain,snapshot=snapshot,
+    loaded=function() return loaded end,log=function() return log end,sent=function() return sent end})
+
 assert(loadfile("test/round1.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
     advance=advance,clock=function() return clock end,deliver=deliver,drain=drain,
     units=function() return units end,player=player,establish=establish,
@@ -7789,6 +7795,15 @@ assert(loadfile("test/own_death.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadA
     unit=function(k,v) units[k]=v end,roster=function(v) roster=v end,map=function(v) map=v end,
     result=function(v) sendResult=v end,loaded=function(k,v) loaded[k]=v end,
     forbidden=function() return forbidden end,clearForbidden=function() forbidden=0 end})
+assert(loadfile("test/kills_round1.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,
+    advance=advance,clock=function() return clock end,deliver=deliver,drain=drain,
+    units=function() return units end,player=player,combat=function(v) combat=v end,
+    loaded=function() return loaded end,sent=function() return sent end})
+
+assert(loadfile("test/kills_round2.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,
+    advance=advance,clock=function() return clock end,deliver=deliver,drain=drain,
+    units=function() return units end,player=player,combat=function(v) combat=v end,
+    loaded=function() return loaded end,sent=function() return sent end})
 
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

@@ -204,8 +204,26 @@ function M.isMe(name)
     local _,me=A.ownIdentity()
     return key~=nil and me~=nil and key==me
 end
+-- A kill cannot identify its victim or our own character as the killer.
+-- Use the same whole-name identity on both direct and guild ingress.
+function M.validKill(record)
+    local enemy=record.enemies[1]
+    local _,killer=I.name(enemy and enemy.name)
+    return killer~=nil and killer~=record.okey and not M.isMe(enemy.name)
+end
 -- Preserve origin age and provenance before the zone-only store can reject a record.
 function M.findRecord(record)
+    if N.Record.isKill(record) then
+        if not N.Relay.acceptKill(M.relay,record,now()) then return end
+        local _,viaKey=I.name(record.via)
+        local indirect=record.src=="guild" or viaKey~=record.okey
+        N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.at,now=now(),enemies=record.enemies,
+            source=record.src=="hh" and "headhunter" or "relayed",kind="claim",relayed=indirect,
+            x=record.x,y=record.y,pos="victim",ns="unknown",
+            detail="killed "..record.origin.." · victim-reported"..(indirect and " · via relay" or "")
+                ..(record.kind=="killi" and " (inferred)" or "")},M.homeRealm())
+        return
+    end
     local source=record.src=="le" and "guild" or record.kind=="death" and "death"
         or record.hand=="relayed" and "relayed" or record.src=="hh" and "headhunter" or "spy"
     local layer=source=="guild" and record.layer.ns=="server" and record.layer.value or nil
@@ -338,7 +356,8 @@ function M.spyIn(prefix,text,kind,sender)
     if mod==N.Spy then M.offerRelay(record) end
     if N.UI then N.UI.refresh() end
 end
--- HeadHunter P (fight) and L (wanted) records: PARTY/RAID/WHISPER, own faction only, 6 frames per sender per 10 s.
+-- HeadHunter P/L and enveloped D: shared read path, regardless of mesh stand-down.
+-- PARTY/RAID/WHISPER, own faction only, 6 frames per sender per 10 s.
 function M.headhunter(text,kind,sender)
     if type(text)~="string" or #text>255 or not S.str(sender,100) then return end
     local allowed,reason=A.hhPolicy(kind,sender)
@@ -353,7 +372,7 @@ function M.headhunter(text,kind,sender)
     if kind=="WHISPER" and (mesh or frameType=="E") then guarded(M.hhMesh,text,sender,time) end
     if mesh then return end
     local records,why=N.HeadHunter.decode(text,sender,S.num(S.call(GetServerTime)),S.str((S.call(UnitFactionGroup,"player")),20),
-        {heard=time,route=kind,zoneFn=A.zone})
+        {heard=time,route=kind,zoneFn=A.zone,stats=M.hh.stats})
     M.lastDrop=why~="ignored" and why or M.lastDrop
     for _,record in ipairs(records) do
         local ignored,whyIgnored=false,nil
@@ -361,7 +380,13 @@ function M.headhunter(text,kind,sender)
             if M.isMe(record.origin) then ignored,whyIgnored=true,"own echo"
             else ignored,whyIgnored=A.ignored(record.origin) end
         end
+        if N.Record.isKill(record) and not M.validKill(record) then ignored,whyIgnored=true,"invalid killer" end
         if ignored then M.lastDrop=whyIgnored
+        elseif N.Record.isKill(record) then
+            -- Find only: no Reported row, reporter/host, count or Call popup.
+            M.findRecord(record)
+            M.offerRelay(record)
+            M.lastDrop="headhunter "..record.kind
         else
             local stored,whyNot=T.report(M.store,record,time)
             M.lastDrop=stored and "headhunter "..record.kind or whyNot
@@ -390,7 +415,10 @@ function M.relayContext()
 end
 function M.relayTick()
     if not M.sharing() then N.Relay.clear(M.relay); return end
-    for _,r in ipairs(N.Relay.tick(M.relay,now(),M.relayContext())) do M.lastRelay=r.ok and "relayed" or r.why end
+    for _,r in ipairs(N.Relay.tick(M.relay,now(),M.relayContext())) do
+        M.lastRelay=r.ok and "relayed" or r.why
+        if r.ok and r.kill then M.hh.stats.kills.relayed=M.hh.stats.kills.relayed+1 end
+    end
 end
 -- Guild relay in: GUILD only, never from us, stored as src "guild" with the claimed source as its label; never
 -- relayed again.
@@ -408,8 +436,15 @@ function M.relayIn(text,kind,sender)
     local record,why
     if own then record,why=N.Relay.decodeOwn(text,sender,time) else record,why=N.Relay.decode(text,sender,time) end
     if not record then M.lastDrop="relay "..tostring(why); return end
+    if N.Record.isKill(record) and not M.validKill(record) then M.lastDrop="invalid killer"; return end
     if not own then N.Relay.heard(M.relay,record,time) end
     if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
+    if N.Record.isKill(record) then
+        M.findRecord(record); M.findAlerts()
+        M.lastDrop="relayed HeadHunter kill"
+        if N.UI then N.UI.refresh() end
+        return
+    end
     -- Spy identities are stable per observer/enemy, not unique report sequence numbers.
     -- Refresh only strictly newer evidence; another carrier must not rewind the stored sighting.
     local old=M.store.reports[record.id]
@@ -719,7 +754,7 @@ local function knownLine(e)
     local age=seconds<60 and (seconds.." s") or (math.floor(seconds/60).." min")
     local text
     if e.kind=="claim" then
-        text="Reported: "..(e.source=="death" and "named as killer" or "possible match, seen in a relayed report")
+        text="Reported: "..(e.detail or (e.source=="death" and "named as killer" or "possible match, seen in a relayed report"))
     else text="Seen by "..(e.spotter or "unknown") end
     text=text.." in "..M.zoneName(e.zone)..", "..age.." ago"
     if e.kind=="claim" then text=text.." ("..e.source..", claim)"
@@ -1890,6 +1925,7 @@ function M.net(command)
     if rest=="" then
         M.say("Networks: "..(N.Net.consent()=="public" and "public" or "guild only"))
         netLines(M.say)
+        M.say(N.HeadHunter.summary(M.hh.stats))
         return
     end
     if rest=="guild" or rest=="public" then M.setConsent(rest); return end

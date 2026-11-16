@@ -206,7 +206,7 @@ function F.report(st,r,home)
         if named then
             local candidates=st.byName[base]
             local source=r.source or (r.relayed and "relayed" or "spy")
-            if source=="headhunter" then
+            if source=="headhunter" and r.kind~="claim" then
                 for _,entry in ipairs(candidates or {}) do
                     local match,realmUnknown=matches(entry,e,st.homeKey)
                     if match then hashPut(entry,e,realmUnknown,named) end
@@ -214,7 +214,7 @@ function F.report(st,r,home)
             else
                 local cached=N.Known.put(st.known,{name=e.name,zone=r.zone,x=r.x,y=r.y,pos=r.pos,at=r.at,
                     source=source,spotter=r.sender,class=e.class,level=e.level,layer=r.layer,ns=r.ns,
-                    kind=(r.relayed or source=="death") and "claim" or "seen"},r.now or r.at)
+                    kind=(r.kind=="claim" or r.relayed or source=="death") and "claim" or "seen",detail=r.detail},r.now or r.at)
                 for _,entry in ipairs(candidates or {}) do remember(st,entry,cached) end
             end
         end
@@ -228,10 +228,11 @@ local function project(st,loc,now,zone,sameSpotter)
     row.age=now-loc.at
     row.lastKnown=loc.cached and row.age>=F.TTL or nil
     row.travel=loc.zone~=zone
-    local spot=not loc.own and sameSpotter and sameSpotter(loc.spotter,loc.zone)
+    local spot=not loc.own and loc.kind~="claim" and sameSpotter and sameSpotter(loc.spotter,loc.zone)
     row.same=not row.travel and not row.lastKnown and ((loc.own and loc.layerKnown and loc.epoch==st.epoch) or spot==true)
     row.probably=not row.travel and not row.lastKnown and spot=="probably"
     row.status=loc.own and (row.same and "is on YOUR layer" or not loc.layerKnown and "seen by you, layer unknown" or "seen by you")
+        or loc.kind=="claim" and loc.detail
         or loc.source=="death" and "named as killer (claim)"
         or loc.relayed and "possible match, seen in a relayed report"
         or "possible match, seen by "..(loc.spotter or "unknown")
@@ -286,7 +287,7 @@ function F.rows(st,now,zone,sameSpotter)
         st.locations[name]=loc
         local row=loc and project(st,loc,now,zone,sameSpotter) or {name=name,status="Not located — needs your sighting or a nearby War Effort user."}
         if seen then row.seen=project(st,location(seen,name,seenUnknown),now,zone,sameSpotter) end
-        if loc and loc.source=="headhunter" and (not seen or loc.at>seen.at) then row.seen=project(st,loc,now,zone,sameSpotter) end
+        if loc and loc.source=="headhunter" and not loc.cached and (not seen or loc.at>seen.at) then row.seen=project(st,loc,now,zone,sameSpotter) end
         if otherSeen then row.otherSeen=project(st,location(otherSeen,name,otherUnknown),now,zone,sameSpotter) end
         if reported then row.reported=project(st,location(reported,name,reportedUnknown),now,zone,sameSpotter) end
         -- Anonymous current evidence must remain visible beside older named lines,
