@@ -727,7 +727,7 @@ PASS K environment: four readable no-source recaps keep their own killers (sourc
 PASS K environment: no-source killing blow never names a player hit (sourceName empty)
 PASS K environment: a no-source finisher seen at death stays silent after its row disappears
 PASS K environment: a no-source finisher seen at retry stays silent after its row disappears
-PASS K environment: a no-source-only death is non-empty recovery after an unreadable death
+PASS K environment: a readable no-source-only death cannot clear an earlier unreadable death
 PASS K environment: recorded no-source rows stay old when amounts change or source fields arrive
 PASS K environment: absent source does not hide an unreadable sourceGUID (secret)
 PASS K environment: absent source does not hide an unreadable sourceGUID (throwing)
@@ -770,8 +770,14 @@ PASS K fix check: a new player row next to an old one still names the new killer
 PASS K fix check: a death whose recap cannot name still owns its rows (65 rows)
 PASS K fix check: a death whose recap cannot name still owns its rows (throwing sibling)
 PASS K fix check: a 65-row recap with a new killer sends; over 256 rows never name
-PASS K blind: a row an unsent death could not record never names a later death; the death after that sends
-PASS K blind: empty deaths keep suppression until a non-empty readable death
+PASS K blind A/B/C: unrelated mob rows cannot recover until world entry (login)
+PASS K blind A/B/C: unrelated mob rows cannot recover until world entry (reload)
+PASS K blind A/B/C: unrelated mob rows cannot recover until world entry (loading screen)
+PASS K blind A/B/C: unrelated player rows cannot recover until world entry (login)
+PASS K blind A/B/C: unrelated player rows cannot recover until world entry (reload)
+PASS K blind A/B/C: unrelated player rows cannot recover until world entry (loading screen)
+PASS K blind: a row an unsent death could not record suppresses later deaths until world entry
+PASS K blind: empty and non-empty readable deaths keep suppression until world entry
 PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after empty
 PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after hidden
 PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after readable sibling
@@ -790,4 +796,4 @@ PASS K review S2: recap killer matching our own name is not sent
 PASS K review S2: zone upper bound is 999999 not one million
 PASS K review S2: unhex must validate player syntax as well as UTF-8
 PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
-RESULT: 792 tests passed, 0 failed, 77972 assertions
+RESULT: 798 tests passed, 0 failed, 78327 assertions
