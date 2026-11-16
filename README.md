@@ -1,6 +1,6 @@
 # LayerEnemies
 
-WoW Forever addon 1.0.1, Interface 16001, Lua 5.1.
+WoW Forever addon 1.1.0, Interface 16001, Lua 5.1.
 
 Find a tracked enemy through your own sightings or possible War Effort hash
 matches, then hop: ask a host on that layer for an invite. Find can also show
@@ -29,7 +29,36 @@ Every network has its own switch (`/le net`, and the switches at the bottom
 of the window). Nothing of 1.0.0 has been tried on a live client yet; the
 checklist is at the end.
 
-## Unreleased - shared watch list and on-site notice
+## 1.1.0 at a glance
+
+Everything since 1.0.1, with the sections below and the reference chapters
+holding the detail:
+
+- **Find:** names match without regard to case; up to 20 names; realm names
+  (`Name-Realm`, `First Last-Realm`); a one-hour session memory with
+  `last known` lines; a `Seen by you, layer unknown` state; a tracked player's
+  self-shared OpenMap position (cross-faction) on its own line.
+- **Guild death calls:** a call popup under the minimap when a guild death
+  names an enemy killer (Guild Bounty, Wall of Shame, or a guildmate's `K`
+  line); on by default, `/le call off` turns it off. Your own PvP death shares
+  one `K` line with your guild.
+- **Hop to another layer:** one click (or `/le hop any`) may send up to 8
+  hidden addon requests for an invite, including to players not known to run a
+  layer addon.
+- **Guild intelligence:** crowds are shared in up to three lines without
+  repeats or inflated counts; Spy sightings and HeadHunter kill records heard
+  in your group are relayed to the guild as claims; a shared watch list tells
+  you when a guildmate may be tracking the player you just saw.
+- **New guild messages (all on the existing LEGW1 GUILD route):** `K` (own
+  death), `R|1|spy|seen`, `R|1|hh|kill` / `killi`, and `T|1` (watch list as
+  6-character hashes). `/le share off` stops every guild send, relays and the
+  watch list included. Relays always leave room for your own lines.
+- **Upgrade notes:** saved settings carry over. An older client keeps only the
+  first five Find names and drops realm-qualified ones. Older clients ignore
+  the new message kinds.
+- Not tested in game (alpha).
+
+## 1.1.0 - shared watch list and on-site notice
 
 **Rule for review:** "LayerEnemies now sends each member's Find names to
 the guild on LEGW1. This is a new kind of guild send. Guild route only, plain names, default on,
@@ -120,7 +149,7 @@ it is session-only and is discarded on guild reset.
 Native delivery/throttling and roster completeness: **not run (alpha, owner's
 decision)**. Client acceptance is not a delivery acknowledgement.
 
-## Next release: Hop to another layer
+## 1.1.0 - Hop to another layer
 
 **Changed rule:** "one hop request to one host ... No retry, no fan-out"
 previously applied to every hop. One **Hop to another layer** click may now
@@ -130,7 +159,7 @@ request without a click. Existing Hop, Hop via <name> and Ask guild actions
 keep their single-target / player-sent behavior. This bounded exception is
 reviewed on its own, independently of other feature changes.
 
-## Unreleased - guild death calls and own-death sharing
+## 1.1.0 - guild death calls and own-death sharing
 
 **Call popups and their sound are ON by default for both new and existing
 users.** Turn them off with `/le call off` or the window's **Call: on/off**
