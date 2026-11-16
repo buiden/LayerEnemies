@@ -10,7 +10,8 @@ N.Record = R
 -- death (a player died to this enemy).
 -- le: a LayerEnemies guildmate's own sighting (LEGW1 O line)
 local SRC = { own = true, we = true, hh = true, guild = true, le = true, spy = true, fspy = true, sent = true, gb = true, wos = true, ft = true }
-local KIND = { group = true, fight = true, outlaw = true, seen = true, death = true }
+local KIND = { group = true, fight = true, outlaw = true, seen = true, death = true, kill = true, killi = true }
+function R.isKill(record) return record.kind == "kill" or record.kind == "killi" end
 local HAND = { first = true, relayed = true }
 local POS = { enemy = true, observer = true, victim = true, none = true }
 local ROUTE = { GUILD = true, PARTY = true, RAID = true, WHISPER = true, LOCAL = true }

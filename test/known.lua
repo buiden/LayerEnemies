@@ -182,8 +182,8 @@ end)
 
 test("Known source scope: existing HeadHunter P and L keep the legacy Find path",function()
     local N=H.load(); local seenAt=H.clock(); N.Main.track("Cedar Vale")
-    -- HeadHunter gets a cache source in its later lane, not in this five-source cache.
-    eq(N.Known.put(N.Main.find.known,{name="Cedar Vale",at=seenAt,source="headhunter",kind="seen"},seenAt),nil)
+    -- D now has a claim source; P/L ingestion below still uses the legacy path.
+    yes(N.Known.put(N.Known.new(),{name="Cedar Vale",at=seenAt,source="headhunter",kind="claim"},seenAt))
     local r=assert(N.Record.new({src="hh",kind="fight",origin="Birch Scout",via="Birch Scout",route="PARTY",rid="1",
         zone=100,enemies={{name="Cedar Vale",class="MAGE",level=40}},layer={ns="unknown"},heard=seenAt,age=0,share="public"}))
     N.Main.findRecord(r); yes(row(N).at); yes(row(N).seen); no(row(N).seen.cached); yes(row(N).canAsk)

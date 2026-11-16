@@ -36,13 +36,19 @@ function Rl.spend(now, relay)
 end
 
 local SRC = { we = true, hh = true, spy = true }
-local KIND = { group = true, fight = true, outlaw = true, seen = true }
+local KIND = { group = true, fight = true, outlaw = true, seen = true, kill = true, killi = true }
 local SPY = { spy = true, fspy = true, sent = true }
 Rl.SPY_MAX, Rl.SPY_WINDOW = 6, 60
 local function source(record) return SPY[record.src] and "spy" or record.src end
 local function spyName(record)
     local enemies = record.enemies
     if not S.tab(enemies) or #enemies ~= 1 or not S.tab(enemies[1]) then return nil end
+    return N.Invite.name(enemies[1].name)
+end
+Rl.KILL_RATE, Rl.KILL_AGAIN = 4, 60
+local function killName(record)
+    local enemies = record.enemies or {}
+    if #enemies ~= 1 or enemies[1].hash then return nil end
     return N.Invite.name(enemies[1].name)
 end
 local NS = { server = "s", zoneuid = "z", unknown = "u" }
@@ -73,6 +79,8 @@ function Rl.encode(record, now)
     local src = source(record)
     if not SRC[src] or not KIND[record.kind] or (src == "spy") ~= (record.kind == "seen") then return nil end
     if src == "spy" and (not spyName(record) or record.count ~= 1) then return nil end
+    local kill = N.Record.isKill(record)
+    if kill and (record.src ~= "hh" or not killName(record) or record.count ~= nil) then return nil end
     local rid = record.rid
     if type(rid) ~= "string" or not rid:match("^[%w:%-]+$") then return nil end
     local function c3(v) return v and tostring(math.min(999, math.max(0, math.floor(v * 1000)))) or "" end
@@ -84,6 +92,7 @@ function Rl.encode(record, now)
     -- the origin's time (Record.at) is what travels, as an age at sending
     local at = S.num(record.at) or (record.heard - (record.age or 0))
     local age = math.max(0, math.floor(now - at))
+    if kill and age >= Rl.TTL.hh then return nil end
     if age > 900 then return nil end                             -- too old for any receiver
     local head = table.concat({ "R", Rl.VERSION, src, record.kind, hex(record.origin), rid, tostring(record.zone),
         c3(record.x), c3(record.y), record.count and tostring(math.min(80, record.count)) or "", ns, layer, tostring(age) }, "|") .. "|"
@@ -100,6 +109,7 @@ function Rl.encode(record, now)
         end
     end
     if src == "spy" and #items ~= 1 then return nil end            -- do not send a nameless truncated claim
+    if kill and #items ~= 1 then return nil end              -- never send a nameless/truncated kill
     return head .. table.concat(items, ",")
 end
 
@@ -115,6 +125,8 @@ function Rl.decode(text, sender, now)
     local src, kind, origin, rid = f[3], f[4], unhex(f[5]), f[6]
     if not SRC[src] or not KIND[kind] or not origin or not rid:match("^[%w:%-]+$") then return nil, "invalid" end
     if (src == "spy") ~= (kind == "seen") then return nil, "invalid" end
+    local kill = kind == "kill" or kind == "killi"
+    if kill and (src ~= "hh" or f[10] ~= "" or f[11] ~= "u" or f[12] ~= "") then return nil, "invalid" end
     -- a copy naming its own sender as the origin is not a relay (as War Effort refuses its own wrapped origin)
     local function bare(n) return (n:match("^([^%-]+)") or n):lower() end
     if type(sender) == "string" and (origin:lower() == sender:lower()
@@ -145,18 +157,19 @@ function Rl.decode(text, sender, now)
             enemies[#enemies + 1] = e
         end
     end
+    if kill and not killName({ enemies = enemies }) then return nil, "invalid" end
     if src == "spy" and not spyName({ enemies = enemies }) then return nil, "invalid" end
     local record, why = N.Record.new({ src = "guild", kind = kind, origin = origin, via = sender, route = "GUILD", rid = rid,
         zone = zone, x = x, y = y, count = count, enemies = enemies, layer = { ns = ns, value = value },
         heard = now - age, share = "guild", label = src,
-        -- one guild hop; HeadHunter and Spy positions stay the observer's, never the enemy's
-        hops = 1, pos = (src == "hh" or src == "spy") and x and "observer" or nil })
+        -- one guild hop; kills locate the victim, other HH/Spy positions the observer
+        hops = 1, pos = kill and "victim" or (src == "hh" or src == "spy") and x and "observer" or nil })
     if not record then return nil, "record: " .. tostring(why) end
     return record
 end
 
 Rl.RATE = 12                                                   -- LEGW1 messages per sender per 10 s
-function Rl.new() return { seen = {}, n = 0, pending = {}, rates = {}, nrates = 0, spyTimes = {}, spyNames = {} } end
+function Rl.new() return { seen = {}, n = 0, pending = {}, rates = {}, nrates = 0, spyTimes = {}, spyNames = {}, kills = {}, killRecords = {} } end
 -- A rolling minute of dispatch attempts. Stamp before Wire, including its local refusals; never retry them.
 -- Both collections hold at most six entries; a backwards clock does not reopen a limit.
 local function spyRoom(st, record, now, spend)
@@ -171,6 +184,45 @@ local function spyRoom(st, record, now, spend)
     if #st.spyTimes >= Rl.SPY_MAX then return false, "spy rate" end
     if st.spyNames[key] then return false, "spy name" end
     if spend then st.spyTimes[#st.spyTimes + 1] = now; st.spyNames[key] = now end
+    return true
+end
+-- Kill identity spans all carriers, including guild copies. Unlike the short
+-- legacy relay history, live kill entries are never evicted or renewed by replay.
+-- Retain through Known's lifetime plus accepted HH future skew: a clamped future
+-- stamp must not become a new event later. A full ledger refuses new identities.
+local function killEvent(st, record, now)
+    local key = Rl.key(record)
+    local n = 0
+    for k, event in pairs(st.killRecords) do
+        if now >= event.expires then st.killRecords[k] = nil else n = n + 1 end
+    end
+    local event = st.killRecords[key]
+    if not event then
+        if n >= Rl.MAX then return nil end
+        event = { at = record.at, expires = now + N.Known.TTL + N.HeadHunter.WINDOW }
+        st.killRecords[key] = event
+    end
+    record.at = math.min(record.at, event.at)
+    return event
+end
+function Rl.acceptKill(st, record, now)
+    local event = killEvent(st, record, now)
+    if not event or event.found then return false end
+    event.found = true
+    return true
+end
+-- A rolling minute, at most four attempted kill forwards; also one whole killer
+-- identity per minute. Spend before Wire, so a refusal cannot reopen the budget.
+-- This tiny list is bounded by the rate cap and survives pending clears.
+local function killSpend(st, record, now)
+    local _, name = killName(record)
+    if not name then return false end
+    for i = #st.kills, 1, -1 do
+        if now - st.kills[i].at >= Rl.KILL_AGAIN then table.remove(st.kills, i) end
+    end
+    if #st.kills >= Rl.KILL_RATE then return false end
+    for _, sent in ipairs(st.kills) do if sent.name == name then return false end end
+    st.kills[#st.kills + 1] = { name = name, at = now }
     return true
 end
 -- Receive limit per guildmate; excess is dropped silently. 512 senders at most.
@@ -214,6 +266,13 @@ function Rl.offer(st, record, now, ctx)
     if not S.tab(record) or not SRC[source(record)] then return false, "source" end
     local spy = source(record) == "spy"
     if record.route ~= "PARTY" and record.route ~= "RAID" and (spy or record.route ~= "WHISPER") then return false, "route" end
+    local event
+    if N.Record.isKill(record) then
+        if record.route ~= "WHISPER" then return false, "kill route" end
+        event = killEvent(st, record, now)
+        if not event or event.offered then return false, "seen" end
+        if now - record.at >= Rl.TTL.hh then return false, "too old" end
+    end
     if record.share == "guild" then return false, "guild share" end
     if ctx.inGuild ~= true or ctx.inInstance ~= false or type(ctx.guild) ~= "string" then return false, "not here" end
     local allowed, why = spyRoom(st, record, now, false)
@@ -223,11 +282,16 @@ function Rl.offer(st, record, now, ctx)
     local n = 0; for _ in pairs(st.pending) do n = n + 1 end
     if n >= Rl.PENDING then return false, "busy" end
     remember(st, key, now)
+    if event then event.offered = true end
     st.pending[key] = { record = record, due = now + Rl.rand(), guild = ctx.guild }
     return true
 end
 -- A LEGW1 copy heard from a guildmate: remembered, and our own pending send of it stands down.
 function Rl.heard(st, record, now)
+    if N.Record.isKill(record) then
+        local event = killEvent(st, record, now)
+        if event then event.offered = true end
+    end
     local key = Rl.key(record)
     st.pending[key] = nil
     remember(st, key, now)
@@ -244,12 +308,14 @@ function Rl.tick(st, now, ctx)
             if ctx.inGuild == true and ctx.inInstance == false and ctx.guild == p.guild then
                 text = Rl.encode(p.record, now); why = "does not fit"
             end
+            local kill = N.Record.isKill(p.record)
+            if text and kill and not killSpend(st, p.record, now) then text, why = nil, "kill budget" end
             if text then
                 ok, why = spyRoom(st, p.record, now, true)
                 if ok then ok, why = Rl.spend(now, true) end
                 if ok then ok, why = N.Wire.send("LEGW1", text, "GUILD", nil, { prio = "forward" }) end
             end
-            out[#out + 1] = { key = key, ok = ok, why = why }
+            out[#out + 1] = { key = key, ok = ok, why = why, kill = kill }
         end
     end
     return out
