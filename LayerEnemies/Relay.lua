@@ -6,10 +6,11 @@ local S = N.Safe
 local Rl = {}
 N.Relay = Rl
 Rl.VERSION, Rl.MEMORY, Rl.MAX, Rl.PENDING = "1", 120, 256, 128
--- Wire.lua's per-prefix bucket is 5 tokens, refilling one per 2 s. Keep
--- a stricter relay-only bucket of 5 - 2 tokens: all R kinds share it, so
--- a relay burst cannot spend the two-token allowance for our own lines.
--- Mirror Wire's combat cost and refill; Wire remains the final send gate.
+-- Wire.lua's prefix bucket is 5 tokens, refilling one per 2 s. Mirror it
+-- conservatively: every LEGW1 attempt is charged, including O/K/F/H. Only
+-- R lines must leave two tokens; hence their full-bucket burst is 5 - 2.
+-- Refused attempts are not refunded: the mirror can understate, never
+-- overstate, Wire's available tokens. Wire remains the final send gate.
 Rl.PREFIX_BURST, Rl.PREFIX_REFILL, Rl.OWN_RESERVE = 5, 2, 2
 Rl.BURST = Rl.PREFIX_BURST - Rl.OWN_RESERVE
 Rl.TTL = { we = 600, hh = 300 }                                 -- a relayed copy lives as long as a direct one
@@ -238,15 +239,27 @@ function Rl.heard(st, record, now)
     st.pending[key] = nil
     remember(st, key, now)
 end
-local function relaySpend(st, now)
-    local b = st.budget or { tokens = Rl.BURST, at = now }
+local function prefixBucket(st, now)
+    local b = st.budget or { tokens = Rl.PREFIX_BURST, at = now }
     st.budget = b
     if now > b.at then
-        b.tokens = math.min(Rl.BURST, b.tokens + (now - b.at) / Rl.PREFIX_REFILL)
+        b.tokens = math.min(Rl.PREFIX_BURST, b.tokens + (now - b.at) / Rl.PREFIX_REFILL)
         b.at = now
     end
-    local cost = (S.call(InCombatLockdown) == true or S.call(UnitAffectingCombat, "player") == true) and 2 or 1
-    if b.tokens < cost then return false end
+    return b
+end
+local function prefixCost()
+    return (S.call(InCombatLockdown) == true or S.call(UnitAffectingCombat, "player") == true) and 2 or 1
+end
+-- Called immediately before each non-relay LEGW1 send, even if Wire refuses.
+-- Accounting must not block an own/control line or add a retry/send path.
+function Rl.noteSend(st, now)
+    local b = prefixBucket(st, now)
+    b.tokens = math.max(0, b.tokens - prefixCost())
+end
+local function relaySpend(st, now)
+    local b, cost = prefixBucket(st, now), prefixCost()
+    if b.tokens < cost + Rl.OWN_RESERVE then return false end
     b.tokens = b.tokens - cost
     return true
 end

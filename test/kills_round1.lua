@@ -138,6 +138,17 @@ for _,mode in ipairs({"mixed","legacy"}) do
     end
 end
 
+test("Kills R1 M2: earlier own traffic also counts against the prefix reserve",function()
+    local N=boot()
+    H.units().target=H.player("Own Enemy","Horde"); H.deliver("PLAYER_TARGET_CHANGED"); H.drain()
+    H.advance(3.1); N.Main.shareTick(); eq(#sends("^O|"),1)
+    burst("mixed"); H.advance(1.1)
+    eq(#sends("^R|"),2,"own traffic must reduce the relay allowance too")
+    yes(N.Wire.send("LEGW1",ownLine(N,221),"GUILD",nil,{prio="own"}))
+    yes(N.Wire.send("LEGW1",ownLine(N,222),"GUILD",nil,{prio="own"}))
+    eq(#sends("^O|"),3); no(N.Main.error)
+end)
+
 for _,mode in ipairs({"off before receipt","off while pending","off then on while pending","off at dispatch"}) do
     test("Kills R1 share: "..mode.." sends nothing on LEGW1",function()
         local N=boot(); N.Main.track("Cedar Vale")
@@ -158,3 +169,33 @@ for _,mode in ipairs({"off before receipt","off while pending","off then on whil
         no(N.Main.error)
     end)
 end
+
+test("Kills R1 bounds: live event ledger refuses overflow and expires without renewal",function()
+    local N=boot(); local first=death(); hear(first); H.advance(1.1)
+    for i=1,N.Relay.MAX+4 do
+        hear(death({victim="Victim "..H.abc(i),killer="Enemy "..H.abc(i)}),"Carrier "..H.abc(i))
+    end
+    eq(N.Safe.count(N.Main.relay.killRecords),N.Relay.MAX)
+    eq(N.Known.get(N.Main.find.known,"Enemy "..H.abc(N.Relay.MAX+4),H.clock()),nil)
+    N.Relay.clear(N.Main.relay); H.advance(121); hear(first,"Later Carrier"); H.advance(1.1)
+    eq(#sends(),1,"overflow/clear cannot evict a live id")
+    H.advance(N.Known.TTL+N.HeadHunter.WINDOW); hear(death({killer="New Enemy"}),"New Carrier")
+    eq(N.Safe.count(N.Main.relay.killRecords),1); H.advance(1.1); eq(#sends(),2)
+    no(N.Main.error)
+end)
+
+test("Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear and rollback",function()
+    local N=boot()
+    local file=assert(io.open("LayerEnemies/Wire.lua","r")); local source=file:read("*a"); file:close()
+    local cap,refill=source:match("local PREFIX_CAP, PREFIX_REFILL, ALL_CAP, ALL_REFILL, ALL_MINUTE = (%d+), (%d+),")
+    eq(N.Relay.PREFIX_BURST,tonumber(cap)); eq(N.Relay.PREFIX_REFILL,tonumber(refill))
+    eq(N.Relay.BURST,N.Relay.PREFIX_BURST-2)
+    burst("legacy"); H.advance(1.1); eq(#sends("^R|"),3)
+    local stamp=b36(GetServerTime())
+    N.Relay.clear(N.Main.relay); H.advance(-2)
+    hear("1AL:Old Enemy;2s;"..stamp..";dw;6y","Backwards Carrier"); H.advance(1.1)
+    eq(#sends("^R|"),3,"rollback cannot refill the relay allowance")
+    H.advance(3); hear("1AL:Old Enemy;2s;"..b36(GetServerTime())..";dw;6y","Fresh Carrier"); H.advance(1.1)
+    eq(#sends("^R|"),4,"new records use replenished tokens; dropped ones do not retry")
+    no(N.Main.error)
+end)

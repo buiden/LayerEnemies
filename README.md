@@ -268,8 +268,8 @@ in guild-only mode**, including a round already in progress.
   per 15 seconds, and lists everyone your own client saw in the last 15
   seconds, so a name can repeat in the next O 15 seconds later. `/le share off`
   stops it and all LEGW1 report relays, including pending kill relays.
-  When sharing is on, it also relays a report you heard first-hand in your party, raid or whispers, so guildmates running
-  LayerEnemies see both. A relay waits a
+  When sharing is on, it also relays a report you heard first-hand in your
+  party, raid or whispers, so guildmates running LayerEnemies see both. A relay waits a
   random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
   Guild membership, guild name and instance state are read when it is offered
   and again when it is due; not in a guild, another guild, in an instance, or
@@ -280,10 +280,11 @@ in guild-only mode**, including a round already in progress.
   wait, and only while the id is remembered (256 ids; a flood of more ids can
   let one repeat). At
   most 128 offers wait at once. Wire permits 5 quick prefix sends, then one
-  per 2 seconds. A stricter relay-only bucket permits 5 - 2 = 3 quick R lines
-  of all kinds, reserving two burst tokens for own lines; it refills one per
-  2 seconds and charges double in combat. Budget refusals are dropped, not
-  queued. From 0.4.0 the same route carries two short lines older
+  per 2 seconds. A conservative mirror counts all O/K/F/H/R attempts, and
+  requires every R kind to leave two prefix tokens: at most 5 - 2 = 3 quick
+  relays from a full bucket. Earlier own/control traffic reduces that allowance
+  too. It refills one per 2 seconds and charges double in combat; refused
+  attempts are not refunded. Budget refusals are dropped, not queued. From 0.4.0 the same route carries two short lines older
   versions ignore: `F|1` ("which LayerEnemies hosts are on?", from the Find
   hosts click, at most once per 60 seconds) and `H|1|<server key>|<zone>` (a
   host's answer: once when you turn hosting on and once in answer to an `F`,

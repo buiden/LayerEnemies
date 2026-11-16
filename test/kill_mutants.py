@@ -44,6 +44,35 @@ MUTANTS = [
     ("relay-non-whisper-catchup", "Kills relay: non-whisper", [
         ("LayerEnemies/Relay.lua", 'if record.route ~= "WHISPER" then return false, "kill route" end', '-- route gate removed'),
     ]),
+    ("repeat-kill-id", "Kills R1 M1: one D id", [
+        ("LayerEnemies/Relay.lua", 'if not event or event.offered then return false, "seen" end',
+         'if not event then return false, "seen" end'),
+    ]),
+    ("short-kill-memory", "Kills R1 M1: one D id", [
+        ("LayerEnemies/Relay.lua", 'expires = now + N.Known.TTL + N.HeadHunter.WINDOW', 'expires = now + 120'),
+    ]),
+    ("refresh-guild-kill-age", "Kills R1 S2:", [
+        ("LayerEnemies/Relay.lua", 'if not event or event.found then return false end', 'if not event then return false end'),
+        ("LayerEnemies/Relay.lua", 'record.at = math.min(record.at, event.at)', '-- original timestamp discarded'),
+    ]),
+    ("kill-self", "Kills R1 S1:", [
+        ("LayerEnemies/Main.lua", 'and not M.isMe(enemy.name)', ''),
+    ]),
+    ("kill-victim", "Kills R1 S1:", [
+        ("LayerEnemies/Main.lua", 'and killer~=record.okey', ''),
+    ]),
+    ("spend-own-reserve", "Kills R1 M2:", [
+        ("LayerEnemies/Relay.lua", 'if text and not relaySpend(st, now) then text, why = nil, "own reserve" end',
+         '-- reserve removed'),
+    ]),
+    ("forget-own-prefix-traffic", "Kills R1 M2: earlier own traffic", [
+        ("LayerEnemies/Relay.lua", 'b.tokens = math.max(0, b.tokens - prefixCost())', '-- non-relay traffic forgotten'),
+    ]),
+    ("share-off-relays", "Kills R1 share:", [
+        ("LayerEnemies/Main.lua", 'if not M.sharing() then return end\n    local time=now()', '-- offer gate removed\n    local time=now()'),
+        ("LayerEnemies/Main.lua", 'if not M.sharing() then N.Relay.clear(M.relay); return end', '-- dispatch gate removed'),
+        ("LayerEnemies/Main.lua", 'N.OwnDeath.cancel(); N.Relay.clear(M.relay)', 'N.OwnDeath.cancel()'),
+    ]),
 ]
 
 

@@ -295,7 +295,10 @@ local function attempt(p)
     p.conf,p.enemies,p.age=hit.conf,hit.enemy and {hit.enemy} or {},math.floor(time-p.at)
     local line=D.line(p)
     D.cancel() -- one attempt, no budget backlog or replay after a client refusal
-    if line then N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"}) end
+    if line then
+        N.Relay.noteSend(N.Main.relay,time)
+        N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"})
+    end
 end
 function D.dead()
     -- No client death ID: until revive, repeated PLAYER_DEAD is the same death.

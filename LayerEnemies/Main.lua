@@ -613,6 +613,7 @@ function M.announceHost()
     local own=M.hostOwn()
     local line=N.Relay.hostLine(own.key,own.zone)
     if not line then return false end
+    N.Relay.noteSend(M.relay,now())
     local ok=N.Wire.send("LEGW1",line,"GUILD",nil,{prio="owed"})
     if ok then M.host.announcedAt=now() end
     return ok
@@ -1227,6 +1228,7 @@ function M.findHosts()
     local ok,message=N.Hosts.ask(M.heard,now(),S.call(IsInGuild)==true)
     -- the same click asks LayerEnemies hosts with one F|1 (sent only when the Q went out: guild, 60 s)
     if ok then
+        N.Relay.noteSend(M.relay,now())
         local sentF=N.Wire.send("LEGW1",N.Relay.findLine(),"GUILD",nil,{prio="click"})
         if sentF then message=message.."; LayerEnemies hosts were asked too" end
     end
@@ -1455,7 +1457,10 @@ function M.shareTick()
     local inGuild=S.call(IsInGuild)==true
     -- to the guild: one O line with up to four names
     local line=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=key,age=math.max(0,math.floor(time-rep.at)),count=rep.count,enemies=rep.enemies})
-    if line and inGuild then N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"}) end
+    if line and inGuild then
+        N.Relay.noteSend(M.relay,time)
+        N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"})
+    end
     -- to War Effort: C then E, two or more enemies, a position, and only where a reader was heard in 600 s
     if rep.count<2 or not (x and y) then return end
     local stamp=S.num(S.call(GetServerTime))
