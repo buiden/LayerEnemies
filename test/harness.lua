@@ -7555,5 +7555,45 @@ test("hop-any observed invite is never reported as no invite after auto-off",fun
     yes(table.concat(log,"\n"):find("invite arrived",1,true))
 end)
 
+-- Independent regression boundaries: no other event/guard may mask the one under test.
+test("hop-any offline selection fills all eight slots with online candidates",function()
+    local N=anyFixture()
+    sendResult=12; N.Wire.send("LayerSwap","same","WHISPER","Seeker a",{prio="click"}); sendResult=0
+    sent={}; advance(10)
+    anyClick(N); deliver("WHO_LIST_UPDATE"); for _=1,7 do advance(1) end
+    eq(#sent,8); eq(sent[1].target,"Seeker b"); eq(sent[8].target,"Seeker i")
+    eq(N.Main.hopAnyState.round.count,8)
+end)
+test("hop-any rejects nonwhisper replies before changing round or host state",function()
+    for _,route in ipairs({"PARTY","RAID","CHANNEL"}) do
+        local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
+        anyReply("Seeker a","h",nil,nil,route)
+        eq(N.Main.hopAnyState.round.phase,"send",route)
+        eq(N.Safe.count(N.Main.hopAnyState.round.answered),0,route)
+        eq(N.Safe.count(N.Main.heard.heard),0,route)
+        advance(1); eq(#sent,2,route)
+    end
+end)
+test("hop-any live zone guard precedes auto-leave without a zone event",function()
+    local N=anyJoined(); N.Main.applyLayer("8000-8","test")
+    map=200; clock=clock+3.1; N.Main.autoTick()
+    eq(#leaves,0); no(N.Main.auto.group)
+end)
+test("hop-any painted Stop cancels a sending round before the next whisper",function()
+    local N=anyFixture(); N.UI.toggle(); N.UI.select("friendly")
+    anyClick(N,true); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
+    eq(N.UI.hopAny.label:GetText(),"Stop"); anyClick(N,true)
+    no(N.Main.hopAnyState.round); no(N.Main.invite.pending)
+    for _=1,600 do advance(1) end
+    eq(#sent,1); eq(#whoCalls,1)
+end)
+test("hop-any live group guard stops before the roster event",function()
+    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
+    grouped=true; clock=clock+1; N.Main.hopAnyPump()
+    eq(#sent,1); no(N.Main.hopAnyState.round)
+    grouped=false; for _=1,600 do advance(1) end
+    eq(#sent,1); eq(#whoCalls,1)
+end)
+
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
