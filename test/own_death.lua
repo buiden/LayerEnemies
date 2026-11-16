@@ -179,7 +179,7 @@ test("K: absent empty secret or erroring recap APIs never send and never set Mai
         elseif mode=="getError" then C_DeathRecap.GetRecapEvents=function() error("recap") end
         elseif mode=="rowSecret" then rows[1]=H.secret
         elseif mode=="rowError" then rows[1]=setmetatable({},{__index=function() error("recap") end})
-        else for i=2,65 do rows[i]=recapRow() end end
+        else for i=2,257 do rows[i]=recapRow() end end -- over RECORD_LIMIT: unread rows could be old
         H.deliver("PLAYER_DEAD"); H.advance(.3); H.advance(.7); H.advance(1)
         eq(#deaths(),0,mode); no(N.Main.error)
     end
@@ -433,7 +433,7 @@ for _,field in ipairs({"damage","sourceFlags"}) do
         eq(#deaths(),1,"rows differing only in "..field.." are the old death's rows: no new K"); no(N.Main.error)
     end)
 end
-test("K review: the session keeps at most 256 row sets and then refuses new sets",function()
+test("K cap: after 256 rows the oldest are evicted; a newer death still sends, an evicted row never does",function()
     local N=setup(); raceProof(); N.Main.setShare(false)
     local held
     C_DeathRecap.GetRecapEvents=function() return held end
@@ -441,10 +441,30 @@ test("K review: the session keeps at most 256 row sets and then refuses new sets
         local row=recapRow(); row.timestamp=1000+i; held={row}
         H.deliver("PLAYER_DEAD"); H.advance(2.1); H.deliver("PLAYER_ALIVE"); H.advance(1)
     end
+    -- one more row evicts the oldest (timestamp 1001) and raises the mark to it
+    local extra=recapRow(); extra.timestamp=1500; held={extra}
+    H.deliver("PLAYER_DEAD"); H.advance(2.1); H.deliver("PLAYER_ALIVE"); H.advance(1)
     N.Main.setShare(true); H.advance(1801)
+    local evicted=recapRow(); evicted.timestamp=1001; held={evicted}
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0,"an evicted old row returning alone is at or below the mark: no line")
+    -- the next-oldest rows are still on record, and a different source stamped like an old row is old too
+    for _,case in ipairs({{1003,"Player-1-123"},{1004,"Player-1-789"}}) do
+        H.deliver("PLAYER_ALIVE"); H.advance(1801)
+        local r=recapRow(); r.timestamp=case[1]; r.sourceGUID=case[2]; held={r}
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,"row stamped "..case[1].." is old")
+    end
+    -- a never-seen row stamped before rows of earlier deaths is old, even after the cap
+    H.deliver("PLAYER_ALIVE"); H.advance(1801)
+    local mid=recapRow(); mid.timestamp=1257; mid.sourceGUID="Player-1-456"; mid.sourceName="Birch"; held={mid}
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0,"a never-seen row older than rows of earlier deaths is old")
+    H.deliver("PLAYER_ALIVE"); H.advance(1801)
+    H.deliver("PLAYER_ALIVE"); H.advance(1801)
     local row=recapRow(); row.timestamp=H.clock(); held={row}
     H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
-    eq(#deaths(),0,"a 257th unseen set is refused, never admitted by forgetting an old one"); no(N.Main.error)
+    eq(#deaths(),1,"a genuinely newer death still sends after the cap"); no(N.Main.error)
 end)
 test("K review N1 (accepted miss): an earlier death's 2 s look may take a quick next death's rows",function()
     local N=setup(); raceProof(); N.Main.setShare(false)
@@ -478,12 +498,14 @@ test("K review F1: row-set identity ignores table allocation and order",function
     eq(#deaths(),1); no(N.Main.error)
 end)
 for _,field in ipairs({"sourceGUID","sourceName","timestamp"}) do
-    test("K review F1: a changed recap "..field.." identifies a new row set",function()
+    test("K review F1: a changed recap "..field.." is a new row; only a newer timestamp can name",function()
         local N,rows=setup(); raceProof(); rows[1].amount=100
         die(); eq(#deaths(),1); nextDeath()
         local values={sourceGUID="Player-1-456",sourceName="Cedar Grove",timestamp=H.clock(),amount=101,overkill=11}
         rows[1][field]=values[field]
-        H.deliver("PLAYER_DEAD"); H.advance(.301); eq(#deaths(),2,field); no(N.Main.error)
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        -- a different source stamped like the earlier death's row happened before this death
+        eq(#deaths(),field=="timestamp" and 2 or 1,field); no(N.Main.error)
     end)
 end
 for _,field in ipairs({"amount","overkill"}) do
@@ -559,14 +581,14 @@ for _,mode in ipairs({"65 rows","throwing sibling"}) do
         eq(#deaths(),0,"the old row was recorded by the earlier death"); no(N.Main.error)
     end)
 end
-test("K fix check: a 64-row recap with a new killer still sends; 65 rows never name",function()
-    for _,count in ipairs({64,65}) do
+test("K fix check: a 65-row recap with a new killer sends; over 256 rows never name",function()
+    for _,count in ipairs({65,256,257}) do
         local N=setup(); raceProof()
         local new=recapRow(); new.timestamp=H.clock()
         local held={new}; for i=2,count do held[i]={sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",sourceFlags=0x848,timestamp=H.clock()-i,overkill=-1} end
         C_DeathRecap.GetRecapEvents=function() return held end
         H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
-        eq(#deaths(),count==64 and 1 or 0,count.." rows"); no(N.Main.error)
+        eq(#deaths(),count<=256 and 1 or 0,count.." rows"); no(N.Main.error)
     end
 end)
 test("K review F1: an ineligible fresh row set does not stop later eligible retries",function()
@@ -579,14 +601,14 @@ test("K review F1: an ineligible fresh row set does not stop later eligible retr
     H.deliver("PLAYER_DEAD"); H.advance(.301); eq(#deaths(),0)
     H.advance(.7); eq(#deaths(),1); no(N.Main.error)
 end)
-test("K review F1: fingerprint history saturates closed instead of forgetting a prior death",function()
+test("K cap: an evicted earlier row is never fresh again; a newer one is",function()
     local N,rows=setup({share=false}); raceProof()
     local first=rows[1].timestamp
     for i=1,257 do rows[1].timestamp=first+i; H.deliver("PLAYER_DEAD") end
     N.Main.setShare(true)
-    for _,stamp in ipairs({first+1,first+1000}) do
-        rows[1].timestamp=stamp; H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
-        eq(#deaths(),0,"neither forgotten nor overflow recaps are fresh")
+    for _,case in ipairs({{first+1,0},{first+1000,1}}) do
+        rows[1].timestamp=case[1]; H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),case[2],"evicted rows stay old; a newer timestamp is a new death")
     end
     no(N.Main.error)
 end)

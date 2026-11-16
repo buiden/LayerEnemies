@@ -81,21 +81,27 @@ retries active, so only a fresh qualifying set in the window can send.
 Known limits (a missed line is accepted; a false killer is not):
 - Two deaths within 2 s: the first death's record-only look can take the
   second death's rows, so the second death sends nothing.
-- A genuinely new death whose rows match an earlier row's source and
-  timestamp exactly is treated as old and sends nothing.
+- A genuinely new death whose killing row is not stamped later than every
+  earlier death's recorded rows (a recap clock that runs backwards) sends
+  nothing.
 - Rows visible only between two looks (for example from 0.1 to 0.2 s after an
-  unannounced death) are never recorded; if they come back at the next death
-  they are taken as that death's rows. Recap timing on the live client is
-  unknown, so this is not closed.
+  unannounced death) are never recorded. If they come back at the next death
+  and no row on record from an earlier death is stamped at or after them, they
+  are taken as that death's rows. Recap timing on the live client is unknown,
+  so this is not fully closed.
 - Not covered: a recap that first appears after revive, or a death before the
   first world-entry seed.
 
 The
-session history holds at most 256 recap rows, then refuses new rows instead of
-forgetting old ones: after that (roughly 50 deaths in one session with a few
-rows each) new deaths send nothing until reload. A recap with more than 64
-rows, or a row whose fields cannot be read, never names a killer, but its
-readable rows (up to 256) are still recorded for that death. It is not saved.
+session history holds at most 256 recap rows; at the cap the oldest-stamped row
+is forgotten. The highest recap timestamp ever recorded is kept and never goes
+down. When a death starts it is fixed for that death: a row the new death sees
+for the first time, stamped at or below it, happened before this death began.
+It is recorded as old and never names a killer, even if the cap has forgotten
+the original row. Only recap timestamps are compared with each other; no
+client clock is used. A row whose fields cannot be read is never owned and
+never named; the readable rows of the same recap are still recorded. A recap
+longer than 256 rows names nothing. Nothing is saved.
 Known misses: an enemy pet alone (no owner resolution), empty/late recaps,
 and unavailable faction/identity data. Accepted over-count: a mob landing
 the last hit while an enemy player was hitting counts as PvP.

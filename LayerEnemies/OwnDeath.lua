@@ -143,6 +143,14 @@ end
 local recapDeath,recapCount,recapSeen=0,0,{}
 local RECAP_CAP=256
 local RECORD_LIMIT=256
+-- seenHigh is the highest recap timestamp ever recorded this session; it never
+-- goes down, even when the cap forgets rows. When a death starts it is fixed as
+-- priorMark: a row the new death sees for the first time, stamped at or below
+-- it, happened before this death began, so it is recorded as old and never
+-- named. Only recap timestamps are compared with each other. At the cap the
+-- oldest-stamped row is forgotten; which one is forgotten cannot make an old row
+-- nameable, because seenHigh already covers it.
+local seenHigh,priorMark
 local function rowId(row)
     if not S.tab(row) then return nil end
     local fields={}
@@ -165,18 +173,34 @@ local function capture()
     if not S.tab(api) or S.call(api.HasRecapEvents)~=true then return end
     local rows=S.call(api.GetRecapEvents)
     if not S.tab(rows) then return end
-    -- Record up to RECORD_LIMIT rows even when the list is too long or a row is
-    -- unreadable, so this death still owns what it saw; only up to 64 rows may
-    -- ever name a killer, and a row whose fields cannot be read is never owned.
+    -- Record every row that reads cleanly, up to RECORD_LIMIT. A row whose fields
+    -- cannot be read is never owned, so it can never be named; a list longer than
+    -- RECORD_LIMIT names nothing, since its unread rows could be old.
     local list,n={},0
     for _,row in pairs(rows) do
         n=n+1
         if n>RECORD_LIMIT then list.tooMany=true; break end
         local ok,id=pcall(rowId,row)
-        list[n]={row=row,id=ok and id or nil}
+        local okTs,ts=pcall(function() return S.num(row.timestamp) end)
+        list[n]={row=row,id=ok and id or nil,ts=okTs and ts or nil}
     end
-    if n>64 then list.tooMany=true end
     return list
+end
+local function oldest()
+    local key,low
+    for id,rec in pairs(recapSeen) do
+        local ts=rec.ts or -math.huge
+        if not key or ts<low then key,low=id,ts end
+    end
+    return key,low
+end
+local function admit(id,ts,owner)
+    if recapCount>=RECAP_CAP then
+        local key=oldest()
+        recapSeen[key]=nil; recapCount=recapCount-1
+    end
+    recapSeen[id]={owner=owner,ts=ts}; recapCount=recapCount+1
+    if ts and (seenHigh==nil or ts>seenHigh) then seenHigh=ts end
 end
 -- Records unseen rows for owner; marks each entry owned when its row belongs to owner.
 local function remember(list,owner)
@@ -184,8 +208,11 @@ local function remember(list,owner)
     for _,entry in ipairs(list) do
         local id=entry.id
         if id then
-            if recapSeen[id]==nil and recapCount<RECAP_CAP then recapSeen[id]=owner; recapCount=recapCount+1 end
-            entry.owned=recapSeen[id]==owner
+            if recapSeen[id]==nil then
+                local old=owner==recapDeath and priorMark~=nil and (entry.ts==nil or entry.ts<=priorMark)
+                admit(id,entry.ts,old and 0 or owner)
+            end
+            entry.owned=recapSeen[id]~=nil and recapSeen[id].owner==owner
         end
     end
 end
@@ -241,6 +268,7 @@ function D.dead()
     D.cancel()
     local ok=pcall(function()
         recapDeath=recapDeath+1
+        priorMark=seenHigh
         local death=recapDeath
         local time=S.num(S.call(GetTime))
         D.recap(N.Main.store,time) -- remember even an ineligible/unsent death
