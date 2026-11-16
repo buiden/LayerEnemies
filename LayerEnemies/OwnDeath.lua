@@ -132,58 +132,64 @@ local function source(row,store,time)
     end
     return {enemy=enemy,stamp=stamp,conf=overkill>=0 and "e" or "h"}
 end
--- Order-independent row fingerprints are owned by the first death that
--- observed them, not by a successful send. Identity is who and when (source GUID,
--- name, timestamp): a row that comes back with edited damage, overkill or flags is
--- still the old death's row. A miss is acceptable; a false killer is not. Never evict session history: at the
--- cap, refuse unseen sets rather than letting an old death become fresh again.
+-- Recap rows are owned one by one by the first death that observed them, not by
+-- a successful send. A row's identity is who and when (source GUID, name,
+-- timestamp): damage, overkill and flags are ignored, so an old row shown again
+-- with edited numbers stays old. Only rows owned by the current death can name a
+-- killer, whatever else is in the set: a row first seen on an earlier death never
+-- can. A miss is acceptable; a false killer is not. Never evict session history:
+-- at the cap, unseen rows are refused rather than letting an old death's rows
+-- become fresh again.
 local recapDeath,recapCount,recapSeen=0,0,{}
 local RECAP_CAP=256
-local function fingerprint(rows)
-    local parts,n={},0
-    for _,row in pairs(rows) do
-        n=n+1; if n>64 or not S.tab(row) then return nil end
-        local fields={}
-        for _,field in ipairs({"sourceGUID","sourceName","timestamp"}) do
-            local v=row[field]
-            if S.secret(v) then return nil end
-            if v==nil then fields[#fields+1]="-"
-            elseif field=="sourceGUID" or field=="sourceName" then
-                if type(v)~="string" or #v>120 then return nil end
-                fields[#fields+1]="s"..#v..":"..v
-            else
-                if not S.num(v) then return nil end
-                fields[#fields+1]="n"..string.format("%.17g",v)
-            end
+local function rowId(row)
+    if not S.tab(row) then return nil end
+    local fields={}
+    for _,field in ipairs({"sourceGUID","sourceName","timestamp"}) do
+        local v=row[field]
+        if S.secret(v) then return nil end
+        if v==nil then fields[#fields+1]="-"
+        elseif field=="sourceGUID" or field=="sourceName" then
+            if type(v)~="string" or #v>120 then return nil end
+            fields[#fields+1]="s"..#v..":"..v
+        else
+            if not S.num(v) then return nil end
+            fields[#fields+1]="n"..string.format("%.17g",v)
         end
-        parts[#parts+1]=table.concat(fields,"|")
     end
-    if n==0 then return nil end
-    table.sort(parts)
-    return table.concat(parts,"\n")
+    return table.concat(fields,"|")
 end
 local function capture()
     local api=_G.C_DeathRecap
     if not S.tab(api) or S.call(api.HasRecapEvents)~=true then return end
     local rows=S.call(api.GetRecapEvents)
     if not S.tab(rows) then return end
-    return rows,fingerprint(rows)
+    local list,n={},0
+    for _,row in pairs(rows) do
+        n=n+1; if n>64 then return nil end
+        list[n]={row=row,id=rowId(row)}
+    end
+    return list
 end
-local function remember(id,owner)
-    if not id then return false end
-    if recapSeen[id]~=nil then return recapSeen[id]==owner end
-    if recapCount>=RECAP_CAP then return false end
-    recapSeen[id]=owner; recapCount=recapCount+1
-    return true
+-- Records unseen rows for owner; marks each entry owned when its row belongs to owner.
+local function remember(list,owner)
+    if not list then return end
+    for _,entry in ipairs(list) do
+        local id=entry.id
+        if id then
+            if recapSeen[id]==nil and recapCount<RECAP_CAP then recapSeen[id]=owner; recapCount=recapCount+1 end
+            entry.owned=recapSeen[id]==owner
+        end
+    end
 end
 function D.seed()
     -- PLAYER_ENTERING_WORLD also covers login/reload with a pre-session recap.
-    pcall(function() local _,id=capture(); remember(id,0) end)
+    pcall(function() remember(capture(),0) end)
 end
 -- Record-only: the recap can lag PLAYER_DEAD, so a death that is never
 -- announced must still claim its rows when they arrive, or the next death
 -- would take them as fresh and report the old killer.
-local function claim(death) pcall(function() local _,id=capture(); remember(id,death) end) end
+local function claim(death) pcall(function() remember(capture(),death) end) end
 function D.revived()
     -- Alive again: whatever recap is held belongs to the death just ended.
     claim(recapDeath)
@@ -191,12 +197,12 @@ function D.revived()
 end
 function D.recap(store,time)
     local ok,result=pcall(function()
-        local rows,id=capture()
-        if not remember(id,recapDeath) then return nil end
-        local best,n=nil,0
-        for _,row in pairs(rows) do
-            n=n+1; if n>64 then return nil end
-            local candidate=source(row,store,time)
+        local list=capture()
+        if not list then return nil end
+        remember(list,recapDeath)
+        local best
+        for _,entry in ipairs(list) do
+            local candidate=entry.owned and source(entry.row,store,time)
             if candidate and (not best or (candidate.conf=="e" and best.conf~="e")
                 or (candidate.conf==best.conf and candidate.stamp>best.stamp)) then best=candidate end
         end

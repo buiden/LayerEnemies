@@ -517,6 +517,34 @@ test("K review (second opinion guard ordering): old rows after a quick revive an
     H.advance(.3); H.advance(.7); H.advance(1)
     eq(#deaths(),0,"the earlier death's 2 s look claims its own late rows first"); no(N.Main.error)
 end)
+for _,mode in ipairs({"subset","superset","secret sibling"}) do
+    test("K fix check: a row first seen on an earlier death never names the killer ("..mode..")",function()
+        local N=setup(); raceProof(); N.Main.setShare(false)
+        local held={}
+        C_DeathRecap.GetRecapEvents=function() return held end
+        local old=recapRow()
+        local function wolf(at) return {sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",sourceFlags=0x848,timestamp=at,overkill=-1,amount=20} end
+        held=mode=="subset" and {old,wolf(H.clock()-.1)} or {old}
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1); eq(#deaths(),0)
+        nextDeath(); N.Main.setShare(true)
+        if mode=="subset" then held={old}
+        else local w=wolf(H.clock()); if mode=="secret sibling" then w.damage=H.secret end; held={old,w} end
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,"the old Cedar row stays the earlier death's, whatever else is in the set"); no(N.Main.error)
+    end)
+end
+test("K fix check: a new player row next to an old one still names the new killer",function()
+    local N=setup(); raceProof(); N.Main.setShare(false)
+    local held={}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    local old=recapRow(); held={old}
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    nextDeath(); N.Main.setShare(true)
+    local new=recapRow(); new.timestamp=H.clock(); new.sourceGUID="Player-1-456"; new.sourceName="Birch"
+    held={old,new}
+    H.deliver("PLAYER_DEAD"); H.advance(.301)
+    eq(#deaths(),1); yes(N.OwnDeath.decode(deaths()[1].text)); no(N.Main.error)
+end)
 test("K review F1: an ineligible fresh row set does not stop later eligible retries",function()
     local N,rows=setup(); raceProof(); local at=H.clock()
     C_DeathRecap.GetRecapEvents=function()

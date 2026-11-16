@@ -69,9 +69,11 @@ same-faction duel deaths send nothing, without errors or target guessing.
 Every death records the recap row fingerprint, even when it cannot send: at
 death, at 0.3/1/2 s for every death (these record-only looks keep running after
 a cancel such as share off, a zone change or leaving the guild), and again on
-revive (whatever recap is held then belongs to the death that ended). A row's
-identity is its source GUID, source name and timestamp; damage, overkill and
-flags are ignored, so an old row shown again with edited numbers stays old.
+revive (whatever recap is held then belongs to the death that ended). Rows are
+owned one by one: a row's identity is its source GUID, source name and
+timestamp (damage, overkill and flags are ignored, so an old row shown again
+with edited numbers stays old), and a row first seen on an earlier death can
+never name the killer, whatever else is in the set.
 Rows already seen on an earlier death in this session are refused; login/reload
 also marks the held recap as old. Stale or ineligible rows leave the remaining
 retries active, so only a fresh qualifying set in the window can send.
@@ -81,6 +83,10 @@ Known limits (a missed line is accepted; a false killer is not):
   second death's rows, so the second death sends nothing.
 - A genuinely new death whose rows match an earlier row's source and
   timestamp exactly is treated as old and sends nothing.
+- Rows visible only between two looks (for example from 0.1 to 0.2 s after an
+  unannounced death) are never recorded; if they come back at the next death
+  they are taken as that death's rows. Recap timing on the live client is
+  unknown, so this is not closed.
 - Not covered: a recap that first appears after revive, or a death before the
   first world-entry seed.
 
