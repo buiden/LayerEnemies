@@ -620,14 +620,20 @@ server lookup, discovery broadcast, request to another addon, or background
 scan of the world. A session cache remembers named sightings even before
 you track them, including other zones. Adding a name shows that memory.
 The cache is private to this session, bounded to 300 names (oldest newest-slot
-time evicted first), with at most two entries per folded name: newest
-first-hand evidence and newest reported claim. It is never a general enemy
-list, kill count, ranking, SavedVariables field or donor-cache import.
+time evicted first), with at most two entries per folded name: your own
+sighting when available (otherwise the newest first-hand observation), plus
+the newest other observation or claim. It is never a general enemy list,
+kill count, ranking, SavedVariables field or donor-cache import. Own displays
+can contain two adapter name strings, up to 321 bytes; other cached names
+remain capped at 100 bytes, so legacy first-name matches are not discarded.
 
 Visible party/raid members' target changes (`UNIT_TARGET` for `party1`–`party4`
 or `raid1`–`raid40`) also enter the existing unit queue as `own (party target)`.
-Both queueing and observation require a readable `UnitIsVisible(member)==true`
-and a confirmed non-instance state. Missing, throwing or secret API values
+Both queueing and observation require an existing, visible member, confirmed
+not to be the player, and a confirmed non-instance state. Our own raid token
+is excluded, so our target keeps its ordinary `own target` label. A queued
+group target must still have the same readable GUID at drain; a replacement
+needs its own target-change event. Missing, throwing or secret API values
 refuse the observation. The queue remains bounded; no new timer or send is
 added. These are ordinary own sightings, including the existing O-share path.
 Forever event delivery, target readability and same-area semantics still need
@@ -641,6 +647,8 @@ is not enough to generate this exact-name finding. War Effort sends only a
 three-character enemy hash, so a match says `possible match, seen by <spotter>`
 and includes class, level, zone and age. Different players can share the same
 hash. It is probable, never certain; ask the spotter to confirm the identity.
+Own single-word realm checks compare normalized, folded realm strings, not
+these lossy hashes; colliding realm hashes cannot identify a different player.
 
 The key is the source's exact lower-case name, a hyphen, then lower-case realm
 with spaces/hyphens removed. Both home/explicit-realm and empty-realm forms
@@ -680,9 +688,14 @@ show both lines, for example:
 At 600 seconds each line is prefixed `last known` and offers no Ask/Hop;
 at 3600 seconds it is removed. Adding old evidence does not alert. A fresh
 first-hand finding has action/alert priority over a claim, but both remain
-visible. Guild O lines are first-hand; R lines and indirect envelopes are
-claims and never authorize asking their origin. GBOUNTY and WALLOFSHAME
-killer names are claims in any zone, with victim coordinates when supplied.
+visible. Your own sighting remains primary over a newer guild observation
+while under 600 seconds old and in your current zone; both lines keep their
+own times and layer labels. Guild O lines are first-hand; R lines and indirect
+envelopes are claims and never authorize asking their origin. A fresh hash
+finding is displayed alongside last-known named lines, including its possible
+match warning, spotter and age, so the evidence behind Ask remains visible.
+GBOUNTY and WALLOFSHAME killer names are claims in any zone, with victim
+coordinates when supplied.
 Direct HeadHunter P/L keeps its legacy ten-minute/boundary Find path outside
 the five-source cache; indirect HH reports still use the relayed category.
 HeadHunter D decoding and a HeadHunter cache source are not part of this change. No new send or relay is added.
