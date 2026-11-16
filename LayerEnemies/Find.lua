@@ -136,7 +136,7 @@ end
 local function matches(entry,e,homeKey)
     if e.source=="own" and not entry.twoWord then
         return entry.key==F.fold(e.name) or (entry.shortKey==F.fold(e.ownName or e.name)
-            and (not entry.realm or N.Hash.player(entry.short,e.realm)==entry.realmHash))
+            and (not entry.realm or entry.realmKey==F.fold(realmName(e.realm or ""))))
     end
     local base,realm=parts(e.name)
     if entry.shortKey~=F.fold(base) then return false end
@@ -220,8 +220,8 @@ function F.report(st,r,home)
         end
     end
 end
--- A bounded read projection, not a scan on receipt. The hot paths above still use
--- the prebuilt Find20 indices. Reusing memory on add does not hash incoming reports.
+-- Reads use Known base/own-name buckets, never the full cache per tracked name.
+-- Reusing memory on add does not hash incoming reports.
 local function project(st,loc,now,zone,sameSpotter)
     local row={}
     for k,v in pairs(loc) do row[k]=v end
@@ -245,17 +245,25 @@ end
 function F.rows(st,now,zone,sameSpotter)
     local out={}
     N.Known.prune(st.known,now)
+    local function ownEligible(e) return e.source=="own" and now-e.at<F.TTL and e.zone==zone end
     for _,entry in ipairs(st.entries) do
         local name=entry.name
         local seen,reported,seenUnknown,reportedUnknown
-        for _,pair in pairs(st.known.entries) do
+        for _,pair in pairs(st.known.byName[entry.shortKey] or {}) do
             for _,slot in ipairs({"seen","reported"}) do
                 local e=pair[slot]
                 if e then
                     local match,realmUnknown=matches(entry,e,st.homeKey)
                     if match then
-                        if slot=="seen" and (not seen or e.at>seen.at) then seen,seenUnknown=e,realmUnknown
-                        elseif slot=="reported" and (not reported or e.at>reported.at) then reported,reportedUnknown=e,realmUnknown end
+                        if slot=="seen" then
+                            if not seen or (ownEligible(e) and not ownEligible(seen))
+                                or (ownEligible(e)==ownEligible(seen) and e.at>seen.at) then
+                                e,realmUnknown,seen,seenUnknown=seen,seenUnknown,e,realmUnknown
+                            end
+                        end
+                        -- A second matching first-hand identity (e.g. a realm alias)
+                        -- can also supply the other line without displacing our own.
+                        if e and (not reported or e.at>reported.at) then reported,reportedUnknown=e,realmUnknown end
                     end
                 end
             end
@@ -271,7 +279,8 @@ function F.rows(st,now,zone,sameSpotter)
         -- Prefer a fresh first-hand finding. Otherwise display the newest evidence
         -- as the summary, while retaining both independently aged detail lines.
         local primary,primaryUnknown=seen,seenUnknown
-        if reported and (not seen or (now-seen.at>=F.TTL and reported.at>seen.at)) then primary,primaryUnknown=reported,reportedUnknown end
+        if reported and (not seen or ((now-seen.at>=F.TTL or (seen.source=="own" and seen.zone~=zone))
+            and reported.at>seen.at)) then primary,primaryUnknown=reported,reportedUnknown end
         local keep=loc and primary and primary.kind=="claim" and not loc.relayed and now-loc.at<F.TTL
         if primary and not keep and (not loc or primary.at>=loc.at or (primary.source=="own" and now-primary.at<F.TTL)) then loc=location(primary,name,primaryUnknown) end
         st.locations[name]=loc
@@ -279,6 +288,11 @@ function F.rows(st,now,zone,sameSpotter)
         if seen then row.seen=project(st,location(seen,name,seenUnknown),now,zone,sameSpotter) end
         if loc and loc.source=="headhunter" and not loc.cached and (not seen or loc.at>seen.at) then row.seen=project(st,loc,now,zone,sameSpotter) end
         if reported then row.reported=project(st,location(reported,name,reportedUnknown),now,zone,sameSpotter) end
+        -- Anonymous current evidence must remain visible beside older named lines,
+        -- especially when its spotter is the row's Ask target.
+        if loc and not loc.cached and loc.source~="headhunter" and (seen or reported) then
+            row.current=project(st,loc,now,zone,sameSpotter)
+        end
         local place=st.places[name]
         if place and (now-place.at>=N.OpenMap.TTL or now<place.at) then st.places[name]=nil; place=nil end
         if place then

@@ -135,6 +135,7 @@ local function targetMember(unit)
 end
 local function groupReadable(member)
     return A.inInstance()==false and S.call(UnitIsVisible,member)==true
+        and S.call(UnitExists,member)==true and S.call(UnitIsUnit,member,"player")==false
 end
 function M.queueGroupTarget(unit)
     unit=S.str(unit,30)
@@ -177,12 +178,19 @@ function M.queueUnit(unit)
     if member and not groupReadable(member) then return end
     if M.staleUnits[unit] and S.str(S.call(UnitGUID,unit),160)~=M.staleUnits[unit] then M.releaseUnit(unit) end
     if S.count(M.pendingUnits)>=86 then return end
-    M.pendingUnits[unit]=true
+    local expected=member and S.str(S.call(UnitGUID,unit),160) or not member
+    if not expected then return end
+    M.pendingUnits[unit]=expected
     if M.unitsQueued then return end
     M.unitsQueued=true
     local function run()
         M.unitsQueued=false
-        for token in pairs(M.pendingUnits) do M.pendingUnits[token]=nil; guarded(M.observe,token) end
+        for token,expected in pairs(M.pendingUnits) do
+            M.pendingUnits[token]=nil
+            -- Group tokens can retarget before the queue drains. Only a new event
+            -- may replace the queued GUID; all other readability guards run again.
+            if expected==true or (S.str(token,30) and S.str(S.call(UnitGUID,token),160)==expected) then guarded(M.observe,token) end
+        end
         M.queuePoll()
     end
     if not after(0,run) then run() end
@@ -737,20 +745,25 @@ local function knownLine(e)
     elseif e.probably then text=text.." · probably on your layer (your server key is ambiguous)" end
     return (e.lastKnown and "last known: " or "")..text
 end
+local function currentLine(row)
+    local text=row.status
+    if row.at then
+        local detail=" in "..M.zoneName(row.zone)..", "..math.floor(now()-row.at).." s ago ("..(row.class or "Unknown class").." "..tostring(row.level or "?")..")"
+        text=text..detail..(row.same and " — already on your layer" or row.probably and " — probably on your layer (your server key is ambiguous)"
+            or row.travel and (" — travel to "..M.zoneName(row.zone).." first") or "")
+    end
+    return text
+end
 function M.findDetails(row)
     local lines={}
+    if row.current then lines[#lines+1]=currentLine(row.current) end
     if row.seen then lines[#lines+1]=knownLine(row.seen) end
     if row.reported then lines[#lines+1]=knownLine(row.reported) end
     return #lines>0 and table.concat(lines,"\n") or nil
 end
 function M.findText(row,sightingOnly)
     local details=M.findDetails(row)
-    local text=row.name.." — "..(details or row.status)
-    if row.at and not details then
-        local detail=" in "..M.zoneName(row.zone)..", "..math.floor(now()-row.at).." s ago ("..(row.class or "Unknown class").." "..tostring(row.level or "?")..")"
-        text=text..detail..(row.same and " — already on your layer" or row.probably and " — probably on your layer (your server key is ambiguous)"
-            or row.travel and (" — travel to "..M.zoneName(row.zone).." first") or "")
-    end
+    local text=row.name.." — "..(details or currentLine(row))
     if row.place and not sightingOnly then
         return (row.at and (text.."\n") or (row.name.." — "))..M.placeText(row.place)
     end

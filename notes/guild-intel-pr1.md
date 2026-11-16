@@ -217,3 +217,161 @@ assertions**. Lua syntax, static/API policy, archive integrity and source
 parity passed. The deterministic archive hash is recorded in
 `notes/verification.json`; generated results are committed separately from
 this feature. Native-client verification remains false.
+
+## Round 1 fixes
+
+Review baseline: `a61d86d0265ef108f67c9f0e4d6cefe94b2dadd5` on `16549ca`.
+Only follow-up commits on `gi-pr1-find20`; no push, rewrite, new send or saved
+field. The other PR branches and the reviewer's files are untouched.
+
+### Changes and regression evidence
+
+All regressions were added before their fixes and run with only the updated
+Lua tests copied into a detached clone of the review baseline. The unchanged
+baseline was **771 passed, 0 failed, 71244 assertions**. With the complete
+new test set on that baseline: **772 passed, 13 failed, 71893 assertions**.
+The extra passing case checks index lifecycle behavior that already worked
+through the old full scan; it is not counted as a red regression.
+
+| Finding | Red on the review baseline | Correction |
+|---|---|---|
+| Own realm collision | `1234/84860` and `Home/ochg` both matched the wrong tracked identity; folded non-ASCII own realms did not match | Compare normalized, folded realm strings, not three-character hashes. Same-realm positives, late tracking and every inherited realm test pass. The existing alphabetic collision is intentionally closed too. |
+| Poll cost | 20 tracked names, 300 cached names: **6600 entry visits** in one poll | Known indexes folded bases and own first-name aliases. A steady poll with five matching entries uses **20 lookups + 5 visits**. Expiry deadlines avoid repeated prune scans; an expiry or clock rollback performs one bounded maintenance scan. |
+| Own displaced by O | Newer guild O removed own primary status; own history was also lost in another zone | Keep own and newest other evidence within the two-entry bound. Under 600 seconds in the current zone, own is primary; guild observations retain `kind=seen`, their source, age and layer claim. Both arrival orders and tracking before/after receipt pass; 599/600-second and cross-zone controls pass. |
+| Hidden Ask evidence | HashScout was Ask-eligible but absent from the displayed text | Show current possible-match evidence, spotter, zone and age alongside last-known named lines in chat and UI. Its 600-second expiry is independent. |
+| Long own display | Legacy 72-byte first name with a 103-byte adapter display was not located | Own display limit is 321 bytes (two bounded 160-byte adapter strings plus a space); external cache names remain at 100. Tests cover 30/160-byte second returns, late tracking, 321/322-byte bounds and retention. |
+| Raid self label | The player's raid token was queued and could overwrite `own target` | Require an existing, visible, confirmed non-player member at queue and drain. Our own target keeps its original label in either event order. |
+| Optional queue guards | A silent retarget named the replacement; visible-but-nonexistent member supplied evidence | Snapshot the readable target GUID and recheck it at drain; a new event can replace the snapshot. Recheck member existence. Both are covered by regression tests and mutants. |
+
+The hash-display change also exposed an oversized card: current hash evidence,
+both cached lines and an independent OpenMap position could exceed one page.
+A further test failed on `626415c` (**784 passed, 1 failed**) before fixing it.
+Find now grows just enough for a complete card and moves its footer controls;
+other tabs restore the original height. OpenMap data and actions are unchanged.
+The mock verifies all lines, position and Ask remain visible, not native font
+wrapping or visual fidelity.
+
+No existing test expectation or fixture was changed. `test/harness.lua` only
+loads the new `test/round1.lua`; the four inherited PR-1 test files and the
+Find20 mutation runner are byte-identical to the review baseline. All earlier
+realm/oracle, hash-collision and OpenMap checks remain green. The legacy exact
+own-display match is retained; the lossy first-name realm comparison is what
+changed.
+
+### Verification and scope
+
+Native Lua 5.1.5 and the full isolated Python 3.14 / lupa 2.8 gate both report
+**785 passed, 0 failed, 72650 assertions**; verify exit **0**. Syntax,
+static/API policy, packaging, archive integrity and source parity pass.
+Archive SHA-256: `597e7a85b67addc7bc79eb9b18e526fe7703275b4548520fc0b6df8fad7de388`.
+Generated verification files are committed separately after these notes.
+
+`Wire.lua`, `Share.lua` and `OpenMap.lua` are byte-identical to the review
+baseline. Production SavedVariables assignment-set additions: **none**.
+No send call or route is added. The 300-name / two-entry / 60-minute bounds,
+anonymous hash uncertainty and independent OpenMap lifetime remain in force.
+Native checks: **not run (alpha, owner's decision)**; no install or client
+capture requested.
+
+### Reviewer probes (same code as the final verification head)
+
+The review scripts and boot harness were copied, unchanged, into private
+scratch next to detached throwaway clones. `run_checks.py <tree> <probe>`
+ran collisions, behavior, limits, matching and groups; `p1.lua` / `p2.lua`
+ran from each tree root with that root as argument. The matching differential
+script consumed the actual output logs. All exited 0.
+
+| Probe / relevant line | Review baseline | Fixed code |
+|---|---|---|
+| collisions: `NUMERIC_OWN` | `admitted=true matched=true` | `admitted=true matched=false` |
+| collisions: `NUMERIC_REPORT` | `matched=false` | `matched=false` |
+| collisions: `LEGACY_COLLISION` | `tracked=Home evidence=ochg matched=true` | `tracked=Home evidence=ochg matched=false` |
+| behavior: `HASH_AFTER_OLD` | `primary=HashScout ask=true`, only `last known: Seen by you ... 11 min ago` displayed | Same primary/Ask, now `possible match, seen by HashScout ... 0 s ago` **and** the old own line |
+| behavior: `PERSIST` | `leak=false reloadLocation=false` | Unchanged; configuration keys unchanged |
+| limits: `LONG_OWN` | `saved=1 match=false` | `saved=1 match=true` |
+| limits: `CACHE` / `RETENTION` | 300 names, older arrival rejected, oldest eviction, zero at 60 minutes | Unchanged |
+| limits: receive `COST` | `reports=2 tracked=20 hashes=0 indexReads=60 stable=true` | Unchanged |
+| matching vs review baseline | 980 matches | 980 matches; **0 losses, 0 additions** |
+| matching vs main | 719 matches | 980 matches; **0 losses, 261 additions** (the already-reviewed realm extension) |
+| groups: `retarget` | `queued=true named=Birch Grove store=1` | `queued=true named= store=0` |
+| groups: `member-exists-false` | `queued=true named=Cedar Vale store=1` | `queued=true named= store=0` |
+| groups: positive party / raid40 | `named=Cedar Vale`; raid `source=own (party target)` | Unchanged |
+| p1: `OWN then guild O +1s` | `at=12 spotter=DirectScout ask=true uiAsk=true`; own line absent | `at=11 spotter=you ask=false uiAsk=false`; `is on YOUR layer` and guild layer claim both displayed |
+| p1: `COST findRows` | 8.97 ms | 0.02 ms |
+| p1: `COST M.poll` | 8.54 ms | 0.10 ms |
+| p2: poll at 20 tracked / 300 cached | **8.46 ms**, one F.rows call | **0.11 ms**, one F.rows call (main's five-name-cap control: 0.09 ms) |
+| p2: untracked guild message | 0 F.rows calls, 0.08 ms | 0 F.rows calls, 0.10 ms |
+| deterministic poll spy | 6600 visits, 0 indexed reads | 5 matching visits, 20 indexed reads; repeated poll identical |
+
+Timings are local `os.clock()` measurements, not client FPS claims. All
+behavior-order/action, limit/alert and group refusal output lines are otherwise
+unchanged except the listed fixes. The original p1 `RAIDSELF` fixture does not
+mark raid3 as the player: its boot mock only considers identical token strings
+equal. Its label therefore stays `own (party target)`. A separate copy changes
+only that fixture's `UnitIsUnit(raid3,player)` result to true: before, the party
+target suffix is present; after, it is absent. The committed tests also assert
+`detail=own target`, absence from the group queue and both event orders.
+The reviewer's original files were not modified.
+
+### Round-1 mutation results
+
+Both complete runners exited 0 on separate detached copies of the final code:
+**27/27 guild-intel** and **11/11 Find20** killed. Every mutant reached a
+`RESULT` line, exited 1 and failed assertions; none was credited for syntax
+failure. Production Lua SHA-256s matched the unmutated tree afterwards, both
+copies were clean, and the restored guild-intel harness was **785/0/72650**.
+No surviving mutant required a new case. Earlier runs on the pre-card-height
+revision were deliberately stopped and are not used as completion evidence.
+
+| Suite | Mutant | Failed tests |
+|---|---|---:|
+| guild-intel | own-realm-hash-equality | 3 |
+| guild-intel | known-full-scan-restored | 1 |
+| guild-intel | known-prune-every-poll | 1 |
+| guild-intel | guild-displaces-own | 2 |
+| guild-intel | current-hash-line-hidden | 2 |
+| guild-intel | long-own-display-dropped | 2 |
+| guild-intel | raid-self-relabelled | 2 |
+| guild-intel | group-member-existence-ignored | 1 |
+| guild-intel | group-retarget-snapshot-ignored | 1 |
+| guild-intel | hash-detail-card-hidden | 1 |
+| guild-intel | boundary-wipes-memory | 8 |
+| guild-intel | retention-unbounded | 8 |
+| guild-intel | name-cap-unbounded | 2 |
+| guild-intel | ask-relayed-claim | 21 |
+| guild-intel | ask-last-known | 3 |
+| guild-intel | cache-saved | 4 |
+| guild-intel | party-member-invisible | 2 |
+| guild-intel | party-target-in-instance | 2 |
+| guild-intel | party-secret-unit-accepted | 1 |
+| guild-intel | realm-ignored | 13 |
+| guild-intel | surname-includes-realm | 1 |
+| guild-intel | realm-warning-dropped | 7 |
+| guild-intel | home-realm-exemption-removed | 12 |
+| guild-intel | realm-digits-refused | 18 |
+| guild-intel | known-cross-realm-leak | 11 |
+| guild-intel | named-hash-realm-conflict-ignored | 1 |
+| guild-intel | headhunter-late-home-warning-stale | 1 |
+| Find20 | rebuild-every-report | 2 |
+| Find20 | cap-back-to-five | 9 |
+| Find20 | saved-list-no-dedupe | 4 |
+| Find20 | track-prints-all-rows | 1 |
+| Find20 | no-sound-cooldown | 2 |
+| Find20 | no-detail-line-limit | 1 |
+| Find20 | overflow-not-counted | 1 |
+| Find20 | no-realmless-name-alias | 16 |
+| Find20 | located-oldest-first | 3 |
+| Find20 | missing-status-stays-tall | 2 |
+| Find20 | no-home-poll-rebuild | 1 |
+
+### Unchanged limits
+
+- A flood of 300 newer names can still evict an older tracked sighting. This
+  is the requested oldest-first global cap, not a tracked-name pinning policy.
+- The synthetic group probe that marks only the derived member-token string
+  secret after enqueue still observes it, on both revisions. The target token,
+  member API results, target GUID and target fields remain guarded. Native
+  token secrecy/visibility/event semantics are not established by these mocks.
+- Direct HeadHunter P/L remains outside Known in this PR. The separately noted
+  stale **Reported-tab** Hop behavior is outside these Find fixes; neither
+  path's action policy was changed.
