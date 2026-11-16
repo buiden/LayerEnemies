@@ -66,6 +66,12 @@ GetPlayerInfoByGUID. Neutral/custom races are unknown. A directly seen
 same-faction source stays refused even if its race metadata disagrees.
 Missing/secret required fields, empty recap, mob-only, fall, drowning and
 same-faction duel deaths send nothing, without errors or target guessing.
+Every death records the recap row fingerprint, even when it cannot send.
+Rows already seen on an earlier death in this session are refused; login/reload
+also marks the held recap as old. Stale or ineligible rows leave the remaining
+retries active, so only a fresh qualifying set in the window can send. The
+session history holds at most 256 row sets, then refuses new sets instead of
+forgetting old ones. It is not saved.
 Known misses: an enemy pet alone (no owner resolution), empty/late recaps,
 and unavailable faction/identity data. Accepted over-count: a mob landing
 the last hit while an enemy player was hitting counts as PvP.

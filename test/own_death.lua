@@ -212,12 +212,12 @@ test("K: retry deadlines are 0.3 1 2 seconds, bounded and no late recap beyond t
             for i,d in ipairs({.3,1,2}) do if math.abs(timer.at-at-d)<.00001 then scheduled[i]=true end end
         end
         eq(#scheduled,3)
-        H.advance(.29); eq(#reads,0)
+        H.advance(.29); eq(#reads,1); eq(reads[1],0) -- mandatory death-time fingerprint read
         -- Cross each deadline by an epsilon: accumulated Lua doubles can land just below it.
         H.advance(.011); H.advance(.7); H.advance(1); H.advance(10)
         eq(#deaths(),ready<=2 and 1 or 0)
-        eq(#reads,ready==.3 and 1 or ready==1 and 2 or 3)
-        for i,t in ipairs(reads) do yes(math.abs(t-({.301,1.001,2.001})[i])<.00001) end
+        eq(#reads,1+(ready==.3 and 1 or ready==1 and 2 or 3))
+        for i,t in ipairs(reads) do yes(math.abs(t-({0,.301,1.001,2.001})[i])<.00001) end
         if ready<=2 then eq(N.OwnDeath.decode(deaths()[1].text).age,math.floor(ready)) end
         no(N.Main.error)
     end
@@ -250,7 +250,8 @@ test("K: resurrection guild-change or zone boundary invalidates already schedule
     end
 end)
 test("K: delayed callbacks from a superseded death cannot send its snapshot",function()
-    local N=setup(); H.deliver("PLAYER_DEAD"); H.advance(.1); H.map(200)
+    local N,rows=setup(); H.deliver("PLAYER_DEAD"); H.advance(.1); H.map(200)
+    rows[1].timestamp=H.clock() -- genuinely new death, not a replay of the first recap
     H.deliver("PLAYER_DEAD"); H.advance(.2); eq(#deaths(),0); H.advance(.101)
     eq(#deaths(),1); eq(N.OwnDeath.decode(deaths()[1].text).zone,200)
     H.advance(2); eq(#deaths(),1)
@@ -271,9 +272,11 @@ test("K: source flag type and hostile masks each independently required",functio
     end
 end)
 test("K: death-event rate limits and cap apply after attribution, not only direct Wire callers",function()
-    local N=setup(); die(); H.advance(60); die(); eq(#deaths(),1)
-    for i=2,5 do H.advance(121); die(); eq(#deaths(),i) end
-    H.advance(121); die(); eq(#deaths(),5); no(N.Main.error)
+    local N,rows=setup()
+    local function freshDeath() rows[1].timestamp=H.clock(); die() end
+    freshDeath(); H.advance(60); freshDeath(); eq(#deaths(),1)
+    for i=2,5 do H.advance(121); freshDeath(); eq(#deaths(),i) end
+    H.advance(121); freshDeath(); eq(#deaths(),5); no(N.Main.error)
 end)
 test("K: shared prefix pause and budgets drop events, never postpone or retry a send",function()
     for _,mode in ipairs({"pause","budget","refuse","error"}) do
@@ -310,4 +313,100 @@ end)
 test("K: death in an instance cannot become eligible by leaving before the first retry",function()
     local N=setup(); H.instance(true); H.deliver("PLAYER_DEAD"); H.instance(false)
     H.advance(.3); H.advance(1.7); eq(#deaths(),0); no(N.Main.error)
+end)
+
+local function raceProof()
+    GetPlayerInfoByGUID=function() return "Rogue","ROGUE","Orc","Orc" end
+end
+local function nextDeath()
+    H.deliver("PLAYER_ALIVE"); H.advance(1901)
+end
+for _,mode in ipairs({"persistent","fresh mob","fresh player"}) do
+    test("K review F1: earlier recap is refused while retrying for "..mode,function()
+        local N,rows=setup(); raceProof(); die(); eq(#deaths(),1)
+        nextDeath(); local at=H.clock(); local reads={}
+        C_DeathRecap.GetRecapEvents=function()
+            reads[#reads+1]=H.clock()-at
+            if mode~="persistent" and H.clock()-at>=.9 then
+                local row=recapRow(); row.timestamp=at
+                if mode=="fresh mob" then row.sourceGUID="Creature-0-1-0-1-2-AB"; row.sourceFlags=0x848 end
+                return {row}
+            end
+            return rows
+        end
+        H.deliver("PLAYER_DEAD"); H.advance(.301); eq(#deaths(),1,"no stale K at first retry")
+        H.advance(.7); H.advance(1); H.advance(3)
+        eq(#deaths(),mode=="fresh player" and 2 or 1)
+        yes(#reads>=3,"stale refusal must retain later recap retries")
+        if mode=="fresh player" then eq(N.OwnDeath.decode(deaths()[2].text).age,1) end
+        no(N.Main.error)
+    end)
+end
+for _,mode in ipairs({"share off","instance","unproven"}) do
+    test("K review F1: records death rows even when no K is sent for "..mode,function()
+        local N,rows=setup()
+        if mode=="share off" then N.Main.setShare(false)
+        elseif mode=="instance" then H.instance(true)
+        else N.Main.store.localSeen={} end
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(2); eq(#deaths(),0)
+        nextDeath(); N.Main.setShare(true); H.instance(false); raceProof()
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,"the unsent earlier death still owns these rows"); no(N.Main.error)
+    end)
+end
+for _,refresh in ipairs({false,true}) do
+    test("K review F1: world entry seeds the held recap before the first death refresh="..tostring(refresh),function()
+        local N,rows=setup(); raceProof()
+        H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+        local at=H.clock()
+        C_DeathRecap.GetRecapEvents=function()
+            if refresh and H.clock()-at>=.9 then
+                local row=recapRow(); row.timestamp=at+1; return {row}
+            end
+            return rows
+        end
+        H.deliver("PLAYER_DEAD"); H.advance(.301); eq(#deaths(),0,"pre-login recap cannot be the first death")
+        H.advance(.7); H.advance(1); eq(#deaths(),refresh and 1 or 0); no(N.Main.error)
+    end)
+end
+test("K review F1: row-set identity ignores table allocation and order",function()
+    local N,rows=setup(); raceProof()
+    rows[2]={sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",sourceFlags=0x848,
+        timestamp=H.clock()-.1,overkill=-1,amount=20}
+    die(); eq(#deaths(),1); nextDeath()
+    local copy={}
+    for i=1,2 do copy[3-i]={}; for k,v in pairs(rows[i]) do copy[3-i][k]=v end end
+    C_DeathRecap.GetRecapEvents=function() return copy end
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),1); no(N.Main.error)
+end)
+for _,field in ipairs({"sourceGUID","sourceName","timestamp","amount","overkill"}) do
+    test("K review F1: a changed recap "..field.." identifies a new row set",function()
+        local N,rows=setup(); raceProof(); rows[1].amount=100
+        die(); eq(#deaths(),1); nextDeath()
+        local values={sourceGUID="Player-1-456",sourceName="Cedar Grove",timestamp=H.clock(),amount=101,overkill=11}
+        rows[1][field]=values[field]
+        H.deliver("PLAYER_DEAD"); H.advance(.301); eq(#deaths(),2,field); no(N.Main.error)
+    end)
+end
+test("K review F1: an ineligible fresh row set does not stop later eligible retries",function()
+    local N,rows=setup(); raceProof(); local at=H.clock()
+    C_DeathRecap.GetRecapEvents=function()
+        if H.clock()-at<.9 then return {{sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",
+            sourceFlags=0x848,timestamp=at,amount=50,overkill=0}} end
+        return rows
+    end
+    H.deliver("PLAYER_DEAD"); H.advance(.301); eq(#deaths(),0)
+    H.advance(.7); eq(#deaths(),1); no(N.Main.error)
+end)
+test("K review F1: fingerprint history saturates closed instead of forgetting a prior death",function()
+    local N,rows=setup({share=false}); raceProof()
+    local first=rows[1].timestamp
+    for i=1,257 do rows[1].timestamp=first+i; H.deliver("PLAYER_DEAD") end
+    N.Main.setShare(true)
+    for _,stamp in ipairs({first+1,first+1000}) do
+        rows[1].timestamp=stamp; H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,"neither forgotten nor overflow recaps are fresh")
+    end
+    no(N.Main.error)
 end)

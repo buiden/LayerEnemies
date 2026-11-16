@@ -1924,6 +1924,7 @@ local function dispatch(_,event,...)
     elseif event=="PLAYER_ALIVE" or event=="PLAYER_UNGHOST" then N.OwnDeath.cancel()
     elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then
+        if event=="PLAYER_ENTERING_WORLD" then N.OwnDeath.seed() end
         guarded(M.hopAnySafe); guarded(M.boundary,A.location()); M.queuePoll()
     elseif event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
         if A.location()~=M.store.zone then guarded(M.boundary,A.location(),true) end

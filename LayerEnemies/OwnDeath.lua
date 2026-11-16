@@ -109,12 +109,56 @@ local function source(row,store,time)
     end
     return {enemy=enemy,stamp=stamp,conf=overkill>=0 and "e" or "h"}
 end
+-- Exact, order-independent row fingerprints are owned by the first death that
+-- observed them, not by a successful send. Never evict session history: at the
+-- cap, refuse unseen sets rather than letting an old death become fresh again.
+local recapDeath,recapCount,recapSeen=0,0,{}
+local RECAP_CAP=256
+local function fingerprint(rows)
+    local parts,n={},0
+    for _,row in pairs(rows) do
+        n=n+1; if n>64 or not S.tab(row) then return nil end
+        local fields={}
+        for _,field in ipairs({"sourceGUID","sourceName","sourceFlags","timestamp","amount","damage","overkill"}) do
+            local v=row[field]
+            if S.secret(v) then return nil end
+            if v==nil then fields[#fields+1]="-"
+            elseif field=="sourceGUID" or field=="sourceName" then
+                if type(v)~="string" or #v>120 then return nil end
+                fields[#fields+1]="s"..#v..":"..v
+            else
+                if not S.num(v) then return nil end
+                fields[#fields+1]="n"..string.format("%.17g",v)
+            end
+        end
+        parts[#parts+1]=table.concat(fields,"|")
+    end
+    if n==0 then return nil end
+    table.sort(parts)
+    return table.concat(parts,"\n")
+end
+local function capture()
+    local api=_G.C_DeathRecap
+    if not S.tab(api) or S.call(api.HasRecapEvents)~=true then return end
+    local rows=S.call(api.GetRecapEvents)
+    if not S.tab(rows) then return end
+    return rows,fingerprint(rows)
+end
+local function remember(id,owner)
+    if not id then return false end
+    if recapSeen[id]~=nil then return recapSeen[id]==owner end
+    if recapCount>=RECAP_CAP then return false end
+    recapSeen[id]=owner; recapCount=recapCount+1
+    return true
+end
+function D.seed()
+    -- PLAYER_ENTERING_WORLD also covers login/reload with a pre-session recap.
+    pcall(function() local _,id=capture(); remember(id,0) end)
+end
 function D.recap(store,time)
     local ok,result=pcall(function()
-        local api=_G.C_DeathRecap
-        if not S.tab(api) or S.call(api.HasRecapEvents)~=true then return nil end
-        local rows=S.call(api.GetRecapEvents)
-        if not S.tab(rows) then return nil end
+        local rows,id=capture()
+        if not remember(id,recapDeath) then return nil end
         local best,n=nil,0
         for _,row in pairs(rows) do
             n=n+1; if n>64 then return nil end
@@ -148,8 +192,10 @@ end
 function D.dead()
     D.cancel()
     local ok=pcall(function()
-        if not permitted() then return end
+        recapDeath=recapDeath+1
         local time=S.num(S.call(GetTime))
+        D.recap(N.Main.store,time) -- remember even an ineligible/unsent death
+        if not permitted() then return end
         local zone,x,y=N.Adapters.location()
         if not time or not zone then return end
         local store=N.Main.store
