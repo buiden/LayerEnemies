@@ -56,14 +56,29 @@ function methods:ClearAllPoints() self.point=nil end
 function methods:SetAllPoints() end
 function methods:SetColorTexture(...) self.color={...} end
 function methods:SetFont(...) self.font={...} end
-function methods:SetJustifyH() end
+function methods:SetJustifyH(value) self.justifyH=value end
 function methods:SetJustifyV() end
 function methods:SetTextColor(...) self.textColor={...} end
-function methods:SetText(text) self.text=text end
+function methods:SetText(text)
+    if debug.getinfo(2,"S").source=="@LayerEnemies/CallUI.lua" then
+        local i=1
+        while i<=#text do
+            local a,b=text:byte(i,i+1)
+            if a<128 then i=i+1
+            else
+                yes(b and b>=128 and b<=191 and a>=194 and a<=201 and (a<201 or b<=143),"Call SetText above U+024F or malformed")
+                i=i+2
+            end
+        end
+    end
+    self.text=text
+end
+function methods:SetTexture(path) self.texture=path; return true end
 function methods:GetText() return self.text or "" end
-function methods:SetFrameStrata() end
+function methods:GetStringHeight() return math.ceil(#self:GetText()/30)*12 end
+function methods:SetFrameStrata(value) self.strata=value end
 function methods:SetMovable() end
-function methods:SetClampedToScreen() end
+function methods:SetClampedToScreen(value) self.clamped=value end
 function methods:EnableMouse() end
 function methods:EnableMouseWheel() end
 function methods:RegisterForDrag() end
@@ -86,9 +101,12 @@ function methods:SetScript(key,fn)
     if not allowed[key] then error("unknown script: "..key) end
     self.scripts[key]=fn
 end
-function CreateFrame(kind)
+function CreateFrame(kind,name,parent,template)
+    no(template,"no secure or other templates")
     yes(kind=="Frame" or kind=="Button" or kind=="EditBox","supported frame type")
     local f=object(kind)
+    f.name,f.parent,f.template=name,parent,template
+    if name then _G[name]=f end
     frames[#frames+1]=f; return f
 end
 local function deliver(event,...)
@@ -104,7 +122,7 @@ local function drain()
     error("timer loop")
 end
 local function advance(n) clock=clock+n; server=server+n; wall=wall+n; drain() end
-local function loadAddon()
+local function loadAddon(savedCallTest)
     frames,timers,log,units,loaded,metadata={},{},{},{},{},{}
     clock,map,server,channels,inGuild,clientIgnored,inInstance=10,100,720100,{WarEffortPubA=7},true,false,false; guildName="Test Guild"
     wall,grouped,opened,forbidden=1800000000,false,{},0
@@ -125,7 +143,7 @@ local function loadAddon()
     _G.IsInRaid=function() return raid end
     _G.UnitIsGroupLeader=function(u) if u=="player" then return leader end; return units[u]~=nil and units[u].leader==true end
     _G.GetNumGroupMembers=function() local n=0; for i=1,4 do if units["party"..i] then n=n+1 end end; return n>0 and n+1 or 0 end
-    _G.BuloLayerForever=nil; _G.WarEffortScoutDB=nil; _G.LayerEnemiesDB=nil
+    _G.BuloLayerForever=nil; _G.WarEffortScoutDB=nil; _G.LayerEnemiesDB=savedCallTest
     _G.LayerSwapDB=nil; _G.LE=nil; _G.ChatFrameUtil=nil; _G.ChatFrame_OpenChat=nil
     _G.time=function() return wall end
     _G.IsInGroup=function() return grouped end
@@ -243,6 +261,8 @@ local function loadAddon()
     _G.GetPlayerInfoByGUID=nil
     _G.DEFAULT_CHAT_FRAME={AddMessage=function(_,s) log[#log+1]=s end}
     _G.SlashCmdList={}; _G.WorldMapFrame=nil
+    _G.UIParent={}; _G.Minimap=nil; _G.MinimapCluster=nil; _G.UISpecialFrames={}
+    _G.UiMapPoint=nil; _G.CreateVector2D=nil; _G.C_SuperTrack=nil; _G.PlaySound=nil
     _G.SendAddonMessage=function() forbidden=forbidden+1; error("must never send") end
     local function fromDirectory()
         local level=3
@@ -320,7 +340,7 @@ end
 
 test("strict frames start shown, dispatcher hidden, no UI or OnUpdate",function()
     local N=loadAddon()
-    eq(#frames,18); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 14 from 0.4.0: the Find hosts, Host and Auto buttons; 18 from 1.0: the Share, Guild only and two network switches
+    eq(#frames,19); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 19: the dispatcher, hidden window and controls, including the Call toggle; popup is lazy
     local f=CreateFrame("Frame"); yes(f:IsShown()); no(pcall(function() f:InventedMethod() end))
     eq(N.Main.statusBulo,"not installed"); eq(N.Main.statusWE,"not installed / listening on guild, party and raid (reported, not confirmed)")
 end)
@@ -620,13 +640,13 @@ test("headless map candidates only for shown zone, never fake enemy coordinates"
     eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
     local candidates=N.Store.mapCandidates(N.Main.store,clock,100)
     eq(#candidates,1); eq(candidates[1].x,.25); eq(candidates[1].positionKind,"approximate observer position")
-    eq(#frames,18)
+    eq(#frames,19)
 end)
 test("SavedVariables contain options only; no sightings survive reload",function()
     local N=loadAddon(); establish(N)
     units.target=player("PrivateName","Horde"); advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
     eq(LayerEnemiesDB.sightings,nil); eq(LayerEnemiesDB.localSeen,nil); yes(LayerEnemiesDB.options)
-    N.Main.start(); eq(#frames,18)
+    N.Main.start(); eq(#frames,19)
     N=loadAddon(); eq(N.Safe.count(N.Main.store.localSeen),0)
 end)
 test("heartbeat is five seconds idle, two while map shown",function()
@@ -1013,7 +1033,7 @@ test("we reports never enter LayerEnemiesDB (مانع T3 S4)",function()
         end
     end
     scan(LayerEnemiesDB,"LayerEnemiesDB",0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="netNotice",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or k=="netNotice",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
@@ -1310,7 +1330,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     -- the only registered events are passive
     -- 0.4.0 Task 8: PARTY_INVITE_REQUEST is read (auto-accept of the asked host only); no other invite event
     for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true) and event~="PARTY_INVITE_REQUEST",event) end
-    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,18)
+    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,19)
     eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
 end)
 test("Find fold: Latin and Cyrillic tables, exclusions and unchanged UTF-8",function()
@@ -1899,7 +1919,7 @@ test("hop state clears on zone change and reload",function()
     grouped=false; N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); yes(hopNow(N,rec(N)))
     N=loadAddon(); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
     deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); eq(lines("on their layer"),0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="netNotice",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or k=="netNotice",k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("hop acts on the shown candidate only (مانع T5 F1)",function()
     -- shown "Ask Scout (chat)"; an LFSw host line arrives before the click: nothing is sent, nothing drafted
@@ -3277,7 +3297,7 @@ test("0.4 host saved: on survives a reload and is active; one login line; no H a
     lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(#sent,1)
     establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); advance(61); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,1)
     slash("host"); yes(logged("Hosting for your guild: on (saved) · 1 invite in the last 10 minutes"))
-    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="netNotice",k) end
+    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or k=="netNotice",k) end
     eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("0.4 host saved: off persists; a bad saved value is off",function()
@@ -3421,7 +3441,7 @@ test("0.4 T8: Auto accept and leave: on by default, saved, /le hop auto and the 
     N=loadAddon(); BULO=nil; establish(N); local U=N.UI; U.toggle(); U.select("friendly")
     yes(U.auto:IsShown()); eq(U.auto.label.text,"Auto: on"); U.auto:Click(); drain(); no(N.Main.autoHop()); eq(U.auto.label.text,"Auto: off")
     U.select("reported"); no(U.auto:IsShown())
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="netNotice",k) end
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or k=="netNotice",k) end
     eq(forbidden,0)
 end)
 
@@ -6716,5 +6736,11 @@ test("OpenMap last-place expiry restores compact rows and clamps five-name scrol
 end)
 
 end
+assert(loadfile("test/call.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,deliver=deliver,advance=advance,
+    drain=drain,secret=secret,player=player,establish=establish,abc=abc,
+    sent=function() return sent end,log=function() return log end,clock=function() return clock end,
+    timers=function() return timers end,frames=function() return frames end,
+    instance=function(v) inInstance=v end,combat=function(v) combat=v end,
+    unit=function(k,v) units[k]=v end})
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
