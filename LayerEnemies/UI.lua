@@ -128,6 +128,10 @@ function U.render()
     U.layer:SetText(known or "?")
     U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or "layer unknown: mouse over or target two different kinds of NPC within 15 s"))
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
+    U.hopAny:SetShown(U.tab=="friendly")
+    local hop=N.Main.hopAnyPreview()
+    U.hopAny.label:SetText(hop.label); U.hopAny.reason=hop.reason or false; U.hopAny.round=hop.round or false
+    if hop.enabled then U.hopAny:Enable() else U.hopAny:Disable() end
     U.findHosts:SetShown(U.tab=="friendly")
     local wait=N.Hosts.askWait(M.heard,time)
     U.findHosts.label:SetText(wait and ("Asked · "..wait.."s") or "Find hosts")
@@ -148,7 +152,7 @@ function U.render()
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to five names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
     local hasPlaces=false; for _,row in ipairs(tracked) do if row.place then hasPlaces=true; break end end
     local height=U.tab=="local" and 48 or U.tab=="find" and (hasPlaces and 146 or 106) or U.tab=="friendly" and 68 or 80
-    local top=U.tab=="find" and 56 or (U.tab=="reported" or U.tab=="friendly") and 23 or 0
+    local top=U.tab=="find" and 56 or U.tab=="friendly" and 48 or U.tab=="reported" and 23 or 0
     local visible=math.floor((300-top)/height)
     local maximum=math.max(0,#rows-visible)
     U.offset=math.min(U.offset,maximum)
@@ -198,10 +202,15 @@ function U.render()
     U.hint:SetText(#rows==0 and "No eligible observations yet." or (#rows>visible and ("Mouse wheel: "..(U.offset+1).."–"..math.min(#rows,U.offset+visible).." of "..#rows) or ""))
     U.lastPaint=time
 end
-function U.refresh()
+function U.refresh(soon)
     if not U.frame or not U.frame:IsShown() then return end
-    -- Data callbacks only mark dirty; a shown-only one-second timer paints ages/data.
+    -- Data callbacks normally wait for the age tick. Action transitions repaint
+    -- next frame; the painted action stays authoritative until that repaint.
     U.dirty=true
+    if soon and not U.paintPending then
+        U.paintPending=true
+        if not pcall(C_Timer.After,0,function() U.paintPending=false; U.render() end) then U.paintPending=false end
+    end
 end
 function U.tick(generation)
     if not U.frame:IsShown() or generation~=U.generation then return end
@@ -266,6 +275,23 @@ function U.create()
     U.add=button(U.body,76,24,"Track",add); U.add:SetPoint("TOPRIGHT",-4,-23)
     -- one LFSw guild question per click, at most once a minute (Hosts.ask, Wire)
     U.findHosts=button(U.body,84,18,"Find hosts",function() N.Main.findHosts(); U.render() end); U.findHosts:SetPoint("TOPRIGHT",-4,0); U.findHosts:Hide()
+    U.hopAny=button(U.body,180,20,"Hop to another layer",function()
+        local M=N.Main
+        -- Act only on the painted mode and round, not a new state between paints.
+        local shown=U.hopAny.round
+        if shown then
+            if M.hopAnyState.round==shown then M.hopAnyStop() end
+        elseif not M.hopAnyState.round then M.hopAny() end
+        U.render()
+    end)
+    U.hopAny.reason=false; U.hopAny.round=false; U.hopAny:SetPoint("TOPLEFT",4,-23); U.hopAny:Hide()
+    U.hopAny:SetScript("OnEnter",function()
+        local tip=_G.GameTooltip
+        if U.hopAny.reason and S.tab(tip) then
+            pcall(function() tip:SetOwner(U.hopAny,"ANCHOR_TOP"); tip:SetText(U.hopAny.reason); tip:Show() end)
+        end
+    end)
+    U.hopAny:SetScript("OnLeave",function() local tip=_G.GameTooltip; if S.tab(tip) then pcall(tip.Hide,tip) end end)
     -- guild-only hosting, saved (LayerEnemiesDB.guildHost); the line stays visible on every tab while it is on
     U.host=button(U.body,70,18,"Host: off",function() local M=N.Main; M.setHost(not (M.host and M.host.want)); U.render() end)
     U.host:SetPoint("TOPRIGHT",-92,0); U.host:Hide()

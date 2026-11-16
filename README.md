@@ -29,6 +29,16 @@ Every network has its own switch (`/le net`, and the switches at the bottom
 of the window). Nothing of 1.0.0 has been tried on a live client yet; the
 checklist is at the end.
 
+## Next release: Hop to another layer
+
+**Changed rule:** "one hop request to one host ... No retry, no fan-out"
+previously applied to every hop. One **Hop to another layer** click may now
+send up to **8 requests to players not known to run any layer addon**.
+There is still no retry, timer-started search, automatic second round or
+request without a click. Existing Hop, Hop via <name> and Ask guild actions
+keep their single-target / player-sent behavior. This bounded exception is
+reviewed on its own, independently of other feature changes.
+
 ## Unreleased - guild death calls (receive-only)
 
 **Call popups and their sound are ON by default for both new and existing
@@ -127,11 +137,21 @@ Five prefixes are allowed. Two scopes matter for your settings: guild scope
 and public scope (whispers to anyone else, and the two public channels joined
 for reading). `/le net guild` turns every public send and both channel joins
 off; guild scope keeps working. Guild only stops all automatic public sends; a
-Hop you click still whispers that one host.
+Hop you click still whispers that one host. **Hop to another layer is refused
+in guild-only mode**, including a round already in progress.
 
-- LayerSwap prefix, WHISPER: one hop request to one host, only when you click
-  a Hop button or run `/le hop <number>` or `/le hop host <number>`. No retry,
-  no fan-out. While you host for your guild, also the answer to a guildmate's
+- A zone `/who` search: only from the **Hop to another layer** button or
+  `/le hop any`, one `C_FriendList.SendWho` in the click's own call stack,
+  using the localized `WHO_TAG_ZONE` and your live zone name. It waits up to
+  5 seconds for results. No class/race rotation, UI unhooking or who-window
+  hiding. Missing APIs or localization refuse the action; no English fallback.
+- LayerSwap prefix, WHISPER: the existing Hop button, `/le hop <number>`
+  and `/le hop host <number>` still send one request to one host, with no
+  retry or fan-out. **Hop to another layer** instead sends at most 8 requests
+  from that click's zone-who results, no faster than one per second, through
+  the same Wire budgets and without a queue. Its exact line is
+  `inv layer <LS <zone> not <ownServer>-0 <x>,<y>>` (position in percent).
+  While you host for your guild, also the answer to a guildmate's
   request: `same` or `heard <name>|<layer>|<zone>|<h or ->`, at most one per 6
   seconds. Wire refuses any other text on this route.
 - LFSw prefix, GUILD: Bulo's one-letter question `Q`, only from the Find hosts
@@ -327,6 +347,9 @@ shape is reported as data unavailable.
 - `/le hosts find` and the "Find hosts" button on the Friendly tab ask the
   guild once (Bulo's `Q` and LayerEnemies' `F|1`), at most once per 60
   seconds. Hosts that answer appear in `/le hosts` and on the Friendly tab.
+- `/le hop any`: one bounded zone search for another layer (Friendly tab).
+  `/le hop stop` or its Stop button cancels the round; a sent request cannot
+  be recalled. Refused in guild-only mode.
 - `/le hop auto on`, `/le hop auto off` and the "Auto" toggle on the Friendly
   tab: Auto accept and leave (on by default, saved; see below).
 - `/le host on`, `/le host off`, `/le host` and the Host toggle on the Friendly
@@ -647,6 +670,59 @@ this independent parser includes no OpenMap code or assets.
 
 ## Hop: asking for an invite
 
+### Hop to another layer (no host needs to be known)
+
+Use **Hop to another layer** on the Friendly tab or `/le hop any`. Your
+own layer must be known and unambiguous. This is separate from the existing
+single-host actions below: without LayerSwap's local book, their list is
+mostly guild-only; `/who` lets this action ask players outside that list.
+A disabled button explains the guard in its tooltip; during a round it says
+**Stop**. `/le hop stop` does the same thing.
+
+Guards: public mode, ungrouped, out of combat and instances, readable live
+zone/name/position and own identity, no ask or hop still open, no outstanding
+who query, working localized who APIs, and at least **30 seconds between
+hop-any clicks**. Unknown group, combat or instance state refuses. A click
+reserves Invite's shared 10-second overall cooldown once; every attempted
+name is stamped for its shared 60-second per-name rule. Other asks/hops are
+refused until this round ends or you stop it.
+
+Only the first **49 who rows** are read. Other-zone rows, yourself,
+duplicates, ignored/unreadable names, recently asked names, Wire's one-hour
+offline names and this session's six-hour non-answerers are skipped. Listed
+hosts on other layers come first, then online guildmates, then the game's
+order. Only the first 8 eligible names are kept. This is not a continuous
+scan: in crowded zones repeated clicks can see the same first 49 players.
+There is no class rotation in this version.
+
+Nothing is whispered before the who answer. Sends stop permanently at the
+first asked player's hosting reply for another key in this zone, an invite
+from an asked player, group/combat/instance/zone change, guild-only switch,
+Wire refusal/throttle/pause/error, Stop, or the eighth attempt. An offline
+result skips that name and still consumes one of the 8 attempts. No retry or
+second round is automatic. **Sent requests cannot be recalled; a late invite
+can still arrive.** An invite from an unasked player is never auto-accepted
+or declined.
+
+Replies are read only on WHISPER, only from names actually sent a request,
+for 120 seconds after the last successful send. Names include surnames and
+foreign realms. `same` / not-hosting answers are summarized as a count, not
+one line per reply. A host's answer stops sends even if its invite never
+comes; the timeout says so. Without a host the summary says how many were
+asked and invites you to click again. Names that never answered are skipped
+for **6 hours**, session only, **300 names maximum** (oldest evicted), never
+saved. Answered hosts retain only the shared 60-second ask cooldown. Reload
+clears the suppression table.
+
+These are hidden addon whispers, not chat. What a player without the addon
+actually sees, server throttling and whether stranger addon whispers count
+toward account spam/silence limits are **not verified**. Hosts pay their own
+invite budget; two hosts may answer before the first reply stops our round.
+Stop-on-first-answer and one-second pacing reduce, but cannot eliminate,
+that race. No stranger-hosting or response behavior is added here.
+
+### Existing single-target and guild actions
+
 Joining the group of a player on another layer is expected to move you to
 that layer; this has not been tested on a live client (see the last
 section). A report row with a known server key that is not yours gets a Hop
@@ -752,7 +828,7 @@ Auto toggle on the Friendly tab turns it off, and then invites and groups are
 left to you.
 
 Accept: when an invite arrives, it is accepted only if your own hop asked for
-it (a Hop button, `/le hop`, `/le hop host` or "Ask guild (chat)"; not
+it (a Hop button, `/le hop`, `/le hop host`, `/le hop any` or "Ask guild (chat)"; not
 `/le ask`), within 120 seconds of that ask, from the player you asked (whole
 name, realm included; for the guild ask, a guild member online in your
 roster), while you are not grouped, not in an instance and not in combat
@@ -767,6 +843,11 @@ joining (two NPC kinds agreeing, or Bulo), becomes the target layer, chat
 says "moved to layer X, leaving the group" and the group is left 3 seconds
 later. With no move within 30 seconds of joining, the group is left and chat
 says "hop failed: <host> could not move you".
+For hop-any there is no wanted key: success means a known key different from
+the key you left, in the same zone (including a key learned before the group
+update). The same lead/raid/instance/combat checks apply. An unknown or
+unchanged key is not success; returning to the old key cancels the pending
+success leave. A zone change cancels automatic tracking.
 
 ## Hosting for your guild
 
@@ -834,6 +915,10 @@ positions instead keep their independent 150-second lifetime. Your own server ke
 30-minute "ambiguous" window are not saved either: after /reload the window is
 gone, and a new one starts only at the next qualifying layer change.
 
+Hop-any adds only session state: at most 8 selected/asked names per round and
+300 non-answerer timestamps, expired after 6 hours and never written to the
+save. Its 1-second pump ends with the round; it cannot start another search.
+
 Limits: 256 local observations/identity hash buckets, at most eight candidate
 names per hash, 64 reports per source (War Effort, HeadHunter, guild relays;
 one report can show as several rows), 256 remembered relay ids, 255 bytes per
@@ -873,6 +958,12 @@ Directory.lua or more than once, or if a HeadHunter frame of a type we never
 send (anything but N, E, Q, O, S, H) is built. Both `C_BattleNet.SendGameData`
 and `BNSendGameData` are forbidden; the harness also traps both calls and
 permits registering `OpenMapLoc` but never sending on it.
+Who calls are checked at runtime by walking to the first Lua caller, with a
+file-local Adapters allowlist; SendWho must also be in the click stack.
+Hop-any Wire calls are allowed only from Main's round pump, not merely any
+caller with the right route. Tests cover 49 rows / 8 sends over the full
+reply window, 30-second click spacing, cancellation, and ten idle minutes
+without a further send. Existing single-host tests remain in the suite.
 The randomized parser test uses 5,000 deterministic malformed inputs.
 The package includes exactly the TOC's Lua files, TOC, README and nine
 named Media TGAs: call-h1/h2/h6, call-victim/killer/where, and
@@ -893,7 +984,45 @@ its CPU/allocation measurements; its counts are historical. Offline tests are no
 compatibility, taint safety, layer semantics or event ordering. Everything
 still needs in-game verification.
 
+### Hop-any provenance
+
+LayerSwap 1.14.20 (Adam5288) is listed as All Rights Reserved and its package
+has no license grant. Only its request/reply wire format is used here: **no
+LayerSwap code or bundled libraries are copied or executed**. Who handling
+is original code written against the game's FriendList API declaration at
+wow-ui-source `70ef1b2fd78061a73f886c4a1e79dc5b5cff6d5e`
+(`FriendListDocumentation.lua`: SendWho, GetNumWhoResults, GetWhoInfo,
+WhoInfo.fullName/area and WHO_LIST_UPDATE). The declaration marks SendWho
+restricted; it does not prove a native click or slash command will work.
+
 ## Not tested on a live client
+
+### Hop-any native checklist (two same-faction characters on different layers)
+
+1. On Forever build 70938, does restricted SendWho answer from both the
+   Friendly button click and `/le hop any`? Check taint/errors as well.
+2. Does a who answer open the game's who window or print rows to chat?
+   **No Blizzard frames are hidden, unhooked or changed for this feature.**
+   Leave any who-window mitigation for a separate decision after observing it.
+3. How does the server throttle `/who`, including other addons/manual searches
+   while our 5-second search is outstanding? Results have no query identifier;
+   an overlapping search's update cannot be attributed with certainty.
+4. Does a LayerSwap/Bulo host invite a non-guild asker running only
+   LayerEnemies? The asker does not need a known host or donor installed.
+5. Does a player without a layer addon see any chat/UI or other side effect
+   from the hidden request? Do not assume the offline mock proves invisibility.
+6. Are who results same-faction only? WhoInfo has no faction field. If other
+   factions appear, what does an addon whisper to them return?
+7. How quickly does a host's `heard` arrive; can two hosts invite before the
+   next one-second pump? Confirm only an asked name can auto-accept once.
+8. Does WhoInfo.area equal the live map zone name in buildings/subzones?
+   Check the Friendly button/tooltip layout with the native UI as well.
+9. Does leaving 3 seconds after a confirmed new key keep the new layer?
+   Check unchanged/unknown key failure at 30 seconds and stop/combat/instance
+   behavior. Account spam/silence treatment is also unknown, not a safe-rate
+   guarantee.
+
+### Earlier native unknowns
 
 Apart from the one 0.3.0 trial described at the top (host discovery failed for
 a player without Bulo or LayerSwap), everything above is checked against a
