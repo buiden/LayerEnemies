@@ -15,7 +15,8 @@ local function captureStale()
         if g then M.staleGUIDs[g]=true; M.staleUnits[u]=g end
     end
     add("target"); add("mouseover")
-    for i=1,40 do add("nameplate"..i) end
+    for i=1,40 do add("nameplate"..i); add("raid"..i.."target") end
+    for i=1,4 do add("party"..i.."target") end
 end
 function M.releaseUnit(unit)
     if not S.str(unit,30) then return end
@@ -121,7 +122,28 @@ function M.queuePoll()
     M.pollQueued=true
     if not after(0,function() M.pollQueued=false; guarded(M.poll) end) then M.pollQueued=false; guarded(M.poll) end
 end
+-- These helpers receive only secret-checked strings. Visibility is of the member,
+-- not a promise that a remote target can be read; A.unit still guards every field.
+local function groupMember(unit)
+    if unit:match("^party[1-4]$") then return unit end
+    local index=tonumber(unit:match("^raid([1-9]%d?)$"))
+    if index and index<=40 then return unit end
+end
+local function targetMember(unit)
+    local member=unit:match("^(.-)target$")
+    return member and groupMember(member)
+end
+local function groupReadable(member)
+    return A.inInstance()==false and S.call(UnitIsVisible,member)==true
+end
+function M.queueGroupTarget(unit)
+    unit=S.str(unit,30)
+    if unit and groupMember(unit) then M.queueUnit(unit.."target") end
+end
 function M.observe(unit)
+    unit=S.str(unit,30); if not unit then return end
+    local member=targetMember(unit)
+    if member and not groupReadable(member) then return end
     local time=now()
     local zone,x,y=A.location()
     if zone~=M.store.zone then M.boundary(zone,true) end
@@ -144,14 +166,17 @@ function M.observe(unit)
     end
     local e=A.unit(unit)
     if not e then return end
-    e.at=time; e.source="own "..unit; e.x=x; e.y=y; e.positionKind="approximate observer position"
+    e.at=time; e.source=member and "own (party target)" or "own "..unit; e.x=x; e.y=y; e.positionKind="approximate observer position"
     T.observe(M.store,e,time)
     N.Find.own(M.find,e,zone,time)
 end
 function M.queueUnit(unit)
-    if not S.str(unit,30) or not (unit=="target" or unit=="mouseover" or unit:match("^nameplate%d+$")) then return end
+    unit=S.str(unit,30); if not unit then return end
+    local member=targetMember(unit)
+    if not (unit=="target" or unit=="mouseover" or unit:match("^nameplate%d+$") or member) then return end
+    if member and not groupReadable(member) then return end
     if M.staleUnits[unit] and S.str(S.call(UnitGUID,unit),160)~=M.staleUnits[unit] then M.releaseUnit(unit) end
-    if S.count(M.pendingUnits)>=42 then return end
+    if S.count(M.pendingUnits)>=86 then return end
     M.pendingUnits[unit]=true
     if M.unitsQueued then return end
     M.unitsQueued=true
@@ -1966,7 +1991,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -1989,6 +2014,7 @@ local function dispatch(_,event,...)
         if A.location()~=M.store.zone then guarded(M.boundary,A.location(),true) end
         M.queuePoll()
     elseif event=="PLAYER_TARGET_CHANGED" then M.queueUnit("target")
+    elseif event=="UNIT_TARGET" then M.queueGroupTarget(...)
     elseif event=="UPDATE_MOUSEOVER_UNIT" then M.queueUnit("mouseover")
     elseif event=="NAME_PLATE_UNIT_ADDED" then M.queueUnit(...)
     elseif event=="NAME_PLATE_UNIT_REMOVED" then M.releaseUnit(...)

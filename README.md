@@ -606,7 +606,16 @@ time evicted first), with at most two entries per folded name: newest
 first-hand evidence and newest reported claim. It is never a general enemy
 list, kill count, ranking, SavedVariables field or donor-cache import.
 
-A readable opposite-faction target/mouseover/nameplate event with a matching
+Visible party/raid members' target changes (`UNIT_TARGET` for `party1`–`party4`
+or `raid1`–`raid40`) also enter the existing unit queue as `own (party target)`.
+Both queueing and observation require a readable `UnitIsVisible(member)==true`
+and a confirmed non-instance state. Missing, throwing or secret API values
+refuse the observation. The queue remains bounded; no new timer or send is
+added. These are ordinary own sightings, including the existing O-share path.
+Forever event delivery, target readability and same-area semantics still need
+native confirmation.
+
+A readable opposite-faction target/mouseover/nameplate/group-target event with a matching
 name says `is on YOUR layer` only if your layer was known when it was seen
 and no boundary has occurred since; otherwise it remains a historical
 sighting, or says `seen by you, layer unknown` when no layer was known. A Bulo-only GUID enrichment

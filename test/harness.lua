@@ -278,6 +278,7 @@ local function loadAddon(savedCallTest)
     _G.GetGuildInfo=function() if inGuild then return guildName end end
     _G.GetChannelName=function(name) return channels[name] or 0 end
     _G.Ambiguate=function(name) return name:match("^([^%-]+)") end
+    _G.UnitIsVisible=function(u) return units[u]~=nil and units[u].visible==true end
     _G.UnitExists=function(u) return u=="player" or units[u]~=nil end
     _G.UnitGUID=function(u) return units[u] and units[u].guid end
     _G.UnitIsPlayer=function(u) return units[u] and units[u].player or false end
@@ -7730,6 +7731,11 @@ assert(loadfile("test/find20.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddo
 assert(loadfile("test/known.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
     advance=advance,clock=function() return clock end,map=function(v) map=v end,deliver=deliver,drain=drain,
     units=function() return units end,player=player,establish=establish,snapshot=snapshot,
+    sent=function() return sent end})
+
+assert(loadfile("test/party_targets.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,secret=secret,
+    advance=advance,clock=function() return clock end,deliver=deliver,drain=drain,
+    units=function() return units end,player=player,instance=function(v) inInstance=v end,
     sent=function() return sent end})
 
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))

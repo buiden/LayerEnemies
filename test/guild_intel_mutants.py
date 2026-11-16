@@ -19,6 +19,15 @@ MUTANTS = [
     ('cache-saved', 'LayerEnemies/Main.lua',
      'LayerEnemiesDB.tracked=M.find.names\n    if #M.find.names==0',
      'LayerEnemiesDB.tracked=M.find.names; LayerEnemiesDB.known=M.find.known\n    if #M.find.names==0'),
+    ('party-member-invisible', 'LayerEnemies/Main.lua',
+     'return A.inInstance()==false and S.call(UnitIsVisible,member)==true',
+     'return A.inInstance()==false'),
+    ('party-target-in-instance', 'LayerEnemies/Main.lua',
+     'return A.inInstance()==false and S.call(UnitIsVisible,member)==true',
+     'return S.call(UnitIsVisible,member)==true'),
+    ('party-secret-unit-accepted', 'LayerEnemies/Main.lua',
+     'function M.queueGroupTarget(unit)\n    unit=S.str(unit,30)',
+     'function M.queueGroupTarget(unit)\n    unit=type(unit)=="string" and unit or nil'),
 ]
 
 

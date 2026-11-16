@@ -83,6 +83,42 @@ All other existing tests, including the Find20 operation budgets, are retained.
 | OpenMap tiers 9 L0 clears only place; layer boundary clears only sightings | Boundaries retain named evidence and place; zone change disables the sighting action. |
 | OpenMap UI pool reuse hides stale places and drops former sighting actions | Use actual 3600-second expiry, not a boundary wipe, to test recycled actions and place-only state. |
 
+## Commit 3: party and raid targets
+
+- Register `UNIT_TARGET`; only sanitized `party1`–`party4` / `raid1`–`raid40`
+  member payloads enqueue target tokens. Require visible member and confirmed
+  non-instance status at enqueue and again at drain; unknown states fail closed.
+- Reuse the unit queue, Store/Find own-sighting path and existing share behavior.
+  Both party and raid targets use the requested `own (party target)` label.
+- Expand the queue bound from 42 to 86 (42 old tokens plus 44 group targets).
+  Include group targets in stale-GUID quarantine at boundaries, so pre-transfer
+  unit data cannot be reported as a fresh post-transfer sighting.
+- Nine test-first cases failed on the pre-party implementation. Replayed against
+  the final commit-2 head with only the new tests: **714 passed, 9 failed**.
+  Positive controls in refusal tests avoid vacuous passes from a missing event.
+- Final restored harness: **723 passed, 0 failed, 67382 assertions**.
+  No existing expected values changed in commit 3.
+- Updated API evidence pins Forever `1.60.1.70938`; declarations alone do not
+  establish client delivery, readability or permissions.
+
+### Final mutation run (all source restored in finally)
+
+| Mutant | Failed tests | Representative detecting test |
+|---|---:|---|
+| boundary wipes memory | 7 | Known 1 / Known 4 |
+| retention unbounded | 6 | Known 2 / idle pruning |
+| name cap unbounded | 1 | Known 14 bounded 300-name cache |
+| ask relayed claim | 21 | relayed origins never become Find spotters |
+| ask last-known entry | 3 | Known 2 |
+| cache saved | 3 | Known 14 cache stays out of every saved table |
+| invisible member observed | 2 | invisible/unreadable member + drain recheck |
+| target observed inside instance | 2 | instance/unreadable instance + drain recheck |
+| secret unit accepted | 1 | secret unit payload guard |
+
+Runner: `python test/guild_intel_mutants.py --lua <lua-5.1-executable>`.
+All nine mutants reached the test-result line, exited 1 and failed assertions;
+none was counted merely for a syntax failure. Restored run exited 0.
+
 ## Native validation still required
 
 Forever event delivery and target readability are not established by these
