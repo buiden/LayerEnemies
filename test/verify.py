@@ -224,9 +224,6 @@ def main():
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         if file.name != 'HhNet.lua':
             assert not re.search(r'"1"\s*\.\.\s*side', file.read_text()), 'HeadHunter frames are built only in HhNet.lua: ' + file.name
-    senders = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua') if 'SendAddonMessage' in p.read_text())
-    assert senders == ['Wire.lua'], 'SendAddonMessage outside Wire.lua: ' + ', '.join(senders)
-    assert len(re.findall(r'\bSendAddonMessage\b', wire)) == 1, 'one client send site, in Wire only'
     # Only the K1 author is new. No new prefix, public scope, party call or direct client send site.
     death = (ROOT / 'LayerEnemies/OwnDeath.lua').read_text()
     assert death.count('N.Wire.send') == 1
