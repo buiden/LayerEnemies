@@ -15,6 +15,29 @@ local function unhex(s)
     if #s<4 or #s>200 or #s%2~=0 or not s:match("^%x+$") then return nil end
     return N.Invite.name((s:gsub("%x%x",function(b) return string.char(tonumber(b,16)) end)))
 end
+-- Validate Unicode separately from player-name syntax; malformed high lead bytes
+-- must not be interpreted as a shorter sequence by an identity parser.
+local function utf8(s)
+    local i=1
+    while i<=#s do
+        local b=s:byte(i)
+        if b<128 then i=i+1
+        else
+            local n=b>=194 and b<=223 and 2 or b>=224 and b<=239 and 3 or b>=240 and b<=244 and 4
+            if not n or i+n-1>#s then return false end
+            local cp=b%(n==2 and 32 or n==3 and 16 or 8)
+            for j=1,n-1 do
+                local c=s:byte(i+j)
+                if c<128 or c>191 then return false end
+                cp=cp*64+c-128
+            end
+            if (n==3 and cp<2048) or (n==4 and (cp<65536 or cp>1114111))
+                or (cp>=55296 and cp<=57343) then return false end
+            i=i+n
+        end
+    end
+    return true
+end
 -- One shared whole-grammar validator, used by Wire as well as the receiver. Nothing is normalized on receive.
 function D.decode(text)
     if S.secret(text) or type(text)~="string" or #text>255 then return nil end
@@ -35,7 +58,7 @@ function D.decode(text)
         if not h or (cl~="" and not CLASSES[cl]) then return nil end
         local name=unhex(h)
         local level=lv~="" and integer(tonumber(lv),-1,100) or nil
-        if not name or (lv~="" and (not level or level==0 or (lv~="-1" and not lv:match("^%d+$")))) then return nil end
+        if not name or not utf8(name) or (lv~="" and (not level or level==0 or (lv~="-1" and not lv:match("^%d+$")))) then return nil end
         enemies[1]={name=name,class=cl~="" and cl or nil,level=level,partial=full=="p",full=full=="f"}
     end
     return {zone=z,x=x,y=y,layer=l,age=a,conf=c,enemies=enemies}

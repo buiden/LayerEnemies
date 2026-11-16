@@ -410,3 +410,24 @@ test("K review F1: fingerprint history saturates closed instead of forgetting a 
     end
     no(N.Main.error)
 end)
+
+local function encodedName(raw)
+    return (raw:gsub(".",function(c) return string.format("%02x",c:byte()) end))
+end
+test("K review S1: malformed UTF-8 after unhex is refused by codec Wire and receiver",function()
+    local bad={string.char(245,128,128),string.char(192,128),string.char(237,160,128),
+        string.char(244,144,128,128),string.char(226,130),string.char(128)}
+    for lead=246,255 do bad[#bad+1]=string.char(lead,128,128) end
+    for _,suffix in ipairs(bad) do
+        local N=receiver(); local line="K|1|100||||0|e|"..encodedName("Ab"..suffix)..":::p"
+        no(N.OwnDeath.decode(line),"invalid UTF-8 must not decode")
+        incoming(N,line); no(popup(N)); no(send(N,line)); eq(#deaths(),0); no(N.Main.error)
+    end
+end)
+test("K review S1: valid multi-byte names retain their exact bytes",function()
+    local N=H.load()
+    for _,name in ipairs({"Cedar","Zo\195\171",string.char(208,144,208,145),"Ab"..string.char(240,144,144,128)}) do
+        local line="K|1|100||||0|e|"..encodedName(name)..":::p"
+        local r=N.OwnDeath.decode(line); yes(r); eq(r.enemies[1].name,name); eq(N.OwnDeath.line(r),line)
+    end
+end)
