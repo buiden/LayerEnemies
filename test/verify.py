@@ -60,38 +60,22 @@ def check_call_text(addon=None):
 
 
 
-def lua_identifiers(text):
-    """Read identifiers and literal index keys, not words inside comments or data strings."""
-    lexer = re.compile(
-        r'(?P<comment>--\[(?P<ceq>=*)\[.*?\](?P=ceq)\]|--[^\r\n]*)|'
-        r'(?P<long>\[(?P<seq>=*)\[.*?\](?P=seq)\])|'
-        r'(?P<short>"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')|'
-        r'(?P<name>[A-Za-z_][A-Za-z_0-9]*)|(?P<symbol>\S)',
-        re.DOTALL,
-    )
-    tokens = []
-    escapes = dict(zip('abfnrtv', '\a\b\f\n\r\t\v'))
-    for m in lexer.finditer(text):
-        if m['comment'] is not None:
-            continue
-        if m['long'] is not None:
-            width = len(m['seq']) + 2
-            value = re.sub(r'^(?:\r\n|\n\r|\r|\n)', '', m['long'][width:-width], count=1)
-            tokens.append(('string', value))
-        elif m['short'] is not None:
-            value = re.sub(r'\\([0-9]{1,3}|.)',
-                           lambda e: chr(int(e[1])) if e[1].isdigit() else escapes.get(e[1], e[1]),
-                           m['short'][1:-1], flags=re.DOTALL)
-            tokens.append(('string', value))
-        else:
-            tokens.append(('name', m['name']) if m['name'] else ('symbol', m['symbol']))
-    names = {value for kind, value in tokens if kind == 'name'}
-    # Quoted member/global access is code too; ordinary strings remain inert.
+def lua_references(tokens):
+    """Identifier/member references, with constant index expressions folded.
+
+    Data strings and comments are inert, including strings containing API names.
+    Dynamic keys on the API namespaces are refused separately, not evaluated.
+    """
     for i, (kind, value) in enumerate(tokens):
-        if (kind == 'string' and i > 0 and i + 1 < len(tokens)
-                and tokens[i - 1] == ('symbol', '[') and tokens[i + 1] == ('symbol', ']')):
-            names.add(value)
-    return names
+        if kind == 'name':
+            yield i, value
+        elif (kind, value) == ('symbol', '['):
+            try:
+                key, end = constant_key(tokens, i + 1)
+            except AssertionError:
+                continue
+            if tokens[end:end + 1] == [('symbol', ']')]:
+                yield i, key
 
 
 # Tokenize source, not execution traces: even an unreachable branch must respect
@@ -163,6 +147,91 @@ def check_api_policy(source, filename):
             raise AssertionError('global environment alias: ' + filename)
 
 
+def check_chat_namespace(tokens, filename):
+    """Keep chat/global namespace access statically inspectable, including aliases.
+
+    Permit direct local aliases and the existing type/secret/table inspections;
+    reject passing/storing/returning the namespace or indexing it dynamically.
+    Alias names are conservatively reserved throughout the file (no flow guesses).
+    """
+    aliases = {'C_ChatInfo': 'chat', '_G': 'global'}
+
+    def access(at):
+        role, end = aliases.get(tokens[at][1]), at + 1
+        while role and end < len(tokens):
+            if tokens[end] == ('symbol', '.') and tokens[end + 1][0] == 'name':
+                key, end = tokens[end + 1][1], end + 2
+            elif tokens[end] == ('symbol', '['):
+                key, end = constant_key(tokens, end + 1)
+                assert tokens[end:end + 1] == [('symbol', ']')], 'dynamic API key: ' + filename
+                end += 1
+            else:
+                break
+            role = aliases.get(key) if role == 'global' and key in ('_G', 'C_ChatInfo') else None
+        return role, end
+
+    # Only simple local bindings may carry a namespace. Iterate for alias chains.
+    bindings = set()
+    while True:
+        before = len(bindings)
+        for i in range(3, len(tokens)):
+            if (tokens[i][0] == 'name' and tokens[i][1] in aliases and
+                    tokens[i - 3] == ('name', 'local') and tokens[i - 2][0] == 'name' and
+                    tokens[i - 1] == ('symbol', '=')):
+                role, _ = access(i)
+                if role == 'chat':
+                    aliases[tokens[i - 2][1]] = role
+                    bindings.add(i)
+        if len(bindings) == before:
+            break
+
+    declarations = {i - 2 for i in bindings}
+    i = 0
+    while i < len(tokens):
+        if tokens[i][0] != 'name' or tokens[i][1] not in aliases or i in declarations:
+            i += 1
+            continue
+        role, end = access(i)
+        if role == 'global':
+            raise AssertionError('global environment alias: ' + filename)
+        if role == 'chat' and i not in bindings:
+            inspection = (tokens[i - 2:i] == [('name', 'type'), ('symbol', '(')] or
+                          tokens[i - 4:i] in ([('name', 'S'), ('symbol', '.'), ('name', 'tab'), ('symbol', '(')],
+                                              [('name', 'S'), ('symbol', '.'), ('name', 'secret'), ('symbol', '(')]))
+            assert inspection and tokens[end:end + 1] == [('symbol', ')')], 'chat namespace escapes: ' + filename
+        i = end
+
+
+def check_send_policy(source, filename):
+    tokens = lua_tokens(source)
+    send_sites = []
+    for at, word in lua_references(tokens):
+        forbidden = word in ('SendGameData', 'SendChatMessage') or re.fullmatch(r'BN\w*Send\w*', word)
+        assert not forbidden, 'Unexpected outgoing/forbidden API: ' + word + ' in ' + filename
+        if word == 'SendAddonMessage':
+            assert filename == 'Wire.lua', 'SendAddonMessage outside Wire.lua: ' + filename
+            send_sites.append(at)
+    check_chat_namespace(tokens, filename)
+    if filename == 'Wire.lua':
+        assert len(send_sites) == 1, 'Wire.lua must have exactly one SendAddonMessage access'
+        # Lua block keywords (not textual lines) locate the top-level deliver body.
+        # for/while blocks are opened by their do; elseif does not open a block.
+        blocks, deliveries = [], []
+        for i, (kind, word) in enumerate(tokens):
+            if kind != 'name':
+                continue
+            if word in ('function', 'if', 'do', 'repeat'):
+                deliver = (not blocks and word == 'function' and
+                           tokens[i - 1:i + 2] == [('name', 'local'), ('name', 'function'), ('name', 'deliver')])
+                blocks.append((i, deliver))
+            elif word in ('end', 'until'):
+                start, deliver = blocks.pop()
+                if deliver:
+                    deliveries.append((start, i))
+        assert len(deliveries) == 1 and deliveries[0][0] < send_sites[0] < deliveries[0][1], \
+            'SendAddonMessage must belong to the single local deliver function in Wire.lua'
+
+
 def main():
     notes = ROOT / 'notes'
     notes.mkdir(exist_ok=True)
@@ -182,15 +251,9 @@ def main():
                       'RunMacroText', 'UninviteUnit', 'ConfirmInviteUnit', 'ConfirmLeaveParty',
                       'ConvertToRaid', 'DeclineGroup', 'RequestInviteFromUnit'):
         assert forbidden not in addon_text, 'Unexpected outgoing/forbidden API: ' + forbidden
-    # Match identifiers, not receiver spellings: bare calls, namespace aliases and function aliases all count.
-    # No BN send or chat send is allowed anywhere; addon messages keep the existing Wire-only exception.
-    identifiers = {p.name: lua_identifiers(p.read_text()) for p in (ROOT / 'LayerEnemies').glob('*.lua')}
-    for filename, words in identifiers.items():
-        for word in sorted(words):
-            forbidden = word in ('SendGameData', 'SendChatMessage') or re.fullmatch(r'BN\w*Send\w*', word)
-            assert not forbidden, 'Unexpected outgoing/forbidden API: ' + word + ' in ' + filename
-    senders = sorted(filename for filename, words in identifiers.items() if 'SendAddonMessage' in words)
-    assert senders == ['Wire.lua'], 'SendAddonMessage outside Wire.lua: ' + ', '.join(senders)
+    # Inspect even dormant code: only Wire's one addon-send access is permitted.
+    for file in (ROOT / 'LayerEnemies').glob('*.lua'):
+        check_send_policy(file.read_text(), file.name)
     # the party calls (guild host invite, auto accept and leave): InviteUnit, AcceptGroup and LeaveParty exactly
     # once each and C_PartyInfo only in Wire.lua
     wire = (ROOT / 'LayerEnemies/Wire.lua').read_text()
