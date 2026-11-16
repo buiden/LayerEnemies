@@ -695,4 +695,30 @@ PASS Find20 28: five names in one second give three details, one summary and one
 PASS Find20 sound cooldown is rolling and quiet alerts do not consume it
 PASS Find20 UI sorts located first, newest first, with compact missing status and paging
 PASS Find20 UI counts shared positions as located without changing their alert or layer meaning
-RESULT: 697 tests passed, 0 failed, 65218 assertions
+PASS Known 1: named evidence survives zone, layer and world boundaries
+PASS Known 2: at 600 and 601 seconds last known hides actions; at 3600 it expires
+PASS Known 3: first-hand and reported slots both show without a relay replacing first-hand
+PASS Known 4: add after receipt and a boundary finds old memory without an alert
+PASS Known 4: add a fresh cached name alerts once and remove does not destroy memory
+PASS Known A14: both guild death formats cache killer claims in another zone
+PASS Known guild O: first-hand server claim uses origin age and observer coordinates
+PASS Known Spy-family: all three named input formats populate memory before tracking
+PASS Known own: untracked sighting survives boundaries but never claims today's layer
+PASS Known A12: hashes stay possible and never populate named memory
+PASS Known A17: OpenMap remains independent and never refreshes either cached slot
+PASS Known 14: bounded 300-name cache evicts oldest evidence, not alphabetical first
+PASS Known retention: independent slots, old arrivals, clock rollback and bounded copied fields
+PASS Known 14: cache stays out of every saved table and reload starts empty
+PASS Known retention: idle untracked memory expires on the normal poll
+PASS Known source scope: existing HeadHunter P and L keep the legacy Find path
+PASS Known pure module runs without any WoW globals or SavedVariables
+PASS PartyTargets 13: UNIT_TARGET is registered and party2target uses the coalesced queue
+PASS PartyTargets 13: raid5target is a first-hand own sighting, shared by the existing path
+PASS PartyTargets guard: invisible or unreadable members are never observed
+PASS PartyTargets guard: instance or unreadable instance state refuses observation
+PASS PartyTargets guard: visibility and instance are rechecked after queuing
+PASS PartyTargets guard: secret unit payload is rejected before matching, concatenation or APIs
+PASS PartyTargets bounds: only party1-4 and raid1-40 members admit target tokens
+PASS PartyTargets boundaries: queued old work is discarded and stale targets stay quarantined
+PASS PartyTargets queue: all 44 member tokens fit alongside 42 existing unit tokens
+RESULT: 723 tests passed, 0 failed, 67382 assertions
