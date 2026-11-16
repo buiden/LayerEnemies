@@ -94,6 +94,75 @@ def lua_identifiers(text):
     return names
 
 
+# Tokenize source, not execution traces: even an unreachable branch must respect
+# the API owners. Constant global keys are folded; dynamic environment access
+# and escaping _G are refused rather than guessed. No addon code is executed.
+LUA_TOKENS = re.compile(r'''(?P<space>\s+)|(?P<comment>--(?:\[(?P<ceq>=*)\[.*?\](?P=ceq)\]|[^\n]*))|(?P<long>\[(?P<eq>=*)\[.*?\](?P=eq)\])|(?P<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?P<name>[A-Za-z_][A-Za-z_0-9]*)|(?P<concat>\.\.)|(?P<symbol>.)''', re.S)
+API_OWNERS = {word: 'Adapters.lua' for word in ('C_FriendList', 'SendWho', 'GetNumWhoResults', 'GetWhoInfo')}
+API_OWNERS.update({word: 'Wire.lua' for word in ('C_PartyInfo', 'InviteUnit', 'AcceptGroup', 'LeaveParty')})
+
+
+def lua_tokens(source):
+    tokens = []
+    escapes = dict(zip('abfnrtv', '\a\b\f\n\r\t\v'))
+    for match in LUA_TOKENS.finditer(source):
+        kind, value = match.lastgroup, match[0]
+        if kind in ('space', 'comment'):
+            continue
+        if kind == 'string':
+            def unescape(m: re.Match[str]) -> str:
+                char = m.group(1)
+                assert char is not None
+                return chr(int(char)) if char.isdigit() else escapes.get(char, char)
+            value = re.sub(r'\\([0-9]{1,3}|.)', unescape, value[1:-1], flags=re.S)
+        elif kind == 'long':
+            width = len(match['eq']) + 2
+            kind, value = 'string', value[width:-width]
+            if value.startswith('\n'):
+                value = value[1:]
+        tokens.append((kind, value))
+    return tokens
+
+
+def constant_key(tokens, at):
+    def atom(i):
+        if i < len(tokens) and tokens[i][0] == 'string':
+            return tokens[i][1], i + 1
+        if i < len(tokens) and tokens[i][1] == '(':
+            value, end = constant_key(tokens, i + 1)
+            assert end < len(tokens) and tokens[end][1] == ')', 'dynamic global key'
+            return value, end + 1
+        raise AssertionError('dynamic global key')
+    value, at = atom(at)
+    while at < len(tokens) and tokens[at][0] == 'concat':
+        suffix, at = atom(at + 1)
+        value += suffix
+    return value, at
+
+
+def check_api_policy(source, filename):
+    def owner(word):
+        expected = API_OWNERS.get(word)
+        assert expected is None or filename == expected, word + ' outside ' + str(expected) + ': ' + filename
+    tokens = lua_tokens(source)
+    for i, (kind, value) in enumerate(tokens):
+        if kind != 'name':
+            continue
+        owner(value)
+        assert value not in ('getfenv', 'setfenv', 'rawget'), 'dynamic global access: ' + filename
+        if value != '_G':
+            continue
+        following = tokens[i + 1:i + 3]
+        if len(following) == 2 and following[0][1] == '.' and following[1][0] == 'name':
+            owner(following[1][1])
+        elif following and following[0][1] == '[':
+            key, end = constant_key(tokens, i + 2)
+            assert end < len(tokens) and tokens[end][1] == ']', 'dynamic global key: ' + filename
+            owner(key)
+        else:
+            raise AssertionError('global environment alias: ' + filename)
+
+
 def main():
     notes = ROOT / 'notes'
     notes.mkdir(exist_ok=True)
@@ -107,6 +176,8 @@ def main():
     assert '## Interface: 16001' in toc
     assert '## SavedVariablesPerCharacter: LayerEnemiesDB' in toc
     addon_text = '\n'.join(p.read_text() for p in (ROOT / 'LayerEnemies').glob('*.lua'))
+    for file in (ROOT / 'LayerEnemies').glob('*.lua'):
+        check_api_policy(file.read_text(), file.name)
     for forbidden in ('COMBAT_LOG_EVENT_UNFILTERED', 'JoinTemporaryChannel', 'JoinPermanentChannel',
                       'RunMacroText', 'UninviteUnit', 'ConfirmInviteUnit', 'ConfirmLeaveParty',
                       'ConvertToRaid', 'DeclineGroup', 'RequestInviteFromUnit'):
@@ -159,6 +230,7 @@ def main():
     assert '## Version: 1.0.1' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, '-I', 'test/api_policy_test.py'], cwd=ROOT, check=True)
     shipped = payload_files(listed)
     check_media()
     check_call_text()
