@@ -229,6 +229,44 @@ test("crowd cancel memory: repeated boundaries keep skipped keys bounded to the 
     end
 end)
 
+-- Deliver the actual outgoing bytes to a second client, including the Store's
+-- anonymous "N more not listed" rows. Decoding names alone misses inflation.
+local function receivedTotal(lines, at)
+    local R=ready()
+    for _,m in ipairs(lines) do
+        if m.prefix=="LEGW1" and m.text:sub(1,2)=="O|" then
+            H.time(m.at); H.deliver("CHAT_MSG_ADDON","LEGW1",m.text,"GUILD","Birch Scout")
+        end
+    end
+    H.time(at)
+    local total,named=0,0
+    for _,r in ipairs(R.Store.rows(R.Main.store,at,"reported")) do
+        local rest=tonumber(r.name:match("^(%d+) more not listed"))
+        total=total+(rest or 1)
+        if not rest then named=named+1 end
+    end
+    return total,named
+end
+
+for _,n in ipairs({5,9,13,30}) do
+    test("crowd receiver: "..n.." enemies keep their exact displayed total",function()
+        local N=ready(); crowd(N,n); tick(N,103); tick(N,118); tick(N,133)
+        local rows=decoded(N); eq(unique(rows),math.min(n,12))
+        local total,named=receivedTotal(H.sent(),134)
+        eq(total,n,"named plus anonymous counts at the receiving client")
+        eq(named,math.min(n,12))
+    end)
+end
+
+test("crowd receiver: byte-trimmed lines count only their own names",function()
+    local N=ready()
+    for i=1,5 do see(N,i,100,string.rep(string.char(64+i),36).." "..string.rep("b",36)) end
+    tick(N,103); tick(N,118); tick(N,133)
+    local rows=decoded(N); eq(#rows,3); eq(unique(rows),3)
+    local total,named=receivedTotal(H.sent(),134)
+    eq(total,5); eq(named,3)
+end)
+
 test("crowd War Effort: O follow-up slots do not multiply the public report",function()
     local N=ready(); H.netOn(N,"we"); H.hello("Wes",19); crowd(N,9)
     tick(N,103); eq(#H.weSent("C"),1); local first=H.weSent("E")

@@ -1312,7 +1312,8 @@ function M.shareTick()
     local inGuild=S.call(IsInGuild)==true
     -- One O line per slot, up to three per snapshot. Only fitted, accepted names
     -- acquire a 60 s cooldown; refusals still consume the reserved 15 s slot.
-    local line,fitted=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=key,now=time,count=rep.count,enemies=rep.enemies})
+    local line,fitted=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=key,now=time,count=rep.count,
+        listedOnly=rep.burst.lines<N.Share.LINES,enemies=rep.enemies})
     local accepted=line and #fitted>0 and inGuild and N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own",queue=false})
     N.Share.sent(M.share,rep,accepted and fitted or {},time)
     -- O follow-ups must not multiply War Effort reports: C+E only at burst start,

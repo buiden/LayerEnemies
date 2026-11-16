@@ -18,6 +18,9 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 # label, relative source, exact old text, replacement, required killing test
 MUTANTS = [
+    ("each O line claims the remaining backlog", "LayerEnemies/Relay.lua",
+     "local lineCount = rep.listedOnly and #fitted or count", "local lineCount = count",
+     "crowd receiver: 13 enemies keep their exact displayed total"),
     ("all recent marked shared", "LayerEnemies/Share.lua",
      "for _, e in ipairs(fitted) do", "for _, e in ipairs(rep.enemies) do",
      "crowd 5: nine enemies use consecutive 4,4,1 slots without repeats"),

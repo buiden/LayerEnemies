@@ -238,8 +238,12 @@ function Rl.ownLine(rep)
             for _, e in ipairs(fitted) do local own = S.num(e.ownAt); if own and own < at then at = own end end
             age = now - at
         end
+        -- Old receivers add each line's anonymous remainder. Only the last
+        -- attempt may claim overflow; earlier lines count exactly their fitted
+        -- names, even after byte trimming. Explicit-count callers keep bytes.
+        local lineCount = rep.listedOnly and #fitted or count
         return table.concat({ "O", "1", tostring(math.floor(rid)), tostring(math.floor(zone)), o3(x), o3(y), layer,
-            tostring(math.max(0, math.min(900, math.floor(age)))), tostring(math.min(200, math.floor(count))),
+            tostring(math.max(0, math.min(900, math.floor(age)))), tostring(math.min(200, math.floor(lineCount))),
             table.concat(items, ",") }, "|")
     end
     local line = packed()
