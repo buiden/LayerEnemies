@@ -6380,5 +6380,52 @@ test("previous zone 18: a second crossing keeps only the zone just left after li
     map=200; deliver("ZONE_CHANGED"); drain(); eq(#N.Store.previous(N.Main.store,clock),0,"empty zone clears older carry")
     no(N.Main.error)
 end)
+test("previous zone 19: scrolled live and carried rows keep their distinct labels",function()
+    local N=loadAddon(); establish(N)
+    for i=1,8 do advance(1); seeFoe("Aster "..abc(i),"Player-1-90"..i); units.target=nil end
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    eq(#N.Store.previous(N.Main.store,clock),8)
+    for i=1,7 do advance(.1); seeFoe("Briar "..abc(i),"Player-1-80"..i); units.target=nil end
+    N.Main.setShare(false); sent={}; N.UI.toggle()
+    eq(N.UI.tabs["local"].label.text,"Seen by you (15)")
+    local live=N.Store.rows(N.Main.store,clock,"local"); eq(#live,7)
+    local carried=N.Store.previous(N.Main.store,clock)
+    for _,offset in ipairs({0,2,9}) do
+        while N.UI.offset<offset do N.UI.body.scripts.OnMouseWheel(N.UI.body,-1) end
+        eq(N.UI.offset,offset)
+        local shown=0
+        for i,r in ipairs(N.UI.pool) do if r:IsShown() then
+            shown=shown+1
+            local index=i+offset
+            local previous=index>#live
+            local e=previous and carried[index-#live] or live[index]
+            yes(e,"expected scrolled row exists"); eq(r.title.text,e.name)
+            eq(r.sub.text,"MAGE · "..(previous and "Ashenvale · previous zone" or "Durotar · layer unknown"))
+            no(r.ask:IsShown()); r.ask:Click()
+        end end
+        eq(shown,6,"visible rows at offset "..offset)
+    end
+    eq(#sent,0); eq(#opened,0); no(N.Main.error)
+end)
+test("previous zone 20: carry rejects future own timestamps before the previous-row reader runs",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local t=N.Main.store; local at=t.localSeen["Player-1-901"].ownAt
+    eq(at,clock); eq(#N.Store.carry(t,clock),1)
+    clock=at-1
+    eq(#N.Store.carry(t,clock),0,"future own timestamp cannot enter the carry")
+    eq(#t.prev,0); eq(t.localSeen["Player-1-901"].ownAt,at)
+    clock=at; eq(#N.Store.carry(t,clock),1,"the original valid boundary remains eligible")
+    no(N.Main.error)
+end)
+test("previous zone 21: a backward clock permanently prunes future carried rows",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local at=clock; map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    local t=N.Main.store; eq(#t.prev,1); eq(#N.Store.previous(t,clock),1)
+    clock=at-1
+    eq(#N.Store.previous(t,clock),0,"clock reversal hides future carry")
+    eq(#t.prev,0,"clock reversal removes, not merely hides, the row")
+    clock=at+1; eq(#N.Store.previous(t,clock),0,"forward clock must not revive it")
+    no(N.Main.error)
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
