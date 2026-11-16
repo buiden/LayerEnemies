@@ -371,7 +371,7 @@ PASS 1.0 B: off, guild-only, HeadHunter loaded or in an instance: nothing on Hea
 PASS 1.0 C1: a [Spy] line: the enemy as First Last, observer position, map to zone, class and level checked
 PASS 1.0 C1: [Spy] refusals: multi-part, field count, class, level, coordinates, guild, name, map, route, own
 PASS 1.0 C1: ForeverSpy1 on a group: name and zone name; FSENT03: GUID, age, level
-PASS 1.0 C1: the same enemy again from one observer is one row; 6 lines per sender per 10 s; nothing is ever sent
+PASS 1.0 C1: the same enemy again from one observer is one row; 6 lines per sender per 10 s; donor prefixes remain receive-only
 PASS 1.0 C2: a Guild Bounty death: the killer as enemy, the victim's position (zone map only), class and level
 PASS 1.0 C2: a Wall of Shame death names its killer by zone name; Forever Told S is a wanted player seen
 PASS 1.0 consent: no choice saved reads as public: public whispers and channel joins run; guild only when chosen
@@ -769,4 +769,26 @@ PASS Realm names: every hash tuple stays possible and never confirms even the ho
 PASS Realm names: late home discovery removes the named HeadHunter uncertainty only
 PASS Realm names: a hash cannot override an explicitly different named realm
 PASS Realm names: On my way adds the shown qualified killer and saves it without sends
-RESULT: 771 tests passed, 0 failed, 71244 assertions
+PASS Spy relay 7: [Spy] PARTY becomes one named guild claim after the wait
+PASS Spy relay 7: [Spy] RAID becomes one named guild claim after the wait
+PASS Spy relay 7: ForeverSpy1 PARTY becomes one named guild claim after the wait
+PASS Spy relay 7: ForeverSpy1 RAID becomes one named guild claim after the wait
+PASS Spy relay 7: FSENT03 PARTY becomes one named guild claim after the wait
+PASS Spy relay 7: FSENT03 RAID becomes one named guild claim after the wait
+PASS Spy relay 7: GUILD never offered, even when a group copy would be eligible
+PASS Spy relay 8: a guildmate copy cancels the pending relay and never echoes
+PASS Spy relay 9: frozen main decoder rejects unknown spy src without storing
+PASS Spy relay 10: accepted into Known as relayed claim, never an ask or hop target
+PASS Spy relay codec: no layer even on a poisoned input, exactly one full name or no line
+PASS Spy relay cap: seventh in rolling minute dropped and a new sighting allowed at 60 seconds
+PASS Spy relay cap: pending burst rechecks the cap at dispatch
+PASS Spy relay cap: same full enemy name once per 60 seconds across origins, routes and family
+PASS Spy relay receiver: newer same-id sighting refreshes Known, older copy cannot regress it
+PASS Spy relay A13: share guild, instance, unknown context, whisper and full pending refuse
+PASS Spy relay A13: instance or guild change during the wait drops, not retries
+PASS Spy relay forward priority: full Wire bucket drops it without queueing ahead of own lines
+PASS Spy relay 8: stand-down also matches normalized Forever Spy and Sentinel sources
+PASS Spy relay zone: another-zone sighting still goes to the guild and Find
+PASS Spy relay cap: pending names coalesce at dispatch and bounded limits survive clears and clock rollback
+PASS Spy relay invalid: malformed family lines and self sightings never offered
+RESULT: 793 tests passed, 0 failed, 73102 assertions
