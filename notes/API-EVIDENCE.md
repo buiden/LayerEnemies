@@ -71,3 +71,23 @@ checks only. SendTell itself formats and parses native whisper text. We have
 not proved Forever's surname targeting or Insert behaviour in a live client;
 missing/throwing APIs fall back to recipient/message instructions. No chat
 send API is invoked by LayerEnemies.
+
+## Group target observation (guild-intel PR 1)
+
+The Forever mirror was resolved again for this addition, not assumed from the
+older baseline: `bebcb6bf309cf41b41bd74f8ca651e6a105b2676`, version
+`1.60.1.70938`. The needed declarations remain in
+[`UnitDocumentation.lua`](https://github.com/Gethe/wow-ui-source/blob/bebcb6bf309cf41b41bd74f8ca651e6a105b2676/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua):
+
+- `UnitIsVisible(unit: UnitToken?) -> bool`, with
+  `SecretArguments = "AllowedWhenUntainted"` (lines 2428–2439).
+- `UNIT_TARGET`, synchronous, one non-nil `unitTarget: UnitTokenVariant`
+  payload (lines 4869–4875).
+
+These are source declarations, not a successful addon-operation probe. Event
+registration is protected; group tokens and visibility results are checked
+through Safe, and unreadable instance/visibility states are refused. The
+harness observes `party2target` and `raid5target`, not a native client.
+It does not establish that Forever delivers those events to addons, exposes
+the target fields in each combat state, or uses visibility as a reliable
+same-area test. Those three points remain explicitly unknown.

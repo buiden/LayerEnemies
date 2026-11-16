@@ -169,11 +169,10 @@ mute. Popups are plain frames, allowed in combat but never in instances
 **On my way** tries a waypoint and super-tracking for the displayed victim's
 zone/coordinates; if unavailable or refused, it prints one location line.
 It also offers the displayed full killer name to Find if a slot is available
-(maximum five) and the existing Find name parser accepts it. Full two-word
-names must be bare (First Last): realm-qualified full killers (First Last-Realm)
-are shown but are not added to Find. A full list stays unchanged with an
-explanation; partial names are not added. It does not send a message or ask
-for an invite.
+(maximum 20), including realm-qualified full killers (`First Last-Realm` or
+`First Last-1234`). Realm spaces and hyphens are removed; the base and casing
+are kept as typed. A full list stays unchanged with an explanation; partial
+names are not added. It does not send a message or ask for an invite.
 
 Three Arabic headings, three fixed detail labels and three button labels
 ship as pre-rendered images. Each detail row puts its label image on the
@@ -447,8 +446,9 @@ shape is reported as data unavailable.
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).
   `/le call art on|off`: all Arabic call images (default on); heading Latin stays visible.
-- `/le find <name>`: add a tracked enemy (maximum five). Names may include a
-  Forever surname or an explicit `-Realm`. `/le find` clears all tracked names.
+- `/le find <name>`: add a tracked enemy (maximum 20). Accepts `Name`,
+  `Name-Realm`, `First Last` and `First Last-Realm`, including numeric realms
+  such as `Name-1234`. `/le find` clears all tracked names.
   The Find tab also has a Track field and individual Clear buttons.
 - `/le unclassified`: local sightings whose faction is unknown or same-faction;
   these are explicitly not confirmed enemies.
@@ -481,7 +481,8 @@ and confidence. The window adds class colours and invite buttons. Use the
 mouse wheel over its body to scroll longer lists. Only visible row frames are
 allocated, then reused. Ages refresh at 1 Hz only while the window is shown;
 there is no OnUpdate script. Drag the panel to save its position per character.
-Sightings expire after ten minutes and are never saved.
+The zone view expires local sightings after ten minutes. Named Find evidence
+is kept for one hour in session memory; neither is saved.
 
 ## Local observations
 
@@ -532,7 +533,9 @@ A fresh sighting of the same player hides the carried row. A second crossing
 replaces this history with only sightings from the zone just left. Bulo-only
 copies and unreadable or same-faction sightings are not carried. These plain
 name/class/level/zone/time copies have no layer or position, are never shared,
-and never feed Find, map candidates, hop or ask. World entry, shard transfer,
+and never feed map candidates, hop or ask. Find now independently retains
+the original named sighting in its session cache; these display-only copies
+are not replayed into it. World entry, shard transfer,
 a real layer change, an NPC zoneUID change or an unreadable zone clears them.
 Learning your layer in the new zone keeps them until their original expiry.
 They are not saved.
@@ -699,28 +702,89 @@ the reporter's position.
 
 ## Finding a tracked player
 
+Find holds up to 20 names. Adding a name prints only that name's row. The Find
+heading shows `Find (3 located / 20)`; names with a sighting or shared position
+come first, newest first, followed by unlocated names alphabetically. Unlocated
+rows have a single compact status line. Mouse-wheel paging and individual Clear
+buttons remain; the Track field is not a filter.
+
+The session lookup is built on list changes and once when the home realm first
+becomes readable, not on every report. The first 20 saved entries are validated
+and deduplicated by folded full identity: `Name`, `Name-A` and `Name-B` are three
+entries. No saved-data migration is needed. **Downgrade warning:** an older
+client drops `First Last-Realm` and `Name-1234` entries; clients from before the
+20-name limit also keep and save only the first five, losing names 6–20.
+
+Find accepts a one-word base or a two-word Forever base plus `-Realm`. It splits
+at the first hyphen, removes spaces and hyphens from the realm, and keeps the
+base and casing as typed for display and saving (`First Last-Area 52` becomes
+`First Last-Area52`). New spellings allow up to 36 bytes per base word and a
+1–40-byte realm of letters, digits, apostrophes or high bytes; total input is
+at most 100 bytes. All old accepted spellings retain their previous result.
+
+A tracked base without a realm matches named evidence from any realm or none.
+An explicit realm matches only that realm after normalizing and case folding;
+a different explicit realm never matches. Realm-less named evidence can locate
+a qualified entry, but its status says `realm not confirmed`, unless the typed
+realm is our home realm. These rules also apply when reading session memory.
+Single-word own sightings keep the previous first-name and hash-based realm
+checks. A two-word own sighting uses a realm only if its display name explicitly
+carries one; the second `UnitName` return may be a surname, not a true realm.
+OpenMap keeps its separate exact-identity matching rules.
+
 An enemy sighting is available only when you see the target yourself, or a report naming or
 hashing him reaches you (War Effort, HeadHunter, the Spy family and guild
 incident addons, or a guild relay; one enemy entry is enough, the rest of the
 list need not arrive). There is no
 server lookup, discovery broadcast, request to another addon, or background
-scan of the world. Enter the name before a report arrives; current-zone
-reports already retained can also be matched when adding a name.
+scan of the world. A session cache remembers named sightings even before
+you track them, including other zones. Adding a name shows that memory.
+The cache is private to this session, bounded to 300 names (oldest newest-slot
+time evicted first), with at most three entries per folded name: your own
+sighting, the newest other first-hand observation, and the newest reported
+claim. Relays and death claims cannot erase a guild O sighting, even when
+your own sighting is retained too. It is never a general enemy list,
+kill count, ranking, SavedVariables field or donor-cache import. Own displays
+can contain two adapter name strings, up to 321 bytes; other cached names
+remain capped at 100 bytes, so legacy first-name matches are not discarded.
 
-A readable opposite-faction target/mouseover/nameplate event with a matching
-name says `is on YOUR layer`, with zone and age. A Bulo-only GUID enrichment
+Visible party/raid members' target changes (`UNIT_TARGET` for `party1`–`party4`
+or `raid1`–`raid40`) also enter the existing unit queue as `own (party target)`.
+Both queueing and observation require an existing, visible member, confirmed
+not to be the player, and a confirmed non-instance state. Our own raid token
+is excluded, so our target keeps its ordinary `own target` label. A queued
+group target must still have the same readable GUID at drain; a replacement
+needs its own target-change event. Missing, throwing or secret API values
+refuse the observation. The queue remains bounded; no new timer or send is
+added. These are ordinary own sightings, including the existing O-share path.
+Forever event delivery, target readability and same-area semantics still need
+native confirmation.
+
+A readable opposite-faction target/mouseover/nameplate/group-target event with a matching
+name says `is on YOUR layer` only if your layer was known when it was seen
+and no boundary has occurred since; otherwise it remains a historical
+sighting, or says `seen by you, layer unknown` when no layer was known. A Bulo-only GUID enrichment
 is not enough to generate this exact-name finding. War Effort sends only a
 three-character enemy hash, so a match says `possible match, seen by <spotter>`
 and includes class, level, zone and age. Different players can share the same
 hash. It is probable, never certain; ask the spotter to confirm the identity.
+Own single-word realm checks compare normalized, folded realm strings, not
+these lossy hashes; colliding realm hashes cannot identify a different player.
 
 The key is the source's exact lower-case name, a hyphen, then lower-case realm
 with spaces/hyphens removed. Both home/explicit-realm and empty-realm forms
 are checked. On Forever, the inspected detector passes UnitName's second
 return into its realm argument even when that return is a surname. A tracked
-`First Surname` therefore also checks the `first-surname` wire key. Display
-name and hashing conventions were verified from source, not from a live
-client. The original code's realm terminology is not proof of a real realm.
+`First Surname` therefore also checks the `first-surname` wire key. With an
+explicit realm, `First Surname-Realm` checks exactly (First, Surname),
+("First Surname", Realm) and ("First Surname", ""), each in the existing spelling
+variants; it never substitutes the home realm or includes `-Realm` in the
+surname. Hash matches remain possible, never confirm the realm, and carry the
+uncertainty note for qualified entries even when that realm is our home.
+Display name and hashing conventions were verified from source, not from a
+live client. The original code's realm terminology is not proof of a real
+realm. Whether any source supplies a surname character's true realm, and which
+representation `UnitName` returns on build 70938, still need native validation.
 
 Find offers `Ask <spotter> for invite` through the same manual helper. If a
 fresh Bulo/LayerSwap claim puts that spotter on your current server key, it
@@ -731,17 +795,46 @@ A finding that came only from a guild relay says `possible match, seen in a
 relayed report`, without a name to ask and without an ask button.
 
 A first finding prints a chat alert and attempts a raid-warning sound. It
-re-alerts only after five minutes or when a new zone is reported. Sound API
-failure is harmless. Findings expire after ten minutes; a direct sighting
-has priority over a possible report until it expires. Only the newest
-possible spotter is retained for each name; this is not a spotter history.
-World/zone/layer boundaries wipe findings and pending report fragments,
-not tracked names. Re-entering a zone needs fresh observations. Alerts and
-locations are never persisted, so a reload starts a new alert session.
+re-alerts only after five minutes or when a new zone is reported. Across tracked
+names, sound plays at most once per 10 seconds. A 10-second window prints up to
+three detailed alerts; additional alerts are counted in one summary at the end
+of that window, such as `LayerEnemies: 2 more tracked names located, see Find`.
+Sound API failure is harmless. Named evidence survives world, zone and layer
+boundaries for 60 minutes from its observation time. Each tracked name can
+show its own sighting, another first-hand line and a claim, for example:
+
+    Seen by Birch Scout in Ashenvale, 4 min ago, layer 7085 (their claim)
+    Reported: named as killer in Durotar, 12 min ago (death, claim)
+
+At 600 seconds each line is prefixed `last known` and offers no Ask/Hop;
+at 3600 seconds it is removed. Adding old evidence does not alert. A fresh
+first-hand finding has action/alert priority over a claim, but both remain
+visible. Your own sighting remains primary over a newer guild observation
+while under 600 seconds old, in your current zone and still valid for your
+current layer (known at sighting time, with no intervening boundary). Each
+line keeps its own time and layer label. Guild O lines are first-hand; R lines and indirect
+envelopes are claims and never authorize asking their origin. A fresh hash
+finding is displayed alongside last-known named lines, including its possible
+match warning, spotter and age, so the evidence behind Ask remains visible.
+GBOUNTY and WALLOFSHAME killer names are claims in any zone, with victim
+coordinates when supplied.
+Direct HeadHunter P/L keeps its legacy ten-minute/boundary Find path outside
+the five-source cache; indirect HH reports still use the relayed category.
+HeadHunter D decoding and a HeadHunter cache source are not part of this change. No new send or relay is added.
+
+Coordinates are text only, labelled observer or victim, never cache-driven
+map pins. Only our own sightings and guild O lines carry a server-layer
+claim. Other sources cannot confer a layer. Boundaries invalidate an old
+own sighting's current-layer certainty without erasing the evidence.
+War Effort hash-only matches retain their existing ten-minute/boundary path;
+a hash never becomes a named cache entry. Pending report fragments still
+reset at boundaries. Reload starts with empty evidence and alert history;
+only the configured watchlist survives. Removing a name hides its evidence,
+but re-adding it may find the still-retained session memory.
 
 ### OpenMap shared positions (receive only)
 
-A tracked full name can also have a second, independent line:
+A tracked full name can also have an independent shared-position line:
 
     last shared position (OpenMap): Durotar 42,57 · 20 s ago · enemy faction
 
@@ -759,21 +852,21 @@ is not guessed. Only Battle.net can supply the optional faction label:
 positions have unknown faction. A character heard on more than one route
 has one place; the latest received position wins.
 
-A live sighting still owns the row's status, layer, Ask/Hop eligibility and
+Named evidence (or a live hash match) still owns the row's status, layer, Ask/Hop eligibility and
 alerts, exactly as without a shared position. The OpenMap line has its own
 zone, coordinates and age, even if they disagree with the sighting. It never
-carries a layer. With no live sighting, status is `shared position`, and the
+carries a layer. With no retained sighting, status is `shared position`, and the
 OpenMap line stands alone with no Ask, Hop, same-layer claim or alert. Shared
 positions never enter the enemy store and are never re-shared or relayed,
 including an opposite-faction friend's private position. They appear only
 on Find rows and tracked-name command output, not in sighting alerts.
 
-Sighting lifetime stays ten minutes; the shared position expires after 150
-seconds without a new line. An OpenMap withdrawal (`L0`) clears only the
-place. World/zone/layer boundaries clear sightings, not shared positions.
-Removing a tracked name clears both; reloading keeps only the configured
-watchlist, never either location. There is at most one place per tracked
-name (five total), with a 64-byte incoming-line limit. Find cards with shared
+Named evidence keeps its independent one-hour lifetime; the shared position
+expires after 150 seconds without a new line. An OpenMap withdrawal (`L0`)
+clears only the place. Boundaries erase neither named memory nor shared
+positions. Removing a tracked name clears its shared position and hides its
+evidence; reloading keeps only the configured watchlist, never either location. There is at most one place per tracked
+name (20 total), with a 64-byte incoming-line limit. Find cards with shared
 positions are taller; scroll with the mouse wheel to see the other names.
 
 OpenMap sharing is off by default in OpenMap. Its sharing guildmates

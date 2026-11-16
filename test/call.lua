@@ -198,10 +198,10 @@ test("Call: Find full stays unchanged; partial names are never added",function()
     for _,partial in ipairs({false,true}) do
         local N=H.load(); local r=record(0)
         if partial then r.enemies[1].partial=true
-        else for _,name in ipairs({"Alder","Birch","Clover","Dune","Elm"}) do yes(N.Find.add(N.Main.find,name)) end end
+        else for i=1,N.Find.MAX do yes(N.Find.add(N.Main.find,"Seeker "..H.abc(i))) end end
         local before=table.concat(N.Main.find.names,","); N.Main.callReceive(r,"Birch Moss"); yes(N.CallUI.help)
         local line=#H.log(); N.CallUI.help:Click(); eq(table.concat(N.Main.find.names,","),before)
-        if not partial then yes(table.concat(H.log(),"\n"):find("five",1,true)) end
+        if not partial then yes(table.concat(H.log(),"\n"):find("20",1,true)) end
     end
 end)
 test("Call: Dismiss and x only close; swapping dismiss id changes only its art path",function()
@@ -447,11 +447,11 @@ test("Call review: waypoint uses a displayed map other than the local map",funct
     eq(#points,1); eq(points[1].uiMapID,200); eq(can[1],200)
     eq(points[1].position.x,.425); eq(points[1].position.y,.61); eq(#H.sent(),0)
 end)
-test("Call review: Find keeps its existing two-word realm limitation",function()
+test("Call review: Find accepts realm-qualified two-word killers",function()
     for _,suffix in ipairs({"-Stormrage","-1234"}) do
         local N=H.load(); local r=record(0); r.enemies[1].name="Cedar Vale"..suffix
         N.Main.callReceive(r,"Birch Moss"); yes(popup(N)); yes(N.CallUI.event.full)
-        N.CallUI.help:Click(); eq(#N.Main.find.names,0); eq(#H.sent(),0)
+        N.CallUI.help:Click(); eq(#N.Main.find.names,1); eq(N.Main.find.names[1],"Cedar Vale"..suffix); eq(#H.sent(),0)
     end
 end)
 for _,key in ipairs({"victim","killer","where"}) do

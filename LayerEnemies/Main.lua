@@ -15,7 +15,8 @@ local function captureStale()
         if g then M.staleGUIDs[g]=true; M.staleUnits[u]=g end
     end
     add("target"); add("mouseover")
-    for i=1,40 do add("nameplate"..i) end
+    for i=1,40 do add("nameplate"..i); add("raid"..i.."target") end
+    for i=1,4 do add("party"..i.."target") end
 end
 function M.releaseUnit(unit)
     if not S.str(unit,30) then return end
@@ -111,6 +112,8 @@ function M.poll()
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
     M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
     N.Directory.sync()
+    N.Find.home(M.find,M.homeRealm())
+    N.Known.prune(M.find.known,time)
     M.findAlerts()
     N.CallUI.check()
     if N.UI then N.UI.refresh() end
@@ -120,7 +123,29 @@ function M.queuePoll()
     M.pollQueued=true
     if not after(0,function() M.pollQueued=false; guarded(M.poll) end) then M.pollQueued=false; guarded(M.poll) end
 end
+-- These helpers receive only secret-checked strings. Visibility is of the member,
+-- not a promise that a remote target can be read; A.unit still guards every field.
+local function groupMember(unit)
+    if unit:match("^party[1-4]$") then return unit end
+    local index=tonumber(unit:match("^raid([1-9]%d?)$"))
+    if index and index<=40 then return unit end
+end
+local function targetMember(unit)
+    local member=unit:match("^(.-)target$")
+    return member and groupMember(member)
+end
+local function groupReadable(member)
+    return A.inInstance()==false and S.call(UnitIsVisible,member)==true
+        and S.call(UnitExists,member)==true and S.call(UnitIsUnit,member,"player")==false
+end
+function M.queueGroupTarget(unit)
+    unit=S.str(unit,30)
+    if unit and groupMember(unit) then M.queueUnit(unit.."target") end
+end
 function M.observe(unit)
+    unit=S.str(unit,30); if not unit then return end
+    local member=targetMember(unit)
+    if member and not groupReadable(member) then return end
     local time=now()
     local zone,x,y=A.location()
     if zone~=M.store.zone then M.boundary(zone,true) end
@@ -143,20 +168,30 @@ function M.observe(unit)
     end
     local e=A.unit(unit)
     if not e then return end
-    e.at=time; e.source="own "..unit; e.x=x; e.y=y; e.positionKind="approximate observer position"
+    e.at=time; e.source=member and "own (party target)" or "own "..unit; e.x=x; e.y=y; e.positionKind="approximate observer position"
     T.observe(M.store,e,time)
     N.Find.own(M.find,e,zone,time)
 end
 function M.queueUnit(unit)
-    if not S.str(unit,30) or not (unit=="target" or unit=="mouseover" or unit:match("^nameplate%d+$")) then return end
+    unit=S.str(unit,30); if not unit then return end
+    local member=targetMember(unit)
+    if not (unit=="target" or unit=="mouseover" or unit:match("^nameplate%d+$") or member) then return end
+    if member and not groupReadable(member) then return end
     if M.staleUnits[unit] and S.str(S.call(UnitGUID,unit),160)~=M.staleUnits[unit] then M.releaseUnit(unit) end
-    if S.count(M.pendingUnits)>=42 then return end
-    M.pendingUnits[unit]=true
+    if S.count(M.pendingUnits)>=86 then return end
+    local expected=member and S.str(S.call(UnitGUID,unit),160) or not member
+    if not expected then return end
+    M.pendingUnits[unit]=expected
     if M.unitsQueued then return end
     M.unitsQueued=true
     local function run()
         M.unitsQueued=false
-        for token in pairs(M.pendingUnits) do M.pendingUnits[token]=nil; guarded(M.observe,token) end
+        for token,expected in pairs(M.pendingUnits) do
+            M.pendingUnits[token]=nil
+            -- Group tokens can retarget before the queue drains. Only a new event
+            -- may replace the queued GUID; all other readability guards run again.
+            if expected==true or (S.str(token,30) and S.str(S.call(UnitGUID,token),160)==expected) then guarded(M.observe,token) end
+        end
         M.queuePoll()
     end
     if not after(0,run) then run() end
@@ -167,6 +202,15 @@ function M.isMe(name)
     local _,key=I.name(name)
     local _,me=A.ownIdentity()
     return key~=nil and me~=nil and key==me
+end
+-- Preserve origin age and provenance before the zone-only store can reject a record.
+function M.findRecord(record)
+    local source=record.src=="le" and "guild" or record.kind=="death" and "death"
+        or record.hand=="relayed" and "relayed" or record.src=="hh" and "headhunter" or "spy"
+    local layer=source=="guild" and record.layer.ns=="server" and record.layer.value or nil
+    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=(record.src=="we" or record.src=="hh") and record.heard or record.at,
+        now=now(),enemies=record.enemies,source=source,x=record.x,y=record.y,pos=record.pos,
+        layer=layer,ns=layer and "server" or "unknown",relayed=record.hand=="relayed"},M.homeRealm())
 end
 function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelName)
     -- Check every delivered value before comparing/indexing it.
@@ -217,7 +261,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
         local stored,whyNot=T.report(M.store,record,time)
         if not stored then M.lastDrop=whyNot end
         if why=="new" then M.offerRelay(record) end
-        N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+        M.findRecord(record)
         M.findAlerts()
         if N.UI then N.UI.refresh() end
     end
@@ -287,7 +331,7 @@ function M.spyIn(prefix,text,kind,sender)
     if not ok then M.error="data unavailable (API error)" end
     local stored,whyNot=T.refresh(M.store,record,time)
     if not stored then M.lastDrop=whyNot end
-    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+    M.findRecord(record)
     M.findAlerts(ok and callAction=="show")
     if N.UI then N.UI.refresh() end
 end
@@ -319,7 +363,7 @@ function M.headhunter(text,kind,sender)
             local stored,whyNot=T.report(M.store,record,time)
             M.lastDrop=stored and "headhunter "..record.kind or whyNot
             if whyNot~="duplicate" then
-                N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+                M.findRecord(record)
                 M.offerRelay(record)
             end
         end
@@ -366,7 +410,7 @@ function M.relayIn(text,kind,sender)
     -- a copy of a report already held (first-hand or relayed) adds nothing to Find
     if not stored and whyNot=="duplicate" then return end
     -- a relayed origin was in someone else's group: Find shows the report but never offers to ask them
-    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies,relayed=true},M.homeRealm())
+    M.findRecord(record)
     M.findAlerts()
     if N.UI then N.UI.refresh() end
 end
@@ -659,13 +703,45 @@ function M.placeText(place)
     return "last shared position (OpenMap): "..M.zoneName(place.map).." "..math.floor(place.x*100+.5)..","..math.floor(place.y*100+.5)
         .." · "..math.floor(place.age).." s ago"..(place.faction=="opposite" and " · enemy faction" or place.faction=="same" and " · your faction" or "")
 end
-function M.findText(row,sightingOnly)
-    local text=row.name.." — "..row.status
+local function knownLine(e)
+    local seconds=math.floor(math.max(0,now()-e.at))
+    local age=seconds<60 and (seconds.." s") or (math.floor(seconds/60).." min")
+    local text
+    if e.kind=="claim" then
+        text="Reported: "..(e.source=="death" and "named as killer" or "possible match, seen in a relayed report")
+    else text="Seen by "..(e.spotter or "unknown") end
+    text=text.." in "..M.zoneName(e.zone)..", "..age.." ago"
+    if e.kind=="claim" then text=text.." ("..e.source..", claim)"
+    elseif e.layer then text=text..", layer "..e.layer.." ("..(e.own and "your sighting" or "their claim")..")" end
+    if e.own then text=text.." · "..e.status:gsub("^last known: ","")
+    elseif e.realmUnknown then text=text.." · realm not confirmed" end
+    if e.detail=="own (party target)" then text=text.." · "..e.detail end
+    if e.x and e.y then text=text.." · "..math.floor(e.x*100+.5)..","..math.floor(e.y*100+.5).." ("..(e.pos or "unknown").." position)" end
+    if e.travel then text=text.." · travel to "..M.zoneName(e.zone).." first"
+    elseif e.same then text=text.." · already on your layer"
+    elseif e.probably then text=text.." · probably on your layer (your server key is ambiguous)" end
+    return (e.lastKnown and "last known: " or "")..text
+end
+local function currentLine(row)
+    local text=row.status
     if row.at then
         local detail=" in "..M.zoneName(row.zone)..", "..math.floor(now()-row.at).." s ago ("..(row.class or "Unknown class").." "..tostring(row.level or "?")..")"
         text=text..detail..(row.same and " — already on your layer" or row.probably and " — probably on your layer (your server key is ambiguous)"
             or row.travel and (" — travel to "..M.zoneName(row.zone).." first") or "")
     end
+    return text
+end
+function M.findDetails(row)
+    local lines={}
+    if row.current then lines[#lines+1]=currentLine(row.current) end
+    if row.seen then lines[#lines+1]=knownLine(row.seen) end
+    if row.otherSeen then lines[#lines+1]=knownLine(row.otherSeen) end
+    if row.reported then lines[#lines+1]=knownLine(row.reported) end
+    return #lines>0 and table.concat(lines,"\n") or nil
+end
+function M.findText(row,sightingOnly)
+    local details=M.findDetails(row)
+    local text=row.name.." — "..(details or currentLine(row))
     if row.place and not sightingOnly then
         return (row.at and (text.."\n") or (row.name.." — "))..M.placeText(row.place)
     end
@@ -731,12 +807,36 @@ end
 function M.alertSound()
     S.call(PlaySound,S.tab(SOUNDKIT) and SOUNDKIT.RAID_WARNING or 8959,"Master")
 end
-function M.findAlerts(quiet)
-    if not M.find or #M.find.names==0 then return end
+local function findSummary(st,window)
+    if M.find~=st or st.alertWindow~=window then return end
+    if window.more>0 then
+        M.say("LayerEnemies: "..window.more.." more tracked names located, see Find")
+        window.more=0
+    end
+    st.alertWindow=nil
+end
+function M.findAlerts(quiet,printed)
+    local st,time=M.find,now()
+    if not st then return end
+    local window=st.alertWindow
+    if window and time-window.at>=10 then findSummary(st,window); window=nil end
+    if #st.names==0 then return end
     for _,row in ipairs(M.findRows()) do
-        if N.Find.alert(M.find,row,now()) then
-            M.say("LayerEnemies: "..M.findText(row,true))
-            if not quiet then M.alertSound() end
+        if N.Find.alert(st,row,time) then
+            if row.name~=printed then
+                if not window then window={at=time,lines=0,more=0}; st.alertWindow=window end
+                if window.lines<3 then
+                    M.say("LayerEnemies: "..M.findText(row,true)); window.lines=window.lines+1
+                else
+                    window.more=window.more+1
+                    if not window.pending then
+                        window.pending=after(math.max(0,10-(time-window.at)),function() findSummary(st,window) end)
+                    end
+                end
+            end
+            if not quiet and (not st.soundAt or time-st.soundAt>=10) then
+                st.soundAt=time; M.alertSound()
+            end
         end
     end
 end
@@ -745,17 +845,23 @@ function M.track(name,remove)
     elseif name then
         local ok,why=N.Find.add(M.find,name)
         if not ok then M.say("LayerEnemies: "..why); return false end
-        for _,e in pairs(M.store.localSeen) do N.Find.own(M.find,e,M.store.zone,e.at) end
+        for _,e in pairs(M.store.localSeen) do N.Find.own(M.find,e,M.store.zone,e.at,now()) end
         for _,row in pairs(M.store.reports) do
             local r=row.record
             -- a stored guild relay stays a relay when replayed into Find (never askable)
-            N.Find.report(M.find,{sender=r.origin,zone=r.zone,at=r.heard,enemies=r.enemies,relayed=r.src=="guild"},M.homeRealm())
+            M.findRecord(r)
         end
     else N.Find.remove(M.find) end
     LayerEnemiesDB.tracked=M.find.names
     if #M.find.names==0 then M.say("LayerEnemies: tracked names cleared.") end
-    for _,row in ipairs(M.findRows()) do M.say("LayerEnemies: "..M.findText(row)) end
-    M.findAlerts()
+    local printed
+    if name and not remove then
+        local _,key=N.Find.name(name)
+        for _,row in ipairs(M.findRows()) do
+            if N.Find.fold(row.name)==key then M.say("LayerEnemies: "..M.findText(row)); printed=row.name; break end
+        end
+    elseif remove and #M.find.names>0 then M.say("LayerEnemies: tracked name cleared.") end
+    M.findAlerts(nil,printed)
     if N.UI then N.UI.refresh() end
     return true
 end
@@ -1828,7 +1934,7 @@ function M.start()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
     local saved=LayerEnemiesDB
-    M.find=N.Find.new(saved.tracked); M.call=N.Call.new()
+    M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new()
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
     M.host.want=LayerEnemiesDB.guildHost
@@ -1904,7 +2010,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -1930,6 +2036,7 @@ local function dispatch(_,event,...)
         if A.location()~=M.store.zone then guarded(M.boundary,A.location(),true) end
         M.queuePoll()
     elseif event=="PLAYER_TARGET_CHANGED" then M.queueUnit("target")
+    elseif event=="UNIT_TARGET" then M.queueGroupTarget(...)
     elseif event=="UPDATE_MOUSEOVER_UNIT" then M.queueUnit("mouseover")
     elseif event=="NAME_PLATE_UNIT_ADDED" then M.queueUnit(...)
     elseif event=="NAME_PLATE_UNIT_REMOVED" then M.releaseUnit(...)
