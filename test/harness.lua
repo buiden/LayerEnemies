@@ -7783,5 +7783,6 @@ assert(loadfile("test/watch.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon
     guild=function(v,name) inGuild=v; if name then guildName=name end end,instance=function(v) inInstance=v end,
     roster=function(v) roster=v end,units=function() return units end,player=player,snapshot=snapshot,
     sent=function() return sent end,log=function() return log end,frames=function() return frames end})
+
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
