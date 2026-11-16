@@ -209,6 +209,24 @@ test("Round1 group: retarget without a new event cannot change a queued observat
     end
 end)
 
+test("Round1 hash: all evidence plus an independent place fits on a Find page",function()
+    local N=H.load(); local F,M=N.Find,N.Main
+    yes(M.track("Cedar Vale"))
+    F.own(M.find,{name="Cedar Vale",source="own target",faction="opposite",layer="7086-7"},100,H.clock())
+    H.advance(1)
+    F.report(M.find,{sender="Witness",zone=100,at=H.clock(),source="death",x=.2,y=.3,pos="victim",enemies={{name="Cedar Vale"}}},"Test Realm")
+    H.advance(700)
+    F.report(M.find,{sender="HashScout",zone=100,at=H.clock(),enemies={{hash=N.Hash.player("Cedar","Vale")}}},"Test Realm")
+    H.deliver("CHAT_MSG_ADDON","OpenMapLoc","L1\t100\t0.4200\t0.5700\tMAGE\t60","GUILD","Cedar Vale")
+    local r=M.findRows()[1]; yes(r.seen); yes(r.reported); yes(r.place); yes(r.canAsk)
+    N.UI.toggle(); N.UI.select("find"); local ui=N.UI.pool[1]
+    yes(ui and ui:IsShown(),"an extra current-evidence line must not hide the whole card")
+    yes(ui.sub:GetText():find("HashScout",1,true)); yes(ui.sub:GetText():find("Seen by you",1,true))
+    yes(ui.sub:GetText():find("Reported:",1,true)); yes(ui.place:IsShown()); yes(ui.ask:IsShown())
+    yes(N.UI.body.height>=70+ui.height,"the complete card fits above the footer")
+    N.UI.select("local"); eq(N.UI.body.height,300); eq(N.UI.frame.height,514)
+end)
+
 test("Round1 realm: own realm equality normalizes and folds full strings",function()
     local N=H.load(); local st=N.Find.new({"Alice-Érea52"},"Home")
     N.Find.own(st,{name="Alice",realm="érea - 52",source="own target",faction="opposite"},100,H.clock())

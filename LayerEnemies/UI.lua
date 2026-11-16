@@ -174,10 +174,24 @@ function U.render()
         return U.tab=="local" and 48 or U.tab=="friendly" and 68 or 80
     end
     local top=U.tab=="find" and 70 or U.tab=="friendly" and 48 or U.tab=="reported" and 23 or 0
+    -- A hash line beside both cached slots and an OpenMap place can exceed
+    -- the usual page. Grow only enough for one whole card; never hide it.
+    local bodyHeight=300
+    if U.tab=="find" then
+        for _,row in ipairs(rows) do bodyHeight=math.max(bodyHeight,top+rowHeight(row)) end
+    end
+    if U.bodyHeight~=bodyHeight then
+        U.bodyHeight=bodyHeight; U.body:SetHeight(bodyHeight)
+        local extra=bodyHeight-300
+        U.frame:SetHeight(514+extra); U.hint:SetPoint("TOPLEFT",10,-420-extra)
+        for _,item in ipairs({{U.share,6,440},{U.call,6,462},{U.guildOnly,80,440},{U.netWe,176,440},{U.netHh,266,440}}) do
+            item[1]:SetPoint("TOPLEFT",item[2],-item[3]-extra)
+        end
+    end
     -- Clamp to the last full page, accounting for each row's own height.
     local maximum,used=#rows,0
     for i=#rows,1,-1 do
-        used=used+rowHeight(rows[i]); if used>300-top then break end
+        used=used+rowHeight(rows[i]); if used>bodyHeight-top then break end
         maximum=i-1
     end
     U.offset=math.max(0,math.min(U.offset,maximum))
@@ -186,7 +200,7 @@ function U.render()
     for index=1,#rows-U.offset do
         local e=rows[index+U.offset]
         local height=rowHeight(e)
-        if y+height>300 then break end
+        if y+height>bodyHeight then break end
         visible=visible+1
         local r=U.pool[index]
         if not r then r=rowFrame(); U.pool[index]=r end

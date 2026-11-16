@@ -29,6 +29,8 @@ MUTANTS = [
     ('group-retarget-snapshot-ignored', 'LayerEnemies/Main.lua',
      'if expected==true or (S.str(token,30) and S.str(S.call(UnitGUID,token),160)==expected) then guarded(M.observe,token) end',
      'guarded(M.observe,token)'),
+    ('hash-detail-card-hidden', 'LayerEnemies/UI.lua',
+     'bodyHeight=math.max(bodyHeight,top+rowHeight(row))', 'bodyHeight=300'),
     ('boundary-wipes-memory', 'LayerEnemies/Find.lua', 'st.epoch=st.epoch+1',
      'st.epoch=st.epoch+1; st.known=N.Known.new(); st.locations={}'),
     ('retention-unbounded', 'LayerEnemies/Known.lua', 'TTL=3600,MAX=300', 'TTL=3600000000,MAX=300'),
