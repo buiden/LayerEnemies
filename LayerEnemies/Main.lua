@@ -2033,6 +2033,9 @@ function M.start()
     SlashCmdList.LAYERENEMIES=function(command)
         local raw=(S.str(command,110) or ""):match("^%s*(.-)%s*$")
         command=raw:lower()
+        if command=="find share" or command=="find notice" then
+            M.say("LayerEnemies: usage: /le "..command.." on|off"); return
+        end
         if command=="find share on" or command=="find share off" then guarded(M.setFindShare,command=="find share on"); return end
         if command=="find notice on" or command=="find notice off" then guarded(M.setFindNotice,command=="find notice on"); return end
         if command=="find" then M.track(nil); return end

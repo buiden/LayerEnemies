@@ -423,6 +423,22 @@ test("watch notice history: event-only operation still bounds remembered notices
     yes(N.Safe.count(st.noticed)<=10,"ten-minute notice history is bounded")
 end)
 
+for _,command in ipairs({"share","notice"}) do
+    test("watch R1 slash: bare "..command.." shows usage without tracking or sharing it",function()
+        local N=ready({tracked={"Keep Name"}}); pump(N,100)
+        local before=snapshot(N.Main.find.names); local messages=#H.log()
+        SlashCmdList.LAYERENEMIES("find "..command)
+        eq(snapshot(N.Main.find.names),before,"bare subcommand is not a player name")
+        eq(LayerEnemiesDB.findShare,true); eq(LayerEnemiesDB.findNotice,true)
+        yes(#H.log()>messages); yes(H.log()[#H.log()]:find("/le find "..command.." on|off",1,true))
+        pump(N,160); pump(N,1000)
+        for _,m in ipairs(lines("T")) do
+            no(m.text:find(hash(command),1,true),"never advertise the bare subcommand's hash")
+        end
+        no(N.Main.error)
+    end)
+end
+
 for _,flap in ipairs({1,5,30}) do
     test("watch R1 repeat: list churn every "..flap.." seconds preserves per-name sixty seconds",function()
         for _,ours in ipairs({false,true}) do
