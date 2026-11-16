@@ -1297,28 +1297,36 @@ function M.nextReportId()
     db.weReportId=id
     return id
 end
+local function shareLayer(rep, time)
+    -- A report has one layer field: never attach a learned key to any earlier,
+    -- unlayered sighting. Compute independently for the guild and public cohort.
+    local key=not M.store.ambiguous(time) and L.key(M.store.bulo) or nil
+    for _,e in ipairs(rep.enemies) do if e.layer==nil then key=nil; break end end
+    return key
+end
 function M.shareTick()
     if not M.share or not M.sharing() then return end
     local time=now()
     local zone,x,y=A.location()
     if not zone or zone~=M.store.zone then return end
     local rep=N.Share.pick(M.share,M.store.localSeen,time,zone)
-    if not rep then return end
-    -- A report has one layer field: never attach a learned key to any earlier, unlayered sighting.
-    -- Unknown or ambiguous (mixed servers in the zone) is still sent as unknown, never guessed.
-    local key=not M.store.ambiguous(time) and L.key(M.store.bulo) or nil
-    for _,e in ipairs(rep.enemies) do if e.layer==nil then key=nil; break end end
+    local public=N.Share.pickWe(M.share,M.store.localSeen,time,zone)
+    if not rep and not public then return end
     local rid=M.nextReportId()
     local inGuild=S.call(IsInGuild)==true
-    -- One O line per slot, up to three per snapshot. Only fitted, accepted names
-    -- acquire a 60 s cooldown; refusals still consume the reserved 15 s slot.
-    local line,fitted=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=key,now=time,count=rep.count,
-        listedOnly=rep.burst.lines<N.Share.LINES,enemies=rep.enemies})
-    local accepted=line and #fitted>0 and inGuild and N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own",queue=false})
-    N.Share.sent(M.share,rep,accepted and fitted or {},time)
-    -- O follow-ups must not multiply War Effort reports: C+E only at burst start,
-    -- two or more enemies, a position, and a reader heard in the last 600 s.
-    if not rep.first or rep.count<2 or not (x and y) then return end
+    if rep then
+        -- Only fitted, accepted guild names acquire an O cooldown. Public
+        -- eligibility is independent of these chunks and their acceptance.
+        local line,fitted=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=shareLayer(rep,time),now=time,count=rep.count,
+            listedOnly=rep.burst.lines<N.Share.LINES,enemies=rep.enemies})
+        local accepted=line and #fitted>0 and inGuild and N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own",queue=false})
+        N.Share.sent(M.share,rep,accepted and fitted or {},time)
+    end
+    rep=public
+    -- C+E retains its own 60 s per-enemy eligibility, even without a guild O,
+    -- and the existing two-enemy, position and recently heard reader guards.
+    if not rep or rep.count<2 or not (x and y) then return end
+    local key=shareLayer(rep,time)
     local stamp=S.num(S.call(GetServerTime))
     if not stamp then return end
     local function heard(kind) local at=M.weHeard[kind]; return at and time>=at and time-at<M.WE_READER end

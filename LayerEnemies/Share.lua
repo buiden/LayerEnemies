@@ -12,6 +12,7 @@ function Sh.new() return { shared = {}, names = {}, first = {}, skipped = {}, la
 -- Cancel a snapshot, not the send/name cooldowns. Existing observations cannot
 -- reopen it; a later own observation may start a new burst at the normal slot.
 function Sh.cancel(st, seen, now)
+    if st.we then Sh.cancel(st.we, seen, now) end
     st.burst = nil
     S.clear(st.first)
     S.clear(st.skipped)
@@ -81,4 +82,15 @@ function Sh.sent(st, rep, fitted, now)
         for key in pairs(rep.burst.pending) do st.skipped[key] = now; st.first[key] = nil end
         st.burst = nil
     end
+end
+
+-- War Effort has one whole cohort, not the guild's independently paced chunks.
+-- Keep its eligibility in a separate lane; reserve every eligible enemy before
+-- dispatch, as the original single-report picker did even when a send failed.
+-- Cancelling either lane retains its cooldowns, never marking unsent O names.
+function Sh.pickWe(st, seen, now, zone)
+    if not st.we then st.we = Sh.new() end
+    local rep = Sh.pick(st.we, seen, now, zone)
+    if rep then Sh.sent(st.we, rep, rep.enemies, now) end
+    return rep
 end

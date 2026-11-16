@@ -267,6 +267,61 @@ test("crowd receiver: byte-trimmed lines count only their own names",function()
     eq(total,5); eq(named,3)
 end)
 
+local function noWarRepeats(N)
+    local last={}
+    for _,m in ipairs(H.weSent("E")) do
+        for _,e in ipairs(N.Protocol.decode(m.text).enemies) do
+            yes(not last[e.hash] or m.at-last[e.hash]>=60,"public enemy not repeated inside 60 seconds")
+            last[e.hash]=m.at
+        end
+    end
+end
+
+for _,n in ipairs({6,13}) do
+    test("crowd War Effort fight: "..n.." enemies produce five pairs in five minutes",function()
+        local N=ready(); H.netOn(N,"we"); H.hello("Wes",19)
+        for at=100,400 do H.time(at); crowd(N,n); tick(N,at) end
+        eq(#H.weSent("C"),5,"same pair budget as main")
+        eq(#H.weSent("E"),5)
+        for _,m in ipairs(H.weSent("C")) do eq(N.Protocol.decode(m.text).count,n) end
+        for _,m in ipairs(H.weSent("E")) do eq(#N.Protocol.decode(m.text).enemies,n) end
+        noWarRepeats(N); unique(decoded(N)); eq(N.Wire.queued(),0)
+    end)
+end
+
+for _,mode in ipairs({"unguilded","guild line refused","share off/on"}) do
+    test("crowd War Effort cooldown: "..mode.." keeps enemy dedupe",function()
+        local N=ready(); H.netOn(N,"we"); IsInGroup=function() return true end
+        if mode~="guild line refused" then H.guild(false) end
+        H.hello("Wes",19,"PARTY")
+        if mode=="guild line refused" then
+            H.result(function() local messages=H.sent(); return messages[#messages].prefix=="LEGW1" and 1 or 0 end)
+        end
+        crowd(N,4); tick(N,103); eq(#H.weSent("C"),1); eq(#H.weSent("E"),1)
+        eq(N.Safe.count(N.Main.share.shared),0,"public send cannot mark unsent guild names")
+        if mode=="share off/on" then
+            H.time(104); N.Main.setShare(false); H.time(105); N.Main.setShare(true); crowd(N,4)
+            tick(N,118)
+        else
+            tick(N,118); tick(N,133); H.time(134); crowd(N,4); tick(N,148)
+        end
+        eq(#H.weSent("C"),1,"same enemies stay suppressed across O transitions")
+        eq(#H.weSent("E"),1); noWarRepeats(N)
+        H.time(160); crowd(N,4); tick(N,162.999); eq(#H.weSent("C"),1)
+        tick(N,163); eq(#H.weSent("C"),2,"exact 60-second repeat is allowed")
+        eq(#H.weSent("E"),2); noWarRepeats(N); eq(N.Wire.queued(),0)
+    end)
+end
+
+test("crowd War Effort new arrivals: cooldown is per enemy, not global",function()
+    local N=ready(); H.netOn(N,"we"); H.hello("Wes",19); crowd(N,4); tick(N,103)
+    H.time(110); crowd(N,6); tick(N,118)
+    local clusters,enemies=H.weSent("C"),H.weSent("E")
+    eq(#clusters,2); eq(#enemies,2)
+    eq(N.Protocol.decode(clusters[2].text).count,2)
+    eq(#N.Protocol.decode(enemies[2].text).enemies,2); noWarRepeats(N)
+end)
+
 test("crowd War Effort: O follow-up slots do not multiply the public report",function()
     local N=ready(); H.netOn(N,"we"); H.hello("Wes",19); crowd(N,9)
     tick(N,103); eq(#H.weSent("C"),1); local first=H.weSent("E")

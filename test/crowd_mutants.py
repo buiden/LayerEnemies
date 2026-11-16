@@ -18,6 +18,9 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 # label, relative source, exact old text, replacement, required killing test
 MUTANTS = [
+    ("public enemies lose their independent cooldown", "LayerEnemies/Share.lua",
+     "if rep then Sh.sent(st.we, rep, rep.enemies, now) end", "-- no public cooldown reservation",
+     "crowd War Effort cooldown: unguilded keeps enemy dedupe"),
     ("each O line claims the remaining backlog", "LayerEnemies/Relay.lua",
      "local lineCount = rep.listedOnly and #fitted or count", "local lineCount = count",
      "crowd receiver: 13 enemies keep their exact displayed total"),
