@@ -31,6 +31,7 @@ Spy.lua
 Incident.lua
 Share.lua
 Directory.lua
+Known.lua
 Find.lua
 OpenMap.lua
 CallText.lua

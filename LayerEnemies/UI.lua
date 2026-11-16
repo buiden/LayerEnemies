@@ -162,8 +162,15 @@ function U.render()
     U.banner:ClearAllPoints(); U.banner:SetPoint("TOPLEFT",4,U.tab=="find" and -16 or 0)
     U.banner:SetWidth(U.tab=="find" and 340 or 250)
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to 20 names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
+    local function knownHeight(e)
+        local function height(v) return v and ((v.own or v.layer or v.x) and 58 or 44) or 0 end
+        return height(e.seen)+height(e.reported)
+    end
     local function rowHeight(e)
-        if U.tab=="find" then return e.place and 146 or e.at and 106 or 76 end
+        if U.tab=="find" then
+            if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0) end
+            return e.place and 146 or e.at and 106 or 76
+        end
         return U.tab=="local" and 48 or U.tab=="friendly" and 68 or 80
     end
     local top=U.tab=="find" and 70 or U.tab=="friendly" and 48 or U.tab=="reported" and 23 or 0
@@ -195,7 +202,8 @@ function U.render()
         r.ask:SetWidth(friendly and 120 or 220); r.ask.label:SetWidth(friendly and 112 or 212)
         r.sub:SetWidth(friendly and 200 or 294)
         r.levelBG:SetShown(not friendly)
-        r.sub:SetHeight(U.tab=="find" and (e.at and 44 or 14) or U.tab=="local" and 14 or 24)
+        local detailHeight=knownHeight(e)
+        r.sub:SetHeight(U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or 24)
         r.level:SetText(e.level and tostring(e.level) or U.tab=="friendly" and "" or "?")
         r.age:SetText(e.at and age(e.at) or e.age and age(time-e.age) or "")
         r.title:SetText(e.displayName or e.name or "Unknown")
@@ -213,11 +221,11 @@ function U.render()
             else askState(r,e.name,"Ask for invite") end
         else
             r.tracked=e.name; r.clear:Show()
-            r.sub:SetText(e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or (e.place and "" or "Not located"))
+            r.sub:SetText(M.findDetails(e) or (e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or (e.place and "" or "Not located")))
             askState(r,e.canAsk and e.spotter or nil,e.spotter and ("Ask "..e.spotter.." for invite") or "")
-            if e.probably then r.sub:SetText(r.sub:GetText().." · probably your layer (key ambiguous)") end
+            if e.probably and detailHeight==0 then r.sub:SetText(r.sub:GetText().." · probably your layer (key ambiguous)") end
             if e.place then
-                r.place:ClearAllPoints(); r.place:SetPoint("TOPLEFT",r,"TOPLEFT",42,e.at and -73 or -26)
+                r.place:ClearAllPoints(); r.place:SetPoint("TOPLEFT",r,"TOPLEFT",42,detailHeight>0 and -29-detailHeight or e.at and -73 or -26)
                 r.place:SetText(M.placeText(e.place)); r.place:Show()
             end
         end

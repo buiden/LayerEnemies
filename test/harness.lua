@@ -1563,7 +1563,7 @@ test("Find match, no match, collisions, expiry, own sighting and alerts",functio
     r=F.rows(st,913,100)[1]; yes(r.own); no(r.same); no(r.canAsk); eq(r.status,"seen by you, layer unknown")
     F.own(st,{name="Alice",faction="opposite",source="own target",layer="7086-7"},100,913)
     r=F.rows(st,913,100)[1]; yes(r.own); yes(r.same); no(r.canAsk); eq(r.status,"is on YOUR layer")
-    F.boundary(st); no(st.locations.Alice); eq(#st.names,2)
+    F.boundary(st); yes(st.locations.Alice); no(F.rows(st,913,100)[1].same); eq(#st.names,2)
     -- A genuine three-character collision must remain possible, never confirmed.
     local a,b="PFKMEclrzj","CuhFVPbgzA"
     eq(N.Hash.player(a,""),"Y8Y"); eq(N.Hash.player(b,""),"Y8Y")
@@ -2526,7 +2526,7 @@ test("relayed origins never become Find spotters (مانع T6 F1)",function()
     no(LE.AskInvite("Stranger")); drain(); eq(#opened,0); eq(#sent,0)
     -- the same name reported first-hand afterwards can be asked again
     deliver("CHAT_MSG_ADDON","HeadHunter","1AP:2s;"..b36(server)..";dw;6y;a1;Kora Reed/P/31;4","PARTY","Mira Vale")
-    U.render(); yes(U.pool[1].sub.text:find("seen by Mira Vale",1,true)); yes(U.pool[1].ask:IsShown())
+    U.render(); yes(U.pool[1].sub.text:find("Seen by Mira Vale",1,true)); yes(U.pool[1].ask:IsShown())
 end)
 test("relay rechecks guild and instance at send time (مانع T6 S1)",function()
     local N=loadAddon(); establish(N); N.Relay.rand=function() return .5 end; advance(1)
@@ -6645,8 +6645,8 @@ test("previous zone 17: carried rows never become sends, Find locations, maps or
     eq(#N.Store.previous(N.Main.store,clock),1)
     -- Exercise presentation and background work, not just the reducer.
     sent={}; log={}; N.UI.toggle(); slash("list"); advance(10); N.Main.shareTick()
-    eq(#oLines(),0); eq(#sent,0); eq(next(N.Main.find.locations),nil)
-    eq(N.Main.findRows()[1].at,nil); no(logged("is on YOUR layer"))
+    eq(#oLines(),0); eq(#sent,0); yes(N.Main.find.locations["Aster Vale"])
+    local remembered=N.Main.findRows()[1]; yes(remembered.at); yes(remembered.travel); no(remembered.same); no(remembered.canAsk); no(logged("is on YOUR layer"))
     eq(#N.Store.mapCandidates(N.Main.store,clock,100),0); eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
     eq(#N.Main.candidates(),0); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
     no(N.UI.pool[1].ask:IsShown()); N.UI.pool[1].ask:Click(); eq(#sent,0); eq(#opened,0)
@@ -6959,11 +6959,19 @@ test("OpenMap tiers 1 sighting only: frozen legacy row fields stay identical",fu
     local N=omReady(); clock=100; sight(N,100,60,false)
     local expected={name="Cedar Vale",zone=100,at=60,spotter="Birch Scout",class="ROGUE",level=47,possible=true,relayed=false,
         age=40,same=false,probably=false,travel=false,status="possible match, seen by Birch Scout",canAsk=true}
-    eq(snapshot(N.Main.findRows()[1]),snapshot(expected),"row projection from the pre-OpenMap Find implementation")
+    -- Section 4 adds named-evidence fields and a seen line; legacy action fields stay unchanged.
+    local function legacy(row)
+        local out={}
+        for _,key in ipairs({"name","zone","at","spotter","class","level","possible","relayed","age","same","probably","travel","status","canAsk","own","layerKnown"}) do out[key]=row[key] end
+        if row.own then out.spotter=nil end
+        return out
+    end
+    eq(snapshot(legacy(N.Main.findRows()[1])),snapshot(expected),"legacy action projection with named session evidence")
+    yes(N.Main.findRows()[1].seen); eq(N.Main.findRows()[1].seen.kind,"seen")
     sight(N,100,70,true)
     expected={name="Cedar Vale",own=true,zone=100,at=70,class="ROGUE",level=47,age=30,same=true,probably=false,travel=false,
         status="is on YOUR layer",canAsk=false,layerKnown=true} -- layerKnown: seen-unknown-layer adds it to own rows
-    eq(snapshot(N.Main.findRows()[1]),snapshot(expected)); eq(N.Main.findRows()[1].place,nil)
+    eq(snapshot(legacy(N.Main.findRows()[1])),snapshot(expected)); eq(N.Main.findRows()[1].place,nil)
 end)
 test("OpenMap tiers 2 place only: separate line, no layer, ask, hop, alert or relay",function()
     local N=bnReady(); establish(N)
@@ -6985,7 +6993,7 @@ end)
 test("OpenMap tiers 3 both same zone: sighting owns fields, place has its own age",function()
     local N=omReady(); clock=100; sight(N,200,60,false)
     om(); clock=110
-    local row=N.Main.findRows()[1]; local expected=N.Find.new({"Cedar Vale"}); expected.locations=N.Main.find.locations
+    local row=N.Main.findRows()[1]; local expected=N.Find.new({"Cedar Vale"}); expected.locations=N.Main.find.locations; expected.known=N.Main.find.known
     eq(withoutPlace(row),snapshot(N.Find.rows(expected,clock,100,function() return false end)[1]))
     yes(row.place); eq(row.age,50); eq(row.place.age,10); eq(row.place.at,100); eq(row.zone,200); eq(row.place.map,200)
     eq(row.place.layer,nil); eq(row.place.spotter,nil); eq(row.place.zone,nil); no(N.Main.error)
@@ -6995,7 +7003,7 @@ test("OpenMap tiers 4 conflicting zones and ages stay separate in text and UI",f
     local row=N.Main.findRows()[1]; eq(row.zone,100); eq(row.age,60); eq(row.at,60); eq(row.class,"ROGUE"); eq(row.level,47)
     yes(row.place); eq(row.place.map,200); eq(row.place.age,20); eq(row.place.class,"MAGE"); eq(row.place.level,60); eq(row.place.at,100)
     local text=N.Main.findText(row)
-    yes(text:find("Ashenvale, 60 s ago",1,true)); yes(text:find("\nlast shared position (OpenMap): Durotar 42,57 · 20 s ago · enemy faction",1,true))
+    yes(text:find("Ashenvale, 1 min ago",1,true)); yes(text:find("\nlast shared position (OpenMap): Durotar 42,57 · 20 s ago · enemy faction",1,true))
     N.UI.toggle(); N.UI.select("find"); local ui=N.UI.pool[1]
     yes(ui.sub:GetText():find("Ashenvale",1,true)); no(ui.sub:GetText():find("Durotar",1,true))
     yes(ui.place:GetText():find("Durotar 42,57 · 20 s ago · enemy faction",1,true)); no(ui.place:GetText():find("Ashenvale",1,true))
@@ -7029,10 +7037,10 @@ end)
 test("OpenMap tiers 7 independent 600 and 150 second expiry falls back either way",function()
     local N=omReady(); clock=100; sight(N,100,100,false); clock=690; om(); clock=699.9
     local row=N.Main.findRows()[1]; yes(row.at); yes(row.place)
-    clock=700; row=N.Main.findRows()[1]; eq(row.at,nil); eq(row.status,"shared position"); eq(row.canAsk,false); eq(row.place.age,10)
+    clock=700; row=N.Main.findRows()[1]; eq(row.at,100); yes(row.lastKnown); eq(row.canAsk,false); eq(row.place.age,10)
     N=omReady(); clock=100; sight(N,100,100,false); om(); clock=249.9; yes(N.Main.findRows()[1].place)
     clock=250; row=N.Main.findRows()[1]; eq(row.place,nil); eq(row.at,100); eq(row.age,150)
-    local bare=N.Find.new({"Cedar Vale"}); bare.locations=N.Main.find.locations
+    local bare=N.Find.new({"Cedar Vale"}); bare.locations=N.Main.find.locations; bare.known=N.Main.find.known
     eq(snapshot(row),snapshot(N.Find.rows(bare,clock,100,function() return false end)[1]))
 end)
 test("OpenMap tiers 8 ten-minute place stream never refreshes a sighting or calls findAlerts",function()
@@ -7043,7 +7051,7 @@ test("OpenMap tiers 8 ten-minute place stream never refreshes a sighting or call
         clock=100+i*10; om(); local row=N.Main.findRows()[1]
         yes(row.place); eq(row.place.at,clock); eq(row.place.age,0)
         eq(loc.at,100); eq(loc.zone,100); eq(snapshot(N.Main.find.alerts),alerts); eq(#log,nlog); eq(calls,0)
-        if i<60 then eq(row.at,100); eq(row.age,i*10) else eq(row.at,nil); eq(row.status,"shared position") end
+        eq(row.at,100); eq(row.age,i*10); if i==60 then yes(row.lastKnown); no(row.canAsk) end
     end
     eq(#sent,0); eq(N.Wire.queued(),0)
 end)
@@ -7052,8 +7060,8 @@ test("OpenMap tiers 9 L0 clears only place; layer boundary clears only sightings
     local before=withoutPlace(N.Main.findRows()[1]); om("L0"); local row=N.Main.findRows()[1]
     eq(withoutPlace(row),before); eq(row.place,nil)
     om(); local place=snapshot(N.Main.findRows()[1].place); N.Find.boundary(N.Main.find)
-    row=N.Main.findRows()[1]; eq(row.at,nil); eq(row.canAsk,false); eq(snapshot(row.place),place)
-    sight(N,100,90,false); N.Main.boundary(200); eq(N.Main.findRows()[1].at,nil); eq(snapshot(N.Main.findRows()[1].place),place)
+    row=N.Main.findRows()[1]; eq(row.at,90); yes(row.canAsk); eq(snapshot(row.place),place)
+    sight(N,100,90,false); N.Main.boundary(200); eq(N.Main.findRows()[1].at,90); no(N.Main.findRows()[1].canAsk); eq(snapshot(N.Main.findRows()[1].place),place)
 end)
 
 test("OpenMap chat ignore API field failure stays silent like an unreadable lookup",function()
@@ -7078,7 +7086,7 @@ test("OpenMap UI pool reuse hides stale places and drops former sighting actions
     local N=omReady(); clock=100; sight(N,100,90,false); om()
     N.UI.toggle(); N.UI.select("find"); local ui=N.UI.pool[1]; yes(rawget(ui,"place")); yes(ui.place:IsShown()); yes(ui.ask:IsShown())
     local normal=N.Main.findRows()[1]; eq(normal.canAsk,true)
-    N.Find.boundary(N.Main.find); N.UI.render(); no(ui.ask:IsShown()); eq(ui.spotter,false); eq(ui.hopRecord,false)
+    clock=3700; om(); N.UI.render(); no(ui.ask:IsShown()); eq(ui.spotter,false); eq(ui.hopRecord,false)
     ui.ask.scripts.OnClick(); eq(#opened,0); eq(#sent,0)
     om("L0"); N.UI.render(); no(ui.place:IsShown()); no(ui.ask:IsShown()); yes(ui.sub:GetText():find("Not located",1,true))
     om(); N.UI.render(); yes(ui.place:IsShown())
@@ -7718,6 +7726,11 @@ end)
 assert(loadfile("test/find20.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
     advance=advance,clock=function() return clock end,log=function() return log end,
     sent=function() return sent end,frames=function() return frames end})
+
+assert(loadfile("test/known.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
+    advance=advance,clock=function() return clock end,map=function(v) map=v end,deliver=deliver,drain=drain,
+    units=function() return units end,player=player,establish=establish,snapshot=snapshot,
+    sent=function() return sent end})
 
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

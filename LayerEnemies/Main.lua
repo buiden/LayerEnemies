@@ -111,6 +111,7 @@ function M.poll()
     M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
     N.Directory.sync()
     N.Find.home(M.find,M.homeRealm())
+    N.Known.prune(M.find.known,time)
     M.findAlerts()
     N.CallUI.check()
     if N.UI then N.UI.refresh() end
@@ -168,6 +169,15 @@ function M.isMe(name)
     local _,me=A.ownIdentity()
     return key~=nil and me~=nil and key==me
 end
+-- Preserve origin age and provenance before the zone-only store can reject a record.
+function M.findRecord(record)
+    local source=record.src=="le" and "guild" or record.kind=="death" and "death"
+        or record.hand=="relayed" and "relayed" or record.src=="hh" and "headhunter" or "spy"
+    local layer=source=="guild" and record.layer.ns=="server" and record.layer.value or nil
+    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=(record.src=="we" or record.src=="hh") and record.heard or record.at,
+        now=now(),enemies=record.enemies,source=source,x=record.x,y=record.y,pos=record.pos,
+        layer=layer,ns=layer and "server" or "unknown",relayed=record.hand=="relayed"},M.homeRealm())
+end
 function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelName)
     -- Check every delivered value before comparing/indexing it.
     local args={prefix,text,kind,sender,target,zoneChannelID,localID,channelName}
@@ -217,7 +227,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
         local stored,whyNot=T.report(M.store,record,time)
         if not stored then M.lastDrop=whyNot end
         if why=="new" then M.offerRelay(record) end
-        N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+        M.findRecord(record)
         M.findAlerts()
         if N.UI then N.UI.refresh() end
     end
@@ -287,7 +297,7 @@ function M.spyIn(prefix,text,kind,sender)
     if not ok then M.error="data unavailable (API error)" end
     local stored,whyNot=T.refresh(M.store,record,time)
     if not stored then M.lastDrop=whyNot end
-    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+    M.findRecord(record)
     M.findAlerts(ok and callAction=="show")
     if N.UI then N.UI.refresh() end
 end
@@ -319,7 +329,7 @@ function M.headhunter(text,kind,sender)
             local stored,whyNot=T.report(M.store,record,time)
             M.lastDrop=stored and "headhunter "..record.kind or whyNot
             if whyNot~="duplicate" then
-                N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies},M.homeRealm())
+                M.findRecord(record)
                 M.offerRelay(record)
             end
         end
@@ -365,7 +375,7 @@ function M.relayIn(text,kind,sender)
     -- a copy of a report already held (first-hand or relayed) adds nothing to Find
     if not stored and whyNot=="duplicate" then return end
     -- a relayed origin was in someone else's group: Find shows the report but never offers to ask them
-    N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.heard,enemies=record.enemies,relayed=true},M.homeRealm())
+    M.findRecord(record)
     M.findAlerts()
     if N.UI then N.UI.refresh() end
 end
@@ -658,9 +668,34 @@ function M.placeText(place)
     return "last shared position (OpenMap): "..M.zoneName(place.map).." "..math.floor(place.x*100+.5)..","..math.floor(place.y*100+.5)
         .." · "..math.floor(place.age).." s ago"..(place.faction=="opposite" and " · enemy faction" or place.faction=="same" and " · your faction" or "")
 end
+local function knownLine(e)
+    local seconds=math.floor(math.max(0,now()-e.at))
+    local age=seconds<60 and (seconds.." s") or (math.floor(seconds/60).." min")
+    local text
+    if e.kind=="claim" then
+        text="Reported: "..(e.source=="death" and "named as killer" or "possible match, seen in a relayed report")
+    else text="Seen by "..(e.spotter or "unknown") end
+    text=text.." in "..M.zoneName(e.zone)..", "..age.." ago"
+    if e.kind=="claim" then text=text.." ("..e.source..", claim)"
+    elseif e.layer then text=text..", layer "..e.layer.." ("..(e.own and "your sighting" or "their claim")..")" end
+    if e.own then text=text.." · "..e.status:gsub("^last known: ","") end
+    if e.detail=="own (party target)" then text=text.." · "..e.detail end
+    if e.x and e.y then text=text.." · "..math.floor(e.x*100+.5)..","..math.floor(e.y*100+.5).." ("..(e.pos or "unknown").." position)" end
+    if e.travel then text=text.." · travel to "..M.zoneName(e.zone).." first"
+    elseif e.same then text=text.." · already on your layer"
+    elseif e.probably then text=text.." · probably on your layer (your server key is ambiguous)" end
+    return (e.lastKnown and "last known: " or "")..text
+end
+function M.findDetails(row)
+    local lines={}
+    if row.seen then lines[#lines+1]=knownLine(row.seen) end
+    if row.reported then lines[#lines+1]=knownLine(row.reported) end
+    return #lines>0 and table.concat(lines,"\n") or nil
+end
 function M.findText(row,sightingOnly)
-    local text=row.name.." — "..row.status
-    if row.at then
+    local details=M.findDetails(row)
+    local text=row.name.." — "..(details or row.status)
+    if row.at and not details then
         local detail=" in "..M.zoneName(row.zone)..", "..math.floor(now()-row.at).." s ago ("..(row.class or "Unknown class").." "..tostring(row.level or "?")..")"
         text=text..detail..(row.same and " — already on your layer" or row.probably and " — probably on your layer (your server key is ambiguous)"
             or row.travel and (" — travel to "..M.zoneName(row.zone).." first") or "")
@@ -768,11 +803,11 @@ function M.track(name,remove)
     elseif name then
         local ok,why=N.Find.add(M.find,name)
         if not ok then M.say("LayerEnemies: "..why); return false end
-        for _,e in pairs(M.store.localSeen) do N.Find.own(M.find,e,M.store.zone,e.at) end
+        for _,e in pairs(M.store.localSeen) do N.Find.own(M.find,e,M.store.zone,e.at,now()) end
         for _,row in pairs(M.store.reports) do
             local r=row.record
             -- a stored guild relay stays a relay when replayed into Find (never askable)
-            N.Find.report(M.find,{sender=r.origin,zone=r.zone,at=r.heard,enemies=r.enemies,relayed=r.src=="guild"},M.homeRealm())
+            M.findRecord(r)
         end
     else N.Find.remove(M.find) end
     LayerEnemiesDB.tracked=M.find.names

@@ -51,7 +51,7 @@ function F.home(st,home)
     if not st.home and home then st.home=home; F.rebuild(st) end
 end
 function F.new(saved,home)
-    local st={names={},locations={},alerts={},places={},home=S.str(home)}
+    local st={names={},locations={},alerts={},places={},home=S.str(home),known=N.Known.new(),epoch=0}
     local seen={}
     if S.tab(saved) then
         for i=1,F.MAX do
@@ -115,14 +115,30 @@ function F.hashes(name,home)
     if given then add(given,surname) end
     return out,realmHash
 end
-function F.own(st,e,zone,now)
-    if e.faction~="opposite" or not e.name or not e.source or not e.source:match("^own ") then return end
-    local label,key=F.fold(e.displayName or e.name),F.fold(e.name)
-    local function put(entry)
-        local name=entry.name
-        -- layerKnown: our layer was known when we saw them; without it "on YOUR layer" would be a guess
-        st.locations[name]={name=name,own=true,zone=zone,at=now,class=e.class,level=e.level,layerKnown=e.layer~=nil}
+local function location(e,name)
+    local loc={}
+    for k,v in pairs(e) do loc[k]=v end
+    loc.name=name; loc.cached=true
+    loc.own=e.source=="own" or nil
+    if loc.own then loc.layerKnown=e.layer~=nil
+    else loc.possible=true; loc.relayed=e.source=="relayed" end
+    return loc
+end
+local function remember(st,name,e)
+    if not e then return end
+    local old=st.locations[name]
+    if not old or (e.kind=="seen" and (old.kind=="claim" or e.at>=old.at))
+        or (e.kind=="claim" and (old.kind=="claim" or e.at-old.at>=F.TTL) and e.at>=old.at) then
+        st.locations[name]=location(e,name)
     end
+end
+function F.own(st,e,zone,now,readNow)
+    if e.faction~="opposite" or not e.name or not e.source or not e.source:match("^own ") then return end
+    local cached=N.Known.put(st.known,{name=e.displayName or e.name,ownName=e.name,realm=e.realm,
+        zone=zone,x=e.x,y=e.y,pos="observer",at=now,source="own",spotter="you",class=e.class,level=e.level,
+        layer=N.Layer.key(e.layer),ns=e.layer and "server" or "unknown",kind="seen",epoch=st.epoch,detail=e.source},readNow or now)
+    local label,key=F.fold(e.displayName or e.name),F.fold(e.name)
+    local function put(entry) remember(st,entry.name,cached) end
     local exact=st.byName[label]
     for _,entry in ipairs(exact or {}) do if entry.key==label then put(entry) end end
     local candidates=label==key and exact or st.byName[key]
@@ -136,38 +152,86 @@ end
 -- tracked names, but a qualified report matches only that full name (as before).
 function F.report(st,r,home)
     F.home(st,home)
-    local function put(entry,e)
+    local function hashPut(entry,e)
         local name=entry.name
         local old=st.locations[name]
-        -- a relayed report never replaces a fresh first-hand one (which can be asked)
+        -- Hash-only and deferred HeadHunter evidence keep their existing lifetime.
         local keep=old and r.relayed and not old.relayed and r.at-old.at<F.TTL
         if not keep and (not old or (not old.own and old.at<=r.at) or r.at-old.at>=F.TTL) then
-            st.locations[name]={name=name,zone=r.zone,at=r.at,spotter=r.sender,class=e.class,level=e.level,possible=true,relayed=r.relayed==true}
+            st.locations[name]={name=name,zone=r.zone,at=r.at,spotter=r.sender,class=e.class,level=e.level,possible=true,relayed=r.relayed==true,
+                source=r.source=="headhunter" and "headhunter" or nil}
         end
     end
     for _,e in ipairs(r.enemies) do
-        if e.hash then for _,entry in ipairs(st.byHash[e.hash] or {}) do put(entry,e) end end
-        if e.name then for _,entry in ipairs(st.byName[F.fold(e.name)] or {}) do put(entry,e) end end
+        if e.hash then for _,entry in ipairs(st.byHash[e.hash] or {}) do hashPut(entry,e) end end
+        if S.str(e.name,100) then
+            local source=r.source or (r.relayed and "relayed" or "spy")
+            if source=="headhunter" then
+                for _,entry in ipairs(st.byName[F.fold(e.name)] or {}) do hashPut(entry,e) end
+            else
+                local cached=N.Known.put(st.known,{name=e.name,zone=r.zone,x=r.x,y=r.y,pos=r.pos,at=r.at,
+                    source=source,spotter=r.sender,class=e.class,level=e.level,layer=r.layer,ns=r.ns,
+                    kind=(r.relayed or source=="death") and "claim" or "seen"},r.now or r.at)
+                for _,entry in ipairs(st.byName[F.fold(e.name)] or {}) do remember(st,entry.name,cached) end
+            end
+        end
     end
+end
+-- A bounded read projection, not a scan on receipt. The hot paths above still use
+-- the prebuilt Find20 indices. Reusing memory on add does not hash incoming reports.
+local function matches(name,e)
+    local want,got=F.fold(name),F.fold(e.name)
+    if e.source~="own" then return want==got or want:match("^([^%-]+)")==got end
+    if want==got then return true end
+    local short=name:match("^([^%-]+)") or name
+    return not name:find(" ",1,true) and F.fold(short)==F.fold(e.ownName or e.name)
+        and (not name:find("-",1,true) or N.Hash.player(short,e.realm)==N.Hash.player(short,name:match("%-(.+)$")))
+end
+local function project(st,loc,now,zone,sameSpotter)
+    local row={}
+    for k,v in pairs(loc) do row[k]=v end
+    row.age=now-loc.at
+    row.lastKnown=loc.cached and row.age>=F.TTL or nil
+    row.travel=loc.zone~=zone
+    local spot=not loc.own and sameSpotter and sameSpotter(loc.spotter,loc.zone)
+    row.same=not row.travel and not row.lastKnown and ((loc.own and loc.layerKnown and loc.epoch==st.epoch) or spot==true)
+    row.probably=not row.travel and not row.lastKnown and spot=="probably"
+    row.status=loc.own and (row.same and "is on YOUR layer" or not loc.layerKnown and "seen by you, layer unknown" or "seen by you")
+        or loc.source=="death" and "named as killer (claim)"
+        or loc.relayed and "possible match, seen in a relayed report"
+        or "possible match, seen by "..(loc.spotter or "unknown")
+    if row.lastKnown then row.status="last known: "..row.status end
+    row.canAsk=not row.same and not row.travel and not row.lastKnown and not loc.own
+        and loc.spotter~=nil and not loc.relayed and loc.kind~="claim"
+    return row
 end
 function F.rows(st,now,zone,sameSpotter)
     local out={}
+    N.Known.prune(st.known,now)
     for _,name in ipairs(st.names) do
-        local loc=st.locations[name]
-        if loc and (now-loc.at>=F.TTL or now<loc.at) then st.locations[name]=nil; loc=nil end
-        local row={name=name,status="Not located — needs your sighting or a nearby War Effort user."}
-        if loc then
-            for k,v in pairs(loc) do row[k]=v end
-            row.age=now-loc.at
-            local spot=not loc.own and sameSpotter and sameSpotter(loc.spotter,loc.zone)
-            row.same=(loc.own and loc.layerKnown) or spot==true
-            row.probably=spot=="probably"         -- an equal key while ours is ambiguous: not a certain same layer
-            row.travel=loc.zone~=zone
-            row.status=loc.own and (loc.layerKnown and "is on YOUR layer" or "seen by you, layer unknown")
-                or loc.relayed and "possible match, seen in a relayed report"
-                or "possible match, seen by "..loc.spotter
-            row.canAsk=not row.same and not row.travel and loc.spotter~=nil and not loc.relayed
+        local seen,reported
+        for _,pair in pairs(st.known.entries) do
+            for _,slot in ipairs({"seen","reported"}) do
+                local e=pair[slot]
+                if e and matches(name,e) then
+                    if slot=="seen" and (not seen or e.at>seen.at) then seen=e
+                    elseif slot=="reported" and (not reported or e.at>reported.at) then reported=e end
+                end
+            end
         end
+        local loc=st.locations[name]
+        if loc and (loc.cached or now-loc.at>=F.TTL or now<loc.at) then loc=nil end
+        -- Prefer a fresh first-hand finding. Otherwise display the newest evidence
+        -- as the summary, while retaining both independently aged detail lines.
+        local primary=seen
+        if reported and (not seen or (now-seen.at>=F.TTL and reported.at>seen.at)) then primary=reported end
+        local keep=loc and primary and primary.kind=="claim" and not loc.relayed and now-loc.at<F.TTL
+        if primary and not keep and (not loc or primary.at>=loc.at or (primary.source=="own" and now-primary.at<F.TTL)) then loc=location(primary,name) end
+        st.locations[name]=loc
+        local row=loc and project(st,loc,now,zone,sameSpotter) or {name=name,status="Not located — needs your sighting or a nearby War Effort user."}
+        if seen then row.seen=project(st,location(seen,name),now,zone,sameSpotter) end
+        if loc and loc.source=="headhunter" and (not seen or loc.at>seen.at) then row.seen=project(st,loc,now,zone,sameSpotter) end
+        if reported then row.reported=project(st,location(reported,name),now,zone,sameSpotter) end
         local place=st.places[name]
         if place and (now-place.at>=N.OpenMap.TTL or now<place.at) then st.places[name]=nil; place=nil end
         if place then
@@ -181,9 +245,14 @@ function F.rows(st,now,zone,sameSpotter)
     return out
 end
 function F.alert(st,row,now)
-    if not row.at then return false end
+    if not row.at or now-row.at>=F.TTL or now<row.at then return false end
     local old=st.alerts[row.name]
     if old and old.zone==row.zone and now-old.at<F.ALERT then return false end
     st.alerts[row.name]={at=now,zone=row.zone}; return true
 end
-function F.boundary(st) st.locations={} end
+function F.boundary(st)
+    st.epoch=st.epoch+1
+    -- Only anonymous hash matches belong to the old zone epoch. Named memory and
+    -- independent OpenMap places survive; old own evidence is no current-layer proof.
+    for name,loc in pairs(st.locations) do if not loc.cached then st.locations[name]=nil end end
+end
