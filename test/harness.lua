@@ -6145,6 +6145,60 @@ test("seen unknown 03: a fresh sighting replaces the pre-layer row with the know
     eq(#rows,1); eq(rows[1].layer,"7086-7"); eq(rows[1].pre,nil); eq(rows[1].ownAt,clock)
     no(rows[1]==before[1]); no(N.Main.error)
 end)
+test("seen unknown 03b: Bulo copies at or before learning cannot give a kept row a layer",function()
+    for _,offset in ipairs({-.5,0}) do
+        for _,delivery in ipairs({"learning poll","later poll"}) do
+            for _,tracked in ipairs({"before","after"}) do
+                local N=loadAddon(); local b=fakeBulo(nil); N.Main.setShare(false)
+                if tracked=="before" then N.Main.track("Aster Vale") end
+                advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+                local original=N.Main.store.localSeen["Player-1-901"]; local ownAt=clock
+                advance(1); local learned=clock; b.current="7086-7"
+                local copy={at=learned+offset,hostile=true,src="target"}
+                yes(copy.at>ownAt,"copy is newer than the own sighting, but not newer than learning")
+                if delivery=="learning poll" then b.Radar.seen["Player-1-901"]=copy end
+                N.Main.poll(); eq(N.Main.store.epoch,learned); eq(N.Main.store.bulo,"7086-7")
+                if delivery=="later poll" then
+                    advance(1); b.Radar.seen["Player-1-901"]=copy; N.Main.poll()
+                end
+                b.Radar.seen={}
+                local rows=N.Store.rows(N.Main.store,clock,"local"); eq(#rows,1)
+                eq(rows[1],original,"older Bulo copy cannot replace the kept unknown row")
+                yes(rows[1].pre); eq(rows[1].layer,nil); eq(rows[1].ownAt,ownAt); eq(rows[1].source,"own target")
+                if tracked=="after" then N.Main.track("Aster Vale") end
+                local found=N.Main.findRows()[1]; yes(found.own); no(found.same); no(found.canAsk)
+                eq(found.status,"seen by you, layer unknown"); eq(found.at,ownAt)
+                yes(N.Main.findText(found):find("seen by you, layer unknown",1,true))
+                N.UI.toggle(); N.UI.tabs.find:Click()
+                local r=N.UI.pool[1]; yes(r,"Find row exists"); yes(r:IsShown()); eq(r.title.text,"Aster Vale")
+                yes(r.sub.text:find("seen by you, layer unknown",1,true)); no(r.sub.text:find("already on your layer",1,true)); no(r.ask:IsShown())
+                N.Main.setShare(true); advance(3); N.Main.shareTick()
+                eq(#oLines(),1); yes(oLines()[1].text:find("|0.250|0.750||",1,true),oLines()[1].text)
+                no(N.Main.error)
+            end
+        end
+    end
+end)
+test("seen unknown 03c: a Bulo observation after learning may replace the kept unknown row",function()
+    local N=loadAddon(); local b=fakeBulo(nil); N.Main.setShare(false); N.Main.track("Aster Vale")
+    advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil; local ownAt=clock
+    local original=N.Main.store.localSeen["Player-1-901"]
+    advance(1); b.current="7086-7"; N.Main.poll(); local learned=N.Main.store.epoch
+    eq(original.layer,nil); yes(original.pre)
+    advance(1); local observed=clock; yes(observed>learned)
+    b.Radar.seen["Player-1-901"]={at=observed,hostile=true,src="target"}; N.Main.poll(); b.Radar.seen={}
+    local rows=N.Store.rows(N.Main.store,clock,"local"); eq(#rows,1)
+    no(rows[1]==original); eq(rows[1].source,"Bulo target"); eq(rows[1].layer,"7086-7"); eq(rows[1].pre,nil)
+    eq(rows[1].at,observed); eq(rows[1].ownAt,ownAt); eq(rows[1].ownSource,"own target")
+    eq(rows[1].x,nil); eq(rows[1].y,nil); eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
+    -- A copy refreshes the list, not Find's earlier first-hand observation.
+    local found=N.Main.findRows()[1]; eq(found.status,"seen by you, layer unknown"); eq(found.at,ownAt); no(found.same); no(found.canAsk)
+    N.UI.toggle(); eq(N.UI.pool[1].title.text,"Aster Vale")
+    no(N.UI.pool[1].sub.text:find("layer unknown",1,true))
+    N.Main.setShare(true); advance(3); N.Main.shareTick()
+    eq(#oLines(),1); yes(oLines()[1].text:find("|0.250|0.750|7086|",1,true),oLines()[1].text)
+    no(N.Main.error)
+end)
 test("seen unknown 04: kept rows expire 600 seconds after the original sighting",function()
     local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
     local at=clock; advance(1); establish(N)

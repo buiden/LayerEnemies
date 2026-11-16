@@ -307,11 +307,16 @@ needed. A readable zone is required; knowing your layer is not.
 "Seen by you" includes opposite-faction players seen while your layer was
 unknown, labelled "layer unknown". Learning your layer keeps those rows,
 without assigning them the new layer. A fresh sighting replaces the old row
-with the then-known layer; otherwise it expires ten minutes after the original
-sighting. Such unknown-layer rows are not map candidates. Reports and possible
-identity matches are still cleared when your layer is learned. Sharing uses
-the existing empty layer field whenever any enemy in a report was seen without
-a layer; the message format and send routes are unchanged.
+with the then-known layer; a Bulo copy can also replace it, but only when the
+copy's observation time is later than when you learned the layer. An older or
+same-time copy leaves the row unknown. Bulo refreshes keep the earlier own-sighting
+time and do not upgrade Find's earlier "seen by you, layer unknown" location.
+Without a replacement, the row expires ten minutes after the original sighting.
+Such unknown-layer rows are not map candidates. Reports and possible identity
+matches are still cleared when your layer is learned. Sharing uses the existing
+unknown-layer value whenever any enemy in a report was seen without a layer:
+an empty field in the guild O line, or 0 in War Effort's C line. The message
+formats and send routes are unchanged.
 
 On a real, readable zone change, "Seen by you" also keeps the newest eight
 opposite-faction players your own client saw in the zone just left, for two
