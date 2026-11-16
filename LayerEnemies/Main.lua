@@ -196,6 +196,16 @@ function M.isMe(name)
 end
 -- Preserve origin age and provenance before the zone-only store can reject a record.
 function M.findRecord(record)
+    if N.Record.isKill(record) then
+        local _,viaKey=I.name(record.via)
+        local indirect=record.src=="guild" or viaKey~=record.okey
+        N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.at,now=now(),enemies=record.enemies,
+            source=record.src=="hh" and "headhunter" or "relayed",kind="claim",relayed=indirect,
+            x=record.x,y=record.y,pos="victim",ns="unknown",
+            detail="killed "..record.origin.." · victim-reported"..(indirect and " · via relay" or "")
+                ..(record.kind=="killi" and " (inferred)" or "")},M.homeRealm())
+        return
+    end
     local source=record.src=="le" and "guild" or record.kind=="death" and "death"
         or record.hand=="relayed" and "relayed" or record.src=="hh" and "headhunter" or "spy"
     local layer=source=="guild" and record.layer.ns=="server" and record.layer.value or nil
@@ -326,7 +336,8 @@ function M.spyIn(prefix,text,kind,sender)
     M.findAlerts(ok and callAction=="show")
     if N.UI then N.UI.refresh() end
 end
--- HeadHunter P (fight) and L (wanted) records: PARTY/RAID/WHISPER, own faction only, 6 frames per sender per 10 s.
+-- HeadHunter P/L and enveloped D: shared read path, regardless of mesh stand-down.
+-- PARTY/RAID/WHISPER, own faction only, 6 frames per sender per 10 s.
 function M.headhunter(text,kind,sender)
     if type(text)~="string" or #text>255 or not S.str(sender,100) then return end
     local allowed,reason=A.hhPolicy(kind,sender)
@@ -341,7 +352,7 @@ function M.headhunter(text,kind,sender)
     if kind=="WHISPER" and (mesh or frameType=="E") then guarded(M.hhMesh,text,sender,time) end
     if mesh then return end
     local records,why=N.HeadHunter.decode(text,sender,S.num(S.call(GetServerTime)),S.str((S.call(UnitFactionGroup,"player")),20),
-        {heard=time,route=kind,zoneFn=A.zone})
+        {heard=time,route=kind,zoneFn=A.zone,stats=M.hh.stats})
     M.lastDrop=why~="ignored" and why or M.lastDrop
     for _,record in ipairs(records) do
         local ignored,whyIgnored=false,nil
@@ -350,6 +361,10 @@ function M.headhunter(text,kind,sender)
             else ignored,whyIgnored=A.ignored(record.origin) end
         end
         if ignored then M.lastDrop=whyIgnored
+        elseif N.Record.isKill(record) then
+            -- Find only: no Reported row, reporter/host, count or Call popup.
+            M.findRecord(record)
+            M.lastDrop="headhunter "..record.kind
         else
             local stored,whyNot=T.report(M.store,record,time)
             M.lastDrop=stored and "headhunter "..record.kind or whyNot
@@ -698,7 +713,7 @@ local function knownLine(e)
     local age=seconds<60 and (seconds.." s") or (math.floor(seconds/60).." min")
     local text
     if e.kind=="claim" then
-        text="Reported: "..(e.source=="death" and "named as killer" or "possible match, seen in a relayed report")
+        text="Reported: "..(e.detail or (e.source=="death" and "named as killer" or "possible match, seen in a relayed report"))
     else text="Seen by "..(e.spotter or "unknown") end
     text=text.." in "..M.zoneName(e.zone)..", "..age.." ago"
     if e.kind=="claim" then text=text.." ("..e.source..", claim)"
@@ -1839,6 +1854,7 @@ function M.net(command)
     if rest=="" then
         M.say("Networks: "..(N.Net.consent()=="public" and "public" or "guild only"))
         netLines(M.say)
+        M.say(N.HeadHunter.summary(M.hh.stats))
         return
     end
     if rest=="guild" or rest=="public" then M.setConsent(rest); return end

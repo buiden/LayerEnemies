@@ -684,8 +684,32 @@ visible. Guild O lines are first-hand; R lines and indirect envelopes are
 claims and never authorize asking their origin. GBOUNTY and WALLOFSHAME
 killer names are claims in any zone, with victim coordinates when supplied.
 Direct HeadHunter P/L keeps its legacy ten-minute/boundary Find path outside
-the five-source cache; indirect HH reports still use the relayed category.
-HeadHunter D decoding and a HeadHunter cache source are not part of this change. No new send or relay is added.
+the named cache; indirect HH reports still use the relayed category.
+
+### HeadHunter kill records
+
+A victim's D record inside an E envelope supplies location evidence for its
+fully named killer, whether HeadHunter is also loaded (stand-down) or LE is
+its own mesh member. Find shows `killed <victim>`, `victim-reported`, zone,
+real age and the **victim's** coordinates, as a HeadHunter claim. It adds
+`via relay` when the whisper carrier differs from the victim, and `(inferred)`
+only for inferred confidence; exact confidence adds no extra label.
+Simulated records, incomplete names/GUIDs, mismatched author/victim and other
+factions are dropped. No class/level guesses; assists are ignored.
+
+D never creates a row on the Reported tab, a per-enemy count, a kill list,
+a kill-based ordering, or a Call popup. Its private HeadHunter layer is never
+stored or shown. It cannot authorize Ask/Hop, even if the victim is a known
+host. Catch-up stays the age of the original event, is labelled `last known`
+after 10 minutes and expires at 60 minutes; adding an old name does not alert.
+
+`/le net` also prints memory-only HeadHunter session diagnostics in both
+modes: admitted P/L/E frames, inner E records by kind, accepted full-name kill
+records read, those under 300 seconds, and those successfully relayed to the
+guild. Counts are receive events (duplicates included), not unique kills;
+rejected D records appear only in the inner-kind tally. Counters obey the
+existing receive policy and 6-frame-per-sender/10-second limit, survive zone
+changes, reset on reload, and never enter SavedVariables or `hhNet.history`.
 
 Coordinates are text only, labelled observer or victim, never cache-driven
 map pins. Only our own sightings and guild O lines carry a server-layer

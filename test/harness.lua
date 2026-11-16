@@ -7741,5 +7741,9 @@ assert(loadfile("test/party_targets.lua"))({test=test,eq=eq,yes=yes,no=no,load=l
 assert(loadfile("test/realm_names.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,secret=secret,
     clock=function() return clock end,deliver=deliver,log=function() return log end,sent=function() return sent end})
 
+assert(loadfile("test/kills.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
+    advance=advance,clock=function() return clock end,deliver=deliver,drain=drain,snapshot=snapshot,
+    loaded=function() return loaded end,log=function() return log end,sent=function() return sent end})
+
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
