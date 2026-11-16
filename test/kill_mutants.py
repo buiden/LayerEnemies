@@ -18,9 +18,14 @@ MUTANTS = [
         ("LayerEnemies/HeadHunter.lua", 'if #enemy ~= 7 or enemy[2] ~= "" then return nil end',
          'if #enemy ~= 7 then return nil end'),
     ]),
-    ("show-D-layer", "Kills decode:", [
+    ("show-D-layer", "Kills 11: D creates a timed killer claim in stand-down", [
+        ("LayerEnemies/HeadHunter.lua", 'return { type = "D", t = t, map = map, x = x, y = y, confidence = confidence,',
+         'return { type = "D", t = t, map = map, x = x, y = y, layer = b36(f[10]), confidence = confidence,'),
         ("LayerEnemies/HeadHunter.lua", 't.rid = "D:" .. d.t; t.enemies = d.enemies; t.pos = "victim"\n                t.layer = { ns = "unknown" }',
-         't.rid = "D:" .. d.t; t.enemies = d.enemies; t.pos = "victim"\n                t.layer = { ns = "zoneuid", value = 12345 }'),
+         't.rid = "D:" .. d.t; t.enemies = d.enemies; t.pos = "victim"\n                t.layer = { ns = "zoneuid", value = d.layer }'),
+        ("LayerEnemies/Main.lua", '..(record.kind=="killi" and " (inferred)" or "")},M.homeRealm())',
+         '..(record.kind=="killi" and " (inferred)" or "")\n'
+         '                ..(record.layer.value and (" · layer "..record.layer.value) or "")},M.homeRealm())'),
     ]),
     ("ask-relayed-kill", "Kills relay: guild claims never reach", [
         ("LayerEnemies/Find.lua", 'and loc.spotter~=nil and not loc.relayed and loc.kind~="claim"', 'and loc.spotter~=nil'),
@@ -80,7 +85,7 @@ def main():
     final, output, failed = run(command)
     assert final.returncode == 0 and failed == 0, output
     print(next(line for line in output.splitlines() if line.startswith("RESULT:")))
-    (ROOT / "build-kill-mutants.json").write_text(json.dumps(results, indent=2) + "\n")
+    (ROOT / "build-kill-mutants-summary.log").write_text(json.dumps(results, indent=2) + "\n")
 
 
 if __name__ == "__main__":
