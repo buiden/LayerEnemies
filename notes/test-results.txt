@@ -1013,4 +1013,5 @@ PASS watch R1 repeat: list churn every 30 seconds preserves per-name sixty secon
 PASS watch R1 fairness: nine enemies all leave while four listed names churn
 PASS watch relays: listed name takes the last available token before unlisted reports
 PASS watch relays: full pending cap drops an unlisted entry before a listed one
-RESULT: 1015 tests passed, 0 failed, 109017 assertions
+PASS Watch: extra spaces still reach the find share/notice switches
+RESULT: 1016 tests passed, 0 failed, 109066 assertions
