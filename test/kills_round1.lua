@@ -23,9 +23,12 @@ local function hear(text,sender,route)
     H.deliver("CHAT_MSG_ADDON","HeadHunter",text,route or "WHISPER",sender or "Birch Scout")
 end
 local function guild(text,sender) H.deliver("CHAT_MSG_ADDON","LEGW1",text,"GUILD",sender or "Guild Carrier") end
-local function sends(pattern)
+local function sends(pattern,all)
     local out={}
-    for _,s in ipairs(H.sent()) do if s.prefix=="LEGW1" and (not pattern or s.text:match(pattern)) then out[#out+1]=s end end
+    -- The shared watch list's own T line (a tracked name is advertised) is not a kill relay.
+    for _,s in ipairs(H.sent()) do
+        if s.prefix=="LEGW1" and (all or s.text:sub(1,2)~="T|") and (not pattern or s.text:match(pattern)) then out[#out+1]=s end
+    end
     return out
 end
 local function hex(s) return (s:gsub(".",function(c) return string.format("%02x",c:byte()) end)) end
@@ -164,7 +167,7 @@ for _,mode in ipairs({"off before receipt","off while pending","off then on whil
             N.Main.store.localSeen={}
         end
         H.advance(4); N.Main.relayTick(); N.Main.shareTick()
-        eq(#sends(),0); eq(next(N.Main.relay.pending),nil)
+        eq(#sends(nil,true),0,"nothing at all on LEGW1, watch-list T lines included"); eq(next(N.Main.relay.pending),nil)
         yes(row(N).reported,"sharing off does not stop reading")
         no(N.Main.error)
     end)
@@ -201,3 +204,34 @@ test("Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear an
     eq(#sends("^R|"),4,"new records use replenished tokens; dropped ones do not retry")
     no(N.Main.error)
 end)
+
+-- Composition with the shared watch list: its T line is own traffic and must be
+-- accounted like O/K, or a relay stream takes the room our O needs.
+for _,fighting in ipairs({true,false}) do
+    test("Watch T + relays: own O goes out on time with T accounted combat="..tostring(fighting),function()
+        local N=H.load({tracked={"Own Enemy"},findShare=true}); N.Net.SHIP.hh=true; H.loaded().HeadHunter=true
+        N.Relay.rand=function() return .5 end
+        H.advance(1); H.combat(fighting)
+        local refused,firstO,began={},nil,nil
+        local send=N.Wire.send
+        N.Wire.send=function(prefix,text,...)
+            local ok,why,a=send(prefix,text,...)
+            if prefix=="LEGW1" and text:sub(1,2)=="T|" and ok and not began then began=H.clock() end
+            if prefix=="LEGW1" and text:sub(1,2)=="O|" then
+                if ok then firstO=firstO or H.clock() else refused[#refused+1]=why end
+            end
+            return ok,why,a
+        end
+        for _=1,90 do if began then break end; H.advance(1) end
+        yes(began,"the watch list publishes a real T")
+        for t=0,59 do
+            H.units().target=H.player("Own Enemy","Horde","Player-1-998"); H.deliver("PLAYER_TARGET_CHANGED"); H.drain()
+            H.deliver("CHAT_MSG_ADDON","HeadHunter","1AP:2s;"..b36(GetServerTime())..";dw;6y;0000002A;Cedar Vale/M/40;4","PARTY","Cedar Scout-"..H.abc(t+1))
+            H.advance(1); N.Main.shareTick(); no(N.Main.error)
+        end
+        eq(#refused,0,"no own O refused by relay pressure after a T")
+        yes(firstO and firstO-began<=5,"first own O within the 3 s settle (+tick), not 15 s late")
+        local r=0; for _,m in ipairs(H.sent()) do if m.prefix=="LEGW1" and m.text:sub(1,2)=="R|" then r=r+1 end end
+        yes(r>0,"relays still flow")
+    end)
+end

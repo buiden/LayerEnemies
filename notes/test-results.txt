@@ -1040,6 +1040,52 @@ PASS K review S2: recap killer matching our own name is not sent
 PASS K review S2: zone upper bound is 999999 not one million
 PASS K review S2: unhex must validate player syntax as well as UTF-8
 PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
+PASS watch 16: twenty names use one T line and a new id replaces the complete list
+PASS watch 16: hundred hashes commit only when all three parts arrive
+PASS watch 16: incomplete sets expire at 120 seconds and a new id discards them
+PASS watch 17: find share off sends one clear, stops refresh, and keeps local Find
+PASS watch 18: refresh extends 25-minute expiry and clear removes the index at once
+PASS watch 18: leave and guild switches clear complete and partial lists on either event
+PASS watch roster: remove departed senders, retain offline and unreadable rosters
+PASS watch 19: ninth listed enemy is in the first O line for either list owner
+PASS watch 20: changed lists and refreshes never bypass the sixty-second O cooldown
+PASS watch receipt: fitted names retain their cooldown while still fresh
+PASS watch withdrawal: a cleared list cannot prioritize an unsent name
+PASS watch O locality: list changes never become extra War Effort names
+PASS watch priority: changed lists preserve unsent names and own freshness
+PASS watch changed list: already sent names cannot displace a pending burst
+PASS watch 21: own sighting prints one quiet notice, never inside ten minutes or an instance
+PASS watch 21: no notice for own-list, reported, relayed, guild O or friendly entries
+PASS watch notice budget: three per sliding minute and sorted watcher attribution
+PASS watch 22: login jitter and refresh jitter stay in their documented intervals
+PASS watch 22: ten edits debounce once and content sends remain sixty seconds apart
+PASS watch 22: no T outside guild, inside instance, or with master sharing off
+PASS watch 22: T hard cap waits and retries after three actual sends in sixty seconds
+PASS watch queue: a full Wire bucket waits and rechecks policy before retry
+PASS watch queue: a guild change drops an old pending list and reschedules in the new guild
+PASS watch 22: base control and report decoders ignore the unknown T kind
+PASS watch 23: only the two switches are saved, never held lists or notice history
+PASS watch 24: 101st hash, fourth part and malformed data drop only the incoming set
+PASS watch 24: cap includes partial senders, 201st is ignored, clear frees a slot
+PASS watch 25: folded base-name hash matches case and realm, never class and level
+PASS watch lookup budget: one hash per sighting regardless of held-list size
+PASS watch receive policy: guild only, own echo and unreadable names never enter the index
+PASS watch opt-out lifecycle: saved off and edits while off never advertise again
+PASS watch expiry: an incomplete replacement keeps its own 120-second lifetime
+PASS watch receive conflicts: duplicate parts are idempotent, conflicting parts drop the set
+PASS watch notice history: event-only operation still bounds remembered notices
+PASS watch R1 wording: real hash collisions never claim definite identity
+PASS watch R1 roster: removed senders stay rejected until a complete roster readmits them
+PASS watch R1 roster: guild reset drops the previous guild admission snapshot
+PASS watch R1 slash: bare share shows usage without tracking or sharing it
+PASS watch R1 slash: bare notice shows usage without tracking or sharing it
+PASS watch R1 repeat: list churn every 1 seconds preserves per-name sixty seconds
+PASS watch R1 repeat: list churn every 5 seconds preserves per-name sixty seconds
+PASS watch R1 repeat: list churn every 30 seconds preserves per-name sixty seconds
+PASS watch R1 fairness: nine enemies all leave while four listed names churn
+PASS watch relays: listed name takes the last available token before unlisted reports
+PASS watch relays: full pending cap drops an unlisted entry before a listed one
+PASS Watch: extra spaces still reach the find share/notice switches
 PASS Kills R1 S1: HeadHunter rejects ourselves and killer equals victim
 PASS Kills R1 S1: guild rejects ourselves and killer equals victim
 PASS Kills R1 M1: one D id across carriers for its lifetime skew=0
@@ -1061,6 +1107,8 @@ PASS Kills R1 share: off then on while pending sends nothing on LEGW1
 PASS Kills R1 share: off at dispatch sends nothing on LEGW1
 PASS Kills R1 bounds: live event ledger evicts overflow and expires without renewal
 PASS Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear and rollback
+PASS Watch T + relays: own O goes out on time with T accounted combat=true
+PASS Watch T + relays: own O goes out on time with T accounted combat=false
 PASS Kills R2 reserve: full combat bucket sends a kill relay and leaves one own line
 PASS Kills R2 reserve: active combat relays keep all five own O slots every=1
 PASS Kills R2 reserve: active combat relays keep all five own O slots every=4
@@ -1069,4 +1117,4 @@ PASS Kills R2 reserve: kill relays leave the guild-minute own slots
 PASS Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute
 PASS Kills R2 ledger: new kill stays visible after 300 guild kills at one per second
 PASS Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first
-RESULT: 1071 tests passed, 0 failed, 109538 assertions
+RESULT: 1119 tests passed, 0 failed, 118428 assertions

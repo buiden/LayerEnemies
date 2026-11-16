@@ -20,23 +20,28 @@ function Sh.cancel(st, seen, now)
 end
 -- pick reserves a slot before Main can call Wire (including a refused attempt).
 -- A burst snapshots the eligible keys; newer arrivals wait for the next burst.
-function Sh.pick(st, seen, now, zone)
+function Sh.pick(st, seen, now, zone, watch)
     now = S.num(now)
     if not now or not zone or not S.tab(seen) then return nil end
     for _, stamps in ipairs({st.shared, st.names}) do
         for k, at in pairs(stamps) do if now - at >= Sh.AGAIN then stamps[k] = nil end end
     end
     for k, at in pairs(st.skipped) do if not seen[k] or now - at > Sh.FRESH then st.skipped[k] = nil end end
-    local recent, since, live = {}, nil, {}
+    local recent, since, live, priority = {}, nil, {}, {}
     for key, e in pairs(seen) do
         local own = S.tab(e) and type(e.ownSource) == "string" and e.ownSource:match("^own ") and S.num(e.ownAt)
         if own and e.faction == "opposite" and e.zone == zone and now >= own and now - own <= Sh.FRESH then
             local _, name = N.Relay.ownName(e)
             local at, named = st.shared[key], name and st.names[name]
             local skipped = st.skipped[key]
-            if (not at or (now >= at and now - at >= Sh.AGAIN))
+            local listed=watch and N.Watch.match(watch,e.displayName or e.name,now)
+            priority[key]=listed and 1 or 0
+            local eligible=(not at or (now >= at and now - at >= Sh.AGAIN))
                 and (not named or (now >= named and now - named >= Sh.AGAIN))
-                and (not skipped or own > skipped) then
+                and (not skipped or own > skipped)
+            -- List changes only reorder eligible names; receipt cooldowns belong
+            -- to the receiver and cannot be renewed or bypassed by a T list.
+            if eligible then
                 recent[#recent + 1] = e
                 -- Re-sightings do not restart the first new enemy's settle.
                 local f = st.first[key]
@@ -54,7 +59,7 @@ function Sh.pick(st, seen, now, zone)
     end
     if not since or now - since < Sh.SETTLE then return nil end
     if st.last and (now < st.last or now - st.last < Sh.EVERY) then return nil end
-    table.sort(recent, function(a, b) if a.ownAt ~= b.ownAt then return a.ownAt > b.ownAt end return tostring(a.key) < tostring(b.key) end)
+    table.sort(recent, function(a, b) if priority[a.key] ~= priority[b.key] then return priority[a.key] > priority[b.key] end; if a.ownAt ~= b.ownAt then return a.ownAt > b.ownAt end return tostring(a.key) < tostring(b.key) end)
     if not burst then
         burst = { pending = {}, lines = 0 }
         for _, e in ipairs(recent) do burst.pending[e.key] = true end

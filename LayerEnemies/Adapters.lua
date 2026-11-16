@@ -162,6 +162,21 @@ function A.guildMember(name)
     if other then return false end
     return #found==1 and found[1]
 end
+-- A complete membership snapshot for watch-list removal. Offline is still a
+-- member; a partial/unreadable roster proves no departures. No new roster request.
+function A.guildNames()
+    if S.call(IsInGuild)~=true then return nil end
+    local count=S.num(S.call(GetNumGuildMembers))
+    if not count or count<1 or count>A.ROSTER_MAX or count%1~=0 then return nil end
+    local keys={}
+    for i=1,count do
+        local name=S.str((S.call(GetGuildRosterInfo,i)),100)
+        local _,key=N.Invite.name(name)
+        if not key then return nil end
+        keys[key]=true
+    end
+    return keys
+end
 -- Seconds since the last GUILD_ROSTER_UPDATE, or nil.
 function A.rosterSeen(now) A.roster.at=S.num(now) end
 function A.rosterAge(now) if A.roster.at and S.num(now) then return now-A.roster.at end end

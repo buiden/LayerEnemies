@@ -267,6 +267,13 @@ function Rl.seen(st, key, now)
     return at ~= nil and now - at < lifetime
 end
 
+local function listed(record,watch,now)
+    if not watch then return false end
+    for _,e in ipairs(record.enemies or {}) do
+        if e.name and N.Watch.match(watch,e.name,now) then return true end
+    end
+    return false
+end
 -- offer(st, record, now, ctx) -> true when a send is scheduled. ctx: inGuild, inInstance (both readable booleans).
 function Rl.offer(st, record, now, ctx)
     if not S.tab(record) or not SRC[source(record)] then return false, "source" end
@@ -286,7 +293,16 @@ function Rl.offer(st, record, now, ctx)
     local key = Rl.key(record)
     if Rl.seen(st, key, now) then return false, "seen" end
     local n = 0; for _ in pairs(st.pending) do n = n + 1 end
-    if n >= Rl.PENDING then return false, "busy" end
+    if n >= Rl.PENDING then
+        local drop
+        if listed(record,ctx.watch,now) then
+            for k,p in pairs(st.pending) do
+                if not listed(p.record,ctx.watch,now) and (not drop or k<drop) then drop=k end
+            end
+        end
+        if not drop then return false, "busy" end
+        st.pending[drop]=nil
+    end
     remember(st, key, now)
     if event then event.offered = true end
     st.pending[key] = { record = record, due = now + Rl.rand(), guild = ctx.guild }
@@ -307,7 +323,17 @@ end
 function Rl.tick(st, now, ctx)
     local out = {}
     ctx = S.tab(ctx) and ctx or {}
-    for key, p in pairs(st.pending) do
+    local due={}
+    for key,p in pairs(st.pending) do
+        if now>=p.due then due[#due+1]={key=key,p=p,listed=listed(p.record,ctx.watch,now)} end
+    end
+    table.sort(due,function(a,b)
+        if a.listed~=b.listed then return a.listed end
+        if a.p.due~=b.p.due then return a.p.due<b.p.due end
+        return a.key<b.key
+    end)
+    for _,v in ipairs(due) do
+        local key,p=v.key,v.p
         if now >= p.due then
             st.pending[key] = nil
             local text, ok, why = nil, false, "not here"

@@ -74,7 +74,7 @@ end)
 test("Round1 own: a newer guild O keeps fresh own evidence primary and both lines visible",function()
     for _,trackAfter in ipairs({false,true}) do
         for _,ownFirst in ipairs({true,false}) do
-            local N=H.load(); H.advance(1); local M,F=N.Main,N.Find
+            local N=H.load({findShare=false}); H.advance(1); local M,F=N.Main,N.Find
             local at=H.clock()
             if not trackAfter then yes(M.track("Cedar Vale")) end
             local function own()
@@ -111,7 +111,7 @@ test("Round1 own: an own sighting in another zone does not suppress fresh on-sit
 end)
 
 test("Round1 hash: fresh Ask provenance is visible beside the old own sighting",function()
-    local N=H.load(); local F,M=N.Find,N.Main
+    local N=H.load({findShare=false}); local F,M=N.Find,N.Main
     yes(M.track("Cedar Vale"))
     F.own(M.find,{name="Cedar Vale",source="own target",faction="opposite",layer="7086-7"},100,H.clock())
     H.advance(700)
