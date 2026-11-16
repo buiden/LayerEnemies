@@ -587,7 +587,7 @@ PASS Call review: explicit full false is not a Find identity
 PASS Call review: old Help closure cannot act after a replacement render
 PASS Call review: Help rechecks instance before the next event or timer
 PASS Call review: waypoint uses a displayed map other than the local map
-PASS Call review: Find keeps its existing two-word realm limitation
+PASS Call review: Find accepts realm-qualified two-word killers
 PASS Call review: victim value and row grow with measured text height
 PASS Call review: killer value and row grow with measured text height
 PASS Call review: where value and row grow with measured text height
@@ -721,4 +721,52 @@ PASS PartyTargets guard: secret unit payload is rejected before matching, concat
 PASS PartyTargets bounds: only party1-4 and raid1-40 members admit target tokens
 PASS PartyTargets boundaries: queued old work is discarded and stale targets stay quarantined
 PASS PartyTargets queue: all 44 member tokens fit alongside 42 existing unit tokens
-RESULT: 723 tests passed, 0 failed, 67382 assertions
+PASS Realm names: new forms normalize only the realm and preserve typed case
+PASS Realm names: new grammar enforces word realm and total byte limits
+PASS Realm names: every legacy accepted pattern keeps both return values
+PASS Realm names: saved display dedupe removal and base buckets keep separate realms
+PASS Realm names: spy bare tracked base accepts any reported realm
+PASS Realm names: spy different explicit realms never match
+PASS Realm names: spy explicit realms normalize and fold before matching
+PASS Realm names: spy realm-less evidence marks foreign realm unknown
+PASS Realm names: spy home realm needs no unknown note
+PASS Realm names: guild bare tracked base accepts any reported realm
+PASS Realm names: guild different explicit realms never match
+PASS Realm names: guild explicit realms normalize and fold before matching
+PASS Realm names: guild realm-less evidence marks foreign realm unknown
+PASS Realm names: guild home realm needs no unknown note
+PASS Realm names: relayed bare tracked base accepts any reported realm
+PASS Realm names: relayed different explicit realms never match
+PASS Realm names: relayed explicit realms normalize and fold before matching
+PASS Realm names: relayed realm-less evidence marks foreign realm unknown
+PASS Realm names: relayed home realm needs no unknown note
+PASS Realm names: death bare tracked base accepts any reported realm
+PASS Realm names: death different explicit realms never match
+PASS Realm names: death explicit realms normalize and fold before matching
+PASS Realm names: death realm-less evidence marks foreign realm unknown
+PASS Realm names: death home realm needs no unknown note
+PASS Realm names: headhunter bare tracked base accepts any reported realm
+PASS Realm names: headhunter different explicit realms never match
+PASS Realm names: headhunter explicit realms normalize and fold before matching
+PASS Realm names: headhunter realm-less evidence marks foreign realm unknown
+PASS Realm names: headhunter home realm needs no unknown note
+PASS Realm names: Known own rejects cross-realm memory before and after adding
+PASS Realm names: Known own realm-less evidence has per-entry unknown flags
+PASS Realm names: Known spy rejects cross-realm memory before and after adding
+PASS Realm names: Known spy realm-less evidence has per-entry unknown flags
+PASS Realm names: Known guild rejects cross-realm memory before and after adding
+PASS Realm names: Known guild realm-less evidence has per-entry unknown flags
+PASS Realm names: Known relayed rejects cross-realm memory before and after adding
+PASS Realm names: Known relayed realm-less evidence has per-entry unknown flags
+PASS Realm names: Known death rejects cross-realm memory before and after adding
+PASS Realm names: Known death realm-less evidence has per-entry unknown flags
+PASS Realm names: own full display uses its realm not the surname second return
+PASS Realm names: own realm-less surname sighting warns and alerts exactly once
+PASS Realm names: own home-realm exemption is recomputed when home becomes readable
+PASS Realm names: real guild O receive retains realm uncertainty in Find text
+PASS Realm names: surname hashes use the base and never a typed-realm home tuple
+PASS Realm names: every hash tuple stays possible and never confirms even the home realm
+PASS Realm names: late home discovery removes the named HeadHunter uncertainty only
+PASS Realm names: a hash cannot override an explicitly different named realm
+PASS Realm names: On my way adds the shown qualified killer and saves it without sends
+RESULT: 771 tests passed, 0 failed, 71244 assertions
