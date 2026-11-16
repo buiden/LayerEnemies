@@ -5,11 +5,46 @@ import json
 import os
 import re
 import subprocess
+import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = Path(os.environ.get('LAYERENEMIES_LUA', '/opt/data/tools/lua/lua-5.1.5/src/lua'))
 LUAC = LUA.with_name('luac')
+
+
+def lua_identifiers(text):
+    """Read identifiers and literal index keys, not words inside comments or data strings."""
+    lexer = re.compile(
+        r'(?P<comment>--\[(?P<ceq>=*)\[.*?\](?P=ceq)\]|--[^\r\n]*)|'
+        r'(?P<long>\[(?P<seq>=*)\[.*?\](?P=seq)\])|'
+        r'(?P<short>"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')|'
+        r'(?P<name>[A-Za-z_][A-Za-z_0-9]*)|(?P<symbol>\S)',
+        re.DOTALL,
+    )
+    tokens = []
+    escapes = dict(zip('abfnrtv', '\a\b\f\n\r\t\v'))
+    for m in lexer.finditer(text):
+        if m['comment'] is not None:
+            continue
+        if m['long'] is not None:
+            width = len(m['seq']) + 2
+            value = re.sub(r'^(?:\r\n|\n\r|\r|\n)', '', m['long'][width:-width], count=1)
+            tokens.append(('string', value))
+        elif m['short'] is not None:
+            value = re.sub(r'\\([0-9]{1,3}|.)',
+                           lambda e: chr(int(e[1])) if e[1].isdigit() else escapes.get(e[1], e[1]),
+                           m['short'][1:-1], flags=re.DOTALL)
+            tokens.append(('string', value))
+        else:
+            tokens.append(('name', m['name']) if m['name'] else ('symbol', m['symbol']))
+    names = {value for kind, value in tokens if kind == 'name'}
+    # Quoted member/global access is code too; ordinary strings remain inert.
+    for i, (kind, value) in enumerate(tokens):
+        if (kind == 'string' and i > 0 and i + 1 < len(tokens)
+                and tokens[i - 1] == ('symbol', '[') and tokens[i + 1] == ('symbol', ']')):
+            names.add(value)
+    return names
 
 
 def main():
@@ -25,10 +60,19 @@ def main():
     assert '## Interface: 16001' in toc
     assert '## SavedVariablesPerCharacter: LayerEnemiesDB' in toc
     addon_text = '\n'.join(p.read_text() for p in (ROOT / 'LayerEnemies').glob('*.lua'))
-    for forbidden in ('SendChatMessage', 'COMBAT_LOG_EVENT_UNFILTERED', 'JoinTemporaryChannel', 'JoinPermanentChannel',
+    for forbidden in ('COMBAT_LOG_EVENT_UNFILTERED', 'JoinTemporaryChannel', 'JoinPermanentChannel',
                       'RunMacroText', 'UninviteUnit', 'ConfirmInviteUnit', 'ConfirmLeaveParty',
                       'ConvertToRaid', 'DeclineGroup', 'RequestInviteFromUnit'):
         assert forbidden not in addon_text, 'Unexpected outgoing/forbidden API: ' + forbidden
+    # Match identifiers, not receiver spellings: bare calls, namespace aliases and function aliases all count.
+    # No BN send or chat send is allowed anywhere; addon messages keep the existing Wire-only exception.
+    identifiers = {p.name: lua_identifiers(p.read_text()) for p in (ROOT / 'LayerEnemies').glob('*.lua')}
+    for filename, words in identifiers.items():
+        for word in sorted(words):
+            forbidden = word in ('SendGameData', 'SendChatMessage') or re.fullmatch(r'BN\w*Send\w*', word)
+            assert not forbidden, 'Unexpected outgoing/forbidden API: ' + word + ' in ' + filename
+    senders = sorted(filename for filename, words in identifiers.items() if 'SendAddonMessage' in words)
+    assert senders == ['Wire.lua'], 'SendAddonMessage outside Wire.lua: ' + ', '.join(senders)
     # the party calls (guild host invite, auto accept and leave): InviteUnit, AcceptGroup and LeaveParty exactly
     # once each and C_PartyInfo only in Wire.lua
     wire = (ROOT / 'LayerEnemies/Wire.lua').read_text()
@@ -55,13 +99,12 @@ def main():
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         if file.name != 'HhNet.lua':
             assert not re.search(r'"1"\s*\.\.\s*side', file.read_text()), 'HeadHunter frames are built only in HhNet.lua: ' + file.name
-    senders = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua') if 'SendAddonMessage' in p.read_text())
-    assert senders == ['Wire.lua'], 'SendAddonMessage outside Wire.lua: ' + ', '.join(senders)
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         if file.name != 'UI.lua':
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
     assert '## Version: 1.0.1' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
+    subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
     tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
     (notes / 'test-results.txt').write_text(tests.stdout + tests.stderr)
     print(tests.stdout, end='')
