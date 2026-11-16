@@ -7,12 +7,16 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 MUTANTS = [
-    ('ignore-share-switch', 'LayerEnemies/Main.lua',
-     'function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end',
-     'function M.sharing() return true end'),
-    ('spend-own-reserve', 'LayerEnemies/Relay.lua',
-     'local PREFIX_CAP, PREFIX_REFILL, OWN_RESERVE = 5, 2, 2',
-     'local PREFIX_CAP, PREFIX_REFILL, OWN_RESERVE = 5, 2, 0'),
+    ('relay-ignores-share-off', 'LayerEnemies/Main.lua', [
+        ('function M.offerRelay(record)\n    if not M.sharing() then return end',
+         'function M.offerRelay(record)'),
+        ('    if not M.sharing() then N.Relay.clear(M.relay); return end\n', ''),
+        ('    if not on and M.relay then N.Relay.clear(M.relay) end\n', ''),
+    ]),
+    ('spend-own-reserve', 'LayerEnemies/Relay.lua', [
+        ('local PREFIX_CAP, PREFIX_REFILL, OWN_RESERVE = 5, 2, 2',
+         'local PREFIX_CAP, PREFIX_REFILL, OWN_RESERVE = 5, 2, 0'),
+    ]),
 ]
 
 def main():
@@ -29,12 +33,15 @@ def main():
     rc, baseline, text = run()
     assert rc == 0 and baseline[1] == 0 and baseline[0] > 0, text
     results = []
-    for name, filename, before, after in MUTANTS:
+    for name, filename, edits in MUTANTS:
         path = ROOT / filename
         original = path.read_bytes()
-        assert original.decode().count(before) == 1, name
+        mutated = original.decode()
+        for before, after in edits:
+            assert mutated.count(before) == 1, name
+            mutated = mutated.replace(before, after)
         try:
-            path.write_text(original.decode().replace(before, after))
+            path.write_text(mutated)
             subprocess.run([str(Path(args.lua).with_name('luac')), '-p', filename], cwd=ROOT, check=True)
             rc, counts, text = run()
             assert counts[0] + counts[1] == baseline[0], (name, counts)

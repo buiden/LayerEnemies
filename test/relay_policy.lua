@@ -120,3 +120,20 @@ test("Guild relay policy: earlier guild control lines count against the relay re
     local c=counts(); eq(c.O,1); eq(c.spy,2,"the relay gate includes other LEGW1 authors")
     no(N.Main.error)
 end)
+
+for _,fighting in ipairs({false,true}) do
+    test("Guild relay policy: merged K author preserves the reserve "..(fighting and "in combat" or "out of combat"),function()
+        local N=fixture(); H.combat(fighting); own(); H.advance(2.1)
+        C_DeathRecap={HasRecapEvents=function() return true end,GetRecapEvents=function()
+            return {{sourceGUID="Player-1-998",sourceName="Ownenemy",sourceFlags=0x448,overkill=10,timestamp=H.clock()}}
+        end}
+        H.deliver("PLAYER_DEAD"); H.advance(.3)
+        eq(counts().all,1,"K has really consumed the shared LEGW1 prefix budget")
+        yes(H.sent()[1].text:sub(1,2)=="K|")
+        for i=1,5 do spy(i) end
+        H.advance(.6); N.Main.shareTick()
+        local c=counts(); eq(c.O,1,"own sighting survives K followed by relays")
+        eq(c.spy,fighting and 0 or 2,"K participates in reserve accounting")
+        no(N.Main.error)
+    end)
+end

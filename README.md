@@ -441,10 +441,11 @@ shape is reported as data unavailable.
 - `/le share on|off`: share sightings and enable guild sends (on by default,
   saved). Off stops all guild sends, including your O and K own-death lines,
   every Spy, HeadHunter and War Effort relay, host questions/answers and
-  network guild traffic. Pending relays, death retries and queued guild
-  embassy lines are dropped, not replayed when re-enabled. Your War Effort
-  reports, waiting sync answers and queued own embassy lines also stop;
-  you still receive everyone else's.
+  network guild traffic. Pending relays and death retries are cancelled
+  immediately and cannot replay when re-enabled. Queued guild embassy lines
+  are dropped if sharing is off at dispatch. Your War Effort reports, waiting
+  sync answers and queued own embassy lines also stop; you still receive
+  everyone else's.
 - Window switches, on every tab: Share, Call, Guild only, War Effort and
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).
