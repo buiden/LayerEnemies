@@ -340,6 +340,17 @@ PASS crowd cancel pace: a quick off-on cycle preserves both cooldowns
 PASS crowd guild blink: same or unreadable guild events retain the existing burst
 PASS crowd boundary cooldown: new-zone observations cannot repeat a name inside 60 seconds
 PASS crowd cancel memory: repeated boundaries keep skipped keys bounded to the current store
+PASS crowd receiver: 5 enemies keep their exact displayed total
+PASS crowd receiver: 9 enemies keep their exact displayed total
+PASS crowd receiver: 13 enemies keep their exact displayed total
+PASS crowd receiver: 30 enemies keep their exact displayed total
+PASS crowd receiver: byte-trimmed lines count only their own names
+PASS crowd War Effort fight: 6 enemies produce five pairs in five minutes
+PASS crowd War Effort fight: 13 enemies produce five pairs in five minutes
+PASS crowd War Effort cooldown: unguilded keeps enemy dedupe
+PASS crowd War Effort cooldown: guild line refused keeps enemy dedupe
+PASS crowd War Effort cooldown: share off/on keeps enemy dedupe
+PASS crowd War Effort new arrivals: cooldown is per enemy, not global
 PASS crowd War Effort: O follow-up slots do not multiply the public report
 PASS 1.0 A1: WeOut encodes C and E as War Effort does; they decode back to the same values
 PASS 1.0 A1: an O line to the guild: 3 s settle, one per 15 s, the same enemy again only after 60 s
@@ -700,4 +711,150 @@ PASS hop-any cannot dispatch again while a send is still in flight
 PASS hop-any old send completion cannot mutate a replacement round
 PASS hop-any rechecks ignore at dispatch and never trusts a skipped candidate
 PASS hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps
-RESULT: 702 tests passed, 0 failed, 66176 assertions
+PASS K: hostile opposite-player recap sends one exact guild line after PLAYER_DEAD
+PASS K: whole grammar refuses malformed lines at Wire, not just a K prefix
+PASS K: Wire rate is 120 seconds inclusive, rolls back closed and stamps refused API calls
+PASS K: sixth line within 30 minutes refused and oldest expires at 1800
+PASS K: Wire cannot bypass share or instance with click priority or queue it
+PASS K: only LEGW1 GUILD accepts the death payload and old stand-downs stay closed
+PASS K: grammar round trip retains full partial or empty killer and age boundary
+PASS K: guild death enters Call only, never reports relay Find locations or ask candidates
+PASS K: partial or empty killer still displays but Help never adds it to Find
+PASS K: unknown version drops silently, non-guild sender and killer equals sender refused
+PASS K: own split combined home names refused and unknown own identity fails closed
+PASS K: call off drops all state, share off still receives, existing Call cooldowns apply
+PASS K: mob fall drowning pet friendly and same-faction duel never send
+PASS K: race fallback proves faction but not a full name, neutral unknown and same races refuse
+PASS K: seen name proof stays partial without a matching GUID; stale or foreign identity is no proof
+PASS K: absent empty secret or erroring recap APIs never send and never set Main.error
+PASS K: every required recap field secret or missing fails closed without error
+PASS K: h confidence retains hostile hit even when mob finishes, e prefers a player finisher
+PASS K: retry deadlines are 0.3 1 2 seconds, bounded and no late recap beyond them
+PASS K: share off at death or toggled off-on before retries cancels held work
+PASS K: BG arena dungeon unknown instance never send; entering later cancels
+PASS K: resurrection guild-change or zone boundary invalidates already scheduled retries
+PASS K: delayed callbacks from a superseded death cannot send its snapshot
+PASS K: layer field has the same 15-digit grammar as O including zero
+PASS K: source flag type and hostile masks each independently required
+PASS K: death-event rate limits and cap apply after attribution, not only direct Wire callers
+PASS K: shared prefix pause and budgets drop events, never postpone or retry a send
+PASS K: send caller sentinel catches a disguised out-of-Wire client invocation
+PASS K: exposed route copy cannot widen LEGW1 or any other prefix
+PASS K: seen same-faction proof overrides contradictory opposite-race metadata
+PASS K: zone cancellation persists even when race can still prove the killer after store reset
+PASS K: death in an instance cannot become eligible by leaving before the first retry
+PASS K login boundary: pew-empty cannot clear incomplete-recap suppression
+PASS K login boundary: pew-other cannot clear incomplete-recap suppression
+PASS K login boundary: pew-unavail cannot clear incomplete-recap suppression
+PASS K login boundary: pew-twice cannot clear incomplete-recap suppression
+PASS K login boundary: readable login seed records old rows and permits a fresh killer
+PASS K login boundary: incomplete login seed re-arms suppression (secret)
+PASS K login boundary: incomplete login seed re-arms suppression (throwing)
+PASS K login boundary: incomplete login seed re-arms suppression (overflow)
+PASS K login boundary: readable reload seed records old rows and permits a fresh killer
+PASS K login boundary: incomplete reload seed re-arms suppression (secret)
+PASS K login boundary: incomplete reload seed re-arms suppression (throwing)
+PASS K login boundary: incomplete reload seed re-arms suppression (overflow)
+PASS K login boundary: unreadable payload fails closed (missing)
+PASS K login boundary: unreadable payload fails closed (secret-login)
+PASS K login boundary: unreadable payload fails closed (secret-reload)
+PASS K login boundary: unreadable payload fails closed (secret-both)
+PASS K login boundary: unreadable payload fails closed (secret-with-reload)
+PASS K login boundary: unreadable payload fails closed (login-with-secret)
+PASS K login boundary: unreadable payload fails closed (missing-with-reload)
+PASS K login boundary: unreadable payload fails closed (login-with-missing)
+PASS K login boundary: unreadable payload fails closed (nonboolean-login)
+PASS K login boundary: unreadable payload fails closed (nonboolean-reload)
+PASS K login boundary: unreadable payload fails closed (throwing-secret-check)
+PASS K login boundary: direct seed without a login/reload world entry cannot clear suppression
+PASS K login boundary: PLAYER_LOGIN without a login/reload world entry cannot clear suppression
+PASS K login boundary: SHARD_TRANSFER without a login/reload world entry cannot clear suppression
+PASS K login boundary: ZONE_CHANGED_NEW_AREA without a login/reload world entry cannot clear suppression
+PASS K login boundary: loading screen still records visible seed rows as old
+PASS K login boundary: missing payload still records visible seed rows as old
+PASS K login boundary: secret payload still records visible seed rows as old
+PASS K login boundary: direct seed still records visible seed rows as old
+PASS K environment: four readable no-source recaps keep their own killers (both nil)
+PASS K environment: no-source killing blow never names a player hit (both nil)
+PASS K environment: four readable no-source recaps keep their own killers (both empty)
+PASS K environment: no-source killing blow never names a player hit (both empty)
+PASS K environment: four readable no-source recaps keep their own killers (sourceGUID nil)
+PASS K environment: no-source killing blow never names a player hit (sourceGUID nil)
+PASS K environment: four readable no-source recaps keep their own killers (sourceGUID empty)
+PASS K environment: no-source killing blow never names a player hit (sourceGUID empty)
+PASS K environment: four readable no-source recaps keep their own killers (sourceName nil)
+PASS K environment: no-source killing blow never names a player hit (sourceName nil)
+PASS K environment: four readable no-source recaps keep their own killers (sourceName empty)
+PASS K environment: no-source killing blow never names a player hit (sourceName empty)
+PASS K environment: a no-source finisher seen at death stays silent after its row disappears
+PASS K environment: a no-source finisher seen at retry stays silent after its row disappears
+PASS K environment: a readable no-source-only death cannot clear an earlier unreadable death
+PASS K environment: recorded no-source rows stay old when amounts change or source fields arrive
+PASS K environment: absent source does not hide an unreadable sourceGUID (secret)
+PASS K environment: absent source does not hide an unreadable sourceGUID (throwing)
+PASS K environment: absent source does not hide an unreadable sourceName (secret)
+PASS K environment: absent source does not hide an unreadable sourceName (throwing)
+PASS K environment: absent source does not hide an unreadable timestamp (secret)
+PASS K environment: absent source does not hide an unreadable timestamp (throwing)
+PASS K environment: absent source does not hide an unreadable timestamp (non-number)
+PASS K environment: absent source does not hide an unreadable timestamp (missing)
+PASS K environment: absent source does not hide an unreadable overkill (secret)
+PASS K environment: absent source does not hide an unreadable overkill (throwing)
+PASS K review F1: earlier recap is refused while retrying for persistent
+PASS K review F1: earlier recap is refused while retrying for fresh mob
+PASS K review F1: earlier recap is refused while retrying for fresh player
+PASS K review F1: records death rows even when no K is sent for share off
+PASS K review F1: records death rows even when no K is sent for instance
+PASS K review F1: records death rows even when no K is sent for unproven
+PASS K review F1: world entry seeds the held recap before the first death refresh=false
+PASS K review F1: world entry seeds the held recap before the first death refresh=true
+PASS K review F1-C: rows arriving after an unsent death's first look stay with that death
+PASS K review F1-C: an unsent death's timed looks record a row set the client replaced before revive
+PASS K review F1-D: rows arriving after the retries ran out belong to the old death on revive
+PASS K review (second opinion case 2): an old row back with edited damage is still the old death
+PASS K review (second opinion case 2): an old row back with edited sourceFlags is still the old death
+PASS K cap: after 256 rows the oldest are evicted; a newer death still sends, an evicted row never does
+PASS K review N1 (accepted miss): an earlier death's 2 s look may take a quick next death's rows
+PASS K review N2: rows arriving between the 1 s and 2 s looks of an unsent death stay with it
+PASS K review F1: row-set identity ignores table allocation and order
+PASS K review F1: a changed recap sourceGUID is a new row; only a newer timestamp can name
+PASS K review F1: a changed recap sourceName is a new row; only a newer timestamp can name
+PASS K review F1: a changed recap timestamp is a new row; only a newer timestamp can name
+PASS K review (second opinion case 2): a changed recap amount alone is still the old row set
+PASS K review (second opinion case 2): a changed recap overkill alone is still the old row set
+PASS K review (second opinion case 1): rows shown during a cancelled death stay with it
+PASS K review (second opinion guard ordering): old rows after a quick revive and death are never sent
+PASS K fix check: a row first seen on an earlier death never names the killer (subset)
+PASS K fix check: a row first seen on an earlier death never names the killer (superset)
+PASS K fix check: a row first seen on an earlier death never names the killer (secret sibling)
+PASS K fix check: a new player row next to an old one still names the new killer
+PASS K fix check: a death whose recap cannot name still owns its rows (65 rows)
+PASS K fix check: a death whose recap cannot name still owns its rows (throwing sibling)
+PASS K fix check: a 65-row recap with a new killer sends; over 256 rows never name
+PASS K blind A/B/C: unrelated mob rows cannot recover until login/reload (login)
+PASS K blind A/B/C: unrelated mob rows cannot recover until login/reload (reload)
+PASS K blind A/B/C: unrelated mob rows cannot recover until login/reload (loading screen)
+PASS K blind A/B/C: unrelated player rows cannot recover until login/reload (login)
+PASS K blind A/B/C: unrelated player rows cannot recover until login/reload (reload)
+PASS K blind A/B/C: unrelated player rows cannot recover until login/reload (loading screen)
+PASS K blind: a row an unsent death could not record suppresses later deaths until login/reload
+PASS K blind: empty and non-empty readable deaths keep suppression until login/reload
+PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after empty
+PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after hidden
+PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after readable sibling
+PASS K: duplicate PLAYER_DEAD retains the first snapshot until PLAYER_ALIVE
+PASS K: duplicate PLAYER_DEAD retains the first snapshot until PLAYER_UNGHOST
+PASS K blind: an incomplete death cannot recover after a later readable look
+PASS K blind: an unrecordable row beside a sibling stamped lower or higher never lets the old row name a later death
+PASS K review F1: an ineligible fresh row set does not stop later eligible retries
+PASS K cap: an evicted earlier row is never fresh again; a newer one is
+PASS K review S1: malformed UTF-8 after unhex is refused by codec Wire and receiver
+PASS K review S1: valid multi-byte names retain their exact bytes
+PASS K review S2: Wire refuses guildless K even at click priority
+PASS K review S2: delayed callbacks honor the 2.5 second absolute deadline
+PASS K review S2: retry binds the live guild even without a guild-change event
+PASS K review S2: recap killer matching our own name is not sent
+PASS K review S2: zone upper bound is 999999 not one million
+PASS K review S2: unhex must validate player syntax as well as UTF-8
+PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
+RESULT: 859 tests passed, 0 failed, 89676 assertions
