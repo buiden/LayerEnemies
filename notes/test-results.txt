@@ -322,6 +322,36 @@ PASS 1.0 T3-2: a join that fails is not marked joined; toggling never stacks tim
 PASS names end to end: a foreign spaced host First Last-7103 on realm 7102: line, hop, whisper, auto-accept
 PASS a7: leaving the guild makes hosting inactive; a new guild's H waits for that guild's roster
 PASS a7: leaving the guild drops a scheduled F answer and an owed H
+PASS crowd 5: nine enemies use consecutive 4,4,1 slots without repeats
+PASS crowd 6: a sighting waiting 30 seconds keeps its real age
+PASS crowd rate: duplicate and fractional pumps never open an early slot
+PASS crowd cap: no fourth line for a 13-plus snapshot even at age 45
+PASS crowd packing: byte-trimmed names wait for the next slot
+PASS crowd encoder: fitted receipt matches unchanged O bytes
+PASS crowd repeat: a new arrival never pulls a recently sent name along
+PASS crowd repeat identity: duplicate observed names do not bypass 60 seconds
+PASS crowd freshness: age 45 is allowed but a waiting name past 45 is dropped
+PASS crowd age: omitted newer names cannot rejuvenate the fitted sightings
+PASS crowd switch: share off cancels the remaining snapshot without resetting pace
+PASS crowd boundaries: zone and world resets discard the pending old sightings
+PASS crowd guild: a leave or readable switch cancels old-guild remaining lines
+PASS crowd refusal: no shared stamp on a refused send and retry still waits 15 seconds
+PASS crowd cancel pace: a quick off-on cycle preserves both cooldowns
+PASS crowd guild blink: same or unreadable guild events retain the existing burst
+PASS crowd boundary cooldown: new-zone observations cannot repeat a name inside 60 seconds
+PASS crowd cancel memory: repeated boundaries keep skipped keys bounded to the current store
+PASS crowd receiver: 5 enemies keep their exact displayed total
+PASS crowd receiver: 9 enemies keep their exact displayed total
+PASS crowd receiver: 13 enemies keep their exact displayed total
+PASS crowd receiver: 30 enemies keep their exact displayed total
+PASS crowd receiver: byte-trimmed lines count only their own names
+PASS crowd War Effort fight: 6 enemies produce five pairs in five minutes
+PASS crowd War Effort fight: 13 enemies produce five pairs in five minutes
+PASS crowd War Effort cooldown: unguilded keeps enemy dedupe
+PASS crowd War Effort cooldown: guild line refused keeps enemy dedupe
+PASS crowd War Effort cooldown: share off/on keeps enemy dedupe
+PASS crowd War Effort new arrivals: cooldown is per enemy, not global
+PASS crowd War Effort: O follow-up slots do not multiply the public report
 PASS 1.0 A1: WeOut encodes C and E as War Effort does; they decode back to the same values
 PASS 1.0 A1: an O line to the guild: 3 s settle, one per 15 s, the same enemy again only after 60 s
 PASS 1.0 A1: a guildmate's O line is a first-hand row with names; our own is not stored
@@ -791,6 +821,7 @@ PASS Spy relay 8: stand-down also matches normalized Forever Spy and Sentinel so
 PASS Spy relay zone: another-zone sighting still goes to the guild and Find
 PASS Spy relay cap: pending names coalesce at dispatch and bounded limits survive clears and clock rollback
 PASS Spy relay invalid: malformed family lines and self sightings never offered
+PASS Guild relay policy: only a fitted guild O attempt spends the own reserve
 PASS Guild relay policy: sharing on sends own, Spy and HeadHunter lines
 PASS Guild relay policy: share off silences own, Spy and HeadHunter before receipt
 PASS Guild relay policy: share off silences own, Spy and HeadHunter during wait
@@ -1038,4 +1069,4 @@ PASS Kills R2 reserve: kill relays leave the guild-minute own slots
 PASS Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute
 PASS Kills R2 ledger: new kill stays visible after 300 guild kills at one per second
 PASS Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first
-RESULT: 1040 tests passed, 0 failed, 99407 assertions
+RESULT: 1071 tests passed, 0 failed, 109538 assertions
