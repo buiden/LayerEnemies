@@ -71,6 +71,45 @@ test("Round1 cost: Known index follows aliases replacement eviction expiry and r
     if st.known.byName then eq(next(st.known.byName),nil,"no dangling index entries") end
 end)
 
+test("Round1 own: a newer guild O keeps fresh own evidence primary and both lines visible",function()
+    for _,trackAfter in ipairs({false,true}) do
+        for _,ownFirst in ipairs({true,false}) do
+            local N=H.load(); H.advance(1); local M,F=N.Main,N.Find
+            local at=H.clock()
+            if not trackAfter then yes(M.track("Cedar Vale")) end
+            local function own()
+                F.own(M.find,{name="Cedar Vale",source="own target",faction="opposite",layer="7086-7"},100,at,H.clock())
+            end
+            if ownFirst then own() end
+            H.advance(1)
+            local line=N.Relay.ownLine({rid=7,zone=100,age=0,layer="7085",count=1,enemies={{name="Cedar Vale"}}})
+            H.deliver("CHAT_MSG_ADDON","LEGW1",line,"GUILD","DirectScout")
+            if not ownFirst then own() end
+            if trackAfter then yes(M.track("Cedar Vale")) end
+            local r=M.findRows()[1]
+            yes(r.own,"your fresh own sighting must remain primary"); yes(r.same); no(r.canAsk); eq(r.at,at)
+            local text=M.findText(r)
+            yes(text:find("is on YOUR layer",1,true)); yes(text:find("Seen by DirectScout",1,true))
+            yes(text:find("layer 7085 (their claim)",1,true)); yes(text:find("1 s ago",1,true))
+            N.UI.toggle(); N.UI.select("find"); no(N.UI.pool[1].ask:IsShown())
+            yes(N.UI.pool[1].sub:GetText():find("Seen by DirectScout",1,true)); eq(N.UI.pool[1].hopRecord,false)
+            H.advance(598); yes(M.findRows()[1].own,"599 seconds is still primary")
+            H.advance(1); r=M.findRows()[1]; eq(r.spotter,"DirectScout"); yes(r.canAsk,"600-second own evidence no longer suppresses Ask")
+            yes(M.findText(r):find("last known: Seen by you",1,true)); eq(#H.sent(),0); no(M.error)
+        end
+    end
+end)
+
+test("Round1 own: an own sighting in another zone does not suppress fresh on-site evidence",function()
+    local N=H.load(); local F,M=N.Find,N.Main
+    yes(M.track("Cedar Vale"))
+    F.own(M.find,{name="Cedar Vale",source="own target",faction="opposite",layer="7086-7"},200,H.clock())
+    H.advance(1)
+    F.report(M.find,{sender="Scout",zone=100,at=H.clock(),source="guild",enemies={{name="Cedar Vale"}}},"Test Realm")
+    local r=M.findRows()[1]; eq(r.spotter,"Scout"); yes(r.canAsk); no(r.same)
+    yes(M.findText(r):find("Seen by you",1,true),"out-of-zone own line is retained as detail")
+end)
+
 test("Round1 realm: own realm equality normalizes and folds full strings",function()
     local N=H.load(); local st=N.Find.new({"Alice-Érea52"},"Home")
     N.Find.own(st,{name="Alice",realm="érea - 52",source="own target",faction="opposite"},100,H.clock())

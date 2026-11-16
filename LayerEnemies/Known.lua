@@ -64,7 +64,15 @@ function K.put(st,e,now)
         or type(e.at)~="number" or not fresh(e,now) then return end
     local key=N.Find.fold(e.name)
     local p=st.entries[key]
-    local slot=e.kind=="seen" and e.source~="relayed" and e.source~="death" and "seen" or "reported"
+    local firsthand=e.kind=="seen" and e.source~="relayed" and e.source~="death"
+    local slot=firsthand and "seen" or "reported"
+    -- Keep two entries: our own sighting, when present, and the newest other
+    -- evidence. A guild observation retains kind=seen; it is not a relay claim.
+    if firsthand and e.source~="own" and p and p.seen and p.seen.source=="own" then slot="reported" end
+    if e.source=="own" and p and p.seen and p.seen.source~="own" then
+        if not p.reported or p.seen.at>=p.reported.at then p.reported=p.seen end
+        p.seen=nil
+    end
     if p and p[slot] and p[slot].at>e.at then return p[slot] end
     if not p then
         local n,oldest,oldAt=0,nil,nil
@@ -84,7 +92,7 @@ function K.put(st,e,now)
     for _,field in ipairs(fields) do copy[field]=e[field] end
     copy.ns=copy.ns or "unknown"
     if copy.source~="own" and copy.source~="guild" then copy.layer=nil; copy.ns="unknown" end
-    if slot=="reported" then copy.kind="claim" end
+    if not firsthand then copy.kind="claim" end
     p[slot]=copy
     index(st,key,p)
     st.nextExpiry=math.min(st.nextExpiry,copy.at+K.TTL)

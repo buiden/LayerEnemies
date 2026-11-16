@@ -244,6 +244,7 @@ end
 function F.rows(st,now,zone,sameSpotter)
     local out={}
     N.Known.prune(st.known,now)
+    local function ownEligible(e) return e.source=="own" and now-e.at<F.TTL and e.zone==zone end
     for _,entry in ipairs(st.entries) do
         local name=entry.name
         local seen,reported,seenUnknown,reportedUnknown
@@ -253,8 +254,15 @@ function F.rows(st,now,zone,sameSpotter)
                 if e then
                     local match,realmUnknown=matches(entry,e,st.homeKey)
                     if match then
-                        if slot=="seen" and (not seen or e.at>seen.at) then seen,seenUnknown=e,realmUnknown
-                        elseif slot=="reported" and (not reported or e.at>reported.at) then reported,reportedUnknown=e,realmUnknown end
+                        if slot=="seen" then
+                            if not seen or (ownEligible(e) and not ownEligible(seen))
+                                or (ownEligible(e)==ownEligible(seen) and e.at>seen.at) then
+                                e,realmUnknown,seen,seenUnknown=seen,seenUnknown,e,realmUnknown
+                            end
+                        end
+                        -- A second matching first-hand identity (e.g. a realm alias)
+                        -- can also supply the other line without displacing our own.
+                        if e and (not reported or e.at>reported.at) then reported,reportedUnknown=e,realmUnknown end
                     end
                 end
             end
@@ -270,7 +278,8 @@ function F.rows(st,now,zone,sameSpotter)
         -- Prefer a fresh first-hand finding. Otherwise display the newest evidence
         -- as the summary, while retaining both independently aged detail lines.
         local primary,primaryUnknown=seen,seenUnknown
-        if reported and (not seen or (now-seen.at>=F.TTL and reported.at>seen.at)) then primary,primaryUnknown=reported,reportedUnknown end
+        if reported and (not seen or ((now-seen.at>=F.TTL or (seen.source=="own" and seen.zone~=zone))
+            and reported.at>seen.at)) then primary,primaryUnknown=reported,reportedUnknown end
         local keep=loc and primary and primary.kind=="claim" and not loc.relayed and now-loc.at<F.TTL
         if primary and not keep and (not loc or primary.at>=loc.at or (primary.source=="own" and now-primary.at<F.TTL)) then loc=location(primary,name,primaryUnknown) end
         st.locations[name]=loc
