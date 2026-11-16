@@ -18,13 +18,27 @@ pair(0x0178,0x00FF)
 for n=0x0410,0x042F do pair(n,n+32) end
 for n=0x0400,0x040F do pair(n,n+80) end
 function F.fold(s) return (s:lower():gsub("[\194-\223][\128-\191]",lower)) end
+local function realmName(realm) return (realm:gsub("[%s%-]","")) end
+local function parts(name)
+    local base,realm=name:match("^([^%-]+)%-(.*)$")
+    return base or name,realm and realmName(realm)
+end
 function F.name(raw)
     raw=S.str(raw,100)
     if not raw then return nil end
     raw=raw:match("^%s*(.-)%s*$")
     local first,second=raw:match("^([%a\128-\255]+) ([%a\128-\255]+)$")
     if first and #first<=36 and #second<=36 then return raw,F.fold(raw) end
+    -- Grandfather every old accepted spelling, including trailing hyphens,
+    -- apostrophes and the old 72-byte single-word/qualified limit.
     if raw:match("^[%a\128-\255]+%-?[%a'\128-\255]*$") and #raw>=2 and #raw<=72 then return raw,F.fold(raw) end
+    local base,realm=parts(raw)
+    if not realm or #realm<1 or #realm>40 or not realm:match("^[%a%d'\128-\255]+$") then return nil end
+    first,second=base:match("^([%a\128-\255]+) ([%a\128-\255]+)$")
+    if (first and #first<=36 and #second<=36) or (base:match("^[%a\128-\255]+$") and #base<=36) then
+        local name=base.."-"..realm
+        return name,F.fold(name)
+    end
 end
 local function index(map,key,entry)
     local bucket=map[key]
@@ -32,16 +46,17 @@ local function index(map,key,entry)
     bucket[#bucket+1]=entry
 end
 function F.rebuild(st)
-    st.byHash,st.byName={},{}
+    st.byHash,st.byName,st.entries={},{},{}
+    st.homeKey=st.home and F.fold(realmName(st.home))
     for _,name in ipairs(st.names) do
-        local short=name:match("^([^%-]+)") or name
+        local short,realm=parts(name)
         local hashes,realmHash=F.hashes(name,st.home)
         -- Keep the legacy parser's trailing-hyphen spelling too: its own realm is empty.
         if name:sub(-1)=="-" then realmHash=N.Hash.player(short,nil) end
         local entry={name=name,key=F.fold(name),short=short,shortKey=F.fold(short),
-            realm=name:find("-",1,true)~=nil,realmHash=realmHash}
-        index(st.byName,entry.key,entry)
-        if entry.shortKey~=entry.key then index(st.byName,entry.shortKey,entry) end
+            realm=realm,realmKey=realm and F.fold(realm),realmHash=realmHash,twoWord=short:find(" ",1,true)~=nil}
+        st.entries[#st.entries+1]=entry
+        index(st.byName,entry.shortKey,entry)
         for hash in pairs(hashes) do index(st.byHash,hash,entry) end
     end
 end
@@ -111,25 +126,42 @@ function F.hashes(name,home)
     local realmHash=add(first,realm or home or ""); add(first,"")
     -- Forever's detector hashes UnitName's two returns as name + realm:
     -- its second return is actually a surname. Match that exact wire behaviour.
-    local given,surname=name:match("^([^ ]+) (.+)$")
+    local given,surname=first:match("^([^ ]+) (.+)$")
     if given then add(given,surname) end
     return out,realmHash
 end
-local function location(e,name)
+-- One per-entry rule for immediate findings and the Known read projection.
+-- A two-word own display has no realm unless it explicitly carries a suffix;
+-- UnitName's second return is a surname on Forever, not realm evidence.
+local function matches(entry,e,homeKey)
+    if e.source=="own" and not entry.twoWord then
+        return entry.key==F.fold(e.name) or (entry.shortKey==F.fold(e.ownName or e.name)
+            and (not entry.realm or N.Hash.player(entry.short,e.realm)==entry.realmHash))
+    end
+    local base,realm=parts(e.name)
+    if entry.shortKey~=F.fold(base) then return false end
+    if not entry.realm then return true end
+    if realm then return entry.realmKey==F.fold(realm) end
+    return true,entry.realmKey~=homeKey or nil
+end
+local function location(e,name,realmUnknown)
     local loc={}
     for k,v in pairs(e) do loc[k]=v end
-    loc.name=name; loc.cached=true
+    loc.name=name; loc.cached=true; loc.realmUnknown=realmUnknown
     loc.own=e.source=="own" or nil
     if loc.own then loc.layerKnown=e.layer~=nil
     else loc.possible=true; loc.relayed=e.source=="relayed" end
     return loc
 end
-local function remember(st,name,e)
+local function remember(st,entry,e)
     if not e then return end
+    local match,realmUnknown=matches(entry,e,st.homeKey)
+    if not match then return end
+    local name=entry.name
     local old=st.locations[name]
     if not old or (e.kind=="seen" and (old.kind=="claim" or e.at>=old.at))
         or (e.kind=="claim" and (old.kind=="claim" or e.at-old.at>=F.TTL) and e.at>=old.at) then
-        st.locations[name]=location(e,name)
+        st.locations[name]=location(e,name,realmUnknown)
     end
 end
 function F.own(st,e,zone,now,readNow)
@@ -137,56 +169,59 @@ function F.own(st,e,zone,now,readNow)
     local cached=N.Known.put(st.known,{name=e.displayName or e.name,ownName=e.name,realm=e.realm,
         zone=zone,x=e.x,y=e.y,pos="observer",at=now,source="own",spotter="you",class=e.class,level=e.level,
         layer=N.Layer.key(e.layer),ns=e.layer and "server" or "unknown",kind="seen",epoch=st.epoch,detail=e.source},readNow or now)
-    local label,key=F.fold(e.displayName or e.name),F.fold(e.name)
-    local function put(entry) remember(st,entry.name,cached) end
-    local exact=st.byName[label]
-    for _,entry in ipairs(exact or {}) do if entry.key==label then put(entry) end end
-    local candidates=label==key and exact or st.byName[key]
-    for _,entry in ipairs(candidates or {}) do
-        if entry.shortKey==key and not entry.name:find(" ",1,true) and (not entry.realm or N.Hash.player(entry.short,e.realm)==entry.realmHash) then
-            put(entry)
+    local base=parts(e.displayName or e.name)
+    local label,key=F.fold(base),F.fold(e.name)
+    for _,entry in ipairs(st.byName[label] or {}) do remember(st,entry,cached) end
+    if label~=key then
+        for _,entry in ipairs(st.byName[key] or {}) do
+            if not entry.twoWord then remember(st,entry,cached) end
         end
     end
 end
--- Name buckets retain all aliases: a realm-less report can match several qualified
--- tracked names, but a qualified report matches only that full name (as before).
+-- Buckets are keyed by base; realms are checked per entry, never stripped from
+-- identity. An unqualified tracked entry accepts any named realm.
 function F.report(st,r,home)
     F.home(st,home)
-    local function hashPut(entry,e)
+    local function hashPut(entry,e,realmUnknown,evidenceName)
         local name=entry.name
         local old=st.locations[name]
         -- Hash-only and deferred HeadHunter evidence keep their existing lifetime.
         local keep=old and r.relayed and not old.relayed and r.at-old.at<F.TTL
         if not keep and (not old or (not old.own and old.at<=r.at) or r.at-old.at>=F.TTL) then
             st.locations[name]={name=name,zone=r.zone,at=r.at,spotter=r.sender,class=e.class,level=e.level,possible=true,relayed=r.relayed==true,
-                source=r.source=="headhunter" and "headhunter" or nil}
+                source=r.source=="headhunter" and "headhunter" or nil,realmUnknown=realmUnknown,evidenceName=evidenceName}
         end
     end
     for _,e in ipairs(r.enemies) do
-        if e.hash then for _,entry in ipairs(st.byHash[e.hash] or {}) do hashPut(entry,e) end end
-        if S.str(e.name,100) then
+        local named=S.str(e.name,100)
+        local base,realm
+        if named then base,realm=parts(named); base=F.fold(base); realm=realm and F.fold(realm) end
+        if e.hash then
+            for _,entry in ipairs(st.byHash[e.hash] or {}) do
+                -- A lossy hash cannot override explicit contradictory realm evidence.
+                local conflict=base==entry.shortKey and realm and entry.realm and realm~=entry.realmKey
+                if not conflict then hashPut(entry,e,entry.realm~=nil or nil) end
+            end
+        end
+        if named then
+            local candidates=st.byName[base]
             local source=r.source or (r.relayed and "relayed" or "spy")
             if source=="headhunter" then
-                for _,entry in ipairs(st.byName[F.fold(e.name)] or {}) do hashPut(entry,e) end
+                for _,entry in ipairs(candidates or {}) do
+                    local match,realmUnknown=matches(entry,e,st.homeKey)
+                    if match then hashPut(entry,e,realmUnknown,named) end
+                end
             else
                 local cached=N.Known.put(st.known,{name=e.name,zone=r.zone,x=r.x,y=r.y,pos=r.pos,at=r.at,
                     source=source,spotter=r.sender,class=e.class,level=e.level,layer=r.layer,ns=r.ns,
                     kind=(r.relayed or source=="death") and "claim" or "seen"},r.now or r.at)
-                for _,entry in ipairs(st.byName[F.fold(e.name)] or {}) do remember(st,entry.name,cached) end
+                for _,entry in ipairs(candidates or {}) do remember(st,entry,cached) end
             end
         end
     end
 end
 -- A bounded read projection, not a scan on receipt. The hot paths above still use
 -- the prebuilt Find20 indices. Reusing memory on add does not hash incoming reports.
-local function matches(name,e)
-    local want,got=F.fold(name),F.fold(e.name)
-    if e.source~="own" then return want==got or want:match("^([^%-]+)")==got end
-    if want==got then return true end
-    local short=name:match("^([^%-]+)") or name
-    return not name:find(" ",1,true) and F.fold(short)==F.fold(e.ownName or e.name)
-        and (not name:find("-",1,true) or N.Hash.player(short,e.realm)==N.Hash.player(short,name:match("%-(.+)$")))
-end
 local function project(st,loc,now,zone,sameSpotter)
     local row={}
     for k,v in pairs(loc) do row[k]=v end
@@ -200,6 +235,7 @@ local function project(st,loc,now,zone,sameSpotter)
         or loc.source=="death" and "named as killer (claim)"
         or loc.relayed and "possible match, seen in a relayed report"
         or "possible match, seen by "..(loc.spotter or "unknown")
+    if row.realmUnknown then row.status=row.status.." · realm not confirmed" end
     if row.lastKnown then row.status="last known: "..row.status end
     row.canAsk=not row.same and not row.travel and not row.lastKnown and not loc.own
         and loc.spotter~=nil and not loc.relayed and loc.kind~="claim"
@@ -208,30 +244,40 @@ end
 function F.rows(st,now,zone,sameSpotter)
     local out={}
     N.Known.prune(st.known,now)
-    for _,name in ipairs(st.names) do
-        local seen,reported
+    for _,entry in ipairs(st.entries) do
+        local name=entry.name
+        local seen,reported,seenUnknown,reportedUnknown
         for _,pair in pairs(st.known.entries) do
             for _,slot in ipairs({"seen","reported"}) do
                 local e=pair[slot]
-                if e and matches(name,e) then
-                    if slot=="seen" and (not seen or e.at>seen.at) then seen=e
-                    elseif slot=="reported" and (not reported or e.at>reported.at) then reported=e end
+                if e then
+                    local match,realmUnknown=matches(entry,e,st.homeKey)
+                    if match then
+                        if slot=="seen" and (not seen or e.at>seen.at) then seen,seenUnknown=e,realmUnknown
+                        elseif slot=="reported" and (not reported or e.at>reported.at) then reported,reportedUnknown=e,realmUnknown end
+                    end
                 end
             end
         end
         local loc=st.locations[name]
         if loc and (loc.cached or now-loc.at>=F.TTL or now<loc.at) then loc=nil end
+        if loc and loc.evidenceName then
+            -- Named HeadHunter findings live outside Known; newly learned home
+            -- identity must still remove their no-realm warning, never a hash's.
+            local _,realmUnknown=matches(entry,{name=loc.evidenceName},st.homeKey)
+            loc.realmUnknown=realmUnknown
+        end
         -- Prefer a fresh first-hand finding. Otherwise display the newest evidence
         -- as the summary, while retaining both independently aged detail lines.
-        local primary=seen
-        if reported and (not seen or (now-seen.at>=F.TTL and reported.at>seen.at)) then primary=reported end
+        local primary,primaryUnknown=seen,seenUnknown
+        if reported and (not seen or (now-seen.at>=F.TTL and reported.at>seen.at)) then primary,primaryUnknown=reported,reportedUnknown end
         local keep=loc and primary and primary.kind=="claim" and not loc.relayed and now-loc.at<F.TTL
-        if primary and not keep and (not loc or primary.at>=loc.at or (primary.source=="own" and now-primary.at<F.TTL)) then loc=location(primary,name) end
+        if primary and not keep and (not loc or primary.at>=loc.at or (primary.source=="own" and now-primary.at<F.TTL)) then loc=location(primary,name,primaryUnknown) end
         st.locations[name]=loc
         local row=loc and project(st,loc,now,zone,sameSpotter) or {name=name,status="Not located — needs your sighting or a nearby War Effort user."}
-        if seen then row.seen=project(st,location(seen,name),now,zone,sameSpotter) end
+        if seen then row.seen=project(st,location(seen,name,seenUnknown),now,zone,sameSpotter) end
         if loc and loc.source=="headhunter" and (not seen or loc.at>seen.at) then row.seen=project(st,loc,now,zone,sameSpotter) end
-        if reported then row.reported=project(st,location(reported,name),now,zone,sameSpotter) end
+        if reported then row.reported=project(st,location(reported,name,reportedUnknown),now,zone,sameSpotter) end
         local place=st.places[name]
         if place and (now-place.at>=N.OpenMap.TTL or now<place.at) then st.places[name]=nil; place=nil end
         if place then

@@ -67,11 +67,10 @@ mute. Popups are plain frames, allowed in combat but never in instances
 **On my way** tries a waypoint and super-tracking for the displayed victim's
 zone/coordinates; if unavailable or refused, it prints one location line.
 It also offers the displayed full killer name to Find if a slot is available
-(maximum 20) and the existing Find name parser accepts it. Full two-word
-names must be bare (First Last): realm-qualified full killers (First Last-Realm)
-are shown but are not added to Find. A full list stays unchanged with an
-explanation; partial names are not added. It does not send a message or ask
-for an invite.
+(maximum 20), including realm-qualified full killers (`First Last-Realm` or
+`First Last-1234`). Realm spaces and hyphens are removed; the base and casing
+are kept as typed. A full list stays unchanged with an explanation; partial
+names are not added. It does not send a message or ask for an invite.
 
 Three Arabic headings, three fixed detail labels and three button labels
 ship as pre-rendered images. Each detail row puts its label image on the
@@ -327,8 +326,9 @@ shape is reported as data unavailable.
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).
   `/le call art on|off`: all Arabic call images (default on); heading Latin stays visible.
-- `/le find <name>`: add a tracked enemy (maximum 20). Names may include a
-  Forever surname or an explicit `-Realm`. `/le find` clears all tracked names.
+- `/le find <name>`: add a tracked enemy (maximum 20). Accepts `Name`,
+  `Name-Realm`, `First Last` and `First Last-Realm`, including numeric realms
+  such as `Name-1234`. `/le find` clears all tracked names.
   The Find tab also has a Track field and individual Clear buttons.
 - `/le unclassified`: local sightings whose faction is unknown or same-faction;
   these are explicitly not confirmed enemies.
@@ -589,10 +589,28 @@ rows have a single compact status line. Mouse-wheel paging and individual Clear
 buttons remain; the Track field is not a filter.
 
 The session lookup is built on list changes and once when the home realm first
-becomes readable, not on every report. Existing spellings, realm matching and
-possible-hash-match semantics are unchanged. The first 20 saved entries are
-validated and deduplicated by folded name. **Downgrade warning:** an older client
-keeps and saves only the first five, losing names 6–20.
+becomes readable, not on every report. The first 20 saved entries are validated
+and deduplicated by folded full identity: `Name`, `Name-A` and `Name-B` are three
+entries. No saved-data migration is needed. **Downgrade warning:** an older
+client drops `First Last-Realm` and `Name-1234` entries; clients from before the
+20-name limit also keep and save only the first five, losing names 6–20.
+
+Find accepts a one-word base or a two-word Forever base plus `-Realm`. It splits
+at the first hyphen, removes spaces and hyphens from the realm, and keeps the
+base and casing as typed for display and saving (`First Last-Area 52` becomes
+`First Last-Area52`). New spellings allow up to 36 bytes per base word and a
+1–40-byte realm of letters, digits, apostrophes or high bytes; total input is
+at most 100 bytes. All old accepted spellings retain their previous result.
+
+A tracked base without a realm matches named evidence from any realm or none.
+An explicit realm matches only that realm after normalizing and case folding;
+a different explicit realm never matches. Realm-less named evidence can locate
+a qualified entry, but its status says `realm not confirmed`, unless the typed
+realm is our home realm. These rules also apply when reading session memory.
+Single-word own sightings keep the previous first-name and hash-based realm
+checks. A two-word own sighting uses a realm only if its display name explicitly
+carries one; the second `UnitName` return may be a surname, not a true realm.
+OpenMap keeps its separate exact-identity matching rules.
 
 An enemy sighting is available only when you see the target yourself, or a report naming or
 hashing him reaches you (War Effort, HeadHunter, the Spy family and guild
@@ -628,9 +646,16 @@ The key is the source's exact lower-case name, a hyphen, then lower-case realm
 with spaces/hyphens removed. Both home/explicit-realm and empty-realm forms
 are checked. On Forever, the inspected detector passes UnitName's second
 return into its realm argument even when that return is a surname. A tracked
-`First Surname` therefore also checks the `first-surname` wire key. Display
-name and hashing conventions were verified from source, not from a live
-client. The original code's realm terminology is not proof of a real realm.
+`First Surname` therefore also checks the `first-surname` wire key. With an
+explicit realm, `First Surname-Realm` checks exactly (First, Surname),
+("First Surname", Realm) and ("First Surname", ""), each in the existing spelling
+variants; it never substitutes the home realm or includes `-Realm` in the
+surname. Hash matches remain possible, never confirm the realm, and carry the
+uncertainty note for qualified entries even when that realm is our home.
+Display name and hashing conventions were verified from source, not from a
+live client. The original code's realm terminology is not proof of a real
+realm. Whether any source supplies a surname character's true realm, and which
+representation `UnitName` returns on build 70938, still need native validation.
 
 Find offers `Ask <spotter> for invite` through the same manual helper. If a
 fresh Bulo/LayerSwap claim puts that spotter on your current server key, it

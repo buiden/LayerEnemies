@@ -28,6 +28,28 @@ MUTANTS = [
     ('party-secret-unit-accepted', 'LayerEnemies/Main.lua',
      'function M.queueGroupTarget(unit)\n    unit=S.str(unit,30)',
      'function M.queueGroupTarget(unit)\n    unit=type(unit)=="string" and unit or nil'),
+    ('realm-ignored', 'LayerEnemies/Find.lua',
+     'if realm then return entry.realmKey==F.fold(realm) end',
+     'if realm then return true end'),
+    ('surname-includes-realm', 'LayerEnemies/Find.lua',
+     'local given,surname=first:match("^([^ ]+) (.+)$")',
+     'local given,surname=name:match("^([^ ]+) (.+)$")'),
+    ('realm-warning-dropped', 'LayerEnemies/Find.lua',
+     'if row.realmUnknown then row.status=row.status.." · realm not confirmed" end',
+     '-- realm warning omitted'),
+    ('home-realm-exemption-removed', 'LayerEnemies/Find.lua',
+     'return true,entry.realmKey~=homeKey or nil', 'return true,true'),
+    ('realm-digits-refused', 'LayerEnemies/Find.lua',
+     r'''realm:match("^[%a%d'\128-\255]+$")''', r'''realm:match("^[%a'\128-\255]+$")'''),
+    ('known-cross-realm-leak', 'LayerEnemies/Find.lua',
+     'if e then\n                    local match,realmUnknown=matches(entry,e,st.homeKey)\n                    if match then',
+     'if e then\n                    local match,realmUnknown=matches(entry,e,st.homeKey)\n'
+     '                    if entry.shortKey==F.fold((parts(e.name))) then match=true end\n                    if match then'),
+    ('named-hash-realm-conflict-ignored', 'LayerEnemies/Find.lua',
+     'if not conflict then hashPut(entry,e,entry.realm~=nil or nil) end',
+     'hashPut(entry,e,entry.realm~=nil or nil)'),
+    ('headhunter-late-home-warning-stale', 'LayerEnemies/Find.lua',
+     'if loc and loc.evidenceName then', 'if false then'),
 ]
 
 

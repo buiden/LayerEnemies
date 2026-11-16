@@ -124,3 +124,96 @@ none was counted merely for a syntax failure. Restored run exited 0.
 Forever event delivery and target readability are not established by these
 unit mocks. Visual wrapping/clipping of long two-line cards is not tested in
 a native client. No installation or live-client action is performed here.
+
+## Section 4.3: realm names in Find
+
+### Test-first checkpoint and rulings
+
+- Unmodified `2077d33`: **723 passed, 0 failed, 67382 assertions**.
+- Only the new realm tests and their harness loader copied onto detached
+  `2077d33`: **724 passed, 45 failed, 70631 assertions**, exit 1. The new
+  legacy-parser oracle passed; missing grammar/matching/flags caused the reds.
+- Rule 1's explicit backward-compatibility requirement takes precedence over
+  its tighter new-form bounds: old accepted apostrophes, trailing hyphens,
+  long single words and long alphabetic realms retain identical return values.
+  The 36-byte word and 40-byte realm limits apply to newly accepted spellings.
+- Single-word own sightings retain the old exact-display/first-name/hash
+  comparison, even when display and second-return realm disagree. Two-word
+  sightings use only a suffix on the display name as realm evidence, never
+  the second return (which can be the surname).
+- Hash-only matches cannot confirm even a home realm: they stay possible and
+  carry the uncertainty note when the tracked entry is qualified. The home
+  exemption applies to realm-less named evidence, not anonymous hash matches.
+- Known remains a source cache, not a tracked-identity cache. Find applies the
+  same per-entry matcher on receipt and read; uncertainty is a row property.
+- No live-client claims: the true realm availability for surname characters
+  and `UnitName` representation on build 70938 remain unknown.
+- Follow-up edge tests first failed **769 passed, 2 failed**: newly learned
+  home realm must update the separate named HeadHunter path, and a hash must
+  not override a name's explicitly contradictory realm. Both then passed.
+- Final tests (including the two intentional expectation changes below)
+  replayed with only tests copied onto detached `2077d33`: **722 passed,
+  49 failed, 70470 assertions**, exit 1. That is 47 new failing cases plus
+  two intentionally changed old cases; the legacy parser oracle stays green.
+- Green: **771 passed, 0 failed, 71244 assertions**.
+
+### Existing tests whose expected values changed in section 4.3
+
+Exactly two. All original `F.name` expectations, own-sighting comparisons,
+operation budgets, collision behavior, and OpenMap tests are unchanged.
+
+| Existing test | Change and reason |
+|---|---|
+| `Find20 matching preserves legacy aliases, realm checks, collisions and precedence` | Extend only the named-report oracle: an unqualified tracked base now accepts any reported realm (Rule 2). The frozen own oracle is unchanged. |
+| `Call review: Find keeps its existing two-word realm limitation` | Renamed to `Call review: Find accepts realm-qualified two-word killers`; the Help click now adds exactly the displayed qualified killer instead of leaving Find empty (Rule 5). Popup admission and no-send checks remain. |
+
+The `no-realmless-name-alias` Find20 mutant is retargeted to the new base-only
+index: replace its base key with the full key to recreate the same missing
+alias defect. Its kill criterion is unchanged. The pre-existing
+`missing-status-stays-tall` target was stale after Known's variable detail
+heights; it now changes only the missing-row height in the current expression.
+
+### Review and execution notes
+
+- Final review: self-review (no independent subagent tool). Checked parser
+  compatibility precedence, normalized per-entry matching on both receipt and
+  cache projection, single-word own exceptions, named/hash separation, popup
+  add/save flow and unchanged transport/SavedVariables scope.
+- One mutation target initially matched two sites; it was narrowed to the
+  Known read loop. A foreground full run then hit the tool's 420-second limit;
+  its interrupted mutation was explicitly restored before rerunning. The
+  complete runners use a tracked background process and source-hash restoration
+  checks, not partial output as a pass. No survivor was treated as killed.
+
+### Completed mutation evidence
+
+All **17/17 guild-intel** mutants and **11/11 Find20** mutants were killed by
+assertion failures, not syntax errors. Every target was preflighted as unique
+and syntactically valid. Both runners restore source in `finally`; a separate
+SHA-256 comparison confirmed all mutated source files were restored byte for
+byte. The restored harness reported **771 passed, 0 failed, 71244 assertions**.
+No new case had to be added to kill a surviving mutant.
+
+| Section 4.3 mutant | Failed tests | Representative detecting test |
+|---|---:|---|
+| realm ignored when both sides have one | 13 | different explicit realms never match (all named sources) |
+| surname includes `-Realm` | 1 | surname hashes use the base and never a typed-realm home tuple |
+| realm warning dropped | 7 | realm-less evidence marks foreign realm unknown |
+| home-realm exemption removed | 12 | home realm needs no unknown note |
+| digits refused in realm | 16 | new forms normalize only the realm and preserve typed case |
+| Known cross-realm leak | 11 | Known rejects cross-realm memory before and after adding |
+| named hash ignores contradictory realm | 1 | a hash cannot override an explicitly different named realm |
+| HeadHunter late-home warning stays stale | 1 | late home discovery removes the named HeadHunter uncertainty only |
+
+Only `Find.lua` and the named-detail text in `Main.lua` change in production.
+The popup's existing `callHelp` add/save path is unchanged and exercised via
+both direct receive and the real GBOUNTY dispatcher. `Known.lua`, `Wire.lua`,
+`Share.lua` and `OpenMap.lua` are byte-identical to `2077d33`. No SavedVariables
+field, dependency or send is added.
+
+The full verification gate (`uv run --no-project --python 3.14 --with lupa==2.8
+python -I test/verify.py`) exited **0**, with **771 passed, 0 failed, 71244
+assertions**. Lua syntax, static/API policy, archive integrity and source
+parity passed. The deterministic archive hash is recorded in
+`notes/verification.json`; generated results are committed separately from
+this feature. Native-client verification remains false.

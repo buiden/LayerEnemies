@@ -703,7 +703,8 @@ local function knownLine(e)
     text=text.." in "..M.zoneName(e.zone)..", "..age.." ago"
     if e.kind=="claim" then text=text.." ("..e.source..", claim)"
     elseif e.layer then text=text..", layer "..e.layer.." ("..(e.own and "your sighting" or "their claim")..")" end
-    if e.own then text=text.." · "..e.status:gsub("^last known: ","") end
+    if e.own then text=text.." · "..e.status:gsub("^last known: ","")
+    elseif e.realmUnknown then text=text.." · realm not confirmed" end
     if e.detail=="own (party target)" then text=text.." · "..e.detail end
     if e.x and e.y then text=text.." · "..math.floor(e.x*100+.5)..","..math.floor(e.y*100+.5).." ("..(e.pos or "unknown").." position)" end
     if e.travel then text=text.." · travel to "..M.zoneName(e.zone).." first"

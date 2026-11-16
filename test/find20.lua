@@ -108,8 +108,8 @@ test("Find20 27: saved input is validated and deduplicated within its first twen
     st=F.new(names(30)); eq(#st.names,20); eq(st.names[20],"Seeker t")
 end)
 
--- Preserve the original comparisons, including the asymmetric realm-less report
--- rule and Hash.player's existing realm comparison (not a new identity parser).
+-- Preserve legacy own comparisons, hash collisions and precedence; section 4.3
+-- deliberately extends unqualified tracked names to qualified named reports.
 test("Find20 matching preserves legacy aliases, realm checks, collisions and precedence",function()
     local N=H.load(); local F=N.Find
     local list={"Alice","Alice-TestRealm","Alice-Foreign","ÉLODIE","élodie-TestRealm","Élodie-Foreign",
@@ -118,6 +118,7 @@ test("Find20 matching preserves legacy aliases, realm checks, collisions and pre
         if not e.name then return false end
         local want,got=F.fold(name),F.fold(e.name)
         return want==got or want:match("^([^%-]+)")==got
+            or (not want:find("-",1,true) and want==got:match("^([^%-]+)"))
     end
     local function oldOwn(name,e)
         local short=name:match("^([^%-]+)") or name
