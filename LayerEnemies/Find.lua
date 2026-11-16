@@ -136,7 +136,7 @@ end
 local function matches(entry,e,homeKey)
     if e.source=="own" and not entry.twoWord then
         return entry.key==F.fold(e.name) or (entry.shortKey==F.fold(e.ownName or e.name)
-            and (not entry.realm or N.Hash.player(entry.short,e.realm)==entry.realmHash))
+            and (not entry.realm or entry.realmKey==F.fold(realmName(e.realm or ""))))
     end
     local base,realm=parts(e.name)
     if entry.shortKey~=F.fold(base) then return false end

@@ -7,6 +7,9 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 MUTANTS = [
+    ('own-realm-hash-equality', 'LayerEnemies/Find.lua',
+     'and (not entry.realm or entry.realmKey==F.fold(realmName(e.realm or ""))))',
+     'and (not entry.realm or N.Hash.player(entry.short,e.realm)==entry.realmHash))'),
     ('boundary-wipes-memory', 'LayerEnemies/Find.lua', 'st.epoch=st.epoch+1',
      'st.epoch=st.epoch+1; st.known=N.Known.new(); st.locations={}'),
     ('retention-unbounded', 'LayerEnemies/Known.lua', 'TTL=3600,MAX=300', 'TTL=3600000000,MAX=300'),
