@@ -713,6 +713,37 @@ PASS K: exposed route copy cannot widen LEGW1 or any other prefix
 PASS K: seen same-faction proof overrides contradictory opposite-race metadata
 PASS K: zone cancellation persists even when race can still prove the killer after store reset
 PASS K: death in an instance cannot become eligible by leaving before the first retry
+PASS K login boundary: pew-empty cannot clear incomplete-recap suppression
+PASS K login boundary: pew-other cannot clear incomplete-recap suppression
+PASS K login boundary: pew-unavail cannot clear incomplete-recap suppression
+PASS K login boundary: pew-twice cannot clear incomplete-recap suppression
+PASS K login boundary: readable login seed records old rows and permits a fresh killer
+PASS K login boundary: incomplete login seed re-arms suppression (secret)
+PASS K login boundary: incomplete login seed re-arms suppression (throwing)
+PASS K login boundary: incomplete login seed re-arms suppression (overflow)
+PASS K login boundary: readable reload seed records old rows and permits a fresh killer
+PASS K login boundary: incomplete reload seed re-arms suppression (secret)
+PASS K login boundary: incomplete reload seed re-arms suppression (throwing)
+PASS K login boundary: incomplete reload seed re-arms suppression (overflow)
+PASS K login boundary: unreadable payload fails closed (missing)
+PASS K login boundary: unreadable payload fails closed (secret-login)
+PASS K login boundary: unreadable payload fails closed (secret-reload)
+PASS K login boundary: unreadable payload fails closed (secret-both)
+PASS K login boundary: unreadable payload fails closed (secret-with-reload)
+PASS K login boundary: unreadable payload fails closed (login-with-secret)
+PASS K login boundary: unreadable payload fails closed (missing-with-reload)
+PASS K login boundary: unreadable payload fails closed (login-with-missing)
+PASS K login boundary: unreadable payload fails closed (nonboolean-login)
+PASS K login boundary: unreadable payload fails closed (nonboolean-reload)
+PASS K login boundary: unreadable payload fails closed (throwing-secret-check)
+PASS K login boundary: direct seed without a login/reload world entry cannot clear suppression
+PASS K login boundary: PLAYER_LOGIN without a login/reload world entry cannot clear suppression
+PASS K login boundary: SHARD_TRANSFER without a login/reload world entry cannot clear suppression
+PASS K login boundary: ZONE_CHANGED_NEW_AREA without a login/reload world entry cannot clear suppression
+PASS K login boundary: loading screen still records visible seed rows as old
+PASS K login boundary: missing payload still records visible seed rows as old
+PASS K login boundary: secret payload still records visible seed rows as old
+PASS K login boundary: direct seed still records visible seed rows as old
 PASS K environment: four readable no-source recaps keep their own killers (both nil)
 PASS K environment: no-source killing blow never names a player hit (both nil)
 PASS K environment: four readable no-source recaps keep their own killers (both empty)
@@ -770,14 +801,14 @@ PASS K fix check: a new player row next to an old one still names the new killer
 PASS K fix check: a death whose recap cannot name still owns its rows (65 rows)
 PASS K fix check: a death whose recap cannot name still owns its rows (throwing sibling)
 PASS K fix check: a 65-row recap with a new killer sends; over 256 rows never name
-PASS K blind A/B/C: unrelated mob rows cannot recover until world entry (login)
-PASS K blind A/B/C: unrelated mob rows cannot recover until world entry (reload)
-PASS K blind A/B/C: unrelated mob rows cannot recover until world entry (loading screen)
-PASS K blind A/B/C: unrelated player rows cannot recover until world entry (login)
-PASS K blind A/B/C: unrelated player rows cannot recover until world entry (reload)
-PASS K blind A/B/C: unrelated player rows cannot recover until world entry (loading screen)
-PASS K blind: a row an unsent death could not record suppresses later deaths until world entry
-PASS K blind: empty and non-empty readable deaths keep suppression until world entry
+PASS K blind A/B/C: unrelated mob rows cannot recover until login/reload (login)
+PASS K blind A/B/C: unrelated mob rows cannot recover until login/reload (reload)
+PASS K blind A/B/C: unrelated mob rows cannot recover until login/reload (loading screen)
+PASS K blind A/B/C: unrelated player rows cannot recover until login/reload (login)
+PASS K blind A/B/C: unrelated player rows cannot recover until login/reload (reload)
+PASS K blind A/B/C: unrelated player rows cannot recover until login/reload (loading screen)
+PASS K blind: a row an unsent death could not record suppresses later deaths until login/reload
+PASS K blind: empty and non-empty readable deaths keep suppression until login/reload
 PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after empty
 PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after hidden
 PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after readable sibling
@@ -796,4 +827,4 @@ PASS K review S2: recap killer matching our own name is not sent
 PASS K review S2: zone upper bound is 999999 not one million
 PASS K review S2: unhex must validate player syntax as well as UTF-8
 PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
-RESULT: 798 tests passed, 0 failed, 78327 assertions
+RESULT: 829 tests passed, 0 failed, 79834 assertions
