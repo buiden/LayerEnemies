@@ -100,15 +100,19 @@ Known limits (a missed line is accepted; a false killer is not):
   are taken as that death's rows. Recap timing on the live client is unknown,
   so this is not fully closed.
 - After a death whose recap held a row that could not be read, or more than
-  256 rows, all following deaths stay silent until the next world-entry seed.
-  Even a non-empty, fully readable recap cannot clear suppression: other rows
-  at death B do not prove that death A's hidden row is gone, so a newly readable
-  A row cannot name death C's killer. Empty or unavailable recaps cannot clear
-  it either. The seed runs on every PLAYER_ENTERING_WORLD, including loading
-  screens as well as login/reload, records the held rows as old, and clears the
-  previous suppression. If that seed itself has unreadable or excess rows,
-  suppression starts again. Revive, zone-change and SHARD_TRANSFER events do
-  not clear it without PLAYER_ENTERING_WORLD.
+  256 rows, all following deaths stay silent until the next login or `/reload`.
+  The cost is deliberate: after one unreadable recap, no later own-death line
+  is sent until you relog or reload, even for a genuinely new killer. Loading
+  screens do not restore death lines, whether their recap is empty,
+  unavailable, fully readable or shows only other rows. Other rows at death B
+  cannot prove that death A's hidden row is gone, so a newly readable A row
+  cannot name death C's killer.
+  Every PLAYER_ENTERING_WORLD still records visible recap rows as old, but
+  only one with readable login/reload flags (isInitialLogin or isReloadingUi
+  true) clears previous suppression. Missing, secret or unreadable flags do
+  not clear it. If that login/reload seed itself has unreadable or excess
+  rows, suppression starts again. Revive, ordinary zone/instance loading
+  screens, zone-change and SHARD_TRANSFER events never clear it.
 - Not covered: a recap that first appears after revive, or a death before the
   first world-entry seed.
 
@@ -128,11 +132,12 @@ is missing or not a readable number, is never recorded, owned or named; the
 readable rows of the same recap are still recorded. A secret/erroring overkill
 read on a no-source row also makes that row unreadable. A recap longer than
 256 rows names nothing. Because an unrecorded row could come back readable,
-following deaths treat every row they see first as old until the next
-world-entry seed. Any incomplete look, including a retry or revive read,
-keeps this suppression for the rest of that world session; complete later
-deaths never clear it. The seed does not discard the recorded row history or
-lower its timestamp high-water mark. Nothing is saved.
+following deaths treat every row they see first as old until the next login
+or `/reload`. Any incomplete look, including a retry or revive read, keeps
+this suppression across loading screens for the rest of the Lua session;
+complete later deaths never clear it. Each seed records visible rows as old
+without discarding the recorded history or lowering its timestamp high-water
+mark. Nothing is saved.
 Known misses: an enemy pet alone (no owner resolution), empty/late recaps,
 and unavailable faction/identity data. Accepted over-count: a mob landing
 the last hit while an enemy player was hitting counts as PvP.

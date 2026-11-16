@@ -331,6 +331,116 @@ end
 local function finishDeath()
     H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
 end
+-- A hidden row stamped above every visible row must survive zone/instance loads.
+-- Use real event dispatch, retries and Wire; no access to the suppression upvalues.
+local function hiddenDeath()
+    local N,rows=setup(); raceProof()
+    rows[1]=nil
+    H.deliver("PLAYER_ENTERING_WORLD",true,false); H.drain()
+    local old=recapRow(); old.timestamp=H.clock()+5
+    local hidden=recapRow(); hidden.timestamp=H.secret
+    rows[1]=hidden; finishDeath(); eq(#deaths(),0,"A has an unreadable recap")
+    nextDeath()
+    return N,rows,old
+end
+local function suppressedDeath(N,rows,old)
+    rows[1]=old
+    H.deliver("PLAYER_DEAD")
+    H.advance(.301); eq(#deaths(),0,"A's newly readable row cannot name B at 0.3 s")
+    H.advance(.7); eq(#deaths(),0,"suppression survives the 1 s retry")
+    H.advance(1); eq(#deaths(),0,"suppression survives the 2 s retry")
+    nextDeath(); rows[1]=recapRow(); finishDeath()
+    eq(#deaths(),0,"even a genuinely new killer stays silent until login/reload")
+    no(N.Main.error)
+end
+for _,mode in ipairs({"pew-empty","pew-other","pew-unavail","pew-twice"}) do
+    test("K login boundary: "..mode.." cannot clear incomplete-recap suppression",function()
+        local N,rows,old=hiddenDeath()
+        if mode=="pew-twice" then H.deliver("PLAYER_ENTERING_WORLD",false,false); H.drain() end
+        rows[1]=nil
+        if mode=="pew-other" then
+            rows[1]={sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",
+                sourceFlags=0x848,timestamp=old.timestamp-1,overkill=-1}
+        elseif mode=="pew-unavail" then C_DeathRecap.HasRecapEvents=function() return false end end
+        H.deliver("PLAYER_ENTERING_WORLD",false,false); H.drain()
+        C_DeathRecap.HasRecapEvents=function() return true end
+        suppressedDeath(N,rows,old)
+    end)
+end
+for _,entry in ipairs({"login","reload"}) do
+    test("K login boundary: readable "..entry.." seed records old rows and permits a fresh killer",function()
+        local N,rows,old=hiddenDeath()
+        rows[1]=old
+        H.deliver("PLAYER_ENTERING_WORLD",entry=="login",entry=="reload"); H.drain()
+        finishDeath(); eq(#deaths(),0,"the seed-held killer belongs to the old death")
+        nextDeath()
+        local fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"
+        rows[2]=fresh; finishDeath()
+        eq(#deaths(),1,"a fully readable login/reload seed clears suppression")
+        eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Birch","never the seeded killer")
+        no(N.Main.error)
+    end)
+    for _,mode in ipairs({"secret","throwing","overflow"}) do
+        test("K login boundary: incomplete "..entry.." seed re-arms suppression ("..mode..")",function()
+            local N,rows,old=hiddenDeath()
+            if mode=="throwing" then rows[1]=setmetatable({},{__index=function() error("unreadable seed") end})
+            elseif mode=="overflow" then for i=1,257 do rows[i]=old end end
+            H.deliver("PLAYER_ENTERING_WORLD",entry=="login",entry=="reload"); H.drain()
+            for i=2,257 do rows[i]=nil end
+            suppressedDeath(N,rows,old)
+        end)
+    end
+end
+for _,mode in ipairs({"missing","secret-login","secret-reload","secret-both","secret-with-reload",
+        "login-with-secret","missing-with-reload","login-with-missing","nonboolean-login",
+        "nonboolean-reload","throwing-secret-check"}) do
+    test("K login boundary: unreadable payload fails closed ("..mode..")",function()
+        local N,rows,old=hiddenDeath(); rows[1]=nil
+        local login,reload=false,false
+        if mode=="missing" then login,reload=nil,nil
+        elseif mode=="secret-login" then login=H.secret
+        elseif mode=="secret-reload" then reload=H.secret
+        elseif mode=="secret-both" then login,reload=H.secret,H.secret
+        elseif mode=="secret-with-reload" then login,reload=H.secret,true
+        elseif mode=="login-with-secret" then login,reload=true,H.secret
+        elseif mode=="missing-with-reload" then login,reload=nil,true
+        elseif mode=="login-with-missing" then login,reload=true,nil
+        elseif mode=="nonboolean-login" then login=1
+        elseif mode=="nonboolean-reload" then reload="true"
+        else login=true end
+        local original=issecretvalue
+        if mode=="throwing-secret-check" then
+            issecretvalue=function(v)
+                if type(v)=="boolean" then error("unreadable event flag") end
+                return original(v)
+            end
+        end
+        H.deliver("PLAYER_ENTERING_WORLD",login,reload)
+        issecretvalue=original; H.drain()
+        suppressedDeath(N,rows,old)
+    end)
+end
+for _,entry in ipairs({"direct seed","PLAYER_LOGIN","SHARD_TRANSFER","ZONE_CHANGED_NEW_AREA"}) do
+    test("K login boundary: "..entry.." without a login/reload world entry cannot clear suppression",function()
+        local N,rows,old=hiddenDeath(); rows[1]=nil
+        if entry=="direct seed" then N.OwnDeath.seed() else H.deliver(entry,true,true) end
+        H.drain(); suppressedDeath(N,rows,old)
+    end)
+end
+for _,entry in ipairs({"loading screen","missing payload","secret payload","direct seed"}) do
+    test("K login boundary: "..entry.." still records visible seed rows as old",function()
+        local N,rows=setup(); raceProof()
+        if entry=="direct seed" then N.OwnDeath.seed()
+        elseif entry=="loading screen" then H.deliver("PLAYER_ENTERING_WORLD",false,false)
+        elseif entry=="secret payload" then H.deliver("PLAYER_ENTERING_WORLD",H.secret,H.secret)
+        else H.deliver("PLAYER_ENTERING_WORLD") end
+        H.drain(); finishDeath(); eq(#deaths(),0,"a seed must still claim visible rows")
+        nextDeath(); rows[1]=recapRow(); finishDeath()
+        eq(#deaths(),1,"a readable ordinary seed does not arm suppression")
+        no(N.Main.error)
+    end)
+end
+
 local function noSourceRow(field,empty,stamp,overkill)
     local r=recapRow(); r.timestamp=stamp; r.overkill=overkill
     r.amount=500; r.environmentalType="Falling"
@@ -403,9 +513,9 @@ test("K environment: a readable no-source-only death cannot clear an earlier unr
     finishDeath(); eq(#deaths(),0); nextDeath()
     held={recapRow()}; finishDeath()
     eq(#deaths(),0,"a readable no-source-only death cannot clear earlier suppression")
-    nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+    nextDeath(); H.deliver("PLAYER_ENTERING_WORLD",false,true); H.drain()
     held={recapRow()}; finishDeath()
-    eq(#deaths(),1,"only a world-entry seed allows the following fresh death")
+    eq(#deaths(),1,"only a login/reload seed allows the following fresh death")
     no(N.Main.error)
 end)
 test("K environment: recorded no-source rows stay old when amounts change or source fields arrive",function()
@@ -437,7 +547,7 @@ for _,field in ipairs({"sourceGUID","sourceName","timestamp","overkill"}) do
                 held={recapRow()}; finishDeath(); eq(#deaths(),0,"truly unreadable rows still suppress the next death")
                 nextDeath(); held={recapRow()}; finishDeath()
                 eq(#deaths(),0,"a complete later death cannot clear suppression")
-                nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+                nextDeath(); H.deliver("PLAYER_ENTERING_WORLD",false,true); H.drain()
                 held={recapRow()}; finishDeath(); eq(#deaths(),1); no(N.Main.error)
             end)
         end
@@ -709,7 +819,7 @@ test("K fix check: a 65-row recap with a new killer sends; over 256 rows never n
 end)
 for _,other in ipairs({"mob","player"}) do
     for _,entry in ipairs({"login","reload","loading screen"}) do
-        test("K blind A/B/C: unrelated "..other.." rows cannot recover until world entry ("..entry..")",function()
+        test("K blind A/B/C: unrelated "..other.." rows cannot recover until login/reload ("..entry..")",function()
             local N=setup(); raceProof()
             local old=recapRow(); old.timestamp=9000
             local hidden=recapRow(); hidden.timestamp=H.secret
@@ -740,14 +850,20 @@ for _,other in ipairs({"mob","player"}) do
             nextDeath()
             local fresh=recapRow(); fresh.sourceGUID="Player-1-999"; fresh.sourceName="Maple"; fresh.timestamp=10001
             held={old,seeded,fresh}; finishDeath()
-            eq(#deaths(),1,"a new death after the world-entry seed may send")
+            if entry=="loading screen" then
+                eq(#deaths(),0,"even a fully readable loading-screen seed cannot clear suppression")
+                nextDeath(); H.deliver("PLAYER_ENTERING_WORLD",false,true); H.drain()
+                fresh=recapRow(); fresh.sourceGUID="Player-1-999"; fresh.sourceName="Maple"; fresh.timestamp=10002
+                held={old,seeded,fresh}; finishDeath()
+            end
+            eq(#deaths(),1,"a new death after a login/reload seed may send")
             eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Maple","never A's killer")
             no(N.Main.error)
         end)
     end
 end
 
-test("K blind: a row an unsent death could not record suppresses later deaths until world entry",function()
+test("K blind: a row an unsent death could not record suppresses later deaths until login/reload",function()
     for _,mode in ipairs({"secret-timestamp","nil-timestamp","secret-name","throwing-row","257-duplicates"}) do
         local N=setup(); raceProof(); N.Main.setShare(false)
         local stamp=H.clock()
@@ -771,13 +887,13 @@ test("K blind: a row an unsent death could not record suppresses later deaths un
         local fresh=recapRow(); fresh.timestamp=H.clock(); held={fresh}
         H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
         eq(#deaths(),0,mode..": the next clean death stays suppressed")
-        nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+        nextDeath(); H.deliver("PLAYER_ENTERING_WORLD",false,true); H.drain()
         fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"; held={fresh}
-        finishDeath(); eq(#deaths(),1,mode..": a fresh death after world entry sends")
+        finishDeath(); eq(#deaths(),1,mode..": a fresh death after login/reload sends")
         eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Birch"); no(N.Main.error)
     end
 end)
-test("K blind: empty and non-empty readable deaths keep suppression until world entry",function()
+test("K blind: empty and non-empty readable deaths keep suppression until login/reload",function()
     local N=setup(); raceProof()
     local old=recapRow()
     local hidden=recapRow(); hidden.timestamp=H.secret
@@ -800,7 +916,7 @@ test("K blind: empty and non-empty readable deaths keep suppression until world 
     local fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"; held={fresh}
     H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
     eq(#deaths(),0,"non-empty readable deaths cannot spend suppression")
-    nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+    nextDeath(); H.deliver("PLAYER_ENTERING_WORLD",false,true); H.drain()
     fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"; held={fresh}
     finishDeath()
     eq(#deaths(),1); eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Birch"); no(N.Main.error)
@@ -865,7 +981,7 @@ test("K blind: an incomplete death cannot recover after a later readable look",f
             nextDeath(); fresh=recapRow(); fresh.sourceGUID="Player-1-789"; fresh.sourceName="Aspen"; held={fresh}
             H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
             eq(#deaths(),0,"later complete recaps cannot clear suppression")
-            nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+            nextDeath(); H.deliver("PLAYER_ENTERING_WORLD",false,true); H.drain()
             fresh=recapRow(); fresh.sourceGUID="Player-1-789"; fresh.sourceName="Aspen"; held={fresh}
             finishDeath()
             eq(#deaths(),1); eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Aspen"); no(N.Main.error)

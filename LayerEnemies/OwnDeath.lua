@@ -155,8 +155,8 @@ local seenHigh,priorMark
 -- blind: some recap row could not be recorded (unreadable, or past RECORD_LIMIT).
 -- Its identity and time are unknown, so it may come back readable at any later
 -- death. Other readable rows cannot prove it is gone. Keep suppression until the
--- next world-entry seed, never clear it at a death. priorBlind stays fixed for
--- each death: every row it sees first is old.
+-- next login/reload seed, never clear it at a death or ordinary loading screen.
+-- priorBlind stays fixed for each death: every row it sees first is old.
 local blind,priorBlind=false,false
 -- A readable no-source killing blow silences only its own death, even if a
 -- later look omits that row. It is not incomplete and must not blind the next death.
@@ -242,11 +242,14 @@ local function remember(list,owner)
         end
     end
 end
-function D.seed()
-    -- Every PLAYER_ENTERING_WORLD (login, reload or loading screen) starts a new
-    -- suppression window and records the held recap as old. An unreadable seed
-    -- is itself incomplete, so remember/capture can set blind again.
-    blind,priorBlind=false,false
+function D.seed(isInitialLogin,isReloadingUi)
+    -- Only login/reload starts a new suppression window. An ordinary loading
+    -- screen cannot prove a hidden row is gone, even if its recap is readable.
+    -- Both event flags must be readable booleans; missing/secret flags fail closed.
+    isInitialLogin,isReloadingUi=S.clean(isInitialLogin),S.clean(isReloadingUi)
+    if type(isInitialLogin)=="boolean" and type(isReloadingUi)=="boolean"
+        and (isInitialLogin or isReloadingUi) then blind,priorBlind=false,false end
+    -- Every seed still records held rows as old. Incomplete seeds re-arm blind.
     pcall(function() remember(capture(),0) end)
 end
 -- Record-only: the recap can lag PLAYER_DEAD, so a death that is never
