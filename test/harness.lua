@@ -1334,6 +1334,15 @@ test("Find fold: Latin and Cyrillic tables, exclusions and unchanged UTF-8",func
     end
     eq(F.fold(""),""); eq(select("#",F.fold("Élodie")),1,"one return, not gsub's count")
 end)
+test("Find fold: lone continuation and truncated UTF-8 tails are byte-preserved",function()
+    local F=loadAddon().Find
+    for _,v in ipairs({{string.char(128),string.char(128)},
+        {"ÉA"..string.char(195),"éa"..string.char(195)},
+        {"ŁZ"..string.char(226,130),"łz"..string.char(226,130)}}) do
+        eq(F.fold(v[1]),v[2],"fold complete letters without consuming an incomplete sequence")
+        eq(F.fold(v[2]),v[2],"malformed bytes remain stable on another fold")
+    end
+end)
 
 -- Synthetic Find fixtures, shared across sighting and wire paths.
 do
