@@ -6168,9 +6168,12 @@ test("seen unknown 01b: Find says layer unknown for an own sighting made before 
     eq(row.status,"seen by you, layer unknown")
     local text=N.Main.findText(row)
     yes(text:find("seen by you, layer unknown",1,true),"slash find text: "..text); no(text:find("YOUR layer",1,true)); no(text:find("already on your layer",1,true))
-    N.UI.toggle(); local sub
-    for _,r in ipairs(N.UI.pool) do if r.sub and r.sub.text and r.sub.text:find("seen by you",1,true) then sub=r.sub.text end end
-    if sub then no(sub:find("already on your layer",1,true)) end
+    N.UI.toggle(); N.UI.tabs.find:Click(); eq(N.UI.tab,"find")
+    local shown=N.UI.pool[1]; yes(shown,"Find row exists"); yes(shown:IsShown(),"Find row is visible")
+    eq(shown.tracked,"Aster Vale"); eq(shown.title.text,"Aster Vale")
+    local sub=shown.sub.text; yes(sub,"Find row text exists")
+    yes(sub:find("seen by you, layer unknown",1,true)); no(sub:find("YOUR layer",1,true)); no(sub:find("already on your layer",1,true))
+    no(shown.ask:IsShown(),"own unknown-layer sighting has no Ask button")
     -- learning the layer later does not upgrade the old sighting into a same-layer claim
     advance(1); establish(N); no(N.Main.findRows()[1].same); eq(N.Main.findRows()[1].status,"seen by you, layer unknown")
     -- a fresh sighting with the layer known is the existing claim
