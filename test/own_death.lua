@@ -369,6 +369,76 @@ for _,refresh in ipairs({false,true}) do
         H.advance(.7); H.advance(1); eq(#deaths(),refresh and 1 or 0); no(N.Main.error)
     end)
 end
+-- Review round 2 F1-C/F1-D: the recap can lag PLAYER_DEAD. Rows that show up
+-- after an unannounced death's first look, or after its retries ran out, still
+-- belong to that death and must never label the next one.
+test("K review F1-C: rows arriving after an unsent death's first look stay with that death",function()
+    local N=setup(); raceProof(); N.Main.setShare(false)
+    local held={}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    H.deliver("PLAYER_DEAD"); H.advance(.2); held={recapRow()}
+    H.advance(.11); H.advance(.7); H.advance(1); eq(#deaths(),0)
+    nextDeath(); N.Main.setShare(true)
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0,"late rows of the unsent death cannot become the next death's killer"); no(N.Main.error)
+end)
+test("K review F1-C: an unsent death's timed looks record a row set the client replaced before revive",function()
+    local N=setup(); raceProof(); N.Main.setShare(false)
+    local first={recapRow()}
+    local held={}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    H.deliver("PLAYER_DEAD"); H.advance(.2); held=first
+    H.advance(.11); H.advance(.7)
+    local other=recapRow(); other.timestamp=H.clock()+7; held={other}
+    H.advance(1); eq(#deaths(),0)
+    nextDeath(); N.Main.setShare(true); held=first -- the earlier set comes back
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0,"the row set seen only by a record-only look stays with the unsent death"); no(N.Main.error)
+end)
+test("K review F1-D: rows arriving after the retries ran out belong to the old death on revive",function()
+    local N=setup(); raceProof()
+    local held={}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1); eq(#deaths(),0)
+    H.advance(.1); held={recapRow()}
+    for _,event in ipairs({"PLAYER_ALIVE","PLAYER_UNGHOST"}) do
+        if event=="PLAYER_UNGHOST" then
+            -- second variant: a different late row set claimed by the ghost-revive event
+            nextDeath(); H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+            local row=recapRow(); row.timestamp=H.clock()+5; held={row}
+        end
+        H.deliver(event); H.advance(1901)
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,event.." must claim the held recap for the death that ended")
+    end
+    no(N.Main.error)
+end)
+for _,field in ipairs({"damage","sourceFlags"}) do
+    test("K review: fingerprint includes "..field.." so a changed row set on the next death is fresh",function()
+        local N,rows=setup(); raceProof()
+        rows[1].damage=10
+        die(); H.advance(2); eq(#deaths(),1)
+        nextDeath(); H.advance(1801) -- clear the K rate window
+        local row=recapRow(); row.timestamp=rows[1].timestamp; row.damage=rows[1].damage
+        if field=="damage" then row.damage=20 else row.sourceFlags=rows[1].sourceFlags+0x10000 end
+        C_DeathRecap.GetRecapEvents=function() return {row} end
+        die(); H.advance(2)
+        eq(#deaths(),2,"rows differing only in "..field.." are a different death"); no(N.Main.error)
+    end)
+end
+test("K review: the session keeps at most 256 row sets and then refuses new sets",function()
+    local N=setup(); raceProof(); N.Main.setShare(false)
+    local held
+    C_DeathRecap.GetRecapEvents=function() return held end
+    for i=1,256 do
+        local row=recapRow(); row.timestamp=1000+i; held={row}
+        H.deliver("PLAYER_DEAD"); H.advance(2.1); H.deliver("PLAYER_ALIVE"); H.advance(1)
+    end
+    N.Main.setShare(true); H.advance(1801)
+    local row=recapRow(); row.timestamp=H.clock(); held={row}
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0,"a 257th unseen set is refused, never admitted by forgetting an old one"); no(N.Main.error)
+end)
 test("K review F1: row-set identity ignores table allocation and order",function()
     local N,rows=setup(); raceProof()
     rows[2]={sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",sourceFlags=0x848,

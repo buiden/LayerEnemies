@@ -178,6 +178,15 @@ function D.seed()
     -- PLAYER_ENTERING_WORLD also covers login/reload with a pre-session recap.
     pcall(function() local _,id=capture(); remember(id,0) end)
 end
+-- Record-only: the recap can lag PLAYER_DEAD, so a death that is never
+-- announced must still claim its rows when they arrive, or the next death
+-- would take them as fresh and report the old killer.
+local function claim(death) pcall(function() local _,id=capture(); remember(id,death) end) end
+function D.revived()
+    -- Alive again: whatever recap is held belongs to the death just ended.
+    claim(recapDeath)
+    D.cancel()
+end
 function D.recap(store,time)
     local ok,result=pcall(function()
         local rows,id=capture()
@@ -216,9 +225,17 @@ function D.dead()
     D.cancel()
     local ok=pcall(function()
         recapDeath=recapDeath+1
+        local death=recapDeath
         local time=S.num(S.call(GetTime))
         D.recap(N.Main.store,time) -- remember even an ineligible/unsent death
-        if not permitted() then return end
+        if not permitted() then
+            -- Not announced: still look at 0.3/1/2 s, record only, so late rows stay with this death.
+            -- An announced death records through its own retries; revive claims anything later.
+            if S.tab(C_Timer) and type(C_Timer.After)=="function" then
+                for _,delay in ipairs({0.3,1,2}) do C_Timer.After(delay,function() claim(death) end) end
+            end
+            return
+        end
         local zone,x,y=N.Adapters.location()
         if not time or not zone then return end
         local store=N.Main.store
