@@ -7771,5 +7771,10 @@ assert(loadfile("test/own_death.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadA
     unit=function(k,v) units[k]=v end,roster=function(v) roster=v end,map=function(v) map=v end,
     result=function(v) sendResult=v end,loaded=function(k,v) loaded[k]=v end,
     forbidden=function() return forbidden end,clearForbidden=function() forbidden=0 end})
+assert(loadfile("test/kills_round1.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,
+    advance=advance,clock=function() return clock end,deliver=deliver,drain=drain,
+    units=function() return units end,player=player,combat=function(v) combat=v end,
+    loaded=function() return loaded end,sent=function() return sent end})
+
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

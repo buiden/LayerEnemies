@@ -1,0 +1,60 @@
+-- Reviewer round-1 regressions. Synthetic identities; real receive/send paths.
+local H=...
+local test,eq,yes,no=H.test,H.eq,H.yes,H.no
+local function b36(n)
+    local digits,out="0123456789abcdefghijklmnopqrstuvwxyz",""
+    repeat local r=n%36; out=digits:sub(r+1,r+1)..out; n=math.floor(n/36) until n==0
+    return out
+end
+local function death(opts)
+    opts=opts or {}
+    local stamp=b36(GetServerTime()-(opts.age or 0))
+    local victim=opts.victim or "Birch Scout"
+    return "1AE:eu-pvp;"..victim..";A;5cy;1;"..stamp..";D"..table.concat({stamp,victim,"1o","W","H",
+        "2s","dw","6y",opts.conf or "e","9ix",(opts.killer or "Cedar Vale")..",,14,M,O,2,"},";")
+end
+local function boot()
+    local N=H.load(); N.Net.SHIP.hh=true; H.loaded().HeadHunter=true
+    N.Relay.rand=function() return 1 end
+    H.advance(1) -- legacy controls must be later than the Store epoch
+    return N
+end
+local function hear(text,sender,route)
+    H.deliver("CHAT_MSG_ADDON","HeadHunter",text,route or "WHISPER",sender or "Birch Scout")
+end
+local function guild(text,sender) H.deliver("CHAT_MSG_ADDON","LEGW1",text,"GUILD",sender or "Guild Carrier") end
+local function sends(pattern)
+    local out={}
+    for _,s in ipairs(H.sent()) do if s.prefix=="LEGW1" and (not pattern or s.text:match(pattern)) then out[#out+1]=s end end
+    return out
+end
+local function hex(s) return (s:gsub(".",function(c) return string.format("%02x",c:byte()) end)) end
+local function wire(opts)
+    opts=opts or {}
+    return table.concat({"R","1","hh",opts.kind or "kill",hex(opts.victim or "Birch Scout"),opts.rid or "D:720101",
+        "100","500","250","","u","",tostring(opts.age or 0),hex(opts.killer or "Cedar Vale")..":MAGE:40"},"|")
+end
+local function row(N) return N.Main.findRows()[1] end
+local function absent(N)
+    eq(next(N.Main.find.known.entries),nil)
+    eq(next(N.Main.relay.pending),nil)
+    H.advance(1.1); eq(#sends(),0); no(N.Main.error)
+end
+
+for _,lane in ipairs({"HeadHunter","guild"}) do
+    test("Kills R1 S1: "..lane.." rejects ourselves and killer equals victim",function()
+        for _,conf in ipairs({"e","i"}) do
+            for _,killer in ipairs({"Me","ME-TestRealm","Birch Scout","BIRCH SCOUT-TestRealm"}) do
+                local N=boot(); N.Main.track(killer)
+                if lane=="HeadHunter" then hear(death({killer=killer,conf=conf}),"Other Carrier")
+                else guild(wire({killer=killer,kind=conf=="e" and "kill" or "killi"})) end
+                absent(N); eq(row(N).at,nil)
+            end
+        end
+        -- Foreign namesakes are different people, not contradictions.
+        local N=boot(); N.Main.track("Me-Elsewhere")
+        if lane=="HeadHunter" then hear(death({killer="Me-Elsewhere"}))
+        else guild(wire({killer="Me-Elsewhere"})) end
+        yes(row(N).at); no(N.Main.error)
+    end)
+end

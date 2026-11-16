@@ -203,6 +203,13 @@ function M.isMe(name)
     local _,me=A.ownIdentity()
     return key~=nil and me~=nil and key==me
 end
+-- A kill cannot identify its victim or our own character as the killer.
+-- Use the same whole-name identity on both direct and guild ingress.
+function M.validKill(record)
+    local enemy=record.enemies[1]
+    local _,killer=I.name(enemy and enemy.name)
+    return killer~=nil and killer~=record.okey and not M.isMe(enemy.name)
+end
 -- Preserve origin age and provenance before the zone-only store can reject a record.
 function M.findRecord(record)
     if N.Record.isKill(record) then
@@ -369,6 +376,7 @@ function M.headhunter(text,kind,sender)
             if M.isMe(record.origin) then ignored,whyIgnored=true,"own echo"
             else ignored,whyIgnored=A.ignored(record.origin) end
         end
+        if N.Record.isKill(record) and not M.validKill(record) then ignored,whyIgnored=true,"invalid killer" end
         if ignored then M.lastDrop=whyIgnored
         elseif N.Record.isKill(record) then
             -- Find only: no Reported row, reporter/host, count or Call popup.
@@ -422,6 +430,7 @@ function M.relayIn(text,kind,sender)
     local record,why
     if own then record,why=N.Relay.decodeOwn(text,sender,time) else record,why=N.Relay.decode(text,sender,time) end
     if not record then M.lastDrop="relay "..tostring(why); return end
+    if N.Record.isKill(record) and not M.validKill(record) then M.lastDrop="invalid killer"; return end
     if not own then N.Relay.heard(M.relay,record,time) end
     if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
     if N.Record.isKill(record) then
