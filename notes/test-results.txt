@@ -804,4 +804,18 @@ PASS Guild relay policy: HeadHunter burst reserves own O capacity in combat
 PASS Guild relay policy: mixed burst reserves own O capacity out of combat
 PASS Guild relay policy: mixed burst reserves own O capacity in combat
 PASS Guild relay policy: earlier guild control lines count against the relay reserve
-RESULT: 806 tests passed, 0 failed, 74099 assertions
+PASS Round1 realm: own sighting rejects colliding realm 1234/84860
+PASS Round1 realm: own sighting rejects colliding realm Home/ochg
+PASS Round1 cost: polling 20 tracked names visits only matching Known entries
+PASS Round1 cost: Known index follows aliases replacement eviction expiry and rollback
+PASS Round1 own: a newer guild O keeps fresh own evidence primary and both lines visible
+PASS Round1 own: an own sighting in another zone does not suppress fresh on-site evidence
+PASS Round1 hash: fresh Ask provenance is visible beside the old own sighting
+PASS Round1 long: legacy first names match adapter displays over 100 bytes
+PASS Round1 long: own display bound covers two adapter strings but remains finite
+PASS Round1 raid: the player member never relabels our own target
+PASS Round1 group: member existence and self identity are rechecked at drain
+PASS Round1 group: retarget without a new event cannot change a queued observation
+PASS Round1 hash: all evidence plus an independent place fits on a Find page
+PASS Round1 realm: own realm equality normalizes and folds full strings
+RESULT: 820 tests passed, 0 failed, 75505 assertions
