@@ -115,6 +115,11 @@ Known limits (a missed line is accepted; a false killer is not):
   screens, zone-change and SHARD_TRANSFER events never clear it.
 - Not covered: a recap that first appears after revive, or a death before the
   first world-entry seed.
+- Across a relog or /reload: memory starts empty, so a hidden row from a death
+  before the relog that the login/reload seed cannot see (recap empty,
+  unavailable, or showing only other rows) and that becomes readable at a later
+  death can be named. Closing this would need saved state; whether a recap
+  survives a relog on the live client is unknown.
 
 The
 session history holds at most 256 recap rows; at the cap the oldest-stamped row
