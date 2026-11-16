@@ -2033,6 +2033,9 @@ function M.start()
     SlashCmdList.LAYERENEMIES=function(command)
         local raw=(S.str(command,110) or ""):match("^%s*(.-)%s*$")
         command=raw:lower()
+        -- Collapse runs of spaces so "/le find  share off" still reaches the opt-out.
+        local words=command:gsub("%s+"," ")
+        if words:match("^find share") or words:match("^find notice") then command=words end
         if command=="find share" or command=="find notice" then
             M.say("LayerEnemies: usage: /le "..command.." on|off"); return
         end
