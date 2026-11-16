@@ -681,4 +681,18 @@ PASS hop-any cannot dispatch again while a send is still in flight
 PASS hop-any old send completion cannot mutate a replacement round
 PASS hop-any rechecks ignore at dispatch and never trusts a skipped candidate
 PASS hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps
-RESULT: 683 tests passed, 0 failed, 64043 assertions
+PASS Find20 26: load builds at most 180 hash candidates once
+PASS Find20 26: report has zero list hashes and at most 10 plus 20 index reads
+PASS Find20 26: own sighting uses at most two name index reads
+PASS Find20 lookup rebuilds only on a list change or first readable home
+PASS Find20 home becomes known on the normal poll without waiting for a report
+PASS Find20 27: twenty adds fit, twenty-first refuses, duplicates remain idempotent
+PASS Find20 27: saved input is validated and deduplicated within its first twenty entries
+PASS Find20 matching preserves legacy aliases, realm checks, collisions and precedence
+PASS Find20 aliases preserve trailing-hyphen validation and full-name own guards
+PASS Find20 28: adding a name prints only its row, including a retained sighting
+PASS Find20 28: five names in one second give three details, one summary and one sound
+PASS Find20 sound cooldown is rolling and quiet alerts do not consume it
+PASS Find20 UI sorts located first, newest first, with compact missing status and paging
+PASS Find20 UI counts shared positions as located without changing their alert or layer meaning
+RESULT: 697 tests passed, 0 failed, 65218 assertions
