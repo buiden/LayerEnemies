@@ -7681,5 +7681,35 @@ test("hop-any old send completion cannot mutate a replacement round",function()
     eq(#whoCalls,2); eq(#sent,1)
 end)
 
+test("hop-any rechecks ignore at dispatch and never trusts a skipped candidate",function()
+    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
+    C_FriendList.IsIgnored=function(name) return name=="Seeker b" end
+    advance(1); eq(#sent,1,"newly ignored candidate must not reach Wire")
+    eq(N.Main.hopAnyState.round.count,2)
+    no(N.Main.hopAnyState.round.asked["seeker b"]); no(N.Main.invite.asked["seeker b"])
+    deliver("PARTY_INVITE_REQUEST","Seeker b"); eq(#accepts,0)
+    for _=1,6 do advance(1) end
+    eq(#sent,7); eq(N.Main.hopAnyState.round.count,8)
+    for _,row in ipairs(sent) do no(row.target=="Seeker b") end
+    for i=2,#sent do yes(sent[i].at-sent[i-1].at>=1) end
+    SlashCmdList.LAYERENEMIES("hop stop"); no(N.Main.hopAnyState.quiet["seeker b"])
+    advance(600); eq(#sent,7); no(N.Main.error)
+end)
+
+test("hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps",function()
+    for _,mode in ipairs({"nil","secret","throw","missing"}) do
+        local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
+        C_FriendList.IsIgnored=mode~="missing" and function()
+            if mode=="throw" then error("unreadable") end
+            if mode=="secret" then return secret end
+        end or nil
+        for _=1,7 do advance(1) end
+        eq(#sent,1,mode); eq(N.Main.hopAnyState.round.count,8,mode)
+        eq(N.Safe.count(N.Main.hopAnyState.round.asked),1,mode)
+        eq(N.Safe.count(N.Main.invite.asked),1,mode)
+        advance(121); eq(#sent,1,mode); no(N.Main.error)
+    end
+end)
+
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

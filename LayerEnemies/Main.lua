@@ -921,8 +921,13 @@ function M.hopAnyPump()
     local c=N.HopAny.next(st,now())
     if c then
         local r=st.round
-        M.invite.asked[c.short]=now()
-        local ok,why=N.Wire.send("LayerSwap",r.line,"WHISPER",c.name,{prio="click"})
+        local ignored=A.ignored(c.name)
+        if st.round~=r then return end
+        local ok,why=false,"ignored"
+        if not ignored then
+            M.invite.asked[c.short]=now()
+            ok,why=N.Wire.send("LayerSwap",r.line,"WHISPER",c.name,{prio="click"})
+        end
         -- A foreign send hook may stop or replace the round before returning.
         if st.round~=r then return end
         local message=N.HopAny.sent(st,c,now(),ok,why)

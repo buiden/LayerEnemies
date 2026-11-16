@@ -139,7 +139,7 @@ function H.sent(st,c,time,ok,why)
     r.sending=nil
     if ok then
         r.sent=r.sent+1; r.lastSend=time; r.asked[c.short]={name=c.name,at=time}
-    elseif why~="offline" then
+    elseif why~="offline" and why~="ignored" then
         H.close(st,time); return "search stopped: whisper "..tostring(why).."; no retry. A late invite may still arrive."
     end
     if r.count>=H.CAP or r.index>#r.names then r.phase="wait" end
