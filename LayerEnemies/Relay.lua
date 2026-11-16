@@ -204,6 +204,15 @@ end
 -- x and y are both empty when the sender had no position. Never relayed again.
 Rl.OWN_NAMES = 4
 local function o3(v) return v and string.format("%.3f", math.max(0, math.min(1, v))) or "" end
+function Rl.ownName(e)
+    -- The observed full name is authoritative; only legacy records without it may use name.
+    local raw = e.displayName
+    if not S.secret(raw) and raw == nil then raw = e.name end
+    return N.Invite.name(raw)
+end
+-- The second return is the exact fitted entries, after name and byte limits.
+-- With now supplied, the single age field dates the oldest fitted own sighting;
+-- omitted entries cannot rejuvenate it. Explicit-age callers keep their bytes.
 function Rl.ownLine(rep)
     if not S.tab(rep) then return nil end
     local rid, zone, count = S.num(rep.rid), S.num(rep.zone), S.num(rep.count)
@@ -211,25 +220,31 @@ function Rl.ownLine(rep)
     local x, y = S.num(rep.x), S.num(rep.y)
     if not (x and y) then x, y = nil, nil end
     local layer = rep.layer and N.Layer.key(rep.layer) or ""
-    local items = {}
+    local items, fitted, names = {}, {}, {}
     for _, e in ipairs(rep.enemies or {}) do
         if #items >= Rl.OWN_NAMES then break end
-        -- The observed full name is authoritative; only legacy records without it may use name.
-        local raw = e.displayName
-        if not S.secret(raw) and raw == nil then raw = e.name end
-        local name = N.Invite.name(raw)
-        if name then
+        local name, key = Rl.ownName(e)
+        if name and not names[key] then
             local class = CLASSES[e.class] and e.class or ""
             local lvl = S.num(e.level)
             items[#items + 1] = hex(name) .. ":" .. class .. ":" .. ((lvl and (lvl == -1 or (lvl >= 1 and lvl <= 100))) and tostring(lvl) or "")
+            fitted[#fitted + 1] = e; names[key] = true
         end
     end
-    local line = table.concat({ "O", "1", tostring(math.floor(rid)), tostring(math.floor(zone)), o3(x), o3(y), layer,
-        tostring(math.max(0, math.min(900, math.floor(S.num(rep.age) or 0)))), tostring(math.min(200, math.floor(count))),
-        table.concat(items, ",") }, "|")
-    -- Limit the replacement: Lua 5.1 also matches the empty suffix after the nonempty enemy list.
-    while #line > 255 and #items > 0 do items[#items] = nil; line = line:gsub("[^|]*$", table.concat(items, ","), 1) end
-    return #line <= 255 and line or nil
+    local function packed()
+        local age, now = S.num(rep.age) or 0, S.num(rep.now)
+        if now and #fitted > 0 then
+            local at = now
+            for _, e in ipairs(fitted) do local own = S.num(e.ownAt); if own and own < at then at = own end end
+            age = now - at
+        end
+        return table.concat({ "O", "1", tostring(math.floor(rid)), tostring(math.floor(zone)), o3(x), o3(y), layer,
+            tostring(math.max(0, math.min(900, math.floor(age)))), tostring(math.min(200, math.floor(count))),
+            table.concat(items, ",") }, "|")
+    end
+    local line = packed()
+    while #line > 255 and #items > 0 do items[#items] = nil; fitted[#fitted] = nil; line = packed() end
+    if #line <= 255 then return line, fitted end
 end
 -- decodeOwn(text, sender, now) -> record (src "le", first-hand) or nil, why
 function Rl.decodeOwn(text, sender, now)

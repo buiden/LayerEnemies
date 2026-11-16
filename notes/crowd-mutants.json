@@ -1,0 +1,71 @@
+{
+  "baseline": "RESULT: 702 tests passed, 0 failed, 66176 assertions",
+  "mutants": [
+    {
+      "mutant": "all recent marked shared",
+      "killing_test": "crowd 5: nine enemies use consecutive 4,4,1 slots without repeats",
+      "failure": "FAIL crowd 5: nine enemies use consecutive 4,4,1 slots without repeats: test/crowd.lua:57: only fitted names marked shared: expected 4, got 9",
+      "result": "RESULT: 690 tests passed, 12 failed, 65517 assertions"
+    },
+    {
+      "mutant": "freshness back to 15",
+      "killing_test": "crowd 6: a sighting waiting 30 seconds keeps its real age",
+      "failure": "FAIL crowd 6: a sighting waiting 30 seconds keeps its real age: test/crowd.lua:68: not equal: expected 2, got 1",
+      "result": "RESULT: 691 tests passed, 11 failed, 65612 assertions"
+    },
+    {
+      "mutant": "more than one O per 15 seconds",
+      "killing_test": "crowd rate: duplicate and fractional pumps never open an early slot",
+      "failure": "FAIL crowd rate: duplicate and fractional pumps never open an early slot: test/crowd.lua:75: not equal: expected 1, got 2",
+      "result": "RESULT: 696 tests passed, 6 failed, 65938 assertions"
+    },
+    {
+      "mutant": "fourth line allowed",
+      "killing_test": "crowd cap: no fourth line for a 13-plus snapshot even at age 45",
+      "failure": "FAIL crowd cap: no fourth line for a 13-plus snapshot even at age 45: test/crowd.lua:88: no fourth line from this snapshot: expected 3, got 4",
+      "result": "RESULT: 701 tests passed, 1 failed, 65969 assertions"
+    },
+    {
+      "mutant": "repeat name inside 60 seconds",
+      "killing_test": "crowd repeat: a new arrival never pulls a recently sent name along",
+      "failure": "FAIL crowd repeat: a new arrival never pulls a recently sent name along: test/crowd.lua:123: not equal: expected 1, got 2",
+      "result": "RESULT: 691 tests passed, 11 failed, 65606 assertions"
+    },
+    {
+      "mutant": "age field is not the real age",
+      "killing_test": "crowd 6: a sighting waiting 30 seconds keeps its real age",
+      "failure": "FAIL crowd 6: a sighting waiting 30 seconds keeps its real age: test/crowd.lua:70: not equal: expected 30, got 0",
+      "result": "RESULT: 695 tests passed, 7 failed, 65961 assertions"
+    },
+    {
+      "mutant": "byte-trimmed entries marked shared",
+      "killing_test": "crowd packing: byte-trimmed names wait for the next slot",
+      "failure": "FAIL crowd packing: byte-trimmed names wait for the next slot: test/crowd.lua:102: byte-trimmed entries are unsent: expected 1, got 3",
+      "result": "RESULT: 701 tests passed, 1 failed, 66144 assertions"
+    },
+    {
+      "mutant": "refused send marked shared",
+      "killing_test": "crowd refusal: no shared stamp on a refused send and retry still waits 15 seconds",
+      "failure": "FAIL crowd refusal: no shared stamp on a refused send and retry still waits 15 seconds: test/crowd.lua:188: not accepted: expected 0, got 4",
+      "result": "RESULT: 701 tests passed, 1 failed, 66153 assertions"
+    },
+    {
+      "mutant": "cancelled snapshot can reopen",
+      "killing_test": "crowd switch: share off cancels the remaining snapshot without resetting pace",
+      "failure": "FAIL crowd switch: share off cancels the remaining snapshot without resetting pace: test/crowd.lua:157: old snapshot stays cancelled: expected 1, got 2",
+      "result": "RESULT: 698 tests passed, 4 failed, 65983 assertions"
+    },
+    {
+      "mutant": "cancelled stores accumulate",
+      "killing_test": "crowd cancel memory: repeated boundaries keep skipped keys bounded to the current store",
+      "failure": "FAIL crowd cancel memory: repeated boundaries keep skipped keys bounded to the current store: test/crowd.lua:228: cancel cannot accumulate former stores while sharing is off: expected 256, got 512",
+      "result": "RESULT: 701 tests passed, 1 failed, 66174 assertions"
+    }
+  ],
+  "restored_sha256": {
+    "LayerEnemies/Share.lua": "bc178f6b2f749c355813934e7734b43056c6299842a11ef762797f9c64e3ddeb",
+    "LayerEnemies/Relay.lua": "f7d156d9e3fd1cb0af1c23c8118b2c3d255850a38be06b21df90c06c25d4d2a9",
+    "LayerEnemies/Main.lua": "2d7baf014266778d2178ceb73612f631f1e43bf09b0c63ac9560e11af6762210"
+  },
+  "restored_result": "RESULT: 702 tests passed, 0 failed, 66176 assertions"
+}

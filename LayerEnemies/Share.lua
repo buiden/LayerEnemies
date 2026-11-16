@@ -1,27 +1,43 @@
--- Our own sightings out (1.0 plan section 3): from the enemies our client saw (Store.localSeen, opposite faction,
--- this zone, the last 15 s, seen by our own client: units, never a Bulo copy; a row a Bulo copy refreshed keeps our
--- own sighting's time as ownAt, and only that counts) at most one report per 15 s, 3 s after
--- the first sighting of the first new enemy (an enemy re-seen every second still settles); an enemy counts as new again
--- only 60 s after it was last shared. Pure: Main sends what pick() returns.
+-- Our own sightings out: opposite faction, this zone, at most 45 s old. Only ownAt
+-- counts, never the time of a Bulo refresh. Main sends one O per 15 s slot, after
+-- a 3 s settle, and acknowledges only the names the encoder fitted and Wire took.
 local _, N = ...
 local S = N.Safe
 local Sh = {}
 N.Share = Sh
-Sh.SETTLE, Sh.EVERY, Sh.AGAIN, Sh.FRESH = 3, 15, 60, 15
+Sh.SETTLE, Sh.EVERY, Sh.AGAIN, Sh.FRESH = 3, 15, 60, 45
+Sh.LINES = 3
 
-function Sh.new() return { shared = {}, first = {}, last = nil } end
--- pick(st, seen, now, zone) -> { enemies (newest first), count, at } or nil
+function Sh.new() return { shared = {}, names = {}, first = {}, skipped = {}, last = nil } end
+-- Cancel a snapshot, not the send/name cooldowns. Existing observations cannot
+-- reopen it; a later own observation may start a new burst at the normal slot.
+function Sh.cancel(st, seen, now)
+    st.burst = nil
+    S.clear(st.first)
+    S.clear(st.skipped)
+    for key in pairs(seen) do st.skipped[key] = now end
+end
+-- pick reserves a slot before Main can call Wire (including a refused attempt).
+-- A burst snapshots the eligible keys; newer arrivals wait for the next burst.
 function Sh.pick(st, seen, now, zone)
     now = S.num(now)
     if not now or not zone or not S.tab(seen) then return nil end
+    for _, stamps in ipairs({st.shared, st.names}) do
+        for k, at in pairs(stamps) do if now - at >= Sh.AGAIN then stamps[k] = nil end end
+    end
+    for k, at in pairs(st.skipped) do if not seen[k] or now - at > Sh.FRESH then st.skipped[k] = nil end end
     local recent, since, live = {}, nil, {}
     for key, e in pairs(seen) do
         local own = S.tab(e) and type(e.ownSource) == "string" and e.ownSource:match("^own ") and S.num(e.ownAt)
         if own and e.faction == "opposite" and e.zone == zone and now >= own and now - own <= Sh.FRESH then
-            recent[#recent + 1] = e
-            local at = st.shared[key]
-            if not at or (now >= at and now - at >= Sh.AGAIN) then
-                -- first sighting while new: kept across re-sightings (a clock stepping back starts it again)
+            local _, name = N.Relay.ownName(e)
+            local at, named = st.shared[key], name and st.names[name]
+            local skipped = st.skipped[key]
+            if (not at or (now >= at and now - at >= Sh.AGAIN))
+                and (not named or (now >= named and now - named >= Sh.AGAIN))
+                and (not skipped or own > skipped) then
+                recent[#recent + 1] = e
+                -- Re-sightings do not restart the first new enemy's settle.
                 local f = st.first[key]
                 if not f or f > now then f = own; st.first[key] = f end
                 live[key] = true
@@ -30,12 +46,39 @@ function Sh.pick(st, seen, now, zone)
         end
     end
     for k in pairs(st.first) do if not live[k] then st.first[k] = nil end end
-    -- the settle runs from the first new enemy's own sighting; a clock that steps back counts as just sent
+    local burst = st.burst
+    if burst then
+        for k in pairs(burst.pending) do if not live[k] then burst.pending[k] = nil end end
+        if not next(burst.pending) then st.burst = nil; burst = nil end
+    end
     if not since or now - since < Sh.SETTLE then return nil end
     if st.last and (now < st.last or now - st.last < Sh.EVERY) then return nil end
     table.sort(recent, function(a, b) if a.ownAt ~= b.ownAt then return a.ownAt > b.ownAt end return tostring(a.key) < tostring(b.key) end)
-    for k, at in pairs(st.shared) do if now - at >= Sh.AGAIN then st.shared[k] = nil end end
-    for _, e in ipairs(recent) do st.shared[e.key] = now; st.first[e.key] = nil end
+    if not burst then
+        burst = { pending = {}, lines = 0 }
+        for _, e in ipairs(recent) do burst.pending[e.key] = true end
+        st.burst = burst
+    end
+    local enemies = {}
+    for _, e in ipairs(recent) do if burst.pending[e.key] then enemies[#enemies + 1] = e end end
+    burst.lines = burst.lines + 1
     st.last = now
-    return { enemies = recent, count = #recent, at = recent[1].ownAt }
+    return { enemies = enemies, count = #enemies, at = enemies[1].ownAt, first = burst.lines == 1, burst = burst }
+end
+-- fitted is empty when the client refused the line. No queued sends: receipt
+-- means client acceptance, not proof of delivery. Failures still use a slot.
+function Sh.sent(st, rep, fitted, now)
+    for _, e in ipairs(fitted) do
+        st.shared[e.key] = now; st.first[e.key] = nil
+        local _, name = N.Relay.ownName(e)
+        if name then st.names[name] = now end
+        rep.burst.pending[e.key] = nil
+    end
+    if st.burst ~= rep.burst then return end
+    if rep.burst.lines >= Sh.LINES or not next(rep.burst.pending) then
+        -- At most three attempts (12 short names). Overflow is dropped, NOT
+        -- marked shared. Only a new observation after this close can retry it.
+        for key in pairs(rep.burst.pending) do st.skipped[key] = now; st.first[key] = nil end
+        st.burst = nil
+    end
 end

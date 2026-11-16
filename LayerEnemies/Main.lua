@@ -51,6 +51,7 @@ function M.boundary(zone,zoneChange)
     else L.reset(M.npcs) end
     if zone~=nil then M.zoneSeen=zone end
     M.subEpoch=now()
+    if M.share then N.Share.cancel(M.share,M.store.localSeen,M.subEpoch) end
     T.reset(M.store,M.subEpoch,zone,nil,nil)
     M.store.prev=prev
     N.Reports.clearPending(M.receiver)
@@ -1275,6 +1276,7 @@ function M.guildChanged()
     if same and M.host and M.host.want and not M.host.on then M.hostResume(false) end
 end
 function M.guildReset()
+    if M.share then N.Share.cancel(M.share,M.store.localSeen,now()) end
     if not M.host then return end
     M.host.guildToken=(M.host.guildToken or 0)+1
     M.host.announceOwed=nil; M.host.answerDue=nil; M.host.held=nil
@@ -1308,11 +1310,14 @@ function M.shareTick()
     for _,e in ipairs(rep.enemies) do if e.layer==nil then key=nil; break end end
     local rid=M.nextReportId()
     local inGuild=S.call(IsInGuild)==true
-    -- to the guild: one O line with up to four names
-    local line=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=key,age=math.max(0,math.floor(time-rep.at)),count=rep.count,enemies=rep.enemies})
-    if line and inGuild then N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"}) end
-    -- to War Effort: C then E, two or more enemies, a position, and only where a reader was heard in 600 s
-    if rep.count<2 or not (x and y) then return end
+    -- One O line per slot, up to three per snapshot. Only fitted, accepted names
+    -- acquire a 60 s cooldown; refusals still consume the reserved 15 s slot.
+    local line,fitted=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=key,now=time,count=rep.count,enemies=rep.enemies})
+    local accepted=line and #fitted>0 and inGuild and N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own",queue=false})
+    N.Share.sent(M.share,rep,accepted and fitted or {},time)
+    -- O follow-ups must not multiply War Effort reports: C+E only at burst start,
+    -- two or more enemies, a position, and a reader heard in the last 600 s.
+    if not rep.first or rep.count<2 or not (x and y) then return end
     local stamp=S.num(S.call(GetServerTime))
     if not stamp then return end
     local function heard(kind) local at=M.weHeard[kind]; return at and time>=at and time-at<M.WE_READER end
@@ -1715,6 +1720,7 @@ function M.setShare(on)
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
     -- off: nothing we authored goes out any more: sync answers and the reports kept for them are dropped now, our own
     -- W lines still queued for embassy partners are dropped by their still check (M.sharing)
+    if not on and M.share then N.Share.cancel(M.share,M.store.localSeen,now()) end
     if not on and M.we then N.WeNet.forget(M.we) end
     M.say(on and "LayerEnemies: your sightings are shared again: an O line with your guild, War Effort reports where a reader was heard."
         or "LayerEnemies: your sightings are no longer shared (no O line, no War Effort reports). You still receive everyone else's.")
