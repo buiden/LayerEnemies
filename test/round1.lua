@@ -110,6 +110,24 @@ test("Round1 own: an own sighting in another zone does not suppress fresh on-sit
     yes(M.findText(r):find("Seen by you",1,true),"out-of-zone own line is retained as detail")
 end)
 
+test("Round1 hash: fresh Ask provenance is visible beside the old own sighting",function()
+    local N=H.load(); local F,M=N.Find,N.Main
+    yes(M.track("Cedar Vale"))
+    F.own(M.find,{name="Cedar Vale",source="own target",faction="opposite",layer="7086-7"},100,H.clock())
+    H.advance(700)
+    F.report(M.find,{sender="HashScout",zone=100,at=H.clock(),enemies={{hash=N.Hash.player("Cedar","Vale")}}},"Test Realm")
+    local r=M.findRows()[1]; eq(r.spotter,"HashScout"); yes(r.canAsk)
+    local text=M.findText(r)
+    yes(text:find("possible match, seen by HashScout in Ashenvale, 0 s ago",1,true),"the current evidence behind Ask must be shown")
+    yes(text:find("last known: Seen by you in Ashenvale, 11 min ago",1,true))
+    N.UI.toggle(); N.UI.select("find"); local ui=N.UI.pool[1]
+    yes(ui:IsShown()); yes(ui.ask:IsShown()); eq(ui.spotter,"HashScout")
+    yes(ui.sub:GetText():find("possible match, seen by HashScout",1,true))
+    yes(ui.sub:GetText():find("last known: Seen by you",1,true)); yes(ui.sub.height>=102,"space for both independent lines")
+    H.advance(600); r=M.findRows()[1]; no(r.canAsk); no(M.findText(r):find("HashScout",1,true))
+    yes(M.findText(r):find("last known: Seen by you",1,true)); eq(#H.sent(),0); no(M.error)
+end)
+
 test("Round1 realm: own realm equality normalizes and folds full strings",function()
     local N=H.load(); local st=N.Find.new({"Alice-Érea52"},"Home")
     N.Find.own(st,{name="Alice",realm="érea - 52",source="own target",faction="opposite"},100,H.clock())

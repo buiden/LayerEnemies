@@ -712,20 +712,25 @@ local function knownLine(e)
     elseif e.probably then text=text.." · probably on your layer (your server key is ambiguous)" end
     return (e.lastKnown and "last known: " or "")..text
 end
+local function currentLine(row)
+    local text=row.status
+    if row.at then
+        local detail=" in "..M.zoneName(row.zone)..", "..math.floor(now()-row.at).." s ago ("..(row.class or "Unknown class").." "..tostring(row.level or "?")..")"
+        text=text..detail..(row.same and " — already on your layer" or row.probably and " — probably on your layer (your server key is ambiguous)"
+            or row.travel and (" — travel to "..M.zoneName(row.zone).." first") or "")
+    end
+    return text
+end
 function M.findDetails(row)
     local lines={}
+    if row.current then lines[#lines+1]=currentLine(row.current) end
     if row.seen then lines[#lines+1]=knownLine(row.seen) end
     if row.reported then lines[#lines+1]=knownLine(row.reported) end
     return #lines>0 and table.concat(lines,"\n") or nil
 end
 function M.findText(row,sightingOnly)
     local details=M.findDetails(row)
-    local text=row.name.." — "..(details or row.status)
-    if row.at and not details then
-        local detail=" in "..M.zoneName(row.zone)..", "..math.floor(now()-row.at).." s ago ("..(row.class or "Unknown class").." "..tostring(row.level or "?")..")"
-        text=text..detail..(row.same and " — already on your layer" or row.probably and " — probably on your layer (your server key is ambiguous)"
-            or row.travel and (" — travel to "..M.zoneName(row.zone).." first") or "")
-    end
+    local text=row.name.." — "..(details or currentLine(row))
     if row.place and not sightingOnly then
         return (row.at and (text.."\n") or (row.name.." — "))..M.placeText(row.place)
     end

@@ -164,7 +164,7 @@ function U.render()
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to 20 names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
     local function knownHeight(e)
         local function height(v) return v and ((v.own or v.layer or v.x) and 58 or 44) or 0 end
-        return height(e.seen)+height(e.reported)
+        return height(e.current)+height(e.seen)+height(e.reported)
     end
     local function rowHeight(e)
         if U.tab=="find" then

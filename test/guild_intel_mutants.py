@@ -18,6 +18,8 @@ MUTANTS = [
     ('guild-displaces-own', 'LayerEnemies/Known.lua',
      'if firsthand and e.source~="own" and p and p.seen and p.seen.source=="own" then slot="reported" end',
      '-- guild overwrites the own slot'),
+    ('current-hash-line-hidden', 'LayerEnemies/Main.lua',
+     'if row.current then lines[#lines+1]=currentLine(row.current) end', '-- current evidence hidden'),
     ('boundary-wipes-memory', 'LayerEnemies/Find.lua', 'st.epoch=st.epoch+1',
      'st.epoch=st.epoch+1; st.known=N.Known.new(); st.locations={}'),
     ('retention-unbounded', 'LayerEnemies/Known.lua', 'TTL=3600,MAX=300', 'TTL=3600000000,MAX=300'),

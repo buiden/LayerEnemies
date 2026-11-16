@@ -287,6 +287,11 @@ function F.rows(st,now,zone,sameSpotter)
         if seen then row.seen=project(st,location(seen,name,seenUnknown),now,zone,sameSpotter) end
         if loc and loc.source=="headhunter" and (not seen or loc.at>seen.at) then row.seen=project(st,loc,now,zone,sameSpotter) end
         if reported then row.reported=project(st,location(reported,name,reportedUnknown),now,zone,sameSpotter) end
+        -- Anonymous current evidence must remain visible beside older named lines,
+        -- especially when its spotter is the row's Ask target.
+        if loc and not loc.cached and loc.source~="headhunter" and (seen or reported) then
+            row.current=project(st,loc,now,zone,sameSpotter)
+        end
         local place=st.places[name]
         if place and (now-place.at>=N.OpenMap.TTL or now<place.at) then st.places[name]=nil; place=nil end
         if place then
