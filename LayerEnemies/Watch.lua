@@ -107,6 +107,8 @@ function W.tick(st,now,allowed)
     if not pending then return end
     st.times=window(st.times,now,60)
     if #st.times>=W.RATE then return end
+    -- Own traffic: account for T before any guild relay can take the reserve for our O lines.
+    if N.Relay and N.Relay.spend then N.Relay.spend(now,false) end
     local ok,why,attempted=N.Wire.send("LEGW1",pending.lines[pending.part],"GUILD",nil,{prio="own",queue=false})
     if attempted then st.times[#st.times+1]=now end
     if not ok then return end
