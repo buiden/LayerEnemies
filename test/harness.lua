@@ -49,7 +49,8 @@ local PREFIXES={OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=t
 local function addonFiles()
     local out={}
     for line in io.lines("LayerEnemies/LayerEnemies.toc") do
-        local name=line:match("^(%w+)%.lua%s*$")
+        -- Load every Lua entry, including names with underscores or punctuation.
+        local name=line:match("^(.*)%.lua%s*$")
         if name then out[#out+1]=name end
     end
     assert(#out>0,"no files in the TOC")
@@ -108,7 +109,10 @@ local function object(kind)
 end
 function methods:CreateTexture() return object("Texture") end
 function methods:CreateFontString() return object("FontString") end
-function methods:RegisterEvent(event) self.events[event]=true end
+function methods:RegisterEvent(event)
+    if event=="COMBAT_LOG_EVENT_UNFILTERED" then forbidden=(forbidden or 0)+1 end
+    self.events[event]=true
+end
 function methods:SetScript(key,fn)
     local allowed={OnEvent=true,OnUpdate=true,OnClick=true,OnDragStart=true,OnDragStop=true,OnMouseWheel=true,OnEnterPressed=true,OnEscapePressed=true,OnShow=true,OnHide=true,OnEnter=true,OnLeave=true}
     if not allowed[key] then error("unknown script: "..key) end
@@ -265,6 +269,15 @@ local function loadAddon(savedCallTest)
                 level=level+1
             end
             if caller~="@LayerEnemies/Wire.lua" then forbidden=forbidden+1 end
+            -- K1 is the only new send: exact version/shape and LEGW1/GUILD, still through Wire's caller frame.
+            if prefix=="LEGW1" and text:sub(1,2)=="K|" then
+                local zone,x,y,layer,age,conf,item=text:match("^K|1|(%d+)|([^|]*)|([^|]*)|(%d*)|(%d+)|([eh])|([^|]*)$")
+                local function coord(v) return v and v:match("^[01]%.%d%d%d$") and tonumber(v)<=1 end
+                local valid=zone and tonumber(zone)>=1 and tonumber(zone)<=999999 and tonumber(age)<=120 and #layer<=15
+                    and ((x=="" and y=="") or (coord(x) and coord(y)))
+                    and (item=="" or item:match("^%x+:%u*:%-?%d*:[fp]$")) and #text<=255
+                if kind~="GUILD" or not valid then forbidden=forbidden+1 end
+            end
             if type(sendResult)=="function" then return sendResult() end
             return sendResult
         end},
@@ -288,7 +301,7 @@ local function loadAddon(savedCallTest)
     _G.UnitClass=function(u) local e=units[u]; return e and e.class,e and e.class end
     _G.UnitLevel=function(u) return units[u] and units[u].level end
     _G.UnitFactionGroup=function(u) if u=="player" then return "Alliance" end; return units[u] and units[u].faction end
-    _G.GetPlayerInfoByGUID=nil
+    _G.GetPlayerInfoByGUID=nil; _G.C_DeathRecap=nil
     _G.DEFAULT_CHAT_FRAME={AddMessage=function(_,s) log[#log+1]=s end}
     _G.SlashCmdList={}; _G.WorldMapFrame=nil
     _G.UIParent={}; _G.Minimap=nil; _G.MinimapCluster=nil; _G.UISpecialFrames={}
@@ -4245,6 +4258,10 @@ local function foe(N,i,over) local e={key="Player-1-9"..i,name=({"Kora Reed","An
     return N.Store.observe(N.Main.store,e,clock) end
 local function weSent(t) local out={}; for _,m in ipairs(sent) do if m.prefix=="WEFF1" and (not t or m.text:sub(1,1)==t) then out[#out+1]=m end end; return out end
 local function oLines() return legwSent("O|") end
+assert(loadfile("test/crowd.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,establish=establish,
+    time=function(v) if v then clock=v end; return clock end,sent=function() return sent end,
+    map=function(v) map=v end,guild=function(v,name) inGuild=v; if name then guildName=name end end,
+    result=function(v) sendResult=v end,deliver=deliver,drain=drain,netOn=netOn,hello=hello,weSent=weSent})
 test("1.0 A1: WeOut encodes C and E as War Effort does; they decode back to the same values",function()
     local N=loadAddon(); local W,P=N.WeOut,N.Protocol
     eq(W.cluster(42,100,.4,.5,7086,4,100),"C|42|100|0.400|0.500|7086|4|100")
@@ -4568,8 +4585,8 @@ test("e4c: an enemy re-seen every second is reported 3 s after its first sightin
     -- an enemy that left view before settling starts again on its next sighting
     -- (r040c 21e: Share reads the row's own-sighting fields, ownAt and ownSource)
     local Sh=N.Share; local st=Sh.new(); local e={key="k",faction="opposite",zone=100,source="own target",at=0,ownSource="own target",ownAt=0}
-    eq(Sh.pick(st,{k=e},1,100),nil); eq(Sh.pick(st,{k=e},20,100),nil,"gone")
-    e.at=40; e.ownAt=40; eq(Sh.pick(st,{k=e},40,100),nil,"settles again"); yes(Sh.pick(st,{k=e},43,100)); yes(oLines()[1].text:find("^O|1|%d+|100|"),oLines()[1].text)
+    eq(Sh.pick(st,{k=e},1,100),nil); eq(Sh.pick(st,{k=e},46,100),nil,"gone")
+    e.at=60; e.ownAt=60; eq(Sh.pick(st,{k=e},60,100),nil,"settles again"); yes(Sh.pick(st,{k=e},63,100)); yes(oLines()[1].text:find("^O|1|%d+|100|"),oLines()[1].text)
 end)
 test("e4c: only our own unit sightings are shared, never a Bulo copy (also not one refreshing our own row)",function()
     local N=loadAddon(); local b=fakeBulo("7086-7"); establish(N); advance(1)
@@ -5154,9 +5171,13 @@ test("21e 56dbb3c: with Bulo refreshing every second, our own sightings still go
     for i=1,70 do advance(1); if i%5==0 then seeFoe("Kora Reed","Player-1-901"); units.target=nil end
         b.Radar.seen["Player-1-901"]={at=clock,hostile=true,src="target"}; N.Main.poll() end
     eq(#oLines(),2,"a re-share after 60 s")
-    -- Bulo refreshes alone never make a sighting ours again: 120 s with no own event, no new line
+    -- The last own event is still within 45 s when the next 60 s cooldown ends:
+    -- one more legitimate O, then Bulo-only refreshes cannot keep it eligible.
+    local lastOwn=clock
     for i=1,120 do advance(1); b.Radar.seen["Player-1-901"]={at=clock,hostile=true,src="target"}; N.Main.poll() end
-    eq(#oLines(),2)
+    eq(#oLines(),3)
+    local last=oLines()[3]; local own=N.Relay.decodeOwn(last.text,"Birch Scout",last.at)
+    eq(own.age,math.floor(last.at-lastOwn)); yes(own.age<=45)
     -- the settle runs from our own sighting, not from a Bulo refresh: out 3 s after it
     N=loadAddon(); b=fakeBulo("7086-7"); establish(N); advance(1); local ts=clock; seeFoe("Cy Fen","Player-1-903"); units.target=nil
     local sentAt; for i=1,6 do advance(1); b.Radar.seen["Player-1-903"]={at=clock,hostile=true,src="target"}; N.Main.poll(); if not sentAt and #oLines()>0 then sentAt=clock end end
@@ -7749,5 +7770,13 @@ assert(loadfile("test/round1.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddo
 assert(loadfile("test/round2.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,
     clock=function(v) if v then clock=v end; return clock end,deliver=deliver,sent=function() return sent end})
 
+assert(loadfile("test/own_death.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,deliver=deliver,advance=advance,
+    drain=drain,secret=secret,player=player,establish=establish,abc=abc,
+    sent=function() return sent end,log=function() return log end,clock=function() return clock end,
+    timers=function() return timers end,frames=function() return frames end,
+    instance=function(v) inInstance=v end,combat=function(v) combat=v end,
+    unit=function(k,v) units[k]=v end,roster=function(v) roster=v end,map=function(v) map=v end,
+    result=function(v) sendResult=v end,loaded=function(k,v) loaded[k]=v end,
+    forbidden=function() return forbidden end,clearForbidden=function() forbidden=0 end})
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

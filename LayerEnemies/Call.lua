@@ -36,12 +36,14 @@ end
 function C.receive(st,r,victim,time,ctx)
     -- Caller supplies readable own identity and instance status; nil is never permission.
     if not ctx.on or ctx.instance~=false or not ctx.me then return end
-    if not S.tab(r) or r.kind~="death" or (r.src~="gb" and r.src~="wos") then return end
+    if not S.tab(r) or r.kind~="death" or (r.src~="gb" and r.src~="wos" and r.src~="le") then return end
     local k=key(victim)
     if not k or k==ctx.me then return end
     local enemy=S.tab(r.enemies) and r.enemies[1]
-    if not S.tab(enemy) or not key(enemy.name) or key(enemy.name)==ctx.me then return end
-    if not ((r.src=="gb" and S.str(enemy.class,24)) or ctx.known) then return end
+    -- A validated K1 can omit the killer identity; its sender has already passed guild admission.
+    if r.src=="le" and enemy==nil then enemy={} end
+    if not S.tab(enemy) or (enemy.name and (not key(enemy.name) or key(enemy.name)==ctx.me)) then return end
+    if r.src~="le" and (not key(enemy.name) or not ((r.src=="gb" and S.str(enemy.class,24)) or ctx.known)) then return end
     local at=S.num(r.at) or S.num(r.heard)
     if not at or time<at or time-at>C.AGE then return end
     prune(st,time)
@@ -64,7 +66,7 @@ function C.receive(st,r,victim,time,ctx)
     local x,y=S.num(r.x),S.num(r.y)
     if not x or not y or x<0 or x>1 or y<0 or y>1 then x,y=nil,nil end
     local e={victim=victim,key=k,killer=enemy.name,class=enemy.class,level=enemy.level,
-        full=enemy.partial~=true and enemy.full~=false,zone=r.zone,x=x,y=y,at=at,source=r.src}
+        full=enemy.name~=nil and enemy.partial~=true and enemy.full~=false,zone=r.zone,x=x,y=y,at=at,source=r.src}
     room(st); st.victims[k]={at=time,event=e}; st.last=time; st.current=e
     return e,"show"
 end

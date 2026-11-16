@@ -30,6 +30,7 @@ end
 function M.boundary(zone,zoneChange)
     local prev={}
     if zoneChange==true and zone~=nil and M.store.zone~=nil and zone~=M.store.zone then prev=T.carry(M.store,now()) end
+    N.OwnDeath.cancel()
     N.CallUI.check()
     captureStale()
     M.blockedBulo=M.store.bulo
@@ -52,6 +53,7 @@ function M.boundary(zone,zoneChange)
     else L.reset(M.npcs) end
     if zone~=nil then M.zoneSeen=zone end
     M.subEpoch=now()
+    if M.share then N.Share.cancel(M.share,M.store.localSeen,M.subEpoch) end
     T.reset(M.store,M.subEpoch,zone,nil,nil)
     M.store.prev=prev
     N.Reports.clearPending(M.receiver)
@@ -395,6 +397,7 @@ function M.relayIn(text,kind,sender)
     if A.ignored(sender) then M.lastDrop="ignored sender"; return end
     local time=now()
     if not N.Relay.allow(M.relay,sender,time) then return end
+    if type(text)=="string" and text:sub(1,2)=="K|" then return N.OwnDeath.receive(text,sender,time) end
     local control=N.Relay.control(text)
     if control then return M.hostControl(control,sender,time) end
     local own=type(text)=="string" and text:sub(1,2)=="O|"
@@ -1381,6 +1384,8 @@ function M.guildChanged()
     if same and M.host and M.host.want and not M.host.on then M.hostResume(false) end
 end
 function M.guildReset()
+    if M.share then N.Share.cancel(M.share,M.store.localSeen,now()) end
+    N.OwnDeath.cancel()
     if not M.host then return end
     M.host.guildToken=(M.host.guildToken or 0)+1
     M.host.announceOwed=nil; M.host.answerDue=nil; M.host.held=nil
@@ -1401,24 +1406,36 @@ function M.nextReportId()
     db.weReportId=id
     return id
 end
+local function shareLayer(rep, time)
+    -- A report has one layer field: never attach a learned key to any earlier,
+    -- unlayered sighting. Compute independently for the guild and public cohort.
+    local key=not M.store.ambiguous(time) and L.key(M.store.bulo) or nil
+    for _,e in ipairs(rep.enemies) do if e.layer==nil then key=nil; break end end
+    return key
+end
 function M.shareTick()
     if not M.share or not M.sharing() then return end
     local time=now()
     local zone,x,y=A.location()
     if not zone or zone~=M.store.zone then return end
     local rep=N.Share.pick(M.share,M.store.localSeen,time,zone)
-    if not rep then return end
-    -- A report has one layer field: never attach a learned key to any earlier, unlayered sighting.
-    -- Unknown or ambiguous (mixed servers in the zone) is still sent as unknown, never guessed.
-    local key=not M.store.ambiguous(time) and L.key(M.store.bulo) or nil
-    for _,e in ipairs(rep.enemies) do if e.layer==nil then key=nil; break end end
+    local public=N.Share.pickWe(M.share,M.store.localSeen,time,zone)
+    if not rep and not public then return end
     local rid=M.nextReportId()
     local inGuild=S.call(IsInGuild)==true
-    -- to the guild: one O line with up to four names
-    local line=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=key,age=math.max(0,math.floor(time-rep.at)),count=rep.count,enemies=rep.enemies})
-    if line and inGuild then N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"}) end
-    -- to War Effort: C then E, two or more enemies, a position, and only where a reader was heard in 600 s
-    if rep.count<2 or not (x and y) then return end
+    if rep then
+        -- Only fitted, accepted guild names acquire an O cooldown. Public
+        -- eligibility is independent of these chunks and their acceptance.
+        local line,fitted=N.Relay.ownLine({rid=rid,zone=zone,x=x,y=y,layer=shareLayer(rep,time),now=time,count=rep.count,
+            listedOnly=rep.burst.lines<N.Share.LINES,enemies=rep.enemies})
+        local accepted=line and #fitted>0 and inGuild and N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own",queue=false})
+        N.Share.sent(M.share,rep,accepted and fitted or {},time)
+    end
+    rep=public
+    -- C+E retains its own 60 s per-enemy eligibility, even without a guild O,
+    -- and the existing two-enemy, position and recently heard reader guards.
+    if not rep or rep.count<2 or not (x and y) then return end
+    local key=shareLayer(rep,time)
     local stamp=S.num(S.call(GetServerTime))
     if not stamp then return end
     local function heard(kind) local at=M.weHeard[kind]; return at and time>=at and time-at<M.WE_READER end
@@ -1818,12 +1835,14 @@ end
 M.NET_NOTICE="LayerEnemies: public networks ON (War Effort, HeadHunter…). /le net guild to limit to guild only."
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
+    if not on then N.OwnDeath.cancel() end
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
     -- off: nothing we authored goes out any more: sync answers and the reports kept for them are dropped now, our own
     -- W lines still queued for embassy partners are dropped by their still check (M.sharing)
+    if not on and M.share then N.Share.cancel(M.share,M.store.localSeen,now()) end
     if not on and M.we then N.WeNet.forget(M.we) end
-    M.say(on and "LayerEnemies: your sightings are shared again: an O line with your guild, War Effort reports where a reader was heard."
-        or "LayerEnemies: your sightings are no longer shared (no O line, no War Effort reports). You still receive everyone else's.")
+    M.say(on and "LayerEnemies: your sightings are shared again: an O line with your guild, War Effort reports where a reader was heard. Own PvP deaths share a K line with your guild."
+        or "LayerEnemies: your sightings are no longer shared (no O line, no K own-death line, no War Effort reports). You still receive everyone else's.")
     if N.UI then N.UI.refresh() end
 end
 local NET_KEYS={we="we",wareffort="we",hh="hh",headhunter="hh"}
@@ -1936,7 +1955,7 @@ function M.start()
     M.host.want=LayerEnemiesDB.guildHost
     -- 1.0 networks: consent ("guild" when the player chose guild only, else nil = public) and one switch per network
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
-    -- sharing our own sightings (O, War Effort C+E): on by default; only a saved false turns it off
+    -- sharing our own sightings (O, War Effort C+E) and deaths (K): only a saved false turns it off
     LayerEnemiesDB.share=saved.share~=false
     LayerEnemiesDB.call=saved.call~=false
     LayerEnemiesDB.callArt=saved.callArt~=false
@@ -2006,7 +2025,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -2022,8 +2041,11 @@ local function dispatch(_,event,...)
     elseif event=="BN_CHAT_MSG_ADDON" then guarded(M.openmapBn,...)
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
     elseif event=="PLAYER_REGEN_DISABLED" then guarded(M.hopAnyStop,"combat started")
+    elseif event=="PLAYER_DEAD" then N.OwnDeath.dead()
+    elseif event=="PLAYER_ALIVE" or event=="PLAYER_UNGHOST" then N.OwnDeath.revived()
     elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then
+        if event=="PLAYER_ENTERING_WORLD" then N.OwnDeath.seed(...) end
         guarded(M.hopAnySafe); guarded(M.boundary,A.location()); M.queuePoll()
     elseif event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
         if A.location()~=M.store.zone then guarded(M.boundary,A.location(),true) end

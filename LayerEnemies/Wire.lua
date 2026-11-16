@@ -21,6 +21,9 @@ local replyAt = nil
 -- LEGW1 control lines (Relay.control): "F|1" and "H|1|<d>|<d>" only, each at most once per 60 s
 Wr.CONTROL_EVERY = 60
 local controlAt = {}
+-- Own-death K1 lines: one per 120 s and at most five per rolling 30 minutes, including client refusals.
+local K_EVERY, K_CAP, K_WINDOW = 120, 5, 1800
+local deathAt, deathTimes = nil, {}
 local function layerswapText(text)
     if text == "same" then return "reply" end
     local name = text:match("^heard ([^|]+)|%d+%-%d+|%d+|[h%-]$")
@@ -30,6 +33,7 @@ local function layerswapText(text)
     return nil
 end
 local function legw1Text(text)
+    if text:sub(1, 2) == "K|" then return N.OwnDeath.decode(text) and "K" or nil end
     -- our own sighting line (lane A1): its whole grammar, nothing else after "O|"
     if text:sub(1, 2) == "O|" then
         return text:match("^O|1|%d+|%d+|[01]?%.?%d*|[01]?%.?%d*|%d*|%d+|%d+|[%x:%u%d,%-]*$") and "O" or nil
@@ -250,6 +254,8 @@ local function check(prefix, text, kind, target, opts)
     local route = type(prefix) == "string" and ROUTES[prefix]
     if not (route and type(kind) == "string" and route.kinds[kind]) then return nil, "blocked route" end
     if type(text) ~= "string" or #text < 1 or #text > 255 then return nil, "bad text" end
+    -- K1 death payloads belong only to LEGW1, not the unrelated War Effort K type.
+    if prefix ~= "LEGW1" and N.OwnDeath.decode(text) then return nil, "bad text" end
     local tag = route.check(text, kind)
     if not tag then return nil, "bad text" end
     if kind == "WHISPER" then
@@ -307,7 +313,9 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
     local now = S.num(S.call(GetTime))
     if not now then return false, "error" end
     local prio = Wr.PRIO[opts.prio] or Wr.PRIO.forward
-    if S.call(IsInInstance) ~= false and prio ~= Wr.PRIO.click then return false, "instance" end
+    local death = prefix == "LEGW1" and tag == "K"
+    if death and (not N.Main.sharing() or S.call(IsInGuild) ~= true) then return false, "share off" end
+    if S.call(IsInInstance) ~= false and (death or prio ~= Wr.PRIO.click) then return false, "instance" end
     if paused[prefix] and now < paused[prefix] then return false, "paused" end
     local key = target and who(target)
     if target and Wr.offlineUntil(target, now) then return false, "offline" end
@@ -316,13 +324,21 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
     local low = opts.prio == "embassy" or opts.prio == "catchup" or opts.prio == "mesh"
     local catchup = opts.catchup == true and prefix == "HeadHunter"
     if not room(prefix, kind, key, public, now, cost, low, catchup) then
-        if opts.queue and not fromQueue then return enqueue(prefix, text, kind, target, opts, prio) end
+        if opts.queue and not fromQueue and not death then return enqueue(prefix, text, kind, target, opts, prio) end
         return false, "throttled"
     end
     -- route limits, stamped before the client is asked (a refused send still waits)
     if prefix == "LFSw" then
         if lfswAt and (now < lfswAt or now - lfswAt < Wr.LFSW_EVERY) then return false, "throttled" end
         lfswAt = now
+    end
+    if death then
+        if deathAt and (now < deathAt or now - deathAt < K_EVERY) then return false, "throttled" end
+        local keep = {}
+        for _, at in ipairs(deathTimes) do if now - at < K_WINDOW then keep[#keep + 1] = at end end
+        deathTimes = keep
+        if #deathTimes >= K_CAP then return false, "throttled" end
+        deathAt = now; deathTimes[#deathTimes + 1] = now
     end
     if prefix == "LEGW1" and (tag == "F" or tag == "H") then
         local last = controlAt[tag]
