@@ -132,8 +132,10 @@ local function source(row,store,time)
     end
     return {enemy=enemy,stamp=stamp,conf=overkill>=0 and "e" or "h"}
 end
--- Exact, order-independent row fingerprints are owned by the first death that
--- observed them, not by a successful send. Never evict session history: at the
+-- Order-independent row fingerprints are owned by the first death that
+-- observed them, not by a successful send. Identity is who and when (source GUID,
+-- name, timestamp): a row that comes back with edited damage, overkill or flags is
+-- still the old death's row. A miss is acceptable; a false killer is not. Never evict session history: at the
 -- cap, refuse unseen sets rather than letting an old death become fresh again.
 local recapDeath,recapCount,recapSeen=0,0,{}
 local RECAP_CAP=256
@@ -142,7 +144,7 @@ local function fingerprint(rows)
     for _,row in pairs(rows) do
         n=n+1; if n>64 or not S.tab(row) then return nil end
         local fields={}
-        for _,field in ipairs({"sourceGUID","sourceName","sourceFlags","timestamp","amount","damage","overkill"}) do
+        for _,field in ipairs({"sourceGUID","sourceName","timestamp"}) do
             local v=row[field]
             if S.secret(v) then return nil end
             if v==nil then fields[#fields+1]="-"
@@ -228,14 +230,14 @@ function D.dead()
         local death=recapDeath
         local time=S.num(S.call(GetTime))
         D.recap(N.Main.store,time) -- remember even an ineligible/unsent death
-        if not permitted() then
-            -- Not announced: still look at 0.3/1/2 s, record only, so late rows stay with this death.
-            -- An announced death records through its own retries; revive claims anything later.
-            if S.tab(C_Timer) and type(C_Timer.After)=="function" then
-                for _,delay in ipairs({0.3,1,2}) do C_Timer.After(delay,function() if death==recapDeath then claim(death) end end) end
-            end
-            return
+        -- Every death looks at 0.3/1/2 s, record only, even after a cancel (share off,
+        -- zone change, release), so late or withdrawn-and-reshown rows stay with it.
+        -- These looks may outlive a quick next death and take its rows: that is a
+        -- missed line, never a false one.
+        if S.tab(C_Timer) and type(C_Timer.After)=="function" then
+            for _,delay in ipairs({0.3,1,2}) do C_Timer.After(delay,function() claim(death) end) end
         end
+        if not permitted() then return end
         local zone,x,y=N.Adapters.location()
         if not time or not zone then return end
         local store=N.Main.store

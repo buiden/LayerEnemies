@@ -67,13 +67,24 @@ same-faction source stays refused even if its race metadata disagrees.
 Missing/secret required fields, empty recap, mob-only, fall, drowning and
 same-faction duel deaths send nothing, without errors or target guessing.
 Every death records the recap row fingerprint, even when it cannot send: at
-death, at 0.3/1/2 s for a death that will not be announced, and again on
-revive (whatever recap is held then belongs to the death that ended).
+death, at 0.3/1/2 s for every death (these record-only looks keep running after
+a cancel such as share off, a zone change or leaving the guild), and again on
+revive (whatever recap is held then belongs to the death that ended). A row's
+identity is its source GUID, source name and timestamp; damage, overkill and
+flags are ignored, so an old row shown again with edited numbers stays old.
 Rows already seen on an earlier death in this session are refused; login/reload
 also marks the held recap as old. Stale or ineligible rows leave the remaining
-retries active, so only a fresh qualifying set in the window can send. Not
-covered: a recap that first appears after revive, or a death before the first
-world-entry seed. The
+retries active, so only a fresh qualifying set in the window can send.
+
+Known limits (a missed line is accepted; a false killer is not):
+- Two deaths within 2 s: the first death's record-only look can take the
+  second death's rows, so the second death sends nothing.
+- A genuinely new death whose rows match an earlier row's source and
+  timestamp exactly is treated as old and sends nothing.
+- Not covered: a recap that first appears after revive, or a death before the
+  first world-entry seed.
+
+The
 session history holds at most 256 row sets, then refuses new sets instead of
 forgetting old ones. It is not saved.
 Known misses: an enemy pet alone (no owner resolution), empty/late recaps,

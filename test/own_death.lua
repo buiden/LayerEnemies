@@ -216,8 +216,15 @@ test("K: retry deadlines are 0.3 1 2 seconds, bounded and no late recap beyond t
         -- Cross each deadline by an epsilon: accumulated Lua doubles can land just below it.
         H.advance(.011); H.advance(.7); H.advance(1); H.advance(10)
         eq(#deaths(),ready<=2 and 1 or 0)
-        eq(#reads,1+(ready==.3 and 1 or ready==1 and 2 or 3))
-        for i,t in ipairs(reads) do yes(math.abs(t-({0,.301,1.001,2.001})[i])<.00001) end
+        -- Each 0.3/1/2 s tick reads for the send attempt (until it sends or ends) and for the
+        -- record-only look, which always runs; nothing reads after 2 s.
+        local ticks={0,.301,1.001,2.001}
+        for _,t in ipairs(reads) do
+            local ok=false; for _,v in ipairs(ticks) do if math.abs(t-v)<.00001 then ok=true end end
+            yes(ok,"read only at death or a 0.3/1/2 s tick, got "..t)
+        end
+        local attemptsLeft=ready==.3 and 1 or ready==1 and 2 or 3
+        eq(#reads,1+3+attemptsLeft)
         if ready<=2 then eq(N.OwnDeath.decode(deaths()[1].text).age,math.floor(ready)) end
         no(N.Main.error)
     end
@@ -414,7 +421,7 @@ test("K review F1-D: rows arriving after the retries ran out belong to the old d
     no(N.Main.error)
 end)
 for _,field in ipairs({"damage","sourceFlags"}) do
-    test("K review: fingerprint includes "..field.." so a changed row set on the next death is fresh",function()
+    test("K review (second opinion case 2): an old row back with edited "..field.." is still the old death",function()
         local N,rows=setup(); raceProof()
         rows[1].damage=10
         die(); H.advance(2); eq(#deaths(),1)
@@ -423,7 +430,7 @@ for _,field in ipairs({"damage","sourceFlags"}) do
         if field=="damage" then row.damage=20 else row.sourceFlags=rows[1].sourceFlags+0x10000 end
         C_DeathRecap.GetRecapEvents=function() return {row} end
         die(); H.advance(2)
-        eq(#deaths(),2,"rows differing only in "..field.." are a different death"); no(N.Main.error)
+        eq(#deaths(),1,"rows differing only in "..field.." are the old death's rows: no new K"); no(N.Main.error)
     end)
 end
 test("K review: the session keeps at most 256 row sets and then refuses new sets",function()
@@ -439,7 +446,7 @@ test("K review: the session keeps at most 256 row sets and then refuses new sets
     H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
     eq(#deaths(),0,"a 257th unseen set is refused, never admitted by forgetting an old one"); no(N.Main.error)
 end)
-test("K review N1: an unsent death's timed looks stop when the next death starts",function()
+test("K review N1 (accepted miss): an earlier death's 2 s look may take a quick next death's rows",function()
     local N=setup(); raceProof(); N.Main.setShare(false)
     local held={}
     C_DeathRecap.GetRecapEvents=function() return held end
@@ -447,7 +454,7 @@ test("K review N1: an unsent death's timed looks stop when the next death starts
     N.Main.setShare(true); H.advance(1.7)
     H.deliver("PLAYER_DEAD"); H.advance(.05); held={recapRow()}
     H.advance(.3); H.advance(.7); H.advance(1)
-    eq(#deaths(),1,"rows of the second death belong to it, not to the earlier death's leftover look"); no(N.Main.error)
+    eq(#deaths(),0,"documented miss: the earlier death's look claims rows that arrive inside its window"); no(N.Main.error)
 end)
 test("K review N2: rows arriving between the 1 s and 2 s looks of an unsent death stay with it",function()
     local N=setup(); raceProof(); N.Main.setShare(false)
@@ -470,7 +477,7 @@ test("K review F1: row-set identity ignores table allocation and order",function
     H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
     eq(#deaths(),1); no(N.Main.error)
 end)
-for _,field in ipairs({"sourceGUID","sourceName","timestamp","amount","overkill"}) do
+for _,field in ipairs({"sourceGUID","sourceName","timestamp"}) do
     test("K review F1: a changed recap "..field.." identifies a new row set",function()
         local N,rows=setup(); raceProof(); rows[1].amount=100
         die(); eq(#deaths(),1); nextDeath()
@@ -479,6 +486,37 @@ for _,field in ipairs({"sourceGUID","sourceName","timestamp","amount","overkill"
         H.deliver("PLAYER_DEAD"); H.advance(.301); eq(#deaths(),2,field); no(N.Main.error)
     end)
 end
+for _,field in ipairs({"amount","overkill"}) do
+    test("K review (second opinion case 2): a changed recap "..field.." alone is still the old row set",function()
+        local N,rows=setup(); raceProof(); rows[1].amount=100
+        die(); eq(#deaths(),1); nextDeath()
+        rows[1][field]=({amount=101,overkill=11})[field]
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1); eq(#deaths(),1,field); no(N.Main.error)
+    end)
+end
+test("K review (second opinion case 1): rows shown during a cancelled death stay with it",function()
+    local N=setup(); raceProof()
+    local held={}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    local prior={recapRow()}
+    H.deliver("PLAYER_DEAD"); H.advance(.05); N.Main.setShare(false); N.Main.setShare(true)
+    H.advance(.15); held=prior
+    H.advance(.11); H.advance(.7); H.advance(1); H.advance(.089); held={}
+    H.advance(.9); H.deliver("PLAYER_ALIVE"); H.advance(1); held=prior
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0,"a cancelled death's record-only looks claim its rows"); no(N.Main.error)
+end)
+test("K review (second opinion guard ordering): old rows after a quick revive and death are never sent",function()
+    local N=setup(); raceProof(); N.Main.setShare(false)
+    local held={}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    local old={recapRow()}; old[1].timestamp=H.clock()
+    H.deliver("PLAYER_DEAD"); H.advance(.2); H.deliver("PLAYER_ALIVE")
+    N.Main.setShare(true); H.advance(1.7)
+    H.deliver("PLAYER_DEAD"); H.advance(.05); held=old
+    H.advance(.3); H.advance(.7); H.advance(1)
+    eq(#deaths(),0,"the earlier death's 2 s look claims its own late rows first"); no(N.Main.error)
+end)
 test("K review F1: an ineligible fresh row set does not stop later eligible retries",function()
     local N,rows=setup(); raceProof(); local at=H.clock()
     C_DeathRecap.GetRecapEvents=function()
