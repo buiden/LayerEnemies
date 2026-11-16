@@ -769,4 +769,30 @@ PASS Realm names: every hash tuple stays possible and never confirms even the ho
 PASS Realm names: late home discovery removes the named HeadHunter uncertainty only
 PASS Realm names: a hash cannot override an explicitly different named realm
 PASS Realm names: On my way adds the shown qualified killer and saves it without sends
-RESULT: 771 tests passed, 0 failed, 71244 assertions
+PASS Kills 11: D creates a timed killer claim in LE-only
+PASS Kills 11: D creates a timed killer claim in stand-down
+PASS Kills 11: incomplete killer never matches by partial name, class or level
+PASS Kills 11: author must be the victim under whole-name identity
+PASS Kills 12: inferred label, victim attribution and relay provenance without Reported rows
+PASS Kills 12: simulated and unknown confidence create no finding
+PASS Kills 12: assists and helpers never create entries or counts
+PASS Kills age: catch-up retains real age, hour boundary expires without fresh alerts
+PASS Kills decode: envelope validation, other faction, malformed names and future skew
+PASS Kills Find: claims cannot borrow the victim layer or replace first-hand evidence
+PASS Kills counters: session receive totals in LE-only
+PASS Kills counters: session receive totals in stand-down
+PASS Kills 12a: whispered D reaches Find and guild in LE-only
+PASS Kills 12a: whispered D reaches Find and guild in stand-down
+PASS Kills 12b: fresh whisper relays; old catch-up stays local with origin age
+PASS Kills relay: recheck freshness at dispatch and encoding
+PASS Kills relay: non-whisper fresh and catch-up records stay local
+PASS Kills relay: frozen main receiver ignores kill and killi as invalid
+PASS Kills relay: guild claims never reach Reported, Ask, Hop, or re-forward
+PASS Kills relay: malformed kill wire cannot smuggle counts, hashes, extra enemies or layer
+PASS Kills relay: guild copy during wait cancels our send
+PASS Kills relay budget: fifth within rolling minute is dropped, not queued
+PASS Kills relay budget: same whole killer name once per 60 seconds
+PASS Kills relay budget: realms stay distinct and backwards time never reopens allowance
+PASS Kills relay priority: full Wire bucket drops without queue or successful counter
+PASS Kills relay lifecycle: no guild, instance and guild switch invalidate pending
+RESULT: 797 tests passed, 0 failed, 73531 assertions
