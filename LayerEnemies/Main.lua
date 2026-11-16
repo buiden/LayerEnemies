@@ -213,6 +213,7 @@ end
 -- Preserve origin age and provenance before the zone-only store can reject a record.
 function M.findRecord(record)
     if N.Record.isKill(record) then
+        if not N.Relay.acceptKill(M.relay,record,now()) then return end
         local _,viaKey=I.name(record.via)
         local indirect=record.src=="guild" or viaKey~=record.okey
         N.Find.report(M.find,{sender=record.origin,zone=record.zone,at=record.at,now=now(),enemies=record.enemies,

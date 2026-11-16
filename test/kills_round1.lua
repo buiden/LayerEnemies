@@ -58,3 +58,50 @@ for _,lane in ipairs({"HeadHunter","guild"}) do
         yes(row(N).at); no(N.Main.error)
     end)
 end
+
+for _,age in ipairs({0,-300}) do
+    test("Kills R1 M1: one D id across carriers for its lifetime skew="..age,function()
+        local N=boot(); N.Main.track("Cedar Vale")
+        local frame=death({age=age}); local began=H.clock()
+        hear(frame); H.advance(1.1); eq(#sends("^R|1|hh|kill"),1)
+        for _,elapsed in ipairs({121,242,299}) do
+            H.advance(elapsed-(H.clock()-began)); hear(frame,"Other Carrier"); H.advance(1.1)
+            N.Main.relayTick()
+        end
+        H.advance(1.1); eq(#sends("^R|1|hh|kill"),1,"same event must never re-forward")
+        eq(row(N).at,began,"replay cannot refresh evidence, even during future skew")
+        no(N.Main.error)
+    end)
+end
+
+for _,kind in ipairs({"kill","killi"}) do
+    test("Kills R1 S2: identical guild "..kind.." preserves age at 240 seconds",function()
+        local N=boot(); N.Main.track("Cedar Vale")
+        local text=wire({kind=kind}); guild(text); local at=row(N).at; yes(at)
+        H.advance(240); eq(row(N).age,240)
+        guild(text,"Other Carrier"); eq(row(N).at,at); eq(row(N).age,240)
+        eq(#sends(),0); no(N.Main.error)
+    end)
+end
+
+test("Kills R1 M1: guild and whisper carriers share identity and stand-down",function()
+    for _,guildFirst in ipairs({false,true}) do
+        local N=boot(); N.Main.track("Cedar Vale")
+        local frame=death(); local text=wire()
+        if guildFirst then guild(text) else hear(frame) end
+        local at=row(N).at; yes(at)
+        if guildFirst then hear(frame,"Other Carrier") else guild(text) end
+        H.advance(1.1); eq(#sends(),0,"guild copy cancels or prevents pending relay")
+        H.advance(240); guild(text,"Later Carrier"); hear(frame,"Last Carrier"); H.advance(1.1)
+        eq(#sends(),0); eq(row(N).at,at); no(N.Main.error)
+    end
+end)
+
+test("Kills R1 M1: kill id survives legacy relay history eviction",function()
+    local N=boot(); local frame=death(); hear(frame); H.advance(1.1)
+    for i=1,N.Relay.MAX+1 do
+        guild(wire({kind="outlaw",victim="Victim "..H.abc(i),rid="other:"..i}),"Carrier "..H.abc(i))
+    end
+    H.advance(121); hear(frame,"Last Carrier"); H.advance(1.1)
+    eq(#sends("^R|1|hh|kill"),1); no(N.Main.error)
+end)

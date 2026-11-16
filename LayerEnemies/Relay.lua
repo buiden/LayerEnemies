@@ -128,7 +128,32 @@ function Rl.decode(text, sender, now)
 end
 
 Rl.RATE = 12                                                   -- LEGW1 messages per sender per 10 s
-function Rl.new() return { seen = {}, n = 0, pending = {}, rates = {}, nrates = 0, kills = {} } end
+function Rl.new() return { seen = {}, n = 0, pending = {}, rates = {}, nrates = 0, kills = {}, killRecords = {} } end
+-- Kill identity spans all carriers, including guild copies. Unlike the short
+-- legacy relay history, live kill entries are never evicted or renewed by replay.
+-- Retain through Known's lifetime plus accepted HH future skew: a clamped future
+-- stamp must not become a new event later. A full ledger refuses new identities.
+local function killEvent(st, record, now)
+    local key = Rl.key(record)
+    local n = 0
+    for k, event in pairs(st.killRecords) do
+        if now >= event.expires then st.killRecords[k] = nil else n = n + 1 end
+    end
+    local event = st.killRecords[key]
+    if not event then
+        if n >= Rl.MAX then return nil end
+        event = { at = record.at, expires = now + N.Known.TTL + N.HeadHunter.WINDOW }
+        st.killRecords[key] = event
+    end
+    record.at = math.min(record.at, event.at)
+    return event
+end
+function Rl.acceptKill(st, record, now)
+    local event = killEvent(st, record, now)
+    if not event or event.found then return false end
+    event.found = true
+    return true
+end
 -- A rolling minute, at most four attempted kill forwards; also one whole killer
 -- identity per minute. Spend before Wire, so a refusal cannot reopen the budget.
 -- This tiny list is bounded by the rate cap and survives pending clears.
@@ -179,8 +204,11 @@ function Rl.seen(st, key, now) local at = st.seen[key]; return at ~= nil and now
 function Rl.offer(st, record, now, ctx)
     if not S.tab(record) or not SRC[record.src] then return false, "source" end
     if record.route ~= "PARTY" and record.route ~= "RAID" and record.route ~= "WHISPER" then return false, "route" end
+    local event
     if N.Record.isKill(record) then
         if record.route ~= "WHISPER" then return false, "kill route" end
+        event = killEvent(st, record, now)
+        if not event or event.offered then return false, "seen" end
         if now - record.at >= Rl.TTL.hh then return false, "too old" end
     end
     if record.share == "guild" then return false, "guild share" end
@@ -190,11 +218,16 @@ function Rl.offer(st, record, now, ctx)
     local n = 0; for _ in pairs(st.pending) do n = n + 1 end
     if n >= Rl.PENDING then return false, "busy" end
     remember(st, key, now)
+    if event then event.offered = true end
     st.pending[key] = { record = record, due = now + Rl.rand(), guild = ctx.guild }
     return true
 end
 -- A LEGW1 copy heard from a guildmate: remembered, and our own pending send of it stands down.
 function Rl.heard(st, record, now)
+    if N.Record.isKill(record) then
+        local event = killEvent(st, record, now)
+        if event then event.offered = true end
+    end
     local key = Rl.key(record)
     st.pending[key] = nil
     remember(st, key, now)
