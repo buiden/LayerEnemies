@@ -76,9 +76,11 @@ with edited numbers stays old), and a row first seen on an earlier death can
 never name the killer, whatever else is in the set. Repeated PLAYER_DEAD events
 before PLAYER_ALIVE or PLAYER_UNGHOST are the same death: they do not restart
 its snapshot, retries or incomplete-recap suppression.
-Rows already seen on an earlier death in this session are refused; login/reload
-also marks the held recap as old. Stale or ineligible rows leave the remaining
-retries active, so only a fresh qualifying set in the window can send.
+Rows already seen on an earlier death in this session are refused; every
+PLAYER_ENTERING_WORLD also marks the held recap as old (login, reload and
+loading screens, not only the first world entry). Stale or ineligible rows
+leave the remaining retries active, so only a fresh qualifying set in the
+window can send.
 
 Known limits (a missed line is accepted; a false killer is not):
 - Environmental killing blows (falling, drowning, fatigue, lava, or another
@@ -98,15 +100,15 @@ Known limits (a missed line is accepted; a false killer is not):
   are taken as that death's rows. Recap timing on the live client is unknown,
   so this is not fully closed.
 - After a death whose recap held a row that could not be read, or more than
-  256 rows, following deaths send nothing until a later death has recorded a
-  non-empty, fully readable recap. That recovery death still sends nothing;
-  only a new death after it can send again. Empty or unavailable recaps cannot
-  clear the suppression, and another incomplete death renews it.
-- Still open: death A has a hidden row, death B has only other readable rows,
-  and A's row first becomes readable at death C. B's complete recap clears the
-  suppression, so C can still name A's killer if that row is stamped later
-  than every recorded row. Other readable rows at B do not prove that A's
-  hidden row is gone.
+  256 rows, all following deaths stay silent until the next world-entry seed.
+  Even a non-empty, fully readable recap cannot clear suppression: other rows
+  at death B do not prove that death A's hidden row is gone, so a newly readable
+  A row cannot name death C's killer. Empty or unavailable recaps cannot clear
+  it either. The seed runs on every PLAYER_ENTERING_WORLD, including loading
+  screens as well as login/reload, records the held rows as old, and clears the
+  previous suppression. If that seed itself has unreadable or excess rows,
+  suppression starts again. Revive, zone-change and SHARD_TRANSFER events do
+  not clear it without PLAYER_ENTERING_WORLD.
 - Not covered: a recap that first appears after revive, or a death before the
   first world-entry seed.
 
@@ -119,16 +121,18 @@ It is recorded as old and never names a killer, even if the cap has forgotten
 the original row. Only recap timestamps are compared with each other; no
 client clock is used. A readable row with a nil or empty source GUID or name
 is still recorded, using its timestamp and whichever source fields exist (not
-amounts). It counts toward a non-empty, fully readable death and never names a
-killer; an ordinary environmental hit does not silence later deaths. A row
+amounts). It is readable and never names a killer; an ordinary environmental
+hit does not make a death incomplete or silence later deaths. A row
 whose identity fields cannot be read (secret or erroring), or whose timestamp
 is missing or not a readable number, is never recorded, owned or named; the
 readable rows of the same recap are still recorded. A secret/erroring overkill
 read on a no-source row also makes that row unreadable. A recap longer than
 256 rows names nothing. Because an unrecorded row could come back readable,
-following deaths treat every row they see first as old until a non-empty,
-fully readable death has been recorded. Any incomplete look, including a
-retry or revive read, keeps this suppression for the next death. Nothing is saved.
+following deaths treat every row they see first as old until the next
+world-entry seed. Any incomplete look, including a retry or revive read,
+keeps this suppression for the rest of that world session; complete later
+deaths never clear it. The seed does not discard the recorded row history or
+lower its timestamp high-water mark. Nothing is saved.
 Known misses: an enemy pet alone (no owner resolution), empty/late recaps,
 and unavailable faction/identity data. Accepted over-count: a mob landing
 the last hit while an enemy player was hitting counts as PvP.

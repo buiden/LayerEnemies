@@ -393,7 +393,7 @@ for _,phase in ipairs({"death","retry"}) do
         no(N.Main.error)
     end)
 end
-test("K environment: a no-source-only death is non-empty recovery after an unreadable death",function()
+test("K environment: a readable no-source-only death cannot clear an earlier unreadable death",function()
     local N=setup(); raceProof()
     local hidden=recapRow(); hidden.timestamp=H.secret
     local held={hidden}
@@ -402,7 +402,10 @@ test("K environment: a no-source-only death is non-empty recovery after an unrea
     held={{timestamp=H.clock()}} -- readable absence of every optional source/damage field
     finishDeath(); eq(#deaths(),0); nextDeath()
     held={recapRow()}; finishDeath()
-    eq(#deaths(),1,"a readable no-source-only death clears suppression for the following death")
+    eq(#deaths(),0,"a readable no-source-only death cannot clear earlier suppression")
+    nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+    held={recapRow()}; finishDeath()
+    eq(#deaths(),1,"only a world-entry seed allows the following fresh death")
     no(N.Main.error)
 end)
 test("K environment: recorded no-source rows stay old when amounts change or source fields arrive",function()
@@ -432,7 +435,10 @@ for _,field in ipairs({"sourceGUID","sourceName","timestamp","overkill"}) do
                 C_DeathRecap.GetRecapEvents=function() return held end
                 finishDeath(); eq(#deaths(),0); nextDeath()
                 held={recapRow()}; finishDeath(); eq(#deaths(),0,"truly unreadable rows still suppress the next death")
-                nextDeath(); held={recapRow()}; finishDeath(); eq(#deaths(),1); no(N.Main.error)
+                nextDeath(); held={recapRow()}; finishDeath()
+                eq(#deaths(),0,"a complete later death cannot clear suppression")
+                nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+                held={recapRow()}; finishDeath(); eq(#deaths(),1); no(N.Main.error)
             end)
         end
     end
@@ -701,7 +707,47 @@ test("K fix check: a 65-row recap with a new killer sends; over 256 rows never n
         eq(#deaths(),count<=256 and 1 or 0,count.." rows"); no(N.Main.error)
     end
 end)
-test("K blind: a row an unsent death could not record never names a later death; the death after that sends",function()
+for _,other in ipairs({"mob","player"}) do
+    for _,entry in ipairs({"login","reload","loading screen"}) do
+        test("K blind A/B/C: unrelated "..other.." rows cannot recover until world entry ("..entry..")",function()
+            local N=setup(); raceProof()
+            local old=recapRow(); old.timestamp=9000
+            local hidden=recapRow(); hidden.timestamp=H.secret
+            local held={hidden}
+            C_DeathRecap.GetRecapEvents=function() return held end
+            finishDeath(); eq(#deaths(),0,"A has an unreadable killer row")
+            nextDeath()
+            local sibling=recapRow(); sibling.timestamp=8000
+            sibling.sourceGUID="Player-1-456"; sibling.sourceName="Birch"
+            if other=="mob" then sibling.sourceGUID="Creature-0-1-0-1-2-AB"; sibling.sourceFlags=0x848 end
+            held={sibling}; finishDeath()
+            eq(#deaths(),0,"B's other readable rows do not prove A's hidden row is gone")
+            nextDeath(); held={old}
+            H.deliver("PLAYER_DEAD")
+            H.advance(.301); eq(#deaths(),0,"C must not name A's newly readable highest-stamped row")
+            H.advance(.7); eq(#deaths(),0,"C remains silent at 1 s")
+            H.advance(1); eq(#deaths(),0,"C remains silent at 2 s")
+            for i,name in ipairs({"Aspen","Elm"}) do
+                nextDeath()
+                local fresh=recapRow(); fresh.sourceGUID="Player-1-789"; fresh.sourceName=name; fresh.timestamp=9000+i
+                held={fresh}; finishDeath()
+                eq(#deaths(),0,"D/E remain suppressed even with genuinely new killers")
+            end
+            nextDeath()
+            local seeded=recapRow(); seeded.timestamp=10000; held={old,seeded}
+            H.deliver("PLAYER_ENTERING_WORLD",entry=="login",entry=="reload"); H.drain()
+            finishDeath(); eq(#deaths(),0,"world entry snapshots the held rows as old before recovery")
+            nextDeath()
+            local fresh=recapRow(); fresh.sourceGUID="Player-1-999"; fresh.sourceName="Maple"; fresh.timestamp=10001
+            held={old,seeded,fresh}; finishDeath()
+            eq(#deaths(),1,"a new death after the world-entry seed may send")
+            eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Maple","never A's killer")
+            no(N.Main.error)
+        end)
+    end
+end
+
+test("K blind: a row an unsent death could not record suppresses later deaths until world entry",function()
     for _,mode in ipairs({"secret-timestamp","nil-timestamp","secret-name","throwing-row","257-duplicates"}) do
         local N=setup(); raceProof(); N.Main.setShare(false)
         local stamp=H.clock()
@@ -724,10 +770,14 @@ test("K blind: a row an unsent death could not record never names a later death;
         H.deliver("PLAYER_ALIVE"); H.advance(1801)
         local fresh=recapRow(); fresh.timestamp=H.clock(); held={fresh}
         H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
-        eq(#deaths(),1,mode..": the next clean death sends"); no(N.Main.error)
+        eq(#deaths(),0,mode..": the next clean death stays suppressed")
+        nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+        fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"; held={fresh}
+        finishDeath(); eq(#deaths(),1,mode..": a fresh death after world entry sends")
+        eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Birch"); no(N.Main.error)
     end
 end)
-test("K blind: empty deaths keep suppression until a non-empty readable death",function()
+test("K blind: empty and non-empty readable deaths keep suppression until world entry",function()
     local N=setup(); raceProof()
     local old=recapRow()
     local hidden=recapRow(); hidden.timestamp=H.secret
@@ -745,11 +795,14 @@ test("K blind: empty deaths keep suppression until a non-empty readable death",f
     H.advance(.301); eq(#deaths(),0,"empty recaps cannot spend suppression at the first retry")
     H.advance(.7); eq(#deaths(),0,"suppression holds at the second retry")
     H.advance(1); eq(#deaths(),0,"suppression holds through the last retry")
-    -- This death finally recorded a non-empty, fully readable recap. Only the
-    -- next distinct death may name a new killer, never the old Cedar row.
+    -- A complete later death is not proof that every hidden row is gone.
     nextDeath()
     local fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"; held={fresh}
     H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0,"non-empty readable deaths cannot spend suppression")
+    nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+    fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"; held={fresh}
+    finishDeath()
     eq(#deaths(),1); eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Birch"); no(N.Main.error)
 end)
 for _,mode in ipairs({"empty","hidden","readable sibling"}) do
@@ -811,6 +864,10 @@ test("K blind: an incomplete death cannot recover after a later readable look",f
             eq(#deaths(),0,mode.." at "..phase..": any incomplete look renews suppression")
             nextDeath(); fresh=recapRow(); fresh.sourceGUID="Player-1-789"; fresh.sourceName="Aspen"; held={fresh}
             H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+            eq(#deaths(),0,"later complete recaps cannot clear suppression")
+            nextDeath(); H.deliver("PLAYER_ENTERING_WORLD"); H.drain()
+            fresh=recapRow(); fresh.sourceGUID="Player-1-789"; fresh.sourceName="Aspen"; held={fresh}
+            finishDeath()
             eq(#deaths(),1); eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Aspen"); no(N.Main.error)
         end
     end

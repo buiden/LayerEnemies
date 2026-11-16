@@ -152,12 +152,12 @@ local RECORD_LIMIT=256
 -- oldest-stamped row is forgotten; which one is forgotten cannot make an old row
 -- nameable, because seenHigh already covers it.
 local seenHigh,priorMark
--- blind: some recap row seen since the current death began could not be recorded
--- (unreadable, or past RECORD_LIMIT). Its identity and time are unknown, so it may
--- come back readable at a later death. priorBlind stays fixed for each death:
--- every row it sees first is old. Carry that suppression across empty deaths;
--- only a non-empty recap with no unrecordable rows lets the next death recover.
-local blind,priorBlind,recordedRows=false,false,false
+-- blind: some recap row could not be recorded (unreadable, or past RECORD_LIMIT).
+-- Its identity and time are unknown, so it may come back readable at any later
+-- death. Other readable rows cannot prove it is gone. Keep suppression until the
+-- next world-entry seed, never clear it at a death. priorBlind stays fixed for
+-- each death: every row it sees first is old.
+local blind,priorBlind=false,false
 -- A readable no-source killing blow silences only its own death, even if a
 -- later look omits that row. It is not incomplete and must not blind the next death.
 local noSourceKill=false
@@ -229,7 +229,6 @@ end
 -- Records unseen rows for owner; marks each entry owned when its row belongs to owner.
 local function remember(list,owner)
     if not list then return end
-    if owner==recapDeath and #list>0 then recordedRows=true end
     for _,entry in ipairs(list) do
         local id=entry.id
         if not id then blind=true end
@@ -244,7 +243,10 @@ local function remember(list,owner)
     end
 end
 function D.seed()
-    -- PLAYER_ENTERING_WORLD also covers login/reload with a pre-session recap.
+    -- Every PLAYER_ENTERING_WORLD (login, reload or loading screen) starts a new
+    -- suppression window and records the held recap as old. An unreadable seed
+    -- is itself incomplete, so remember/capture can set blind again.
+    blind,priorBlind=false,false
     pcall(function() remember(capture(),0) end)
 end
 -- Record-only: the recap can lag PLAYER_DEAD, so a death that is never
@@ -301,8 +303,8 @@ function D.dead()
     local ok=pcall(function()
         recapDeath=recapDeath+1
         priorMark=seenHigh
-        priorBlind=blind or (priorBlind and not recordedRows)
-        blind=false; recordedRows=false; noSourceKill=false
+        priorBlind=blind
+        noSourceKill=false
         local death=recapDeath
         local time=S.num(S.call(GetTime))
         D.recap(N.Main.store,time) -- remember even an ineligible/unsent death
