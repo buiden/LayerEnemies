@@ -110,6 +110,7 @@ function M.poll()
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
     M.groupCheck(); M.inviteTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
     N.Directory.sync()
+    N.Find.home(M.find,M.homeRealm())
     M.findAlerts()
     N.CallUI.check()
     if N.UI then N.UI.refresh() end
@@ -729,12 +730,36 @@ end
 function M.alertSound()
     S.call(PlaySound,S.tab(SOUNDKIT) and SOUNDKIT.RAID_WARNING or 8959,"Master")
 end
-function M.findAlerts(quiet)
-    if not M.find or #M.find.names==0 then return end
+local function findSummary(st,window)
+    if M.find~=st or st.alertWindow~=window then return end
+    if window.more>0 then
+        M.say("LayerEnemies: "..window.more.." more tracked names located, see Find")
+        window.more=0
+    end
+    st.alertWindow=nil
+end
+function M.findAlerts(quiet,printed)
+    local st,time=M.find,now()
+    if not st then return end
+    local window=st.alertWindow
+    if window and time-window.at>=10 then findSummary(st,window); window=nil end
+    if #st.names==0 then return end
     for _,row in ipairs(M.findRows()) do
-        if N.Find.alert(M.find,row,now()) then
-            M.say("LayerEnemies: "..M.findText(row,true))
-            if not quiet then M.alertSound() end
+        if N.Find.alert(st,row,time) then
+            if row.name~=printed then
+                if not window then window={at=time,lines=0,more=0}; st.alertWindow=window end
+                if window.lines<3 then
+                    M.say("LayerEnemies: "..M.findText(row,true)); window.lines=window.lines+1
+                else
+                    window.more=window.more+1
+                    if not window.pending then
+                        window.pending=after(math.max(0,10-(time-window.at)),function() findSummary(st,window) end)
+                    end
+                end
+            end
+            if not quiet and (not st.soundAt or time-st.soundAt>=10) then
+                st.soundAt=time; M.alertSound()
+            end
         end
     end
 end
@@ -752,8 +777,14 @@ function M.track(name,remove)
     else N.Find.remove(M.find) end
     LayerEnemiesDB.tracked=M.find.names
     if #M.find.names==0 then M.say("LayerEnemies: tracked names cleared.") end
-    for _,row in ipairs(M.findRows()) do M.say("LayerEnemies: "..M.findText(row)) end
-    M.findAlerts()
+    local printed
+    if name and not remove then
+        local _,key=N.Find.name(name)
+        for _,row in ipairs(M.findRows()) do
+            if N.Find.fold(row.name)==key then M.say("LayerEnemies: "..M.findText(row)); printed=row.name; break end
+        end
+    elseif remove and #M.find.names>0 then M.say("LayerEnemies: tracked name cleared.") end
+    M.findAlerts(nil,printed)
     if N.UI then N.UI.refresh() end
     return true
 end
@@ -1824,7 +1855,7 @@ function M.start()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration only. Sightings and source identities never enter SavedVariables.
     local saved=LayerEnemiesDB
-    M.find=N.Find.new(saved.tracked); M.call=N.Call.new()
+    M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new()
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
     M.host.want=LayerEnemiesDB.guildHost

@@ -67,7 +67,7 @@ mute. Popups are plain frames, allowed in combat but never in instances
 **On my way** tries a waypoint and super-tracking for the displayed victim's
 zone/coordinates; if unavailable or refused, it prints one location line.
 It also offers the displayed full killer name to Find if a slot is available
-(maximum five) and the existing Find name parser accepts it. Full two-word
+(maximum 20) and the existing Find name parser accepts it. Full two-word
 names must be bare (First Last): realm-qualified full killers (First Last-Realm)
 are shown but are not added to Find. A full list stays unchanged with an
 explanation; partial names are not added. It does not send a message or ask
@@ -327,7 +327,7 @@ shape is reported as data unavailable.
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).
   `/le call art on|off`: all Arabic call images (default on); heading Latin stays visible.
-- `/le find <name>`: add a tracked enemy (maximum five). Names may include a
+- `/le find <name>`: add a tracked enemy (maximum 20). Names may include a
   Forever surname or an explicit `-Realm`. `/le find` clears all tracked names.
   The Find tab also has a Track field and individual Clear buttons.
 - `/le unclassified`: local sightings whose faction is unknown or same-faction;
@@ -579,6 +579,18 @@ the reporter's position.
 
 ## Finding a tracked player
 
+Find holds up to 20 names. Adding a name prints only that name's row. The Find
+heading shows `Find (3 located / 20)`; names with a sighting or shared position
+come first, newest first, followed by unlocated names alphabetically. Unlocated
+rows have a single compact status line. Mouse-wheel paging and individual Clear
+buttons remain; the Track field is not a filter.
+
+The session lookup is built on list changes and once when the home realm first
+becomes readable, not on every report. Existing spellings, realm matching and
+possible-hash-match semantics are unchanged. The first 20 saved entries are
+validated and deduplicated by folded name. **Downgrade warning:** an older client
+keeps and saves only the first five, losing names 6–20.
+
 An enemy sighting is available only when you see the target yourself, or a report naming or
 hashing him reaches you (War Effort, HeadHunter, the Spy family and guild
 incident addons, or a guild relay; one enemy entry is enough, the rest of the
@@ -611,8 +623,11 @@ A finding that came only from a guild relay says `possible match, seen in a
 relayed report`, without a name to ask and without an ask button.
 
 A first finding prints a chat alert and attempts a raid-warning sound. It
-re-alerts only after five minutes or when a new zone is reported. Sound API
-failure is harmless. Findings expire after ten minutes; a direct sighting
+re-alerts only after five minutes or when a new zone is reported. Across tracked
+names, sound plays at most once per 10 seconds. A 10-second window prints up to
+three detailed alerts; additional alerts are counted in one summary at the end
+of that window, such as `LayerEnemies: 2 more tracked names located, see Find`.
+Sound API failure is harmless. Findings expire after ten minutes; a direct sighting
 has priority over a possible report until it expires. Only the newest
 possible spotter is retained for each name; this is not a spotter history.
 World/zone/layer boundaries wipe findings and pending report fragments,
@@ -653,7 +668,7 @@ seconds without a new line. An OpenMap withdrawal (`L0`) clears only the
 place. World/zone/layer boundaries clear sightings, not shared positions.
 Removing a tracked name clears both; reloading keeps only the configured
 watchlist, never either location. There is at most one place per tracked
-name (five total), with a 64-byte incoming-line limit. Find cards with shared
+name (20 total), with a 64-byte incoming-line limit. Find cards with shared
 positions are taller; scroll with the mouse wheel to see the other names.
 
 OpenMap sharing is off by default in OpenMap. Its sharing guildmates

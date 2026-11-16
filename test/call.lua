@@ -198,10 +198,10 @@ test("Call: Find full stays unchanged; partial names are never added",function()
     for _,partial in ipairs({false,true}) do
         local N=H.load(); local r=record(0)
         if partial then r.enemies[1].partial=true
-        else for _,name in ipairs({"Alder","Birch","Clover","Dune","Elm"}) do yes(N.Find.add(N.Main.find,name)) end end
+        else for i=1,N.Find.MAX do yes(N.Find.add(N.Main.find,"Seeker "..H.abc(i))) end end
         local before=table.concat(N.Main.find.names,","); N.Main.callReceive(r,"Birch Moss"); yes(N.CallUI.help)
         local line=#H.log(); N.CallUI.help:Click(); eq(table.concat(N.Main.find.names,","),before)
-        if not partial then yes(table.concat(H.log(),"\n"):find("five",1,true)) end
+        if not partial then yes(table.concat(H.log(),"\n"):find("20",1,true)) end
     end
 end)
 test("Call: Dismiss and x only close; swapping dismiss id changes only its art path",function()

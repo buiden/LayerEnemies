@@ -1471,7 +1471,9 @@ test("Find casefold add: duplicate spelling preserves one entry and session stat
         yes(F.add(st,v[2])); eq(#st.names,1); eq(st.names[1],v[1]); eq(st.locations[v[1]],loc); eq(st.alerts[v[1]],alert)
         local saved=F.new({v[1],v[2]}); eq(#saved.names,1); eq(saved.names[1],v[1])
     end
-    local st=F.new({"Élodie","Cedar","Birch","Linden","Rowan"}); yes(F.add(st,"élodie")); eq(#st.names,F.MAX)
+    local st=F.new({"Élodie","Cedar","Birch","Linden","Rowan"})
+    for i=6,F.MAX do yes(F.add(st,"Seeker "..abc(i))) end
+    yes(F.add(st,"élodie")); eq(#st.names,F.MAX)
 end)
 
 test("Find casefold hash candidates: given, folded and Titlecase spellings per part, bounded and wire unchanged",function()
@@ -1599,6 +1601,7 @@ test("Find cap, validation, remove, alert sound and own name with surname",funct
     local N=loadAddon(); local F=N.Find; local st=F.new({"Alice","Alice","Bob"})
     eq(#st.names,2)
     for _,name in ipairs({"Cora","Dave","Ellie"}) do yes(F.add(st,name)) end
+    for i=#st.names+1,F.MAX do yes(F.add(st,"Seeker "..abc(i))) end
     no(F.add(st,"Frank")); no(F.add(st,secret)); no(F.add(st,"Alice|r")); no(F.add(st,"/g inject"))
     F.remove(st,"Bob"); yes(F.add(st,"First Surname"))
     local sounds=0; PlaySound=function() sounds=sounds+1 end
@@ -7172,13 +7175,14 @@ test("OpenMap last-place expiry restores compact rows and clamps five-name scrol
     N.UI.toggle(); N.UI.select("find"); local U=N.UI
     eq(#N.Main.findRows(),5); eq(U.pool[1].height,142)
     for _=1,9 do U.body.scripts.OnMouseWheel(nil,-1) end
-    eq(U.offset,4); eq(U.pool[1].tracked,"Elm Frost")
-    clock=249.9; U.render(); eq(U.offset,4); eq(U.pool[1].height,142)
+    eq(U.offset,2); eq(U.pool[1].tracked,"Cedar Moss")
+    clock=249.9; U.render(); eq(U.offset,2); eq(U.pool[1].height,72)
     clock=250; U.render(); eq(next(N.Main.find.places),nil)
-    eq(U.offset,3,"two compact rows fit after the last place expires")
-    for i=1,2 do yes(U.pool[i]:IsShown()); eq(U.pool[i].height,102); no(U.pool[i].place:IsShown()) end
-    eq(U.pool[1].tracked,"Dawn Vale"); eq(U.pool[2].tracked,"Elm Frost")
-    eq(U.pool[1].point[5],-56); eq(U.pool[2].point[5],-162); eq(U.hint:GetText(),"Mouse wheel: 4–5 of 5")
+    eq(U.offset,2,"three compact missing rows fit after the last place expires")
+    for i=1,3 do yes(U.pool[i]:IsShown()); eq(U.pool[i].height,72); eq(U.pool[i].sub.height,14); no(U.pool[i].place:IsShown()) end
+    eq(U.pool[1].tracked,"Cedar Vale"); eq(U.pool[2].tracked,"Dawn Vale"); eq(U.pool[3].tracked,"Elm Frost")
+    eq(U.pool[1].point[5],-70); eq(U.pool[2].point[5],-146); eq(U.pool[3].point[5],-222)
+    eq(U.hint:GetText(),"Mouse wheel: 3–5 of 5")
 end)
 
 end
@@ -7710,6 +7714,10 @@ test("hop-any unreadable ignore policy at dispatch fails closed without cooldown
         advance(121); eq(#sent,1,mode); no(N.Main.error)
     end
 end)
+
+assert(loadfile("test/find20.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
+    advance=advance,clock=function() return clock end,log=function() return log end,
+    sent=function() return sent end,frames=function() return frames end})
 
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
