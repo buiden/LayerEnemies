@@ -726,13 +726,13 @@ PASS K review F1-C: an unsent death's timed looks record a row set the client re
 PASS K review F1-D: rows arriving after the retries ran out belong to the old death on revive
 PASS K review (second opinion case 2): an old row back with edited damage is still the old death
 PASS K review (second opinion case 2): an old row back with edited sourceFlags is still the old death
-PASS K review: the session keeps at most 256 row sets and then refuses new sets
+PASS K cap: after 256 rows the oldest are evicted; a newer death still sends, an evicted row never does
 PASS K review N1 (accepted miss): an earlier death's 2 s look may take a quick next death's rows
 PASS K review N2: rows arriving between the 1 s and 2 s looks of an unsent death stay with it
 PASS K review F1: row-set identity ignores table allocation and order
-PASS K review F1: a changed recap sourceGUID identifies a new row set
-PASS K review F1: a changed recap sourceName identifies a new row set
-PASS K review F1: a changed recap timestamp identifies a new row set
+PASS K review F1: a changed recap sourceGUID is a new row; only a newer timestamp can name
+PASS K review F1: a changed recap sourceName is a new row; only a newer timestamp can name
+PASS K review F1: a changed recap timestamp is a new row; only a newer timestamp can name
 PASS K review (second opinion case 2): a changed recap amount alone is still the old row set
 PASS K review (second opinion case 2): a changed recap overkill alone is still the old row set
 PASS K review (second opinion case 1): rows shown during a cancelled death stay with it
@@ -743,9 +743,9 @@ PASS K fix check: a row first seen on an earlier death never names the killer (s
 PASS K fix check: a new player row next to an old one still names the new killer
 PASS K fix check: a death whose recap cannot name still owns its rows (65 rows)
 PASS K fix check: a death whose recap cannot name still owns its rows (throwing sibling)
-PASS K fix check: a 64-row recap with a new killer still sends; 65 rows never name
+PASS K fix check: a 65-row recap with a new killer sends; over 256 rows never name
 PASS K review F1: an ineligible fresh row set does not stop later eligible retries
-PASS K review F1: fingerprint history saturates closed instead of forgetting a prior death
+PASS K cap: an evicted earlier row is never fresh again; a newer one is
 PASS K review S1: malformed UTF-8 after unhex is refused by codec Wire and receiver
 PASS K review S1: valid multi-byte names retain their exact bytes
 PASS K review S2: Wire refuses guildless K even at click priority
@@ -755,4 +755,4 @@ PASS K review S2: recap killer matching our own name is not sent
 PASS K review S2: zone upper bound is 999999 not one million
 PASS K review S2: unhex must validate player syntax as well as UTF-8
 PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
-RESULT: 757 tests passed, 0 failed, 74474 assertions
+RESULT: 757 tests passed, 0 failed, 74523 assertions
