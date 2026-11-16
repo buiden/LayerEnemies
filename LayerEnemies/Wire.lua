@@ -202,6 +202,15 @@ local function inCombat()
     local a, b = S.call(InCombatLockdown), S.call(UnitAffectingCombat, "player")
     return a == true or b == true
 end
+-- Read-only view of the actual rolling guild budget, across every prefix. Future
+-- stamps still count after a clock rollback; inspecting never prunes or spends.
+function Wr.guildMinute(now)
+    now = S.num(now)
+    if not now then return nil end
+    local n = 0
+    for _, at in ipairs(guildTimes) do if now - at < 60 then n = n + 1 end end
+    return n, math.floor(GUILD_MINUTE / (inCombat() and 2 or 1))
+end
 -- room(prefix, kind, target, public, now, cost, low, catchup) -> ok: every budget has room for one send; low: a line
 -- that may not spend the reserve; catchup: a pull's frame (its own allowance instead of the per-player cap)
 local function room(prefix, kind, target, public, now, cost, low, catchup)

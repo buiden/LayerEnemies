@@ -279,6 +279,7 @@ in guild-only mode**, including a round already in progress.
   or a world/zone/layer reset cancels the remaining snapshot without resetting
   the send or name cooldowns. Older receivers need no update: the `O|1` format
   and its four-name/255-byte limits are unchanged.
+  `/le share off` stops all guild sends, including the relays below.
   Also a relay of a report you heard
   first-hand in your party, raid or whispers, so guildmates running
   LayerEnemies see both. A relay waits a
@@ -450,10 +451,14 @@ shape is reported as data unavailable.
   only, not in this version). `/le net guild` and `/le net public` set the
   level; `/le net wareffort on|off` (or `we`) and `/le net headhunter on|off`
   (or `hh`) set each network. All saved.
-- `/le share on|off`: share your own sightings and K own-death calls (on by
-  default, saved). Off sends no O or K line and no War Effort report (pending
-  death retries, waiting sync answers and our own embassy lines still queued
-  are dropped too); you still receive everyone else's.
+- `/le share on|off`: share sightings and enable guild sends (on by default,
+  saved). Off stops all guild sends, including your O and K own-death lines,
+  every Spy, HeadHunter and War Effort relay, host questions/answers and
+  network guild traffic. Pending relays and death retries are cancelled
+  immediately and cannot replay when re-enabled. Queued guild embassy lines
+  are dropped if sharing is off at dispatch. Your War Effort reports, waiting
+  sync answers and queued own embassy lines also stop; you still receive
+  everyone else's.
 - Window switches, on every tab: Share, Call, Guild only, War Effort and
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).
@@ -666,7 +671,42 @@ last heard. It forwards less than HeadHunter does
 under load (the budgets above), and drops the oldest forward when its queue is
 full.
 
-## Spy family and guild incidents (received only)
+## Spy family and guild incidents
+
+**Spy-family sightings from party/raid are now relayed to the guild.** This
+reverses the earlier "never relayed" rule. Each copy uses the existing
+`LEGW1`/GUILD route as `R|1`, source `spy`, kind `seen`: one named enemy,
+zone, no layer (`ns=unknown`), with the Spy user as origin, never us.
+Sightings heard on GUILD are not relayed: guildmates already hear them.
+
+A copy waits a random 0.5–2.5 seconds; a guildmate's copy heard during the
+wait cancels ours. At most 6 Spy relay attempts per rolling minute per
+client, and each full enemy name at most once per 60 seconds across all
+three family sources and observers. These are `forward` priority and never
+queue. All guild relays leave **two tokens** in the five-token LEGW1 bucket
+(refill is one per two seconds): two own lines out of combat, **one own line
+in combat**. A combat relay costs two tokens, so it can send with at least
+four tokens when the other limits allow it. Known limit: a relay followed
+immediately by the rare K death line and then O can lose the O in combat;
+the reserve protects one own line, not both. Refused relays are dropped,
+not queued. The relay gate accounts for other LEGW1 authors too, conservatively
+spending refused attempts. Relays also leave the last **three guild-minute
+slots out of combat, two in combat**, using Wire's actual count across every
+prefix. Wire's send path and existing shared/minute caps are unchanged.
+`/le share off` stops every relay,
+including ones already waiting; turning sharing back on does not replay them.
+Instance, guild-only record sharing and the existing 128-pending cap still
+refuse relays; the guild/instance context is checked again after the wait.
+The caps count refused Wire attempts too, so nothing retries later.
+
+Receivers keep them as **relayed claims**, not first-hand sightings. Find
+can show a reported location, but the relayed Spy origin is never an ask
+or hop target. Older clients (the 1.0.x/previous decoder) ignore the line:
+unknown `src=spy` is invalid and nothing is stored. No protocol version
+bump. Spy's stable observer/enemy identity can refresh after 60 seconds;
+an older relayed copy cannot replace newer evidence.
+
+The donor prefixes below remain receive-only; no message is sent on them.
 
 - Spy Forever (`[Spy]`, guild, party, raid): one enemy, its class and level,
   the sender's map and position (shown as the observer's position).
@@ -688,8 +728,11 @@ any spelling is refused, and the rate limit counts one sender once. Zone names
 are looked up on the map (the zones of our continent and of the world map; the
 table is kept only once both lookups gave data); a name two zones share is not
 used. One row per sender and enemy (a newer line replaces it), 6 lines per
-sender per 10 seconds over these six prefixes. These rows are never relayed,
-never sent as our own sighting, and nothing is ever sent on these prefixes.
+sender per 10 seconds over these six prefixes. Guild incidents are never
+relayed. No received row is sent as our own sighting, and nothing is ever
+sent on these prefixes. The parsed Spy-family formats have no faction or
+friendly flag: existing validation and self-name rejection apply, but a
+claimed enemy's faction is not independently verified.
 
 What this does not prove:
 
