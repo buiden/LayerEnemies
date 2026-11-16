@@ -73,6 +73,70 @@ PASS after join: unchanged after 60 s says so once; nothing is left for the user
 PASS after join: no ask, late join, unknown layer and zone change
 PASS ask from a War Effort report: reporter is the target, own layer unknown
 PASS addon never chats, invites, accepts, leaves or joins; sends only through Wire
+PASS Find fold: Latin and Cyrillic tables, exclusions and unchanged UTF-8
+PASS Find fold: lone continuation and truncated UTF-8 tails are byte-preserved
+PASS Find casefold own: élodie
+PASS Find casefold named: élodie
+PASS Find casefold hash: élodie
+PASS Find casefold own: ÉLODIE
+PASS Find casefold named: ÉLODIE
+PASS Find casefold hash: ÉLODIE
+PASS Find casefold own: Élodie
+PASS Find casefold named: Élodie
+PASS Find casefold hash: Élodie
+PASS Find casefold own: ZOÉ
+PASS Find casefold named: ZOÉ
+PASS Find casefold hash: ZOÉ
+PASS Find casefold own: zoé
+PASS Find casefold named: zoé
+PASS Find casefold hash: zoé
+PASS Find casefold own: ялора
+PASS Find casefold named: ялора
+PASS Find casefold hash: ялора
+PASS Find casefold own: ЯЛОРА
+PASS Find casefold named: ЯЛОРА
+PASS Find casefold hash: ЯЛОРА
+PASS Find casefold own: ёлва
+PASS Find casefold named: ёлва
+PASS Find casefold hash: ёлва
+PASS Find casefold own: łukasz
+PASS Find casefold named: łukasz
+PASS Find casefold hash: łukasz
+PASS Find casefold own: ŁUKASZ
+PASS Find casefold named: ŁUKASZ
+PASS Find casefold hash: ŁUKASZ
+PASS Find casefold own: ÿlune
+PASS Find casefold named: ÿlune
+PASS Find casefold hash: ÿlune
+PASS Find casefold own: ĺava
+PASS Find casefold named: ĺava
+PASS Find casefold hash: ĺava
+PASS Find casefold own: źora
+PASS Find casefold named: źora
+PASS Find casefold hash: źora
+PASS Find casefold own: mira élune
+PASS Find casefold named: mira élune
+PASS Find casefold hash: mira élune
+PASS Find casefold own: MIRA ÉLUNE
+PASS Find casefold named: MIRA ÉLUNE
+PASS Find casefold hash: MIRA ÉLUNE
+PASS Find casefold own: élodie łava
+PASS Find casefold named: élodie łava
+PASS Find casefold hash: élodie łava
+PASS Find casefold own: cedar vale
+PASS Find casefold named: cedar vale
+PASS Find casefold hash: cedar vale
+PASS Find casefold own: CEDAR VALE
+PASS Find casefold named: CEDAR VALE
+PASS Find casefold hash: CEDAR VALE
+PASS Find casefold own: élodie-TestRealm
+PASS Find casefold named: élodie-TestRealm
+PASS Find casefold hash: élodie-TestRealm
+PASS Find casefold key: trim display, fold single and full names, keep validation
+PASS Find casefold add: duplicate spelling preserves one entry and session state
+PASS Find casefold hash candidates: given, folded and Titlecase spellings per part, bounded and wire unchanged
+PASS Find casefold keeps the spelling as given: mixed-case realm from the game or typed exactly still matches
+PASS Find casefold remove: other case clears stored location and alert, not a neighbour
 PASS Find hashes mirror upstream realm, realm-less and Forever surname keys
 PASS Find match, no match, collisions, expiry, own sighting and alerts
 PASS Find integration: cross-zone privacy gate, same layer and persistence
@@ -407,4 +471,214 @@ PASS guild O full name: four-entry cap counts intact full identities, not first-
 PASS guild O full name: 100-byte names and the 255-byte line boundary keep whole entries
 PASS guild O full name: oversized legacy packets trim the tail once without duplicating the retained name
 PASS guild O full name: observed split identity crosses share, Wire and cross-zone Find without donor traffic
-RESULT: 409 tests passed, 0 failed, 27096 assertions
+PASS seen unknown 01: a targeted enemy is listed and labelled before the layer is known
+PASS seen unknown 02: learning the layer preserves nil-layer rows but clears reports and identities
+PASS seen unknown 08: a learned layer is never assigned to an earlier sighting on the wire
+PASS seen unknown 10: nil-layer rows never become map candidates
+PASS seen unknown 03: a fresh sighting replaces the pre-layer row with the known layer
+PASS seen unknown 03b: Bulo copies at or before learning cannot give a kept row a layer
+PASS seen unknown 03c: a Bulo observation after learning may replace the kept unknown row
+PASS seen unknown 04: kept rows expire 600 seconds after the original sighting
+PASS seen unknown 05: unreadable faction stays unclassified with no layer
+PASS seen unknown 01b: Find says layer unknown for an own sighting made before the layer is known
+PASS seen unknown 06: a real layer or raw-id change still wipes kept pre-layer rows
+PASS seen unknown 07: shard transfer still wipes unknown and kept sightings
+PASS seen unknown 09: learning preserves the 60-second shared-enemy cooldown
+PASS previous zone 11: real crossings carry an own row for 120 seconds from its sighting
+PASS previous zone 11b: learning the new zone layer keeps the carry until its original expiry
+PASS previous zone 12: expired own sightings are not revived by a crossing or Bulo refresh
+PASS previous zone 13: only the newest eight sightings are carried as independent copies
+PASS previous zone 14: only opposite-faction own-source current-epoch rows are eligible
+PASS previous zone 15: non-zone boundaries clear carry-over even when the map also changes
+PASS previous zone 16: reacquiring the same player replaces the carried display with one live row
+PASS previous zone 17: carried rows never become sends, Find locations, maps or actions
+PASS previous zone 18: a second crossing keeps only the zone just left after live rows
+PASS previous zone 19: scrolled live and carried rows keep their distinct labels
+PASS previous zone 20: carry rejects future own timestamps before the previous-row reader runs
+PASS previous zone 21: a backward clock permanently prunes future carried rows
+PASS OpenMap guild tracer: exact tracked sender yields a session place without sends
+PASS OpenMap untracked and empty watchlist: no state changes or decoding
+PASS OpenMap wire grammar: complete valid bounds and empty class
+PASS OpenMap malformed lines cannot replace a live place
+PASS OpenMap every secret event argument is discarded before indexing
+PASS OpenMap routes and unreadable senders are refused silently
+PASS OpenMap exact folded identity: no first-name alias and no foreign-realm alias
+PASS OpenMap own identity and ignores fail closed then recover
+PASS OpenMap lifecycle: L0 and 150 second expiry, including backward clocks
+PASS OpenMap lifecycle: casefold remove and clear delete stored spellings only
+PASS OpenMap places are bounded by the watchlist and are never saved
+PASS OpenMap BN tracer: registered event yields a place with opposite faction, not account data
+PASS OpenMap BN untracked and empty watchlist never retain lookup data or decode
+PASS OpenMap BN lookup failures and invalid arguments are harmless
+PASS OpenMap BN names require readable characters and realms without reading accounts
+PASS OpenMap BN hellos, own character by name or GUID, and ignored friends are refused
+PASS OpenMap BN faction classification never guesses unreadable values
+PASS OpenMap GUILD and BN share one newest place and either route can withdraw
+PASS OpenMap optional BN event absent: loading and both chat routes still work
+PASS OpenMap tiers 1 sighting only: frozen legacy row fields stay identical
+PASS OpenMap tiers 2 place only: separate line, no layer, ask, hop, alert or relay
+PASS OpenMap tiers 3 both same zone: sighting owns fields, place has its own age
+PASS OpenMap tiers 4 conflicting zones and ages stay separate in text and UI
+PASS OpenMap tiers 5 arrival order is commutative and only the sighting alerts
+PASS OpenMap tiers 6 known layer belongs only to the sighting
+PASS OpenMap tiers 7 independent 600 and 150 second expiry falls back either way
+PASS OpenMap tiers 8 ten-minute place stream never refreshes a sighting or calls findAlerts
+PASS OpenMap tiers 9 L0 clears only place; layer boundary clears only sightings
+PASS OpenMap chat ignore API field failure stays silent like an unreadable lookup
+PASS OpenMap presentation: faction known or unknown, zone fallback and tracked slash output
+PASS OpenMap UI pool reuse hides stale places and drops former sighting actions
+PASS OpenMap malformed precision cannot refresh an identical older place
+PASS OpenMap BN qualified realm suffix is case folded
+PASS OpenMap BN display realm removes both spaces and hyphens
+PASS OpenMap qualified home-realm watch entry matches only the full sender
+PASS OpenMap UTF-8 own identity is rejected even in a different case
+PASS OpenMap decoder directly enforces the 64-byte limit
+PASS OpenMap stored BN place has only the location field allowlist
+PASS OpenMap row projection never aliases or mutates its stored place
+PASS OpenMap place-only text stays inside its card above Clear
+PASS OpenMap combined-row text avoids both sighting text and buttons
+PASS OpenMap last-place expiry restores compact rows and clamps five-name scrolling
+PASS Call: guild bounty death shows victim killer zone and one sound without sending
+PASS Call: WOS creature unknown and same-faction killers never show; known opposite does
+PASS Call: WOS does not trust remote reports or a stale local identity
+PASS Call: FTold1 and HeadHunter D are not popup triggers
+PASS Call: own death split combined and home realm names never show; other surname does
+PASS Call: unknown own identity refuses without recording; then recovers
+PASS Call: switch is on for fresh and old saves; saved false survives reload
+PASS Call: slash and window switch clear the popup and all history without affecting share
+PASS Call: instance unreadable and erroring fail closed; combat alone is allowed
+PASS Call: age 120 accepted 121 and future refused without history
+PASS Call: one victim per 180 seconds, all victims per 20, newest replaces
+PASS Call: duplicate sources within 60 seconds prefer coordinates without sound or new lifetime
+PASS Call: session table cap evicts oldest and ages prune; no event data saved
+PASS Call: plain clamped popup under minimap or parent fallback and Escape closes
+PASS Call: closes at 30 seconds; stale timer never closes replacement
+PASS Call: duplicate does not restart 30-second lifetime or revive dismissal
+PASS Call: entering an instance hides a current call and blocks the old Help closure
+PASS Call: waypoint works without the Mainline-only UiMapPoint helper
+PASS Call: Help uses the shown event once for waypoint and full killer Find only
+PASS Call: Help without coordinates prints one useful line and does not set a waypoint
+PASS Call: waypoint API absent false or throwing prints coordinates safely
+PASS Call: Find full stays unchanged; partial names are never added
+PASS Call: Dismiss and x only close; swapping dismiss id changes only its art path
+PASS Call: nil button art requests no texture and shows exact English including alternate Close
+PASS Call: exact three heading IDs and body IDs exist with swappable button art
+PASS Call: art off persists and enlarges Latin; nil or failing texture retains Latin
+PASS Call: random heading and English body draw including B4 only through age 30
+PASS Call: template percent and space slots are literal and text passed to client stays Latin
+PASS Call: tracked killer and popup share one sound for the same incoming death
+PASS Call: pure admission refuses own split identity and unavailable identity too
+PASS Call: off forgets the last displayed event as well as histories
+PASS Call: dedupe boundary 60 enriches, 61 does not; rejected copies are not remembered
+PASS Call: all repeats stay within one shown frame and a bounded timer population
+PASS Call: label art right anchors each row and value ends three pixels before its colon ink
+PASS Call: nil label art shows English LTR at full width and never requests a texture
+PASS Call: art off or every nil art requests no texture and restores English for labels and buttons
+PASS Call review: WOS proof must belong to the current epoch
+PASS Call review: WOS proof cannot come from the future
+PASS Call review: classless GB needs independent local opposite proof
+PASS Call review: killer cannot be our own identity
+PASS Call review: enrichment refuses a different zone
+PASS Call review: enrichment refuses a different killer
+PASS Call review: an older event cannot replace a newer displayed event
+PASS Call review: invalid coordinates are removed as a pair
+PASS Call review: history cap is the fixed contract of 64 entries
+PASS Call review: explicit full false is not a Find identity
+PASS Call review: old Help closure cannot act after a replacement render
+PASS Call review: Help rechecks instance before the next event or timer
+PASS Call review: waypoint uses a displayed map other than the local map
+PASS Call review: Find keeps its existing two-word realm limitation
+PASS Call review: victim value and row grow with measured text height
+PASS Call review: killer value and row grow with measured text height
+PASS Call review: where value and row grow with measured text height
+PASS hop-any click calls who synchronously once and waits five seconds
+PASS hop-any 49 rows send exactly eight at one second intervals through 120 s
+PASS hop-any events timers and replies without a click never start a round
+PASS hop-any stop cancels and thirty second click guard is exact
+PASS hop-any filters rows and prioritizes listed hosts then online guildmates
+PASS hop-any never reads a fiftieth who row
+PASS hop-any click guard groupUnknown sends and searches nothing
+PASS hop-any click guard guild sends and searches nothing
+PASS hop-any click guard instanceUnknown sends and searches nothing
+PASS hop-any click guard ambiguous sends and searches nothing
+PASS hop-any click guard combatUnknown sends and searches nothing
+PASS hop-any click guard hop sends and searches nothing
+PASS hop-any click guard tagSecret sends and searches nothing
+PASS hop-any click guard sendWho sends and searches nothing
+PASS hop-any click guard ask sends and searches nothing
+PASS hop-any click guard ownName sends and searches nothing
+PASS hop-any click guard instance sends and searches nothing
+PASS hop-any click guard layer sends and searches nothing
+PASS hop-any click guard cooldown sends and searches nothing
+PASS hop-any click guard readWho sends and searches nothing
+PASS hop-any click guard combat sends and searches nothing
+PASS hop-any click guard countWho sends and searches nothing
+PASS hop-any click guard groupSecret sends and searches nothing
+PASS hop-any click guard zoneName sends and searches nothing
+PASS hop-any click guard zone sends and searches nothing
+PASS hop-any click guard enum sends and searches nothing
+PASS hop-any click guard grouped sends and searches nothing
+PASS hop-any click guard tag sends and searches nothing
+PASS hop-any stop on group cannot resume from events or timers
+PASS hop-any stop on combat cannot resume from events or timers
+PASS hop-any stop on instance cannot resume from events or timers
+PASS hop-any stop on zone cannot resume from events or timers
+PASS hop-any stop on guild cannot resume from events or timers
+PASS hop-any stop on stop cannot resume from events or timers
+PASS hop-any stops forever on Wire result 3
+PASS hop-any stops forever on Wire result 4
+PASS hop-any stops forever on Wire result error
+PASS hop-any offline attempt counts toward eight without accepting its invite
+PASS hop-any first asked host reply stops sends and unasked whole names do not
+PASS hop-any wrong route addressee zone same layer and nonhost do not stop
+PASS hop-any asked invite stops sends and autoaccepts once, no foreign alias
+PASS hop-any asked invite stops sends even with autoaccept disabled
+PASS hop-any different known key in same zone leaves after three seconds
+PASS hop-any same key never succeeds and fails at thirty seconds
+PASS hop-any unknown key never succeeds
+PASS hop-any auto-leave respects zone
+PASS hop-any auto-leave respects instance
+PASS hop-any auto-leave respects raid
+PASS hop-any auto-leave respects leader
+PASS hop-any auto-leave respects otherLeader
+PASS hop-any auto-leave respects combat
+PASS hop-any no-answer table lasts six hours and a second round reaches different names
+PASS hop-any no-answer table evicts oldest at three hundred and prunes exactly six hours
+PASS hop-any UI is friendly-only with disabled reason and Stop state
+PASS hop-any caller policy traps disguised calls and cannot be widened from addon tables
+PASS hop-any one reserve per click and every attempted name shares Invite cooldown
+PASS hop-any replies and invites expire from last send, never renew their window
+PASS hop-any Wire local paused ends the round without queue or retry
+PASS hop-any Wire local budget ends the round without queue or retry
+PASS hop-any refused who throw never arms late results
+PASS hop-any refused who false never arms late results
+PASS hop-any refused who secret never arms late results
+PASS hop-any unreadable who count and rows fail closed
+PASS hop-any all replies and invite paths refuse own identity becoming unreadable
+PASS hop-any acceptance refusal is spent even for a local throttle
+PASS hop-any active round cannot be overwritten by an existing named hop
+PASS hop-any changed back before scheduled leave does not claim a move
+PASS hop-any pace resists duplicate pumps and a long clock jump never catches up
+PASS hop-any Wire caller gate rejects a different function even in Main
+PASS hop-any key learned before group event still compares with the key left
+PASS hop-any not-hosting answer removes a remembered host without a per-reply line
+PASS hop-any instance entry event cancels even if it ends before the next pump
+PASS hop-any auto-leave cancels on an out-and-back zone transition
+PASS hop-any accepted hop still waiting for group blocks a new search
+PASS hop-any line requires valid coordinates and never fabricates a position
+PASS hop-any observed invite is never reported as no invite after auto-off
+PASS hop-any offline selection fills all eight slots with online candidates
+PASS hop-any rejects nonwhisper replies before changing round or host state
+PASS hop-any live zone guard precedes auto-leave without a zone event
+PASS hop-any painted Stop cancels a sending round before the next whisper
+PASS hop-any live group guard stops before the roster event
+PASS hop-any stale painted Stop after expiry never starts another round
+PASS hop-any expiry requests a next-frame repaint before the age tick
+PASS hop-any stale button mode cannot stop a later slash-started round
+PASS hop-any reserves the final attempt before a reentrant send edge
+PASS hop-any reentrant Stop cannot recreate pending acceptance or fault
+PASS hop-any cannot dispatch again while a send is still in flight
+PASS hop-any old send completion cannot mutate a replacement round
+PASS hop-any rechecks ignore at dispatch and never trusts a skipped candidate
+PASS hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps
+RESULT: 683 tests passed, 0 failed, 64043 assertions
