@@ -1407,7 +1407,7 @@ test("Find casefold add: duplicate spelling preserves one entry and session stat
     local st=F.new({"Élodie","Cedar","Birch","Linden","Rowan"}); yes(F.add(st,"élodie")); eq(#st.names,F.MAX)
 end)
 
-test("Find casefold hash candidates: both spellings per part, bounded and wire unchanged",function()
+test("Find casefold hash candidates: given, folded and Titlecase spellings per part, bounded and wire unchanged",function()
     local N=loadAddon(); local F,H=N.Find,N.Hash
     eq(H.nameKey("ÉLODIE","ŁAVA"),"Élodie-Łava","wire still lowers ASCII only")
     local function exact(name,home,parts)
@@ -1417,18 +1417,37 @@ test("Find casefold hash candidates: both spellings per part, bounded and wire u
         for h in pairs(got) do yes(want[h],"unexpected candidate "..h) end
     end
     exact("ÉLODIE ŁAVA","ÉLUNE ŁAND",{
+        {"ÉLODIE ŁAVA","ÉLUNE ŁAND"},{"ÉLODIE ŁAVA",""},{"ÉLODIE","ŁAVA"},
         {"élodie łava","élune łand"},{"Élodie Łava","Élune Łand"},
         {"élodie łava",""},{"Élodie Łava",""},{"élodie","łava"},{"Élodie","Łava"},
     })
     exact("ÉLODIE-ŁAVA","Other Realm",{
+        {"ÉLODIE","ŁAVA"},{"ÉLODIE",""},
         {"élodie","łava"},{"Élodie","Łava"},{"élodie",""},{"Élodie",""},
     })
-    exact("ÉLODIE",nil,{{"élodie",""},{"Élodie",""}})
+    exact("ÉLODIE",nil,{{"ÉLODIE",""},{"élodie",""},{"Élodie",""}})
     exact("ALICE","Test Realm",{{"Alice","Test Realm"},{"Alice",""}})
     -- No global folding of hash inputs, and no titlecasing of unsupported three-byte letters.
     exact("Ⴀlune",nil,{{"Ⴀlune",""}})
 end)
 
+test("Find casefold keeps the spelling as given: mixed-case realm from the game or typed exactly still matches",function()
+    local N=loadAddon(); local F,H=N.Find,N.Hash
+    -- neither all lower nor per-word Titlecase: the folded and Titlecase candidates alone both miss it
+    local realm="Ревущий фьорд"
+    local h=H.player("Alice",realm)
+    no(H.player("Alice",F.fold(realm))==h and true or nil,"fixture: folded spelling hashes differently")
+    yes(F.hashes("Alice",realm)[h],"home realm as the game supplies it")
+    local st=F.new({"Alice"})
+    F.report(st,{sender="Scout",at=10,zone=100,enemies={{hash=h}}},realm)
+    yes(st.locations.Alice,"report matched through the home realm")
+    yes(F.hashes("Alice-"..realm,"Other")[h],"Name-Realm typed exactly")
+    h=H.player("Ana","MacRealm")
+    yes(F.hashes("Ana-MacRealm",nil)[h],"interior capital typed exactly")
+    -- a home that is not a string is treated as no realm, as on the base commit
+    local ok,out=pcall(F.hashes,"Alice",{})
+    yes(ok,"non-string home does not throw"); yes(out and out[H.player("Alice","")],"falls back to the realm-less key")
+end)
 test("Find casefold remove: other case clears stored location and alert, not a neighbour",function()
     local N=loadAddon(); local F=N.Find
     for _,v in ipairs({{"Élodie","élodie"},{"Zoé","ZOÉ"},{"Łukasz","łukasz"},{"Ялора","ялора"},

@@ -63,8 +63,11 @@ function F.hashes(name,home)
     end
     local function put(n,r) local h=N.Hash.player(n,r); if h then out[h]=true end end
     local function add(n,r)
+        if type(r)~="string" then r="" end
+        -- Sender hashes lower ASCII only. Try the spelling as given (base behaviour), folded and game-style
+        -- Titlecase; never change the wire hash.
+        put(n,r)
         n,r=F.fold(n),F.fold(r)
-        -- Sender hashes lower ASCII only. Try folded and game-style Titlecase, never change the wire hash.
         put(n,r); put(title(n),title(r))
     end
     add(first,realm or home or ""); add(first,"")
