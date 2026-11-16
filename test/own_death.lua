@@ -257,8 +257,8 @@ test("K: resurrection guild-change or zone boundary invalidates already schedule
     end
 end)
 test("K: delayed callbacks from a superseded death cannot send its snapshot",function()
-    local N,rows=setup(); H.deliver("PLAYER_DEAD"); H.advance(.1); H.map(200)
-    rows[1].timestamp=H.clock() -- genuinely new death, not a replay of the first recap
+    local N,rows=setup(); H.deliver("PLAYER_DEAD"); H.advance(.1); H.deliver("PLAYER_ALIVE"); H.map(200)
+    rows[1].timestamp=H.clock() -- revive then die: genuinely new death, not a duplicate event
     H.deliver("PLAYER_DEAD"); H.advance(.2); eq(#deaths(),0); H.advance(.101)
     eq(#deaths(),1); eq(N.OwnDeath.decode(deaths()[1].text).zone,200)
     H.advance(2); eq(#deaths(),1)
@@ -280,8 +280,8 @@ test("K: source flag type and hostile masks each independently required",functio
 end)
 test("K: death-event rate limits and cap apply after attribution, not only direct Wire callers",function()
     local N,rows=setup()
-    local function freshDeath() rows[1].timestamp=H.clock(); die() end
-    freshDeath(); H.advance(60); freshDeath(); eq(#deaths(),1)
+    local function freshDeath() H.deliver("PLAYER_ALIVE"); rows[1].timestamp=H.clock(); die() end
+    die(); H.advance(60); freshDeath(); eq(#deaths(),1)
     for i=2,5 do H.advance(121); freshDeath(); eq(#deaths(),i) end
     H.advance(121); freshDeath(); eq(#deaths(),5); no(N.Main.error)
 end)
@@ -482,7 +482,8 @@ test("K review N2: rows arriving between the 1 s and 2 s looks of an unsent deat
     C_DeathRecap.GetRecapEvents=function() return held end
     H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(.5); held={recapRow()}
     H.advance(.6); eq(#deaths(),0)
-    H.advance(1901); N.Main.setShare(true) -- no revive event: only the timed looks can claim
+    local late=held; held={} -- revive cannot see these rows: only the timed looks can claim
+    H.deliver("PLAYER_ALIVE"); H.advance(1901); N.Main.setShare(true); held=late
     H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
     eq(#deaths(),0,"the 2 s look claims rows that arrived after the 1 s look"); no(N.Main.error)
 end)
@@ -617,6 +618,94 @@ test("K blind: a row an unsent death could not record never names a later death;
         eq(#deaths(),1,mode..": the next clean death sends"); no(N.Main.error)
     end
 end)
+test("K blind: empty deaths keep suppression until a non-empty readable death",function()
+    local N=setup(); raceProof()
+    local old=recapRow()
+    local hidden=recapRow(); hidden.timestamp=H.secret
+    local held={hidden}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0)
+    for i=1,2 do
+        nextDeath(); held={}
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,"empty death "..i.." sends nothing")
+    end
+    nextDeath(); held={old}
+    H.deliver("PLAYER_DEAD"); eq(#deaths(),0)
+    H.advance(.301); eq(#deaths(),0,"empty recaps cannot spend suppression at the first retry")
+    H.advance(.7); eq(#deaths(),0,"suppression holds at the second retry")
+    H.advance(1); eq(#deaths(),0,"suppression holds through the last retry")
+    -- This death finally recorded a non-empty, fully readable recap. Only the
+    -- next distinct death may name a new killer, never the old Cedar row.
+    nextDeath()
+    local fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"; held={fresh}
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),1); eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Birch"); no(N.Main.error)
+end)
+for _,mode in ipairs({"empty","hidden","readable sibling"}) do
+    test("K blind: duplicate PLAYER_DEAD cannot spend suppression after "..mode,function()
+        local N=setup(); raceProof()
+        local old=recapRow()
+        local hidden=recapRow(); hidden.timestamp=H.secret
+        local held={hidden}
+        C_DeathRecap.GetRecapEvents=function() return held end
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0); nextDeath()
+        if mode=="empty" then held={}
+        elseif mode=="hidden" then held={hidden}
+        else held={{sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",
+            sourceFlags=0x848,timestamp=old.timestamp-1,overkill=-1}} end
+        H.deliver("PLAYER_DEAD"); H.advance(.05); held={old}; H.deliver("PLAYER_DEAD")
+        H.advance(.301); eq(#deaths(),0,"duplicate cannot turn A's row into a new death's killer")
+        H.advance(.7); eq(#deaths(),0); H.advance(1); eq(#deaths(),0)
+        no(N.Main.error)
+    end)
+end
+for _,event in ipairs({"PLAYER_ALIVE","PLAYER_UNGHOST"}) do
+    test("K: duplicate PLAYER_DEAD retains the first snapshot until "..event,function()
+        local N,rows=setup(); raceProof()
+        H.deliver("PLAYER_DEAD"); H.advance(.05); H.map(200)
+        H.deliver("PLAYER_DEAD"); H.advance(.251)
+        eq(#deaths(),1,"the duplicate must not cancel or replace the first death's pending send")
+        eq(N.OwnDeath.decode(deaths()[1].text).zone,100)
+        H.advance(1801); rows[1]=recapRow()
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),1,"no new death before revive, even with a new row and expired send budgets")
+        H.deliver(event); H.advance(1)
+        local fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"; rows[1]=fresh
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),2); eq(N.OwnDeath.decode(deaths()[2].text).enemies[1].name,"Birch"); no(N.Main.error)
+    end)
+end
+test("K blind: an incomplete death cannot recover after a later readable look",function()
+    for _,mode in ipairs({"secret","throwing","overflow"}) do
+        for _,phase in ipairs({"death","timer","revive"}) do
+            local N=setup(); raceProof()
+            local old=recapRow()
+            local hidden=recapRow(); hidden.timestamp=H.secret
+            local held={hidden}
+            C_DeathRecap.GetRecapEvents=function() return held end
+            H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1); nextDeath()
+            local bad
+            if mode=="secret" then bad={hidden}
+            elseif mode=="throwing" then bad={setmetatable({},{__index=function() error("row accessor failure") end})}
+            else bad={}; for i=1,257 do bad[i]=old end end
+            held=phase=="death" and bad or {old}
+            H.deliver("PLAYER_DEAD")
+            held=phase=="timer" and bad or {old}; H.advance(.301)
+            held={old}; H.advance(.7); H.advance(1)
+            held=phase=="revive" and bad or {old}; H.deliver("PLAYER_ALIVE")
+            held={old}; H.deliver("PLAYER_UNGHOST"); H.advance(1901)
+            local fresh=recapRow(); fresh.sourceGUID="Player-1-456"; fresh.sourceName="Birch"; held={fresh}
+            H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+            eq(#deaths(),0,mode.." at "..phase..": any incomplete look renews suppression")
+            nextDeath(); fresh=recapRow(); fresh.sourceGUID="Player-1-789"; fresh.sourceName="Aspen"; held={fresh}
+            H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+            eq(#deaths(),1); eq(N.OwnDeath.decode(deaths()[1].text).enemies[1].name,"Aspen"); no(N.Main.error)
+        end
+    end
+end)
 test("K blind: an unrecordable row beside a sibling stamped lower or higher never lets the old row name a later death",function()
     for _,mode in ipairs({"ts-sib-lower","ts-sib-higher","name-sib-lower","name-sib-higher","throw-sib-lower","throw-sib-higher","257-lower","257-higher"}) do
         local N=setup(); raceProof(); N.Main.setShare(false)
@@ -654,11 +743,14 @@ end)
 test("K cap: an evicted earlier row is never fresh again; a newer one is",function()
     local N,rows=setup({share=false}); raceProof()
     local first=rows[1].timestamp
-    for i=1,257 do rows[1].timestamp=first+i; H.deliver("PLAYER_DEAD") end
+    for i=1,257 do
+        rows[1].timestamp=first+i; H.deliver("PLAYER_DEAD"); H.deliver("PLAYER_ALIVE")
+    end
     N.Main.setShare(true)
     for _,case in ipairs({{first+1,0},{first+1000,1}}) do
         rows[1].timestamp=case[1]; H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
         eq(#deaths(),case[2],"evicted rows stay old; a newer timestamp is a new death")
+        H.deliver("PLAYER_ALIVE")
     end
     no(N.Main.error)
 end)

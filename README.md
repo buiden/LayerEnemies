@@ -73,7 +73,9 @@ revive (whatever recap is held then belongs to the death that ended). Rows are
 owned one by one: a row's identity is its source GUID, source name and
 timestamp (damage, overkill and flags are ignored, so an old row shown again
 with edited numbers stays old), and a row first seen on an earlier death can
-never name the killer, whatever else is in the set.
+never name the killer, whatever else is in the set. Repeated PLAYER_DEAD events
+before PLAYER_ALIVE or PLAYER_UNGHOST are the same death: they do not restart
+its snapshot, retries or incomplete-recap suppression.
 Rows already seen on an earlier death in this session are refused; login/reload
 also marks the held recap as old. Stale or ineligible rows leave the remaining
 retries active, so only a fresh qualifying set in the window can send.
@@ -92,7 +94,15 @@ Known limits (a missed line is accepted; a false killer is not):
   are taken as that death's rows. Recap timing on the live client is unknown,
   so this is not fully closed.
 - After a death whose recap held a row that could not be read, or more than
-  256 rows, the next death sends nothing (the one after that sends again).
+  256 rows, following deaths send nothing until a later death has recorded a
+  non-empty, fully readable recap. That recovery death still sends nothing;
+  only a new death after it can send again. Empty or unavailable recaps cannot
+  clear the suppression, and another incomplete death renews it.
+- Still open: death A has a hidden row, death B has only other readable rows,
+  and A's row first becomes readable at death C. B's complete recap clears the
+  suppression, so C can still name A's killer if that row is stamped later
+  than every recorded row. Other readable rows at B do not prove that A's
+  hidden row is gone.
 - Not covered: a recap that first appears after revive, or a death before the
   first world-entry seed.
 
@@ -103,11 +113,13 @@ down. When a death starts it is fixed for that death: a row the new death sees
 for the first time, stamped at or below it, happened before this death began.
 It is recorded as old and never names a killer, even if the cap has forgotten
 the original row. Only recap timestamps are compared with each other; no
-client clock is used. A row whose identity or timestamp cannot be read (secret,
-missing, or erroring) is never recorded, owned or named; the readable rows of
-the same recap are still recorded. A recap longer than 256 rows names nothing.
-Because an unrecorded row could come back readable, the next death after one
-was seen treats every row it sees first as old. Nothing is saved.
+client clock is used. A row whose identity fields cannot be read (secret or
+erroring), or whose timestamp is missing, is never recorded, owned or named;
+the readable rows of the same recap are still recorded. A recap longer than
+256 rows names nothing. Because an unrecorded row could come back readable,
+following deaths treat every row they see first as old until a non-empty,
+fully readable death has been recorded. Any incomplete look, including a
+retry or revive read, keeps this suppression for the next death. Nothing is saved.
 Known misses: an enemy pet alone (no owner resolution), empty/late recaps,
 and unavailable faction/identity data. Accepted over-count: a mob landing
 the last hit while an enemy player was hitting counts as PvP.

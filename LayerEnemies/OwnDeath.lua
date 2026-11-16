@@ -141,6 +141,7 @@ end
 -- at the cap, unseen rows are refused rather than letting an old death's rows
 -- become fresh again.
 local recapDeath,recapCount,recapSeen=0,0,{}
+local deathActive=false
 local RECAP_CAP=256
 local RECORD_LIMIT=256
 -- seenHigh is the highest recap timestamp ever recorded this session; it never
@@ -153,9 +154,10 @@ local RECORD_LIMIT=256
 local seenHigh,priorMark
 -- blind: some recap row seen since the current death began could not be recorded
 -- (unreadable, or past RECORD_LIMIT). Its identity and time are unknown, so it may
--- come back readable at the next death. That death fixes priorBlind and treats
--- every row it sees first as old: a miss, never a false killer.
-local blind,priorBlind=false,false
+-- come back readable at a later death. priorBlind stays fixed for each death:
+-- every row it sees first is old. Carry that suppression across empty deaths;
+-- only a non-empty recap with no unrecordable rows lets the next death recover.
+local blind,priorBlind,recordedRows=false,false,false
 local function rowId(row)
     if not S.tab(row) then return nil end
     local fields={}
@@ -213,6 +215,7 @@ end
 -- Records unseen rows for owner; marks each entry owned when its row belongs to owner.
 local function remember(list,owner)
     if not list then return end
+    if owner==recapDeath and #list>0 then recordedRows=true end
     for _,entry in ipairs(list) do
         local id=entry.id
         if not id then blind=true end
@@ -236,6 +239,7 @@ local function claim(death) pcall(function() remember(capture(),death) end) end
 function D.revived()
     -- Alive again: whatever recap is held belongs to the death just ended.
     claim(recapDeath)
+    deathActive=false
     D.cancel()
 end
 function D.recap(store,time)
@@ -274,11 +278,16 @@ local function attempt(p)
     if line then N.Wire.send("LEGW1",line,"GUILD",nil,{prio="own"}) end
 end
 function D.dead()
+    -- No client death ID: until revive, repeated PLAYER_DEAD is the same death.
+    -- Do not replace its pending snapshot or consume its suppression again.
+    if deathActive then return end
+    deathActive=true
     D.cancel()
     local ok=pcall(function()
         recapDeath=recapDeath+1
         priorMark=seenHigh
-        priorBlind=blind; blind=false
+        priorBlind=blind or (priorBlind and not recordedRows)
+        blind=false; recordedRows=false
         local death=recapDeath
         local time=S.num(S.call(GetTime))
         D.recap(N.Main.store,time) -- remember even an ineligible/unsent death
