@@ -155,7 +155,7 @@ def main():
     shipped = payload_files(listed)
     check_media()
     check_call_text()
-    subprocess.run([sys.executable, '-I', 'test/call_assets_test.py'], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, '-I', '-B', 'test/call_assets_test.py'], cwd=ROOT, check=True)
     tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
     (notes / 'test-results.txt').write_text(tests.stdout + tests.stderr)
     print(tests.stdout, end='')
@@ -203,7 +203,7 @@ def main():
         'archive_bytes': archive.stat().st_size,
         'unpacked_bytes': sum((ROOT / 'LayerEnemies' / name).stat().st_size for name in shipped) + (ROOT / 'README.md').stat().st_size,
         'media_bytes': sum((ROOT / 'LayerEnemies' / name).stat().st_size for name in MEDIA),
-        'call_assets_tests': 8,
+        'call_assets_tests': 11,
         'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
         'real_client_verified': False,
         'live_remote_reports': 'War Effort 1.6.x and HeadHunter as a member, the Spy family and three guild '

@@ -56,9 +56,12 @@ mute. Popups are plain frames, allowed in combat but never in instances
 
 **On my way** tries a waypoint and super-tracking for the displayed victim's
 zone/coordinates; if unavailable or refused, it prints one location line.
-It also adds the displayed full killer name to Find if a slot is available
-(maximum five). A full list stays unchanged with an explanation; partial
-names are not added. It does not send a message or ask for an invite.
+It also offers the displayed full killer name to Find if a slot is available
+(maximum five) and the existing Find name parser accepts it. Full two-word
+names must be bare (First Last): realm-qualified full killers (First Last-Realm)
+are shown but are not added to Find. A full list stays unchanged with an
+explanation; partial names are not added. It does not send a message or ask
+for an invite.
 
 Three Arabic headings, three fixed detail labels and three button labels
 ship as pre-rendered images. Each detail row puts its label image on the

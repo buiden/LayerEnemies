@@ -364,3 +364,109 @@ test("Call: art off or every nil art requests no texture and restores English fo
         end
     end
 end)
+
+-- Closing-review guards: keep each boundary independent of unrelated admission gates.
+test("Call review: WOS proof must belong to the current epoch",function()
+    local N=H.load(); local s=N.Main.store
+    s.localSeen.probe={name="Cedar Vale",faction="opposite",epoch=s.serial-1,at=H.clock()}
+    wos(); no(popup(N)); eq(next(N.Main.call.victims),nil)
+    s.localSeen.probe.epoch=s.serial; wos(); yes(popup(N)); eq(#H.sent(),0)
+end)
+test("Call review: WOS proof cannot come from the future",function()
+    local N=H.load(); local s=N.Main.store
+    s.localSeen.probe={name="Cedar Vale",faction="opposite",epoch=s.serial,at=H.clock()+1}
+    wos(); no(popup(N)); eq(next(N.Main.call.victims),nil)
+    s.localSeen.probe.at=H.clock(); wos(); yes(popup(N)); eq(#H.sent(),0)
+end)
+test("Call review: classless GB needs independent local opposite proof",function()
+    local N=H.load(); bounty(nil,nil,""); no(popup(N)); eq(next(N.Main.call.victims),nil)
+    known(N); bounty(nil,nil,""); yes(popup(N)); eq(#H.sent(),0)
+end)
+test("Call review: killer cannot be our own identity",function()
+    local N=H.load(); local r=record(0)
+    r.enemies[1].name=N.Adapters.ownIdentity(); yes(r.enemies[1].name)
+    N.Main.callReceive(r,"Birch Moss"); no(popup(N)); eq(next(N.Main.call.victims),nil)
+    r.enemies[1].name="Cedar Vale"; N.Main.callReceive(r,"Birch Moss"); yes(popup(N)); eq(#H.sent(),0)
+end)
+for _,field in ipairs({"zone","killer"}) do
+    test("Call review: enrichment refuses a different "..field,function()
+        local N=H.load(); receive(N); local first=N.CallUI.event
+        H.advance(1); local r=record(0,"gb",true)
+        if field=="zone" then r.zone=200 else r.enemies[1].name="Other Enemy" end
+        local _,action=N.Main.callReceive(r,"Birch Moss")
+        eq(action,nil); eq(N.Main.call.current,first); eq(first.x,nil)
+        eq(N.Main.call.victims["birch moss"].event,first); eq(#H.sent(),0)
+    end)
+end
+test("Call review: an older event cannot replace a newer displayed event",function()
+    local N=H.load(); receive(N); local first=N.CallUI.event
+    H.advance(20); receive(N,"Other Victim",30)
+    eq(N.CallUI.event,first); eq(N.Main.call.current,first)
+    eq(N.Main.call.victims["other victim"],nil); eq(#H.sent(),0)
+end)
+test("Call review: invalid coordinates are removed as a pair",function()
+    for _,field in ipairs({"x","y"}) do
+        for _,bad in ipairs({-.1,1.1,math.huge,0/0,"bad"}) do
+            local N=H.load(); local r=record(0,"gb",true); r[field]=bad
+            N.Main.callReceive(r,"Birch Moss"); yes(popup(N))
+            eq(N.CallUI.event.x,nil,field); eq(N.CallUI.event.y,nil,field)
+            local points=waypoint(); N.CallUI.help:Click(); eq(#points,0); eq(#H.sent(),0)
+        end
+    end
+end)
+test("Call review: history cap is the fixed contract of 64 entries",function()
+    local N=H.load(); local history=N.Main.call.victims
+    eq(N.Call.MAX,64)
+    for i=1,64 do history["filler"..i]={at=H.clock()-i/100,event={}} end
+    receive(N); eq(N.Safe.count(history),64); eq(history.filler64,nil)
+    yes(history["birch moss"]); eq(#H.sent(),0)
+end)
+test("Call review: explicit full false is not a Find identity",function()
+    local N=H.load(); local r=record(0); r.enemies[1].full=false
+    N.Main.callReceive(r,"Birch Moss"); yes(popup(N)); eq(N.CallUI.event.full,false)
+    N.CallUI.help:Click(); eq(#N.Main.find.names,0); eq(#H.sent(),0)
+end)
+test("Call review: old Help closure cannot act after a replacement render",function()
+    local N=H.load(); bounty(); local click=N.CallUI.help.scripts.OnClick
+    H.advance(20); local r=record(0,"gb",true); r.zone=200; r.enemies[1].name="Other Enemy"
+    N.Main.callReceive(r,"Other Victim"); yes(popup(N)); local shown=N.CallUI.event
+    local points=waypoint(); local before=#H.log()
+    click(); eq(#points,0); eq(#H.log(),before); eq(#N.Main.find.names,0)
+    yes(popup(N)); eq(N.CallUI.event,shown)
+    N.CallUI.help:Click(); eq(#points,1); eq(points[1].uiMapID,200)
+    eq(N.Main.find.names[1],"Other Enemy"); eq(#H.sent(),0)
+end)
+test("Call review: Help rechecks instance before the next event or timer",function()
+    local N=H.load(); bounty(); local points=waypoint(); local before=#H.log()
+    H.instance(true); N.CallUI.help:Click()
+    eq(#points,0); eq(#H.log(),before); eq(#N.Main.find.names,0); eq(#H.sent(),0)
+end)
+test("Call review: waypoint uses a displayed map other than the local map",function()
+    local N=H.load(); local r=record(0,"gb",true); r.zone=200
+    N.Main.callReceive(r,"Birch Moss"); local points,_,can=waypoint(); N.CallUI.help:Click()
+    eq(#points,1); eq(points[1].uiMapID,200); eq(can[1],200)
+    eq(points[1].position.x,.425); eq(points[1].position.y,.61); eq(#H.sent(),0)
+end)
+test("Call review: Find keeps its existing two-word realm limitation",function()
+    for _,suffix in ipairs({"-Stormrage","-1234"}) do
+        local N=H.load(); local r=record(0); r.enemies[1].name="Cedar Vale"..suffix
+        N.Main.callReceive(r,"Birch Moss"); yes(popup(N)); yes(N.CallUI.event.full)
+        N.CallUI.help:Click(); eq(#N.Main.find.names,0); eq(#H.sent(),0)
+    end
+end)
+for _,key in ipairs({"victim","killer","where"}) do
+    test("Call review: "..key.." value and row grow with measured text height",function()
+        for _,art in ipairs({true,false}) do
+            local N=H.load({callArt=art}); bounty(); local U=N.CallUI
+            U[key].GetStringHeight=function() return 72 end; U.render()
+            eq(U[key].height,72,key.." FontString must not clip")
+            eq(U.rows[key].height,art and 76 or 72,key.." row must contain text")
+            local bottom=0
+            for _,name in ipairs({"victim","killer","where"}) do
+                local row=U.rows[name]; yes(-row.point[5]>=bottom+4,name.." below previous row")
+                bottom=-row.point[5]+row.height
+            end
+            yes(-U.body.point[5]>=bottom+4,"body below detail rows"); eq(#H.sent(),0)
+        end
+    end)
+end

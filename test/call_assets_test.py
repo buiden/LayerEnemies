@@ -124,6 +124,52 @@ class CallAssets(unittest.TestCase):
                 v.check_media(self.addon)
         path.write_bytes(original)
 
+    def test_reject_ink_in_each_four_pixel_padding_edge(self):
+        # Corrupt the input to the real gate; inspecting the shipped bytes alone
+        # would still pass if the verifier silently stopped checking padding.
+        for name in sorted(EXPECTED):
+            path = self.addon / name
+            original = path.read_bytes()
+            width, height = (256, 64) if name in HEADINGS else (128, 32)
+            for inset in (1, 3):
+                for x, y in ((inset, 10), (width - 1 - inset, 10),
+                             (width // 2, inset), (width // 2, height - 1 - inset)):
+                    with self.subTest(asset=name, x=x, y=y):
+                        raw = bytearray(original)
+                        # A single dot isolates padding from the ink-width limit.
+                        raw[21:-26:4] = bytes(width * height)
+                        raw[21 + 4 * (y * width + x)] = 255
+                        path.write_bytes(raw)
+                        with self.assertRaisesRegex(AssertionError, 'TGA padding:'):
+                            v.check_media(self.addon)
+            path.write_bytes(original)
+
+    def test_reject_footer_signature_and_offsets_for_every_asset(self):
+        for name in sorted(EXPECTED):
+            path = self.addon / name
+            original = path.read_bytes()
+            for offset in (-26, -22, -18, -1):
+                with self.subTest(asset=name, footer_offset=offset):
+                    raw = bytearray(original)
+                    raw[offset] ^= 1
+                    path.write_bytes(raw)
+                    with self.assertRaisesRegex(AssertionError, 'TGA footer:'):
+                        v.check_media(self.addon)
+            path.write_bytes(original)
+
+    def test_reject_heading_ink_wider_than_190_inside_legal_padding(self):
+        for name in sorted(HEADINGS):
+            path = self.addon / name
+            original = path.read_bytes()
+            raw = bytearray(original)
+            raw[21:-26:4] = bytes(256 * 64)
+            for x in (4, 251):
+                raw[21 + 4 * (10 * 256 + x)] = 255
+            path.write_bytes(raw)
+            with self.assertRaisesRegex(AssertionError, 'TGA ink width:'):
+                v.check_media(self.addon)
+            path.write_bytes(original)
+
     def test_call_sources_and_art_references(self):
         self.assertTrue(hasattr(v, 'check_call_text'), 'Latin client text and asset-reference gate')
         v.check_call_text(self.addon)
