@@ -713,6 +713,32 @@ PASS K: exposed route copy cannot widen LEGW1 or any other prefix
 PASS K: seen same-faction proof overrides contradictory opposite-race metadata
 PASS K: zone cancellation persists even when race can still prove the killer after store reset
 PASS K: death in an instance cannot become eligible by leaving before the first retry
+PASS K environment: four readable no-source recaps keep their own killers (both nil)
+PASS K environment: no-source killing blow never names a player hit (both nil)
+PASS K environment: four readable no-source recaps keep their own killers (both empty)
+PASS K environment: no-source killing blow never names a player hit (both empty)
+PASS K environment: four readable no-source recaps keep their own killers (sourceGUID nil)
+PASS K environment: no-source killing blow never names a player hit (sourceGUID nil)
+PASS K environment: four readable no-source recaps keep their own killers (sourceGUID empty)
+PASS K environment: no-source killing blow never names a player hit (sourceGUID empty)
+PASS K environment: four readable no-source recaps keep their own killers (sourceName nil)
+PASS K environment: no-source killing blow never names a player hit (sourceName nil)
+PASS K environment: four readable no-source recaps keep their own killers (sourceName empty)
+PASS K environment: no-source killing blow never names a player hit (sourceName empty)
+PASS K environment: a no-source finisher seen at death stays silent after its row disappears
+PASS K environment: a no-source finisher seen at retry stays silent after its row disappears
+PASS K environment: a no-source-only death is non-empty recovery after an unreadable death
+PASS K environment: recorded no-source rows stay old when amounts change or source fields arrive
+PASS K environment: absent source does not hide an unreadable sourceGUID (secret)
+PASS K environment: absent source does not hide an unreadable sourceGUID (throwing)
+PASS K environment: absent source does not hide an unreadable sourceName (secret)
+PASS K environment: absent source does not hide an unreadable sourceName (throwing)
+PASS K environment: absent source does not hide an unreadable timestamp (secret)
+PASS K environment: absent source does not hide an unreadable timestamp (throwing)
+PASS K environment: absent source does not hide an unreadable timestamp (non-number)
+PASS K environment: absent source does not hide an unreadable timestamp (missing)
+PASS K environment: absent source does not hide an unreadable overkill (secret)
+PASS K environment: absent source does not hide an unreadable overkill (throwing)
 PASS K review F1: earlier recap is refused while retrying for persistent
 PASS K review F1: earlier recap is refused while retrying for fresh mob
 PASS K review F1: earlier recap is refused while retrying for fresh player
@@ -764,4 +790,4 @@ PASS K review S2: recap killer matching our own name is not sent
 PASS K review S2: zone upper bound is 999999 not one million
 PASS K review S2: unhex must validate player syntax as well as UTF-8
 PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
-RESULT: 766 tests passed, 0 failed, 75836 assertions
+RESULT: 792 tests passed, 0 failed, 77972 assertions
