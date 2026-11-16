@@ -137,6 +137,13 @@ def main():
         assert users == ['Directory.lua'], word + ' outside Directory.lua: ' + ', '.join(users)
         calls = len(re.findall(r'\b' + word + r'\b', (ROOT / 'LayerEnemies/Directory.lua').read_text()))
         assert calls == 1, word + ' must appear exactly once in Directory.lua, found %d' % calls
+    # Who APIs belong to the adapter only; runtime caller/stack tests additionally catch disguised calls.
+    for word in ('SendWho', 'GetNumWhoResults', 'GetWhoInfo'):
+        users = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua')
+                       if re.search(r'\b' + word + r'\b', p.read_text()))
+        assert users == ['Adapters.lua'], word + ' outside Adapters.lua: ' + ', '.join(users)
+    for word in ('SetWhoToUi', 'FriendsFrame', 'WhoFrame'):
+        assert word not in addon_text, 'Unexpected who-window manipulation: ' + word
     # 1.0 lane B: HeadHunter frames are built only by HhNet.frame, for our own types N E Q O S H; never P, L or D
     hhnet = (ROOT / 'LayerEnemies/HhNet.lua').read_text()
     ours = re.search(r'local OURS = \{([^}]*)\}', hhnet)
@@ -209,7 +216,7 @@ def main():
         'live_remote_reports': 'War Effort 1.6.x and HeadHunter as a member, the Spy family and three guild '
                                'incident addons read-only, LEGW1 own sightings and relays; shown as reported, '
                                'not confirmed',
-        'ask_for_invite': 'One click sends one LayerSwap-format request to one host (report row or host row), or drafts a /g guild request the player sends',
+        'ask_for_invite': 'Single-host hops remain one request; hop-any clicks search the zone then ask at most 8 players at 1/s, 30 s between clicks, no retry; guild requests stay player-sent',
         'auto_accept_leave': 'On by default, saved: accepts only the asked host invite (120 s, not grouped/instance/combat), leaves only that group 3 s after the move or 30 s without one',
         'guild_host': 'Off until turned on, then saved (guildHost boolean, ON line at login); guild members only, guild name readable and unchanged; at most one InviteUnit per request, 10 s apart, 6 per 600 s; never in combat; refused beside LayerSwap or Bulo',
         'networks': 'Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches',

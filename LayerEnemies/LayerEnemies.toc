@@ -19,6 +19,7 @@ HeadHunter.lua
 Adapters.lua
 Invite.lua
 Hop.lua
+HopAny.lua
 Hosts.lua
 GuildHost.lua
 Relay.lua

@@ -1,5 +1,5 @@
 -- One-click hop: one LayerSwap-format request, whispered once per click to one player known to stand on the wanted
--- server key in our zone. LayerSwap and Bulo hosts both read it. We never retry, never fan out, never answer requests.
+-- server key in our zone. Existing hops never retry or fan out. HopAny separately owns a bounded click round.
 local _, N = ...
 local S = N.Safe
 local Hp = {}
@@ -17,6 +17,14 @@ function Hp.line(zone, server, uid, x, y)
     local pos = ""
     if x and y and x >= 0 and x <= 1 and y >= 0 and y <= 1 then pos = string.format(" %.1f,%.1f", x * 100, y * 100) end
     return string.format("inv layer <LS %d want %s-%d%s>", zone, server, uid, pos)
+end
+
+-- Any other server key, uid 0: requires a readable position; never guess coordinates.
+function Hp.lineNot(zone,server,x,y)
+    x,y=S.num(x),S.num(y)
+    if not x or not y or x<0 or x>1 or y<0 or y>1 then return nil end
+    local line=Hp.line(zone,server,0,x,y)
+    return line and (line:gsub(" want "," not ",1)) or nil
 end
 
 -- reply(text, sender, me) -> {kind="heard", layer?, zone?, hosting} | {kind="same"} | nil

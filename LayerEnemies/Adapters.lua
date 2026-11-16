@@ -1,6 +1,42 @@
 local _, N = ...
 local A,S = {},N.Safe
 N.Adapters=A
+-- Source: pinned Forever FriendList API. No manipulation of the game's who UI.
+function A.whoTerm(zoneName)
+    local f,e=_G.C_FriendList,_G.Enum
+    local tag=S.str(_G.WHO_TAG_ZONE,32)
+    zoneName=S.str(zoneName,120)
+    if not S.tab(f) or not tag or not zoneName or tag:find('["\\]') or zoneName:find('["\\]') then return nil end
+    for _,key in ipairs({"SendWho","GetNumWhoResults","GetWhoInfo"}) do
+        if type(S.clean(f[key]))~="function" then return nil end
+    end
+    if not S.tab(e) or not S.tab(e.SocialWhoOrigin) or not S.num(e.SocialWhoOrigin.Social) then return nil end
+    return tag..'"'..zoneName..'"'
+end
+function A.who(term)
+    local f,e=_G.C_FriendList,_G.Enum
+    if not S.str(term,180) or not S.tab(f) or type(S.clean(f.SendWho))~="function"
+        or not S.tab(e) or not S.tab(e.SocialWhoOrigin) or not S.num(e.SocialWhoOrigin.Social) then return false end
+    local ok,result=pcall(f.SendWho,term,e.SocialWhoOrigin.Social)
+    return ok and not S.secret(result) and result~=false
+end
+-- Read no more than 49 rows. A malformed row is skipped, never converted to a short name.
+function A.whoRows()
+    local f=_G.C_FriendList
+    if not S.tab(f) or type(S.clean(f.GetNumWhoResults))~="function" or type(S.clean(f.GetWhoInfo))~="function" then return nil end
+    local ok,n=pcall(f.GetNumWhoResults)
+    n=ok and S.num(n) or nil
+    if not n or n<0 or n%1~=0 then return nil end
+    local rows={}
+    for i=1,math.min(n,49) do
+        local fine,r=pcall(f.GetWhoInfo,i)
+        if fine and S.tab(r) then
+            local read,name,area=pcall(function() return S.str(r.fullName,100),S.str(r.area,120) end)
+            if read and name and area then rows[#rows+1]={fullName=name,area=area} end
+        end
+    end
+    return rows
+end
 function A.loaded(name)
     local api=C_AddOns
     if S.tab(api) then return S.call(api.IsAddOnLoaded,name)==true end
