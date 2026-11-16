@@ -192,7 +192,7 @@ PASS relay skips records heard on GUILD
 PASS relay never re-relays a guild record
 PASS relay stands down when another guildmate sends first
 PASS relay sends each id once in 120 s
-PASS relay drops instead of queueing when the bucket is empty
+PASS relay drops instead of queueing when only the own reserve remains
 PASS relayed record is labelled and not first-hand
 PASS relay rejects format version 2 and oversize
 PASS relay silent outside a guild
@@ -791,4 +791,17 @@ PASS Spy relay 8: stand-down also matches normalized Forever Spy and Sentinel so
 PASS Spy relay zone: another-zone sighting still goes to the guild and Find
 PASS Spy relay cap: pending names coalesce at dispatch and bounded limits survive clears and clock rollback
 PASS Spy relay invalid: malformed family lines and self sightings never offered
-RESULT: 793 tests passed, 0 failed, 73102 assertions
+PASS Guild relay policy: sharing on sends own, Spy and HeadHunter lines
+PASS Guild relay policy: share off silences own, Spy and HeadHunter before receipt
+PASS Guild relay policy: share off silences own, Spy and HeadHunter during wait
+PASS Guild relay policy: share off silences own, Spy and HeadHunter saved off
+PASS Guild relay policy: off then on cancels pending relays but allows fresh observations
+PASS Guild relay policy: saved share off also silences guild membership and host discovery
+PASS Guild relay policy: Spy burst reserves own O capacity out of combat
+PASS Guild relay policy: Spy burst reserves own O capacity in combat
+PASS Guild relay policy: HeadHunter burst reserves own O capacity out of combat
+PASS Guild relay policy: HeadHunter burst reserves own O capacity in combat
+PASS Guild relay policy: mixed burst reserves own O capacity out of combat
+PASS Guild relay policy: mixed burst reserves own O capacity in combat
+PASS Guild relay policy: earlier guild control lines count against the relay reserve
+RESULT: 806 tests passed, 0 failed, 74099 assertions
