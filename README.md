@@ -39,7 +39,7 @@ request without a click. Existing Hop, Hop via <name> and Ask guild actions
 keep their single-target / player-sent behavior. This bounded exception is
 reviewed on its own, independently of other feature changes.
 
-## Unreleased - guild death calls (receive-only)
+## Unreleased - guild death calls and own-death sharing
 
 **Call popups and their sound are ON by default for both new and existing
 users.** Turn them off with `/le call off` or the window's **Call: on/off**
@@ -50,9 +50,34 @@ A Guild Bounty death with a killer class, or a Wall of Shame death whose
 killer is an opposite-faction player in your current local seen store, can
 show a call under the minimap. A class-less Guild Bounty death needs that
 same local proof. Unknown/creature killers, Forever Told sightings, your own
-death and HeadHunter D frames never trigger it. This feature sends nothing:
-it does not detect your own death, announce a death, reply, invite or relay.
-Two LayerEnemies-only guildmates cannot generate these incident lines yet.
+death and HeadHunter D frames never trigger your own popup. A guildmate's
+validated LEGW1 K1 own-death line can also trigger it: two LayerEnemies-only
+guildmates need no incident addon. No death line is answered, relayed or made
+an ask/invite candidate. Receiving a line never adds a name or location to
+Find automatically; only On my way can add a full killer name.
+
+New send: K own-death line, LEGW1/GUILD, share switch, 1 per 120 s.
+
+After PLAYER_DEAD, snapshot the zone, position and known layer, then try the
+optional C_DeathRecap at 0.3, 1 and 2 seconds. Only a player-type AND hostile
+source proven opposite faction qualifies: a current local seen entry by GUID
+or exact name, or an unambiguous original Alliance/Horde race returned by
+GetPlayerInfoByGUID. Neutral/custom races are unknown. A directly seen
+same-faction source stays refused even if its race metadata disagrees.
+Missing/secret required fields, empty recap, mob-only, fall, drowning and
+same-faction duel deaths send nothing, without errors or target guessing.
+Known misses: an enemy pet alone (no owner resolution), empty/late recaps,
+and unavailable faction/identity data. Accepted over-count: a mob landing
+the last hit while an enemy player was hitting counts as PvP.
+
+The full killer name is sent only when our seen store has it for that GUID;
+otherwise the recap name is marked partial (`p`), shown but never added to
+Find. An unusable killer identity may be omitted. There is no second send
+switch: `/le share off` cancels pending death work too; `/le call off` only
+stops the local popup/sound. Share remains on by default. Guild/zone changes
+and resurrection cancel retries; callbacks later than 2.5 seconds are dropped.
+One send attempt per qualifying death, never queued or retried after Wire or
+the client refuses it. Limits count client refusals too and are session-only.
 
 One popup at a time: at most one per victim per 180 seconds and one overall
 per 20 seconds, accepting events no older than 120 seconds. The incident
@@ -95,8 +120,11 @@ only through age 30 seconds. Art source and OFL font details: THIRD_PARTY.md.
 Not tested on a live Forever client: these exact TGAs' alpha/orientation,
 readability at client scale and placement clear of other minimap frames;
 waypoint/super-track permission; actual Wall of Shame creature-death traffic;
-combat/taint behavior. Death-recap timing, fields and player/duel/pet flags
-remain outside this receive-only change.
+combat/taint behavior. Also unverified on 70938: recap fields
+(sourceGUID/sourceName/sourceFlags/overkill/timestamp), player/duel/pet
+sourceFlags values, recap readiness within two seconds and overkill semantics.
+The pinned API declares an empty DeathRecapEventInfo structure, not those
+fields; offline fixtures do not establish their runtime availability.
 
 ## 1.0.1 — own identity, guild sightings and whisper lifecycle
 
@@ -179,6 +207,21 @@ in guild-only mode**, including a round already in progress.
   hosts click, at most once per 60 seconds) and `H|1|<server key>|<zone>` (a
   host's answer: once when you turn hosting on and once in answer to an `F`,
   1 to 6 seconds later, at most once per 60 seconds, only while hosting).
+  Own-death K1 is also GUILD-only, behind Share and the same Wire prefix/global
+  budgets and pauses, never in an instance (including BG/arena), even at click
+  priority. At most one per 120 seconds and five per rolling 30 minutes.
+  WEFF1/HeadHunter stand-down rules are unchanged; LEGW1 is our protocol and
+  has no donor stand-down or public-network switch.
+
+  `K|1|<zone>|<x3>|<y3>|<layer>|<age>|<conf>|<nameHex>:<CLASS>:<level>:<f|p>`
+
+  Zone is uiMapID; x/y are both empty or 0.000-1.000; layer is the O-line key
+  or empty; age is 0-120 seconds; conf is `e` for a recap player killing blow
+  or `h` for a hostile player hit with another finisher. The killer item may
+  be empty; class/level can be unknown. Other versions are silently ignored.
+  Receivers require a checked online guild member, refuse killer=sender and
+  own echoes under the existing full-name rule. Base 1.0.1 was separately
+  tested to drop unknown K lines without an error or side effects.
 - WEFF1 prefix (War Effort network; its switch, `/le net wareffort on|off`;
   never while War Effort itself is loaded, never in an instance):
   - GUILD: our hello `H|1.0.0|<map>|<layer>|1|19|0|0|<stamp>||<class>|<level>|<public>`
@@ -906,7 +949,7 @@ asked names, alert history or source settings. Besides those three it holds
 `guildHost` (hosting for your guild) and `autoHop` (Auto accept and leave),
 `consent` ("guild" after `/le net guild`, "public" after `/le net public`,
 absent until either: public), `nets` (one
-switch per network), `share` (sharing your sightings), `call` (death popup/sound),
+switch per network), `share` (sharing your sightings and own PvP deaths), `call` (death popup/sound),
 `callArt` (call images; both call settings default on), `netNotice` (the
 first-login line was shown) and `weReportId` (War Effort's report id, which
 must keep rising across sessions, 1 to 65535). Reloading keeps your watchlist,
@@ -936,6 +979,14 @@ Call uses one reusable popup, a 64-victim bounded session history with expiry an
 generation-guarded close/age timers. Turning Call off clears its event/history.
 
 ## Verification
+
+New send: K own-death line, LEGW1/GUILD, share switch, 1 per 120 s.
+
+The K probes exercise actual PLAYER_DEAD, delayed recap reads, Wire and the
+Call popup boundary, including 120-second/30-minute limits, secret/missing
+fields, faction proof, partial identity, BG/arena refusal, cancellation,
+caller-frame enforcement and all other routes remaining forbidden. No
+combat-log event is registered. No donor code is copied or executed.
 
 Run from the project root:
 
