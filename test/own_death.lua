@@ -545,6 +545,30 @@ test("K fix check: a new player row next to an old one still names the new kille
     H.deliver("PLAYER_DEAD"); H.advance(.301)
     eq(#deaths(),1); yes(N.OwnDeath.decode(deaths()[1].text)); no(N.Main.error)
 end)
+for _,mode in ipairs({"65 rows","throwing sibling"}) do
+    test("K fix check: a death whose recap cannot name still owns its rows ("..mode..")",function()
+        local N=setup(); raceProof(); N.Main.setShare(false)
+        local held={}
+        C_DeathRecap.GetRecapEvents=function() return held end
+        local old=recapRow()
+        if mode=="65 rows" then held={}; for i=1,64 do held[i]={sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",sourceFlags=0x848,timestamp=H.clock()-i,overkill=-1} end; held[65]=old
+        else held={old,setmetatable({},{__index=function() error("row accessor failure") end})} end
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1); eq(#deaths(),0)
+        nextDeath(); N.Main.setShare(true); held={old}
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,"the old row was recorded by the earlier death"); no(N.Main.error)
+    end)
+end
+test("K fix check: a 64-row recap with a new killer still sends; 65 rows never name",function()
+    for _,count in ipairs({64,65}) do
+        local N=setup(); raceProof()
+        local new=recapRow(); new.timestamp=H.clock()
+        local held={new}; for i=2,count do held[i]={sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",sourceFlags=0x848,timestamp=H.clock()-i,overkill=-1} end
+        C_DeathRecap.GetRecapEvents=function() return held end
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),count==64 and 1 or 0,count.." rows"); no(N.Main.error)
+    end
+end)
 test("K review F1: an ineligible fresh row set does not stop later eligible retries",function()
     local N,rows=setup(); raceProof(); local at=H.clock()
     C_DeathRecap.GetRecapEvents=function()

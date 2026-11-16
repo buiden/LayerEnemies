@@ -91,8 +91,11 @@ Known limits (a missed line is accepted; a false killer is not):
   first world-entry seed.
 
 The
-session history holds at most 256 row sets, then refuses new sets instead of
-forgetting old ones. It is not saved.
+session history holds at most 256 recap rows, then refuses new rows instead of
+forgetting old ones: after that (roughly 50 deaths in one session with a few
+rows each) new deaths send nothing until reload. A recap with more than 64
+rows, or a row whose fields cannot be read, never names a killer, but its
+readable rows (up to 256) are still recorded for that death. It is not saved.
 Known misses: an enemy pet alone (no owner resolution), empty/late recaps,
 and unavailable faction/identity data. Accepted over-count: a mob landing
 the last hit while an enemy player was hitting counts as PvP.

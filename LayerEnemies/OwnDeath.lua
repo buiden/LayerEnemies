@@ -142,6 +142,7 @@ end
 -- become fresh again.
 local recapDeath,recapCount,recapSeen=0,0,{}
 local RECAP_CAP=256
+local RECORD_LIMIT=256
 local function rowId(row)
     if not S.tab(row) then return nil end
     local fields={}
@@ -164,11 +165,17 @@ local function capture()
     if not S.tab(api) or S.call(api.HasRecapEvents)~=true then return end
     local rows=S.call(api.GetRecapEvents)
     if not S.tab(rows) then return end
+    -- Record up to RECORD_LIMIT rows even when the list is too long or a row is
+    -- unreadable, so this death still owns what it saw; only up to 64 rows may
+    -- ever name a killer, and a row whose fields cannot be read is never owned.
     local list,n={},0
     for _,row in pairs(rows) do
-        n=n+1; if n>64 then return nil end
-        list[n]={row=row,id=rowId(row)}
+        n=n+1
+        if n>RECORD_LIMIT then list.tooMany=true; break end
+        local ok,id=pcall(rowId,row)
+        list[n]={row=row,id=ok and id or nil}
     end
+    if n>64 then list.tooMany=true end
     return list
 end
 -- Records unseen rows for owner; marks each entry owned when its row belongs to owner.
@@ -200,6 +207,7 @@ function D.recap(store,time)
         local list=capture()
         if not list then return nil end
         remember(list,recapDeath)
+        if list.tooMany then return nil end
         local best
         for _,entry in ipairs(list) do
             local candidate=entry.owned and source(entry.row,store,time)
