@@ -81,14 +81,14 @@ hard **three actual attempts per sliding minute** limit, including client refusa
 A blocked T waits in one bounded, coalescing owner queue and retries through Wire;
 it is not a dropped forward or a second, independently draining Wire queue.
 
-Listed enemies (your own or a guildmate's) go first in O bursts. A completed new
-or changed list can resend up to four held first-hand names under 45 seconds old
-on the next normal O slot, once per name per content change, even inside the
-usual 60-second name cooldown. Unchanged refreshes grant no repeat; a name no
-longer listed cannot spend an early ticket. Early repeats are guild O only, never extra
-War Effort C+E names. Normally eligible names keep their existing public path. O stays at
-one line per 15 seconds and three attempts per burst. Listed R relays go first
-and lose pending/bucket contention last; their caps and stand-down stay unchanged.
+Listed enemies (your own or a guildmate's) go first among eligible names in O
+bursts. List changes and refreshes never bypass the **60-second per-enemy
+cooldown** or put already sent names back ahead of an unsent cohort. Nine
+continuously seen enemies, four listed, still all leave in the three-line burst;
+list churn cannot starve the other five. War Effort C+E retains its independent
+per-enemy cooldowns and public admission path. O stays at one line per 15 seconds
+and three attempts per burst. Listed R relays go first and lose pending/bucket
+contention last; their caps and stand-down stay unchanged.
 
 When you yourself see a guildmate's tracked enemy, one quiet chat line says:
 `LayerEnemies: <name> is tracked by <guildmate>` (or `and N others`). At most one
@@ -348,8 +348,8 @@ in guild-only mode**, including a round already in progress.
 - LEGW1 prefix, GUILD: enemies your own client saw (an `O|1` line: zone, your
   position, layer if known, up to four names within 255 bytes). After the
   existing 3-second settle, a crowd uses up to three consecutive 15-second
-  slots: nine names go as 4, 4 and 1, normally without repeats within 60 seconds
-  (the changed-watch-list exception above allows four early names).
+  slots: nine names go as 4, 4 and 1, without repeats within 60 seconds,
+  even when a shared watch list changes.
   Only names actually fitted in a client-accepted line are marked shared.
   Own sightings remain eligible through age 45 seconds; older pending names
   are dropped. The age is computed at each send from the actual own sighting,

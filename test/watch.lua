@@ -145,34 +145,37 @@ test("watch 19: ninth listed enemy is in the first O line for either list owner"
     end
 end)
 
-test("watch 20: a 30-second sighting gets one early O on changed list, not on refresh",function()
+test("watch 20: changed lists and refreshes never bypass the sixty-second O cooldown",function()
     local N=ready(); own(N,1,100); H.time(103); N.Main.shareTick(); eq(#lines("O"),1)
-    H.time(130); list(N,"Birch Scout","aa",{"Watch a"}); N.Main.shareTick()
-    eq(#lines("O"),2); eq(N.Relay.decodeOwn(lines("O")[2].text,"Cedar Scout",130).age,30)
+    H.time(130); list(N,"Birch Scout","aa",{"Watch a"}); N.Main.shareTick(); eq(#lines("O"),1)
     H.time(131); list(N,"Birch Scout","aa",{"Watch a"}); list(N,"Birch Scout","ab",{"Watch a"})
-    H.time(145); N.Main.shareTick(); eq(#lines("O"),2,"no refresh-driven repeat")
+    H.time(145); N.Main.shareTick(); eq(#lines("O"),1)
+    H.time(160); own(N,1,160); N.Main.shareTick()
+    H.time(162); N.Main.shareTick(); eq(#lines("O"),1)
+    H.time(163); N.Main.shareTick(); eq(#lines("O"),2)
 end)
 
-test("watch early receipt: fitted tickets consumed while still fresh",function()
+test("watch receipt: fitted names retain their cooldown while still fresh",function()
     local N=ready(); own(N,1,100); H.time(103); N.Main.shareTick(); eq(#lines("O"),1)
     H.time(104); list(N,"Birch Scout","aa",{"Watch a"})
-    H.time(118); N.Main.shareTick(); eq(#lines("O"),2)
-    H.time(119); list(N,"Birch Scout","aa",{"Watch a"})
-    H.time(133); N.Main.shareTick(); eq(#lines("O"),2,"consumed while the held observation remains fresh")
+    H.time(118); N.Main.shareTick(); eq(#lines("O"),1)
+    H.time(119); list(N,"Birch Scout","ab",{"Watch a","Unseen Name"})
+    H.time(133); N.Main.shareTick(); eq(#lines("O"),1)
 end)
 
-test("watch withdrawal: a cleared list cannot spend its pending early ticket",function()
+test("watch withdrawal: a cleared list cannot prioritize an unsent name",function()
     for _,ours in ipairs({false,true}) do
-        local N=ready(); own(N,1,100); H.time(103); N.Main.shareTick()
-        H.time(104)
-        if ours then N.Main.track("Watch a") else list(N,"Birch Scout","aa",{"Watch a"}) end
+        local N=ready(); for i=1,9 do own(N,i,100) end
+        H.time(103); N.Main.shareTick(); H.time(104)
+        if ours then N.Main.track("Watch i") else list(N,"Birch Scout","aa",{"Watch i"}) end
         H.time(105)
         if ours then N.Main.track(nil) else receive(N,line("ab",0,0)) end
-        H.time(118); N.Main.shareTick(); eq(#lines("O"),1,"withdrawn priority must not repeat")
+        H.time(118); N.Main.shareTick(); eq(#lines("O"),2)
+        eq(N.Relay.decodeOwn(lines("O")[2].text,"Reader",118).enemies[1].name,"Watch e")
     end
 end)
 
-test("watch O locality: early guild repeats never become extra War Effort names",function()
+test("watch O locality: list changes never become extra War Effort names",function()
     for _,fresh in ipairs({0,2}) do
         local N=ready(); N.Net.SHIP.we=true
         H.deliver("CHAT_MSG_ADDON","WEFF1","H|1.6.6|100|7086|1|19|0|123|100","GUILD","Wes")
@@ -184,7 +187,7 @@ test("watch O locality: early guild repeats never become extra War Effort names"
         H.time(103); N.Main.shareTick(); eq(#messages("C"),1); eq(#messages("E"),1)
         H.time(104); list(N,"Birch Scout","aa",names(4))
         H.time(105); for i=5,4+fresh do own(N,i,105) end
-        H.time(118); N.Main.shareTick(); eq(#lines("O"),2)
+        H.time(118); N.Main.shareTick(); eq(#lines("O"),fresh==0 and 1 or 2)
         eq(#messages("C"),fresh==0 and 1 or 2); eq(#messages("E"),fresh==0 and 1 or 2)
         if fresh>0 then
             local report=N.Protocol.decode(messages("E")[2].text); eq(#report.enemies,2)
@@ -194,28 +197,28 @@ test("watch O locality: early guild repeats never become extra War Effort names"
     end
 end)
 
-test("watch early budget: at most four unique names, next slot, strict freshness and own provenance",function()
+test("watch priority: changed lists preserve unsent names and own freshness",function()
     local N=ready(); for i=1,9 do own(N,i,100) end
     H.time(103); N.Main.shareTick(); H.time(118); N.Main.shareTick()
     H.time(119); list(N,"Birch Scout","aa",names(8)); N.Main.shareTick(); eq(#lines("O"),2)
     H.time(133); N.Main.shareTick(); eq(#lines("O"),3); H.time(148); N.Main.shareTick(); eq(#lines("O"),3)
-    local r=N.Relay.decodeOwn(lines("O")[3].text,"Cedar Scout",133); eq(#r.enemies,4)
-    -- At exactly 45 s the exceptional repeat is not eligible, even though a normal unsent O may be.
+    local r=N.Relay.decodeOwn(lines("O")[3].text,"Cedar Scout",133)
+    eq(#r.enemies,1); eq(r.enemies[1].name,"Watch i")
     N=ready(); own(N,1,100); H.time(103); N.Main.shareTick(); H.time(145)
     list(N,"Birch Scout","aa",{"Watch a"}); N.Main.shareTick(); eq(#lines("O"),1)
     N=ready(); local e=own(N,1,100); e=N.Main.store.localSeen[e.key]; e.ownAt=nil; e.ownSource=nil
     H.time(130); list(N,"Birch Scout","aa",{"Watch a"}); N.Main.shareTick(); eq(#lines("O"),0)
 end)
 
-test("watch early change: a new completed list can interrupt a pending burst without resetting O pace",function()
+test("watch changed list: already sent names cannot displace a pending burst",function()
     local N=ready(); for i=1,9 do own(N,i,100) end
     H.time(103); N.Main.shareTick(); H.time(104); list(N,"Birch Scout","aa",{"Watch a"})
     N.Main.shareTick(); eq(#lines("O"),1)
     H.time(118); N.Main.shareTick(); eq(#lines("O"),2)
-    eq(N.Relay.decodeOwn(lines("O")[2].text,"Cedar Scout",118).enemies[1].name,"Watch a")
+    eq(N.Relay.decodeOwn(lines("O")[2].text,"Cedar Scout",118).enemies[1].name,"Watch e")
     H.time(119); list(N,"Birch Scout","ab",{"Watch a","Watch b"})
     H.time(133); N.Main.shareTick(); eq(#lines("O"),3)
-    eq(N.Relay.decodeOwn(lines("O")[3].text,"Cedar Scout",133).enemies[1].name,"Watch a")
+    eq(N.Relay.decodeOwn(lines("O")[3].text,"Cedar Scout",133).enemies[1].name,"Watch i")
 end)
 
 test("watch 21: own sighting prints one quiet notice, never inside ten minutes or an instance",function()
@@ -418,6 +421,50 @@ test("watch notice history: event-only operation still bounds remembered notices
         H.time(100+i*61); sight(N,"Watch "..H.abc(i))
     end
     yes(N.Safe.count(st.noticed)<=10,"ten-minute notice history is bounded")
+end)
+
+for _,flap in ipairs({1,5,30}) do
+    test("watch R1 repeat: list churn every "..flap.." seconds preserves per-name sixty seconds",function()
+        for _,ours in ipairs({false,true}) do
+            local N=ready(); local serial=0
+            for t=100,400 do
+                H.time(t); own(N,1,t)
+                if (t-100)%flap==0 then
+                    serial=serial+1
+                    if ours then
+                        N.Main.track("Watch a")
+                        N.Main.track("Unseen Name",serial%2==0)
+                    else
+                        list(N,"Birch Scout",serial%2==0 and "aa" or "ab",
+                            serial%2==0 and {"Watch a"} or {"Watch a","Unseen Name"})
+                    end
+                end
+                N.Main.shareTick()
+            end
+            local sent=lines("O"); eq(#sent,5,"unchanged sixty-second send budget")
+            for i=2,#sent do yes(sent[i].at-sent[i-1].at>=60,"same name must wait sixty seconds") end
+            no(N.Main.error)
+        end
+    end)
+end
+
+test("watch R1 fairness: nine enemies all leave while four listed names churn",function()
+    local N=ready()
+    for t=100,279 do
+        H.time(t); for i=1,9 do own(N,i,t) end
+        local watched=names(4); if t%2==0 then watched[#watched+1]="Unseen Name" end
+        list(N,"Birch Scout",t%2==0 and "aa" or "ab",watched); N.Main.shareTick()
+    end
+    local sent,seen=lines("O"),{}
+    for _,m in ipairs(sent) do
+        local r=N.Relay.decodeOwn(m.text,"Reader",m.at)
+        for _,e in ipairs(r.enemies) do seen[e.name]=true end
+    end
+    eq(N.Safe.count(seen),9,"unlisted names must not starve")
+    eq(#sent,9,"same total O lines as the base cohort")
+    local first=N.Relay.decodeOwn(sent[1].text,"Reader",sent[1].at)
+    for i=1,4 do eq(first.enemies[i].name,"Watch "..H.abc(i),"listed names first") end
+    no(N.Main.error)
 end)
 
 local function report(N,i,name)

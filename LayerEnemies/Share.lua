@@ -8,33 +8,12 @@ N.Share = Sh
 Sh.SETTLE, Sh.EVERY, Sh.AGAIN, Sh.FRESH = 3, 15, 60, 45
 Sh.LINES = 3
 
-function Sh.new() return { shared = {}, names = {}, first = {}, skipped = {}, early = {}, last = nil } end
--- A complete changed list can grant at most four unique-name repeats. Tickets
--- expire with the held own observation, and are consumed only by fitted O names.
-function Sh.watch(st,seen,hashes,now,zone)
-    local candidates={}
-    for _,e in pairs(seen) do
-        if e.faction=="opposite" and e.zone==zone and type(e.ownSource)=="string" and e.ownSource:match("^own ")
-            and S.num(e.ownAt) and now>=e.ownAt and now-e.ownAt<Sh.FRESH then
-            local hash=N.Watch.hash(e.displayName or e.name)
-            if hash and hashes[hash] then candidates[#candidates+1]={e=e,hash=hash} end
-        end
-    end
-    table.sort(candidates,function(a,b) return tostring(a.e.key)<tostring(b.e.key) end)
-    local picked,n={},0
-    for _,v in ipairs(candidates) do
-        if not picked[v.hash] and n<4 then
-            picked[v.hash]=true; n=n+1; st.early[v.hash]=v.e.ownAt
-            if st.burst then st.burst.pending[v.e.key]=true end
-        end
-    end
-end
+function Sh.new() return { shared = {}, names = {}, first = {}, skipped = {}, last = nil } end
 -- Cancel a snapshot, not the send/name cooldowns. Existing observations cannot
 -- reopen it; a later own observation may start a new burst at the normal slot.
 function Sh.cancel(st, seen, now)
     if st.we then Sh.cancel(st.we, seen, now) end
     st.burst = nil
-    S.clear(st.early)
     S.clear(st.first)
     S.clear(st.skipped)
     for key in pairs(seen) do st.skipped[key] = now end
@@ -48,23 +27,21 @@ function Sh.pick(st, seen, now, zone, watch)
         for k, at in pairs(stamps) do if now - at >= Sh.AGAIN then stamps[k] = nil end end
     end
     for k, at in pairs(st.skipped) do if not seen[k] or now - at > Sh.FRESH then st.skipped[k] = nil end end
-    for hash,at in pairs(st.early) do if now-at>=Sh.FRESH then st.early[hash]=nil end end
-    local recent, since, live, priority, normal = {}, nil, {}, {}, {}
+    local recent, since, live, priority = {}, nil, {}, {}
     for key, e in pairs(seen) do
         local own = S.tab(e) and type(e.ownSource) == "string" and e.ownSource:match("^own ") and S.num(e.ownAt)
         if own and e.faction == "opposite" and e.zone == zone and now >= own and now - own <= Sh.FRESH then
             local _, name = N.Relay.ownName(e)
             local at, named = st.shared[key], name and st.names[name]
             local skipped = st.skipped[key]
-            local listed,hash=false,nil
-            if watch then local ours; listed,ours,hash=N.Watch.match(watch,e.displayName or e.name,now) end
-            local early=listed and hash and st.early[hash] and now>=st.early[hash] and now-own<Sh.FRESH
-            priority[key]=early and 2 or listed and 1 or 0
+            local listed=watch and N.Watch.match(watch,e.displayName or e.name,now)
+            priority[key]=listed and 1 or 0
             local eligible=(not at or (now >= at and now - at >= Sh.AGAIN))
                 and (not named or (now >= named and now - named >= Sh.AGAIN))
                 and (not skipped or own > skipped)
-            normal[key]=eligible
-            if early or eligible then
+            -- List changes only reorder eligible names; receipt cooldowns belong
+            -- to the receiver and cannot be renewed or bypassed by a T list.
+            if eligible then
                 recent[#recent + 1] = e
                 -- Re-sightings do not restart the first new enemy's settle.
                 local f = st.first[key]
@@ -88,24 +65,17 @@ function Sh.pick(st, seen, now, zone, watch)
         for _, e in ipairs(recent) do burst.pending[e.key] = true end
         st.burst = burst
     end
-    local enemies, public = {}, {}
-    for _, e in ipairs(recent) do
-        if burst.pending[e.key] then
-            enemies[#enemies + 1] = e
-            if normal[e.key] then public[#public + 1] = e end
-        end
-    end
+    local enemies = {}
+    for _, e in ipairs(recent) do if burst.pending[e.key] then enemies[#enemies + 1] = e end end
     burst.lines = burst.lines + 1
     st.last = now
-    return { enemies = enemies, public = public, count = #enemies, at = enemies[1].ownAt, first = burst.lines == 1, burst = burst }
+    return { enemies = enemies, count = #enemies, at = enemies[1].ownAt, first = burst.lines == 1, burst = burst }
 end
 -- fitted is empty when the client refused the line. No queued sends: receipt
 -- means client acceptance, not proof of delivery. Failures still use a slot.
 function Sh.sent(st, rep, fitted, now)
     for _, e in ipairs(fitted) do
         st.shared[e.key] = now; st.first[e.key] = nil
-        local hash=N.Watch and N.Watch.hash(e.displayName or e.name)
-        if hash then st.early[hash]=nil end
         local _, name = N.Relay.ownName(e)
         if name then st.names[name] = now end
         rep.burst.pending[e.key] = nil

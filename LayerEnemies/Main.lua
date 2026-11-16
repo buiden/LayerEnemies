@@ -401,8 +401,7 @@ function M.relayIn(text,kind,sender)
     if type(text)=="string" and text:sub(1,2)=="K|" then return N.OwnDeath.receive(text,sender,time) end
     if type(text)=="string" and text:sub(1,2)=="T|" then
         if not M.guildCheck(true) or M.guildWhy() then return end
-        local changed=N.Watch.receive(M.watch,text,sender,time)
-        if changed then N.Share.watch(M.share,M.store.localSeen,changed,time,M.store.zone) end
+        N.Watch.receive(M.watch,text,sender,time)
         return
     end
     local control=N.Relay.control(text)
@@ -1846,9 +1845,7 @@ end
 -- 1.0 consent/status: public networks by default (owner decision 2026-11-14), /le net, /le share.
 M.NET_NOTICE="LayerEnemies: public networks ON (War Effort, HeadHunter…). /le net guild to limit to guild only."
 function M.watchSync()
-    if M.watch and N.Watch.sync(M.watch,M.find,now()) then
-        N.Share.watch(M.share,M.store.localSeen,M.watch.own,now(),M.store.zone)
-    end
+    if M.watch then N.Watch.sync(M.watch,M.find,now()) end
 end
 function M.watchTick()
     if not M.watch then return end
