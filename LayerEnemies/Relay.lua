@@ -6,6 +6,12 @@ local S = N.Safe
 local Rl = {}
 N.Relay = Rl
 Rl.VERSION, Rl.MEMORY, Rl.MAX, Rl.PENDING = "1", 120, 256, 128
+-- Wire.lua's per-prefix bucket is 5 tokens, refilling one per 2 s. Keep
+-- a stricter relay-only bucket of 5 - 2 tokens: all R kinds share it, so
+-- a relay burst cannot spend the two-token allowance for our own lines.
+-- Mirror Wire's combat cost and refill; Wire remains the final send gate.
+Rl.PREFIX_BURST, Rl.PREFIX_REFILL, Rl.OWN_RESERVE = 5, 2, 2
+Rl.BURST = Rl.PREFIX_BURST - Rl.OWN_RESERVE
 Rl.TTL = { we = 600, hh = 300 }                                 -- a relayed copy lives as long as a direct one
 Rl.rand = function() return 0.5 + math.random() * 2 end       -- 0.5..2.5 s wait before sending
 
@@ -232,6 +238,18 @@ function Rl.heard(st, record, now)
     st.pending[key] = nil
     remember(st, key, now)
 end
+local function relaySpend(st, now)
+    local b = st.budget or { tokens = Rl.BURST, at = now }
+    st.budget = b
+    if now > b.at then
+        b.tokens = math.min(Rl.BURST, b.tokens + (now - b.at) / Rl.PREFIX_REFILL)
+        b.at = now
+    end
+    local cost = (S.call(InCombatLockdown) == true or S.call(UnitAffectingCombat, "player") == true) and 2 or 1
+    if b.tokens < cost then return false end
+    b.tokens = b.tokens - cost
+    return true
+end
 -- tick(st, now, ctx) sends every due record once; a full bucket drops it (no queue). -> list of {key, ok, why}
 -- ctx as for offer, read again now: left the guild, another guild, or an instance (or unreadable) drops it.
 function Rl.tick(st, now, ctx)
@@ -246,6 +264,7 @@ function Rl.tick(st, now, ctx)
             end
             local kill = N.Record.isKill(p.record)
             if text and kill and not killSpend(st, p.record, now) then text, why = nil, "kill budget" end
+            if text and not relaySpend(st, now) then text, why = nil, "own reserve" end
             if text then ok, why = N.Wire.send("LEGW1", text, "GUILD", nil, { prio = "forward" }) end
             out[#out + 1] = { key = key, ok = ok, why = why, kill = kill }
         end

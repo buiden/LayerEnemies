@@ -2375,11 +2375,12 @@ end)
 test("relay drops instead of queueing when the bucket is empty",function()
     local N=loadAddon(); establish(N); N.Relay.rand=function() return .5 end; advance(1)
     for i=1,7 do N.Main.offerRelay(weRec(N,{origin="Scout"..string.char(96+i),heard=clock})) end
-    advance(1); eq(#relayed(N),5); eq(N.Main.lastRelay,"throttled")
+    -- Owner ruling: all relays leave two of the five prefix tokens for own lines.
+    advance(1); eq(#relayed(N),3); eq(N.Main.lastRelay,"own reserve")
     eq(next(N.Main.relay.pending),nil)
-    advance(30); eq(#relayed(N),5)
-    -- the bucket refills: a new record goes
-    N.Main.offerRelay(weRec(N,{origin="Later",heard=clock})); advance(1); eq(#relayed(N),6)
+    advance(30); eq(#relayed(N),3)
+    -- the relay allowance refills: a new record goes, never a refused old one
+    N.Main.offerRelay(weRec(N,{origin="Later",heard=clock})); advance(1); eq(#relayed(N),4)
 end)
 test("relayed record is labelled and not first-hand",function()
     local N=loadAddon(); establish(N); advance(20)

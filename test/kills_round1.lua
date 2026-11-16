@@ -105,3 +105,35 @@ test("Kills R1 M1: kill id survives legacy relay history eviction",function()
     H.advance(121); hear(frame,"Last Carrier"); H.advance(1.1)
     eq(#sends("^R|1|hh|kill"),1); no(N.Main.error)
 end)
+
+local function burst(mode)
+    if mode=="mixed" then
+        for i=1,4 do hear(death({victim="Victim "..H.abc(i),killer="Enemy "..H.abc(i)}),"Carrier "..H.abc(i)) end
+    end
+    for i=1,mode=="mixed" and 1 or 5 do
+        local stamp=b36(GetServerTime())
+        hear("1AL:Old Enemy;2s;"..stamp..";dw;6y","Legacy "..H.abc(i))
+    end
+end
+local function ownLine(N,id)
+    return N.Relay.ownLine({rid=id,zone=100,count=1,x=.25,y=.75,age=0,layer="7086",enemies={{name="Own Enemy"}}})
+end
+for _,mode in ipairs({"mixed","legacy"}) do
+    test("Kills R1 M2: "..mode.." relay burst leaves two own tokens",function()
+        local N=boot(); burst(mode); H.advance(1.1)
+        eq(#sends("^R|"),3,"prefix burst 5 minus own reserve 2")
+        for id=1,2 do yes(N.Wire.send("LEGW1",ownLine(N,id),"GUILD",nil,{prio="own"})) end
+        eq(#sends("^O|"),2); eq(next(N.Main.relay.pending),nil); no(N.Main.error)
+    end)
+    for _,combat in ipairs({false,true}) do
+        test("Kills R1 M2: real own sighting survives "..mode.." burst combat="..tostring(combat),function()
+            local N=boot(); H.combat(combat)
+            H.units().target=H.player("Own Enemy","Horde")
+            H.deliver("PLAYER_TARGET_CHANGED"); H.drain(); H.advance(1.9)
+            burst(mode); H.advance(1.2); N.Main.shareTick()
+            eq(#sends("^O|"),1,"own sighting must leave at its settle slot")
+            eq(#sends("^R|"),combat and 1 or 3)
+            yes(N.Main.share.shared["Player-1-123"]); no(N.Main.error)
+        end)
+    end
+end
