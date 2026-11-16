@@ -78,6 +78,10 @@ MUTANTS = [
         ("LayerEnemies/Relay.lua", 'if ok then ok, why = Rl.spend(now, true) end',
          'if ok and not kill then ok, why = Rl.spend(now, true) end'),
     ]),
+    ("combat-reserve-suppresses-kills", "Kills R2 reserve: full combat bucket", [
+        ("LayerEnemies/Relay.lua", 'if tokens < cost + OWN_RESERVE then return false, "own reserve" end',
+         'if tokens < cost + OWN_RESERVE * cost then return false, "own reserve" end'),
+    ]),
     ("full-kill-ledger-drops-new-id", "Kills R2 ledger:", [
         ("LayerEnemies/Relay.lua", 'if n >= Rl.MAX then st.killRecords[oldestKey] = nil end',
          'if n >= Rl.MAX then return nil end'),

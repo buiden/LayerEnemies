@@ -21,9 +21,9 @@ MUTANTS = [
         ('if not used or used >= cap - (fighting and 2 or 3) then return false, "guild reserve" end',
          '-- guild-minute reserve removed'),
     ]),
-    ('one-combat-own-line-only', 'LayerEnemies/Relay.lua', [
-        ('if tokens < cost + OWN_RESERVE * cost then return false, "own reserve" end',
-         'if tokens < cost + OWN_RESERVE then return false, "own reserve" end'),
+    ('combat-reserve-suppresses-all-relays', 'LayerEnemies/Relay.lua', [
+        ('if tokens < cost + OWN_RESERVE then return false, "own reserve" end',
+         'if tokens < cost + OWN_RESERVE * cost then return false, "own reserve" end'),
     ]),
 ]
 

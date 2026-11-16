@@ -1,6 +1,39 @@
 # Guild-intel PR 4: round-2 corrections
 
-## Scope and result
+## Combat reserve correction (supersedes the earlier two-line ruling)
+
+Owner ruling: keep **two prefix tokens** reserved in both modes, protecting two own lines in peace and **one own line in combat**. A combat relay costs two tokens and can now send at four or more available tokens, subject to every other unchanged limit. Keep the last three guild-minute slots in peace/two in combat, share-off and drop-without-queue behavior. Only `Relay.spend`'s prefix admission expression changes; `Wire.lua`, `OwnDeath.lua` and `test/verify.py` are byte-unchanged from the starting head `a342c7f672b06edf99d42b0c53410e26e800655a`.
+
+Known limit, explicitly accepted: relay -> rare K death line -> O in combat can send R=1/K=1 but drop O=0. One own line is reserved, not both; no retry or queue is added. README and the real K-then-O test now state that limit instead of suppressing all combat relays.
+
+### Test-first and verification
+
+- Baseline policy: **22 passed, 0 failed, 1726 assertions**. Added an explicit full-bucket combat-send test, required nonzero relays in the 300-second sustained HH cases (1/s and 1/4s, own O still 5/5), restored three combat burst relay expectations from zero to one, and migrated the K-then-O expectation to the accepted limit.
+- Before the source edit: **16 passed, 7 failed, 1754 assertions**; each failure was an expected missing combat relay. After the minimal fix: **23 passed, 0 failed, 2200 assertions**.
+- Policy mutants: **4/4 killed**. The former one-line-reserve mutant is inverted: restoring the oversized reserve fails seven tests. Share-off, token-reserve removal and minute-reserve removal mutants remain.
+- `python3 test/verify.py`, foreground, Lua 5.1.5: exit 0, **RESULT: 985 tests passed, 0 failed, 94599 assertions**. Syntax/API policy, strict send gate, media/TOC/package integrity/source parity and `git diff --check` pass.
+- Archive SHA-256: `e4f4aae4a9b78423c06b1fc4d0ca4a4fc1306dbc41b58ea6791e3cc71f164147`.
+
+### Reviewer p2 probes, 300 seconds per sustained mode
+
+All **24** sustained combinations (HH/Spy/mixed, 1s/4s, peace/combat, relays off/on) give **O=5/5, zero refusals**. With relays off R=0 in every mode. Relays-on counts:
+
+| Family/cadence | Peace O / R | Combat O / R |
+|---|---|---|
+| HH, 1/s | 5/5 / 80 | 5/5 / 35 |
+| HH, 1/4s | 5/5 / 75 | 5/5 / 35 |
+| Spy, 1/s | 5/5 / 26 | 5/5 / 10 |
+| Spy, 1/4s | 5/5 / 30 | 5/5 / 29 |
+| mixed, 1/s | 5/5 / 80 | 5/5 / 35 |
+| mixed, 1/4s | 5/5 / 30 | 5/5 / 29 |
+
+`kafter`: peace K=1/O=1/R=3, no refusal; combat K=1/O=0/R=1, one O refusal (documented limit). `off`: zero guild sends; enabling permits only a fresh O and WE Q, not held relays. No runtime errors.
+
+Evidence: `/opt/data/cache/scratch/gi-r3-evidence/combat-one-own/`, including raw logs, machine-checked mode counts and `pr4-probe-results.json`. Reused the previous builder's probe wrappers: p2's body is byte-identical to the reviewer snippet with the shared harness prepended; rp2 is byte-identical in full. Initial overly strict whole-file p2 comparison stopped the runner before execution; corrected only wrapper validation after confirming the unchanged snippet and exact shared harness prefix. Reviewer originals are untouched.
+
+Changed source/test/docs: `LayerEnemies/Relay.lua`, `README.md`, `test/relay_policy.lua`, `test/relay_policy_mutants.py`. This note and regenerated `notes/test-results.txt` / `notes/verification.json` are committed separately. Final review: self-review (no subagent tool); independent review remains the parent's lane. Native checks not run (alpha, owner's decision). Local commits only; no push, GitHub write or install.
+
+## Earlier round-2 scope and result (historical)
 
 Started from `f43c837ddd92f0f6530b392a05f4c4103f90dcbf` on `open-gi4-fix`; existing commits preserved. Local commits only, no push or GitHub writes. Reviewer originals under the mani profile were read-only; copied probes and logs are in `/opt/data/cache/scratch/gi-r3-evidence/`.
 

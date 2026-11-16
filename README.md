@@ -281,10 +281,11 @@ in guild-only mode**, including a round already in progress.
   let one repeat). At
   most 128 offers wait at once. Wire permits 5 quick prefix sends, then one
   per 2 seconds. One shared conservative `Relay.spend` mirror counts all
-  O/K/F/H/R attempts. Every R kind leaves capacity for two own lines: two
-  tokens out of combat, four in combat. Combat relays cannot fit beside that
-  reserve and are dropped. Relays also leave the final three guild-minute
-  slots in peace, two in combat, across every prefix. Earlier own/control
+  O/K/F/H/R attempts. Every R kind leaves two tokens: two own lines out of
+  combat, one in combat. Combat relays can send with at least four tokens,
+  subject to the other limits. A relay followed by K then O can lose the O
+  in combat; only one own line is reserved. Relays also leave the final three
+  guild-minute slots in peace, two in combat, across every prefix. Earlier own/control
   traffic reduces the token allowance too; refused attempts are not refunded.
   Budget refusals are dropped, not queued. From 0.4.0 the same route carries two short lines older
   versions ignore: `F|1` ("which LayerEnemies hosts are on?", from the Find
@@ -679,11 +680,13 @@ A copy waits a random 0.5–2.5 seconds; a guildmate's copy heard during the
 wait cancels ours. At most 6 Spy relay attempts per rolling minute per
 client, and each full enemy name at most once per 60 seconds across all
 three family sources and observers. These are `forward` priority and never
-queue. All guild relays leave capacity for **two own lines** in the five-token
-LEGW1 bucket (two tokens out of combat, four in combat; refill is one per two
-seconds). A combat relay costs two tokens too, so it cannot fit beside that
-reserve and is dropped, not queued. This protects K followed by O as well as O
-alone. The relay gate accounts for other LEGW1 authors too, conservatively
+queue. All guild relays leave **two tokens** in the five-token LEGW1 bucket
+(refill is one per two seconds): two own lines out of combat, **one own line
+in combat**. A combat relay costs two tokens, so it can send with at least
+four tokens when the other limits allow it. Known limit: a relay followed
+immediately by the rare K death line and then O can lose the O in combat;
+the reserve protects one own line, not both. Refused relays are dropped,
+not queued. The relay gate accounts for other LEGW1 authors too, conservatively
 spending refused attempts. Relays also leave the last **three guild-minute
 slots out of combat, two in combat**, using Wire's actual count across every
 prefix. Wire's send path and existing shared/minute caps are unchanged.
@@ -905,6 +908,9 @@ evicted id may be relayed again; it still obeys every send limit. The ledger is
 never saved. `/le share off` stops these relays too, not local receipt.
 Kill relays use the same `Relay.spend` token and guild-minute reserve as Spy,
 War Effort and legacy HeadHunter relays, with no separate reserve to bypass it.
+They can send in combat while leaving room for one own line, not both K and O.
+Shared admission gives no relay family priority over another; mixed traffic
+can still spend the kill-attempt budget without sending a kill relay.
 Freshness is checked again at send time. At most **4 kill-forward attempts
 per rolling minute**, and **one per whole killer name per 60 seconds**;
 foreign realms are distinct. These are `forward` priority: over budget or

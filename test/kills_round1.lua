@@ -132,7 +132,7 @@ for _,mode in ipairs({"mixed","legacy"}) do
             H.deliver("PLAYER_TARGET_CHANGED"); H.drain(); H.advance(1.9)
             burst(mode); H.advance(1.2); N.Main.shareTick()
             eq(#sends("^O|"),1,"own sighting must leave at its settle slot")
-            eq(#sends("^R|"),combat and 0 or 3)
+            eq(#sends("^R|"),combat and 1 or 3,"one combat own line reserved without suppressing all relays")
             yes(N.Main.share.shared["Player-1-123"]); no(N.Main.error)
         end)
     end
