@@ -839,7 +839,7 @@ function M.hopAnyBusy()
     return false
 end
 function M.hopAnyPreview()
-    if M.hopAnyState and M.hopAnyState.round then return {label="Stop",enabled=true} end
+    if M.hopAnyState and M.hopAnyState.round then return {label="Stop",enabled=true,round=M.hopAnyState.round} end
     local ok,why=N.HopAny.check(M.hopAnyState,M.hopAnyContext())
     return {label="Hop to another layer",enabled=ok,reason=why}
 end
@@ -860,9 +860,12 @@ function M.hopAny()
     local ok,why=N.HopAny.begin(M.hopAnyState,c)
     if not ok then M.say("LayerEnemies: "..why); return false end
     if not A.who(c.term) then
-        N.HopAny.close(M.hopAnyState); M.say("LayerEnemies: the game refused the search."); return false
+        N.HopAny.close(M.hopAnyState); M.say("LayerEnemies: the game refused the search.")
+        if N.UI then N.UI.refresh(true) end
+        return false
     end
     M.hopAnySchedule(M.hopAnyState.round)
+    if N.UI then N.UI.refresh(true) end
     M.say("LayerEnemies: searching this zone; up to 8 players will be asked, one per second.")
     return true
 end
@@ -880,7 +883,7 @@ function M.hopAnyStop(reason)
     N.HopAny.close(st,now())
     if M.invite.pending and M.invite.pending.any then M.invite.pending=nil end
     M.say("LayerEnemies: "..(reason or "search stopped")..". Sent requests cannot be recalled; a late invite may still arrive.")
-    if N.UI then N.UI.refresh() end
+    if N.UI then N.UI.refresh(true) end
     return true
 end
 function M.hopAnySafe()
@@ -899,11 +902,11 @@ function M.hopAnyWho()
     if not st or not st.round or st.round.phase~="who" then return end
     if not M.hopAnySafe() then return end
     local note=N.HopAny.expire(st,now())
-    if note then M.say("LayerEnemies: "..note); return end
+    if note then M.say("LayerEnemies: "..note); if N.UI then N.UI.refresh(true) end; return end
     local c=M.hopAnyContext()
     c.hosts=M.candidates(); c.ignored=A.ignored; c.offline=N.Wire.offlineUntil; c.guild=A.guildMember
     local ok,why=N.HopAny.who(st,A.whoRows(),c)
-    if why then M.say("LayerEnemies: "..why) end
+    if why then M.say("LayerEnemies: "..why); if N.UI then N.UI.refresh(true) end end
     if ok then M.hopAnyPump() end
 end
 -- The only Wire caller for hop-any requests. No queue, catch-up burst, retry or second round.
@@ -913,7 +916,7 @@ function M.hopAnyPump()
     local note=N.HopAny.expire(st,now())
     if note then
         if M.invite.pending and M.invite.pending.any then M.invite.pending=nil end
-        M.say("LayerEnemies: "..note); return
+        M.say("LayerEnemies: "..note); if N.UI then N.UI.refresh(true) end; return
     end
     local c=N.HopAny.next(st,now())
     if c then
@@ -925,6 +928,7 @@ function M.hopAnyPump()
         if message then
             if M.invite.pending and M.invite.pending.any then M.invite.pending=nil end
             M.say("LayerEnemies: "..message)
+            if N.UI then N.UI.refresh(true) end
         end
     end
     M.hopAnySchedule(st.round)
@@ -1672,7 +1676,10 @@ end
 -- The hop is over (moved and left, failed, or 120 s without an invite): no ask is pending any more.
 function M.hopDone()
     N.Hop.clear(M.hop); M.invite.pending=nil
-    if M.hopAnyState then N.HopAny.close(M.hopAnyState,now()) end
+    if M.hopAnyState and M.hopAnyState.round then
+        N.HopAny.close(M.hopAnyState,now())
+        if N.UI then N.UI.refresh(true) end
+    end
 end
 function M.groupCheck()
     local grouped=A.grouped()

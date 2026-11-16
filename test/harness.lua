@@ -7595,5 +7595,36 @@ test("hop-any live group guard stops before the roster event",function()
     eq(#sent,1); eq(#whoCalls,1)
 end)
 
+test("hop-any stale painted Stop after expiry never starts another round",function()
+    local N=anyFixture(); N.UI.toggle(); N.UI.select("friendly"); anyClick(N,true)
+    deliver("WHO_LIST_UPDATE"); for _=1,7 do advance(1) end
+    eq(#sent,8); advance(119.5); eq(N.UI.hopAny.label:GetText(),"Stop")
+    clock=clock+.7; N.Main.hopAnyPump(); no(N.Main.hopAnyState.round)
+    anyClick(N,true); eq(#whoCalls,1,"a stale Stop is never a new search")
+    deliver("WHO_LIST_UPDATE"); for _=1,8 do advance(1) end
+    eq(#sent,8); no(N.Main.hopAnyState.round)
+end)
+
+test("hop-any expiry requests a next-frame repaint before the age tick",function()
+    local N=anyFixture(); N.UI.toggle(); N.UI.select("friendly"); anyClick(N,true)
+    deliver("WHO_LIST_UPDATE"); for _=1,7 do advance(1) end
+    advance(119.5); eq(N.UI.hopAny.label:GetText(),"Stop")
+    clock=clock+.7; N.Main.hopAnyPump(); no(N.Main.hopAnyState.round)
+    drain(); eq(N.UI.hopAny.label:GetText(),"Hop to another layer")
+    anyClick(N,true); eq(#whoCalls,2)
+end)
+
+test("hop-any stale button mode cannot stop a later slash-started round",function()
+    local N=anyFixture(); N.UI.toggle(); N.UI.select("friendly")
+    anyClick(N); local first=N.Main.hopAnyState.round
+    eq(N.UI.hopAny.label:GetText(),"Hop to another layer")
+    anyClick(N,true); eq(N.Main.hopAnyState.round,first); eq(#whoCalls,1)
+    eq(N.UI.hopAny.label:GetText(),"Stop")
+    N.Main.hopAnyStop(); clock=clock+30; anyClick(N)
+    local second=N.Main.hopAnyState.round; yes(second); no(first==second)
+    anyClick(N,true); eq(N.Main.hopAnyState.round,second); eq(#whoCalls,2)
+    anyClick(N,true); no(N.Main.hopAnyState.round)
+end)
+
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

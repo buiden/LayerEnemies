@@ -130,7 +130,7 @@ function U.render()
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
     U.hopAny:SetShown(U.tab=="friendly")
     local hop=N.Main.hopAnyPreview()
-    U.hopAny.label:SetText(hop.label); U.hopAny.reason=hop.reason or false
+    U.hopAny.label:SetText(hop.label); U.hopAny.reason=hop.reason or false; U.hopAny.round=hop.round or false
     if hop.enabled then U.hopAny:Enable() else U.hopAny:Disable() end
     U.findHosts:SetShown(U.tab=="friendly")
     local wait=N.Hosts.askWait(M.heard,time)
@@ -202,10 +202,15 @@ function U.render()
     U.hint:SetText(#rows==0 and "No eligible observations yet." or (#rows>visible and ("Mouse wheel: "..(U.offset+1).."–"..math.min(#rows,U.offset+visible).." of "..#rows) or ""))
     U.lastPaint=time
 end
-function U.refresh()
+function U.refresh(soon)
     if not U.frame or not U.frame:IsShown() then return end
-    -- Data callbacks only mark dirty; a shown-only one-second timer paints ages/data.
+    -- Data callbacks normally wait for the age tick. Action transitions repaint
+    -- next frame; the painted action stays authoritative until that repaint.
     U.dirty=true
+    if soon and not U.paintPending then
+        U.paintPending=true
+        if not pcall(C_Timer.After,0,function() U.paintPending=false; U.render() end) then U.paintPending=false end
+    end
 end
 function U.tick(generation)
     if not U.frame:IsShown() or generation~=U.generation then return end
@@ -272,10 +277,14 @@ function U.create()
     U.findHosts=button(U.body,84,18,"Find hosts",function() N.Main.findHosts(); U.render() end); U.findHosts:SetPoint("TOPRIGHT",-4,0); U.findHosts:Hide()
     U.hopAny=button(U.body,180,20,"Hop to another layer",function()
         local M=N.Main
-        if M.hopAnyState.round then M.hopAnyStop() else M.hopAny() end
+        -- Act only on the painted mode and round, not a new state between paints.
+        local shown=U.hopAny.round
+        if shown then
+            if M.hopAnyState.round==shown then M.hopAnyStop() end
+        elseif not M.hopAnyState.round then M.hopAny() end
         U.render()
     end)
-    U.hopAny.reason=false; U.hopAny:SetPoint("TOPLEFT",4,-23); U.hopAny:Hide()
+    U.hopAny.reason=false; U.hopAny.round=false; U.hopAny:SetPoint("TOPLEFT",4,-23); U.hopAny:Hide()
     U.hopAny:SetScript("OnEnter",function()
         local tip=_G.GameTooltip
         if U.hopAny.reason and S.tab(tip) then
