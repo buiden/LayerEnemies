@@ -57,7 +57,7 @@ function M.applyLayer(id,source)
     if M.store.bulo~=nil then
         M.boundary(M.store.zone)
     else
-        T.reset(M.store,now(),M.store.zone,id,M.npcs.current)
+        T.learn(M.store,now(),id,M.npcs.current)
         N.Reports.clearPending(M.receiver)
     end
     M.store.bulo=id; M.store.zoneUID=M.npcs.current; M.layerSource=source
@@ -1053,8 +1053,10 @@ function M.shareTick()
     if not zone or zone~=M.store.zone then return end
     local rep=N.Share.pick(M.share,M.store.localSeen,time,zone)
     if not rep then return end
-    -- our layer as known now; unknown or ambiguous (mixed servers in the zone) is sent as unknown, never guessed
+    -- A report has one layer field: never attach a learned key to any earlier, unlayered sighting.
+    -- Unknown or ambiguous (mixed servers in the zone) is still sent as unknown, never guessed.
     local key=not M.store.ambiguous(time) and L.key(M.store.bulo) or nil
+    for _,e in ipairs(rep.enemies) do if e.layer==nil then key=nil; break end end
     local rid=M.nextReportId()
     local inGuild=S.call(IsInGuild)==true
     -- to the guild: one O line with up to four names
@@ -1529,7 +1531,7 @@ function M.text(command)
         if e.reporter then
             extra=" | reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " | relayed" or "")..(e.positionKind and (" | "..e.positionKind) or "")..(e.untimed and " | time of receipt (no timestamp)" or "")..(e.age and e.age>0 and (" | claimed "..e.age.." s old") or "").." | "..(e.relation=="same" and "same server key as yours" or e.relation=="other" and ("other server key "..tostring(e.reportLayer)) or "layer unknown")
         end
-        say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or ""))
+        say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or "")..(not e.reporter and e.layer==nil and " | layer unknown when seen" or ""))
     end
     if kind=="reported" then M.hopList={at=now(),records=records,shown=shown} end
     if kind=="reported" and #rows>0 then say("To go there, ask a reporter for an invite: /le hosts") end

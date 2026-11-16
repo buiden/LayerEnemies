@@ -6076,5 +6076,117 @@ test("guild O full name: observed split identity crosses share, Wire and cross-z
         no(N.Main.error)
     end
 end)
+-- Seen-without-layer regression cases (numbers follow the implementation plan).
+test("seen unknown 01: a targeted enemy is listed and labelled before the layer is known",function()
+    local N=loadAddon(); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local rows=N.Store.rows(N.Main.store,clock,"local")
+    eq(#rows,1); eq(rows[1].layer,nil); eq(rows[1].zone,100)
+    slash("list"); local line
+    for _,v in ipairs(log) do if v:find("Aster Vale |",1,true) then line=v end end
+    yes(line); yes(line:match(" | layer unknown when seen$")); no(N.Main.error)
+    N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (1)")
+    yes(N.UI.pool[1].sub.text:find("layer unknown",1,true))
+    eq(N.UI.layer.text,"?")
+    yes(N.UI.meta.text:find("layer unknown: mouse over or target two different kinds of NPC within 15 s",1,true))
+end)
+test("seen unknown 02: learning the layer preserves nil-layer rows but clears reports and identities",function()
+    local N=loadAddon(); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local t=N.Main.store; local old=t.serial; local at=t.localSeen["Player-1-901"].at
+    yes(next(t.identities)); report(1,7086); yes(next(t.reports)); advance(1); establish(N)
+    local rows=N.Store.rows(t,clock,"local")
+    eq(#rows,1); eq(rows[1].layer,nil); eq(rows[1].at,at); eq(rows[1].ownAt,at)
+    eq(rows[1].epoch,old+1); yes(rows[1].pre); eq(t.serial,old+1); eq(t.zoneUID,7)
+    yes(t.epoch>at); eq(next(t.identities),nil); eq(next(t.reports),nil); no(N.Main.error)
+    -- Only nil-layer rows of the old serial survive; learning is not a general reset bypass.
+    local other=N.Store.new(0); other.zone=100
+    yes(N.Store.observe(other,{key="kept",at=1,faction="opposite"},1))
+    yes(N.Store.observe(other,{key="old",at=1,faction="opposite"},1)); other.localSeen.old.epoch=0
+    yes(N.Store.observe(other,{key="layered",at=1,faction="opposite"},1)); other.localSeen.layered.layer="9000-7"
+    N.Store.learn(other,2,"7086-7",7)
+    eq(N.Safe.count(other.localSeen),1); yes(other.localSeen.kept); eq(other.localSeen.kept.layer,nil)
+end)
+test("seen unknown 08: a learned layer is never assigned to an earlier sighting on the wire",function()
+    local N=loadAddon(); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(1); establish(N); advance(1.8); N.Main.shareTick()
+    eq(#oLines(),1); yes(oLines()[1].text:find("^O|1|1|100|0.250|0.750||3|1|"),oLines()[1].text)
+    -- All known: the existing layered O1 bytes remain unchanged.
+    N=loadAddon(); establish(N); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil; advance(3); N.Main.shareTick()
+    eq(#oLines(),1)
+    eq(oLines()[1].text,"O|1|1|100|0.250|0.750|7086|3|1|41737465722056616c65:MAGE:60")
+    -- Mixed reports must check every enemy, not only the newest/first row.
+    N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(1); establish(N); seeFoe("Briar Stone","Player-1-902"); units.target=nil
+    advance(1.8); N.Main.shareTick(); eq(#oLines(),1)
+    yes(oLines()[1].text:find("^O|1|1|100|0.250|0.750||"),oLines()[1].text)
+    no(N.Main.error)
+end)
+test("seen unknown 10: nil-layer rows never become map candidates",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+    eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
+    advance(1); establish(N); eq(#N.Store.mapCandidates(N.Main.store,clock,100),0)
+    seeFoe("Briar Stone","Player-1-902"); units.target=nil
+    local rows=N.Store.mapCandidates(N.Main.store,clock,100)
+    eq(#rows,1); eq(rows[1].key,"Player-1-902"); eq(rows[1].layer,"7086-7")
+    eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
+end)
+test("seen unknown 03: a fresh sighting replaces the pre-layer row with the known layer",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(1); establish(N)
+    local before=N.Store.rows(N.Main.store,clock,"local"); eq(#before,1); eq(before[1].layer,nil)
+    advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local rows=N.Store.rows(N.Main.store,clock,"local")
+    eq(#rows,1); eq(rows[1].layer,"7086-7"); eq(rows[1].pre,nil); eq(rows[1].ownAt,clock)
+    no(rows[1]==before[1]); no(N.Main.error)
+end)
+test("seen unknown 04: kept rows expire 600 seconds after the original sighting",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local at=clock; advance(1); establish(N)
+    eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+    advance(at+599-clock); eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+    advance(1); eq(#N.Store.rows(N.Main.store,clock,"local"),0)
+end)
+test("seen unknown 05: unreadable faction stays unclassified with no layer",function()
+    local N=loadAddon(); advance(1)
+    units.target=player("Aster Vale",nil,"Player-1-901"); deliver("PLAYER_TARGET_CHANGED"); drain(); units.target=nil
+    eq(#N.Store.rows(N.Main.store,clock,"local"),0)
+    local rows=N.Store.rows(N.Main.store,clock,"unclassified"); eq(#rows,1); eq(rows[1].layer,nil)
+    advance(1); establish(N); eq(#N.Store.rows(N.Main.store,clock,"local"),0)
+    rows=N.Store.rows(N.Main.store,clock,"unclassified"); eq(#rows,1); eq(rows[1].layer,nil)
+end)
+test("seen unknown 06: a real layer or raw-id change still wipes kept pre-layer rows",function()
+    for _,id in ipairs({"7086-8","8000-7"}) do
+        local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+        advance(1); establish(N); eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+        local b=fakeBulo(id); N.Main.poll()
+        eq(N.Main.store.bulo,id); eq(next(N.Main.store.localSeen),nil)
+        eq(#N.Store.rows(N.Main.store,clock,"local"),0); no(N.Main.error)
+    end
+end)
+test("seen unknown 07: shard transfer still wipes unknown and kept sightings",function()
+    for _,known in ipairs({false,true}) do
+        local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+        if known then advance(1); establish(N) end
+        eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+        deliver("SHARD_TRANSFER"); drain(); eq(next(N.Main.store.localSeen),nil)
+        eq(#N.Store.rows(N.Main.store,clock,"local"),0); no(N.Main.error)
+    end
+end)
+test("seen unknown 09: learning preserves the 60-second shared-enemy cooldown",function()
+    local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(3); N.Main.shareTick(); eq(#oLines(),1)
+    local at=clock; local shared=N.Main.share
+    advance(1); establish(N); eq(#N.Store.rows(N.Main.store,clock,"local"),1)
+    eq(N.Main.share,shared); eq(shared.shared["Player-1-901"],at)
+    N.Main.shareTick(); eq(#oLines(),1)
+    advance(at+57-clock); seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    advance(2); N.Main.shareTick(); eq(#oLines(),1,"not before 60 seconds")
+    advance(1); N.Main.shareTick(); eq(#oLines(),2,"new report at 60 seconds")
+    no(N.Main.error)
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

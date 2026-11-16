@@ -228,8 +228,10 @@ shape is reported as data unavailable.
 - `/le`: toggle the window.
 - `/le list`: current layer/source, source statuses, the War Effort embassy
   state (or why it is off), the network level, each network, whether your
-  sightings are shared, and directly observed opposite-faction players.
-  Reports are counted separately, never mixed in.
+  sightings are shared, and directly observed opposite-faction players, even
+  while your layer is unknown. Rows seen without a layer say "layer unknown
+  when seen", including after you learn your layer. Reports are counted
+  separately, never mixed in.
 - `/le net`: the network level (public or guild only) and each network, with
   the reason when one is off (switched off, the real addon loaded, guild
   only, not in this version). `/le net guild` and `/le net public` set the
@@ -299,7 +301,16 @@ can establish a local inferred server ID. Confirmation of zoneUID does not
 confirm the server field: the two agreeing readings must also agree on the
 full raw ID before it becomes a local layer label. No startup nameplate scan
 or combat-log listener is used; fresh target/mouseover/nameplate events are
-needed. Until a zone and layer label are known, confirmed-layer rows are hidden.
+needed. A readable zone is required; knowing your layer is not.
+
+"Seen by you" includes opposite-faction players seen while your layer was
+unknown, labelled "layer unknown". Learning your layer keeps those rows,
+without assigning them the new layer. A fresh sighting replaces the old row
+with the then-known layer; otherwise it expires ten minutes after the original
+sighting. Such unknown-layer rows are not map candidates. Reports and possible
+identity matches are still cleared when your layer is learned. Sharing uses
+the existing empty layer field whenever any enemy in a report was seen without
+a layer; the message format and send routes are unchanged.
 
 All identifiers are scoped to the current zone. Real zone changes, world
 entry, transfer events, and exact Bulo ID changes wipe the observation epoch,

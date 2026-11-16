@@ -168,7 +168,7 @@ function U.render()
         r.age:SetText(e.at and age(e.at) or e.age and age(time-e.age) or "")
         r.title:SetText(e.displayName or e.name or "Unknown")
         if U.tab=="local" then
-            r.sub:SetText(className(e.class).." · "..M.zoneName(e.zone)); askState(r,nil)
+            r.sub:SetText(className(e.class).." · "..M.zoneName(e.zone)..(e.layer==nil and " · layer unknown" or "")); askState(r,nil)
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))
             r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or ""))

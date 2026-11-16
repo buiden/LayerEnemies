@@ -8,8 +8,17 @@ function T.reset(t,now,zone,bulo,zoneUID)
     t.epoch=now; t.serial=t.serial+1; t.zone=zone; t.bulo=bulo; t.zoneUID=zoneUID
     S.clear(t.localSeen); S.clear(t.reports); S.clear(t.identities)
 end
+-- Learning our first layer must not erase sightings made before it was known, or guess their layer.
+function T.learn(t,now,bulo,zoneUID)
+    local kept={}
+    for k,e in pairs(t.localSeen) do
+        if e.epoch==t.serial and e.layer==nil then kept[k]=e end
+    end
+    T.reset(t,now,t.zone,bulo,zoneUID)
+    for k,e in pairs(kept) do e.epoch=t.serial; e.pre=true; t.localSeen[k]=e end
+end
 function T.prune(t,now)
-    for k,v in pairs(t.localSeen) do if now-v.at>=600 or v.at<t.epoch then t.localSeen[k]=nil end end
+    for k,v in pairs(t.localSeen) do if now-v.at>=600 or (not v.pre and v.at<t.epoch) then t.localSeen[k]=nil end end
     -- the age counts from the origin's time; the epoch check from receipt
     for k,v in pairs(t.reports) do local r=v.record; if now-(r.at or r.heard)>=T.ttl(r) or r.heard<t.epoch then t.reports[k]=nil end end
     -- Identity candidates expire with observations; never persist names from old epochs.
@@ -160,7 +169,7 @@ function T.rows(t,now,kind)
     else
         for _,e in pairs(t.localSeen) do
             local factionOK=e.faction=="opposite"
-            if e.epoch==t.serial and e.zone==t.zone and t.bulo and e.layer==t.bulo and ((kind=="unclassified" and not factionOK) or (kind~="unclassified" and factionOK)) then out[#out+1]=e end
+            if e.epoch==t.serial and e.zone==t.zone and (e.layer==nil or e.layer==t.bulo) and ((kind=="unclassified" and not factionOK) or (kind~="unclassified" and factionOK)) then out[#out+1]=e end
         end
     end
     table.sort(out,newest); return out
@@ -190,7 +199,7 @@ function T.mapCandidates(t,now,shownZone)
     local out={}
     if shownZone~=t.zone then return out end
     for _,e in ipairs(T.rows(t,now,"local")) do
-        if e.x and e.y then out[#out+1]=e end
+        if e.layer~=nil and e.x and e.y then out[#out+1]=e end
     end
     return out
 end
