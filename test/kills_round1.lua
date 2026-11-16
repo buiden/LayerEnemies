@@ -170,17 +170,17 @@ for _,mode in ipairs({"off before receipt","off while pending","off then on whil
     end)
 end
 
-test("Kills R1 bounds: live event ledger refuses overflow and expires without renewal",function()
+test("Kills R1 bounds: live event ledger evicts overflow and expires without renewal",function()
     local N=boot(); local first=death(); hear(first); H.advance(1.1)
     for i=1,N.Relay.MAX+4 do
         hear(death({victim="Victim "..H.abc(i),killer="Enemy "..H.abc(i)}),"Carrier "..H.abc(i))
     end
     eq(N.Safe.count(N.Main.relay.killRecords),N.Relay.MAX)
-    eq(N.Known.get(N.Main.find.known,"Enemy "..H.abc(N.Relay.MAX+4),H.clock()),nil)
+    yes(N.Known.get(N.Main.find.known,"Enemy "..H.abc(N.Relay.MAX+4),H.clock()),"overflow must remain visible")
     N.Relay.clear(N.Main.relay); H.advance(121); hear(first,"Later Carrier"); H.advance(1.1)
-    eq(#sends(),1,"overflow/clear cannot evict a live id")
+    eq(#sends(),2,"an evicted id may relay again; a dark new kill is worse")
     H.advance(N.Known.TTL+N.HeadHunter.WINDOW); hear(death({killer="New Enemy"}),"New Carrier")
-    eq(N.Safe.count(N.Main.relay.killRecords),1); H.advance(1.1); eq(#sends(),2)
+    eq(N.Safe.count(N.Main.relay.killRecords),1); H.advance(1.1); eq(#sends(),3)
     no(N.Main.error)
 end)
 

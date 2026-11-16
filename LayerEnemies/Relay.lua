@@ -186,19 +186,25 @@ local function spyRoom(st, record, now, spend)
     if spend then st.spyTimes[#st.spyTimes + 1] = now; st.spyNames[key] = now end
     return true
 end
--- Kill identity spans all carriers, including guild copies. Unlike the short
--- legacy relay history, live kill entries are never evicted or renewed by replay.
--- Retain through Known's lifetime plus accepted HH future skew: a clamped future
--- stamp must not become a new event later. A full ledger refuses new identities.
+-- Kill identity spans all carriers, including guild copies. Keep the original age
+-- through Known's lifetime plus accepted HH future skew, without replay renewal.
+-- Prune expired ids first; at capacity evict the oldest admission, never hide a
+-- new kill. An evicted id may repeat, but retained ids keep their once-only flags.
 local function killEvent(st, record, now)
     local key = Rl.key(record)
-    local n = 0
+    local n, oldest, oldestKey = 0, nil, nil
     for k, event in pairs(st.killRecords) do
-        if now >= event.expires then st.killRecords[k] = nil else n = n + 1 end
+        if now >= event.expires then st.killRecords[k] = nil else
+            n = n + 1
+            -- Expiry is admission + a fixed lifetime, not the claimed origin time.
+            if not oldest or event.expires < oldest or (event.expires == oldest and k < oldestKey) then
+                oldest, oldestKey = event.expires, k
+            end
+        end
     end
     local event = st.killRecords[key]
     if not event then
-        if n >= Rl.MAX then return nil end
+        if n >= Rl.MAX then st.killRecords[oldestKey] = nil end
         event = { at = record.at, expires = now + N.Known.TTL + N.HeadHunter.WINDOW }
         st.killRecords[key] = event
     end

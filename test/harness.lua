@@ -10,6 +10,8 @@ local forbidden
 local function test(name,fn)
     if arg and arg[1]=="--spy-relay-only" and not name:find("Spy relay",1,true) then return end
     if arg and arg[1]=="--relay-policy-only" and not name:find("Guild relay policy:",1,true) then return end
+    if arg and arg[1]=="--kills-only" and not name:find("Kills",1,true) then return end
+    if arg and arg[1]=="--kills-round2-only" and not name:find("Kills R2",1,true) then return end
     local ok,err=pcall(fn)
     -- No test may reach an API that sends, invites, accepts or leaves.
     if ok and (forbidden or 0)>0 then ok,err=false,"forbidden API reached "..forbidden.." time(s)" end

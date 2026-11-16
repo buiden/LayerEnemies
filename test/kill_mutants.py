@@ -78,6 +78,10 @@ MUTANTS = [
         ("LayerEnemies/Relay.lua", 'if ok then ok, why = Rl.spend(now, true) end',
          'if ok and not kill then ok, why = Rl.spend(now, true) end'),
     ]),
+    ("full-kill-ledger-drops-new-id", "Kills R2 ledger:", [
+        ("LayerEnemies/Relay.lua", 'if n >= Rl.MAX then st.killRecords[oldestKey] = nil end',
+         'if n >= Rl.MAX then return nil end'),
+    ]),
 ]
 
 
@@ -93,7 +97,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lua", default="lua")
     args = parser.parse_args()
-    command = [args.lua, "test/harness.lua"]
+    command = [args.lua, "test/harness.lua", "--kills-only"]
     baseline, output, failed = run(command)
     assert baseline.returncode == 0 and failed == 0, output
     results = []
@@ -105,6 +109,8 @@ def main():
                 text = file.read_text()
                 assert text.count(before) == 1, (name, path, text.count(before))
                 file.write_text(text.replace(before, after))
+            for path in originals:
+                subprocess.run([str(Path(args.lua).with_name('luac')), '-p', path], cwd=ROOT, check=True)
             result, output, failed = run(command)
             (ROOT / ("build-kill-mutant-" + name + ".log")).write_text(output)
             caught = [line[5:] for line in output.splitlines() if line.startswith("FAIL ")]

@@ -280,11 +280,13 @@ in guild-only mode**, including a round already in progress.
   wait, and only while the id is remembered (256 ids; a flood of more ids can
   let one repeat). At
   most 128 offers wait at once. Wire permits 5 quick prefix sends, then one
-  per 2 seconds. A conservative mirror counts all O/K/F/H/R attempts, and
-  requires every R kind to leave two prefix tokens: at most 5 - 2 = 3 quick
-  relays from a full bucket. Earlier own/control traffic reduces that allowance
-  too. It refills one per 2 seconds and charges double in combat; refused
-  attempts are not refunded. Budget refusals are dropped, not queued. From 0.4.0 the same route carries two short lines older
+  per 2 seconds. One shared conservative `Relay.spend` mirror counts all
+  O/K/F/H/R attempts. Every R kind leaves capacity for two own lines: two
+  tokens out of combat, four in combat. Combat relays cannot fit beside that
+  reserve and are dropped. Relays also leave the final three guild-minute
+  slots in peace, two in combat, across every prefix. Earlier own/control
+  traffic reduces the token allowance too; refused attempts are not refunded.
+  Budget refusals are dropped, not queued. From 0.4.0 the same route carries two short lines older
   versions ignore: `F|1` ("which LayerEnemies hosts are on?", from the Find
   hosts click, at most once per 60 seconds) and `H|1|<server key>|<zone>` (a
   host's answer: once when you turn hosting on and once in answer to an `F`,
@@ -893,12 +895,16 @@ guild, including in stand-down. It uses the existing `LEGW1` GUILD route:
 one fully named killer, victim coordinates, unknown layer and original age.
 Older clients reject these unknown kinds as invalid and ignore the line.
 The existing random 0.5–2.5-second wait and guild-copy stand-down apply.
-The same source/victim/record id is offered only once across all carriers,
-not again after the legacy 120-second memory. Duplicate guild copies cannot
-reset Find's age. The separate session ledger keeps at most 256 identities
-for the 60-minute evidence lifetime plus 300 seconds of accepted future skew;
-when full, it refuses new identities instead of evicting a live one. It is
-never saved. `/le share off` stops these relays too.
+The same source/victim/record id is offered only once across all carriers
+while retained, not again after the legacy 120-second memory. Duplicate guild
+copies cannot reset Find's age. The separate session ledger keeps at most 256
+identities for the 60-minute evidence lifetime plus 300 seconds of accepted
+future skew. It drops expired ids first; if still full, it evicts the oldest
+admitted id so a new kill is always shown locally. A rare duplicate of an
+evicted id may be relayed again; it still obeys every send limit. The ledger is
+never saved. `/le share off` stops these relays too, not local receipt.
+Kill relays use the same `Relay.spend` token and guild-minute reserve as Spy,
+War Effort and legacy HeadHunter relays, with no separate reserve to bypass it.
 Freshness is checked again at send time. At most **4 kill-forward attempts
 per rolling minute**, and **one per whole killer name per 60 seconds**;
 foreign realms are distinct. These are `forward` priority: over budget or
