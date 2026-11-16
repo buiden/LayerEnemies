@@ -441,7 +441,7 @@ test("K cap: after 256 rows the oldest are evicted; a newer death still sends, a
         local row=recapRow(); row.timestamp=1000+i; held={row}
         H.deliver("PLAYER_DEAD"); H.advance(2.1); H.deliver("PLAYER_ALIVE"); H.advance(1)
     end
-    -- one more row evicts the oldest (timestamp 1001) and raises the mark to it
+    -- one more row evicts the oldest (timestamp 1001); the high mark (1500) already covers it
     local extra=recapRow(); extra.timestamp=1500; held={extra}
     H.deliver("PLAYER_DEAD"); H.advance(2.1); H.deliver("PLAYER_ALIVE"); H.advance(1)
     N.Main.setShare(true); H.advance(1801)

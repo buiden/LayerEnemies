@@ -81,6 +81,8 @@ retries active, so only a fresh qualifying set in the window can send.
 Known limits (a missed line is accepted; a false killer is not):
 - Two deaths within 2 s: the first death's record-only look can take the
   second death's rows, so the second death sends nothing.
+- A genuinely new death whose row matches an old row's source and timestamp
+  exactly is treated as old and sends nothing.
 - A genuinely new death whose killing row is not stamped later than every
   earlier death's recorded rows (a recap clock that runs backwards) sends
   nothing.
