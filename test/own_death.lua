@@ -617,6 +617,30 @@ test("K blind: a row an unsent death could not record never names a later death;
         eq(#deaths(),1,mode..": the next clean death sends"); no(N.Main.error)
     end
 end)
+test("K blind: an unrecordable row beside a sibling stamped lower or higher never lets the old row name a later death",function()
+    for _,mode in ipairs({"ts-sib-lower","ts-sib-higher","name-sib-lower","name-sib-higher","throw-sib-lower","throw-sib-higher","257-lower","257-higher"}) do
+        local N=setup(); raceProof(); N.Main.setShare(false)
+        local function wolf(stamp) return {sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",sourceFlags=0x848,timestamp=stamp,overkill=-1} end
+        local old=recapRow(); old.timestamp=H.clock()
+        local d=mode:find("lower") and -1 or 1
+        local held
+        if mode:find("^257") then
+            held={}; for i=1,256 do held[i]=wolf(old.timestamp+d*i*0.001) end; held[257]=old
+        else
+            local copy=recapRow(); copy.timestamp=old.timestamp
+            if mode:find("^ts") then copy.timestamp=H.secret
+            elseif mode:find("^name") then copy.sourceName=H.secret
+            else copy=setmetatable({},{__index=function() error("row accessor failure") end}) end
+            held={copy,wolf(old.timestamp+d)}
+        end
+        C_DeathRecap.GetRecapEvents=function() return held end
+        H.deliver("PLAYER_DEAD"); H.advance(2.1); H.deliver("PLAYER_ALIVE"); H.advance(60)
+        N.Main.setShare(true); H.advance(1801)
+        held={old}
+        H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+        eq(#deaths(),0,mode..": the old row is never named"); no(N.Main.error)
+    end
+end)
 test("K review F1: an ineligible fresh row set does not stop later eligible retries",function()
     local N,rows=setup(); raceProof(); local at=H.clock()
     C_DeathRecap.GetRecapEvents=function()
