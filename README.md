@@ -113,7 +113,9 @@ combined budget with the separate Spy/kill relay lanes is 4 O + 6 Spy R + 4 kill
 of this change. Thirty simultaneous logins spread 30 T lines over about a minute,
 then average three/minute guild-wide; 100 members average ten/minute. Memory
 estimates from the design, not measured: ~250 KB at 200×20 hashes, under 40 KB for
-30 members, ~1.2 MB at the hard receiver caps.
+30 members, ~1.2 MB at the hard receiver caps. The last complete membership
+snapshot adds at most 1,000 canonical sender keys (the existing adapter cap);
+it is session-only and is discarded on guild reset.
 
 Native delivery/throttling and roster completeness: **not run (alpha, owner's
 decision)**. Client acceptance is not a delivery acknowledgement.

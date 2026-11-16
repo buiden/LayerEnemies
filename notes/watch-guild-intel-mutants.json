@@ -1,0 +1,360 @@
+[
+  {
+    "mutant": "own-realm-hash-equality",
+    "failed": 3,
+    "rc": 1,
+    "caught_by": [
+      "Round1 realm: own sighting rejects colliding realm 1234/84860",
+      "Round1 realm: own sighting rejects colliding realm Home/ochg",
+      "Round1 realm: own realm equality normalizes and folds full strings"
+    ]
+  },
+  {
+    "mutant": "known-full-scan-restored",
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Round1 cost: polling 20 tracked names visits only matching Known entries"
+    ]
+  },
+  {
+    "mutant": "known-prune-every-poll",
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Round1 cost: polling 20 tracked names visits only matching Known entries"
+    ]
+  },
+  {
+    "mutant": "guild-displaces-own",
+    "failed": 10,
+    "rc": 1,
+    "caught_by": [
+      "Round1 own: a newer guild O keeps fresh own evidence primary and both lines visible",
+      "Round1 own: an own sighting in another zone does not suppress fresh on-site evidence",
+      "Round2 relayed: guild O survives a newer claim beside own history",
+      "Round2 death: guild O survives a newer claim beside own history",
+      "Round2 retention: own guild and claim expire independently without refreshing O",
+      "Round2 own: layer change releases priority to guild O",
+      "Round2 own: unknown layer never takes priority over guild O",
+      "Round2 own: current-layer 599-second sighting stays primary beside another zone",
+      "Round2 bounds: own storage participates in eviction and rollback indexing",
+      "Round2 UI: own guild claim current hash and OpenMap all fit"
+    ]
+  },
+  {
+    "mutant": "guild-shares-claim-slot",
+    "failed": 6,
+    "rc": 1,
+    "caught_by": [
+      "Round2 relayed: guild O survives a newer claim beside own history",
+      "Round2 death: guild O survives a newer claim beside own history",
+      "Round2 retention: own guild and claim expire independently without refreshing O",
+      "Round2 own: layer change releases priority to guild O",
+      "Round2 own: unknown layer never takes priority over guild O",
+      "Round2 UI: own guild claim current hash and OpenMap all fit"
+    ]
+  },
+  {
+    "mutant": "own-priority-ignores-layer",
+    "failed": 2,
+    "rc": 1,
+    "caught_by": [
+      "Round2 own: layer change releases priority to guild O",
+      "Round2 own: unknown layer never takes priority over guild O"
+    ]
+  },
+  {
+    "mutant": "current-hash-line-hidden",
+    "failed": 3,
+    "rc": 1,
+    "caught_by": [
+      "Round1 hash: fresh Ask provenance is visible beside the old own sighting",
+      "Round1 hash: all evidence plus an independent place fits on a Find page",
+      "Round2 UI: own guild claim current hash and OpenMap all fit"
+    ]
+  },
+  {
+    "mutant": "long-own-display-dropped",
+    "failed": 2,
+    "rc": 1,
+    "caught_by": [
+      "Round1 long: legacy first names match adapter displays over 100 bytes",
+      "Round1 long: own display bound covers two adapter strings but remains finite"
+    ]
+  },
+  {
+    "mutant": "raid-self-relabelled",
+    "failed": 2,
+    "rc": 1,
+    "caught_by": [
+      "Round1 raid: the player member never relabels our own target",
+      "Round1 group: member existence and self identity are rechecked at drain"
+    ]
+  },
+  {
+    "mutant": "group-member-existence-ignored",
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Round1 group: member existence and self identity are rechecked at drain"
+    ]
+  },
+  {
+    "mutant": "group-retarget-snapshot-ignored",
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Round1 group: retarget without a new event cannot change a queued observation"
+    ]
+  },
+  {
+    "mutant": "hash-detail-card-hidden",
+    "failed": 3,
+    "rc": 1,
+    "caught_by": [
+      "Round1 hash: all evidence plus an independent place fits on a Find page",
+      "Round2 death: guild O survives a newer claim beside own history",
+      "Round2 UI: own guild claim current hash and OpenMap all fit"
+    ]
+  },
+  {
+    "mutant": "boundary-wipes-memory",
+    "failed": 9,
+    "rc": 1,
+    "caught_by": [
+      "Find match, no match, collisions, expiry, own sighting and alerts",
+      "previous zone 17: carried rows never become sends, Find locations, maps or actions",
+      "OpenMap tiers 9 L0 clears only place; layer boundary clears only sightings",
+      "Known 1: named evidence survives zone, layer and world boundaries",
+      "Known 4: add after receipt and a boundary finds old memory without an alert",
+      "Known Spy-family: all three named input formats populate memory before tracking",
+      "Known own: untracked sighting survives boundaries but never claims today's layer",
+      "Round1 long: legacy first names match adapter displays over 100 bytes",
+      "Round2 own: layer change releases priority to guild O"
+    ]
+  },
+  {
+    "mutant": "retention-unbounded",
+    "failed": 9,
+    "rc": 1,
+    "caught_by": [
+      "OpenMap UI pool reuse hides stale places and drops former sighting actions",
+      "Known 2: at 600 and 601 seconds last known hides actions; at 3600 it expires",
+      "Known 14: bounded 300-name cache evicts oldest evidence, not alphabetical first",
+      "Known retention: independent slots, old arrivals, clock rollback and bounded copied fields",
+      "Known retention: idle untracked memory expires on the normal poll",
+      "Known pure module runs without any WoW globals or SavedVariables",
+      "Round1 cost: Known index follows aliases replacement eviction expiry and rollback",
+      "Round1 long: own display bound covers two adapter strings but remains finite",
+      "Round2 retention: own guild and claim expire independently without refreshing O"
+    ]
+  },
+  {
+    "mutant": "name-cap-unbounded",
+    "failed": 3,
+    "rc": 1,
+    "caught_by": [
+      "Known 14: bounded 300-name cache evicts oldest evidence, not alphabetical first",
+      "Round1 cost: Known index follows aliases replacement eviction expiry and rollback",
+      "Round2 bounds: own storage participates in eviction and rollback indexing"
+    ]
+  },
+  {
+    "mutant": "ask-relayed-claim",
+    "failed": 21,
+    "rc": 1,
+    "caught_by": [
+      "Find casefold named: \u00e9lodie",
+      "Find casefold named: \u00c9LODIE",
+      "Find casefold named: \u00c9lodie",
+      "Find casefold named: ZO\u00c9",
+      "Find casefold named: zo\u00e9",
+      "Find casefold named: \u044f\u043b\u043e\u0440\u0430",
+      "Find casefold named: \u042f\u041b\u041e\u0420\u0410",
+      "Find casefold named: \u0451\u043b\u0432\u0430",
+      "Find casefold named: \u0142ukasz",
+      "Find casefold named: \u0141UKASZ",
+      "Find casefold named: \u00fflune",
+      "Find casefold named: \u013aava",
+      "Find casefold named: \u017aora",
+      "Find casefold named: mira \u00e9lune",
+      "Find casefold named: MIRA \u00c9LUNE",
+      "Find casefold named: \u00e9lodie \u0142ava",
+      "Find casefold named: cedar vale",
+      "Find casefold named: CEDAR VALE",
+      "Find casefold named: \u00e9lodie-TestRealm",
+      "relayed origins never become Find spotters (\u0645\u0627\u0646\u0639 T6 F1)",
+      "a stored relay replayed into Find stays unaskable (r2)"
+    ]
+  },
+  {
+    "mutant": "ask-last-known",
+    "failed": 3,
+    "rc": 1,
+    "caught_by": [
+      "OpenMap tiers 7 independent 600 and 150 second expiry falls back either way",
+      "OpenMap tiers 8 ten-minute place stream never refreshes a sighting or calls findAlerts",
+      "Known 2: at 600 and 601 seconds last known hides actions; at 3600 it expires"
+    ]
+  },
+  {
+    "mutant": "cache-saved",
+    "failed": 4,
+    "rc": 1,
+    "caught_by": [
+      "we reports never enter LayerEnemiesDB (\u0645\u0627\u0646\u0639 T3 S4)",
+      "OpenMap tiers 2 place only: separate line, no layer, ask, hop, alert or relay",
+      "Known 4: add after receipt and a boundary finds old memory without an alert",
+      "Known 14: cache stays out of every saved table and reload starts empty"
+    ]
+  },
+  {
+    "mutant": "party-member-invisible",
+    "failed": 2,
+    "rc": 1,
+    "caught_by": [
+      "PartyTargets guard: invisible or unreadable members are never observed",
+      "PartyTargets guard: visibility and instance are rechecked after queuing"
+    ]
+  },
+  {
+    "mutant": "party-target-in-instance",
+    "failed": 2,
+    "rc": 1,
+    "caught_by": [
+      "PartyTargets guard: instance or unreadable instance state refuses observation",
+      "PartyTargets guard: visibility and instance are rechecked after queuing"
+    ]
+  },
+  {
+    "mutant": "party-secret-unit-accepted",
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "PartyTargets guard: secret unit payload is rejected before matching, concatenation or APIs"
+    ]
+  },
+  {
+    "mutant": "realm-ignored",
+    "failed": 13,
+    "rc": 1,
+    "caught_by": [
+      "Find20 matching preserves legacy aliases, realm checks, collisions and precedence",
+      "Realm names: spy different explicit realms never match",
+      "Realm names: guild different explicit realms never match",
+      "Realm names: relayed different explicit realms never match",
+      "Realm names: death different explicit realms never match",
+      "Realm names: headhunter different explicit realms never match",
+      "Realm names: Known own rejects cross-realm memory before and after adding",
+      "Realm names: Known spy rejects cross-realm memory before and after adding",
+      "Realm names: Known guild rejects cross-realm memory before and after adding",
+      "Realm names: Known relayed rejects cross-realm memory before and after adding",
+      "Realm names: Known death rejects cross-realm memory before and after adding",
+      "Realm names: own full display uses its realm not the surname second return",
+      "Realm names: a hash cannot override an explicitly different named realm"
+    ]
+  },
+  {
+    "mutant": "surname-includes-realm",
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Realm names: surname hashes use the base and never a typed-realm home tuple"
+    ]
+  },
+  {
+    "mutant": "realm-warning-dropped",
+    "failed": 7,
+    "rc": 1,
+    "caught_by": [
+      "Realm names: spy realm-less evidence marks foreign realm unknown",
+      "Realm names: guild realm-less evidence marks foreign realm unknown",
+      "Realm names: relayed realm-less evidence marks foreign realm unknown",
+      "Realm names: death realm-less evidence marks foreign realm unknown",
+      "Realm names: headhunter realm-less evidence marks foreign realm unknown",
+      "Realm names: own realm-less surname sighting warns and alerts exactly once",
+      "Realm names: every hash tuple stays possible and never confirms even the home realm"
+    ]
+  },
+  {
+    "mutant": "home-realm-exemption-removed",
+    "failed": 12,
+    "rc": 1,
+    "caught_by": [
+      "Realm names: spy home realm needs no unknown note",
+      "Realm names: guild home realm needs no unknown note",
+      "Realm names: relayed home realm needs no unknown note",
+      "Realm names: death home realm needs no unknown note",
+      "Realm names: headhunter home realm needs no unknown note",
+      "Realm names: Known own realm-less evidence has per-entry unknown flags",
+      "Realm names: Known spy realm-less evidence has per-entry unknown flags",
+      "Realm names: Known guild realm-less evidence has per-entry unknown flags",
+      "Realm names: Known relayed realm-less evidence has per-entry unknown flags",
+      "Realm names: Known death realm-less evidence has per-entry unknown flags",
+      "Realm names: own home-realm exemption is recomputed when home becomes readable",
+      "Realm names: late home discovery removes the named HeadHunter uncertainty only"
+    ]
+  },
+  {
+    "mutant": "realm-digits-refused",
+    "failed": 20,
+    "rc": 1,
+    "caught_by": [
+      "Call review: Find accepts realm-qualified two-word killers",
+      "Realm names: new forms normalize only the realm and preserve typed case",
+      "Realm names: new grammar enforces word realm and total byte limits",
+      "Realm names: saved display dedupe removal and base buckets keep separate realms",
+      "Realm names: spy explicit realms normalize and fold before matching",
+      "Realm names: spy home realm needs no unknown note",
+      "Realm names: guild explicit realms normalize and fold before matching",
+      "Realm names: guild home realm needs no unknown note",
+      "Realm names: relayed explicit realms normalize and fold before matching",
+      "Realm names: relayed home realm needs no unknown note",
+      "Realm names: death explicit realms normalize and fold before matching",
+      "Realm names: death home realm needs no unknown note",
+      "Realm names: headhunter explicit realms normalize and fold before matching",
+      "Realm names: headhunter home realm needs no unknown note",
+      "Realm names: own home-realm exemption is recomputed when home becomes readable",
+      "Realm names: On my way adds the shown qualified killer and saves it without sends",
+      "Round1 realm: own sighting rejects colliding realm 1234/84860",
+      "Round1 realm: own realm equality normalizes and folds full strings",
+      "watch 21: no notice for own-list, reported, relayed, guild O or friendly entries",
+      "watch 25: folded base-name hash matches case and realm, never class and level"
+    ]
+  },
+  {
+    "mutant": "known-cross-realm-leak",
+    "failed": 11,
+    "rc": 1,
+    "caught_by": [
+      "Realm names: spy different explicit realms never match",
+      "Realm names: guild different explicit realms never match",
+      "Realm names: relayed different explicit realms never match",
+      "Realm names: death different explicit realms never match",
+      "Realm names: Known own rejects cross-realm memory before and after adding",
+      "Realm names: Known spy rejects cross-realm memory before and after adding",
+      "Realm names: Known guild rejects cross-realm memory before and after adding",
+      "Realm names: Known relayed rejects cross-realm memory before and after adding",
+      "Realm names: Known death rejects cross-realm memory before and after adding",
+      "Realm names: own full display uses its realm not the surname second return",
+      "Realm names: a hash cannot override an explicitly different named realm"
+    ]
+  },
+  {
+    "mutant": "named-hash-realm-conflict-ignored",
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Realm names: a hash cannot override an explicitly different named realm"
+    ]
+  },
+  {
+    "mutant": "headhunter-late-home-warning-stale",
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Realm names: late home discovery removes the named HeadHunter uncertainty only"
+    ]
+  }
+]
