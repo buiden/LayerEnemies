@@ -1381,7 +1381,7 @@ do
             local N=loadAddon(); local F=N.Find; local st=F.new(); yes(F.add(st,v[1]))
             local given,surname=v[2]:match("^([^ ]+) (.+)$")
             F.own(st,{name=given or v[2],displayName=given and v[2],realm=surname or "Test Realm",
-                faction="opposite",source="own target",class="MAGE",level=39},100,50)
+                faction="opposite",source="own target",class="MAGE",level=39,layer="7086-7"},100,50)
             local row=F.rows(st,50,100)[1]
             yes(row.own,"own sighting matched"); yes(row.same); no(row.possible); no(row.canAsk)
             eq(row.name,v[1],"keep typed spelling"); eq(row.zone,100); eq(row.at,50)
@@ -6908,7 +6908,7 @@ end)
 
 local function sight(N,zone,at,own)
     local F,st=N.Find,N.Main.find
-    if own then F.own(st,{name="Cedar Vale",source="own target",faction="opposite",class="ROGUE",level=47},zone,at)
+    if own then F.own(st,{name="Cedar Vale",source="own target",faction="opposite",class="ROGUE",level=47,layer="7086-7"},zone,at)
     else F.report(st,{sender="Birch Scout",zone=zone,at=at,enemies={{name="Cedar Vale",class="ROGUE",level=47}}},"Test Realm") end
 end
 local function withoutPlace(row)
@@ -6921,7 +6921,7 @@ test("OpenMap tiers 1 sighting only: frozen legacy row fields stay identical",fu
     eq(snapshot(N.Main.findRows()[1]),snapshot(expected),"row projection from the pre-OpenMap Find implementation")
     sight(N,100,70,true)
     expected={name="Cedar Vale",own=true,zone=100,at=70,class="ROGUE",level=47,age=30,same=true,probably=false,travel=false,
-        status="is on YOUR layer",canAsk=false}
+        status="is on YOUR layer",canAsk=false,layerKnown=true} -- layerKnown: seen-unknown-layer adds it to own rows
     eq(snapshot(N.Main.findRows()[1]),snapshot(expected)); eq(N.Main.findRows()[1].place,nil)
 end)
 test("OpenMap tiers 2 place only: separate line, no layer, ask, hop, alert or relay",function()
