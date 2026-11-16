@@ -100,12 +100,75 @@ for _,family in ipairs({"Spy","HeadHunter","mixed"}) do
                 H.advance(.6); N.Main.shareTick()
                 local c=counts()
                 eq(c.O,cycle,"every own O survives the preceding relay burst")
-                eq(c.spy+c.hh,cycle*(fighting and 1 or 3),"relays leave two of Wire's five tokens")
+                eq(c.spy+c.hh,cycle*(fighting and 0 or 3),"relays leave capacity for two own lines")
                 eq(next(N.Main.relay.pending),nil); eq(N.Wire.queued(),0,"reserve refusal never queues")
             end
             H.advance(30); eq(counts().O,4); no(N.Main.error)
         end)
     end
+end
+
+-- Reviewer round-2: a slow stream refills prefix tokens but can exhaust Wire's
+-- separate rolling guild-minute budget. Count actual sends, not our mirror.
+for _,fighting in ipairs({false,true}) do
+    for _,every in ipairs(fighting and {1,4} or {1}) do
+        test("Guild relay policy: sustained HH keeps all five own O slots combat="..tostring(fighting).." every="..every,function()
+            local N=fixture(); H.combat(fighting)
+            local refused=0; local send=N.Wire.send
+            N.Wire.send=function(prefix,text,...)
+                local ok,why,attempted=send(prefix,text,...)
+                if prefix=="LEGW1" and text:sub(1,2)=="O|" and not ok then refused=refused+1 end
+                return ok,why,attempted
+            end
+            for t=1,300 do
+                own(); if t%every==0 then hh(t) end
+                H.advance(1); N.Main.shareTick()
+            end
+            eq(counts().O,5,"all five own minute slots must reach Wire")
+            eq(refused,0,"no own refusal under sustained relay load")
+            local cap=fighting and 10 or 20
+            local reserve=fighting and 2 or 3
+            for i,m in ipairs(H.sent()) do
+                if m.kind=="GUILD" then
+                    local used=0
+                    for j=1,i do local earlier=H.sent()[j]
+                        if earlier.kind=="GUILD" and m.at-earlier.at<60 then used=used+1 end
+                    end
+                    yes(used<=cap,"Wire's original guild cap still holds")
+                    if m.text:sub(1,2)=="R|" then yes(used<=cap-reserve,"relay must leave the last guild slots") end
+                end
+            end
+            eq(N.Wire.queued(),0); no(N.Main.error)
+        end)
+    end
+end
+
+for _,fighting in ipairs({false,true}) do
+    test("Guild relay policy: minute reserve includes other prefixes combat="..tostring(fighting),function()
+        local N=fixture()
+        -- Fill Wire using real guild sends on another prefix, not a relay-local counter.
+        local limit=fighting and 8 or 17
+        for i=1,limit do
+            N.Net.SHIP.we=true
+            yes(N.Wire.send("WEFF1","Q","GUILD",nil,{net="we",prio="own"}))
+            N.Net.SHIP.we=false -- no automatic WE traffic in the timer steps
+            H.advance(2)
+        end
+        eq(#H.sent(),limit,"the intended guild allowance is full, not the own reserve")
+        H.combat(fighting)
+        local at=H.clock()
+        local used,cap=N.Wire.guildMinute(at)
+        eq(used,limit); eq(cap,fighting and 10 or 20)
+        eq(N.Wire.guildMinute(at+60),0,"expiry boundary is exclusive")
+        eq(N.Wire.guildMinute(at),limit,"inspection at a future time must not prune Wire's budget")
+        eq(N.Wire.guildMinute(at-60),limit,"future stamps still count after rollback")
+        local before=#H.sent(); hh(); H.advance(.6)
+        eq(#H.sent(),before,"a full relay allowance drops the relay, even with unused LEGW1 tokens")
+        eq(next(N.Main.relay.pending),nil); eq(N.Wire.queued(),0)
+        -- Expired minute stamps must not hold back a fresh relay.
+        H.combat(false); H.advance(61); hh(2); H.advance(.6)
+        eq(counts().hh,1); no(N.Main.error)
+    end)
 end
 
 test("Guild relay policy: earlier guild control lines count against the relay reserve",function()
@@ -129,6 +192,21 @@ test("Guild relay policy: clear and clock rollback cannot refill the reserve",fu
     hh(4); H.advance(.05); eq(counts().hh,3,"clearing pending relays cannot refill tokens")
     H.advance(-1); hh(5); H.advance(.05); eq(counts().hh,3,"a backwards clock cannot refill tokens")
     H.advance(3); hh(6); H.advance(.05); eq(counts().hh,4,"forward time still refills normally")
+    eq(N.Wire.queued(),0); no(N.Main.error)
+end)
+
+test("Guild relay policy: combat relay burst cannot steal K then O capacity",function()
+    local N=fixture(); H.combat(true); own(); H.advance(2.1)
+    for i=1,5 do spy(i) end
+    H.advance(.6)
+    C_DeathRecap={HasRecapEvents=function() return true end,GetRecapEvents=function()
+        return {{sourceGUID="Player-1-998",sourceName="Ownenemy",sourceFlags=0x448,overkill=10,timestamp=H.clock()}}
+    end}
+    H.deliver("PLAYER_DEAD"); H.advance(.3); N.Main.shareTick()
+    local kills=0; for _,m in ipairs(H.sent()) do if m.text:sub(1,2)=="K|" then kills=kills+1 end end
+    eq(kills,1,"K still sends once")
+    eq(counts().O,1,"O must also send after K despite the earlier relay burst")
+    eq(counts().spy,0,"two double-cost own lines leave no room for a combat relay")
     eq(N.Wire.queued(),0); no(N.Main.error)
 end)
 

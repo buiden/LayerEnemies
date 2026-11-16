@@ -12,8 +12,10 @@ Rl.rand = function() return 0.5 + math.random() * 2 end       -- 0.5..2.5 s wait
 
 -- Mirror Wire's LEGW1 prefix budget (5 tokens, one refilled per 2 s) conservatively.
 -- Every LEGW1 author charges here before Wire; refused attempts still spend. Relays must leave
--- 2 of those 5 tokens: two peaceful own lines, or one double-cost combat line. Wire remains the
--- final authority for all routes/global/minute limits. Clearing pending work never refills this bucket.
+-- capacity for two own lines (2 tokens in peace, 4 in combat). A combat relay cannot
+-- fit beside that reserve in a five-token bucket and is dropped. Relays also leave
+-- 3 guild-minute slots in peace, 2 in combat, from Wire's read-only actual count.
+-- Wire remains the final authority. Clearing pending work never refills this bucket.
 local PREFIX_CAP, PREFIX_REFILL, OWN_RESERVE = 5, 2, 2
 local tokens, tokenAt = PREFIX_CAP, nil
 function Rl.spend(now, relay)
@@ -24,7 +26,11 @@ function Rl.spend(now, relay)
     end
     local fighting = S.call(InCombatLockdown) == true or S.call(UnitAffectingCombat, "player") == true
     local cost = fighting and 2 or 1
-    if relay and tokens < cost + OWN_RESERVE then return false, "own reserve" end
+    if relay then
+        local used, cap = N.Wire.guildMinute(now)
+        if not used or used >= cap - (fighting and 2 or 3) then return false, "guild reserve" end
+        if tokens < cost + OWN_RESERVE * cost then return false, "own reserve" end
+    end
     tokens = math.max(0, tokens - cost)
     return true
 end

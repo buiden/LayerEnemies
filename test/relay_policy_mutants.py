@@ -17,6 +17,14 @@ MUTANTS = [
         ('local PREFIX_CAP, PREFIX_REFILL, OWN_RESERVE = 5, 2, 2',
          'local PREFIX_CAP, PREFIX_REFILL, OWN_RESERVE = 5, 2, 0'),
     ]),
+    ('spend-guild-minute-reserve', 'LayerEnemies/Relay.lua', [
+        ('if not used or used >= cap - (fighting and 2 or 3) then return false, "guild reserve" end',
+         '-- guild-minute reserve removed'),
+    ]),
+    ('one-combat-own-line-only', 'LayerEnemies/Relay.lua', [
+        ('if tokens < cost + OWN_RESERVE * cost then return false, "own reserve" end',
+         'if tokens < cost + OWN_RESERVE then return false, "own reserve" end'),
+    ]),
 ]
 
 def main():
