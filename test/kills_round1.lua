@@ -137,3 +137,24 @@ for _,mode in ipairs({"mixed","legacy"}) do
         end)
     end
 end
+
+for _,mode in ipairs({"off before receipt","off while pending","off then on while pending","off at dispatch"}) do
+    test("Kills R1 share: "..mode.." sends nothing on LEGW1",function()
+        local N=boot(); N.Main.track("Cedar Vale")
+        if mode=="off before receipt" then SlashCmdList.LAYERENEMIES("share off") end
+        H.units().target=H.player("Own Enemy","Horde"); H.deliver("PLAYER_TARGET_CHANGED"); H.drain()
+        hear(death()); burst("legacy")
+        if mode~="off before receipt" then yes(next(N.Main.relay.pending),"exercise a live pending timer") end
+        if mode=="off at dispatch" then LayerEnemiesDB.share=false
+        elseif mode~="off before receipt" then SlashCmdList.LAYERENEMIES("share off") end
+        if mode=="off then on while pending" then
+            SlashCmdList.LAYERENEMIES("share on")
+            -- Only test cancellation of held relays in this mode, not new own observations.
+            N.Main.store.localSeen={}
+        end
+        H.advance(4); N.Main.relayTick(); N.Main.shareTick()
+        eq(#sends(),0); eq(next(N.Main.relay.pending),nil)
+        yes(row(N).reported,"sharing off does not stop reading")
+        no(N.Main.error)
+    end)
+end

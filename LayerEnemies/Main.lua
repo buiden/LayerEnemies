@@ -399,6 +399,7 @@ end
 -- Guild relay out: a first-hand record heard on PARTY, RAID or WHISPER goes to the guild once, after a random wait
 -- in which a guildmate's copy makes us stand down.
 function M.offerRelay(record)
+    if not M.sharing() then return end
     local time=now()
     local ok=N.Relay.offer(M.relay,record,time,M.relayContext())
     if ok then
@@ -410,6 +411,7 @@ function M.relayContext()
     return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100)}
 end
 function M.relayTick()
+    if not M.sharing() then N.Relay.clear(M.relay); return end
     for _,r in ipairs(N.Relay.tick(M.relay,now(),M.relayContext())) do
         M.lastRelay=r.ok and "relayed" or r.why
         if r.ok and r.kill then M.hh.stats.kills.relayed=M.hh.stats.kills.relayed+1 end
@@ -1855,13 +1857,13 @@ end
 M.NET_NOTICE="LayerEnemies: public networks ON (War Effort, HeadHunter…). /le net guild to limit to guild only."
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
-    if not on then N.OwnDeath.cancel() end
+    if not on then N.OwnDeath.cancel(); N.Relay.clear(M.relay) end
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
     -- off: nothing we authored goes out any more: sync answers and the reports kept for them are dropped now, our own
     -- W lines still queued for embassy partners are dropped by their still check (M.sharing)
     if not on and M.we then N.WeNet.forget(M.we) end
-    M.say(on and "LayerEnemies: your sightings are shared again: an O line with your guild, War Effort reports where a reader was heard. Own PvP deaths share a K line with your guild."
-        or "LayerEnemies: your sightings are no longer shared (no O line, no K own-death line, no War Effort reports). You still receive everyone else's.")
+    M.say(on and "LayerEnemies: your sightings are shared again: an O line with your guild, War Effort reports where a reader was heard. Own PvP deaths share a K line with your guild; guild relays are on."
+        or "LayerEnemies: your sightings are no longer shared (no O line, no K own-death line, no guild relays, no War Effort reports). You still receive everyone else's.")
     if N.UI then N.UI.refresh() end
 end
 local NET_KEYS={we="we",wareffort="we",hh="hh",headhunter="hh"}

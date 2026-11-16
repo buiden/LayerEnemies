@@ -267,18 +267,23 @@ in guild-only mode**, including a round already in progress.
   first sighting of an enemy not shared in the last 60 seconds, at most one
   per 15 seconds, and lists everyone your own client saw in the last 15
   seconds, so a name can repeat in the next O 15 seconds later. `/le share off`
-  stops it. Also a relay of a report you heard
-  first-hand in your party, raid or whispers, so guildmates running
+  stops it and all LEGW1 report relays, including pending kill relays.
+  When sharing is on, it also relays a report you heard first-hand in your party, raid or whispers, so guildmates running
   LayerEnemies see both. A relay waits a
   random 0.5-2.5 seconds and is not sent when a guildmate's copy arrives first.
   Guild membership, guild name and instance state are read when it is offered
   and again when it is due; not in a guild, another guild, in an instance, or
-  unreadable means it is dropped. Each report id is sent about once per 120
+  unreadable means it is dropped. Sharing is checked at receipt and dispatch;
+  switching off discards pending relays even if switched back on before their
+  timer fires. Each non-kill report id is sent about once per 120
   seconds: the 120 seconds count from when it is offered, before the random
   wait, and only while the id is remembered (256 ids; a flood of more ids can
   let one repeat). At
-  most 128 offers wait at once. A local budget allows 5 quick sends, then one
-  per 2 seconds. From 0.4.0 the same route carries two short lines older
+  most 128 offers wait at once. Wire permits 5 quick prefix sends, then one
+  per 2 seconds. A stricter relay-only bucket permits 5 - 2 = 3 quick R lines
+  of all kinds, reserving two burst tokens for own lines; it refills one per
+  2 seconds and charges double in combat. Budget refusals are dropped, not
+  queued. From 0.4.0 the same route carries two short lines older
   versions ignore: `F|1` ("which LayerEnemies hosts are on?", from the Find
   hosts click, at most once per 60 seconds) and `H|1|<server key>|<zone>` (a
   host's answer: once when you turn hosting on and once in answer to an `F`,
@@ -348,7 +353,8 @@ in guild-only mode**, including a round already in progress.
   our home server once per 600 seconds per asker. We never author `P`, `L`
   or `D`: HeadHunter has no honest line for a sighting of ours.
 
-Budgets, all in Wire.lua and spent before the client is asked: each prefix 5
+Send budgets in Wire.lua, plus the stricter relay allowance above, are spent
+before the client is asked: each prefix 5
 at once then one per 2 seconds; all sends 8 at once, then one per 1.5 seconds
 and never more than 40 a minute; GUILD 20 a minute; public whispers 20 a minute
 in total and 4 a minute to one player (a catch-up answer instead has its own 16
@@ -438,10 +444,11 @@ shape is reported as data unavailable.
   only, not in this version). `/le net guild` and `/le net public` set the
   level; `/le net wareffort on|off` (or `we`) and `/le net headhunter on|off`
   (or `hh`) set each network. All saved.
-- `/le share on|off`: share your own sightings and K own-death calls (on by
-  default, saved). Off sends no O or K line and no War Effort report (pending
-  death retries, waiting sync answers and our own embassy lines still queued
-  are dropped too); you still receive everyone else's.
+- `/le share on|off`: share your own sightings, K own-death calls and LEGW1
+  report relays (on by default, saved). Off sends no O, K or R line and no
+  War Effort report. Pending kill/other guild relays, death retries, waiting
+  sync answers and our own embassy lines still queued are dropped too;
+  you still receive everyone else's. HeadHunter mesh membership is unchanged.
 - Window switches, on every tab: Share, Call, Guild only, War Effort and
   HeadHunter (the same settings as the commands).
 - `/le call on|off`: guild death popups and sound (default on).
@@ -828,7 +835,9 @@ real age and the **victim's** coordinates, as a HeadHunter claim. It adds
 `via relay` when the whisper carrier differs from the victim, and `(inferred)`
 only for inferred confidence; exact confidence adds no extra label.
 Simulated records, incomplete names/GUIDs, mismatched author/victim and other
-factions are dropped. No class/level guesses; assists are ignored.
+factions are dropped. A killer matching ourselves or the victim under the
+whole-name rule is rejected on both direct and guild receive paths. No
+class/level guesses; assists are ignored.
 
 D never creates a row on the Reported tab, a per-enemy count, a kill list,
 a kill-based ordering, or a Call popup. Its private HeadHunter layer is never
@@ -842,6 +851,12 @@ guild, including in stand-down. It uses the existing `LEGW1` GUILD route:
 one fully named killer, victim coordinates, unknown layer and original age.
 Older clients reject these unknown kinds as invalid and ignore the line.
 The existing random 0.5–2.5-second wait and guild-copy stand-down apply.
+The same source/victim/record id is offered only once across all carriers,
+not again after the legacy 120-second memory. Duplicate guild copies cannot
+reset Find's age. The separate session ledger keeps at most 256 identities
+for the 60-minute evidence lifetime plus 300 seconds of accepted future skew;
+when full, it refuses new identities instead of evicting a live one. It is
+never saved. `/le share off` stops these relays too.
 Freshness is checked again at send time. At most **4 kill-forward attempts
 per rolling minute**, and **one per whole killer name per 60 seconds**;
 foreign realms are distinct. These are `forward` priority: over budget or
@@ -855,7 +870,7 @@ added; nothing is sent on HeadHunter's prefix in stand-down.
 modes: admitted P/L/E frames, inner E records by kind, accepted full-name kill
 records read, those under 300 seconds, and those successfully relayed to the
 guild. Counts are receive events (duplicates included), not unique kills;
-rejected D records appear only in the inner-kind tally. Counters obey the
+Decoder-rejected D records appear only in the inner-kind tally. Counters obey the
 existing receive policy and 6-frame-per-sender/10-second limit, survive zone
 changes, reset on reload, and never enter SavedVariables or `hhNet.history`.
 
