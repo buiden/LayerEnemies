@@ -2,11 +2,11 @@ local _, N = ...
 local T,S = {},N.Safe
 N.Store=T
 function T.new(now)
-    return { epoch=now, serial=1, zone=nil, bulo=nil, zoneUID=nil, localSeen={}, reports={}, identities={} }
+    return { epoch=now, serial=1, zone=nil, bulo=nil, zoneUID=nil, localSeen={}, reports={}, identities={}, prev={} }
 end
 function T.reset(t,now,zone,bulo,zoneUID)
     t.epoch=now; t.serial=t.serial+1; t.zone=zone; t.bulo=bulo; t.zoneUID=zoneUID
-    S.clear(t.localSeen); S.clear(t.reports); S.clear(t.identities)
+    S.clear(t.localSeen); S.clear(t.reports); S.clear(t.identities); S.clear(t.prev)
 end
 -- Learning our first layer must not erase sightings made before it was known, or guess their layer.
 function T.learn(t,now,bulo,zoneUID)
@@ -143,6 +143,30 @@ function T.refresh(t,record,now)
 end
 local POSITION={enemy="reported cluster position",observer="observer's position",victim="victim's position"}
 local function newest(a,b) if a.at==b.at then return a.key<b.key end; return a.at>b.at end
+-- A zone crossing keeps only plain, short-lived own sightings for display, never layer/position evidence.
+function T.carry(t,now)
+    local out={}
+    for key,e in pairs(t.localSeen) do
+        local at=S.num(e.ownAt)
+        if e.epoch==t.serial and e.zone==t.zone and e.faction=="opposite"
+            and type(e.ownSource)=="string" and e.ownSource:match("^own ")
+            and at and now>=at and now-at<120 then
+            out[#out+1]={key=key,name=e.name,displayName=e.displayName,class=e.class,level=e.level,zone=e.zone,at=at}
+        end
+    end
+    table.sort(out,newest)
+    for i=#out,9,-1 do out[i]=nil end
+    return out
+end
+function T.previous(t,now)
+    local out={}
+    for i=#t.prev,1,-1 do
+        local e=t.prev[i]
+        if now-e.at>=120 or now<e.at then table.remove(t.prev,i) end
+    end
+    for _,e in ipairs(t.prev) do if not t.localSeen[e.key] then out[#out+1]=e end end
+    return out
+end
 function T.rows(t,now,kind)
     T.prune(t,now)
     local out={}

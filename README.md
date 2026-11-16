@@ -230,8 +230,9 @@ shape is reported as data unavailable.
   state (or why it is off), the network level, each network, whether your
   sightings are shared, and directly observed opposite-faction players, even
   while your layer is unknown. Rows seen without a layer say "layer unknown
-  when seen", including after you learn your layer. Reports are counted
-  separately, never mixed in.
+  when seen", including after you learn your layer. Up to eight recent own
+  sightings from the zone just left follow the live rows, labelled with the
+  old zone and "previous zone". Reports are counted separately, never mixed in.
 - `/le net`: the network level (public or guild only) and each network, with
   the reason when one is off (switched off, the real addon loaded, guild
   only, not in this version). `/le net guild` and `/le net public` set the
@@ -312,9 +313,22 @@ identity matches are still cleared when your layer is learned. Sharing uses
 the existing empty layer field whenever any enemy in a report was seen without
 a layer; the message format and send routes are unchanged.
 
-All identifiers are scoped to the current zone. Real zone changes, world
+On a real, readable zone change, "Seen by you" also keeps the newest eight
+opposite-faction players your own client saw in the zone just left, for two
+minutes from each sighting (not from the crossing). They follow live rows,
+labelled with the old zone and "previous zone", and count in the tab title.
+A fresh sighting of the same player hides the carried row. A second crossing
+replaces this history with only sightings from the zone just left. Bulo-only
+copies and unreadable or same-faction sightings are not carried. These plain
+name/class/level/zone/time copies have no layer or position, are never shared,
+and never feed Find, map candidates, hop or ask. World entry, shard transfer,
+a layer change (including learning it), an NPC zoneUID change or an unreadable
+zone clears them. They are not saved.
+
+Active identifiers are scoped to the current zone. Real zone changes, world
 entry, transfer events, and exact Bulo ID changes wipe the observation epoch,
-identities, reports and pending fragments. Entries with timestamps at or
+identities, reports and pending fragments; only real zone crossings keep the
+separate display-only previous-zone copies above. Entries with timestamps at or
 before the new epoch are rejected. Captured carried-over units remain
 quarantined until their old unit token disappears or changes; this can miss
 sightings, but avoids attaching old observations to a new layer. Fresh

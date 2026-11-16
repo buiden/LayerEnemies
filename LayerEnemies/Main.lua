@@ -26,7 +26,9 @@ function M.releaseUnit(unit)
         M.staleGUIDs[guid]=nil
     end
 end
-function M.boundary(zone)
+function M.boundary(zone,zoneChange)
+    local prev={}
+    if zoneChange==true and zone~=nil and M.store.zone~=nil and zone~=M.store.zone then prev=T.carry(M.store,now()) end
     captureStale()
     M.blockedBulo=M.store.bulo
     -- A readable zone that differs from the last readable one ends the zone epoch (own raw id and ambiguity);
@@ -47,6 +49,7 @@ function M.boundary(zone)
     if zone~=nil then M.zoneSeen=zone end
     M.subEpoch=now()
     T.reset(M.store,M.subEpoch,zone,nil,nil)
+    M.store.prev=prev
     N.Reports.clearPending(M.receiver)
     S.clear(M.pendingUnits)
     M.layerSource="unknown"
@@ -67,7 +70,7 @@ function M.poll()
     if not M.started then return end
     local time=now()
     local zone=A.location()
-    if zone~=M.store.zone then M.boundary(zone) end
+    if zone~=M.store.zone then M.boundary(zone,true) end
     local snap=A.bulo(M.store.epoch,time,M.store.localSeen)
     M.statusBulo=snap.status
     if snap.ns and M.attemptedNS~=snap.ns then
@@ -115,7 +118,7 @@ end
 function M.observe(unit)
     local time=now()
     local zone,x,y=A.location()
-    if zone~=M.store.zone then M.boundary(zone) end
+    if zone~=M.store.zone then M.boundary(zone,true) end
     local guid=S.str(S.call(UnitGUID,unit),160)
     if not guid or M.staleGUIDs[guid] then return end
     local npc=L.npc(guid)
@@ -1518,7 +1521,8 @@ function M.text(command)
     local kind=command=="reports" and "reported" or command=="unclassified" and "unclassified" or "local"
     say(kind=="reported" and "Reported, not confirmed (War Effort; age as the reporter's clock gives it):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
     local rows=T.rows(M.store,now(),kind)
-    if #rows==0 then say(kind=="reported" and "No live reports for your zone." or "No eligible observations.") end
+    local previous=kind=="local" and T.previous(M.store,now()) or {}
+    if #rows==0 and #previous==0 then say(kind=="reported" and "No live reports for your zone." or "No eligible observations.") end
     local numbers,records,shown={},{},{}
     for _,e in ipairs(rows) do
         local when=ago(now()-e.at)
@@ -1532,6 +1536,9 @@ function M.text(command)
             extra=" | reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " | relayed" or "")..(e.positionKind and (" | "..e.positionKind) or "")..(e.untimed and " | time of receipt (no timestamp)" or "")..(e.age and e.age>0 and (" | claimed "..e.age.." s old") or "").." | "..(e.relation=="same" and "same server key as yours" or e.relation=="other" and ("other server key "..tostring(e.reportLayer)) or "layer unknown")
         end
         say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or "")..(not e.reporter and e.layer==nil and " | layer unknown when seen" or ""))
+    end
+    for _,e in ipairs(previous) do
+        say((e.displayName or e.name or "Unknown").." | "..(e.class or "Unknown class").." · "..M.zoneName(e.zone).." · previous zone | "..tostring(e.level or "?").." | seen "..ago(now()-e.at).." ago")
     end
     if kind=="reported" then M.hopList={at=now(),records=records,shown=shown} end
     if kind=="reported" and #rows>0 then say("To go there, ask a reporter for an invite: /le hosts") end
@@ -1647,7 +1654,7 @@ local function dispatch(_,event,...)
     elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then guarded(M.boundary,A.location()); M.queuePoll()
     elseif event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
-        if A.location()~=M.store.zone then guarded(M.boundary,A.location()) end
+        if A.location()~=M.store.zone then guarded(M.boundary,A.location(),true) end
         M.queuePoll()
     elseif event=="PLAYER_TARGET_CHANGED" then M.queueUnit("target")
     elseif event=="UPDATE_MOUSEOVER_UNIT" then M.queueUnit("mouseover")

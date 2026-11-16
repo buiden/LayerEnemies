@@ -6207,5 +6207,152 @@ test("seen unknown 09: learning preserves the 60-second shared-enemy cooldown",f
     advance(1); N.Main.shareTick(); eq(#oLines(),2,"new report at 60 seconds")
     no(N.Main.error)
 end)
+test("previous zone 11: real crossings carry an own row for 120 seconds from its sighting",function()
+    for _,route in ipairs({"ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","poll","observe"}) do
+        local N=loadAddon(); establish(N); advance(math.ceil(clock)+1-clock)
+        seeFoe("Aster Vale","Player-1-901"); local at=clock
+        map=200
+        if route=="poll" then N.Main.poll()
+        elseif route=="observe" then N.Main.observe("target")
+        else deliver(route); drain() end
+        eq(N.Main.store.zone,200); eq(#N.Store.rows(N.Main.store,clock,"local"),0)
+        yes(type(N.Store.previous)=="function","previous-zone reader exists")
+        local rows=N.Store.previous(N.Main.store,clock); eq(#rows,1,route)
+        local e=rows[1]; eq(e.key,"Player-1-901"); eq(e.name,"Aster Vale"); eq(e.zone,100); eq(e.at,at)
+        eq(e.layer,nil); eq(e.x,nil); eq(e.y,nil); eq(e.faction,nil); eq(e.ownSource,nil)
+        local allowed={key=true,name=true,displayName=true,class=true,level=true,zone=true,at=true}
+        for k in pairs(e) do yes(allowed[k],"plain previous-zone field: "..k) end
+        N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (1)")
+        yes(N.UI.pool[1].sub.text:find("MAGE · Ashenvale · previous zone",1,true),N.UI.pool[1].sub.text); no(N.UI.pool[1].ask:IsShown())
+        slash("list"); yes(logged("Aster Vale | MAGE · Ashenvale · previous zone")); no(logged("No eligible observations."))
+        -- Still-held units remain quarantined; the carried row covers the gap, it is not a fresh sighting.
+        advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
+        eq(next(N.Main.store.localSeen),nil); eq(#N.Store.previous(N.Main.store,clock),1)
+        advance(at+119-clock); eq(#N.Store.previous(N.Main.store,clock),1)
+        advance(1); eq(#N.Store.previous(N.Main.store,clock),0)
+        advance(1); eq(#N.Store.previous(N.Main.store,clock),0)
+        N.UI.render(); eq(N.UI.tabs["local"].label.text,"Seen by you (0)"); no(N.Main.error)
+    end
+end)
+test("previous zone 12: expired own sightings are not revived by a crossing or Bulo refresh",function()
+    for _,age in ipairs({120,121}) do
+        local N=loadAddon(); local b=fakeBulo("7086-7"); N.Main.poll(); advance(1)
+        seeFoe("Aster Vale","Player-1-901"); units.target=nil; local at=clock
+        advance(age); b.Radar.seen["Player-1-901"]={at=clock,hostile=true,src="target"}; N.Main.poll(); b.Radar.seen={}
+        eq(N.Main.store.localSeen["Player-1-901"].ownAt,at)
+        eq(N.Main.store.localSeen["Player-1-901"].at,clock)
+        -- Do not let a new layer from Bulo clear a wrongly carried row before it can be asserted.
+        BuloLayerForever=nil; map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+        yes(type(N.Store.previous)=="function","previous-zone reader exists")
+        eq(#N.Store.previous(N.Main.store,clock),0); eq(#N.Main.store.prev,0)
+    end
+end)
+test("previous zone 13: only the newest eight sightings are carried as independent copies",function()
+    local N=loadAddon(); establish(N); local original
+    for i=1,9 do
+        advance(1); seeFoe("Aster "..abc(i),"Player-1-"..i); units.target=nil
+        if i==9 then original=N.Main.store.localSeen["Player-1-9"] end
+    end
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    local rows=N.Store.previous(N.Main.store,clock); eq(#rows,8); eq(#N.Main.store.prev,8)
+    for i,e in ipairs(rows) do eq(e.key,"Player-1-"..(10-i)); eq(e.zone,100) end
+    original.name="Changed"; original.at=clock+20
+    eq(rows[1].name,"Aster i"); no(rows[1]==original); yes(rows[1].at<=clock)
+    N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (8)")
+end)
+test("previous zone 14: only opposite-faction own-source current-epoch rows are eligible",function()
+    local N=loadAddon(); advance(1); local t=N.Main.store
+    local function put(key,faction,source,at)
+        yes(N.Store.observe(t,{key=key,name="Aster "..key,at=at or clock,faction=faction,source=source},clock))
+    end
+    put("Copy","opposite","Bulo target")
+    put("Friendly","same","own target"); put("Unreadable","unknown","own mouseover")
+    put("Old","opposite","own target"); t.localSeen.Old.epoch=t.serial-1
+    put("Far","opposite","own target"); t.localSeen.Far.zone=200
+    put("Future","opposite","own target"); t.localSeen.Future.ownAt=clock+50
+    put("Own","opposite","own nameplate1"); local at=clock
+    advance(1); put("Own","opposite","Bulo target") -- fresh Bulo copy keeps the earlier own proof
+    eq(t.localSeen.Own.ownAt,at); eq(t.localSeen.Own.source,"Bulo target")
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    local rows=N.Store.previous(t,clock); eq(#rows,1); eq(rows[1].key,"Own"); eq(rows[1].at,at)
+end)
+test("previous zone 15: non-zone boundaries clear carry-over even when the map also changes",function()
+    for _,event in ipairs({"SHARD_TRANSFER","PLAYER_ENTERING_WORLD","layer","npc","Bulo transfer","unreadable"}) do
+        local N=loadAddon(); establish(N); advance(1)
+        seeFoe("Aster Vale","Player-1-901"); units.target=nil
+        map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+        yes(type(N.Store.previous)=="function","previous-zone reader exists")
+        eq(#N.Store.previous(N.Main.store,clock),1,event)
+        advance(1); seeFoe("Briar Stone","Player-1-902"); units.target=nil
+        if event=="layer" then
+            units.mouseover=nil; deliver("UPDATE_MOUSEOVER_UNIT"); drain()
+            establish(N) -- unknown to known is still a layer boundary for previous-zone rows
+            advance(1); N.Main.applyLayer("8000-7","test layer")
+        elseif event=="npc" then
+            for _,e in ipairs({{3,7,"7086"},{4,7,"8000"},{5,8,"7086"},{6,8,"8000"}}) do
+                units.target={guid=npc(e[1],e[2],e[3]),player=false}
+                deliver("PLAYER_TARGET_CHANGED"); drain(); advance(.1)
+            end
+        elseif event=="Bulo transfer" then
+            local b=fakeBulo(nil); N.Main.poll(); map=100; b:Fire("LFS_TRANSFER"); drain()
+        elseif event=="unreadable" then map=nil; deliver("ZONE_CHANGED"); drain()
+        else map=100; deliver(event); drain() end
+        eq(#N.Store.previous(N.Main.store,clock),0,event); eq(#N.Main.store.prev,0,event)
+        no(N.Main.error)
+    end
+end)
+test("previous zone 16: reacquiring the same player replaces the carried display with one live row",function()
+    local N=loadAddon(); establish(N); advance(1)
+    seeFoe("Aster Vale","Player-1-901")
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    eq(#N.Store.previous(N.Main.store,clock),1)
+    units.target=nil; deliver("PLAYER_TARGET_CHANGED"); drain(); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    local rows=N.Store.rows(N.Main.store,clock,"local"); eq(#rows,1); eq(rows[1].zone,200)
+    eq(#N.Store.previous(N.Main.store,clock),0)
+    N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (1)")
+    yes(N.UI.pool[1].sub.text:find("Durotar · layer unknown",1,true))
+    no(N.UI.pool[1].sub.text:find("previous zone",1,true))
+    slash("list"); eq(lines("Aster Vale |"),1); no(logged("previous zone")); no(N.Main.error)
+end)
+test("previous zone 17: carried rows never become sends, Find locations, maps or actions",function()
+    local N=loadAddon(); establish(N); advance(1); N.Main.track("Aster Vale")
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    yes(N.Main.findRows()[1].at); eq(#oLines(),0,"cross before sharing settles")
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    eq(#N.Store.previous(N.Main.store,clock),1)
+    -- Exercise presentation and background work, not just the reducer.
+    sent={}; log={}; N.UI.toggle(); slash("list"); advance(10); N.Main.shareTick()
+    eq(#oLines(),0); eq(#sent,0); eq(next(N.Main.find.locations),nil)
+    eq(N.Main.findRows()[1].at,nil); no(logged("is on YOUR layer"))
+    eq(#N.Store.mapCandidates(N.Main.store,clock,100),0); eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
+    eq(#N.Main.candidates(),0); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
+    no(N.UI.pool[1].ask:IsShown()); N.UI.pool[1].ask:Click(); eq(#sent,0); eq(#opened,0)
+    no(N.Main.error)
+end)
+test("previous zone 18: a second crossing keeps only the zone just left after live rows",function()
+    local N=loadAddon(); establish(N); advance(1)
+    seeFoe("Aster Vale","Player-1-901"); units.target=nil
+    map=200; deliver("ZONE_CHANGED_NEW_AREA"); drain()
+    yes(type(N.Store.previous)=="function","previous-zone reader exists")
+    eq(#N.Store.previous(N.Main.store,clock),1)
+    advance(1); seeFoe("Briar Stone","Player-1-902"); units.target=nil
+    N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (2)")
+    eq(N.UI.pool[1].title.text,"Briar Stone"); eq(N.UI.pool[2].title.text,"Aster Vale")
+    slash("list"); local first,second
+    for i,line in ipairs(log) do
+        if line:find("Briar Stone |",1,true) then first=i end
+        if line:find("Aster Vale |",1,true) then second=i end
+    end
+    yes(first and second and first<second,"live rows precede previous-zone rows")
+    map=100; deliver("ZONE_CHANGED"); drain()
+    local rows=N.Store.previous(N.Main.store,clock); eq(#rows,1); eq(rows[1].key,"Player-1-902"); eq(rows[1].zone,200)
+    map=200; deliver("ZONE_CHANGED"); drain(); eq(#N.Store.previous(N.Main.store,clock),0,"empty zone clears older carry")
+    no(N.Main.error)
+end)
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

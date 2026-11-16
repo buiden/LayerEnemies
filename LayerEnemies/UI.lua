@@ -109,6 +109,8 @@ function U.render()
     local M,T=N.Main,N.Store
     local time=GetTime()
     local seen=T.rows(M.store,time,"local")
+    local liveSeen=#seen
+    for _,e in ipairs(T.previous(M.store,time)) do seen[#seen+1]=e end
     local reports=T.rows(M.store,time,"reported")
     local friends=M.candidates()
     local eligible={}; for _,c in ipairs(friends) do eligible[c.short]=true end
@@ -168,7 +170,7 @@ function U.render()
         r.age:SetText(e.at and age(e.at) or e.age and age(time-e.age) or "")
         r.title:SetText(e.displayName or e.name or "Unknown")
         if U.tab=="local" then
-            r.sub:SetText(className(e.class).." · "..M.zoneName(e.zone)..(e.layer==nil and " · layer unknown" or "")); askState(r,nil)
+            r.sub:SetText(className(e.class).." · "..M.zoneName(e.zone)..(index+U.offset>liveSeen and " · previous zone" or e.layer==nil and " · layer unknown" or "")); askState(r,nil)
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))
             r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or ""))
