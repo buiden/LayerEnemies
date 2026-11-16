@@ -232,7 +232,7 @@ function D.dead()
             -- Not announced: still look at 0.3/1/2 s, record only, so late rows stay with this death.
             -- An announced death records through its own retries; revive claims anything later.
             if S.tab(C_Timer) and type(C_Timer.After)=="function" then
-                for _,delay in ipairs({0.3,1,2}) do C_Timer.After(delay,function() claim(death) end) end
+                for _,delay in ipairs({0.3,1,2}) do C_Timer.After(delay,function() if death==recapDeath then claim(death) end end) end
             end
             return
         end

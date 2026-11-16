@@ -439,6 +439,26 @@ test("K review: the session keeps at most 256 row sets and then refuses new sets
     H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
     eq(#deaths(),0,"a 257th unseen set is refused, never admitted by forgetting an old one"); no(N.Main.error)
 end)
+test("K review N1: an unsent death's timed looks stop when the next death starts",function()
+    local N=setup(); raceProof(); N.Main.setShare(false)
+    local held={}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    H.deliver("PLAYER_DEAD"); H.advance(.2); H.deliver("PLAYER_ALIVE")
+    N.Main.setShare(true); H.advance(1.7)
+    H.deliver("PLAYER_DEAD"); H.advance(.05); held={recapRow()}
+    H.advance(.3); H.advance(.7); H.advance(1)
+    eq(#deaths(),1,"rows of the second death belong to it, not to the earlier death's leftover look"); no(N.Main.error)
+end)
+test("K review N2: rows arriving between the 1 s and 2 s looks of an unsent death stay with it",function()
+    local N=setup(); raceProof(); N.Main.setShare(false)
+    local held={}
+    C_DeathRecap.GetRecapEvents=function() return held end
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(.5); held={recapRow()}
+    H.advance(.6); eq(#deaths(),0)
+    H.advance(1901); N.Main.setShare(true) -- no revive event: only the timed looks can claim
+    H.deliver("PLAYER_DEAD"); H.advance(.301); H.advance(.7); H.advance(1)
+    eq(#deaths(),0,"the 2 s look claims rows that arrived after the 1 s look"); no(N.Main.error)
+end)
 test("K review F1: row-set identity ignores table allocation and order",function()
     local N,rows=setup(); raceProof()
     rows[2]={sourceGUID="Creature-0-1-0-1-2-AB",sourceName="Forest Wolf",sourceFlags=0x848,
