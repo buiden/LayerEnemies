@@ -119,11 +119,14 @@ test("Wanted: stale and future records are refused before the offer boundary",fu
     end
 end)
 
-test("Wanted: immutable dedupe ceilings do not store or save new names",function()
+test("Wanted: bounded dedupe evictions do not save evidence or new names",function()
     local N=setup("Enemy One"); local saved=N.Codec.lsWrite(LayerEnemiesDB)
-    for i=1,512 do N.Wanted.state.seen["reserved"..i]={expires=h.clock()+3600,owner="reserved"..i,guild=true} end
-    send(N,"S",{v="1.29.2",s={sight()}}); empty(N); eq(count(N.Wanted.state.seen),512)
-    N.Wanted.state.seen.reserved1=nil; send(N,"S",{v="1.29.2",s={sight()}}); yes(known(N)); eq(count(N.Wanted.state.seen),512)
+    for i=1,512 do N.Wanted.state.seen["reserved"..i]={expires=h.clock()+3600,owner="reserved"..i,guild=true,order=i} end
+    N.Wanted.state.seenOrder=512
+    send(N,"S",{v="1.29.2",s={sight()}}); yes(known(N)); eq(count(N.Wanted.state.seen),512)
+    no(N.Wanted.state.seen.reserved1); yes(N.Wanted.state.seen.reserved2); eq(N.Wanted.stats.evicted,1)
+    send(N,"S",{v="1.29.2",s={sight()}}); eq(count(N.Wanted.state.seen),512); eq(N.Wanted.stats.evicted,1)
+    no(N.Main.error)
     eq(N.Codec.lsWrite(LayerEnemiesDB),saved,"no evidence or name writes to saved state")
     h.clock(h.clock()+3600); N.Sources.tick(h.clock()); eq(count(N.Wanted.state.seen),0); eq(known(N),nil)
     N=setup(); local before=N.Codec.lsWrite(LayerEnemiesDB)

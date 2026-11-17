@@ -3,7 +3,7 @@
 local _,N=...
 local W,S,Cd,Src={},N.Safe,N.Codec,N.Sources
 N.Wanted=W
-W.stats={}
+W.stats={evicted=0}
 local function plain(t) return S.tab(t) and getmetatable(t)==nil end
 local function integer(v,lo,hi) return S.num(v) and v%1==0 and v>=lo and v<=hi end
 local function guid(v) return S.str(v,64) and v:match("^Player%-%d+%-%x+$") and v end
@@ -98,21 +98,31 @@ local function budget(route,key,now,cap)
     if r.n>=cap then return false end
     r.n=r.n+1; r.at=now; return true
 end
-local function freshKey(key,now,owner,guild)
-    local total,own,public=0,0,0
+local function freshKey(key,now)
+    for k,v in pairs(state.seen) do if now>=v.expires then state.seen[k]=nil end end
+    -- Duplicates never refresh age/order. Eviction is only for admitted evidence.
+    return not state.seen[key]
+end
+local function trimSeen(owner,publicOnly,cap)
+    local n,oldest=0,nil
     for k,v in pairs(state.seen) do
-        if now>=v.expires then state.seen[k]=nil
-        else
-            total=total+1
-            if v.owner==owner then own=own+1 end
-            if not v.guild then public=public+1 end
+        if (not owner or v.owner==owner) and (not publicOnly or not v.guild) then
+            n=n+1
+            if not oldest or v.order<state.seen[oldest].order then oldest=k end
         end
     end
-    -- Never evict a live ID, even at the sender quota: replays must not refresh age.
-    return not state.seen[key] and total<512 and own<32 and (guild or public<256)
+    if n>=cap then
+        state.seen[oldest]=nil
+        W.stats.evicted=W.stats.evicted+1
+    end
 end
 local function remember(key,expires,owner,guild)
-    state.seen[key]={expires=expires,owner=owner,guild=guild==true}
+    -- Free the sender's oldest ID first, then the public pool, then global space.
+    trimSeen(owner,false,32)
+    if not guild then trimSeen(nil,true,256) end
+    trimSeen(nil,false,512)
+    state.seenOrder=(state.seenOrder or 0)+1
+    state.seen[key]={expires=expires,owner=owner,guild=guild==true,order=state.seenOrder}
 end
 local function sameFaction(g,now,faction)
     local r=N.Main.store.localSeen[g]
@@ -195,7 +205,7 @@ local function offerRecord(r,tag,dist,sender,key,now,faction,wall)
     local loc=place(d,"mapId",r.kind~="bounty" and r.kind~="claim")
     if not loc then return false end
     local identity="record:"..r.id
-    if not freshKey(identity,now,key,dist=="GUILD") then return false end
+    if not freshKey(identity,now) then return false end
     local kind=r.kind=="bounty" and "cached" or (tag=="F" or origin~=key) and "relayed" or "witness"
     local accepted=false
     local function participant(name,g,f)
@@ -226,7 +236,7 @@ local function addon(prefix,text,dist,sender)
     local b,tag,id=W.join(state,"addon:"..dist..":"..key,text,false,now,"addon:"..key,dist=="GUILD")
     if not b then return end
     local identity="packet:"..key..":"..tag..":"..id
-    if not freshKey(identity,now,key,dist=="GUILD") then return end
+    if not freshKey(identity,now) then return end
     local t=W.decode(b)
     if not plain(t) or not version(t.v) then Src.count("wanted","refused"); return end
     local accepted=false
@@ -285,8 +295,9 @@ local function bnet(prefix,text,id)
     state.far[id]={at=now,rows=rows}; Src.count("wanted","accepted")
 end
 local function status()
+    local out={"Wanted replay: evicted="..W.stats.evicted}
     local now=context()
-    if not now then return {} end
+    if not now then return out end
     sweep(now)
     local values={}
     for _,r in pairs(state.far) do
@@ -296,7 +307,7 @@ local function status()
             if not values[k] or values[k].n<v.n then values[k]=v end
         end
     end
-    local keys,out={},{}
+    local keys={}
     for k in pairs(values) do keys[#keys+1]=k end; table.sort(keys)
     for _,k in ipairs(keys) do local v=values[k]; out[#out+1]="Wanted opposite-faction users: map "..v.m.." / layer "..v.l..": "..v.n end
     return out
