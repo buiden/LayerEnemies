@@ -963,8 +963,8 @@ function M.heardBook()
     if wall then N.Hosts.prune(M.heard,wall) end
     return M.heard.heard
 end
--- FLH presence only. Decoded requests/offers have no side effects in PR 3a:
--- no membership, whisper replies, directory, invitation or hop request.
+-- Preserve the reviewed presence reader. F2 handles only bounded WP/CQ debts
+-- and locally correlated guest offers; claims never gain generic host authority.
 function M.flhIn(text,kind,sender)
     kind=S.str(kind,20)
     if kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return end
@@ -2396,7 +2396,7 @@ function M.start()
         -- replies to our hop request, and Bulo guild layer lines; we answer neither
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LayerSwap")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LFSw")
-        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FLHNET2") -- receive only
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FLHNET2") -- legacy receive owner; F2 sends through Wire
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LEGW1")
         -- the Spy family: read only (lane C1)
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"[Spy]")

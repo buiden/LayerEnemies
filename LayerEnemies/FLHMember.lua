@@ -111,7 +111,9 @@ function F.hop(row,shown)
                 (not shown.candidate or shown.candidate.source~="FLH" or shown.candidate.name~=live.name or shown.candidate.key~=live.flhKey))) then return false end
             local last=M.invite.asked[live.short]
             if not last or now-last>=I.NAME_COOLDOWN then
-                targets[#targets+1]={name=live.name,short=live.short,key=live.flhKey}
+                local _,_,target=I.name(live.name)
+                if not target then return false end
+                targets[#targets+1]={name=target,short=live.short,key=live.flhKey}
                 if row or #targets>=N.HopAny.CAP-1 then break end -- reserve one slot for LR
             end
         end

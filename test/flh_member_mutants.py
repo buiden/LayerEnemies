@@ -57,15 +57,28 @@ MUTANTS = [
     ('other-hop-exclusion', [('Main.lua', 'if N.FLHMember.pending() then\n        M.say', 'if false then\n        M.say')]),
     ('no-peer-name-disclosure', [('FLH.lua', 'fields={cmd,rid,map,key,own,""}', 'fields={cmd,rid,map,key,own,"8"}')]),
     ('no-channel-send', [('Wire.lua', 'FLHNET2 = { kinds = { GUILD = true', 'FLHNET2 = { kinds = { CHANNEL = true, GUILD = true')]),
+    ('canonical-guest-target', [('FLHMember.lua', 'targets[#targets+1]={name=target,short=live.short,key=live.flhKey}', 'targets[#targets+1]={name=live.name,short=live.short,key=live.flhKey}')]),
     ('no-host-offer-route', [('Wire.lua', 'or m.cmd=="LQ" or m.cmd=="LR")', 'or m.cmd=="LQ" or m.cmd=="LR" or m.cmd=="LO")')]),
 ]
+
+
+def normalize(output, root):
+    """Keep assertions/line numbers, not checkout names or Lua object addresses."""
+    output = output.replace(str(root) + os.sep, '')
+    return re.sub(r'(table|function|thread|userdata): 0x[0-9a-fA-F]+', r'\1: <address>', output)
+
+
+def write_report(path, report):
+    data = (json.dumps(report, indent=2, sort_keys=True) + '\n').encode()
+    if not path.exists() or path.read_bytes() != data:
+        path.write_bytes(data)
 
 
 def run(root, lua, policy=False):
     cmd = (['python3', '-m', 'unittest', 'test.api_policy_test.ApiPolicyTests.test_flh_routes_are_only_the_four_approved_routes']
            if policy else [lua, 'test/harness.lua', '--only=FLH member:'])
     p = subprocess.run(cmd, cwd=root, text=True, capture_output=True, timeout=180)
-    output = p.stdout + p.stderr
+    output = normalize(p.stdout + p.stderr, root)
     if policy:
         return {'rc': p.returncode, 'failed': int(p.returncode != 0),
                 'caught_by': ['F2 route/API policy'] if p.returncode else []}, output
@@ -101,6 +114,9 @@ def main():
                     text = path.read_text()
                     assert text.count(before) == 1, (name, filename, text.count(before))
                     path.write_text(text.replace(before, after))
+                for path in originals:
+                    subprocess.run([args.lua, '-e', 'assert(loadfile(' + json.dumps(str(path.relative_to(root))) + '))'],
+                                   cwd=root, capture_output=True, check=True, timeout=30)
                 result, out = run(root, args.lua, name == 'no-channel-send')
                 if 'passed' in result:
                     assert result['passed'] + result['failed'] == baseline['passed'], (name, out)
@@ -114,7 +130,7 @@ def main():
         assert final == baseline, out
     report = {'baseline': baseline, 'mutants': results, 'final': final}
     (ROOT / 'notes').mkdir(exist_ok=True)
-    (ROOT / 'notes/flh-member-mutants.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
+    write_report(ROOT / 'notes/flh-member-mutants.json', report)
     print(next(line for line in out.splitlines() if line.startswith('RESULT:')))
     print('Mutants: %d/%d killed' % (sum(x['killed'] for x in results), len(MUTANTS)))
     assert all(x['killed'] for x in results), 'surviving mutant'

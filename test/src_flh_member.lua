@@ -415,3 +415,19 @@ test("FLH member: a freshly known new zone still revokes an open old-zone offer"
     N.Main.store.zone=200; C_Map.GetBestMapForUnit=function() return 200 end
     yes(N.FLHMember.context()); offer(N,id); eq(#countCmd(N,"LR"),0); no(N.FLHMember.pending())
 end)
+
+test("FLH member: merged home-realm spelling keeps the shown host and sends canonically",function()
+    local N=member()
+    N.Main.heard.heard["Cedar Vale-TestRealm"]={layer="7102-55",zone=100,at=H.wall(),host=false}
+    local row=host(N)
+    eq(row.name,"Cedar Vale-TestRealm"); no(row.host); yes(row.hosts.FLH)
+    -- An explicit FLH action may include a merged row; normal row clicks still
+    -- prefer the established Bulo/LayerSwap path.
+    local preview=N.FLHMember.preview(row); yes(preview.enabled)
+    yes(N.FLHMember.hop(row,preview))
+    local queries=countCmd(N,"LQ"); eq(#queries,1); eq(queries[1].target,"Cedar Vale")
+    local id=N.FLH.decode(queries[1].text).id
+    offer(N,id,"Cedar Vale-TestRealm"); eq(#countCmd(N,"LR"),1)
+    eq(countCmd(N,"LR")[1].target,"Cedar Vale")
+    H.deliver("PARTY_INVITE_REQUEST","Cedar Vale-TestRealm"); eq(H.accepts(),1)
+end)

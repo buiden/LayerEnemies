@@ -174,7 +174,7 @@ function I.collect(env)
     source("LayerSwap","book",env.book,I.BOOK_FRESH)
     -- FLH's GUID field 5 is a fingerprint claim, not a server key. Merge only
     -- the player's identity/provenance; never promote it to layer/uid or a
-    -- LayerSwap/Bulo host flag. Automated FLH hopping belongs to PR 3b.
+    -- LayerSwap/Bulo host flag. F2 guest actions consume this separate provenance.
     local flhCount=0
     if env.self and S.num(env.wall) and S.num(env.zone) and S.tab(env.flh) then
         for _,e in pairs(env.flh) do
