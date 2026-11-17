@@ -183,6 +183,38 @@ class ApiPolicyTests(unittest.TestCase):
             with self.subTest(plant=i), self.assertRaises(AssertionError):
                 VERIFY['check_route_policy'](changed)
 
+    def test_flh_route_gate_rejects_expression_suffix_replacements(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        read = 'local route = type(prefix) == "string" and ROUTES[prefix]'
+        fields = 'local fieldA="ki".."nds"; local fieldB="ch".."eck"\n    '
+        for prefix, kind in (('ReviewPrefix', 'GUILD'), ('FLHNET2', 'CHANNEL')):
+            # Preserve the old whitelisted subsequence, but replace its result.
+            # The FLH variant also applies when the real ROUTES lookup is truthy.
+            suffix = (' or (prefix=="' + prefix + '" and { [fieldA]={ ' + kind +
+                      '=true }, [fieldB]=function() return "line" end })')
+            plant = fields + read + ((' and kind~="CHANNEL"') if kind == 'CHANNEL' else '') + suffix
+            with self.subTest(prefix=prefix), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(read, plant))
+
+    def test_flh_route_gate_rejects_unreviewed_tables_and_computed_keys_in_check(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        read = 'local route = type(prefix) == "string" and ROUTES[prefix]'
+        for plant in ('local replacement={}', 'local replacement=other[key]'):
+            with self.subTest(plant=plant), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(read, plant + '\n    ' + read))
+
+    def test_debug_upvalue_access_is_forbidden_in_every_addon_module(self):
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        plant = ('local _, captured=debug.getupvalue(Wr.send,1); '
+                 'debug.setupvalue(Wr.send,1,captured)')
+        for path in root.glob('*.lua'):
+            for access in (plant, 'local d=debug; d.getupvalue(fn,1)',
+                           '_G["de".."bug"].getupvalue(fn,1)',
+                           '_G.debug.setupvalue(fn,1,{})'):
+                with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                    self.check_source(path.read_text() + '\n' + access, path.name)
+        self.check_source('-- debug.getupvalue(fn,1)\nlocal inert="debug.setupvalue"')
+
     def test_flh_membership_side_effect_is_disclosed(self):
         readme = (Path(__file__).resolve().parents[1] / 'README.md').read_text()
         self.assertIn("A real Forever Layer Hop client on another realm that hears our messages may introduce "
