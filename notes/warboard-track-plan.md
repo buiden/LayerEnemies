@@ -1,5 +1,21 @@
 # E2 execution ledger — PLAN.md 8.5
 
+## Round-2 correction on e1bc2239 (current)
+
+- Frozen baseline: `/opt/data/cache/scratch/le-e2-r3-base`; reviewer files read-only.
+- 946d487: M1 six assertion failures → all green; exception requires pending withdrawal.
+- fb788bf: S1 four assertion failures → all green; donor 15/15, own offset 313 at 315s not 603s.
+- dbbfcae: S2 four assertion failures → all green; A-only cannot confirm donor-owned cleanup.
+- cb7b249: S3 three assertion failures → all green; six bounded attempts reopen each login.
+- 5311971: N2 four assertion failures → all green; bounded unsafe roster inbox, current-GUID validation.
+- Self-review adds unsafe H age preservation, README precision, inherited assertion migrations,
+  per-ruling mutants and separate regenerated evidence. See `notes/warboard-track.md`.
+- Ruling: queue overflow/unvalidatable held input retains uncertainty rather than silence success;
+  this can delay cleanup but never reports a lost contradictory roster as withdrawal proof.
+- No publication, install, donor execution or native client tests.
+
+## Historical first-round ledger (superseded where above differs)
+
 Authority: /opt/data/handoffs/2026-11-17-le-1.2.0/PLAN.md sections 1, 3, 8.5; audit-warboard.md 1.6.3. Base 65904e66. Local commits only.
 
 - Preserved inherited unfinished work as 82fcf57 after its 45 tests passed (3669 assertions). Its cancellation gates, persistence, rates, server clock and disclosure contradicted the binding spec. Superseded all old rulings in this file.

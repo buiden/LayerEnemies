@@ -135,7 +135,7 @@ local function send(st,id,cmd,ctx)
             peer.answerPending=nil
             if ok and st.peers[id]==peer and peer.hello==hello then
                 peer.needAnswer=nil; proof(st,peer,sentAt)
-                -- Cleanup proof is separate from received-A request eligibility.
+                -- An answered H alone does not supply received-A request eligibility.
             end
         end
     end)
@@ -514,7 +514,7 @@ function W.bnet(st,text,id,ctx,deferred)
         local peer=st.peers[id]
         if peer and rs==peer.rs and S.str(version,80) and #rv<=7 then
             if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end
-            if cmd=="H" then peer.donorObserved=N.Adapters.loaded("WarBoard") or nil end
+            if cmd=="H" then peer.donorObserved=N.Adapters.loaded("WarBoard") and N.Adapters.warboardContext(true) or nil end
         end
         return false
     end
@@ -575,10 +575,13 @@ function W.tick(st,ctx)
         -- Validate deferred donor-owned control observations only when safe;
         -- no LE handshake or account scan was performed in combat/instances.
         for id,peer in pairs(st.peers) do
-            local who=peer.donorObserved and T.owedAccount(id) and identity(id,ctx)
+            local observed=peer.donorObserved
+            peer.donorObserved=nil
+            local who=observed and ctx.now>=observed.now and ctx.now-observed.now<1200
+                and observed.rs==ctx.rs and observed.faction==ctx.faction and T.owedAccount(id) and identity(id,ctx)
             if who and peer.rs==ctx.rs and who.key==peer.key and who.faction==peer.faction then
-                peer.donorObserved=nil; peer.needAnswer=nil; peer.at=ctx.now
-                proof(st,peer,ctx.now)
+                peer.needAnswer=nil; peer.at=observed.now
+                proof(st,peer,observed.now)
             end
         end
     end

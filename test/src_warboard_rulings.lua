@@ -157,6 +157,14 @@ for _,unsafe in ipairs({"safe","combat","instance"}) do
     end)
 end
 
+test("S2 donor unsafe H must still be under twenty minutes old",function()
+    local N,r,hello,count,pos=start(); stop(N,"share")
+    h.loaded().WarBoard=true; h.combat(true); h.deliver("PLAYER_REGEN_DISABLED")
+    hello(); advance(1300); h.combat(false); advance(5)
+    eq(count("FBUN"),0,"unsafe H receipt must not become fresh merely on safe resumption")
+    eq(debt(),1); hello(); advance(5); eq(count("FBUN"),1); no(r.sub)
+end)
+
 test("S2 donor waits for target H then withdraws without rejected 3s send",function()
     local N,r,hello,count,pos=setup({warboardOwed={G}})
     h.loaded().WarBoard=true; r.sub=true
@@ -261,4 +269,14 @@ test("N1 genuine recent confirmation permits FBAK when sharing resumes",function
     local before=#h.sent(); N.Main.setShare(true); advance(2)
     eq(count("FBAK",before),1,"recent real confirmation is reusable, not cleanup-only consent")
     eq(count("H",before),0,"fresh ask need not wait for a new H while confirmation is under 20 min")
+end)
+
+test("N1 README states revised confirmation and retry rules",function()
+    local f=assert(io.open("README.md")); local s=f:read("*a"):gsub("%s+"," "); f:close()
+    for _,phrase in ipairs({"A genuine confirmation under **20 minutes** old can authorize a new FBAK",
+        "only while a withdrawal needs a handshake", "Each login/reload reopens six attempts",
+        "only from an observed valid **H from the target**", "bounded inbox (128 frames, 256 KiB total)"}) do
+        yes(s:find(phrase,1,true),phrase)
+    end
+    no(s:find("attempts per debt over its life",1,true))
 end)

@@ -6,7 +6,7 @@
 |---|---|---|
 | `WBF1\|D\|<encoded FBAK>` first ask | Only a uniquely resolved character on **your own Find list**, directly to that one live game account after a compatible WarBoard A handshake; target GUID/name from the client API only | **3 tries, at least 6 seconds apart**, then FBUN and **300 seconds idle** if no position arrives; never Watch-only or untracked names; at most 20 active targets |
 | `FBAK` renewal | That same confirmed account only | Only while its newest position is **45–300 seconds old**, at most once per **45 seconds** per target. Past 300 seconds: FBUN, idle, retry after 300 seconds or a new handshake. Dead/in-instance silence does not accelerate requests |
-| `WBF1\|D\|<encoded FBUN>` | The same target GUID with an outstanding request, including a restored debt, through a currently confirmed account | **Sent, unverified** after each accepted call; at most **3 attempts per 10-minute window**, at least **60 seconds apart**, at most **6 FBUN attempts per debt over its life**, including failures. Stops: Find removal/clear, tracking off, share off, Guild only, WarBoard source off, stand-down, give-up, best effort logout. Also retires requests on local combat/instance entry. Cleanup survives those switches and waits until out of combat/instance |
+| `WBF1\|D\|<encoded FBUN>` | The same target GUID with an outstanding request, including a restored debt, through a currently confirmed account | **Sent, unverified** after each accepted call; at most **3 attempts per 10-minute window**, at least **60 seconds apart**, at most **6 FBUN attempts per debt per login**, including failures. Stops: Find removal/clear, tracking off, share off, Guild only, WarBoard source off, stand-down, give-up, best effort logout. Also retires requests on local combat/instance entry. Cleanup survives those switches and waits until out of combat/instance |
 | All kinds, including existing H/A | **Only `BN.send`**, prefix `WarBoard`; never guild/group/channel/chat forwarding | **6 FBAK/rolling minute**, within **10 WarBoard attempts/minute**, **30 shared/minute**, **one/second**. Owed A answers first, FBUN before own traffic. Budgets may delay attempts; failures spend them |
 
 This asks the tracked player's WarBoard client to broadcast its position to WarBoard peers every 15 seconds, as a WarBoard hunter's client does.
@@ -24,8 +24,8 @@ WarBoard never expires a subscriber. Its **FBUN** has no `targetName` and remove
 only our own `hunterGuid`. The only new saved field is per-character
 `LayerEnemiesDB.warboardOwed`: a dense, deduplicated, oldest-first array of **at
 most 40 target GUID strings**, oldest out, with an optional `attempts[guid]`
-map of integers 0–6 for those same GUIDs. The attempt counts enforce the lifetime
-bound even after reload. No names, accounts, zones, timestamps, locations or
+map of integers 0–6 for those same GUIDs. Login/reload resets those counts to
+zero once, reopening six attempts for each retained debt. No names, accounts, zones, timestamps, locations or
 hunter roster are saved there. Older GUID-only lists remain readable.
 
 Debt is recorded in memory before an attempted request, but written to disk
@@ -40,32 +40,47 @@ Still-tracked debts must settle before new asks too.
 Queue admission never settles debt. An accepted FBUN client call leaves it
 **sent, unverified**: a later, validated direct FBLP from that target without our
 GUID in its hunter roster clears it. If a later roster still lists us, LE
-requires a new handshake and resends FBUN. Otherwise the debt clears after
+invalidates the confirmation used by that send and resends FBUN after a fresh
+exchange. A newer, unused confirmation is retained, even if another roster
+arrives before the resend. Otherwise the debt clears after
 **15 minutes** from an accepted call with no subsequent FBLP listing us. Silence
 is a fallback, not proof of delivery. Three failed attempts pause the window;
 it reopens every **10 minutes**, with at least 60 seconds between attempts.
-At **6 FBUN attempts** over that debt's life (failures included), LE stops
-sending FBUN, retains the debt across login, and blocks new asks for it. A later
-excluding roster can still clear it; the silence fallback remains available
-only for an accepted send that no later roster contradicted. The target may
-remain subscribed indefinitely at this bound, or if the 40-entry oldest-out
-limit evicts its debt; LE does not claim success on either path.
+At **6 FBUN attempts** in that login (failures included), LE stops sending FBUN
+and debt-settlement H/A, retains the debt, and blocks new asks for it. Each
+login/reload reopens six attempts; toggling tracking or privacy does not reset
+them. A later excluding roster can still clear it; the silence fallback remains
+available only for an accepted send that no later roster contradicted. The target
+may remain subscribed until a later successful login's cleanup, indefinitely if
+no usable exchange occurs, or if the 40-entry oldest-out limit evicts its debt;
+LE does not claim success on those paths.
 
 Entering combat or an instance retires the request, but FBUN waits until safe;
 the **target may keep broadcasting** for that entire time. No scans or sends
 occur in combat/instances. Queued FBUN gets fresh server time at dispatch and
 must have handshake confirmation newer than the target's latest H (including
 an H observed while waiting), so a target reload cannot reuse an old confirmation.
+Known-account data received while unsafe is held in a bounded inbox (128 frames,
+256 KiB total), including multipart rosters, and validated before silence can
+settle debt. Receipt-time age checks and current-account GUID validation both
+apply. This inbox is cleanup-only, not delayed Find evidence. Overflow or input
+that cannot be revalidated invalidates that account's silence fallback rather
+than claiming withdrawal succeeded; no account scans or sends occur while unsafe.
 
 The **debt-settlement exception** permits only H, A in answer to that account's
 H, and the concrete outstanding FBUN, only to live client-resolved accounts in
-the owed list and only while their debt remains. These may pass share off,
-WarBoard source off or Guild only; nothing else goes to anyone under those
+the owed list. H/A pass these gates only while a withdrawal needs a handshake:
+not while merely waiting to verify an accepted FBUN, nor after six attempts.
+These may pass share off, WarBoard source off or Guild only; nothing else goes to anyone under those
 settings. A generic `owed` priority does not bypass the gates. With the real
 WarBoard addon loaded, LE sends **no H or A**: the real addon answers. LE instead
-refreshes cleanup confirmation by observing a valid H/A from the owed account,
-regardless of which addon prompted it, then sends FBUN. If no such handshake is
-observed, cleanup waits. All these frames retain the same rate/safety limits.
+refreshes cleanup confirmation only from an observed valid **H from the target**,
+which the real addon answers. The target's A alone does not confirm us at the
+target and cannot authorize FBUN or a silence-based settlement. If no target H
+or still-fresh established confirmation is available, cleanup waits. All these
+frames retain the same rate/safety limits. A genuine confirmation under **20
+minutes** old can authorize a new FBAK when tracking and the ordinary send
+settings are on; confirmation is not categorically restricted to cleanup.
 No cancellation delivery acknowledgement exists: an accepted API call is not
 proof of remote delivery. Non-friend account visibility, remote community-roster
 acceptance and logout delivery remain unverified and fail silent.

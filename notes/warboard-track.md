@@ -5,7 +5,64 @@ Authority: `/opt/data/handoffs/2026-11-17-le-1.2.0/PLAN.md` sections 1, 3 and 8.
 Clone: `/opt/data/cache/scratch/le-warboard-track`, branch `feat/warboard-track`.
 Local commits only: no push, GitHub write, donor execution or donor code copied.
 
-## Review correction checkpoint (a4dfbc40 baseline)
+## Round-2 rulings correction (e1bc2239 baseline)
+
+Authority: the parent's M1/S1/S2/S3/N1/N2 rulings and the read-only verdict
+`/opt/data/profiles/mani/cache/scratch/t2/parent-verdict-e2-r2.txt` plus probes 5–8.
+The rest of this note is historical evidence unless explicitly updated here.
+The original e1bc2239 source is frozen in `/opt/data/cache/scratch/le-e2-r3-base`.
+All regressions use an independent target model: a target's A answers our H,
+but only our A confirms us at the target. No donor code was copied or executed.
+Donor 1.6.3 `Services/WarBoard_ForeverComm.lua:1164–1192` was read directly.
+
+- M1: H/A's private exception uses `needsHandshake` at admission and dispatch,
+  not mere debt membership. Six exhausted attempts and sent-unverified debt
+  permit no exceptional H/A under share off, source off or Guild only.
+- S1: record the proof actually used by FBUN. A listing invalidates that proof,
+  not a newer unused exchange; repeated rosters cannot wipe the waiting resend's
+  fresh confirmation. The send-time comparison also preserves a confirmation
+  newer than an out-of-order roster.
+- S2: with real WarBoard loaded, only observed target H refreshes cleanup proof;
+  A-only traffic does not. Unsafe H retains its receipt timestamp: resuming after
+  20 minutes cannot manufacture a fresh confirmation. LE never sends donor-owned H/A.
+- S3: each character login/reload resets retained debts to six fresh attempts,
+  still three per 600-second window and at least 60 seconds apart. The bounded
+  per-character GUID array/attempts map remains; toggles do not reset counters.
+- N1: a genuine confirmation under 20 minutes old permits FBAK while tracking
+  and ordinary send settings are enabled. An answered H alone is not a received-A
+  confirmation; that narrower existing test remains, with corrected wording.
+- N2: defer known-account data while unsafe, at most 128 frames / 262144 bytes.
+  Check rosters with their original receipt-time age and current account GUID
+  before silence settlement. No unsafe account scans/sends, no delayed Find
+  admission. Overflow/unvalidatable input invalidates the account's silence
+  fallback rather than declaring success. Existing decode/fragment/rate caps stay.
+
+Ruling: bounded-inbox overflow fails closed by retaining uncertainty — otherwise
+any finite queue could silently lose the only roster contradicting withdrawal.
+Cost: extra bounded retries or waiting for a later login, never fabricated success.
+
+Tests-first evidence so far (against e1bc2239 unless noted): M1 0/6 → 6/0,
+120 A per two hours → 0 for all three stop settings; S1 20/4 → 24/0,
+donor timings 13/15 → 15/15 and own offset 313 delayed 603 → 315 seconds;
+S2 1/4 → 5/0, A-only FBUN 1 → 0; S3 0/3 → 3/0, saved count 6 → 0
+at login with six new bounded attempts and working-client recovery.
+N2 0/4 → 4/0. The additional stale unsafe-H case separately failed on 5311971
+(`expected 0, got 1`) before preserving its age. N1 runtime reuse already passed.
+Logs use `/opt/data/cache/scratch/le-e2-r3-*.log`.
+
+Assertion migrations: `test/src_warboard_debt.lua` replaces the permanent
+six-attempt/reload assertion with next-login recovery, changes restored count
+6 to 0, and renames the answered-H-only negative test without changing its
+behavior. All other inherited tests remain unchanged. Mutant anchors track the
+same receiver guards after deferred-context refactoring; obsolete permanent
+exhaustion mutants now enforce the owner's per-login bound. New ruling mutants
+cover each correction plus inbox bounds and age. Generated reports/verify notes
+will be committed separately after final execution.
+
+Final review is self-review in this subagent; parent review is independent.
+Native checks: not run (alpha, owner's decision). Local commits only; no push.
+
+## Historical review correction checkpoint (a4dfbc40 baseline)
 
 Owner M1/M2/S1/S2/S3/N1/N2 supersede the earlier acceptance rules below.
 Frozen baseline `/opt/data/cache/scratch/le-e2-r2-base`: all four unchanged
@@ -42,8 +99,9 @@ The original source/probes stayed frozen in the detached a4dfbc40 worktree.
   H/A when loaded; LE sends neither, including already queued handshakes. Valid
   owed-account H/A observations refresh cleanup confirmation. Known-account
   observations heard while unsafe are deferred for identity/rules validation on
-  safe resumption, without scanning or sending while unsafe. Cleanup-only proof
-  is separate from received-A eligibility and cannot authorize a later FBAK.
+  safe resumption, without scanning or sending while unsafe. An answered H alone
+  is separate from received-A eligibility; a genuine recent received-A
+  confirmation remains reusable for new requests under ordinary send settings.
 - **M2:** each target H invalidates cleanup proof. An accepted answer after that
   H (or donor-owned observation) establishes later proof; queued FBUN rechecks it.
   Accepted FBUN remains sent-unverified. Only a later valid direct target roster
@@ -235,7 +293,7 @@ New `test/src_warboard_debt.lua` cases (all are real assertion tests):
 - `WarBoard debt: M1 exception cannot reach another account while debt remains`
 - `WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer`
 - `WarBoard debt: M1 donor observes owed H during unsafe wait without LE answer`
-- `WarBoard debt: M1 cleanup proof alone never authorizes a new FBAK`
+- `WarBoard debt: M1 answered H without received A does not grant normal request eligibility`
 - `WarBoard debt: M1 queued handshakes stand down when real addon loads`
 - `WarBoard debt: M2 saved attempts sanitize only retained target GUIDs`
 - `WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee`

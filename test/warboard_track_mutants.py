@@ -68,7 +68,7 @@ add('owed list retained at logout', 'T.closed=true', 'T.closed=true; for i=#owed
 add('saved GUID sanitation', 'local g=guid(raw[k])', 'local g=raw[k]', 'only new saved')
 add('saved forty cap oldest out', 'if #owed>40 then', 'if #owed>41 then', 'only new saved')
 add('bounded session debt records', 'records[old]=nil --', 'do end --', 'restored forty')
-add('load resumes owed cleanup', 'records[g]={guid=g,closing=true,sent=true,tries=0,total=n or 0}', 'records[g]=nil', 'reload login')
+add('load resumes owed cleanup', 'records[g]={guid=g,closing=true,sent=true,tries=0,total=0}', 'records[g]=nil', 'reload login')
 add('load retains owed GUID list', 'N.WarBoardTrack.load(saved.warboardOwed)', 'N.WarBoardTrack.load(nil)', 'reload login', 'LayerEnemies/Main.lua')
 add('switch defaults on', 'T.closed=nil; T.on=true', 'T.closed=nil; T.on=false', 'switch defaults')
 add('status prints track state', '(N.WarBoardTrack.on and "on" or "off")', '"on"', 'switch defaults', 'LayerEnemies/Main.lua')
@@ -102,9 +102,9 @@ for mode in ('share', 'source', 'guild'):
          'if N.WarBoard and N.WarBoard.handshake(id,text) then return safe() end',
          'do end', 'M1 ' + mode + ' relog', 'LayerEnemies/BNet.lua')
 MUTANTS.append(('M1 only owed account may use handshake exception', [
-    ('LayerEnemies/WarBoard.lua','local debt=N.WarBoardTrack and N.WarBoardTrack.owedAccount(id)\n    local function permit',
+    ('LayerEnemies/WarBoard.lua','local debt=N.WarBoardTrack and N.WarBoardTrack.needsHandshake(id)\n    local function permit',
      'local debt=N.WarBoardTrack and N.WarBoardTrack.hasOwed()\n    local function permit'),
-    ('LayerEnemies/WarBoard.lua','N.WarBoardTrack.owedAccount(id)~=nil','true')], 'WarBoard debt: M1 exception'))
+    ('LayerEnemies/WarBoard.lua','N.WarBoardTrack.needsHandshake(id)','true')], 'WarBoard debt: M1 exception'))
 debt('M1 donor-owned H refreshes debt confirmation',
      'peer.needAnswer=nil; proof(st,peer,ctx.now)',
      'peer.needAnswer=nil', 'M1 donor relog', 'LayerEnemies/WarBoard.lua')
@@ -117,18 +117,18 @@ MUTANTS.append(('M1 final queued handshake checks stand-down', [
     ('LayerEnemies/WarBoard.lua','or N.Adapters.loaded("WarBoard") then return false end','then return false end'),
     ('LayerEnemies/WarBoard.lua','and not N.Adapters.loaded("WarBoard") or false','or false'),
     ('LayerEnemies/BNet.lua','if A.loaded("WarBoard") then return false end','do end')], 'WarBoard debt: M1 queued handshakes'))
-debt('M1 cleanup proof cannot promote normal request eligibility',
-     '-- Cleanup proof is separate from received-A request eligibility.',
-     'if debt then peer.confirmed=true end', 'M1 cleanup proof', 'LayerEnemies/WarBoard.lua')
+debt('M1 answered H alone cannot promote received-A eligibility',
+     '-- An answered H alone does not supply received-A request eligibility.',
+     'if debt then peer.confirmed=true end', 'M1 answered H without received A', 'LayerEnemies/WarBoard.lua')
 debt('M1 donor-owned unsafe control is validated on resumption',
-     'peer.donorObserved=N.Adapters.loaded("WarBoard") or nil',
+     'peer.donorObserved=N.Adapters.loaded("WarBoard") and N.Adapters.warboardContext(true) or nil',
      'peer.donorObserved=nil', 'M1 donor observes', 'LayerEnemies/WarBoard.lua')
 debt('M2 new H invalidates cleanup proof',
      'if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end\n        local debt',
      'if cmd=="H" then peer.needAnswer=true end\n        local debt', 'M2 latest safe H', 'LayerEnemies/WarBoard.lua')
 debt('M2 unsafe H retained for later answer',
-     'if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end\n            peer.donorObserved',
-     'do end\n            peer.donorObserved', 'M2 share target reload', 'LayerEnemies/WarBoard.lua')
+     'if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end\n            if cmd=="H" then peer.donorObserved',
+     'do end\n            if cmd=="H" then peer.donorObserved', 'M2 share target reload', 'LayerEnemies/WarBoard.lua')
 debt('M2 FBUN requires latest handshake proof',
      'if cleanup and not T.ready(peer,ctx.now) then return nil end',
      'do end', 'M2 latest safe H')
@@ -142,13 +142,13 @@ debt('M2 roster is inspected independently of disabled source and Find',
      'if N.WarBoardTrack then N.WarBoardTrack.roster(ev,d.roster,account,ctx) end',
      'do end', 'M2 source off', 'LayerEnemies/WarBoard.lua')
 debt('M2 disabled source accepts owed account roster',
-     'or N.WarBoardTrack.owedAccount(id)', 'or false', 'M2 source off', 'LayerEnemies/Sources.lua')
+     'or N.WarBoardTrack.owedAccount(id)\n            or (N.WarBoard and N.WarBoard.state.peers[id])', 'or false', 'M2 source off', 'LayerEnemies/Sources.lua')
 debt('M2 excluding roster settles debt', '    settled(r.guid)\nend\nlocal function retryDue',
      '    do end\nend\nlocal function retryDue', 'M2 accepted send')
 debt('M2 included hunter invalidates silence fallback', 'r.accepted=nil -- observed failure',
      'do end -- observed failure', 'M2 listed roster')
-debt('M2 included hunter forces fresh handshake', 'if peer then peer.proof=nil end -- a new exchange',
-     'do end -- a new exchange', 'M2 listed roster')
+debt('M2 included hunter forces fresh handshake', 'if peer and peer.proof==r.unproof and (not peer.proofAt or peer.proofAt<=ev.at) then peer.proof=nil end',
+     'do end', 'M2 listed roster')
 debt('M2 silence fallback exactly fifteen minutes', 'ctx.now-r.accepted>=900',
      'ctx.now-r.accepted>=899', 'M2 missing roster')
 debt('M2 roster target must match live account GUID',
@@ -159,16 +159,52 @@ debt('M2 roster must be newer than withdrawal', '(r.unlast and ev.at<=r.unlast)'
      'false', 'M2 stale relayed')
 debt('S1 retry window reopens after ten minutes', 'now-r.window>=600',
      'now-r.window>=1200', 'S1 failed sends')
-debt('M2 six attempts over debt lifetime', 'if r.accepted or (r.total or 0)>=6 then',
-     'if r.accepted then', 'M2 lifetime six')
-debt('M2 lifetime bound persists across reload', 'total=n or 0', 'total=0', 'M2 lifetime six')
-debt('M2 persisted count clamps at six', 'math.min(6,math.max(0,math.floor(n)))',
-     'math.max(0,math.floor(n))', 'M2 saved attempts')
+debt('M2 six attempts per login', 'if r.accepted or (r.total or 0)>=6 then',
+     'if r.accepted then', 'M2 login six')
+debt('S3 attempts reopen across reload', 'tries=0,total=0}', 'tries=0,total=6}', 'M2 login six')
+debt('M2 persisted count resets safely at login', 'owed.attempts[g]=0',
+     'owed.attempts[g]=99', 'M2 saved attempts')
 debt('S3 debt remains per character', '## SavedVariablesPerCharacter: LayerEnemiesDB',
      '## SavedVariables: LayerEnemiesDB', 'S3 per character', 'LayerEnemies/LayerEnemies.toc')
 for rule, phrase in [('S2 crash truth','client crash before'), ('S2 character login','that\ncharacter\'s next login'),
                      ('N1 unsafe wait disclosure','target may keep broadcasting'), ('S2 narrow exception','**debt-settlement exception**')]:
     debt(rule, phrase, 'undocumented', 'S2 N1 README', 'README.md')
+
+
+def ruling(rule, changes, selector):
+    MUTANTS.append((rule, changes, 'WarBoard rulings: ' + selector))
+
+ruling('R2 M1 handshake exception requires pending withdrawal', [
+    ('LayerEnemies/WarBoard.lua', 'N.WarBoardTrack.needsHandshake(id) and not N.Adapters.loaded',
+     'N.WarBoardTrack.owedAccount(id)~=nil and not N.Adapters.loaded'),
+    ('LayerEnemies/WarBoard.lua', 'local debt=N.WarBoardTrack and N.WarBoardTrack.needsHandshake(id)',
+     'local debt=N.WarBoardTrack and N.WarBoardTrack.owedAccount(id)')], 'M1 share')
+ruling('R2 S1 roster preserves a fresh unused confirmation', [
+    ('LayerEnemies/WarBoardTrack.lua', 'if peer and peer.proof==r.unproof and (not peer.proofAt or peer.proofAt<=ev.at) then peer.proof=nil end',
+     'if peer then peer.proof=nil end')], 'S1 delayed')
+ruling('R2 S2 donor A alone cannot confirm us at target', [
+    ('LayerEnemies/WarBoard.lua', 'if debt and donor and cmd=="H" then', 'if debt and donor then')], 'S2 donor A only safe')
+ruling('R2 S2 unsafe donor A is not a new confirmation', [
+    ('LayerEnemies/WarBoard.lua', 'if cmd=="H" then peer.donorObserved=N.Adapters.loaded("WarBoard") and N.Adapters.warboardContext(true) or nil end',
+     'peer.donorObserved=N.Adapters.loaded("WarBoard") and N.Adapters.warboardContext(true) or nil')], 'S2 donor A only combat')
+ruling('R2 S2 unsafe H keeps its actual age', [
+    ('LayerEnemies/WarBoard.lua', 'ctx.now-observed.now<1200', 'true'),
+    ('LayerEnemies/WarBoard.lua', 'peer.at=observed.now', 'peer.at=ctx.now'),
+    ('LayerEnemies/WarBoard.lua', 'proof(st,peer,observed.now)', 'proof(st,peer,ctx.now)')], 'S2 donor unsafe H')
+ruling('R2 S3 saved exhausted debt reopens at login', [
+    ('LayerEnemies/WarBoardTrack.lua', 'tries=0,total=0}', 'tries=0,total=6}')], 'S3 share')
+ruling('R2 N2 unsafe roster is retained before silence settlement', [
+    ('LayerEnemies/WarBoard.lua', '        defer(st,text,id)', '        do end')], 'N2 combat roster')
+ruling('R2 N2 queued roster age measured at receipt', [
+    ('LayerEnemies/WarBoard.lua', 'stamp(d.sentAt,ctx.received or ctx,121)', 'stamp(d.sentAt,ctx,121)')], 'N2 combat excluding')
+ruling('R2 N2 deferred frame cap', [
+    ('LayerEnemies/WarBoard.lua', '#st.deferred>=128', '#st.deferred>=129')], 'N2 deferred inbox frame')
+ruling('R2 N2 deferred byte cap', [
+    ('LayerEnemies/WarBoard.lua', 'st.deferredBytes+#text>262144', 'st.deferredBytes+#text>266144')], 'N2 deferred inbox byte')
+ruling('R2 N2 overflow invalidates silence fallback', [
+    ('LayerEnemies/WarBoardTrack.lua', 'if r.closing and r.id==id then r.accepted=nil end', 'do end')], 'N2 deferred inbox')
+ruling('R2 N1 genuine recent confirmation permits new requests', [
+    ('README.md', 'old can authorize a new FBAK', 'old cannot authorize a new FBAK')], 'N1 README')
 
 
 def main():
