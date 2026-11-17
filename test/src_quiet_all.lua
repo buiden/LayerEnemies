@@ -320,7 +320,7 @@ for _,case in ipairs({
     {"Bob-","Bob-"}, {"12345","12345"}, {"Bob Smith ","Bob Smith "},
     {"élodie","Élodie"}, {12345,"12345"}, {"Bob-Éire","Bob-Éire"},
 }) do
-    test("QuietAll review M1: unvalidatable typed target "..tostring(case[1]),function()
+    test("QuietAll review M1: unvalidatable typed target "..type(case[1]).." "..string.format("%q",tostring(case[1])),function()
         local N,filter,typed=setup(); SlashCmdList.LAYERENEMIES("quiet all")
         typed("modern",case[1])
         no(filterLine(filter,text(case[2]),1),"typed failure must be shown")
