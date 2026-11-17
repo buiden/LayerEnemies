@@ -149,7 +149,8 @@ test("QuietAll manual: only WHISPER is recorded, with existing full name normali
     typed("legacy","Foreign Surname-7105")
     no(filterLine(filter,text("FOREIGN SURNAME-7105"),15)); yes(filterLine(filter,text("Foreign Surname"),16))
     yes(filterLine(filter,text("Foreign Surname-7106"),17))
-    typed("modern",T.secret); typed("modern","Invalid.Name"); yes(filterLine(filter,text("Invalid.Name"),18))
+    typed("modern",T.secret); typed("modern","Invalid.Name"); no(filterLine(filter,text("Invalid.Name"),18))
+    no(filterLine(filter,text("Unrelated Person"),19),"unvalidatable typed target protects everything")
 end)
 test("QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices",function()
     for _,age in ipairs({0,9.999,10,-.001}) do
@@ -223,6 +224,9 @@ test("QuietAll safety: exact localized pattern only and protected callbacks neve
     yes(pcall(hooks.modern,"x","WHISPER",nil,"Manual Person")); N.Invite.name=original
     local clock=GetTime; GetTime=function() error("unreadable time") end
     yes(pcall(hooks.legacy,"x","WHISPER",nil,"Manual Person")); GetTime=clock
+    local str=N.Safe.str; N.Safe.str=function() error("unreadable chat type") end
+    yes(pcall(hooks.modern,"x","WHISPER",nil,"Manual Person")); N.Safe.str=str
+    T.clock(20) -- any unreadable-target marker has expired before localization tests
     ERR_CHAT_PLAYER_NOT_FOUND_S=nil; no(filterLine(filter,text("Other Person"),4))
     ERR_CHAT_PLAYER_NOT_FOUND_S="%s %s"; no(filterLine(filter,text("Other Person"),5))
     ERR_CHAT_PLAYER_NOT_FOUND_S="[Missing]. (%1$s) + 100%%?"
@@ -256,4 +260,47 @@ test("QuietAll coexistence: all mode works with donors loaded without starting t
     yes(filterLine(filter,text("Donor Target"),1)); no(N.Wire.offlineUntil("Donor Target",T.clock()))
     typed("modern","Donor Target"); no(filterLine(filter,text("Donor Target"),2))
     eq(#T.sent(),0); counts(0,1,1)
+end)
+
+-- Exact reviewer targets: no permissive name repair or UTF-8 case folding.
+for _,case in ipairs({
+    {"Bob2","Bob2"}, {"B","B"}, {"Bob.","Bob."}, {"Bobby_x","Bobby_x"},
+    {"Anna Maria Lee","Anna Maria Lee"}, {string.rep("A",40),string.rep("A",40)},
+    {"Bob-","Bob-"}, {"12345","12345"}, {"Bob Smith ","Bob Smith "},
+    {"élodie","Élodie"}, {12345,"12345"}, {"Bob-Éire","Bob-Éire"},
+}) do
+    test("QuietAll review M1: unvalidatable typed target "..tostring(case[1]),function()
+        local N,filter,typed=setup(); SlashCmdList.LAYERENEMIES("quiet all")
+        typed("modern",case[1])
+        no(filterLine(filter,text(case[2]),1),"typed failure must be shown")
+        no(filterLine(filter,text("Unrelated Person"),2),"all names must be protected")
+        T.clock(19.999); no(filterLine(filter,text("Last Person"),3))
+        T.clock(20); yes(filterLine(filter,text("Expired Person"),4))
+        eq(#T.sent(),0)
+    end)
+end
+
+test("QuietAll review M1: unreadable targets and validator failures protect everything",function()
+    for _,value in ipairs({T.secret,{},false}) do
+        local N,filter,typed=setup(); SlashCmdList.LAYERENEMIES("quiet all")
+        typed("legacy",value); no(filterLine(filter,text("Other Person"),1))
+    end
+    local N,filter,typed=setup(); SlashCmdList.LAYERENEMIES("quiet all")
+    typed("modern",nil); no(filterLine(filter,text("Nil Person"),1))
+    T.clock(20)
+    local original=N.Invite.name; N.Invite.name=function() error("cannot fold") end
+    typed("legacy","Valid Person"); N.Invite.name=original
+    no(filterLine(filter,text("Other Person"),2))
+end)
+
+test("QuietAll review M1: marker refresh, rollback and reload retain no invalid target",function()
+    local N,filter,typed=setup(); SlashCmdList.LAYERENEMIES("quiet all")
+    typed("modern","Invalid.Name"); T.clock(19); typed("legacy","élodie")
+    T.clock(20); no(filterLine(filter,text("Other Person"),1))
+    T.clock(28.999); no(filterLine(filter,text("Other Person"),2))
+    T.clock(29); yes(filterLine(filter,text("Other Person"),3))
+    typed("modern","Invalid.Name"); T.clock(28.999)
+    yes(filterLine(filter,text("Rollback Person"),4))
+    T.clock(30); typed("modern","Invalid.Name")
+    N,filter=setup(nil,LayerEnemiesDB); yes(filterLine(filter,text("Reload Person"),5))
 end)

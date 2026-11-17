@@ -137,7 +137,9 @@ local function who(target) local _, key = N.Invite.name(target); return key end
 -- it or replace it. Both native entrypoints may exist; secure hooks return no value.
 -- This conservative exception also covers visible chat sent by another addon.
 local manualWhispers, observerAttempted, observerReady = {}, false, false
+local manualProtectAll
 local function pruneManual(now)
+    if manualProtectAll and (now < manualProtectAll or now - manualProtectAll >= 10) then manualProtectAll = nil end
     local keep = {}
     for _, r in ipairs(manualWhispers) do
         if now >= r.at and now - r.at < 10 then keep[#keep + 1] = r end
@@ -147,9 +149,14 @@ end
 local function observeChatWhisper(_, chatType, _, target)
     pcall(function()
         if S.str(chatType, 30) ~= "WHISPER" then return end
-        local key, now = who(target), S.num(S.call(GetTime))
-        if not key or not now then return end
+        local now = S.num(S.call(GetTime))
+        if not now then return end
         pruneManual(now)
+        local raw = S.str(target, 100)
+        local key = raw and not raw:find("[\128-\255]") and S.call(who, raw)
+        -- Invalid/unreadable names or non-ASCII bytes cannot be matched safely.
+        -- Keep only a timestamp, never the unvalidatable target or message.
+        if not key then manualProtectAll = now; return end
         -- Refresh a target, including duplicate callbacks through the legacy alias.
         for i = #manualWhispers, 1, -1 do
             if manualWhispers[i].key == key then table.remove(manualWhispers, i) end
@@ -172,6 +179,7 @@ end
 function Wr.whisperObserverReady() return observerReady end
 local function manualWhisper(key, now)
     pruneManual(now)
+    if manualProtectAll then return true end
     for _, r in ipairs(manualWhispers) do if r.key == key then return true end end
     return false
 end
