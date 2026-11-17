@@ -145,7 +145,9 @@ function D.sync()
     table.sort(keys)
     for _, key in ipairs(keys) do
         local want = N.Net.allowed(key, "public")
-        if key=="flh" then want=want and N.FLHMember.allowed("WHISPER","WP") end
+        -- Combat/instances pause FLH activity, not its directory membership.
+        -- Join still uses the full live gate; privacy/owner changes still leave.
+        if key=="flh" then want=want and N.Main.sharing() and (joined[key] or N.FLHMember.allowed("WHISPER","WP")) end
         if want and not joined[key] then
             local name = D.channel(key)
             if name and calm() and listReady() then
@@ -168,7 +170,7 @@ function D.sync()
                     if key~="wanted" then schedule(key, D.FIRST) end
                 end
             end
-        elseif not want and joined[key] then
+        elseif not want and joined[key] and (key~="flh" or calm()) then
             local name, mine = joined[key], ours[key]
             joined[key], members[key], pending[key], ours[key], asked[key] = nil, nil, nil, nil, nil
             if mine then pcall(LeaveChannelByName, name) end

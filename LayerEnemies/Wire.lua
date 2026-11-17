@@ -291,6 +291,11 @@ function Wr.flhProbeReady(target,now)
         and not (last and now-last.at<Wr.FLH_NAME)
 end
 local function flhBudget(tag,kind,key,now)
+    -- Membership shares the ordinary global ceilings, not an extra allowance.
+    -- Probes yield first: keep six shared tokens/minute slots for owed answers.
+    refill(all,ALL_CAP,ALL_REFILL,now); allTimes=recent(allTimes,now)
+    local reserve=tag=="WP" and Wr.FLH_REPLIES or 0
+    if all.tokens<1+reserve or #allTimes>=ALL_MINUTE-reserve then return false end
     flhReplies=recent(flhReplies,now); flhProbes=recent(flhProbes,now)
     for k,v in pairs(flhNames) do if now-v.at>=v.keep then flhNames[k]=nil end end
     publicTimes=recent(publicTimes,now); guildTimes=recent(guildTimes,now)
@@ -325,6 +330,7 @@ local function flhBudget(tag,kind,key,now)
         publicTimes[#publicTimes+1]=now
         local list=publicTo[key] or {}; list[#list+1]=now; publicTo[key]=list
     end
+    all.tokens=all.tokens-1; allTimes[#allTimes+1]=now
     if kind=="GUILD" then guildTimes[#guildTimes+1]=now end
     return true
 end
