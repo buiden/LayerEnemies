@@ -153,14 +153,19 @@ decision)**. Client acceptance is not a delivery acknowledgement.
 ## 1.1.0 - Hop to another layer
 
 **Hop to another layer** now asks up to **49 players per click**, with
-**10 seconds between clicks**. One zone WHO query supplies the names; the
-**Who window is suppressed** while our query is handled. Known hosts go first,
+**10 seconds between clicks**. One zone WHO query supplies the names; a hidden
+**Who window is suppressed** while our query is handled. A Who window already
+open when you click Hop is left registered and shows the hop's query result,
+just as it does with LayerSwap. Known hosts go first,
 then same-zone names, then the remaining WHO rows. These are real hidden
 invite requests, including to players not known to run a layer addon.
 
 The click owns at most **45 rounds**, **1 second apart**, **8 attempts per
 round**. Its dedicated Wire allowance permits 8 initially, then about 1 per
-second (60 per minute); throttling retains the head for the next round.
+second (60 per minute). A fan-out throttle retains the head for the next
+round and pauses ordinary LayerSwap whispers for 30 seconds. A client throttle
+on a named hop or reply stops this click's fan-out; a new click is needed after
+the prefix pause.
 Same-zone hosts that answer with an unknown layer may be re-asked once without
 an exclusion after the queue finishes (+3 seconds, or +10 if a known
 alternative-layer host is still being given time). No additional WHO query
@@ -1169,22 +1174,31 @@ The skip list stays **session-only, capped at 300 names**, never saved.
 Repeated clicks can see the same first 49; there is no class rotation.
 
 The **Who window is suppressed**: before the query we request UI routing and
-unregister WHO_LIST_UPDATE on the game's who frames. Their registrations
-return on result, timeout or Stop; temporary event guards discard a late
-answer until it arrives or the 30-second deadline. Routing and original
-scripts return on completion/error/logout. A player's own `/who` immediately
-takes ownership and cancels our pending query, so its result displays normally.
-Already open windows are never hidden. Missing optional UI APIs retain the
-old behavior rather than blocking the action.
+temporarily unregister WHO_LIST_UPDATE on hidden who frames. **Visible windows
+are left alone**, including their event registrations; no OnEvent script is
+replaced. Registrations return after result dispatch. Timeout, Stop and other
+cancellations retain only the event-unregister late-result guard until the
+first late answer or 30 seconds from the query; errors/logout release it too.
+A player's own `/who` immediately restores registrations, takes ownership and
+cancels our pending query, so its result displays normally. Already open
+windows are never hidden. Missing optional UI APIs retain the old behavior
+rather than blocking the action.
 
 Nothing is whispered before WHO answers. The click owns up to **45 rounds**,
 **one second apart**, with **at most 8 attempts per round**. A fresh Wire
 bucket allows eight initially, then about one per second: all 49 names take
 about **41 seconds** in the offline harness without competing traffic.
-A throttle/pause keeps the target at the head for the next round; an offline
-name is skipped. Other send errors stop the search. A host reply alone does
-not stop the queue. An invite from any not-known-failed host, Stop, group,
-combat, instance, world/zone change, or guild-only switch cancels unsent work.
+A fan-out throttle/pause keeps the target at the head for the next round;
+an offline name is skipped. A client throttle on a named hop or reply on the
+LayerSwap prefix instead stops this click, even after the pause expires. A
+fan-out client throttle also gives named hops/replies their usual 30-second
+prefix pause, without stopping its own next-round retry. Other send errors
+stop the search. A host reply alone does not stop the queue. An invite from
+any not-known-failed host, Stop, joining a group, combat, entering an instance,
+a real zone-map/world change, or a guild-only switch cancels unsent work.
+Subzone events, roster updates while ungrouped, and loading events that return
+to the same zone do **not** cancel fan-out or its pending auto-accept. Existing
+unreadable-state guards still fail closed.
 **Sent requests cannot be recalled; a late invite can still arrive.** An
 unasked invite is never auto-accepted or declined. Failed hop hosts are
 remembered for 600 seconds; their invites do not end the queue.

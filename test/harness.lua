@@ -7803,6 +7803,7 @@ assert(loadfile("test/hop_fanout.lua"))({test=test,eq=eq,yes=yes,no=no,load=anyF
     accepts=function() return accepts end,frames=function() return frames end,
     leaves=function() return leaves end,unit=function(k,v) units[k]=v end,
     calls=function() return whoCalls end,group=function(v) grouped=v end,map=function(v) map=v end,
+    instance=function(v) inInstance=v end,
     manual=function() manualWho=true; C_FriendList.SendWho("manual lookup",1); manualWho=false end})
 
 assert(loadfile("test/find20.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,

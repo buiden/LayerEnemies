@@ -713,6 +713,26 @@ PASS hop-any rechecks ignore at dispatch and never trusts a skipped candidate
 PASS hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps
 PASS Hop fanout: 49 distinct requests within 45 rounds with eight initial then one per second
 PASS Hop fanout: throttle leaves exact head until the next round
+PASS Hop fanout: named client throttle 3 cancels before click
+PASS Hop fanout: named client throttle 3 cancels who click
+PASS Hop fanout: named client throttle 3 cancels send click
+PASS Hop fanout: reply client throttle 3 cancels before click
+PASS Hop fanout: reply client throttle 3 cancels who click
+PASS Hop fanout: reply client throttle 3 cancels send click
+PASS Hop fanout: hop client throttle 3 pauses named and reply for thirty seconds
+PASS Hop fanout: named client throttle 8 cancels before click
+PASS Hop fanout: named client throttle 8 cancels who click
+PASS Hop fanout: named client throttle 8 cancels send click
+PASS Hop fanout: reply client throttle 8 cancels before click
+PASS Hop fanout: reply client throttle 8 cancels who click
+PASS Hop fanout: reply client throttle 8 cancels send click
+PASS Hop fanout: hop client throttle 8 pauses named and reply for thirty seconds
+PASS Hop fanout: non-hop throttle cannot be missed by a delayed pump
+PASS Hop fanout: another prefix throttle does not cancel the click
+PASS Hop fanout: local named budget refusal leaves fanout running
+PASS Hop fanout: active named pause refuses click before WHO
+PASS Hop fanout: active reply pause refuses click before WHO
+PASS Hop fanout: prefix pause expiry permits only a fresh click
 PASS Hop fanout: permanent throttling makes at most 45 rounds
 PASS Hop fanout: same-zone rows precede other-zone rows without discarding them
 PASS Hop fanout: raw fiftieth row is never a replacement for unreadable rows
@@ -725,6 +745,16 @@ PASS Hop fanout: cancellation GROUP_ROSTER_UPDATE cannot resume
 PASS Hop fanout: cancellation PLAYER_ENTERING_WORLD cannot resume
 PASS Hop fanout: cancellation ZONE_CHANGED_NEW_AREA cannot resume
 PASS Hop fanout: cancellation ZONE_CHANGED cannot resume
+PASS Hop fanout: unchanged ZONE_CHANGED preserves who and autoaccept
+PASS Hop fanout: unchanged ZONE_CHANGED preserves send and autoaccept
+PASS Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves who and autoaccept
+PASS Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves send and autoaccept
+PASS Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves who and autoaccept
+PASS Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves send and autoaccept
+PASS Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves who and autoaccept
+PASS Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves send and autoaccept
+PASS Hop fanout: unchanged SHARD_TRANSFER preserves who and autoaccept
+PASS Hop fanout: unchanged SHARD_TRANSFER preserves send and autoaccept
 PASS Hop fanout: session six-hour suppression and known-book bypass
 PASS Hop fanout: known offline skip is 600 seconds without changing other offline sends
 PASS Hop fanout: unknown same-zone host reasked once at plus three without exclusion
@@ -741,12 +771,31 @@ PASS Hop fanout: unknown-layer host answer earns next-click priority in memory o
 PASS Hop fanout: duplicate fallback pumps never exceed eight attempts per second
 PASS Hop fanout: cooldown and invite wait start at first accepted whisper
 PASS Hop fanout: SavedVariables exactly unchanged after sends responses fallback and stop
+PASS Hop fanout: WHO suppression never replaces OnEvent
+PASS Hop fanout: visible FriendsFrame is never unregistered
+PASS Hop fanout: visible LFGWhoListFrame is never unregistered
+PASS Hop fanout: visible WhoFrame is never unregistered
+PASS Hop fanout: WHO suppression needs no script accessors
 PASS Hop fanout: WHO hush before query and restoration after result in either event order
+PASS Hop fanout: WHO restores registrations on result and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on no rows and leaves manual search usable
 PASS Hop fanout: WHO restores registrations on timeout and leaves manual search usable
 PASS Hop fanout: WHO restores registrations on stop and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on slash stop and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on combat and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on zone and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on subzone and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on world and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on group and leaves manual search usable
 PASS Hop fanout: WHO restores registrations on invite and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on guild-only and leaves manual search usable
 PASS Hop fanout: WHO restores registrations on error and leaves manual search usable
 PASS Hop fanout: WHO restores registrations on reload and leaves manual search usable
+PASS Hop fanout: late WHO after timeout is not active even after clock rollback
+PASS Hop fanout: late WHO after stop is not active even after clock rollback
+PASS Hop fanout: late WHO after invite is not active even after clock rollback
+PASS Hop fanout: WHO unregister errors do not strand the remaining frames
+PASS Hop fanout: WHO registration errors do not prevent other frames restoring
 PASS Hop fanout: no WHO result releases late guard at thirty seconds
 PASS Hop fanout: player WHO during pending or late lease wins at 1 seconds
 PASS Hop fanout: player WHO during pending or late lease wins at 6 seconds
@@ -1167,4 +1216,4 @@ PASS UI layout: tab notes reserve their wrapped height before controls and rows
 PASS UI layout: wrapped footer and hint stay clear of settings and inside window
 PASS UI layout: Find measures every retained line and OpenMap place before paging
 PASS UI layout: local, Reported and Friendly cards also fit long wrapped details
-RESULT: 1169 tests passed, 0 failed, 122577 assertions
+RESULT: 1218 tests passed, 0 failed, 127516 assertions

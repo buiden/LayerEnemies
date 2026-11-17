@@ -1,7 +1,7 @@
 {
-  "baseline": "RESULT: 134 tests passed, 0 failed, 8202 assertions",
-  "total": 54,
-  "caught": 54,
+  "baseline": "RESULT: 181 tests passed, 0 failed, 13031 assertions",
+  "total": 62,
+  "caught": 62,
   "mutants": [
     {
       "rule": "first-49-raw-rows",
@@ -29,7 +29,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: half-second duplicate pumps consume no extra attempt: test/hop_fanout.lua:150: not equal: expected 8, got 9"
+        "FAIL Hop fanout: half-second duplicate pumps consume no extra attempt: test/hop_fanout.lua:243: not equal: expected 8, got 9"
       ]
     },
     {
@@ -38,7 +38,7 @@
       "caught": true,
       "failed_tests": [
         "FAIL hop-any Wire local budget retries the same head without a Wire queue: test/harness.lua:7501: not equal: expected 52, got 53",
-        "FAIL Hop fanout: permanent throttling makes at most 45 rounds: test/hop_fanout.lua:33: not equal: expected 45, got 46"
+        "FAIL Hop fanout: permanent throttling makes at most 45 rounds: test/hop_fanout.lua:99: not equal: expected 45, got 46"
       ]
     },
     {
@@ -48,10 +48,10 @@
       "failed_tests": [
         "FAIL hop-any stop cancels and ten second click guard is exact: test/harness.lua:7281: not equal: expected 2, got 1",
         "FAIL hop-any no-answer table lasts six hours and a second round reaches different names: test/harness.lua:7445: attempt to index field '?' (a nil value)",
-        "FAIL Hop fanout: stopped click is blocked at nine seconds and allowed at ten: test/hop_fanout.lua:87: not equal: expected 2, got 1",
-        "FAIL Hop fanout: session six-hour suppression and known-book bypass: test/hop_fanout.lua:107: not equal: expected 50, got 49",
-        "FAIL Hop fanout: known offline skip is 600 seconds without changing other offline sends: test/hop_fanout.lua:118: not equal: expected 2, got 1",
-        "FAIL Hop fanout: cooldown and invite wait start at first accepted whisper: test/hop_fanout.lua:205: not equal: expected 2, got 1"
+        "FAIL Hop fanout: stopped click is blocked at nine seconds and allowed at ten: test/hop_fanout.lua:153: not equal: expected 2, got 1",
+        "FAIL Hop fanout: session six-hour suppression and known-book bypass: test/hop_fanout.lua:200: not equal: expected 50, got 49",
+        "FAIL Hop fanout: known offline skip is 600 seconds without changing other offline sends: test/hop_fanout.lua:211: not equal: expected 2, got 1",
+        "FAIL Hop fanout: cooldown and invite wait start at first accepted whisper: test/hop_fanout.lua:298: not equal: expected 2, got 1"
       ]
     },
     {
@@ -59,7 +59,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: cooldown and invite wait start at first accepted whisper: test/hop_fanout.lua:204: not equal: expected 1, got 2"
+        "FAIL Hop fanout: cooldown and invite wait start at first accepted whisper: test/hop_fanout.lua:297: not equal: expected 1, got 2"
       ]
     },
     {
@@ -92,9 +92,11 @@
         "FAIL hop-any rechecks ignore at dispatch and never trusts a skipped candidate: test/harness.lua:7736: not equal: expected 48, got 28",
         "FAIL Hop fanout: 49 distinct requests within 45 rounds with eight initial then one per second: test/hop_fanout.lua:10: not equal: expected 30, got 29",
         "FAIL Hop fanout: throttle leaves exact head until the next round: test/hop_fanout.lua:25: not equal: expected Seeker a, got Seeker b",
-        "FAIL Hop fanout: permanent throttling makes at most 45 rounds: test/hop_fanout.lua:34: per-target Wire cap also counts refused client attempts: expected 4, got 45",
-        "FAIL Hop fanout: session six-hour suppression and known-book bypass: test/hop_fanout.lua:104: not equal: expected 49, got 29",
-        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:144: known-failed invite cannot cancel fanout: expected 49, got 29"
+        "FAIL Hop fanout: hop client throttle 3 pauses named and reply for thirty seconds: test/hop_fanout.lua:59: hop head retries after one second: expected Seeker a, got Seeker b",
+        "FAIL Hop fanout: hop client throttle 8 pauses named and reply for thirty seconds: test/hop_fanout.lua:59: hop head retries after one second: expected Seeker a, got Seeker b",
+        "FAIL Hop fanout: permanent throttling makes at most 45 rounds: test/hop_fanout.lua:100: per-target Wire cap also counts refused client attempts: expected 4, got 45",
+        "FAIL Hop fanout: session six-hour suppression and known-book bypass: test/hop_fanout.lua:197: not equal: expected 49, got 29",
+        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:237: known-failed invite cannot cancel fanout: expected 49, got 29"
       ]
     },
     {
@@ -103,8 +105,8 @@
       "caught": true,
       "failed_tests": [
         "FAIL hop-any filters rows and prioritizes listed hosts then same-zone rows: test/harness.lua:7301: not equal: expected Host Peer, got Ordinary Peer",
-        "FAIL Hop fanout: same-zone rows precede other-zone rows without discarding them: test/hop_fanout.lua:46: not equal: expected Host Peer, got Local Peer",
-        "FAIL Hop fanout: unknown-layer host answer earns next-click priority in memory only: test/hop_fanout.lua:188: not equal: expected Unknown Host, got New Peer"
+        "FAIL Hop fanout: same-zone rows precede other-zone rows without discarding them: test/hop_fanout.lua:112: not equal: expected Host Peer, got Local Peer",
+        "FAIL Hop fanout: unknown-layer host answer earns next-click priority in memory only: test/hop_fanout.lua:281: not equal: expected Unknown Host, got New Peer"
       ]
     },
     {
@@ -113,7 +115,7 @@
       "caught": true,
       "failed_tests": [
         "FAIL hop-any filters rows and prioritizes listed hosts then same-zone rows: test/harness.lua:7301: not equal: expected Ordinary Peer, got Other Zone",
-        "FAIL Hop fanout: same-zone rows precede other-zone rows without discarding them: test/hop_fanout.lua:46: not equal: expected Local Peer, got Away Peer"
+        "FAIL Hop fanout: same-zone rows precede other-zone rows without discarding them: test/hop_fanout.lua:112: not equal: expected Local Peer, got Away Peer"
       ]
     },
     {
@@ -123,7 +125,7 @@
       "failed_tests": [
         "FAIL hop-any filters rows and prioritizes listed hosts then same-zone rows: test/harness.lua:7301: not equal: expected 5, got 4",
         "FAIL hop-any never reads a fiftieth who row: test/harness.lua:7307: not equal: expected 8, got 0",
-        "FAIL Hop fanout: same-zone rows precede other-zone rows without discarding them: test/hop_fanout.lua:45: not equal: expected 3, got 1"
+        "FAIL Hop fanout: same-zone rows precede other-zone rows without discarding them: test/hop_fanout.lua:111: not equal: expected 3, got 1"
       ]
     },
     {
@@ -133,7 +135,7 @@
       "failed_tests": [
         "FAIL hop-any host replies do not stop fanout and unasked whole names do not enter the book: test/harness.lua:7379: not equal: expected 49, got 9",
         "FAIL hop-any replies and invites expire from first send, never renew their window: test/harness.lua:7493: not equal: expected 49, got 9",
-        "FAIL Hop fanout: hosting reply does not end queue but any nonfailed invite does: test/hop_fanout.lua:91: not equal: expected 9, got 8"
+        "FAIL Hop fanout: hosting reply does not end queue but any nonfailed invite does: test/hop_fanout.lua:157: not equal: expected 9, got 8"
       ]
     },
     {
@@ -143,8 +145,9 @@
       "failed_tests": [
         "FAIL hop-any offline attempts never arm acceptance; an unrelated invite stops fanout: test/harness.lua:7367: not equal: expected 8, got 49",
         "FAIL hop-any asked invite stops sends and autoaccepts once, no foreign alias: test/harness.lua:7395: not equal: expected 8, got 9",
-        "FAIL Hop fanout: hosting reply does not end queue but any nonfailed invite does: test/hop_fanout.lua:93: not equal: expected 9, got 49",
-        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false"
+        "FAIL Hop fanout: hosting reply does not end queue but any nonfailed invite does: test/hop_fanout.lua:159: not equal: expected 9, got 49",
+        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:403: not equal: expected 0, got 8",
+        "FAIL Hop fanout: late WHO after invite is not active even after clock rollback: test/harness.lua:8: late result is guarded, not owned by an active search: expected false, got true"
       ]
     },
     {
@@ -152,7 +155,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:144: known-failed invite cannot cancel fanout: expected 49, got 8"
+        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:237: known-failed invite cannot cancel fanout: expected 49, got 8"
       ]
     },
     {
@@ -177,14 +180,28 @@
         "FAIL hop-any stale button mode cannot stop a later slash-started round: test/harness.lua:8: not equal: expected false, got true",
         "FAIL hop-any reentrant Stop cannot recreate pending acceptance or fault: test/harness.lua:8: not equal: expected false, got true",
         "FAIL hop-any old send completion cannot mutate a replacement round: test/harness.lua:8: not equal: expected false, got true",
-        "FAIL Hop fanout: stopped click is blocked at nine seconds and allowed at ten: test/hop_fanout.lua:87: not equal: expected 2, got 1",
-        "FAIL Hop fanout: cancellation stop cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 49",
-        "FAIL Hop fanout: cancellation GROUP_ROSTER_UPDATE cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 49",
-        "FAIL Hop fanout: cancellation PLAYER_ENTERING_WORLD cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 49",
-        "FAIL Hop fanout: cancellation ZONE_CHANGED_NEW_AREA cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 49",
-        "FAIL Hop fanout: cancellation ZONE_CHANGED cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 49",
-        "FAIL Hop fanout: known offline skip is 600 seconds without changing other offline sends: test/hop_fanout.lua:118: not equal: expected 2, got 1",
-        "FAIL Hop fanout: cooldown and invite wait start at first accepted whisper: test/hop_fanout.lua:205: not equal: expected 2, got 1",
+        "FAIL Hop fanout: named client throttle 3 cancels before click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: named client throttle 3 cancels who click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: named client throttle 3 cancels send click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: reply client throttle 3 cancels before click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: reply client throttle 3 cancels who click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: reply client throttle 3 cancels send click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: named client throttle 8 cancels before click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: named client throttle 8 cancels who click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: named client throttle 8 cancels send click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: reply client throttle 8 cancels before click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: reply client throttle 8 cancels who click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: reply client throttle 8 cancels send click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: non-hop throttle cannot be missed by a delayed pump: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: prefix pause expiry permits only a fresh click: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: stopped click is blocked at nine seconds and allowed at ten: test/hop_fanout.lua:153: not equal: expected 2, got 1",
+        "FAIL Hop fanout: cancellation stop cannot resume: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: cancellation GROUP_ROSTER_UPDATE cannot resume: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: cancellation PLAYER_ENTERING_WORLD cannot resume: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: cancellation ZONE_CHANGED_NEW_AREA cannot resume: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: cancellation ZONE_CHANGED cannot resume: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: known offline skip is 600 seconds without changing other offline sends: test/hop_fanout.lua:211: not equal: expected 2, got 1",
+        "FAIL Hop fanout: cooldown and invite wait start at first accepted whisper: test/hop_fanout.lua:298: not equal: expected 2, got 1",
         "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/harness.lua:8: not equal: expected false, got true"
       ]
     },
@@ -193,7 +210,7 @@
       "file": "Main.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: cancellation GROUP_ROSTER_UPDATE cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 49"
+        "FAIL Hop fanout: cancellation GROUP_ROSTER_UPDATE cannot resume: test/harness.lua:8: not equal: expected false, got true"
       ]
     },
     {
@@ -202,7 +219,7 @@
       "caught": true,
       "failed_tests": [
         "FAIL hop-any instance entry event cancels even if it ends before the next pump: test/harness.lua:7578: not equal: expected 8, got 9",
-        "FAIL Hop fanout: cancellation PLAYER_ENTERING_WORLD cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 49"
+        "FAIL Hop fanout: cancellation PLAYER_ENTERING_WORLD cannot resume: test/harness.lua:8: not equal: expected false, got true"
       ]
     },
     {
@@ -210,8 +227,8 @@
       "file": "Main.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: cancellation ZONE_CHANGED_NEW_AREA cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 49",
-        "FAIL Hop fanout: cancellation ZONE_CHANGED cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 49"
+        "FAIL Hop fanout: cancellation ZONE_CHANGED_NEW_AREA cannot resume: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: cancellation ZONE_CHANGED cannot resume: test/harness.lua:8: not equal: expected false, got true"
       ]
     },
     {
@@ -221,7 +238,7 @@
       "failed_tests": [
         "FAIL hop-any no-answer table lasts six hours and a second round reaches different names: test/harness.lua:7443: not equal: expected 49, got 57",
         "FAIL hop-any no-answer table evicts oldest at three hundred and prunes exactly six hours: test/harness.lua:7457: not equal: expected 300, got 0",
-        "FAIL Hop fanout: offline unknown target remains suppressed for six hours: test/hop_fanout.lua:167: not equal: expected 1, got 2"
+        "FAIL Hop fanout: offline unknown target remains suppressed for six hours: test/hop_fanout.lua:260: not equal: expected 1, got 2"
       ]
     },
     {
@@ -237,8 +254,8 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: session six-hour suppression and known-book bypass: test/hop_fanout.lua:107: not equal: expected 50, got 49",
-        "FAIL Hop fanout: known offline skip is 600 seconds without changing other offline sends: test/hop_fanout.lua:118: not equal: expected 2, got 1"
+        "FAIL Hop fanout: session six-hour suppression and known-book bypass: test/hop_fanout.lua:200: not equal: expected 50, got 49",
+        "FAIL Hop fanout: known offline skip is 600 seconds without changing other offline sends: test/hop_fanout.lua:211: not equal: expected 2, got 1"
       ]
     },
     {
@@ -246,7 +263,7 @@
       "file": "Wire.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: known offline skip is 600 seconds without changing other offline sends: test/hop_fanout.lua:118: not equal: expected 2, got 1",
+        "FAIL Hop fanout: known offline skip is 600 seconds without changing other offline sends: test/hop_fanout.lua:211: not equal: expected 2, got 1",
         "FAIL Hop fanout: known-offline expiry is exact and ordinary expiry remains one hour: test/harness.lua:8: not equal: expected false, got true"
       ]
     },
@@ -255,7 +272,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: donor book gone timestamp blocks for six hundred seconds: test/hop_fanout.lua:156: not equal: expected 0, got 1"
+        "FAIL Hop fanout: donor book gone timestamp blocks for six hundred seconds: test/hop_fanout.lua:249: not equal: expected 0, got 1"
       ]
     },
     {
@@ -263,7 +280,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: offline unknown target remains suppressed for six hours: test/hop_fanout.lua:167: not equal: expected 1, got 2"
+        "FAIL Hop fanout: offline unknown target remains suppressed for six hours: test/hop_fanout.lua:260: not equal: expected 1, got 2"
       ]
     },
     {
@@ -271,7 +288,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: unknown same-zone host reasked once at plus three without exclusion: test/hop_fanout.lua:124: not equal: expected 2, got 1"
+        "FAIL Hop fanout: unknown same-zone host reasked once at plus three without exclusion: test/hop_fanout.lua:217: not equal: expected 2, got 1"
       ]
     },
     {
@@ -279,8 +296,8 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: known alternative host delays unknown retry until plus ten: test/hop_fanout.lua:130: not equal: expected 3, got 2",
-        "FAIL Hop fanout: late unknown answer caught at plus ten and fallback throttle is spent: test/hop_fanout.lua:135: not equal: expected 2, got 1"
+        "FAIL Hop fanout: known alternative host delays unknown retry until plus ten: test/hop_fanout.lua:223: not equal: expected 3, got 2",
+        "FAIL Hop fanout: late unknown answer caught at plus ten and fallback throttle is spent: test/hop_fanout.lua:228: not equal: expected 2, got 1"
       ]
     },
     {
@@ -288,9 +305,9 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: unknown same-zone host reasked once at plus three without exclusion: test/hop_fanout.lua:124: not equal: expected 2, got 4",
-        "FAIL Hop fanout: known alternative host delays unknown retry until plus ten: test/hop_fanout.lua:130: not equal: expected 3, got 5",
-        "FAIL Hop fanout: late unknown answer caught at plus ten and fallback throttle is spent: test/hop_fanout.lua:135: not equal: expected 2, got 4"
+        "FAIL Hop fanout: unknown same-zone host reasked once at plus three without exclusion: test/hop_fanout.lua:217: not equal: expected 2, got 4",
+        "FAIL Hop fanout: known alternative host delays unknown retry until plus ten: test/hop_fanout.lua:223: not equal: expected 3, got 5",
+        "FAIL Hop fanout: late unknown answer caught at plus ten and fallback throttle is spent: test/hop_fanout.lua:228: not equal: expected 2, got 4"
       ]
     },
     {
@@ -298,7 +315,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: unknown same-zone host reasked once at plus three without exclusion: test/hop_fanout.lua:124: not equal: expected inv layer <LS 100 25.0,75.0>, got inv layer <LS 100 not 7086-0 25.0,75.0>"
+        "FAIL Hop fanout: unknown same-zone host reasked once at plus three without exclusion: test/hop_fanout.lua:217: not equal: expected inv layer <LS 100 25.0,75.0>, got inv layer <LS 100 not 7086-0 25.0,75.0>"
       ]
     },
     {
@@ -306,7 +323,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:144: known-failed invite cannot cancel fanout: expected 49, got 50"
+        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:237: known-failed invite cannot cancel fanout: expected 49, got 50"
       ]
     },
     {
@@ -314,7 +331,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:144: known-failed invite cannot cancel fanout: expected 49, got 50"
+        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:237: known-failed invite cannot cancel fanout: expected 49, got 50"
       ]
     },
     {
@@ -322,7 +339,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: late unknown answer caught at plus ten and fallback throttle is spent: test/hop_fanout.lua:135: not equal: expected 2, got 3"
+        "FAIL Hop fanout: late unknown answer caught at plus ten and fallback throttle is spent: test/hop_fanout.lua:228: not equal: expected 2, got 3"
       ]
     },
     {
@@ -330,7 +347,7 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: duplicate fallback pumps never exceed eight attempts per second: test/hop_fanout.lua:199: not equal: expected 8, got 49"
+        "FAIL Hop fanout: duplicate fallback pumps never exceed eight attempts per second: test/hop_fanout.lua:292: not equal: expected 8, got 49"
       ]
     },
     {
@@ -370,13 +387,14 @@
         "FAIL hop-any rechecks ignore at dispatch and never trusts a skipped candidate: test/harness.lua:7731: not equal: expected 8, got 7",
         "FAIL hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps: test/harness.lua:7751: nil: expected 8, got 7",
         "FAIL Hop fanout: 49 distinct requests within 45 rounds with eight initial then one per second: test/hop_fanout.lua:8: not equal: expected 8, got 7",
-        "FAIL Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target: test/hop_fanout.lua:74: not equal: expected true, got false",
-        "FAIL Hop fanout: hosting reply does not end queue but any nonfailed invite does: test/hop_fanout.lua:91: not equal: expected 9, got 8",
-        "FAIL Hop fanout: cancellation stop cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 7",
-        "FAIL Hop fanout: cancellation GROUP_ROSTER_UPDATE cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 7",
-        "FAIL Hop fanout: cancellation PLAYER_ENTERING_WORLD cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 7",
-        "FAIL Hop fanout: cancellation ZONE_CHANGED_NEW_AREA cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 7",
-        "FAIL Hop fanout: cancellation ZONE_CHANGED cannot resume: test/hop_fanout.lua:99: not equal: expected 8, got 7"
+        "FAIL Hop fanout: prefix pause expiry permits only a fresh click: test/hop_fanout.lua:92: not equal: expected 9, got 8",
+        "FAIL Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target: test/hop_fanout.lua:140: not equal: expected true, got false",
+        "FAIL Hop fanout: hosting reply does not end queue but any nonfailed invite does: test/hop_fanout.lua:157: not equal: expected 9, got 8",
+        "FAIL Hop fanout: cancellation stop cannot resume: test/hop_fanout.lua:174: not equal: expected 8, got 7",
+        "FAIL Hop fanout: cancellation GROUP_ROSTER_UPDATE cannot resume: test/hop_fanout.lua:174: not equal: expected 8, got 7",
+        "FAIL Hop fanout: cancellation PLAYER_ENTERING_WORLD cannot resume: test/hop_fanout.lua:174: not equal: expected 8, got 7",
+        "FAIL Hop fanout: cancellation ZONE_CHANGED_NEW_AREA cannot resume: test/hop_fanout.lua:174: not equal: expected 8, got 7",
+        "FAIL Hop fanout: cancellation ZONE_CHANGED cannot resume: test/hop_fanout.lua:174: not equal: expected 8, got 7"
       ]
     },
     {
@@ -404,10 +422,12 @@
         "FAIL hop-any cannot dispatch again while a send is still in flight: test/harness.lua:7713: not equal: expected 10, got 9",
         "FAIL hop-any rechecks ignore at dispatch and never trusts a skipped candidate: test/harness.lua:7733: not equal: expected 9, got 8",
         "FAIL Hop fanout: 49 distinct requests within 45 rounds with eight initial then one per second: test/hop_fanout.lua:10: not equal: expected 9, got 8",
+        "FAIL Hop fanout: another prefix throttle does not cancel the click: test/hop_fanout.lua:77: not equal: expected 10, got 9",
+        "FAIL Hop fanout: local named budget refusal leaves fanout running: test/hop_fanout.lua:86: not equal: expected 14, got 13",
         "FAIL Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target: test/harness.lua:7: throttled: expected true, got false",
-        "FAIL Hop fanout: hosting reply does not end queue but any nonfailed invite does: test/hop_fanout.lua:91: not equal: expected 9, got 8",
-        "FAIL Hop fanout: session six-hour suppression and known-book bypass: test/hop_fanout.lua:104: not equal: expected 49, got 30",
-        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:144: known-failed invite cannot cancel fanout: expected 49, got 30"
+        "FAIL Hop fanout: hosting reply does not end queue but any nonfailed invite does: test/hop_fanout.lua:157: not equal: expected 9, got 8",
+        "FAIL Hop fanout: session six-hour suppression and known-book bypass: test/hop_fanout.lua:197: not equal: expected 49, got 30",
+        "FAIL Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback: test/hop_fanout.lua:237: known-failed invite cannot cancel fanout: expected 49, got 30"
       ]
     },
     {
@@ -423,8 +443,8 @@
       "file": "Wire.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: permanent throttling makes at most 45 rounds: test/hop_fanout.lua:34: per-target Wire cap also counts refused client attempts: expected 4, got 5",
-        "FAIL Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target: test/hop_fanout.lua:78: not equal: expected false, got true"
+        "FAIL Hop fanout: permanent throttling makes at most 45 rounds: test/hop_fanout.lua:100: per-target Wire cap also counts refused client attempts: expected 4, got 5",
+        "FAIL Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target: test/hop_fanout.lua:144: not equal: expected false, got true"
       ]
     },
     {
@@ -432,8 +452,9 @@
       "file": "Wire.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: named requests and other prefixes keep their five token cap: test/hop_fanout.lua:60: not equal: expected false, got true",
-        "FAIL Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target: test/hop_fanout.lua:80: not equal: expected false, got true"
+        "FAIL Hop fanout: local named budget refusal leaves fanout running: test/hop_fanout.lua:84: not equal: expected false, got true",
+        "FAIL Hop fanout: named requests and other prefixes keep their five token cap: test/hop_fanout.lua:126: not equal: expected false, got true",
+        "FAIL Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target: test/hop_fanout.lua:146: not equal: expected false, got true"
       ]
     },
     {
@@ -441,7 +462,7 @@
       "file": "Wire.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target: test/hop_fanout.lua:80: not equal: expected false, got true"
+        "FAIL Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target: test/hop_fanout.lua:146: not equal: expected false, got true"
       ]
     },
     {
@@ -449,6 +470,7 @@
       "file": "Adapters.lua",
       "caught": true,
       "failed_tests": [
+        "FAIL Hop fanout: WHO suppression never replaces OnEvent: test/harness.lua:7: not equal: expected true, got false",
         "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/harness.lua:7: not equal: expected true, got false",
         "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/harness.lua:7: not equal: expected true, got false"
       ]
@@ -458,11 +480,28 @@
       "file": "Adapters.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:242: not equal: expected false, got true",
-        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected false, got true",
-        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected false, got true",
-        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected false, got true",
-        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected false, got true"
+        "FAIL Hop fanout: WHO suppression never replaces OnEvent: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: visible FriendsFrame is never unregistered: test/hop_fanout.lua:353: not equal: expected 0, got 1",
+        "FAIL Hop fanout: visible LFGWhoListFrame is never unregistered: test/hop_fanout.lua:353: not equal: expected 0, got 1",
+        "FAIL Hop fanout: visible WhoFrame is never unregistered: test/hop_fanout.lua:353: not equal: expected 0, got 1",
+        "FAIL Hop fanout: WHO suppression needs no script accessors: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on result and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on no rows and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on slash stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on combat and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on zone and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on subzone and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on world and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on group and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on guild-only and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO unregister errors do not strand the remaining frames: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:474: not equal: expected 0, got 1"
       ]
     },
     {
@@ -470,35 +509,67 @@
       "file": "Adapters.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: WHO restores registrations on error and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: player WHO during pending or late lease wins at 1 seconds: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: player WHO during pending or late lease wins at 6 seconds: test/hop_fanout.lua:242: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO suppression never replaces OnEvent: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: visible FriendsFrame is never unregistered: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: visible LFGWhoListFrame is never unregistered: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: visible WhoFrame is never unregistered: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO suppression needs no script accessors: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on result and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on no rows and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on slash stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on combat and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on zone and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on subzone and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on world and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on group and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on guild-only and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on error and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: late WHO after timeout is not active even after clock rollback: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: late WHO after stop is not active even after clock rollback: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: late WHO after invite is not active even after clock rollback: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO unregister errors do not strand the remaining frames: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO registration errors do not prevent other frames restoring: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: player WHO during pending or late lease wins at 1 seconds: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: player WHO during pending or late lease wins at 6 seconds: test/hop_fanout.lua:335: not equal: expected true, got false",
         "FAIL Hop fanout: optional WHO APIs and throwing frames never strand other frames: test/harness.lua:7: missingSet: expected true, got false",
-        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:242: not equal: expected true, got false"
+        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:335: not equal: expected true, got false"
       ]
     },
     {
-      "rule": "who-script-restore",
+      "rule": "who-result-restore",
       "file": "Adapters.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:246: not equal: expected function: 0x58eb30568b70, got function: 0x58eb30cb9150",
-        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:246: not equal: expected function: 0x58eb30a73a10, got function: 0x58eb30ae89c0",
-        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:246: not equal: expected function: 0x58eb30613e30, got function: 0x58eb306e0e70",
-        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:246: not equal: expected function: 0x58eb307b5440, got function: 0x58eb30678850",
-        "FAIL Hop fanout: WHO restores registrations on error and leaves manual search usable: test/hop_fanout.lua:246: not equal: expected function: 0x58eb309efad0, got function: 0x58eb3094f840",
-        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:246: not equal: expected function: 0x58eb3067cd30, got function: 0x58eb3063a440",
-        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:246: not equal: expected function: 0x58eb30c99200, got function: 0x58eb30a49e30",
-        "FAIL Hop fanout: player WHO during pending or late lease wins at 1 seconds: test/hop_fanout.lua:246: not equal: expected function: 0x58eb30600b30, got function: 0x58eb30481320",
-        "FAIL Hop fanout: player WHO during pending or late lease wins at 6 seconds: test/hop_fanout.lua:246: not equal: expected function: 0x58eb30906760, got function: 0x58eb30a1d850",
-        "FAIL Hop fanout: optional WHO APIs and throwing frames never strand other frames: test/hop_fanout.lua:293: missingSet: expected function: 0x58eb304fa430, got function: 0x58eb30952220",
-        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:246: not equal: expected function: 0x58eb30924290, got function: 0x58eb30672730"
+        "FAIL Hop fanout: WHO suppression never replaces OnEvent: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: visible FriendsFrame is never unregistered: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: visible LFGWhoListFrame is never unregistered: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: visible WhoFrame is never unregistered: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO suppression needs no script accessors: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on result and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on no rows and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on slash stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on combat and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on zone and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on subzone and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on world and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on group and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on guild-only and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: late WHO after timeout is not active even after clock rollback: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: late WHO after stop is not active even after clock rollback: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: late WHO after invite is not active even after clock rollback: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO unregister errors do not strand the remaining frames: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO registration errors do not prevent other frames restoring: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:335: not equal: expected true, got false"
       ]
     },
     {
@@ -506,8 +577,7 @@
       "file": "Main.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:242: not equal: expected true, got false"
+        "FAIL Hop fanout: late WHO after timeout is not active even after clock rollback: test/harness.lua:8: late result is guarded, not owned by an active search: expected false, got true"
       ]
     },
     {
@@ -515,7 +585,7 @@
       "file": "Main.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false"
+        "FAIL Hop fanout: late WHO after stop is not active even after clock rollback: test/harness.lua:8: late result is guarded, not owned by an active search: expected false, got true"
       ]
     },
     {
@@ -523,7 +593,7 @@
       "file": "Adapters.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: WHO restores registrations on error and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false"
+        "FAIL Hop fanout: WHO restores registrations on error and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false"
       ]
     },
     {
@@ -531,7 +601,7 @@
       "file": "Main.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:242: not equal: expected true, got false"
+        "FAIL Hop fanout: late WHO after invite is not active even after clock rollback: test/harness.lua:8: late result is guarded, not owned by an active search: expected false, got true"
       ]
     },
     {
@@ -539,7 +609,7 @@
       "file": "Main.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:246: not equal: expected function: 0x5694a972cc50, got function: 0x5694a9538550"
+        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false"
       ]
     },
     {
@@ -547,7 +617,15 @@
       "file": "Adapters.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:246: not equal: expected function: 0x647c492150d0, got function: 0x647c48dd3fa0"
+        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on slash stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on combat and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on zone and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on world and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on group and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on guild-only and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:335: not equal: expected true, got false"
       ]
     },
     {
@@ -555,11 +633,20 @@
       "file": "Adapters.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:251: not equal: expected 0, got 1",
-        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:265: not equal: expected 0, got 1",
-        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:265: not equal: expected 0, got 1",
-        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:265: not equal: expected 0, got 1",
-        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:312: not equal: expected 0, got 1"
+        "FAIL Hop fanout: WHO suppression never replaces OnEvent: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: visible FriendsFrame is never unregistered: test/hop_fanout.lua:353: not equal: expected 0, got 1",
+        "FAIL Hop fanout: visible LFGWhoListFrame is never unregistered: test/hop_fanout.lua:353: not equal: expected 0, got 1",
+        "FAIL Hop fanout: visible WhoFrame is never unregistered: test/hop_fanout.lua:353: not equal: expected 0, got 1",
+        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on slash stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on combat and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on zone and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on world and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on group and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO restores registrations on guild-only and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:335: not equal: expected false, got true"
       ]
     },
     {
@@ -567,8 +654,17 @@
       "file": "Adapters.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: player WHO during pending or late lease wins at 1 seconds: test/hop_fanout.lua:242: not equal: expected true, got false",
-        "FAIL Hop fanout: player WHO during pending or late lease wins at 6 seconds: test/hop_fanout.lua:246: not equal: expected function: 0x60a8c1e88bc0, got function: 0x60a8c1ff59d0"
+        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on slash stop and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on combat and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on zone and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on world and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on group and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: WHO restores registrations on guild-only and leaves manual search usable: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: player WHO during pending or late lease wins at 1 seconds: test/hop_fanout.lua:335: not equal: expected true, got false",
+        "FAIL Hop fanout: player WHO during pending or late lease wins at 6 seconds: test/hop_fanout.lua:335: not equal: expected true, got false"
       ]
     },
     {
@@ -584,7 +680,7 @@
       "file": "Adapters.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:312: not equal: expected 0, got 1"
+        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:474: not equal: expected 0, got 1"
       ]
     },
     {
@@ -592,7 +688,124 @@
       "file": "HopAny.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: SavedVariables exactly unchanged after sends responses fallback and stop: test/hop_fanout.lua:219: not equal: expected {string:autoHop=boolean:true,string:call=boolean:true,string:callArt=boolean:true,string:findNotice=boolean:true,string:findShare=boolean:true,string:guildHost=boolean:false,string:nets={string:hh=boolean:true,string:we=boolean:true},string:options={},string:share=boolean:true,string:tracked={}}, got {string:autoHop=boolean:true,string:call=boolean:true,string:callArt=boolean:true,string:findNotice=boolean:true,string:findShare=boolean:true,string:guildHost=boolean:false,string:hopNames={string:seeker aa=number:30,string:seeker ab=number:31,string:seeker ac=number:32,string:seeker ad=number:33,string:seeker ae=number:34,string:seeker af=number:35,string:seeker ag=number:36,string:seeker ah=number:37,string:seeker ai=number:38,string:seeker aj=number:39,string:seeker ak=number:40,string:seeker al=number:41,string:seeker am=number:42,string:seeker an=number:43,string:seeker ao=number:44,string:seeker ap=number:45,string:seeker aq=number:46,string:seeker ar=number:47,string:seeker as=number:48,string:seeker at=number:49,string:seeker au=number:50,string:seeker av=number:51,string:seeker aw=number:52,string:seeker b=number:11,string:seeker c=number:11,string:seeker d=number:11,string:seeker e=number:11,string:seeker f=number:11,string:seeker g=number:11,string:seeker h=number:11,string:seeker i=number:12,string:seeker j=number:13,string:seeker k=number:14,string:seeker l=number:15,string:seeker m=number:16,string:seeker n=number:17,string:seeker o=number:18,string:seeker p=number:19,string:seeker q=number:20,string:seeker r=number:21,string:seeker s=number:22,string:seeker t=number:23,string:seeker u=number:24,string:seeker v=number:25,string:seeker w=number:26,string:seeker x=number:27,string:seeker y=number:28,string:seeker z=number:29},string:nets={string:hh=boolean:true,string:we=boolean:true},string:options={},string:share=boolean:true,string:tracked={}}"
+        "FAIL Hop fanout: SavedVariables exactly unchanged after sends responses fallback and stop: test/hop_fanout.lua:312: not equal: expected {string:autoHop=boolean:true,string:call=boolean:true,string:callArt=boolean:true,string:findNotice=boolean:true,string:findShare=boolean:true,string:guildHost=boolean:false,string:nets={string:hh=boolean:true,string:we=boolean:true},string:options={},string:share=boolean:true,string:tracked={}}, got {string:autoHop=boolean:true,string:call=boolean:true,string:callArt=boolean:true,string:findNotice=boolean:true,string:findShare=boolean:true,string:guildHost=boolean:false,string:hopNames={string:seeker aa=number:30,string:seeker ab=number:31,string:seeker ac=number:32,string:seeker ad=number:33,string:seeker ae=number:34,string:seeker af=number:35,string:seeker ag=number:36,string:seeker ah=number:37,string:seeker ai=number:38,string:seeker aj=number:39,string:seeker ak=number:40,string:seeker al=number:41,string:seeker am=number:42,string:seeker an=number:43,string:seeker ao=number:44,string:seeker ap=number:45,string:seeker aq=number:46,string:seeker ar=number:47,string:seeker as=number:48,string:seeker at=number:49,string:seeker au=number:50,string:seeker av=number:51,string:seeker aw=number:52,string:seeker b=number:11,string:seeker c=number:11,string:seeker d=number:11,string:seeker e=number:11,string:seeker f=number:11,string:seeker g=number:11,string:seeker h=number:11,string:seeker i=number:12,string:seeker j=number:13,string:seeker k=number:14,string:seeker l=number:15,string:seeker m=number:16,string:seeker n=number:17,string:seeker o=number:18,string:seeker p=number:19,string:seeker q=number:20,string:seeker r=number:21,string:seeker s=number:22,string:seeker t=number:23,string:seeker u=number:24,string:seeker v=number:25,string:seeker w=number:26,string:seeker x=number:27,string:seeker y=number:28,string:seeker z=number:29},string:nets={string:hh=boolean:true,string:we=boolean:true},string:options={},string:share=boolean:true,string:tracked={}}"
+      ]
+    },
+    {
+      "rule": "same-zone-event-keeps-click",
+      "file": "Main.lua",
+      "caught": true,
+      "failed_tests": [
+        "FAIL Hop fanout: unchanged ZONE_CHANGED preserves who and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x629fc9c4af10, got nil",
+        "FAIL Hop fanout: unchanged ZONE_CHANGED preserves send and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x629fc9cd2830, got nil",
+        "FAIL Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves who and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x629fca010d60, got nil",
+        "FAIL Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves send and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x629fca408660, got nil",
+        "FAIL Hop fanout: WHO restores registrations on subzone and leaves manual search usable: test/hop_fanout.lua:388: not equal: expected table: 0x629fc9e3d190, got nil"
+      ]
+    },
+    {
+      "rule": "ungrouped-roster-keeps-click",
+      "file": "Main.lua",
+      "caught": true,
+      "failed_tests": [
+        "FAIL Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves who and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x59b9fd69c650, got nil",
+        "FAIL Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves send and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x59b9fd22e640, got nil"
+      ]
+    },
+    {
+      "rule": "same-zone-loading-keeps-click",
+      "file": "Main.lua",
+      "caught": true,
+      "failed_tests": [
+        "FAIL Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves who and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x610c348a8530, got nil",
+        "FAIL Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves send and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x610c34715880, got nil",
+        "FAIL Hop fanout: unchanged SHARD_TRANSFER preserves who and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x610c34839ee0, got nil",
+        "FAIL Hop fanout: unchanged SHARD_TRANSFER preserves send and autoaccept: test/hop_fanout.lua:186: unchanged event must not cancel the click: expected table: 0x610c34a897e0, got nil"
+      ]
+    },
+    {
+      "rule": "non-hop-throttle-stops-click",
+      "file": "Wire.lua",
+      "caught": true,
+      "failed_tests": [
+        "FAIL Hop fanout: named client throttle 3 cancels before click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 1, got 14",
+        "FAIL Hop fanout: named client throttle 3 cancels who click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 1, got 14",
+        "FAIL Hop fanout: named client throttle 3 cancels send click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 9, got 14",
+        "FAIL Hop fanout: reply client throttle 3 cancels before click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 1, got 14",
+        "FAIL Hop fanout: reply client throttle 3 cancels who click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 1, got 14",
+        "FAIL Hop fanout: reply client throttle 3 cancels send click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 9, got 14",
+        "FAIL Hop fanout: named client throttle 8 cancels before click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 1, got 14",
+        "FAIL Hop fanout: named client throttle 8 cancels who click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 1, got 14",
+        "FAIL Hop fanout: named client throttle 8 cancels send click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 9, got 14",
+        "FAIL Hop fanout: reply client throttle 8 cancels before click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 1, got 14",
+        "FAIL Hop fanout: reply client throttle 8 cancels who click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 1, got 14",
+        "FAIL Hop fanout: reply client throttle 8 cancels send click: test/hop_fanout.lua:43: no fanout client calls after another kind is throttled: expected 9, got 14",
+        "FAIL Hop fanout: non-hop throttle cannot be missed by a delayed pump: test/hop_fanout.lua:71: not equal: expected 9, got 17",
+        "FAIL Hop fanout: prefix pause expiry permits only a fresh click: test/hop_fanout.lua:91: not equal: expected 1, got 9"
+      ]
+    },
+    {
+      "rule": "hop-throttle-pauses-ordinary",
+      "file": "Wire.lua",
+      "caught": true,
+      "failed_tests": [
+        "FAIL Hop fanout: hop client throttle 3 pauses named and reply for thirty seconds: test/harness.lua:8: not equal: expected false, got true",
+        "FAIL Hop fanout: hop client throttle 8 pauses named and reply for thirty seconds: test/harness.lua:8: not equal: expected false, got true"
+      ]
+    },
+    {
+      "rule": "non-hop-throttle-survives-delayed-pump",
+      "file": "Main.lua",
+      "caught": true,
+      "failed_tests": [
+        "FAIL Hop fanout: non-hop throttle cannot be missed by a delayed pump: test/hop_fanout.lua:71: not equal: expected 9, got 17"
+      ]
+    },
+    {
+      "rule": "who-never-replaces-event-script",
+      "file": "Adapters.lua",
+      "caught": true,
+      "failed_tests": [
+        "FAIL Hop fanout: WHO suppression never replaces OnEvent: test/hop_fanout.lua:343: not equal: expected 0, got 1",
+        "FAIL Hop fanout: visible FriendsFrame is never unregistered: test/hop_fanout.lua:339: not equal: expected function: 0x64abb21e4f10, got function: 0x64abb2635810",
+        "FAIL Hop fanout: visible LFGWhoListFrame is never unregistered: test/hop_fanout.lua:339: not equal: expected function: 0x64abb27a9940, got function: 0x64abb27731c0",
+        "FAIL Hop fanout: visible WhoFrame is never unregistered: test/hop_fanout.lua:339: not equal: expected function: 0x64abb27c71d0, got function: 0x64abb22fb900",
+        "FAIL Hop fanout: WHO suppression needs no script accessors: test/hop_fanout.lua:335: not equal: expected false, got true",
+        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:339: not equal: expected function: 0x64abb2277190, got function: 0x64abb223b9c0",
+        "FAIL Hop fanout: WHO restores registrations on result and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb2042e10, got function: 0x64abb23d0660",
+        "FAIL Hop fanout: WHO restores registrations on no rows and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb21bbd30, got function: 0x64abb21bcd10",
+        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb28ccfa0, got function: 0x64abb27e2ff0",
+        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb27dd230, got function: 0x64abb27df0a0",
+        "FAIL Hop fanout: WHO restores registrations on slash stop and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb2456850, got function: 0x64abb21ab4b0",
+        "FAIL Hop fanout: WHO restores registrations on combat and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb21d0540, got function: 0x64abb237f610",
+        "FAIL Hop fanout: WHO restores registrations on zone and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb2325100, got function: 0x64abb21f4620",
+        "FAIL Hop fanout: WHO restores registrations on subzone and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb221b8e0, got function: 0x64abb219c930",
+        "FAIL Hop fanout: WHO restores registrations on world and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb2338220, got function: 0x64abb2470e40",
+        "FAIL Hop fanout: WHO restores registrations on group and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb270f140, got function: 0x64abb2586570",
+        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb260af80, got function: 0x64abb2194740",
+        "FAIL Hop fanout: WHO restores registrations on guild-only and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb224bfc0, got function: 0x64abb25771b0",
+        "FAIL Hop fanout: WHO restores registrations on error and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb2841330, got function: 0x64abb2169f30",
+        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:339: not equal: expected function: 0x64abb21c1150, got function: 0x64abb2211bf0",
+        "FAIL Hop fanout: late WHO after timeout is not active even after clock rollback: test/hop_fanout.lua:339: not equal: expected function: 0x64abb26cae30, got function: 0x64abb26675e0",
+        "FAIL Hop fanout: late WHO after stop is not active even after clock rollback: test/hop_fanout.lua:339: not equal: expected function: 0x64abb217fb40, got function: 0x64abb28d98e0",
+        "FAIL Hop fanout: late WHO after invite is not active even after clock rollback: test/hop_fanout.lua:339: not equal: expected function: 0x64abb26dd620, got function: 0x64abb288bfd0",
+        "FAIL Hop fanout: WHO unregister errors do not strand the remaining frames: test/hop_fanout.lua:339: not equal: expected function: 0x64abb2291940, got function: 0x64abb1ee1b30",
+        "FAIL Hop fanout: WHO registration errors do not prevent other frames restoring: test/hop_fanout.lua:430: not equal: expected 0, got 1",
+        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:339: not equal: expected function: 0x64abb216c1d0, got function: 0x64abb237d750",
+        "FAIL Hop fanout: player WHO during pending or late lease wins at 1 seconds: test/hop_fanout.lua:339: not equal: expected function: 0x64abb21e0cb0, got function: 0x64abb27b7c20",
+        "FAIL Hop fanout: player WHO during pending or late lease wins at 6 seconds: test/hop_fanout.lua:339: not equal: expected function: 0x64abb2212440, got function: 0x64abb2692e30",
+        "FAIL Hop fanout: optional WHO APIs and throwing frames never strand other frames: test/hop_fanout.lua:455: missingSet: expected function: 0x64abb21c25c0, got function: 0x64abb2627890",
+        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:339: not equal: expected function: 0x64abb23e0d90, got function: 0x64abb28c57d0"
+      ]
+    },
+    {
+      "rule": "who-visible-window-untouched",
+      "file": "Adapters.lua",
+      "caught": true,
+      "failed_tests": [
+        "FAIL Hop fanout: visible FriendsFrame is never unregistered: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Hop fanout: visible LFGWhoListFrame is never unregistered: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Hop fanout: visible WhoFrame is never unregistered: test/harness.lua:7: not equal: expected true, got false"
       ]
     }
   ]
