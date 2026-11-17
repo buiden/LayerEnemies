@@ -154,12 +154,13 @@ test("Round2 UI: own guild claim current hash and OpenMap all fit",function()
     N.Find.report(N.Main.find,{sender="HashScout",zone=100,at=H.clock(),enemies={{hash=N.Hash.player("Cedar","Vale")}}},"Test Realm")
     H.deliver("CHAT_MSG_ADDON","OpenMapLoc","L1\t100\t0.4200\t0.5700\tMAGE\t60","GUILD",name)
     local r=N.Main.findRows()[1]; yes(r.canAsk); eq(r.spotter,"HashScout"); yes(r.place)
-    N.UI.toggle(); N.UI.select("find"); local ui=N.UI.pool[1]
+    N.UI.toggle(); local normalHeight=N.UI.frame.height
+    N.UI.select("find"); local ui=N.UI.pool[1]
     yes(ui and ui:IsShown()); yes(ui.ask:IsShown()); eq(ui.spotter,"HashScout"); yes(ui.place:IsShown())
     for _,text in ipairs({"HashScout","Seen by DirectScout","Seen by you","Reported:"}) do
         yes(ui.sub:GetText():find(text,1,true),"every independent detail remains visible: "..text)
     end
     yes(ui.sub.height>=204,"four independent detail lines"); yes(N.UI.body.height>=70+ui.height)
-    N.UI.select("local"); eq(N.UI.body.height,300); eq(N.UI.frame.height,514)
+    N.UI.select("local"); eq(N.UI.body.height,300); eq(N.UI.frame.height,normalHeight,"restore height including wrapped header/footer")
     eq(#H.sent(),0); no(N.Main.error)
 end)

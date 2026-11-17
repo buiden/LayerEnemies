@@ -1117,4 +1117,10 @@ PASS Kills R2 reserve: kill relays leave the guild-minute own slots
 PASS Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute
 PASS Kills R2 ledger: new kill stays visible after 300 guild kills at one per second
 PASS Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first
-RESULT: 1119 tests passed, 0 failed, 118428 assertions
+PASS UI layout: wrapped header follows status, hosting and long-zone changes on every tab
+PASS UI layout: option on, off and n/a labels fit on one line inside disjoint buttons
+PASS UI layout: tab notes reserve their wrapped height before controls and rows
+PASS UI layout: wrapped footer and hint stay clear of settings and inside window
+PASS UI layout: Find measures every retained line and OpenMap place before paging
+PASS UI layout: local, Reported and Friendly cards also fit long wrapped details
+RESULT: 1125 tests passed, 0 failed, 119421 assertions

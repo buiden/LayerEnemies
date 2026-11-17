@@ -219,12 +219,13 @@ test("Round1 hash: all evidence plus an independent place fits on a Find page",f
     F.report(M.find,{sender="HashScout",zone=100,at=H.clock(),enemies={{hash=N.Hash.player("Cedar","Vale")}}},"Test Realm")
     H.deliver("CHAT_MSG_ADDON","OpenMapLoc","L1\t100\t0.4200\t0.5700\tMAGE\t60","GUILD","Cedar Vale")
     local r=M.findRows()[1]; yes(r.seen); yes(r.reported); yes(r.place); yes(r.canAsk)
-    N.UI.toggle(); N.UI.select("find"); local ui=N.UI.pool[1]
+    N.UI.toggle(); local normalHeight=N.UI.frame.height
+    N.UI.select("find"); local ui=N.UI.pool[1]
     yes(ui and ui:IsShown(),"an extra current-evidence line must not hide the whole card")
     yes(ui.sub:GetText():find("HashScout",1,true)); yes(ui.sub:GetText():find("Seen by you",1,true))
     yes(ui.sub:GetText():find("Reported:",1,true)); yes(ui.place:IsShown()); yes(ui.ask:IsShown())
     yes(N.UI.body.height>=70+ui.height,"the complete card fits above the footer")
-    N.UI.select("local"); eq(N.UI.body.height,300); eq(N.UI.frame.height,514)
+    N.UI.select("local"); eq(N.UI.body.height,300); eq(N.UI.frame.height,normalHeight,"restore height including wrapped header/footer")
 end)
 
 test("Round1 realm: own realm equality normalizes and folds full strings",function()
