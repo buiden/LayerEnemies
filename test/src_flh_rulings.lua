@@ -140,3 +140,93 @@ for _,mode in ipairs({"combat","instance"}) do
         eq(namedCount(H.left(),"ForeverLayerHopNet"),1); no(N.Directory.joined("flh"))
     end)
 end
+
+for _,case in ipairs({{"LD|%d","declined"},{"LA|%d","didn't answer"},{"HQ|%d|2","queued you"},
+    {"LN|%d","declined"},{"LN|%d|busy","declined"}}) do
+    test("FLH member: R2 host status "..case[1].." cancels and prints once",function()
+        local N=member(); local id=query(N); offer(id); yes(N.Main.invite.pending)
+        local before=#H.log()
+        receive(case[1]:format(id))
+        H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),0)
+        no(N.Main.invite.pending); no(N.FLHMember.pending())
+        eq(#H.log(),before+1); yes(H.log()[#H.log()]:find(case[2],1,true))
+        local detail=N.FLHMember.detail(host(N)); yes(detail:find(case[2],1,true))
+        receive(case[1]:format(id)); offer(id)
+        eq(#H.log(),before+1); eq(#lines("LR"),1); no(N.Main.error)
+    end)
+end
+
+test("FLH member: R2 only the selected host and matching status can cancel",function()
+    for _,status in ipairs({"LD|%d","LA|%d","HQ|%d|2","LN|%d","LN|%d|busy"}) do
+        local N=member(); local id=query(N); offer(id); local before=#H.log()
+        receive(status:format(id),"Stranger Alder")
+        receive(status:format(id),"Cedar Vale-OtherRealm")
+        receive(status:format(id+1)); receive(status:format(id),nil,"GUILD")
+        eq(#H.log(),before); yes(N.Main.invite.pending)
+        H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),1)
+    end
+end)
+
+test("FLH member: R2 LI transfers authority only to its named whole leader",function()
+    local N=member(); local id=query(N); offer(id); yes(N.Main.invite.pending)
+    receive("LI|"..id.."|S|Leader Alder-OtherRealm")
+    for _,name in ipairs({"Cedar Vale","Stranger Alder","Leader Alder","Leader Alder-TestRealm"}) do
+        H.deliver("PARTY_INVITE_REQUEST",name); eq(H.accepts(),0)
+    end
+    H.deliver("PARTY_INVITE_REQUEST","Leader Alder-OtherRealm"); eq(H.accepts(),1)
+    H.deliver("PARTY_INVITE_REQUEST","Leader Alder-OtherRealm"); eq(H.accepts(),1)
+    eq(N.Main.auto.group.short,"leader alder-otherrealm"); no(N.Main.error)
+end)
+
+for _,elapsed in ipairs({89,90,91}) do
+    test("FLH member: R2 LI retains the original ninety second window at "..elapsed,function()
+        local N=member(); local start=H.clock(); local id=query(N)
+        H.clock(start+85); offer(id); receive("LI|"..id.."|S|Leader Alder")
+        H.clock(start+elapsed); H.deliver("PARTY_INVITE_REQUEST","Leader Alder")
+        eq(H.accepts(),elapsed<90 and 1 or 0)
+    end)
+end
+
+test("FLH member: R2 LI cannot arm without the selected host successful LR and id",function()
+    for _,mode in ipairs({"no click","before offer","other host","other realm","wrong id","wrong route","LR refused"}) do
+        local N=member(); local id=mode=="no click" and 1 or query(N)
+        if mode~="no click" and mode~="before offer" then
+            if mode=="LR refused" then H.result(3) end
+            offer(id); H.result(0)
+        end
+        receive("LI|"..(mode=="wrong id" and id+1 or id).."|S|Leader Alder",
+            mode=="other host" and "Stranger Alder" or mode=="other realm" and "Cedar Vale-OtherRealm" or nil,
+            mode=="wrong route" and "GUILD" or nil)
+        H.deliver("PARTY_INVITE_REQUEST","Leader Alder"); eq(H.accepts(),0,mode)
+        if mode=="other host" or mode=="other realm" or mode=="wrong id" or mode=="wrong route" then
+            H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),1,"invalid LI cannot redirect the pending host")
+        end
+    end
+end)
+
+test("FLH member: R2 LI missing or invalid leader never accepts anyone",function()
+    for _,suffix in ipairs({"|S","|S|Bad2","|S|Me"}) do
+        local N=member(); local id=query(N); offer(id)
+        receive("LI|"..id..suffix)
+        for _,name in ipairs({"Cedar Vale","Leader Alder"}) do H.deliver("PARTY_INVITE_REQUEST",name); eq(H.accepts(),0) end
+        no(N.Main.error)
+    end
+end)
+
+test("FLH member: R2 bare LI is only an acknowledgement and cannot undo a handoff",function()
+    local N=member(); local id=query(N); offer(id); receive("LI|"..id)
+    H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),1)
+    N=member(); id=query(N); offer(id)
+    receive("LI|"..id.."|S|Leader Alder"); receive("LI|"..id)
+    H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),0)
+    H.deliver("PARTY_INVITE_REQUEST","Leader Alder"); eq(H.accepts(),1)
+end)
+
+test("FLH member: R2 decline after LI cancels leader authority too",function()
+    for _,status in ipairs({"LD|","LA|","LN|","HQ|"}) do
+        local N=member(); local id=query(N); offer(id); receive("LI|"..id.."|S|Leader Alder")
+        receive(status..id..(status=="HQ|" and "|2" or ""))
+        H.deliver("PARTY_INVITE_REQUEST","Leader Alder"); eq(H.accepts(),0)
+        no(N.Main.invite.pending); no(N.FLHMember.pending())
+    end
+end)

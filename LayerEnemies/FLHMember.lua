@@ -144,8 +144,25 @@ local function offer(m,sender)
     if not F.checkGuest() then return end
     local r=guest; local key=I.key(sender); local asked=key and r.asked[key]
     if not asked or m.id~=r.id then return end
-    if m.cmd=="LN" and r.selected==key then
-        note(r,"FLH host refused"); F.stop(); return
+    local declined={LD="declined",LA="didn't answer",HQ="queued you",LN="declined"}
+    if declined[m.cmd] and r.selected==key then
+        local text="FLH host "..asked.name.." "..declined[m.cmd]
+        note(r,text); F.stop()
+        N.Main.say("LayerEnemies: "..text)
+        if N.UI then N.UI.refresh() end
+        return
+    end
+    if m.cmd=="LI" and m.mode=="S" and r.selected==key then
+        local p=N.Main.invite.pending
+        -- Only replace existing LR authority; never arm a failed or spent click.
+        if not p or not p.flh then return end
+        local _,leaderKey,leader=I.name(m.leader)
+        p.asked={}
+        if leaderKey and not N.Main.isMe(leader) and not A.ignored(leader) then
+            p.asked[leaderKey]={name=leader,at=r.first}
+            note(r,"FLH: waiting for leader "..leader.."'s invite")
+        end
+        return -- preserve r.first and p.at: hand-off never renews the window
     end
     if m.cmd~="LO" or r.selected or m.map~=r.map or not FL.key(m.key)
         or sameKey(m.key,r.own) or not sameKey(m.key,asked.key) then return end
@@ -189,7 +206,7 @@ function F.authorize(text,kind,target,opts)
 end
 function F.received(m,kind,sender)
     count("heard")
-    if kind=="WHISPER" and (m.cmd=="LO" or m.cmd=="LN") then offer(m,sender); return end
+    if kind=="WHISPER" and (m.cmd=="LO" or m.cmd=="LN" or m.cmd=="LD" or m.cmd=="LA" or m.cmd=="HQ" or m.cmd=="LI") then offer(m,sender); return end
     if kind~="WHISPER" or (m.cmd~="WP" and m.cmd~="CQ") then return end
     local _,_,target=I.name(sender)
     if not target or not F.allowed(kind,m.cmd=="WP" and "WR" or "CA") then return end

@@ -24,6 +24,7 @@ local layouts={
     LO={id=2,map=3,key=4,groupSize=5,load=6},
     LR={id=2,map=3,key=4,version=5},
     LN={id=2,reason=3},
+    LD={id=2}, LA={id=2}, HQ={id=2,position=3}, LI={id=2},
 }
 function FL.decode(text)
     if S.secret(text) or type(text)~="string" or #text>255 or text:find("%c") then return nil end
@@ -33,6 +34,12 @@ function FL.decode(text)
     local cmd=fields[1]
     local layout=layouts[cmd]
     if not layout then return nil end
+    if cmd=="LN" and #fields==2 then layout={id=2} end
+    if cmd=="LI" and fields[3]=="S" then
+        -- Suggested invite: a missing name grants nobody invite authority.
+        layout={id=2,mode=3}
+        if fields[4] and not fields[4]:match("^[A-Z][A-Z0-9_]*=") then layout.leader=4 end
+    end
     local count=1
     for _,index in pairs(layout) do count=math.max(count,index) end
     if #fields<count then return nil end
@@ -45,7 +52,7 @@ function FL.decode(text)
         if field=="host" then
             if value~="0" and value~="1" then return nil end
             value=integer(value)
-        elseif field=="map" or field=="id" or field=="groupSize" or field=="load" then value=integer(value)
+        elseif field=="map" or field=="id" or field=="groupSize" or field=="load" or field=="position" then value=integer(value)
         elseif field=="key" or field=="ownKey" or field=="wantedKey" then
             local empty=(field=="ownKey" or (field=="key" and layout.host)) and value==""
             value=(empty or (field=="wantedKey" and value=="*")) and value or FL.key(value)
