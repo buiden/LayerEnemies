@@ -1395,6 +1395,8 @@ PASS Codec: independent Python serializer vectors and audit network payloads
 PASS Codec: logical references cannot evade string, depth or table bounds
 PASS Codec: RFC bit-level malformed trees and degenerate valid alphabets
 PASS Codec: AceComm invalid reserved frames abandon only their sender stream
+PASS Stack: source mutant evidence rerun is byte and mtime stable
+PASS Stack: presence mutant evidence rerun is byte and mtime stable
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
 PASS Sources: offer drops untracked and contradictory realms before Known stores anything
 PASS Sources: offer uses only live guild Watch matches and never adds saved tracked names
@@ -1464,6 +1466,24 @@ PASS Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered
 PASS Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks
 PASS WarBoard: compatible H answers once through shared queue; A never answered
 PASS WarBoard: wrong ruleset H gets own A but no peer; wrong protocol gets nothing
+PASS WarBoard: queue refusal does not spend H admission cooldown
+PASS WarBoard: round robin starts after the last admitted account in stable ID order
+REACH 12 alone: 12/12
+PASS WarBoard: hello reach over sixty minutes for 12 accounts
+REACH 12 mixed: 12/12
+PASS WarBoard: hello reach over sixty minutes for 12 accounts with owed and shared traffic
+REACH 20 alone: 20/20
+PASS WarBoard: hello reach over sixty minutes for 20 accounts
+REACH 20 mixed: 20/20
+PASS WarBoard: hello reach over sixty minutes for 20 accounts with owed and shared traffic
+REACH 25 alone: 25/25
+PASS WarBoard: hello reach over sixty minutes for 25 accounts
+REACH 25 mixed: 25/25
+PASS WarBoard: hello reach over sixty minutes for 25 accounts with owed and shared traffic
+REACH 40 alone: 40/40
+PASS WarBoard: hello reach over sixty minutes for 40 accounts
+REACH 40 mixed: 40/40
+PASS WarBoard: hello reach over sixty minutes for 40 accounts with owed and shared traffic
 PASS WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred
 PASS WarBoard: A six per rolling minute including delayed queue; WarBoard ten shared thirty
 PASS WarBoard: share stops new sends and cancels queued answers
@@ -1592,4 +1612,4 @@ PASS Stack: WarBoard position subject survives Wanted observer wording on GUILD
 PASS Stack: WarBoard position subject survives Wanted observer wording on PARTY
 PASS Stack: WarBoard position subject survives Wanted observer wording on RAID
 PASS Stack: WarBoard position subject survives Wanted observer wording on CHANNEL
-RESULT: 1579 tests passed, 0 failed, 294043 assertions
+RESULT: 1591 tests passed, 0 failed, 394371 assertions
