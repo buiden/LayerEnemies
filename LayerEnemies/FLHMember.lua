@@ -117,6 +117,7 @@ function F.preview(row)
         detail="FLH guest request to "..row.name.."; fingerprint claim only"}
 end
 local function queries(r)
+    if r.sending then return end -- synchronous client hooks must not consume the cursor
     while guest==r and not r.offer and r.next<=#r.targets and F.checkGuest() do
         local v=r.targets[r.next]; local now=S.num(S.call(GetTime))
         if N.Wire.offlineUntil(v.name,now) then

@@ -275,6 +275,27 @@ for _,stopAt in ipairs({2,6}) do
     end
 end
 
+for _,reenterAt in ipairs({1,6}) do
+    test("FLH batch: recursive tick inside LQ "..reenterAt.." cannot consume remaining targets",function()
+        local N=member(); hosts(N); if reenterAt==6 then ordinary(N,2) end
+        local entered=false
+        H.result(function()
+            if not entered and #lines("LQ")==reenterAt then
+                entered=true; N.FLHMember.tick(H.clock())
+            end
+            return 0
+        end)
+        yes(N.FLHMember.hop()); H.advance(10); yes(entered,"client callback reentered the source tick")
+        H.result(0)
+        local seen={}
+        for _,q in ipairs(lines("LQ")) do no(seen[q.target],"a target is attempted only once"); seen[q.target]=true end
+        eq(#lines("LQ"),7,"nested tick cannot discard eligible targets")
+        offer(N,lines("LQ")[7]); eq(#lines("LR"),1)
+        H.deliver("PARTY_INVITE_REQUEST",lines("LQ")[7].target); eq(H.accepts(),1)
+        ceilings(); no(N.Main.error)
+    end)
+end
+
 -- The reviewer's r2b/r2c cadence: 12 clicks over 3600 timer-driven seconds,
 -- refreshed host claims, 30 directory peers, and independent WP/CQ strangers.
 local function replay(strangers,offset,delay)
