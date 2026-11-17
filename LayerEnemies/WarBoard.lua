@@ -11,7 +11,7 @@ local function proof(st,peer,now)
 end
 function W.handshake(id,text)
     return controls[id] and controls[id][text] and N.WarBoardTrack
-        and N.WarBoardTrack.owedAccount(id)~=nil and not N.Adapters.loaded("WarBoard") or false
+        and N.WarBoardTrack.needsHandshake(id) and not N.Adapters.loaded("WarBoard") or false
 end
 local function refuse() Src.count("warboard","refused"); return false end
 local function recent(at,now,gap) return at and now-at<gap end -- rollback cannot reopen a gate
@@ -82,7 +82,7 @@ local function send(st,id,cmd,ctx)
     if not ctx.version then return refuse() end
     local text="WBF1|"..cmd.."|5|"..ctx.rs.."|LayerEnemies/"..ctx.version.."|0"
     local prio=cmd=="A" and "owed" or "own"
-    local debt=N.WarBoardTrack and N.WarBoardTrack.owedAccount(id)
+    local debt=N.WarBoardTrack and N.WarBoardTrack.needsHandshake(id)
     local function permit(on)
         if not debt then return end
         if on then controls[id]=controls[id] or {}; controls[id][text]=(controls[id][text] or 0)+1
