@@ -257,7 +257,7 @@ local function duplicate()
     Src.count("warboard","deduped")
     return refuse()
 end
-function W.assemble(st,text,id,now,received)
+function W.assemble(st,text,id,now,received,who)
     for key,r in pairs(st.parts) do if now<r.at or now-r.at>=90 then st.parts[key]=nil end end
     local direct=text:match("^WBF1|D|(.*)$")
     if direct then return direct end
@@ -266,13 +266,14 @@ function W.assemble(st,text,id,now,received)
     if not token or #token>80 or not integer(n,2,64) or not integer(i,1,n) then return nil end
     local key=id..":"..token
     local r=st.parts[key]
+    if r and who and (r.key~=who.key or r.faction~=who.faction) then st.parts[key]=nil; return nil end
     if r and r.n~=n then st.parts[key]=nil; return nil end
     if not r then
         if S.count(st.parts)>=16 then return nil end
         local owned=0
         for _,part in pairs(st.parts) do if part.owner==id then owned=owned+1 end end
         if owned>=2 then return nil end
-        r={at=now,owner=id,n=n,size=0,count=0,chunks={}}; st.parts[key]=r
+        r={at=now,owner=id,n=n,size=0,count=0,chunks={},key=who and who.key,faction=who and who.faction}; st.parts[key]=r
     end
     if r.chunks[i]~=nil then return nil end -- first copy wins, no age refresh
     r.size=r.size+#chunk
@@ -552,7 +553,7 @@ function W.bnet(st,text,id,ctx,deferred)
     if not peer or peer.rs~=ctx.rs or peer.key~=who.key or peer.faction~=who.faction
         or (deferred and (deferred.peer~=peer or received.rs~=ctx.rs or received.faction~=ctx.faction))
         or received.now<at or received.now-at>=1200 then return refuse() end
-    local encoded,held=W.assemble(st,text,id,received.now,deferred and received)
+    local encoded,held=W.assemble(st,text,id,received.now,deferred and received,who)
     if deferred or held then
         ctx={now=ctx.now,wall=ctx.wall,rs=ctx.rs,faction=ctx.faction,received=held or received,cleanupOnly=true}
     end

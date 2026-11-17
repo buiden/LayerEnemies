@@ -312,6 +312,28 @@ for _,unsafe in ipairs({"combat","instance"}) do
     end)
 end
 
+for _,field in ipairs({"characterName","realmName"}) do
+    test("delta identity change "..field.." discards queued partial before completion",function()
+        local N,r,hello,count,pos,a=start(); stop(N,"track"); advance(5)
+        local first,last=parts(pos,false)
+        h.combat(true); receive(first); eq(#N.WarBoard.state.deferred,1)
+        h.combat(false); N.WarBoard.tick(N.WarBoard.state,N.Adapters.warboardContext())
+        yes(N.WarBoard.state.parts["71:abc"],"queued partial actually drained into assembly")
+        a[71][field]=field=="characterName" and "Other Player" or "456"
+        incoming("A") -- new identity is fully admitted, not rejected by old-peer gate
+        eq(N.WarBoard.state.peers[71].key,N.Invite.key(N.OpenMap.bnName(a[71].characterName,a[71].realmName)))
+        local decoded=0; local decode=N.WarBoard.decode
+        N.WarBoard.decode=function(...) decoded=decoded+1; return decode(...) end
+        receive(last)
+        eq(decoded,0,"old character chunks must never complete under new identity")
+        eq(N.WarBoard.state.parts["71:abc"],nil,"mismatched assembly is discarded")
+        eq(debt(),1)
+        -- A new complete frame for the current character still works.
+        yes(N.Find.add(N.Main.find,a[71].characterName..(field=="realmName" and "-456" or "")))
+        pos(false); eq(decoded,1)
+    end)
+end
+
 test("N1 README states revised confirmation and retry rules",function()
     local f=assert(io.open("README.md")); local s=f:read("*a"):gsub("%s+"," "); f:close()
     for _,phrase in ipairs({"A genuine confirmation under **20 minutes** old can authorize a new FBAK",
