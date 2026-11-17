@@ -42,9 +42,9 @@ holding the detail:
   names an enemy killer (Guild Bounty, Wall of Shame, or a guildmate's `K`
   line); on by default, `/le call off` turns it off. Your own PvP death shares
   one `K` line with your guild.
-- **Hop to another layer:** one click (or `/le hop any`) may send up to 8
-  hidden addon requests for an invite, including to players not known to run a
-  layer addon.
+- **Hop to another layer:** one click (or `/le hop any`) may send hidden
+  addon invite requests to up to 49 players, including players not known to
+  run a layer addon.
 - **Guild intelligence:** crowds are shared in up to three lines without
   repeats or inflated counts; Spy sightings heard in your group and HeadHunter
   kill records from the HeadHunter network are relayed to the guild as claims; a shared watch list tells
@@ -152,13 +152,20 @@ decision)**. Client acceptance is not a delivery acknowledgement.
 
 ## 1.1.0 - Hop to another layer
 
-**Changed rule:** "one hop request to one host ... No retry, no fan-out"
-previously applied to every hop. One **Hop to another layer** click may now
-send up to **8 requests to players not known to run any layer addon**.
-There is still no retry, timer-started search, automatic second round or
-request without a click. Existing Hop, Hop via <name> and Ask guild actions
-keep their single-target / player-sent behavior. This bounded exception is
-reviewed on its own, independently of other feature changes.
+**Hop to another layer** now asks up to **49 players per click**, with
+**10 seconds between clicks**. One zone WHO query supplies the names; the
+**Who window is suppressed** while our query is handled. Known hosts go first,
+then same-zone names, then the remaining WHO rows. These are real hidden
+invite requests, including to players not known to run a layer addon.
+
+The click owns at most **45 rounds**, **1 second apart**, **8 attempts per
+round**. Its dedicated Wire allowance permits 8 initially, then about 1 per
+second (60 per minute); throttling retains the head for the next round.
+Same-zone hosts that answer with an unknown layer may be re-asked once without
+an exclusion after the queue finishes (+3 seconds, or +10 if a known
+alternative-layer host is still being given time). No additional WHO query
+starts automatically. Existing Hop, Hop via <name>, Ask guild and auto
+accept/leave behavior are unchanged. No saved field or version bump.
 
 ## 1.1.0 - guild death calls and own-death sharing
 
@@ -369,14 +376,23 @@ in guild-only mode**, including a round already in progress.
 - A zone `/who` search: only from the **Hop to another layer** button or
   `/le hop any`, one `C_FriendList.SendWho` in the click's own call stack,
   using the localized `WHO_TAG_ZONE` and your live zone name. It waits up to
-  5 seconds for results. No class/race rotation, UI unhooking or who-window
-  hiding. Missing APIs or localization refuse the action; no English fallback.
+  5 seconds for results. The Who window is suppressed using temporary event
+  ownership and `SetWhoToUi(true)` where available. A late result is swallowed
+  for up to 30 seconds; a manual `/who` takes priority and displays normally.
+  No class/race rotation. Missing search APIs/localization refuse the action;
+  missing optional UI APIs fall back to the prior behavior (no UI guarantee).
 - LayerSwap prefix, WHISPER: the existing Hop button, `/le hop <number>`
   and `/le hop host <number>` still send one request to one host, with no
-  retry or fan-out. **Hop to another layer** instead sends at most 8 requests
-  from that click's zone-who results, no faster than one per second, through
-  the same Wire budgets and without a queue. Its exact line is
+  retry or fan-out. **Hop to another layer** instead asks up to 49 players
+  from one WHO result: at most 8 attempts per 1-second round, at most 45
+  rounds, with a 10-second click cooldown. Wire gives only these requests an
+  8-message burst, 1 token/second refill, 60/minute and 4/minute per target;
+  other messages' budgets are unchanged. Throttling keeps the unsent head;
+  there is no Wire queue. The initial line is
   `inv layer <LS <zone> not <ownServer>-0 <x>,<y>>` (position in percent).
+  An unknown-layer same-zone `h` responder can get one fallback attempt,
+  `inv layer <LS <zone> <x>,<y>>`, without exclusion, after the queue (+3/+10 s).
+  That fallback is spent even if throttled. No visible chat is sent.
   While you host for your guild, also the answer to a guildmate's
   request: `same` or `heard <name>|<layer>|<zone>|<h or ->`, at most one per 6
   seconds. Wire refuses any other text on this route.
@@ -1136,46 +1152,61 @@ A disabled button explains the guard in its tooltip; during a round it says
 **Stop**. `/le hop stop` does the same thing.
 
 Guards: public mode, ungrouped, out of combat and instances, readable live
-zone/name/position and own identity, no ask or hop still open, no outstanding
-who query, working localized who APIs, and at least **30 seconds between
-hop-any clicks**. Unknown group, combat or instance state refuses. A click
-reserves Invite's shared 10-second overall cooldown once; every attempted
-name is stamped for its shared 60-second per-name rule. Other asks/hops are
+zone/name/position and own identity, no ask or hop still open, working
+localized WHO APIs, and **10 seconds between hop-any clicks**, including
+stopped clicks; the cooldown restarts at the first accepted whisper, not at
+each later target. Unknown group, combat or instance state refuses. The shared
+10-second overall ask cooldown is reserved once; the shared 60-second
+per-name cooldown still applies to initial requests. Other asks/hops are
 refused until this round ends or you stop it.
 
-Only the first **49 who rows** are read. Other-zone rows, yourself,
-duplicates, ignored/unreadable names, recently asked names, Wire's one-hour
-offline names and this session's six-hour non-answerers are skipped. Listed
-hosts on other layers come first, then online guildmates, then the game's
-order. Only the first 8 eligible names are kept. This is not a continuous
-scan: in crowded zones repeated clicks can see the same first 49 players.
-There is no class rotation in this version.
+Only the first **49 WHO rows** are read, minus yourself, duplicates and
+unreadable/ignored names. Known hosts come first (even with unknown layer),
+then same-zone names, then other-zone rows in the game's order. Known book
+peers bypass the six-hour nonresponder skip; a known offline peer waits
+**600 seconds**, other offline/nonresponding targets wait **6 hours**.
+The skip list stays **session-only, capped at 300 names**, never saved.
+Repeated clicks can see the same first 49; there is no class rotation.
 
-Nothing is whispered before the who answer. Sends stop permanently at the
-first asked player's hosting reply for another key in this zone, an invite
-from an asked player, group/combat/instance/zone change, guild-only switch,
-Wire refusal/throttle/pause/error, Stop, or the eighth attempt. An offline
-result skips that name and still consumes one of the 8 attempts. No retry or
-second round is automatic. **Sent requests cannot be recalled; a late invite
-can still arrive.** An invite from an unasked player is never auto-accepted
-or declined.
+The **Who window is suppressed**: before the query we request UI routing and
+unregister WHO_LIST_UPDATE on the game's who frames. Their registrations
+return on result, timeout or Stop; temporary event guards discard a late
+answer until it arrives or the 30-second deadline. Routing and original
+scripts return on completion/error/logout. A player's own `/who` immediately
+takes ownership and cancels our pending query, so its result displays normally.
+Already open windows are never hidden. Missing optional UI APIs retain the
+old behavior rather than blocking the action.
 
-Replies are read only on WHISPER, only from names actually sent a request,
-for 120 seconds after the last successful send. Names include surnames and
-foreign realms. `same` / not-hosting answers are summarized as a count, not
-one line per reply. A host's answer stops sends even if its invite never
-comes; the timeout says so. Without a host the summary says how many were
-asked and invites you to click again. Names that never answered are skipped
-for **6 hours**, session only, **300 names maximum** (oldest evicted), never
-saved. Answered hosts retain only the shared 60-second ask cooldown. Reload
-clears the suppression table.
+Nothing is whispered before WHO answers. The click owns up to **45 rounds**,
+**one second apart**, with **at most 8 attempts per round**. A fresh Wire
+bucket allows eight initially, then about one per second: all 49 names take
+about **41 seconds** in the offline harness without competing traffic.
+A throttle/pause keeps the target at the head for the next round; an offline
+name is skipped. Other send errors stop the search. A host reply alone does
+not stop the queue. An invite from any not-known-failed host, Stop, group,
+combat, instance, world/zone change, or guild-only switch cancels unsent work.
+**Sent requests cannot be recalled; a late invite can still arrive.** An
+unasked invite is never auto-accepted or declined. Failed hop hosts are
+remembered for 600 seconds; their invites do not end the queue.
 
-These are hidden addon whispers, not chat. What a player without the addon
-actually sees, server throttling and whether stranger addon whispers count
-toward account spam/silence limits are **not verified**. Hosts pay their own
-invite budget; two hosts may answer before the first reply stops our round.
-Stop-on-first-answer and one-second pacing reduce, but cannot eliminate,
-that race. No stranger-hosting or response behavior is added here.
+After the queue ends, unknown-layer same-zone `h` responders are each eligible
+for one fallback attempt without an exclusion. Checks start at **+3/+10 s**;
+a known alternative-layer host gets until +10 to invite. Attempts stay bounded
+at eight per second. A fallback refusal is not retried. Any invite or other
+cancellation prevents the remaining fallback work.
+
+Replies are read only on WHISPER from names successfully asked, for 120
+seconds after the first successful initial send (the invite-wait start). Names include surnames and
+foreign realms. `same` / not-hosting answers are summarized, not printed per
+reply. Nonresponders are recorded when the round closes; replies clear that
+suppression. Unknown-host hints and failed-hop history are also bounded and
+session-only; reload clears them. No player names are added to SavedVariables.
+
+These are hidden addon whispers, not chat. Native Forever UI event order,
+`SetWhoToUi`, real server throttling (~1 whisper/s), visibility to players
+without an addon, and account spam/silence limits are **not verified** (alpha,
+owner's decision). Multiple hosts may invite before cancellation; no rate
+limit eliminates that race. No stranger-hosting behavior is added here.
 
 ### Existing single-target and guild actions
 

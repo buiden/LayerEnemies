@@ -28,6 +28,9 @@ local function layerswapText(text)
     if text == "same" then return "reply" end
     local name = text:match("^heard ([^|]+)|%d+%-%d+|%d+|[h%-]$")
     if name then return N.Invite.name(name) and "reply" or nil end
+    -- Unconstrained requests are only the hop-any unknown-host fallback, not a new GuildHost input grammar.
+    local zone, x, y = text:match("^inv layer <LS (%d+) (%d+%.%d),(%d+%.%d)>$")
+    if zone and #zone <= 9 and tonumber(zone) > 0 and tonumber(x) <= 100 and tonumber(y) <= 100 then return "fallback" end
     local G = N.GuildHost
     if text:sub(1, 10) == "inv layer " and G and G.parse(text) then return "request" end
     return nil
@@ -97,6 +100,10 @@ local buckets, all = {}, { tokens = ALL_CAP, at = nil }
 local allTimes, guildTimes, publicTimes, publicTo = {}, {}, {}, {}
 local paused, offline = {}, {}
 local queue, seq, pumping = {}, 0, false
+-- Explicit hop-any requests alone use a separate bucket; named hops/replies and every other prefix keep
+-- all their existing caps. No Wire queue: HopAny owns cancellation and retries at its next round.
+Wr.HOP_CAP, Wr.HOP_REFILL, Wr.HOP_MINUTE, Wr.HOP_ONE, Wr.HOP_PAUSE = 8, 1, 60, 4, 1
+local hopBucket, hopTimes, hopTo, hopPause = { tokens = Wr.HOP_CAP }, {}, {}, nil
 
 local function refill(b, cap, every, now)
     -- a clock that goes backwards refills nothing, and the bucket keeps counting from the later time
@@ -146,12 +153,13 @@ function Wr.markOffline(target, now)
     for _, r in ipairs(whispers) do if r.key == key then r.consumed = true end end
     return key
 end
-function Wr.offlineUntil(target, now)
+function Wr.offlineUntil(target, now, hopSeconds)
     local key = who(target)
     now = S.num(now)
     local at = key and offline[key]
     if not at or not now then return nil end
     if now - at >= Wr.OFFLINE then offline[key] = nil; return nil end
+    if hopSeconds == 600 then return now - at < hopSeconds and at + hopSeconds or nil end
     return at + Wr.OFFLINE
 end
 -- Compile only a single %s (or %1$s) with literal text. Escape every Lua pattern character, interpret %% literally,
@@ -277,6 +285,7 @@ local function check(prefix, text, kind, target, opts)
         target = nil
     end
     opts = S.tab(opts) and opts or {}
+    if tag == "fallback" and not (prefix == "LayerSwap" and opts.hopAny == true and opts.prio == "click") then return nil, "bad text" end
     -- a network whisper is public unless its target is a checked online guildmate (never the caller's word)
     local public = false
     -- the embassy's withdrawal "D|" to the guild goes even when the War Effort network is off or stood down (it
@@ -291,7 +300,7 @@ local function check(prefix, text, kind, target, opts)
     return route, tag, target, opts, public
 end
 -- the client call and its result; a third value true once the client was asked (whatever it answered)
-local function deliver(prefix, text, kind, target, now, key)
+local function deliver(prefix, text, kind, target, now, key, hop)
     local CI = _G.C_ChatInfo
     if S.secret(CI) or type(CI) ~= "table" then return false, "error" end
     local okFn, fn = pcall(function() return CI.SendAddonMessage end)
@@ -301,7 +310,12 @@ local function deliver(prefix, text, kind, target, now, key)
     if not ok then return false, "error", true end
     if S.secret(result) then return false, "refused", true end
     if result == 0 or result == true then return true, "sent", true end   -- (true: older clients return a boolean)
-    if result == 3 or result == 8 then if now then paused[prefix] = now + Wr.PAUSE end; return false, "throttled", true end
+    if result == 3 or result == 8 then
+        if now then
+            if hop then hopPause = now + Wr.HOP_PAUSE else paused[prefix] = now + Wr.PAUSE end
+        end
+        return false, "throttled", true
+    end
     if result == 12 and key and now then
         Wr.markOffline(target, now)
         return false, "offline", true
@@ -325,13 +339,25 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
     local death = prefix == "LEGW1" and tag == "K"
     if death and (not N.Main.sharing() or S.call(IsInGuild) ~= true) then return false, "share off" end
     if S.call(IsInInstance) ~= false and (death or prio ~= Wr.PRIO.click) then return false, "instance" end
-    if paused[prefix] and now < paused[prefix] then return false, "paused" end
+    local hop = opts.hopAny == true and opts.prio == "click" and prefix == "LayerSwap" and kind == "WHISPER" and (tag == "request" or tag == "fallback")
+    if (hop and hopPause and now < hopPause) or (not hop and paused[prefix] and now < paused[prefix]) then return false, "paused" end
     local key = target and who(target)
-    if target and Wr.offlineUntil(target, now) then return false, "offline" end
+    if target and Wr.offlineUntil(target, now, hop and opts.hopKnown == true and 600 or nil) then return false, "offline" end
     local cost = inCombat() and 2 or 1
     -- the reserve binds the lines that say they rank low (embassy, mesh); an unmarked line keeps the old rules
     local low = opts.prio == "embassy" or opts.prio == "catchup" or opts.prio == "mesh"
     local catchup = opts.catchup == true and prefix == "HeadHunter"
+    if hop then
+        refill(hopBucket, Wr.HOP_CAP, Wr.HOP_REFILL, now)
+        hopTimes = recent(hopTimes, now)
+        for k, v in pairs(hopTo) do v = recent(v, now); hopTo[k] = v[1] and v or nil end
+        if hopBucket.tokens < cost or #hopTimes >= math.floor(Wr.HOP_MINUTE / cost)
+            or #(hopTo[key] or {}) >= math.floor(Wr.HOP_ONE / cost) then return false, "throttled" end
+        hopBucket.tokens = hopBucket.tokens - cost
+        hopTimes[#hopTimes + 1] = now
+        local list = hopTo[key] or {}; list[#list + 1] = now; hopTo[key] = list
+        return deliver(prefix, text, kind, target, now, key, true)
+    end
     if not room(prefix, kind, key, public, now, cost, low, catchup) then
         if opts.queue and not fromQueue and not death then return enqueue(prefix, text, kind, target, opts, prio) end
         return false, "throttled"
