@@ -120,7 +120,7 @@ function U.render()
     local seen=T.rows(M.store,time,"local")
     local liveSeen=#seen
     for _,e in ipairs(T.previous(M.store,time)) do seen[#seen+1]=e end
-    local reports=T.rows(M.store,time,"reported")
+    local reports=M.reportedRows()
     local friends=M.candidates()
     local eligible={}; for _,c in ipairs(friends) do eligible[c.short]=true end
     local tracked=M.findRows()
@@ -187,6 +187,7 @@ function U.render()
         return height(e.current)+height(e.seen)+height(e.otherSeen)+height(e.reported)
     end
     local function minimumHeight(e)
+        if U.tab=="reported" and e.guild then return 184 end
         if U.tab=="find" then
             local extra=e.presence and 56 or 0
             if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0)+extra end
@@ -202,6 +203,8 @@ function U.render()
         local text
         if U.tab=="local" then
             text=className(e.class).." · "..M.zoneName(e.zone)..(index>liveSeen and " · previous zone" or e.layer==nil and " · layer unknown" or "")
+        elseif U.tab=="reported" and e.guild then
+            text=M.overlordText(e)
         elseif U.tab=="reported" then
             text="reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or "")
         elseif U.tab=="friendly" then
@@ -211,6 +214,7 @@ function U.render()
             if e.probably and detailHeight==0 then text=text.." · probably your layer (key ambiguous)" end
         end
         local minimum=U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or (U.tab=="friendly" and e.flhKey) and 60 or 24
+        if U.tab=="reported" and e.guild then minimum=140 end
         U.measure:SetWidth(U.tab=="friendly" and 200 or 294); U.measure:SetText(text)
         local layout={text=text,subHeight=fitText(U.measure,minimum)}
         local bottom=26+layout.subHeight
@@ -270,6 +274,9 @@ function U.render()
         r.age:SetText(e.at and age(e.at) or e.age and age(time-e.age) or "")
         r.title:SetText(e.displayName or e.name or "Unknown")
         if U.tab=="local" then
+            askState(r,nil)
+        elseif U.tab=="reported" and e.guild then
+            r.title:SetText("guild "..e.guild)
             askState(r,nil)
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))

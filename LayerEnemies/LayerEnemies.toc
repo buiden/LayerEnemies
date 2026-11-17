@@ -37,6 +37,7 @@ Find.lua
 Watch.lua
 OpenMap.lua
 Presence.lua
+Overlord.lua
 CallText.lua
 Call.lua
 OwnDeath.lua

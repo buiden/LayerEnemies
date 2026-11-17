@@ -194,3 +194,18 @@ test("UI layout: FLH and LayerSwap provenance is measured before Friendly paging
     yes(U.pool[1].height<tall,"pooled card shrinks after FLH expires")
     no(U.pool[1].sub:GetText():find("FLH key",1,true))
 end)
+
+test("UI layout: Overlord guild claims measure complete text and never inherit report actions",function()
+    local N=H.load(); local U,M=N.UI,N.Main
+    local guild={guild="Enemy Guild",kills=9999,members=999,layer=99999999,zoneName=string.rep(longZone.." ",16),at=H.clock()}
+    local report={reporter="Birch Moss",class="MAGE",hand="first",record={}}
+    local rows={guild,report}; M.reportedRows=function() return rows end
+    M.hopPreview=function() return {label="Ask Birch Moss",enabled=true} end
+    U.toggle(); U.select("reported"); rowFits(U.pool[1],U); header(U,false)
+    local card=U.pool[1]; yes(card.sub:GetStringHeight()>140,"exercises fixed-height overflow")
+    eq(card.title:GetText(),"guild Enemy Guild"); no(card.ask:IsShown()); eq(card.hopRecord,false)
+    local tall=U.body.height; yes(tall>300,"complete guild claim expands the page")
+    rows={report}; U.render(); rowFits(card,U); yes(card.ask:IsShown()); eq(card.hopRecord,report.record)
+    rows={guild}; U.render(); rowFits(card,U); no(card.ask:IsShown()); eq(card.hopRecord,false)
+    guild.zoneName="Duskwood"; U.render(); rowFits(card,U); eq(U.body.height,300)
+end)

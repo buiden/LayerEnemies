@@ -1169,6 +1169,7 @@ PASS UI layout: Find measures every retained line and OpenMap place before pagin
 PASS UI layout: local, Reported and Friendly cards also fit long wrapped details
 PASS UI layout: presence follows measured sighting and OpenMap lines and shrinks on reuse
 PASS UI layout: FLH and LayerSwap provenance is measured before Friendly paging
+PASS UI layout: Overlord guild claims measure complete text and never inherit report actions
 PASS Presence: friends use only online characters in this project and cap 200
 PASS Presence: untracked offline mobile unknown and blank rows store nothing
 PASS Presence: secret fields refuse exactly one row and diagnostic has no names
@@ -1215,4 +1216,36 @@ PASS FLH: presence layout WP keeps its positional fields
 PASS FLH: presence layout WR keeps its positional fields
 PASS FLH: presence layout CQ keeps its positional fields
 PASS FLH: presence layout CA keeps its positional fields
-RESULT: 1217 tests passed, 0 failed, 148237 assertions
+PASS Overlord: two parts join in either order reverse=false
+PASS Overlord: two parts join in either order reverse=true
+PASS Overlord: fragment frame bounds and single-part fast path
+PASS Overlord: fragment duplicate conflicts and timeout do not extend assembly life
+PASS Overlord: 33 pending evicts oldest including same-time arrivals
+PASS Overlord: packet identity exact seven fields broadcast and allowed kinds
+PASS Overlord: packet path one to four no repeats and last sender
+PASS Overlord: packet age accepts 120 not 121 and skew 30 not 31
+PASS Overlord: origin id ring takes once and caps at 256
+PASS Overlord: GD tracked killer claim reaches Find for one hour with no Ask
+PASS Overlord: EK tracked killer claim reaches Find for one hour with no Ask
+PASS Overlord: untracked killers never enter Known even before later tracking
+PASS Overlord: tracked matcher keeps foreign realms distinct and supports unqualified names
+PASS Overlord: guildmate shared tracked killer is admitted without adding saved names
+PASS Overlord: claim never overwrites an existing first-hand Ask target
+PASS Overlord: direct route matrix EK only group and no whisper or channel
+PASS Overlord: killer payload exact fields no unknown killer and source age retained
+PASS Overlord: GW bounds faction timestamp and unknown places
+PASS Overlord: GW one per guild capped expiring and survives zone or layer boundary
+PASS Overlord: GD claim time is not assumed to be kill time or renewed on arrival
+PASS Overlord: bad origin id or sender cannot poison a later valid packet
+PASS Overlord: secrets malformed and throwing APIs are silent
+PASS Overlord: combat and instance unreadable gates do no map scans
+PASS Overlord: session counters diagnostics and no added SavedVariables
+PASS Overlord: malformed frame fuzz bounded state and zero sends
+PASS Overlord: map lookup failures cannot consume packet identity and secret names refuse
+PASS Overlord: slash Reported shows guild claim but no hop record
+PASS Overlord: secret map objects or map types skip the entire claim
+PASS Overlord: single guild rampage reaches Reported without a hop
+PASS Stack: slash commands route independently without shadowing
+PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
+PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
+RESULT: 1250 tests passed, 0 failed, 163546 assertions
