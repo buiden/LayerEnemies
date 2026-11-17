@@ -98,7 +98,8 @@ end)
 
 test("BNet queue: per-network shares stand-down owed exception and live peer validation",function()
     local N=setup()
-    yes(N.Sources.register{name="wanted",prefixes={"WNTDB"},counters={}})
+    if not N.Sources.has("wanted") then yes(N.Sources.register{name="wanted",prefixes={"WNTDB"},counters={}}) end
+    N.Net.SHIP.wanted=true -- reuse the real registered source when D1 is present
     for _=1,5 do yes(N.BNet.send("wanted",71,"WNTDB","hello","own")) end
     for _=1,5 do h.advance(1) end; eq(#bnSent(),4)
     N.Net.LIST.alpha.standDown="Donor"; h.loaded().Donor=true
