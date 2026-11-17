@@ -1294,4 +1294,29 @@ PASS Sources: OpenMap Battle.net keeps its original event path and values
 PASS Sources: guarded callbacks secrets and switches fail silent
 PASS Sources: unavailable optional timer and registration APIs fail silent
 PASS Sources: tick-only source runs at one second cadence and net counters append
-RESULT: 1296 tests passed, 0 failed, 175119 assertions
+PASS Wanted: independent zlib record hash and decoder ceilings
+PASS Wanted: deterministic 5000-input decoder and dispatch fuzz has no errors
+PASS Wanted: record and sighting location fields do not alias each other
+PASS Wanted: bad hashes and malformed payloads increment refusal without chat
+PASS Wanted: record batch and flat-data limits reject valid oversized objects
+PASS Wanted: stale and future records are refused before the offer boundary
+PASS Wanted: immutable dedupe ceilings do not store or save new names
+PASS Wanted: known same-faction GUIDs cannot become enemies through sightings
+PASS Wanted: echo realm identity and source switch cannot admit forged claims
+PASS Wanted: source diagnostics are opt-in bounded and protected
+PASS Wanted: R and F records use record time participants and honest provenance
+PASS Wanted: forged origin hash malformed envelope and stale records store nothing
+PASS Wanted: relayed records cannot promote provenance or renew original time
+PASS Wanted: spotted resolves only an already tracked exact GUID without a name cache
+PASS Wanted: Battle.net summaries are anonymous diagnostics never named evidence
+PASS Wanted: Battle.net eligibility and numbered parts are verified before ingestion
+PASS Wanted: summary validation caps senders entries and finite counts
+PASS Wanted: passive channel join preserves player ownership and two free slots
+PASS Wanted: inbound budgets are per canonical sender and bounded globally
+PASS Wanted: receive tick and every ignored tag never attempt any send
+PASS Wanted: four unfinished messages per sender cover all addon routes
+PASS Wanted: numbered framing supports reorder and bounds every unfinished stream
+PASS Wanted: fragmented S and E on guild and channel retain no untracked names
+PASS Wanted: route version array faction and secret guards fail silent
+PASS Wanted: audit sighting vector reaches measured Find as witness near observer
+RESULT: 1321 tests passed, 0 failed, 195800 assertions
