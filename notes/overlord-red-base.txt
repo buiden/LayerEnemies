@@ -1,0 +1,30 @@
+FAIL Overlord: two parts join in either order reverse=false: test/overlord.lua:45: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: two parts join in either order reverse=true: test/overlord.lua:45: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: fragment frame bounds and single-part fast path: test/overlord.lua:58: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: fragment duplicate conflicts and timeout do not extend assembly life: test/overlord.lua:71: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: 33 pending evicts oldest including same-time arrivals: test/overlord.lua:83: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:94: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:105: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:114: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: origin id ring takes once and caps at 256: test/overlord.lua:121: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: GD tracked killer claim reaches Find for one hour with no Ask: test/harness.lua:7: killer claim admitted: expected true, got false
+FAIL Overlord: EK tracked killer claim reaches Find for one hour with no Ask: test/harness.lua:7: killer claim admitted: expected true, got false
+PASS Overlord: untracked killers never enter Known even before later tracking
+FAIL Overlord: tracked matcher keeps foreign realms distinct and supports unqualified names: test/harness.lua:7: not equal: expected true, got false
+FAIL Overlord: guildmate shared tracked killer is admitted without adding saved names: test/harness.lua:7: not equal: expected true, got false
+FAIL Overlord: claim never overwrites an existing first-hand Ask target: test/harness.lua:7: not equal: expected true, got false
+FAIL Overlord: direct route matrix EK only group and no whisper or channel: test/overlord.lua:198: attempt to call field 'reportedRows' (a nil value)
+FAIL Overlord: killer payload exact fields no unknown killer and source age retained: test/overlord.lua:213: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:234: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: GW one per guild capped expiring and survives zone or layer boundary: test/overlord.lua:247: attempt to call field 'reportedRows' (a nil value)
+FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/harness.lua:7: not equal: expected true, got false
+FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:279: attempt to call field 'reportedRows' (a nil value)
+FAIL Overlord: secrets malformed and throwing APIs are silent: test/overlord.lua:284: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: combat and instance unreadable gates do no map scans: test/overlord.lua:309: attempt to call field 'reportedRows' (a nil value)
+FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:316: attempt to index field 'overlord' (a nil value)
+FAIL Overlord: malformed frame fuzz bounded state and zero sends: test/overlord.lua:331: attempt to index local 'Ov' (a nil value)
+FAIL Overlord: map lookup failures cannot consume packet identity and secret names refuse: test/overlord.lua:354: attempt to call field 'reportedRows' (a nil value)
+FAIL Overlord: slash Reported shows guild claim but no hop record: test/harness.lua:7: not equal: expected true, got false
+FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:375: attempt to call field 'reportedRows' (a nil value)
+FAIL Overlord: single guild rampage reaches Reported without a hop: test/harness.lua:7: receive-only state exists: expected true, got false
+RESULT: 1 tests passed, 28 failed, 1207 assertions
