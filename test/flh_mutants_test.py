@@ -33,8 +33,8 @@ class MutationEvidenceTests(unittest.TestCase):
             output = ('FAIL Hop fanout: identity: ' + checkout + '/test/harness.lua:7: '
                       'expected nil, got table: ' + address + '\n')
             proc = type('Process', (), {'returncode': 1, 'stdout': output, 'stderr': ''})()
-            with patch('subprocess.run', return_value=proc):
-                result = runner['run'](Path(checkout), '/lua')
+            with patch('subprocess.run', return_value=proc), patch.dict(runner['run'].__globals__, LUA='/lua'):
+                result = runner['run'](Path(checkout))
             results.append(result.stdout)
         self.assertEqual(results[0], results[1])
         self.assertIn('test/harness.lua:7', results[0])
