@@ -58,7 +58,8 @@ add('renewal spacing forty five', 'now-r.last>=45', 'now-r.last>=44', 'renewal e
 add('newest position only', '(not r.location or ev.at>r.location)', 'true', 'newest position')
 add('renewal older than 300 withdraws', 'ctx.now-r.location>300', 'false', 'past 300')
 add('300 second restart pause', 'ctx.now-w.at>=300', 'ctx.now-w.at>=200', 'first asks three')
-add('new handshake permits stale restart', '(w.renewal and who.handshake>(w.handshake or ctx.now))', 'false', 'past 300')
+add('new handshake permits stale restart', '(w.renewal and who.handshake>w.at)', 'false', 'past 300')
+add('only post-stop handshake bypasses idle', 'who.handshake>w.at', 'who.handshake>(w.handshake or ctx.now)', 'handshake before')
 combined('three FBUN attempts maximum', [
     ('LayerEnemies/WarBoardTrack.lua','elseif (r.tries or 0)>=3','elseif (r.tries or 0)>=4'),
     ('LayerEnemies/WarBoardTrack.lua','elseif not r.closing or (r.tries or 0)>=3','elseif not r.closing or (r.tries or 0)>=4')], 'FBUN refused')

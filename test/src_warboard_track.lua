@@ -409,3 +409,11 @@ test("twenty active targets even when corrupted Find holds twenty one",function(
     a[91].gameAccountID=91; a[91].characterName="Extra Player"; a[91].playerGuid="Player-123-FFFFFFFF"; confirm(91)
     tick(N); eq(N.WarBoardTrack.size(),20)
 end)
+test("handshake before stale give-up cannot bypass the subsequent idle pause",function()
+    local N,a=start(); position(N,a[71]); local at=h.clock()
+    h.clock(at+10); confirm() -- newer than initial ask, but not a post-stop handshake
+    h.clock(at+301); tick(N); advance(4); eq(#frames(N,"FBUN"),1)
+    eq(#frames(N,"FBAK"),1,"old handshake must not restart the stopped request")
+    advance(100); eq(#frames(N,"FBAK"),1)
+    confirm(); advance(3); eq(#frames(N,"FBAK"),2)
+end)

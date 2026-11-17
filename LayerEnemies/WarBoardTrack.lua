@@ -197,7 +197,7 @@ function T.tick(st,ctx)
     for g,who in pairs(selected) do
         local w=waits[g]
         if not records[g] and T.size()<20 and (not w or ctx.now-w.at>=300
-            or (w.renewal and who.handshake>(w.handshake or ctx.now))) then
+            or (w.renewal and who.handshake>w.at)) then
             who.hunter=me.guid; who.rs=ctx.rs; records[g]=who
         end
     end
