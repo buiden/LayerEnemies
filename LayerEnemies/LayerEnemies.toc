@@ -47,5 +47,6 @@ OwnDeath.lua
 CallUI.lua
 Wanted.lua
 ChehulNet.lua
+FLHMember.lua
 UI.lua
 Main.lua

@@ -62,7 +62,7 @@ local joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn
 -- The routes the addon may send on (Wire.lua); anything else counts as forbidden. LFSw/GUILD carries only "Q".
 -- the routes the mock accepts without counting a forbidden send; WEFF1 and HeadHunter are open from 1.0 T1 (behind
 -- Net: ship constant, switch, consent, stand-down)
-local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true},
+local ROUTES={FLHNET2={GUILD=true,PARTY=true,RAID=true,WHISPER=true},LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true},
     WEFF1={GUILD=true,PARTY=true,RAID=true,WHISPER=true},HeadHunter={WHISPER=true}}
 -- Prefixes the addon may register.
 local PREFIXES={FLHNET2=true,OverlordF=true,OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true,GBOUNTY=true,WALLOFSHAME=true,FTold1=true}
@@ -7920,6 +7920,10 @@ assert(loadfile("test/stack_integration.lua"))({test=test,eq=eq,yes=yes,no=no,lo
 -- Sources add test/src_*.lua only; no shared loader edit. Fixed shell command,
 -- sorted filenames and strict basename validation (including leading underscores).
 local sourceHarness={test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
+    hopLoad=anyFixture,hopClick=anyClick,group=function(v) grouped=v end,
+    accepts=function() return #accepts end,leaves=function() return #leaves end,result=function(v) sendResult=v end,
+    channels=function() return chanList end,channelMembers=function(name,list) chanMembers[name]=list end,
+    joined=function() return joined end,left=function() return leftCh end,
     advance=advance,deliver=deliver,drain=drain,establish=establish,player=player,
     clock=function(v) if v then clock=v end; return clock end,
     time=function(v) if v then clock=v end; return clock end,

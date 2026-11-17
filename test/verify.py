@@ -235,6 +235,20 @@ def check_send_policy(source, filename):
             api + ' must belong to the single local deliver function in ' + filename
 
 
+def check_route_policy(wire):
+    """Freeze existing routes; F2 adds only FLHNET2 on these four kinds."""
+    allowed = {
+        'LayerSwap': {'WHISPER'}, 'LEGW1': {'GUILD'}, 'LFSw': {'GUILD'},
+        'WEFF1': {'GUILD', 'PARTY', 'RAID', 'WHISPER'}, 'HeadHunter': {'WHISPER'},
+        'FLHNET2': {'GUILD', 'PARTY', 'RAID', 'WHISPER'},
+    }
+    table = re.search(r'local ROUTES = \{(.*?)\n\}', wire, re.S)
+    assert table, 'missing private route table'
+    entries = re.findall(r'(\w+) = \{ kinds = \{ ([^}]+) \}', table[1])
+    actual = {prefix: set(re.findall(r'(\w+) = true', kinds)) for prefix, kinds in entries}
+    assert len(entries) == len(allowed) and actual == allowed, 'unapproved addon route'
+
+
 def main():
     notes = ROOT / 'notes'
     notes.mkdir(exist_ok=True)
@@ -260,6 +274,7 @@ def main():
     # the party calls (guild host invite, auto accept and leave): InviteUnit, AcceptGroup and LeaveParty exactly
     # once each and C_PartyInfo only in Wire.lua
     wire = (ROOT / 'LayerEnemies/Wire.lua').read_text()
+    check_route_policy(wire)
     for word in ('InviteUnit', 'AcceptGroup', 'LeaveParty', 'C_PartyInfo'):
         users = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua')
                        if re.search(r'\b' + word + r'\b', p.read_text()))

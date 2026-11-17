@@ -62,7 +62,22 @@ class ApiPolicyTests(unittest.TestCase):
                                  'LibStub', 'loadstring', 'dofile', 'offer', 'SetText', 'PlaySound'})
         self.assertIn('register', refs)
         toc = (Path(__file__).resolve().parents[1] / 'LayerEnemies/LayerEnemies.toc').read_text().splitlines()
-        self.assertEqual(toc[toc.index('ChehulNet.lua') + 1], 'UI.lua')
+        self.assertLess(toc.index('ChehulNet.lua'), toc.index('UI.lua'))
+
+    def test_flh_routes_are_only_the_four_approved_routes(self):
+        self.assertIn('check_route_policy', VERIFY)
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        VERIFY['check_route_policy'](source)
+        for extra in ('CHANNEL = true, ', 'SAY = true, '):
+            changed = source.replace('FLHNET2 = { kinds = { ', 'FLHNET2 = { kinds = { ' + extra)
+            with self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](changed)
+        for name in ('FLHMember.lua', 'FLH.lua'):
+            text = (Path(__file__).resolve().parents[1] / 'LayerEnemies' / name).read_text()
+            VERIFY['check_send_policy'](text, name)
+            refs = {word for _, word in VERIFY['lua_references'](VERIFY['lua_tokens'](text))}
+            self.assertFalse(refs & {'SendAddonMessage', 'SendChatMessage', 'InviteUnit', 'AcceptGroup',
+                                     'LeaveParty', 'LayerEnemiesDB', 'JoinChannelByName', 'SendGameData'})
 
     def test_dormant_who_aliases(self):
         for access in ('C_FriendList.SendWho', 'C_FriendList["Send".."Who"]',

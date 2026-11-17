@@ -152,10 +152,10 @@ test("FLH: presence reaches friendly hosts without pretending to be a server key
     local N=H.load(); H.establish(N); receive("HI|100|7086|1|0.1.3|1234")
     local rows,status=N.Main.candidates(); eq(#rows,1)
     local c=rows[1]; eq(c.name,"Cedar Vale"); eq(c.flhKey,"7086"); eq(c.flhAge,0)
-    eq(c.layer,nil); eq(c.uid,nil); yes(c.host); yes(c.hosts.FLH)
+    eq(c.layer,nil); eq(c.uid,nil); no(c.host); yes(c.hosts.FLH)
     eq(c.sources[1],"Forever Layer Hop"); no(c.same); no(c.probably)
     yes(status.flh:find("1 fresh",1,true)); eq(#N.Main.candidates(true),0)
-    eq(N.Hop.hostCandidate(c),nil); eq(N.Hop.hostRecord(c,100),nil); eq(N.Main.hostPreview(c),nil)
+    eq(N.Hop.hostCandidate(c),nil); eq(N.Hop.hostRecord(c,100),nil); no(N.Main.hostPreview(c).enabled)
     no(N.Main.hopHostTo(c)); eq(#H.sent(),0)
     N.Main.hosts(); local lines=table.concat(H.log(),"\n")
     yes(lines:find("Forever Layer Hop",1,true)); yes(lines:find("FLH key 7086",1,true)); yes(lines:find("claim",1,true))
@@ -222,6 +222,14 @@ test("FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop vi
     yes(N.Main.hopHostTo(shown),"the displayed real host must still send its ask")
     eq(#H.sent(),1); eq(H.sent()[1].prefix,"LayerSwap"); eq(H.sent()[1].target,"Real Host")
     no(N.Main.error)
+end)
+
+test("FLH: fresh claims cannot displace an older known-layer nonhost",function()
+    local N=H.load(); H.establish(N)
+    N.Main.heard.heard["Known Guest"]={layer="7102-55",zone=100,at=H.wall()-300,host=false}
+    for i=1,100 do receive(hostLines[1],"WHISPER","Fresh"..H.abc(i)) end
+    local rows=N.Main.candidates(); eq(#rows,40); eq(rows[1].name,"Known Guest")
+    eq(rows[1].layer,"7102"); no(rows[1].host); eq(rows[1].age,300)
 end)
 
 test("FLH: wire ingestion cannot persist names or silently refresh malformed hosts",function()

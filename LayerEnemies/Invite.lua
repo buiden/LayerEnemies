@@ -183,7 +183,7 @@ function I.collect(env)
             if name and key~=env.self and e.map==env.zone and age>=0 and age<N.Hosts.FLH_KEEP then
                 local c=byName[key]
                 if not c then
-                    c={name=name,short=key,age=age,host=true,hosts={},sources={},unknownOwn=not env.ownKey or nil}
+                    c={name=name,short=key,age=age,host=false,hosts={},sources={},unknownOwn=not env.ownKey or nil}
                     byName[key]=c
                 end
                 c.flhKey,c.flhAge=e.key,age
@@ -192,7 +192,7 @@ function I.collect(env)
             end
         end
     end
-    status.flh=flhCount.." fresh in this zone (receive only)"
+    status.flh=flhCount.." fresh in this zone (FLH claims; guest hopping)"
     local reports=0
     if env.self and S.num(env.now) then
         for _,r in ipairs(env.reporters or {}) do

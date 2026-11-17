@@ -27,7 +27,7 @@ MUTANTS = [
     ('no-secret-check', 'FLH.lua', 'S.secret(text) or type(text)', 'type(text)'),
     ('no-control-check', 'FLH.lua', ' or text:find("%c")', ''),
     ('no-metadata-validation', 'FLH.lua', 'if not fields[i]:match("^[A-Z][A-Z0-9_]*=[^|:]*$") then return nil end', '-- metadata unchecked'),
-    ('no-csv-validation', 'FLH.lua', 'if not FL.key(key) then return nil end', 'if false then return nil end'),
+    ('no-csv-validation', 'FLH.lua', 'for key in (value..","):gmatch("([^,]*),") do if not FL.key(key) then return nil end end', 'for key in (value..","):gmatch("([^,]*),") do if false then return nil end end'),
     ('no-prefix-registration', 'Main.lua', 'S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FLHNET2") -- receive only', '-- receive registration missing'),
     ('no-prefix-dispatch', 'Main.lua', 'if prefix=="FLHNET2" then return M.flhIn(text,kind,sender) end', '-- dispatch missing'),
     ('channel-presence', 'Main.lua', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER"', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" and kind~="CHANNEL"'),

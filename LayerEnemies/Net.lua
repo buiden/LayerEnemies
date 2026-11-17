@@ -29,14 +29,18 @@ function Net.load(saved)
     state.consent = Net.CONSENT[saved.consent] and saved.consent or nil
     local nets = S.tab(saved.nets) and saved.nets or {}
     state.switches = {}
-    for key in pairs(Net.LIST) do state.switches[key] = nets[key] ~= false end
-    return state.consent, state.switches
+    for key, entry in pairs(Net.LIST) do state.switches[key] = entry.session == true or nets[key] ~= false end
+    local persisted={}
+    for key,on in pairs(state.switches) do if not Net.LIST[key].session then persisted[key]=on end end
+    return state.consent, persisted
 end
 local function save()
     if not S.tab(LayerEnemiesDB) then return end
     LayerEnemiesDB.consent = state.consent
     LayerEnemiesDB.nets = LayerEnemiesDB.nets or {}
-    for key, on in pairs(state.switches) do LayerEnemiesDB.nets[key] = on end
+    for key, on in pairs(state.switches) do
+        if not Net.LIST[key].session then LayerEnemiesDB.nets[key] = on end
+    end
 end
 -- consent(): the level in force ("public" until the player chooses guild only); chosen(): the saved choice or nil
 function Net.consent() return state.consent or "public" end
@@ -53,6 +57,7 @@ end
 function Net.setConsent(level)
     if not Net.CONSENT[level] then return false end
     if level~="public" and N.BNet then N.BNet.cancel() end
+    if level~="public" and N.FLHMember then N.FLHMember.stop("guild only") end
     state.consent = level; save()
     if N.Directory then N.Directory.sync() end
     return true
@@ -61,7 +66,8 @@ function Net.switch(key) return state.switches[key] ~= false end
 function Net.setSwitch(key, on)
     if not Net.LIST[key] then return false end
     if on~=true and N.BNet then N.BNet.cancel(key) end
-    state.switches[key] = on == true; save()
+    if key=="flh" and on~=true then N.FLHMember.stop("network off") end
+    state.switches[key] = on == true; if not Net.LIST[key].session then save() end
     if N.Directory then N.Directory.sync() end
     return true
 end

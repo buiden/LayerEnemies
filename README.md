@@ -265,7 +265,34 @@ Forever Interface 16001; API declarations checked at build 70938, commit
 decision)**; a readable API identity or accepted send is not proof of live peer
 availability or transport delivery.
 
-## Unreleased - Forever Layer Hop hosts (receive only)
+## Unreleased - Forever Layer Hop membership
+
+| Send (`FLHNET2`) | Route and target | Trigger | Hard limit |
+|---|---|---|---|
+| `HI`, host flag **0** | GUILD; PARTY or RAID | First verified own identity after login, then own fingerprint changes | 1 per 120 s for guild; 1 per 120 s for group (PARTY/RAID share a lane) |
+| `WR`, host flag **0** | WHISPER back to a `WP` sender | Owed reply | WR + CA share 6 per rolling minute and 1 per sender per 60 s |
+| `CA`, host flag **0** | WHISPER back to a `CQ` sender | Owed reply | Same shared reply caps as WR |
+| `WP`, host flag **0** | WHISPER to a name from the read-only `ForeverLayerHopNet` directory | Friendly hop window open, no other hop pending | 4 per rolling minute; each name once per 600 s; at most 1 per tick; **none during a hop-any round** |
+| `LQ` | WHISPER to fresh, same-zone FLH host claims | Explicit row click / `/le hop host N`; `/le hop flh` selects a bounded batch | Named click: 1. Batch: at most 7, reserving the eighth existing hop burst slot for LR; existing hop click/name cooldowns and Wire hop caps apply |
+| `LR` | WHISPER to the asked host whose matching `LO` was selected | Same click, first valid offer within 90 s | 1 per click, spent before the client call even if refused |
+
+**Read-only directory join:** F2 joins `ForeverLayerHopNet` only for its member list, as explicitly approved in plan section 10.2. It never sends to that channel (or any channel), never joins at Guild only, never re-joins after a manual leave, and never leaves a channel the player joined. The existing channel-slot, combat, instance and Channels-window guards apply.
+
+All six kinds go through **Wire**. FLH whispers, including those to guildmates, share the existing **20/minute public budget** and **4/minute per-person budget**. Probes leave six public slots for owed replies. Membership uses small separate reply/probe/presence ledgers, not the hop-any tokens: six owed replies alongside a running fan-out do not change its 8-then-1/s cadence. Guest LQ/LR use the unchanged hop ledger (8 burst, 1/s refill, 60/minute, 4/minute per target); no FLH sends are queued or automatically retried.
+
+`/le share off`, `/le net flh off`, combat, instances and unverifiable live state silence all FLH sends. **Guild only** retains guild presence but permits no group presence, whispers, probes, guest requests or directory join. `/le net flh on|off` is a **session-only** switch: reload restores on, without a new SavedVariables field. With the donor addon loaded, originating presence/probes/hops stand down; only the two bounded owed replies remain.
+
+Identity and `BUILD` fields say **LayerEnemies and its installed version**, never an FLH version. The outgoing fingerprint is our verified current-zone NPC GUID field 5, not our server-layer key. Unknown or ambiguous own fingerprints defer presence and replies rather than guessing. Incoming FLH keys remain labelled claims; they never become a general host flag or a LayerSwap/Bulo layer key. Known-layer rows still sort first.
+
+Guest requests correlate the id, sender, zone and requested fingerprint. An unsolicited, same-fingerprint, wrong-zone or late offer grants no authority. Only the selected host is armed for the existing invite acceptance path after LR succeeds; pre-offer invites, other queried hosts and foreign-realm namesakes are not auto-accepted. `/le hop stop`, privacy changes or movement revoke the request. The existing confirmed-move/failure leave rules are unchanged. A 90-second timeout is shown in the measured Friendly row. `/le hop any` keeps its existing fan-out; `/le hop flh` is an explicit separate guest action and cannot overlap it.
+
+**Never sent:** host offers (`LO`), host invites, `PX`/`PR`/`PI`, other players' name lists, chat messages, channel messages, guild copies of hop queries, or invented FLH identity. No saved names or new SavedVariables. Memory is bounded (64 host claims, probe names, reply/probe rate entries and status rows; at most 7 guest targets). Donor code is All Rights Reserved: protocol facts only, independently written code; pin and attribution in `THIRD_PARTY.md`. Real-client interoperability remains unverified; a peer that rejects our honest identity simply times out.
+
+The API ownership gate is unchanged: only Wire calls SendAddonMessage or party APIs; SendChatMessage remains forbidden. `test/verify.py` adds an exact route-table allow-list containing the five existing prefixes unchanged plus **FLHNET2 on GUILD/PARTY/RAID/WHISPER only**. No other API exception is added. See `notes/flh-membership.md`, `test/src_flh_member.lua` (5,000 deterministic fuzz frames), and portable `test/flh_member_mutants.py` for RED/GREEN and mutation evidence.
+
+## Unreleased - Forever Layer Hop receive-only
+
+This is the historical F1 checkpoint. F2 above supersedes its no-send/no-hop restriction, not its receive validation or fingerprint provenance rules.
 
 Without Forever Layer Hop installed, LE listens on `FLHNET2` for the direct
 `HI`, `WR` and `CA` presence lines on GUILD, PARTY, RAID and WHISPER. Only

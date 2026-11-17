@@ -67,7 +67,15 @@ end
 local function hhText(text)
     return text:match("^1[AH]([NEQOSH]):.+$")
 end
+local function flhText(text,kind)
+    local m=N.FLH.decode(text)
+    if not m then return nil end
+    if m.cmd=="HI" then return kind~="WHISPER" and m.host==0 and m.cmd or nil end
+    return kind=="WHISPER" and (m.cmd=="WR" or m.cmd=="CA" or m.cmd=="WP" or m.cmd=="LQ" or m.cmd=="LR")
+        and (m.host==nil or m.host==0) and m.cmd or nil
+end
 local ROUTES = {
+    FLHNET2 = { kinds = { GUILD = true, PARTY = true, RAID = true, WHISPER = true }, check = flhText },
     LayerSwap = { kinds = { WHISPER = true }, check = layerswapText },
     LEGW1 = { kinds = { GUILD = true }, check = legw1Text },
     LFSw = { kinds = { GUILD = true }, check = function(text) return text == Wr.LFSW_TEXT and "q" or nil end },
@@ -271,6 +279,55 @@ local function spendCatchup(target, now)
     c.n = c.n + 1
 end
 
+-- FLH membership is independent of the hop-any bucket. Whisper sends still
+-- consume the existing 20/minute public ledger (even to a guildmate).
+Wr.FLH_REPLIES, Wr.FLH_PROBES, Wr.FLH_GAP, Wr.FLH_NAME = 6, 4, 60, 600
+local flhReplies, flhProbes, flhNames, flhHi = {}, {}, {}, {}
+function Wr.flhProbeReady(target,now)
+    local key=who(target)
+    if not key or not S.num(now) then return false end
+    local last=flhNames["probe:"..key]
+    return #recent(flhProbes,now)<Wr.FLH_PROBES and #recent(publicTimes,now)<PUBLIC_MINUTE-Wr.FLH_REPLIES
+        and not (last and now-last.at<Wr.FLH_NAME)
+end
+local function flhBudget(tag,kind,key,now)
+    flhReplies=recent(flhReplies,now); flhProbes=recent(flhProbes,now)
+    for k,v in pairs(flhNames) do if now-v.at>=v.keep then flhNames[k]=nil end end
+    publicTimes=recent(publicTimes,now); guildTimes=recent(guildTimes,now)
+    if kind=="WHISPER" and #publicTimes>=PUBLIC_MINUTE then return false end
+    for k,v in pairs(publicTo) do v=recent(v,now); publicTo[k]=v[1] and v or nil end
+    if kind=="WHISPER" and #(publicTo[key] or {})>=PUBLIC_ONE then return false end
+    if kind=="GUILD" and #guildTimes>=GUILD_MINUTE then return false end
+    if tag=="WP" and not Wr.flhProbeReady(key,now) then return false end
+    local owed=tag=="WR" or tag=="CA"
+    local bucket=owed and flhReplies or flhProbes
+    local rateKey=(owed and "reply:" or "probe:")..(key or "")
+    local last=flhNames[rateKey]
+    if owed or tag=="WP" then
+        local cap=owed and Wr.FLH_REPLIES or Wr.FLH_PROBES
+        if #bucket>=cap or (last and now-last.at<last.keep) or (not last and S.count(flhNames)>=64) then return false end
+        bucket[#bucket+1]=now
+        flhNames[rateKey]={at=now,keep=owed and Wr.FLH_GAP or Wr.FLH_NAME}
+    elseif tag=="HI" then
+        local lane=kind=="GUILD" and "GUILD" or "GROUP"
+        if flhHi[lane] and now-flhHi[lane]<120 then return false end
+        flhHi[lane]=now
+    end
+    if tag=="LQ" or tag=="LR" then
+        refill(hopBucket,Wr.HOP_CAP,Wr.HOP_REFILL,now)
+        hopTimes=recent(hopTimes,now)
+        for k,v in pairs(hopTo) do v=recent(v,now); hopTo[k]=v[1] and v or nil end
+        if hopBucket.tokens<1 or #hopTimes>=Wr.HOP_MINUTE or #(hopTo[key] or {})>=Wr.HOP_ONE then return false end
+        hopBucket.tokens=hopBucket.tokens-1; hopTimes[#hopTimes+1]=now
+        local list=hopTo[key] or {}; list[#list+1]=now; hopTo[key]=list
+    end
+    if kind=="WHISPER" then
+        publicTimes[#publicTimes+1]=now
+        local list=publicTo[key] or {}; list[#list+1]=now; publicTo[key]=list
+    end
+    if kind=="GUILD" then guildTimes[#guildTimes+1]=now end
+    return true
+end
 local enqueue
 -- check(prefix, text, kind, target, opts) -> route, extras | nil, why: everything but budgets and the client
 local function check(prefix, text, kind, target, opts)
@@ -292,6 +349,10 @@ local function check(prefix, text, kind, target, opts)
         target = nil
     end
     opts = S.tab(opts) and opts or {}
+    if prefix == "FLHNET2" then
+        if not N.FLHMember or N.FLHMember.authorize(text,kind,target,opts)~=tag then return nil,"network off" end
+        return route,tag,target,opts,kind=="WHISPER"
+    end
     if tag == "fallback" and not (prefix == "LayerSwap" and opts.hopAny == true and opts.prio == "click") then return nil, "bad text" end
     -- a network whisper is public unless its target is a checked online guildmate (never the caller's word)
     local public = false
@@ -353,6 +414,10 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
         or (not hop and paused[prefix] and now < paused[prefix]) then return false, "paused" end
     local key = target and who(target)
     if target and Wr.offlineUntil(target, now, hop and opts.hopKnown == true and 600 or nil) then return false, "offline" end
+    if prefix == "FLHNET2" then
+        if not flhBudget(tag,kind,key,now) then return false,"throttled" end
+        return deliver(prefix,text,kind,target,now,key)
+    end
     local cost = inCombat() and 2 or 1
     -- the reserve binds the lines that say they rank low (embassy, mesh); an unmarked line keeps the old rules
     local low = opts.prio == "embassy" or opts.prio == "catchup" or opts.prio == "mesh"
