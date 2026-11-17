@@ -38,6 +38,7 @@ end
 function P.claim(st,job,c,checkOnly)
     if not ready(c,job.owed,job.stop) or c.pool~=job.pool or c.me~=job.me then return false end
     if selfTarget(c,job.route,job.name) then return false end
+    if job.kind=="NH" and st.feed then N.OverlordFeed.prepare(st.feed,st,c) end
     if job.kind=="NH" and N.OverlordFeed and N.OverlordFeed.suppressed(st,c,job.route,job.name,job.id) then return false end
     if job.valid and not job.valid(c) then return false end
     if not due(st.actual[job.key],c.now,job.gap) then return false end
@@ -51,13 +52,25 @@ end
 function P.sent(st,job,c)
     if not ready(c,job.owed,job.stop) or c.pool~=job.pool or c.me~=job.me then return end
     if job.kind=="NH" then
-        local r=job.name and st.routes[F.fold(job.name)]
-        if r then r.announced,r.announcePool,r.announceMe=c.now,c.pool,c.me end
         if not st.announced or st.announced.pool~=c.pool or st.announced.me~=c.me then
-            st.announced={pool=c.pool,me=c.me}
+            st.announced={pool=c.pool,me=c.me,names={},accounts={}}
         end
-        if job.route=="GUILD" then st.announced.guild=c.now
-        elseif job.route=="PARTY" or job.route=="RAID" then st.announced.group=c.now end
+        local a=st.announced
+        local function stamp(map,key,cap)
+            for k,t in pairs(map) do if c.now>=t and c.now-t>300 then map[k]=nil end end
+            if key then
+                if map[key] or S.count(map)<cap then map[key]=c.now else a.unknown=c.now end
+            end
+        end
+        if job.route=="BNET" then stamp(a.accounts,job.id,200) end
+        if job.route=="BNET" or job.route=="WHISPER" then stamp(a.names,P.key(job.name),256) end
+        local audience
+        if job.route=="GUILD" then audience=c.guildNames
+        elseif job.route=="PARTY" or job.route=="RAID" then audience=c.groups end
+        if job.route=="GUILD" or job.route=="PARTY" or job.route=="RAID" then
+            if not audience then a.unknown=c.now
+            else for name in pairs(audience) do stamp(a.names,P.key(name),256) end end
+        end
     end
     if job.sent then job.sent(c.now,c) end
 end
@@ -96,7 +109,7 @@ end
 local function learn(st,p,route,sender,id,c)
     P.sweep(st,c.now)
     local key=P.key(p.origin)
-    local old=st.routes[key]
+    local old=st.routes[key] or st.feed and st.feed.heard[key]
     if old and old.pool~=(p.pool or c.pool) then old=nil end
     if old and old.hops==0 and p.hops>0 and c.now-old.at<240 then return old end
     if not old then
@@ -115,7 +128,10 @@ function P.receive(st,p,route,sender,id,c)
     if not r then return end
     if route=="GUILD" then st.guildHeard=c.now end
     if p.kind=="NH" and p.hops==0 then r.nh=c.now;r.version=S.str(p.payload,200) end
-    if st.feed and N.OverlordFeed then N.OverlordFeed.prepare(st.feed,st,c) end
+    if st.feed and N.OverlordFeed then
+        N.OverlordFeed.remember(st.feed,r,c)
+        N.OverlordFeed.prepare(st.feed,st,c)
+    end
     -- Owed answers only to direct addressed peers, never to overheard/relayed requests.
     if p.hops~=0 or p.target~=c.me or (route~="WHISPER" and route~="BNET") then return r end
     local target=route=="BNET" and {id=id,name=p.origin} or sender

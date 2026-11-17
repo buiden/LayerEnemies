@@ -1,0 +1,145 @@
+-- PLAN 6.5.1: real Main/queue/client boundary, no donor executed.
+local H=...
+local eq,yes,no=H.eq,H.yes,H.no
+local function test(n,f) H.test("Overlord revision: "..n,f) end
+local serial=0
+local function fixture(name,mode)
+    name=name or "Birch Scout"
+    local N=H.load();N.Net.SHIP.overlord=true
+    Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
+    C_GameRules={IsGameRuleActive=function(i) return i==3 end}
+    C_AddOns.GetAddOnMetadata=function() return "1.1.0" end
+    GetNumDisplayChannels=function() return 0 end
+    local member=mode=="group" or mode=="qualified" or mode=="dual" or mode=="unreadable"
+    local guild=mode=="guild" or mode=="badguild"
+    IsInGroup=function() return member end;IsInRaid=function() return false end
+    IsInGuild=function() return guild end
+    UnitExists=function(u) return u=="player" or member and mode~="unreadable" and u=="party1" end
+    GetNumGroupMembers=function() return member and 2 or 0 end
+    UnitName=function(u)
+        if u=="party1" then return mode=="qualified" and name.."-TestRealm" or name end
+        return "Alice Vale","Test Realm"
+    end
+    UnitFactionGroup=function() return "Alliance" end
+    GetNumGuildMembers=function() return guild and 1 or 0 end
+    GetGuildRosterInfo=function()
+        if mode=="badguild" then return nil end
+        return name.."-TestRealm",nil,nil,nil,nil,nil,nil,nil,true
+    end
+    local online=true
+    local spelling=(mode=="dual" or mode=="alias") and N.Find.fold(name).."-TestRealm" or name
+    N.BNet.peers=function() return {{id=71,name=spelling,faction="Horde",friend=true}} end
+    N.BNet.who=function(id) return online and id==71 and {name=spelling,faction="Horde",realm="Test Realm"} or nil end
+    local e=GetServerTime()-100
+    local function hear(kind,body,route,pool)
+        serial=serial+1;local id="revision"..serial
+        local packet=table.concat({pool or "global",id,math.floor(GetServerTime()),"Alice Vale",name,kind,body},"|")
+        if route=="WHISPER" then H.deliver("CHAT_MSG_ADDON","OverlordF","BF:"..id..":1:1:"..packet,route,name)
+        else H.deliver("BN_CHAT_MSG_ADDON","OverlordF","R2:Forever_"..(pool or "global").."_H:BR:"..packet,nil,71) end
+    end
+    local function refresh(route,pool)
+        hear("NH","2.5.4~ld~lr~lp6",route,pool)
+        hear("K",name..":#1434:21:WARRIOR:Horde:"..e.."::en:0:Orc:2:B"..e..":60",route,pool)
+    end
+    return N,refresh,hear,e,function(v) online=v end
+end
+local function sends(op)
+    local out={}
+    for _,s in ipairs(H.sent()) do
+        if s.prefix=="OverlordF" and s.text:find(op,1,true) then out[#out+1]=s end
+    end
+    return out
+end
+H.overlordRevision={fixture=fixture,sends=sends}
+for _,row in ipairs({{"Élan Scout","guild"},{"Ølaf Scout","guild"},{"Борис Скаут","guild"},
+    {"Birch Scout","unreadable"},{"Birch Scout","qualified"},{"Birch Scout","dual"},{"Birch Scout","group"},{"Birch Scout","badguild"}}) do
+    test("M excludes audible friend "..row[1].." "..row[2],function()
+        local N,refresh=fixture(row[1],row[2]);local selected,leaks=0,0
+        local route=row[2]=="dual" and "WHISPER" or nil
+        refresh(route)
+        local seen=0
+        for second=1,900 do
+            if second%120==0 then refresh(route) end
+            H.advance(1)
+            local st=N.Main.overlordFeed
+            local live=st and next(st.sources)~=nil
+            if live then selected=selected+1 end
+            for i=seen+1,#H.sent() do local s=H.sent()[i]
+                if live and s.prefix=="OverlordF" and s.text:find("|NH|",1,true) then
+                    if s.target==71 or s.kind=="GUILD" and row[2]=="guild" or s.kind=="PARTY" and row[2]~="guild" then leaks=leaks+1 end
+                end
+            end
+            seen=#H.sent()
+        end
+        local lane=row[2]=="guild" or row[2]=="badguild";local nh=0
+        for _,s in ipairs(sends("|NH|")) do if s.kind==(lane and "GUILD" or "PARTY") then nh=nh+1 end end
+        print("PROBE isolation "..row[1].." "..row[2]..": selectedTicks="..selected.." sourceNH="..leaks.." laneNH="..nh)
+        eq(leaks,0,"no NH to any selected source over 900 seconds")
+        eq(selected,0,"audible or possibly audible friends are not feed sources")
+        yes(nh>0,"C2 broadcast lane remains active")
+        eq(#sends("|HR|8:V:"),0)
+    end)
+end
+
+test("M group-only peer stays C2 and is never asked",function()
+    local N,refresh=fixture("Birch Scout","group");N.BNet.peers=function() return {} end
+    refresh("WHISPER")
+    for i=1,900 do if i%120==0 then refresh("WHISPER") end;H.advance(1) end
+    eq(next(N.Main.overlordFeed.sources),nil);eq(#sends("|HR|8:V:"),0)
+    yes(#sends("|NH|")>0)
+end)
+
+test("M Unicode realm BNet alias is silent while selected",function()
+    local N,refresh=fixture("Élan Scout","alias");refresh()
+    for i=1,900 do if i%120==0 then refresh() end;H.advance(1) end
+    yes(next(N.Main.overlordFeed.sources),"positive eligible source")
+    eq(#sends("|NH|"),0);yes(#sends("|HR|8:V:")>0)
+end)
+
+test("clock never-sent account starts without artificial wait",function()
+    local N,refresh=fixture();refresh();N.Main.overlordTick(H.clock());H.advance(1)
+    eq(#sends("|HR|8:V:"),1,"never sent NH: immediate first request")
+    eq(#sends("|NH|"),0)
+end)
+
+test("clock retains first-hand friend through sparse 600-second hearing",function()
+    local N,refresh=fixture()
+    N.Main.overlordTick(H.clock());H.advance(1) -- actual C2 NH before learning the source
+    eq(#sends("|NH|"),1);local at=H.clock()
+    refresh()
+    for i=1,300 do H.advance(1) end
+    eq(#sends("|HR|8:V:"),0,"strict >300, not >=300")
+    H.advance(1);H.advance(1)
+    local req=sends("|HR|8:V:");eq(#req,1,"hearing older than 300 remains eligible")
+    yes(req[1].at-at>300)
+    for i=1,300 do H.advance(1) end
+    refresh();yes(next(N.Main.overlordFeed.sources),"session hearing retained until next sparse probe")
+end)
+
+for _,route in ipairs({"BNET","WHISPER","GUILD","PARTY"}) do
+    test("clock actual NH restarts quiet on "..route,function()
+        local N,refresh=fixture()
+        refresh()
+        for i=1,320 do if i%120==0 then refresh() end;H.advance(1) end
+        yes(#sends("|HR|8:V:")>0,"source was actually requested")
+        local c=N.Main.overlordContext()
+        c.guildNames={["birch scout"]=true};c.groups={["birch scout"]="A"}
+        -- Defence-in-depth: model a completed NH despite admission suppression.
+        N.OverlordPeer.sent(N.Main.overlordPeer,{kind="NH",route=route,id=route=="BNET" and 71 or nil,
+            name=(route=="BNET" or route=="WHISPER") and "birch scout-TestRealm" or nil,
+            pool=c.pool,me=c.me},c)
+        local count=#sends("|HR|8:V:")
+        for i=1,300 do if i%120==0 then refresh() end;H.advance(1) end
+        eq(#sends("|HR|8:V:"),count,"no request during the restarted >300-second quiet clock")
+        H.advance(1);H.advance(1);eq(#sends("|HR|8:V:"),count+1)
+    end)
+end
+
+test("clock ignores unselected account NH and rejects offline or foreign-pool friends",function()
+    local N,refresh,hear,e,online=fixture()
+    refresh(nil,"pve");N.Main.overlordTick(H.clock());H.advance(1)
+    eq(#sends("|HR|8:V:"),0)
+    refresh();online(false)
+    for i=1,400 do H.advance(1) end
+    eq(#sends("|HR|8:V:"),0,"cached friend list is not live game-account presence")
+end)

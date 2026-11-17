@@ -467,7 +467,7 @@ function M.overlordContext(time)
         me=me,version=S.str(version,32),faction=faction and faction:sub(1,1),
         allowed=M.sharing() and N.Net.consent()=="public" and N.Net.switch("overlord")
             and ok==true and not A.inCombat() and A.inInstance()==false,
-        own=ok==true,offer=N.Sources.offer,tracked=function(name)
+        own=ok==true,online=N.BNet.who,offer=N.Sources.offer,tracked=function(name)
             local _,_,_,watchers=N.Watch.match(M.watch,name,now())
             return N.Find.tracked(M.find,name) or #(watchers or {})>0
         end}
@@ -476,7 +476,9 @@ function M.overlordContext(time)
     if c.allowed and c.pool then
         c.guild=S.call(IsInGuild)==true
         c.group=S.call(IsInRaid)==true and "RAID" or S.call(IsInGroup)==true and "PARTY" or nil
-        c.groups=A.groupNames();c.guildNames=A.guildNames();c.friends=N.BNet.peers(c.now)
+        c.groups=A.groupNames()
+        c.guildNames=S.call(IsInGuild)==false and {} or A.guildNames(N.OverlordPeer.key)
+        c.friends=N.BNet.peers(c.now)
     end
     return c
 end
@@ -498,7 +500,7 @@ local function overlordSend(c,text,route,target,prio,job)
     local function guard()
         if route=="BNET" and job.name then
             local who=N.BNet.who(target)
-            if not who or N.Find.fold(who.name)~=N.Find.fold(job.name) then return false end
+            if not who or P.key(who.name)~=P.key(job.name) then return false end
         end
         local live=M.overlordContext()
         if job.kind=="HR" and route=="BNET" then live.friends=N.BNet.peers(live.now) end

@@ -447,7 +447,7 @@ function A.guildMember(name)
 end
 -- A complete membership snapshot for watch-list removal. Offline is still a
 -- member; a partial/unreadable roster proves no departures. No new roster request.
-function A.guildNames()
+function A.guildNames(canonical)
     if S.call(IsInGuild)~=true then return nil end
     local count=S.num(S.call(GetNumGuildMembers))
     if not count or count<1 or count>A.ROSTER_MAX or count%1~=0 then return nil end
@@ -456,18 +456,20 @@ function A.guildNames()
         local name=S.str((S.call(GetGuildRosterInfo,i)),100)
         local _,key=N.Invite.name(name)
         if not key then return nil end
-        keys[key]=true
+        keys[canonical and canonical(name) or key]=true
     end
     return keys
 end
--- Complete group membership/faction snapshot for NH suppression and feed selection.
--- Nil means unreadable: do not select a group source or broadcast around it.
+-- Complete group membership/faction snapshot for feed exclusion.
+-- Nil means unreadable: no Battle.net friend is known to be outside the group.
 function A.groupNames()
     if A.inCombat() or A.inInstance()~=false then return nil end
     local grouped,raid=S.call(IsInGroup),S.call(IsInRaid)
     if type(grouped)~="boolean" or type(raid)~="boolean" then return nil end
     if not grouped then return {} end
-    local out={}
+    local count=S.num(S.call(GetNumGroupMembers))
+    if not count or count<2 or count>(raid and 40 or 5) or count%1~=0 then return nil end
+    local out,read={},0
     for i=1,(raid and 40 or 4) do
         local unit=(raid and "raid" or "party")..i
         local exists=S.call(UnitExists,unit)
@@ -475,11 +477,12 @@ function A.groupNames()
         if exists then
             local name=S.str(S.call(UnitName,unit),100)
             local faction=S.str(S.call(UnitFactionGroup,unit),16)
-            local canonical=name and N.Find.name(name)
+            local canonical=name and N.Invite.name(name)
             if not canonical or (faction~="Alliance" and faction~="Horde") then return nil end
-            out[N.Find.fold(canonical)]=faction:sub(1,1)
+            out[N.OverlordPeer.key(canonical)]=faction:sub(1,1);read=read+1
         end
     end
+    if read~=(raid and count or count-1) then return nil end
     return out
 end
 -- Seconds since the last GUILD_ROSTER_UPDATE, or nil.
