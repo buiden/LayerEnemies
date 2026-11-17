@@ -1462,4 +1462,134 @@ PASS Wanted: R2 S4 mixed records evict by admission not observation or expiry
 PASS Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry
 PASS Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs
 PASS Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks
-RESULT: 1464 tests passed, 0 failed, 257834 assertions
+PASS WarBoard: compatible H answers once through shared queue; A never answered
+PASS WarBoard: wrong ruleset H gets own A but no peer; wrong protocol gets nothing
+PASS WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred
+PASS WarBoard: A six per rolling minute including delayed queue; WarBoard ten shared thirty
+PASS WarBoard: share stops new sends and cancels queued answers
+PASS WarBoard: public stops new sends and cancels queued answers
+PASS WarBoard: switch stops new sends and cancels queued answers
+PASS WarBoard: combat stops new sends and cancels queued answers
+PASS WarBoard: instance stops new sends and cancels queued answers
+PASS WarBoard: stand down blocks own hellos but preserves owed answers
+PASS WarBoard: live account identity and ruleset rechecked at dispatch
+PASS WarBoard: SHRD own zone and shard through registry, with sequence not seconds; clear and expiry
+PASS WarBoard: FBLP world coordinates convert only via client with axis order; labels survive no conversion
+PASS WarBoard: FREC names killer not victim, self witness relay and cached retain original age
+PASS WarBoard: FBLC and FCBD coarse locations are cached, no ledger saved or victim sighting fabricated
+PASS WarBoard: unconfirmed wrong faction expired peer and reused account identity cannot inject data
+PASS WarBoard: addon routes use honest relayed labels, read under stand-down, never whisper or send
+PASS WarBoard: only own Find or live guild Watch names stored; no arbitrary name memory
+PASS WarBoard: audit D and reordered F vectors decode, encoded pipes stay opaque, dedupe across routes
+PASS WarBoard: invalid SHRD v fails silent
+PASS WarBoard: invalid SHRD rs fails silent
+PASS WarBoard: invalid SHRD faction fails silent
+PASS WarBoard: invalid SHRD sentAt fails silent
+PASS WarBoard: invalid SHRD shard fails silent
+PASS WarBoard: invalid SHRD zone fails silent
+PASS WarBoard: invalid SHRD mapID fails silent
+PASS WarBoard: invalid SHRD name fails silent
+PASS WarBoard: invalid SHRD realm fails silent
+PASS WarBoard: invalid SHRD guid fails silent
+PASS WarBoard: invalid SHRD ttl fails silent
+PASS WarBoard: fragment limits sixty four parts sixteen streams ninety seconds and sender isolation
+PASS WarBoard: fragment conflict and first duplicate keep age and contents
+PASS WarBoard: frame four thousand bytes and assembled/inflated limits reject valid oversized data
+PASS WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory
+PASS WarBoard: dedupe ring bounded at five hundred twelve and one MiB with fresh evidence admitted
+PASS WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty
+PASS WarBoard: share off then on before timer cannot resurrect queued data
+PASS WarBoard: public off then on before timer cannot resurrect queued data
+PASS WarBoard: switch off then on before timer cannot resurrect queued data
+PASS WarBoard: no FBAK or request answer or forwarding for any application type
+PASS WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations
+PASS WarBoard: safe fields clocks and conversions fail closed, source input cannot change saved fields
+PASS WarBoard: relayed FBLP still carries target coordinates and different current zone labels
+PASS WarBoard: client child-map conversion must be converted again to the displayed zone
+PASS WarBoard: FREC optional structural corruption rejected without importing reward logic
+PASS WarBoard: H delayed dispatch never repeats an account before six hundred actual seconds
+PASS WarBoard: H cannot consume owed reserve while six real A answers use it
+PASS WarBoard: H respects shared queue age at 60 seconds
+PASS WarBoard: H respects shared queue age at 60.001 seconds
+PASS WarBoard: H respects shared queue age at 61 seconds
+PASS WarBoard: A respects shared queue age at 60 seconds
+PASS WarBoard: A respects shared queue age at 60.001 seconds
+PASS WarBoard: A respects shared queue age at 61 seconds
+PASS WarBoard: H admission gap is six hundred even before dispatch
+PASS WarBoard: confirmed fragment sender isolation does not confuse identical character accounts
+PASS WarBoard: dedupe FBLP retains observed and received clocks across differently routed copies
+PASS WarBoard: dedupe byte bound evicts older accepted encoded packets
+PASS WarBoard: untracked FBLP and FREC never reach Known or save names
+PASS WarBoard: silent claim poll never alerts or sounds after a source receive
+PASS WarBoard: SHRD ordering rejects different bytes with equal or older sequences
+PASS WarBoard: rollback refusal drops an H before queuing an answer
+PASS WarBoard: full WarBoard evidence is measured before laying out the Find row
+PASS WarBoard: SHRD clear and sequence follow the player across direct and relayed identity spellings
+PASS WarBoard: same faction addon records never become tracked enemy evidence
+PASS WarBoard: 5000 deterministic hostile frames terminate within budget with bounded memory
+PASS WarBoard review: SHRD inflate ceiling is applied before bomb expansion
+PASS WarBoard review: FBLP inflate ceiling is applied before bomb expansion
+PASS WarBoard review: FREC inflate ceiling is applied before bomb expansion
+PASS WarBoard review: FBLC inflate ceiling is applied before bomb expansion
+PASS WarBoard review: FCBD inflate ceiling is applied before bomb expansion
+WORK BN130: 1 inflate calls, 1892 inflated bytes
+PASS WarBoard review: reviewer 130 BN bombs have bounded inflated bytes and refusal accounting
+WORK addon800: 1 inflate calls, 1892 inflated bytes
+PASS WarBoard review: reviewer twenty addon senders cannot multiply repeated-bomb work
+PASS WarBoard review: decode attempt cap spans both prefixes and every route for one identity
+PASS WarBoard review: decode bytes budget stops distinct large frames before attempt cap
+PASS WarBoard review: failed hashes last sixty seconds without repeat refresh or retained payloads
+PASS WarBoard review: sender decode and failed-hash memory are bounded and expire
+PASS WarBoard review: decode sender bucket cap is independent of the input-frame bucket cap
+PASS WarBoard review: failed hash cap evicts oldest and does not retain more than 512
+PASS WarBoard review: BN decode quota belongs to account as well as current character
+PASS WarBoard review: every decoded frame is hashed even when record or context is refused
+PASS WarBoard review: decoded untracked frames reopen on tracking without waiting sixty seconds
+PASS WarBoard review: accepted payload duplicates count hash hits and preserve first receipt
+PASS WarBoard review: one account holding unfinished parts cannot starve another for ten minutes
+PASS WarBoard review: two assembly slots per account release on completion conflict and expiry
+PASS WarBoard review: FBLP wording GUILD
+PASS WarBoard review: FBLP wording PARTY
+PASS WarBoard review: FBLP wording RAID
+PASS WarBoard review: FBLP wording CHANNEL
+PASS WarBoard review: FBLP wording BN third
+PASS WarBoard review: FBLP wording BN self
+PASS WarBoard review: addon assembly quota aggregates all prefixes and routes for a sender
+SIZE SHRD: 1337 / 2048
+SIZE SHRD: 1337 / 2048
+SIZE FBLC: 971 / 2048
+SIZE FBLC: 971 / 2048
+SIZE FBLP: 37583 / 40960
+SIZE FBLP: 37583 / 40960
+SIZE FREC: 68166 / 73728
+SIZE FREC: 68166 / 73728
+SIZE FCBD: 63572 / 98304
+SIZE FCBD: 63572 / 98304
+PASS WarBoard review: largest normal location payloads survive either envelope key order
+PASS WarBoard review: README explains the new-peer publication side effect below the send table
+WORK R2 guild800: 3 calls, 195891 actual, 196608 charged
+PASS WarBoard R2: overall ceiling bounds twenty senders times forty distinct bombs
+WORK R2 channel230: 2 calls, 130594 actual, 131072 charged
+PASS WarBoard R2: channel flood leaves a guild reserve and confirmed BN room
+PASS WarBoard R2: channel sender slots cannot evict fresh guild party raid or BN senders
+PASS WarBoard R2: all addon routes share one ceiling while confirmed BN is separate
+WORK R2 honest119: 21896 actual, 21896 charged; all accepted
+PASS WarBoard R2: cheap honest burst accepts all 119 SHRD from one confirmed account
+PASS WarBoard R2: cheap reports leave all sixteen expensive attempts available
+PASS WarBoard R2: cheap frames still exhaust the byte budget
+PASS WarBoard R2: expensive attempts stay capped but leave the cheap path open
+PASS WarBoard R2: untracked SHRD reopens immediately when the name is added
+PASS WarBoard R2: untracked FBLP reopens immediately when the name is added
+PASS WarBoard R2: untracked FREC reopens immediately when the name is added
+PASS WarBoard R2: untracked FBLC reopens immediately when the name is added
+PASS WarBoard R2: untracked FCBD reopens immediately when the name is added
+PASS WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch
+PASS WarBoard R2: overall window is rolling with exact expiry and rollback refusal
+PASS Stack: WarBoard mutant evidence rerun is byte and mtime stable
+PASS Stack: WarBoard position subject survives Wanted observer wording on BN self
+PASS Stack: WarBoard position subject survives Wanted observer wording on BN third
+PASS Stack: WarBoard position subject survives Wanted observer wording on GUILD
+PASS Stack: WarBoard position subject survives Wanted observer wording on PARTY
+PASS Stack: WarBoard position subject survives Wanted observer wording on RAID
+PASS Stack: WarBoard position subject survives Wanted observer wording on CHANNEL
+RESULT: 1579 tests passed, 0 failed, 294043 assertions

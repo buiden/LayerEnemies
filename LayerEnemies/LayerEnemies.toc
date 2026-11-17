@@ -46,6 +46,7 @@ Call.lua
 OwnDeath.lua
 CallUI.lua
 Wanted.lua
+WarBoard.lua
 ChehulNet.lua
 UI.lua
 Main.lua
