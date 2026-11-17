@@ -104,6 +104,13 @@ local queue, seq, pumping = {}, 0, false
 -- all their existing caps. No Wire queue: HopAny owns cancellation and retries at its next round.
 Wr.HOP_CAP, Wr.HOP_REFILL, Wr.HOP_MINUTE, Wr.HOP_ONE, Wr.HOP_PAUSE = 8, 1, 60, 4, 1
 local hopBucket, hopTimes, hopTo, hopPause = { tokens = Wr.HOP_CAP }, {}, {}, nil
+-- A non-hop LayerSwap throttle ends every click begun before its pause expires.
+-- Retain the boundary so a delayed pump cannot resume that click after 30 s.
+local hopStop
+function Wr.hopBlocked(at)
+    at = S.num(at)
+    return at and hopStop and at < hopStop or false
+end
 
 local function refill(b, cap, every, now)
     -- a clock that goes backwards refills nothing, and the bucket keeps counting from the later time
@@ -312,7 +319,9 @@ local function deliver(prefix, text, kind, target, now, key, hop)
     if result == 0 or result == true then return true, "sent", true end   -- (true: older clients return a boolean)
     if result == 3 or result == 8 then
         if now then
-            if hop then hopPause = now + Wr.HOP_PAUSE else paused[prefix] = now + Wr.PAUSE end
+            paused[prefix] = now + Wr.PAUSE
+            if hop then hopPause = now + Wr.HOP_PAUSE
+            elseif prefix == "LayerSwap" then hopStop = now + Wr.PAUSE end
         end
         return false, "throttled", true
     end
@@ -340,7 +349,8 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
     if death and (not N.Main.sharing() or S.call(IsInGuild) ~= true) then return false, "share off" end
     if S.call(IsInInstance) ~= false and (death or prio ~= Wr.PRIO.click) then return false, "instance" end
     local hop = opts.hopAny == true and opts.prio == "click" and prefix == "LayerSwap" and kind == "WHISPER" and (tag == "request" or tag == "fallback")
-    if (hop and hopPause and now < hopPause) or (not hop and paused[prefix] and now < paused[prefix]) then return false, "paused" end
+    if (hop and ((hopPause and now < hopPause) or Wr.hopBlocked(now)))
+        or (not hop and paused[prefix] and now < paused[prefix]) then return false, "paused" end
     local key = target and who(target)
     if target and Wr.offlineUntil(target, now, hop and opts.hopKnown == true and 600 or nil) then return false, "offline" end
     local cost = inCombat() and 2 or 1
