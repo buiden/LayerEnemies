@@ -290,6 +290,28 @@ test("N1 genuine recent confirmation permits FBAK when sharing resumes",function
     eq(count("H",before),0,"fresh ask need not wait for a new H while confirmation is under 20 min")
 end)
 
+local function parts(pos,listed,edit)
+    local deliver=h.deliver; local text
+    h.deliver=function(_,_,s) text=s end; pos(listed,edit); h.deliver=deliver
+    local encoded=text:sub(8); local mid=math.floor(#encoded/2)
+    return "WBF1|F|abc|1|2|"..encoded:sub(1,mid),"WBF1|F|abc|2|2|"..encoded:sub(mid+1)
+end
+local function receive(text) h.deliver("BN_CHAT_MSG_ADDON","WarBoard",text,"WHISPER",71) end
+for _,unsafe in ipairs({"combat","instance"}) do
+    test("delta cleanup-only partial starts in "..unsafe.." and finishes safe",function()
+        local N,r,hello,count,pos=start(); stop(N,"track"); advance(5)
+        eq(count("FBUN"),1); eq(debt(),1)
+        local first,last=parts(pos,false)
+        h.combat(unsafe=="combat"); h.instance(unsafe=="instance"); receive(first)
+        eq(#N.WarBoard.state.deferred,1,"first chunk entered debt inbox")
+        h.combat(false); h.instance(false)
+        receive(last) -- drains first chunk before assembling the live final chunk
+        eq(debt(),0,"valid complete roster still settles cleanup")
+        no(N.Find.rows(N.Main.find,h.clock(),100)[1].reported,"queued partial never becomes delayed Find evidence")
+        eq(count("FBUN"),1)
+    end)
+end
+
 test("N1 README states revised confirmation and retry rules",function()
     local f=assert(io.open("README.md")); local s=f:read("*a"):gsub("%s+"," "); f:close()
     for _,phrase in ipairs({"A genuine confirmation under **20 minutes** old can authorize a new FBAK",

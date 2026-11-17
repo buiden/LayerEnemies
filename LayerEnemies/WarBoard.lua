@@ -257,7 +257,7 @@ local function duplicate()
     Src.count("warboard","deduped")
     return refuse()
 end
-function W.assemble(st,text,id,now)
+function W.assemble(st,text,id,now,received)
     for key,r in pairs(st.parts) do if now<r.at or now-r.at>=90 then st.parts[key]=nil end end
     local direct=text:match("^WBF1|D|(.*)$")
     if direct then return direct end
@@ -278,7 +278,8 @@ function W.assemble(st,text,id,now)
     r.size=r.size+#chunk
     if r.size>262144 then st.parts[key]=nil; return nil end
     r.chunks[i]=chunk; r.count=r.count+1
-    if r.count==n then st.parts[key]=nil; return table.concat(r.chunks) end
+    r.received=received or r.received -- any deferred part makes the whole frame cleanup-only
+    if r.count==n then st.parts[key]=nil; return table.concat(r.chunks),r.received end
 end
 local function origin(name,carrier)
     name=N.Invite.name(name)
@@ -551,9 +552,9 @@ function W.bnet(st,text,id,ctx,deferred)
     if not peer or peer.rs~=ctx.rs or peer.key~=who.key or peer.faction~=who.faction
         or (deferred and (deferred.peer~=peer or received.rs~=ctx.rs or received.faction~=ctx.faction))
         or received.now<at or received.now-at>=1200 then return refuse() end
-    local encoded=W.assemble(st,text,id,received.now)
-    if deferred then
-        ctx={now=ctx.now,wall=ctx.wall,rs=ctx.rs,faction=ctx.faction,received=received,cleanupOnly=true}
+    local encoded,held=W.assemble(st,text,id,received.now,deferred and received)
+    if deferred or held then
+        ctx={now=ctx.now,wall=ctx.wall,rs=ctx.rs,faction=ctx.faction,received=held or received,cleanupOnly=true}
     end
     return encoded and payload(st,encoded,ctx,who.name,false,who.faction,id) or false
 end
