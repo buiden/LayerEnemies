@@ -161,6 +161,54 @@ for _,route in ipairs({"BNET","WHISPER"}) do
     end
 end
 
+test("S2 silent source backs off to 1800 seconds",function()
+    local N,refresh=fixture();refresh()
+    for i=1,7000 do if i%120==0 then refresh() end;H.advance(1) end
+    local out=sends("|HR|8:V:");local gaps={}
+    for i=2,#out do gaps[#gaps+1]=out[i].at-out[i-1].at end
+    print("PROBE backoff: requests="..#out.." gaps="..table.concat(gaps,","))
+    yes(#out>=6 and #out<=8,"bounded requests with cap reached")
+    for i,gap in ipairs(gaps) do eq(gap,math.min(1800,200*2^(i-1)),"silent-source exponential backoff") end
+end)
+for _,reply in ipairs({"R","S","P","HB"}) do
+    test("S2 any valid reply resets backoff "..reply,function()
+        local N,refresh,hear,e=fixture();refresh()
+        for i=1,800 do if i%120==0 then refresh() end;H.advance(1) end
+        local s=N.Main.overlordFeed.sessions["birch scout"];yes(s and s.asked)
+        local n=#sends("|HR|8:V:")+ #sends("|HR|8:K:")
+        if reply=="HB" then hear("HB","8:U:"..e..":")
+        else
+            local tail=reply=="S" and ":LK:0:0" or reply=="P" and ":V:0:64:0:-:1:LK" or ""
+            hear("HA","8:"..reply..":"..e..":"..s.nonce..":1"..tail)
+        end
+        for i=1,3 do H.advance(1) end
+        eq(#sends("|HR|8:V:")+ #sends("|HR|8:K:"),n+1,"reply restores the base 200-second interval")
+        eq(s.delay,200,"reply reset is explicit")
+    end)
+end
+
+test("S3 only HR V gets a bounded busy HA",function()
+    for _,op in ipairs({"V","F","K","X","T"}) do
+        local N=H.load();local P=N.OverlordPeer;local peer=P.new();local out={}
+        local c={now=100,wall=1800000000,me="Alice Vale",version="1.1.0",pool="global",faction="A",allowed=true,own=true,
+            send=function(_,text) out[#out+1]=text;return true end}
+        local body="8:"..op..":1799999900:123n4n5f:1:LK:0:0:H"
+        if op=="K" or op=="X" then body="8:"..op..":1799999900" end
+        P.receive(peer,{kind="HR",payload=body,origin="Birch Scout",target=c.me,hops=0},"WHISPER","Birch Scout",nil,c)
+        eq(#out,op=="V" and 1 or 0,op.." reply policy")
+        if op=="V" then yes(out[1]:find("|HA|8:R:",1,true)) end
+    end
+end)
+test("S3 README states Battle.net scope reply kinds and backoff",function()
+    local f=assert(io.open("README.md","r"));local text=f:read("*a");f:close()
+    no(text:find("All incoming HR asks",1,true),"do not promise answers to every HR")
+    yes(text:find("Only addressed HR V requests get a bounded busy HA",1,true))
+    yes(text:find("HR F, K and X get no reply",1,true))
+    yes(text:find("Feed sources are Battle.net friends only",1,true))
+    yes(text:find("200, 400, 800, 1600, then 1800 s",1,true))
+    no(text:find("**Presence trade-off:**",1,true),"no whole-lane presence sacrifice")
+end)
+
 test("clock ignores unselected account NH and rejects offline or foreign-pool friends",function()
     local N,refresh,hear,e,online=fixture()
     refresh(nil,"pve");N.Main.overlordTick(H.clock());H.advance(1)

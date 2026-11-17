@@ -4,30 +4,38 @@
 
 | What LE sends | To whom | Maximum rate / condition |
 |---|---|---|
-| `HR 8:V:<E>:<nonce>:1:LK:0:0:<opposite faction>`; nonce ends `f` | At most two selected direct Overlord 2.5.0+ sources: same-faction group members by WHISPER, or Battle.net friends of either faction | One request/keep per 200 s/source; first request only after **more than 300 s without NH** |
+| `HR 8:V:<E>:<nonce>:1:LK:0:0:<opposite faction>`; nonce ends `f` | At most two selected Battle.net friends of either faction, via Battle.net only | Unanswered requests back off: 200, 400, 800, 1600, then 1800 s; any valid HA/HB reply resets to 200 s; first request obeys the NH clock below |
 | `HR 8:K:<E>` | The same live feed sources | Shares that 200 s gap; only after an accepted reply/feed |
 | `HR 8:X:<E>` | Each source to which a request actually went | Once per cancellation, best effort, owed priority; no retry |
-| `HA <v>:R:<E>:<nonce>:<seq>` (busy, no ranking profile) | Direct addressed HR requester | Shared NH/HA 150 s gap per peer; six owed frames/minute |
+| `HA <v>:R:<E>:<nonce>:<seq>` (busy, no ranking profile) | Direct addressed HR V requester only | Shared NH/HA 150 s gap per peer; six owed frames/minute |
 | Own `NH`, `LayerEnemies <installed TOC version>` with **no suffix** | Non-source peers only | C2 limits below; never to a selected source's name or account, including owed replies |
 
 To be served the feed, LayerEnemies does not announce itself to the player it asks. Overlord serves peers it has not heard from, and refuses those it knows run an older protocol. LayerEnemies claims no capability it lacks; it relies on not having been heard.
 
 The owner approved this intentional use of the unknown-requester window. The
 first request itself teaches the donor a return route before dispatch, including
-its Battle.net account ID; NH is not required for either reply route. See
-`notes/overlord-c3-reachability.md` for pinned source lines. An NH received from
-the donor is fine; LE's outgoing NH is what would close the window. Selection
-starts the quiet interval even if LE has not sent an NH this session, covering
-previous session/reload presence. The donor still knows capability at age 300,
-so LE waits strictly beyond that boundary. Removed/replaced sources must earn
-a new quiet interval.
+its Battle.net account ID; NH is not required for the reply. See
+`notes/overlord-c3-reachability.md` for pinned source lines.
 
-**Presence trade-off:** while a source is in our guild or party/raid, LE skips
-that entire lane's NH, not just targeted greetings. If the shared roster is
-unreadable it skips the lane conservatively. Other eligible friends/directory
-peers retain C2 presence. Source suppression is checked again at actual dispatch,
-so a previously queued NH cannot leak. These choices can reduce C2 discovery
-and guild traffic from donors that would otherwise learn LE is listening.
+Feed sources are Battle.net friends only. Guild and group members remain ordinary
+C2 peers: the feed never suppresses guild, party or raid presence. A friend in
+our guild or group is ineligible; an unreadable or incomplete roster means it
+might be there, so no friend is selected until that roster is readable. The
+same Unicode name fold and own-realm stripping apply to every source comparison,
+including Battle.net character names and whisper recipients. Targeted NH to a
+selected source's name or account is suppressed at admission and actual dispatch.
+
+A source must have been heard first-hand under Overlord over Battle.net at least
+once this session in our pool, and the game must show that exact game account
+online in Forever now. Hearing need not repeat within 300 s. Before each request
+or keep, **more than 300 s must have passed since our last NH on any route that
+could reach it** (account, whisper, guild or group). Never sent this session means
+no artificial wait. Any actual NH to that audience restarts the clock, including
+an unexpected send after selection. A source's validated campaign epoch is kept
+for the session, never guessed, and replaced only by new source evidence. The
+session hearing cache is capped at 200 identities; it is not a saved peer list.
+This session-only rule does not guarantee that a donor has forgotten a prior
+session's NH immediately after a reload; a refusal is handled by the backoff.
 
 Stops are attempted on unsubscribe, source departure/unfriending, `/le net
 overlord off`, share off, Guild only, epoch/route invalidation and logout.
@@ -45,8 +53,8 @@ The feed is useful only while the donor considers its own custom channel down
 and can serve. Silence/busy responses are normal. LE never advertises ranking
 capabilities (`~lp6`, `~lr`, `~ld` or any other suffix), never serves a ranking,
 forwards packets, fabricates kills or hosts maps. A zero comparison is an honest
-local count/hash, not a claim of page-service capability. All incoming HR asks
-receive bounded busy HA rather than a claim of equality.
+local count/hash, not a claim of page-service capability. Only addressed HR V requests get a bounded busy HA
+rather than a claim of equality. HR F, K and X get no reply; neither do unknown HR kinds.
 
 Epochs stay source/pool scoped and never come from the clock: only an exact
 validated **13-field owner K** (race, sex, matching `B<E>`, level included), or

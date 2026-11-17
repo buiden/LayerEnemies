@@ -201,8 +201,8 @@ test("truthful empty V answer busy unsupported request and no invented map",func
     P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,1)
     yes(c.out[1].text:find("|HA|8:R:1699488000:123n4n5f:1",1,true))
     c.now=250;p.payload="8:T:1699488000:123n4n5f:1:LK:1:H"
-    P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,2);yes(c.out[2].text:find("|HA|8:R:",1,true))
-    p.kind="SR";p.payload="H:2.5.4~1:0:::F";P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,2)
+    P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,1,"unsupported HR T is silent")
+    p.kind="SR";p.payload="H:2.5.4~1:0:::F";P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,1)
     for _,o in ipairs(c.out) do eq(o.route,"WHISPER");eq(o.target,"Birch Scout");eq(o.prio,"owed") end
 end)
 

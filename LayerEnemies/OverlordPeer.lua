@@ -142,7 +142,7 @@ function P.receive(st,p,route,sender,id,c)
         local v,op,e,nonce,seq,tail=p.payload:match("^([5-8]):([A-Z]):(%d+):(%w+):(%d+):?(.*)$")
         if not v or #p.payload>250 or #nonce>32 or #e>10 or tonumber(e)<1
             or tonumber(e)>c.wall or #seq>5 or tonumber(seq)<1 or tonumber(seq)>10000 then return r end
-        if op=="F" then return r end
+        if op~="V" then return r end
         local body=table.concat({v,"R",e,nonce,seq},":")
         P.emit(st,c,"HA",body,route,target,"reply:"..key,150,true)
     end

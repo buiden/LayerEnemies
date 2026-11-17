@@ -191,11 +191,12 @@ function Q.receive(st,peer,p,r,c)
         if not f or f[1]~="8" or tonumber(f[3])~=s.epoch or f[4]~=s.nonce or f[5]~="1" then return end
         if f[2]=="R" and (#f==5 or #f==6 and f[6]=="C") then
             s.asked,s.live,s.nonce=nil,nil,nil
+            s.silent,s.delay=0,200
         elseif f[2]=="S" and #f==8 and f[6]=="LK" and uint(f[7],10000) and uint(f[8],2147483646) then
-            s.live=c.now
+            s.live=c.now;s.silent,s.delay=0,200
         elseif f[2]=="P" and #f==12 and f[6]=="V" and f[7]=="0" and f[8]=="64"
             and uint(f[9],2147483646) and f[10]=="-" and uint(f[11],24,1) and f[12]=="LK" then
-            s.live=c.now -- fingerprints have no people/places; HB D is deliberately not ingested.
+            s.live=c.now;s.silent,s.delay=0,200 -- fingerprints have no people/places; HB D is deliberately not ingested.
         end
         return
     end
@@ -211,6 +212,7 @@ function Q.receive(st,peer,p,r,c)
     local e,rows=Q.decode(p.payload)
     if e~=s.epoch or not rows or b.rows+#rows>240 or g.rows+#rows>480 then return end
     b.rows=b.rows+#rows;g.rows=g.rows+#rows;s.live=c.now;r.epochAt=c.now
+    s.silent,s.delay=0,200
     local zone
     for _,row in ipairs(rows) do
         local kind=row:sub(1,1)
@@ -268,7 +270,7 @@ function Q.tick(st,peer,c)
         if not s and S.count(st.sessions)<2 then
             s={name=r.name,route=r.route,epoch=r.epoch,pool=c.pool,id=r.id,created=c.now,known={}};st.sessions[key]=s
         end
-        if s and (not s.attempt or c.now>=s.attempt and c.now-s.attempt>=200) then
+        if s and (not s.attempt or c.now>=s.attempt and c.now-s.attempt>=(s.delay or 200)) then
             s.attempt=c.now
             st.serial=st.serial+1
             local keep=s.live and c.now>=s.live and c.now-s.live<420
@@ -284,9 +286,13 @@ function Q.tick(st,peer,c)
                 end
                 local function sent(at,live)
                     if not valid(live) then return end
-                    if keep then s.kept=at else s.opened=true;s.asked=at;s.nonce=nonce;s.live=nil end
+                    if keep then s.kept=at else
+                        s.opened=true;s.asked=at;s.nonce=nonce;s.live=nil
+                        s.silent=math.min(5,(s.silent or 0)+1)
+                        s.delay=math.min(1800,200*2^(s.silent-1))
+                    end
                 end
-                P.emit(peer,c,"HR",body,route,target,"feed:"..key,200,false,{valid=valid,sent=sent})
+                P.emit(peer,c,"HR",body,route,target,"feed:"..key,s.delay or 200,false,{valid=valid,sent=sent})
             end
         end
     end
