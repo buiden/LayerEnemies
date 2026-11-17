@@ -17,7 +17,7 @@
     "rule": "WNTD twelve parts",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:350: not equal: expected 0, got 1",
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:353: not equal: expected 0, got 1",
       "FAIL Wanted: R1 S1 invalid tags and shapes take no sender entries: test/src_wanted_round1.lua:76: basic validation precedes sender admission: expected 0, got 3"
     ]
   },
@@ -25,14 +25,14 @@
     "rule": "WNTDP eight parts",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:252: not equal: expected 0, got 1"
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:255: not equal: expected 0, got 1"
     ]
   },
   {
     "rule": "WNTD part size",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:348: S:a:1/1:aaaaaaaaaaaaaaaaa: expected nil, got aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:351: S:a:1/1:aaaaaaaaaaaaaaaaa: expected nil, got aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "FAIL Wanted: R1 S1 invalid tags and shapes take no sender entries: test/src_wanted_round1.lua:76: basic validation precedes sender admission: expected 0, got 3"
     ]
   },
@@ -40,14 +40,14 @@
     "rule": "WNTDP part size",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:254: not equal: expected nil, got aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:257: not equal: expected nil, got aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     ]
   },
   {
     "rule": "per-sender assemblies across routes",
     "killed": true,
     "failures": [
-      "FAIL Wanted: two unfinished messages per sender cover all addon routes: test/src_wanted.lua:336: a sender cannot multiply capacity by route: expected 2, got 5",
+      "FAIL Wanted: two unfinished messages per sender cover all addon routes: test/src_wanted.lua:339: a sender cannot multiply capacity by route: expected 2, got 5",
       "FAIL Wanted: R1 S3 two assemblies per canonical sender across routes: test/src_wanted_round1.lua:169: not equal: expected 2, got 3"
     ]
   },
@@ -55,9 +55,9 @@
     "rule": "two addon assemblies per sender",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:250: not equal: expected 2, got 3",
-      "FAIL Wanted: two unfinished messages per sender cover all addon routes: test/src_wanted.lua:336: a sender cannot multiply capacity by route: expected 2, got 3",
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:353: not equal: expected 2, got 3",
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:253: not equal: expected 2, got 3",
+      "FAIL Wanted: two unfinished messages per sender cover all addon routes: test/src_wanted.lua:339: a sender cannot multiply capacity by route: expected 2, got 3",
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:356: not equal: expected 2, got 3",
       "FAIL Wanted: R1 S3 two assemblies per canonical sender across routes: test/src_wanted_round1.lua:169: not equal: expected 2, got 3",
       "FAIL Wanted: R1 S3 BNet dispatch shares one assembly owner across message IDs: test/src_wanted_round1.lua:177: not equal: expected 2, got 3"
     ]
@@ -73,7 +73,7 @@
     "rule": "sixteen global assemblies",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:355: not equal: expected 16, got 17",
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:358: not equal: expected 16, got 17",
       "FAIL Wanted: R1 S3 reserved assemblies survive a full public pool: test/src_wanted_round1.lua:192: not equal: expected 16, got 17"
     ]
   },
@@ -81,35 +81,35 @@
     "rule": "thirty second assembly lifetime",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:347: expires at 30 not 31: expected nil, got ab"
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:350: expires at 30 not 31: expected nil, got ab"
     ]
   },
   {
     "rule": "assembly rollback",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:363: rollback refused: expected nil, got ab"
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:366: rollback refused: expected nil, got ab"
     ]
   },
   {
     "rule": "fragment tag conflict",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:358: not equal: expected nil, got ab"
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:361: not equal: expected nil, got ab"
     ]
   },
   {
     "rule": "fragment total conflict",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:361: total conflict: expected 0, got 1"
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:364: total conflict: expected 0, got 1"
     ]
   },
   {
     "rule": "fragment duplicate conflict",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:357: conflicting duplicate poisons assembly: expected nil, got ac"
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:360: conflicting duplicate poisons assembly: expected nil, got ac"
     ]
   },
   {
@@ -118,7 +118,8 @@
     "failures": [
       "FAIL Wanted: fragmented S and E on guild and channel retain no untracked names: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
       "FAIL Wanted: route version array faction and secret guards fail silent: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
-      "FAIL Wanted: R1 N6 accepts any 1.29 patch and no other version family: test/harness.lua:8: 1.28.0: expected false, got true"
+      "FAIL Wanted: R1 N6 accepts any 1.29 patch and no other version family: test/harness.lua:8: 1.28.0: expected false, got true",
+      "FAIL Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs: test/src_wanted_round2.lua:193: not equal: expected 32, got 33"
     ]
   },
   {
@@ -161,7 +162,7 @@
     "rule": "known retained faction veto",
     "killed": true,
     "failures": [
-      "FAIL Wanted: known same-faction GUIDs cannot become enemies through sightings: test/src_wanted.lua:139: not equal: expected 9, got 10"
+      "FAIL Wanted: known same-faction GUIDs cannot become enemies through sightings: test/src_wanted.lua:142: not equal: expected 9, got 10"
     ]
   },
   {
@@ -176,7 +177,8 @@
     "killed": true,
     "failures": [
       "FAIL Wanted: bad hashes and malformed payloads increment refusal without chat: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL Wanted: forged origin hash malformed envelope and stale records store nothing: test/src_wanted.lua:21: not equal: expected nil, got enemy one"
+      "FAIL Wanted: forged origin hash malformed envelope and stale records store nothing: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
+      "FAIL Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs: test/src_wanted_round2.lua:193: not equal: expected 32, got 33"
     ]
   },
   {
@@ -240,7 +242,7 @@
     "killed": true,
     "failures": [
       "FAIL Wanted: stale and future records are refused before the offer boundary: test/src_wanted.lua:117: not equal: expected 0, got 1",
-      "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:172: not equal: expected 2, got 7",
+      "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:175: not equal: expected 2, got 7",
       "FAIL Wanted: forged origin hash malformed envelope and stale records store nothing: test/src_wanted.lua:21: not equal: expected nil, got enemy one"
     ]
   },
@@ -249,7 +251,7 @@
     "killed": true,
     "failures": [
       "FAIL Wanted: stale and future records are refused before the offer boundary: test/src_wanted.lua:117: not equal: expected 0, got 1",
-      "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:172: not equal: expected 3, got 7",
+      "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:175: not equal: expected 3, got 7",
       "FAIL Wanted: forged origin hash malformed envelope and stale records store nothing: test/src_wanted.lua:21: not equal: expected nil, got enemy one"
     ]
   },
@@ -264,39 +266,47 @@
     "rule": "F always relayed",
     "killed": true,
     "failures": [
-      "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:171: not equal: expected relayed, got witness",
-      "FAIL Wanted: spotted resolves only an already tracked exact GUID without a name cache: test/src_wanted.lua:218: not equal: expected relayed, got witness"
+      "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:174: not equal: expected relayed, got witness",
+      "FAIL Wanted: spotted resolves only an already tracked exact GUID without a name cache: test/src_wanted.lua:221: not equal: expected relayed, got witness"
     ]
   },
   {
     "rule": "relayed R honest provenance",
     "killed": true,
     "failures": [
-      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:206: not equal: expected relayed, got witness"
+      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:209: not equal: expected relayed, got witness"
     ]
   },
   {
     "rule": "record replay id",
     "killed": true,
     "failures": [
-      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:208: not equal: expected 7, got 32"
+      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:211: not equal: expected 7, got 32",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
     "rule": "packet replay age",
     "killed": true,
     "failures": [
-      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:208: not equal: expected 7, got 32",
-      "FAIL Wanted: fragmented S and E on guild and channel retain no untracked names: test/src_wanted.lua:374: same packet cannot refresh receipt time: expected 10, got 15",
-      "FAIL Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate: test/src_wanted_round1.lua:231: flood never evicts someone else's replay identity: expected 34, got 35"
+      "FAIL Wanted: bounded dedupe evictions do not save evidence or new names: test/src_wanted.lua:128: not equal: expected 512, got 511",
+      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:211: not equal: expected 7, got 32",
+      "FAIL Wanted: fragmented S and E on guild and channel retain no untracked names: test/src_wanted.lua:377: same packet cannot refresh receipt time: expected 10, got 15",
+      "FAIL Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate: test/src_wanted_round1.lua:231: flood never evicts someone else's replay identity: expected 722, got 723",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/src_wanted_round2.lua:161: retained record duplicate dropped across carriers: expected 33, got 34",
+      "FAIL Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs: test/src_wanted_round2.lua:193: not equal: expected 32, got 33",
+      "FAIL Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks: test/src_wanted_round2.lua:209: retained duplicate is dropped across routes: expected 33, got 34"
     ]
   },
   {
     "rule": "bounded dedupe ledger",
     "killed": true,
     "failures": [
-      "FAIL Wanted: immutable dedupe ceilings do not store or save new names: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
-      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/src_wanted_round1.lua:268: not equal: expected 512, got 513"
+      "FAIL Wanted: bounded dedupe evictions do not save evidence or new names: test/src_wanted.lua:126: not equal: expected 512, got 513",
+      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/src_wanted_round1.lua:270: not equal: expected 512, got 513",
+      "FAIL Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout: test/src_wanted_round2.lua:78: not equal: expected 512, got 513",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/src_wanted_round2.lua:89: not equal: expected 512, got 513",
+      "FAIL Wanted: R2 S4 counter counts public and global evictions not refusals: test/src_wanted_round2.lua:120: not equal: expected 2, got 1"
     ]
   },
   {
@@ -310,8 +320,8 @@
     "rule": "observer percentages",
     "killed": true,
     "failures": [
-      "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:174: not equal: expected 0.5, got 0.25",
-      "FAIL Wanted: audit sighting vector reaches measured Find as witness near observer: test/src_wanted.lua:408: not equal: expected 0.5, got 0.25",
+      "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:177: not equal: expected 0.5, got 0.25",
+      "FAIL Wanted: audit sighting vector reaches measured Find as witness near observer: test/src_wanted.lua:411: not equal: expected 0.5, got 0.25",
       "FAIL Wanted: R1 S1 300 channel users cannot suppress 75 guild sightings: test/src_wanted_round1.lua:49: not equal: expected 75, got 0",
       "FAIL Wanted: R1 S1 128 junk senders cannot suppress 20 guild sightings: test/src_wanted_round1.lua:66: not equal: expected 20, got 0",
       "FAIL Wanted: R1 S1 invalid tags and shapes take no sender entries: test/harness.lua:7: not equal: expected true, got false",
@@ -320,7 +330,19 @@
       "FAIL Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate: test/harness.lua:7: not equal: expected true, got false",
       "FAIL Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins: test/harness.lua:7: not equal: expected true, got false",
       "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL Wanted: R1 N6 accepts any 1.29 patch and no other version family: test/harness.lua:7: 1.29.0: expected true, got false"
+      "FAIL Wanted: R1 N6 accepts any 1.29 patch and no other version family: test/harness.lua:7: 1.29.0: expected true, got false",
+      "FAIL Wanted: R2 S4 one sighting a minute for two hours shows 120 of 120: test/src_wanted_round2.lua:36: every new sighting reaches Find: expected 120, got 0",
+      "FAIL Wanted: R2 S4 one sighting every twenty seconds shows all sixty: test/src_wanted_round2.lua:36: every new sighting reaches Find: expected 60, got 0",
+      "FAIL Wanted: R2 S4 twenty-second cadence stays live for two hours: test/src_wanted_round2.lua:36: every new sighting reaches Find: expected 360, got 0",
+      "FAIL Wanted: R2 S4 channel scout also shows 120 of 120: test/src_wanted_round2.lua:36: every new sighting reaches Find: expected 120, got 0",
+      "FAIL Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 counter counts public and global evictions not refusals: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks: test/harness.lua:7: sender remains useful when full: expected true, got false"
     ]
   },
   {
@@ -337,15 +359,15 @@
       "FAIL Wanted: echo realm identity and source switch cannot admit forged claims: test/src_wanted.lua:21: not equal: expected nil, got enemy one-testrealm",
       "FAIL Wanted: forged origin hash malformed envelope and stale records store nothing: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
       "FAIL Wanted: passive channel join preserves player ownership and two free slots: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
-      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:292: not equal: expected 60, got 32",
-      "FAIL Wanted: fragmented S and E on guild and channel retain no untracked names: test/src_wanted.lua:21: not equal: expected nil, got enemy one"
+      "FAIL Wanted: fragmented S and E on guild and channel retain no untracked names: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
+      "FAIL Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs: test/src_wanted_round2.lua:193: not equal: expected 32, got 33"
     ]
   },
   {
     "rule": "silent later alert poll",
     "killed": true,
     "failures": [
-      "FAIL Wanted: audit sighting vector reaches measured Find as witness near observer: test/src_wanted.lua:413: not equal: expected 0, got 1"
+      "FAIL Wanted: audit sighting vector reaches measured Find as witness near observer: test/src_wanted.lua:416: not equal: expected 0, got 1"
     ]
   },
   {
@@ -367,70 +389,70 @@
     "rule": "BNet faction eligibility",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:246: not equal: expected 0, got 1"
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:249: not equal: expected 0, got 1"
     ]
   },
   {
     "rule": "BNet realm eligibility",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:246: not equal: expected 0, got 1"
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:249: not equal: expected 0, got 1"
     ]
   },
   {
     "rule": "BNet anonymous only",
     "killed": true,
     "failures": [
-      "FAIL Wanted: receive tick and every ignored tag never attempt any send: test/src_wanted.lua:317: non-L body is never a layer summary: expected 0, got 1"
+      "FAIL Wanted: receive tick and every ignored tag never attempt any send: test/src_wanted.lua:320: non-L body is never a layer summary: expected 0, got 1"
     ]
   },
   {
     "rule": "summary twelve entries",
     "killed": true,
     "failures": [
-      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:265: not equal: expected 1, got 13"
+      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:268: not equal: expected 1, got 13"
     ]
   },
   {
     "rule": "summary twenty carriers",
     "killed": true,
     "failures": [
-      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:261: not equal: expected 20, got 21"
+      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:264: not equal: expected 20, got 21"
     ]
   },
   {
     "rule": "summary ten minute expiry",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net summaries are anonymous diagnostics never named evidence: test/src_wanted.lua:233: L expires at 600 seconds: expected 0, got 2"
+      "FAIL Wanted: Battle.net summaries are anonymous diagnostics never named evidence: test/src_wanted.lua:236: L expires at 600 seconds: expected 0, got 2"
     ]
   },
   {
     "rule": "summary count clamp",
     "killed": true,
     "failures": [
-      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:267: not equal: expected 200, got 999"
+      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:270: not equal: expected 200, got 999"
     ]
   },
   {
     "rule": "sixty addon datagrams",
     "killed": true,
     "failures": [
-      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:292: not equal: expected 60, got 61"
+      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:295: not equal: expected 60, got 61"
     ]
   },
   {
     "rule": "thirty BNet datagrams",
     "killed": true,
     "failures": [
-      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:299: rate before resolver/decompression: expected 30, got 31"
+      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:302: rate before resolver/decompression: expected 30, got 31"
     ]
   },
   {
     "rule": "rate identity ceiling",
     "killed": true,
     "failures": [
-      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:301: not equal: expected 128, got 129",
+      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:304: not equal: expected 128, got 129",
       "FAIL Wanted: R1 S1 valid channel whisper and BNet floods leave guild capacity: test/src_wanted_round1.lua:87: independent capped CHANNEL table: expected 128, got 129"
     ]
   },
@@ -438,7 +460,7 @@
     "rule": "no Wanted roster scan",
     "killed": true,
     "failures": [
-      "FAIL Wanted: passive channel join preserves player ownership and two free slots: test/src_wanted.lua:275: D1 joins for receipt, not roster discovery: expected 0, got 1"
+      "FAIL Wanted: passive channel join preserves player ownership and two free slots: test/src_wanted.lua:278: D1 joins for receipt, not roster discovery: expected 0, got 1"
     ]
   },
   {
@@ -466,7 +488,7 @@
     "rule": "independent sender tables per route",
     "killed": true,
     "failures": [
-      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:301: not equal: expected 128, got 0",
+      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:304: not equal: expected 128, got 0",
       "FAIL Wanted: R1 S1 valid channel whisper and BNet floods leave guild capacity: test/src_wanted_round1.lua:93: guild has its own full cap: expected 128, got 0"
     ]
   },
@@ -499,21 +521,182 @@
     "killed": true,
     "failures": [
       "FAIL Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate: test/src_wanted_round1.lua:227: 32 flood IDs plus protected guild ID: expected 33, got 34",
-      "FAIL Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins: test/harness.lua:7: sender quota covers packet and record IDs: expected true, got false"
+      "FAIL Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins: test/src_wanted_round1.lua:248: sender quota still covers packet and record IDs: expected 32, got 33",
+      "FAIL Wanted: R2 S4 one sighting a minute for two hours shows 120 of 120: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 88, got 87",
+      "FAIL Wanted: R2 S4 one sighting every twenty seconds shows all sixty: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 28, got 27",
+      "FAIL Wanted: R2 S4 twenty-second cadence stays live for two hours: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 328, got 327",
+      "FAIL Wanted: R2 S4 channel scout also shows 120 of 120: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 88, got 87",
+      "FAIL Wanted: R2 S4 eviction counter is visible through net wanted including zero: test/src_wanted_round2.lua:108: not equal: expected 1, got 0",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/src_wanted_round2.lua:130: not equal: expected 256, got 257",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks: test/src_wanted_round2.lua:212: not equal: expected 33, got 34"
     ]
   },
   {
     "rule": "record quota owned by carrier not claimed origin",
     "killed": true,
     "failures": [
-      "FAIL Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins: test/harness.lua:7: sender quota covers packet and record IDs: expected true, got false"
+      "FAIL Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins: test/src_wanted_round1.lua:248: sender quota still covers packet and record IDs: expected 32, got 33",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/harness.lua:8: not equal: expected false, got true"
     ]
   },
   {
     "rule": "guild reserved replay entries",
     "killed": true,
     "failures": [
-      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/src_wanted_round1.lua:261: not equal: expected 256, got 257"
+      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/src_wanted_round1.lua:263: not equal: expected 256, got 257",
+      "FAIL Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID: test/src_wanted_round2.lua:67: not equal: expected 257, got 258",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/src_wanted_round2.lua:92: not equal: expected 256, got 257",
+      "FAIL Wanted: R2 S4 counter counts public and global evictions not refusals: test/src_wanted_round2.lua:118: not equal: expected 1, got 0",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/src_wanted_round2.lua:130: not equal: expected 256, got 257"
+    ]
+  },
+  {
+    "rule": "full sender admits new sightings",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins: test/harness.lua:7: full sender quota evicts rather than silences: expected true, got false",
+      "FAIL Wanted: R2 S4 one sighting a minute for two hours shows 120 of 120: test/src_wanted_round2.lua:36: every new sighting reaches Find: expected 120, got 64",
+      "FAIL Wanted: R2 S4 one sighting every twenty seconds shows all sixty: test/src_wanted_round2.lua:36: every new sighting reaches Find: expected 60, got 32",
+      "FAIL Wanted: R2 S4 twenty-second cadence stays live for two hours: test/src_wanted_round2.lua:36: every new sighting reaches Find: expected 360, got 64",
+      "FAIL Wanted: R2 S4 channel scout also shows 120 of 120: test/src_wanted_round2.lua:36: every new sighting reaches Find: expected 120, got 64",
+      "FAIL Wanted: R2 S4 eviction counter is visible through net wanted including zero: test/src_wanted_round2.lua:108: not equal: expected 1, got 0",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks: test/harness.lua:7: sender remains useful when full: expected true, got false"
+    ]
+  },
+  {
+    "rule": "full public pool admits new sightings",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 counter counts public and global evictions not refusals: test/src_wanted_round2.lua:118: not equal: expected 1, got 0",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "full global pool admits new evidence",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: bounded dedupe evictions do not save evidence or new names: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/src_wanted_round2.lua:88: a full global ledger does not refuse new public evidence: expected 768, got 512",
+      "FAIL Wanted: R2 S4 counter counts public and global evictions not refusals: test/src_wanted_round2.lua:120: not equal: expected 2, got 1"
+    ]
+  },
+  {
+    "rule": "oldest replay admission evicted first",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: bounded dedupe evictions do not save evidence or new names: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Wanted: R2 S4 one sighting a minute for two hours shows 120 of 120: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 88, got 56",
+      "FAIL Wanted: R2 S4 twenty-second cadence stays live for two hours: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 328, got 296",
+      "FAIL Wanted: R2 S4 channel scout also shows 120 of 120: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 88, got 56",
+      "FAIL Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID: test/harness.lua:8: oldest public admission removed: expected false, got true",
+      "FAIL Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout: test/harness.lua:8: oldest globally removed: expected false, got true",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/src_wanted_round2.lua:89: not equal: expected 256, got 1",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/src_wanted_round2.lua:130: not equal: expected 256, got 257",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks: test/harness.lua:8: oldest sender ID evicted: expected false, got true"
+    ]
+  },
+  {
+    "rule": "admission order not expiry order",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: bounded dedupe evictions do not save evidence or new names: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID: test/harness.lua:8: oldest public admission removed: expected false, got true",
+      "FAIL Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout: test/harness.lua:8: oldest globally removed: expected false, got true",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/src_wanted_round2.lua:89: not equal: expected 256, got 81",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/src_wanted_round2.lua:130: not equal: expected 256, got 257",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks: test/harness.lua:8: oldest sender ID evicted: expected false, got true"
+    ]
+  },
+  {
+    "rule": "sender eviction stays in its own pool",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate: test/src_wanted_round1.lua:227: 32 flood IDs plus protected guild ID: expected 33, got 32",
+      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/src_wanted_round1.lua:262: not equal: expected 256, got 32",
+      "FAIL Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID: test/src_wanted_round2.lua:65: not equal: expected 257, got 32",
+      "FAIL Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout: test/src_wanted_round2.lua:76: not equal: expected 512, got 32",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/src_wanted_round2.lua:86: not equal: expected 512, got 32",
+      "FAIL Wanted: R2 S4 counter counts public and global evictions not refusals: test/src_wanted_round2.lua:117: not equal: expected 0, got 224",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/src_wanted_round2.lua:128: not equal: expected 257, got 32",
+      "FAIL Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs: test/src_wanted_round2.lua:193: not equal: expected 512, got 513",
+      "FAIL Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks: test/src_wanted_round2.lua:206: not equal: expected 33, got 32"
+    ]
+  },
+  {
+    "rule": "public eviction leaves guild reserve alone",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID: test/src_wanted_round2.lua:65: not equal: expected 257, got 256",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/src_wanted_round2.lua:92: not equal: expected 256, got 257",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/src_wanted_round2.lua:128: not equal: expected 257, got 256"
+    ]
+  },
+  {
+    "rule": "every replay eviction is counted",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: bounded dedupe evictions do not save evidence or new names: test/src_wanted.lua:127: not equal: expected 1, got 0",
+      "FAIL Wanted: R2 S4 one sighting a minute for two hours shows 120 of 120: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 88, got 0",
+      "FAIL Wanted: R2 S4 one sighting every twenty seconds shows all sixty: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 28, got 0",
+      "FAIL Wanted: R2 S4 twenty-second cadence stays live for two hours: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 328, got 0",
+      "FAIL Wanted: R2 S4 channel scout also shows 120 of 120: test/src_wanted_round2.lua:38: every displaced live ID is counted: expected 88, got 0",
+      "FAIL Wanted: R2 S4 eviction counter is visible through net wanted including zero: test/src_wanted_round2.lua:108: not equal: expected 1, got 0",
+      "FAIL Wanted: R2 S4 counter counts public and global evictions not refusals: test/src_wanted_round2.lua:118: not equal: expected 1, got 0",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/src_wanted_round2.lua:132: not equal: expected 2, got 0",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/src_wanted_round2.lua:164: not equal: expected 2, got 0"
+    ]
+  },
+  {
+    "rule": "net wanted shows replay evictions",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R2 S4 eviction counter is visible through net wanted including zero: test/harness.lua:7: zero counter is visible: expected true, got false"
+    ]
+  },
+  {
+    "rule": "replay expiry precedes eviction at boundary",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "only accepted sightings evict replay IDs",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/src_wanted_round2.lua:158: newer admission with earlier expiry survives: expected table: <address>, got nil",
+      "FAIL Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs: test/src_wanted_round2.lua:193: not equal: expected 0, got 3"
+    ]
+  },
+  {
+    "rule": "duplicates cannot refresh replay order",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/src_wanted_round2.lua:162: not equal: expected 2, got 34",
+      "FAIL Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs: test/src_wanted_round2.lua:196: not equal: expected 1, got 33",
+      "FAIL Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks: test/harness.lua:8: oldest sender ID evicted: expected false, got true"
+    ]
+  },
+  {
+    "rule": "same-clock admissions have distinct replay order",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID: test/harness.lua:8: oldest public admission removed: expected false, got true",
+      "FAIL Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout: test/harness.lua:8: oldest globally removed: expected false, got true",
+      "FAIL Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve: test/src_wanted_round2.lua:89: not equal: expected 256, got 81",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/src_wanted_round2.lua:130: not equal: expected 256, got 257",
+      "FAIL Wanted: R2 S4 mixed records evict by admission not observation or expiry: test/harness.lua:8: next oldest is the record: expected false, got true",
+      "FAIL Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks: test/harness.lua:8: oldest sender ID evicted: expected false, got true"
     ]
   },
   {
@@ -528,14 +711,20 @@
     "killed": true,
     "failures": [
       "FAIL Wanted: deterministic 5000-input decoder and dispatch fuzz has no errors: test/src_wanted.lua:55: not equal: expected 0, got 5000",
-      "FAIL Wanted: receive tick and every ignored tag never attempt any send: test/src_wanted.lua:319: not equal: expected 0, got 36"
+      "FAIL Wanted: receive tick and every ignored tag never attempt any send: test/src_wanted.lua:322: not equal: expected 0, got 36",
+      "FAIL Wanted: R2 S4 one sighting a minute for two hours shows 120 of 120: test/src_wanted_round2.lua:37: not equal: expected 0, got 120",
+      "FAIL Wanted: R2 S4 one sighting every twenty seconds shows all sixty: test/src_wanted_round2.lua:37: not equal: expected 0, got 60",
+      "FAIL Wanted: R2 S4 twenty-second cadence stays live for two hours: test/src_wanted_round2.lua:37: not equal: expected 0, got 360",
+      "FAIL Wanted: R2 S4 channel scout also shows 120 of 120: test/src_wanted_round2.lua:37: not equal: expected 0, got 120",
+      "FAIL Wanted: R2 S4 counter counts public and global evictions not refusals: test/src_wanted_round2.lua:121: not equal: expected 0, got 514",
+      "FAIL Wanted: R2 S4 overlapping sender and public limits count both evictions: test/src_wanted_round2.lua:133: not equal: expected 0, got 258"
     ]
   },
   {
     "rule": "no saved evidence",
     "killed": true,
     "failures": [
-      "FAIL Wanted: immutable dedupe ceilings do not store or save new names: test/src_wanted.lua:127: no evidence or name writes to saved state: expected \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy OnerautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006, got \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy One\ufffdwantedName\ufffdWitness PlayerrautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006"
+      "FAIL Wanted: bounded dedupe evictions do not save evidence or new names: test/src_wanted.lua:130: no evidence or name writes to saved state: expected \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy OnerautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006, got \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy One\ufffdwantedName\ufffdWitness PlayerrautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006"
     ]
   }
 ]
