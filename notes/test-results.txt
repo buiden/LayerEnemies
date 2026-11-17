@@ -1440,6 +1440,14 @@ PROBE rotation natural: accepted=177 attempted=180 refused=3 distinct=39 seconds
 PASS Overlord peer: rotation survives member five going offline for three hours
 PROBE rotation qualified: accepted=60 attempted=60 refused=0 distinct=40 seconds=3600
 PASS Overlord peer: rotation canonicalizes a home-realm-qualified member
+PROBE self Alice Vale: self=0 other=1
+PASS Overlord peer: self silence Alice Vale
+PROBE self Élan Scout: self=0 other=1
+PASS Overlord peer: self silence Élan Scout
+PROBE self Ølaf Scout: self=0 other=1
+PASS Overlord peer: self silence Ølaf Scout
+PROBE self Борис Скаут: self=0 other=1
+PASS Overlord peer: self silence Борис Скаут
 PASS Sources: registry routes addon and Battle.net with unchanged arguments
 PASS Sources: every legacy prefix is refused atomically and counted
 PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
@@ -1487,4 +1495,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1486 tests passed, 0 failed, 270182 assertions
+RESULT: 1490 tests passed, 0 failed, 270362 assertions

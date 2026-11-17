@@ -1,6 +1,36 @@
 [
   {
     "failures": [
+      "FAIL Overlord peer: self silence Alice Vale: test/src_overlord_self.lua:32: no addressed Overlord sends to self: expected 0, got 6",
+      "FAIL Overlord peer: self silence \u00c9lan Scout: test/src_overlord_self.lua:32: no addressed Overlord sends to self: expected 0, got 6",
+      "FAIL Overlord peer: self silence \u00d8laf Scout: test/src_overlord_self.lua:32: no addressed Overlord sends to self: expected 0, got 6",
+      "FAIL Overlord peer: self silence \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442: test/src_overlord_self.lua:32: no addressed Overlord sends to self: expected 0, got 6"
+    ],
+    "killed": true,
+    "rule": "no self addressed admission"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: self silence Alice Vale: test/src_overlord_self.lua:34: dispatch rechecks own identity: expected false, got true",
+      "FAIL Overlord peer: self silence \u00c9lan Scout: test/src_overlord_self.lua:34: dispatch rechecks own identity: expected false, got true",
+      "FAIL Overlord peer: self silence \u00d8laf Scout: test/src_overlord_self.lua:34: dispatch rechecks own identity: expected false, got true",
+      "FAIL Overlord peer: self silence \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442: test/src_overlord_self.lua:34: dispatch rechecks own identity: expected false, got true"
+    ],
+    "killed": true,
+    "rule": "no self queued dispatch"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: self silence Alice Vale: test/src_overlord_self.lua:32: no addressed Overlord sends to self: expected 0, got 6",
+      "FAIL Overlord peer: self silence \u00c9lan Scout: test/src_overlord_self.lua:25: no greeting to own canonical identity: expected 0, got 1",
+      "FAIL Overlord peer: self silence \u00d8laf Scout: test/src_overlord_self.lua:25: no greeting to own canonical identity: expected 0, got 1",
+      "FAIL Overlord peer: self silence \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442: test/src_overlord_self.lua:25: no greeting to own canonical identity: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "self Unicode and realm identity"
+  },
+  {
+    "failures": [
       "FAIL Overlord peer: directory greeting rotates through forty unanswered members: test/harness.lua:8: round robin before any repeat: expected false, got true",
       "FAIL Overlord peer: rotation skips a member marked offline for one hour: test/src_overlord_rotation.lua:64: every reachable member is greeted: expected 39, got 10",
       "FAIL Overlord peer: rotation survives member five going offline for three hours: test/src_overlord_rotation.lua:64: every reachable member is greeted: expected 39, got 10",
