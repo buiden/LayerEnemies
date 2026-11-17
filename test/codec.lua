@@ -89,8 +89,8 @@ test("AceSerializer strict malformed and resource rejection",function()
         "^1^T^Sx^Bjunk^t^^", "^1^T^Sx^N1^Sx^N2^t^^", "^1^T^t^^x", "^1^T^t^T^t^^", "^1^N1^^"}) do eq(C.aceRead(s),nil,s) end
     eq(C.aceWrite(nesting(9)),nil,"write depth")
     eq(C.aceRead("^1"..string.rep("^T^Sk",8).."^T^t"..string.rep("^t",8).."^^"),nil,"read depth")
-    local t={}; for i=1,2048 do t[i]=i end
-    eq(C.aceWrite(t),nil,"4097 logical values")
+    local t={}; for i=1,2049 do t[i]=i end
+    eq(C.aceWrite(t),nil,"2049 table entries")
     eq(C.aceRead("^1^T"..string.rep("^B^B",2048).."^t^^"),nil)
     eq(C.aceWrite({s=string.rep("x",262144)}),nil,"output cap")
     eq(C.aceRead(string.rep("x",262145)),nil,"input cap")
@@ -146,7 +146,52 @@ test("LibSerialize malformed, truncated, cycles and bounds",function()
     eq(C.lsWrite(nesting(9)),nil); eq(C.lsRead(string.rep("x",262145)),nil)
     eq(C.lsWrite({x=string.rep("x",262144)}),nil)
     local t={};t.self=t; eq(C.lsWrite(t),nil)
-    t={};for i=1,2048 do t[i]=i end;eq(C.lsWrite(t),nil)
+    t={};for i=1,2049 do t[i]=i end;eq(C.lsWrite(t),nil)
+end)
+
+-- Independent map encodings avoid letting a writer hide a reader's boundary.
+local function entryFixture(n)
+    local value,ace,ls={},{"^1^T"},{string.char(1,144,math.floor(n/256),n%256)}
+    for i=1,n do
+        local key="k"..i;value[key]=true
+        ace[#ace+1]="^S"..key.."^B"
+        ls[#ls+1]=string.char(#key*16+2)..key..string.char(96)
+    end
+    ace[#ace+1]="^t^^"
+    return value,table.concat(ace),table.concat(ls)
+end
+local function checkEntries(value,n)
+    yes(type(value)=="table","table at the entry ceiling is accepted")
+    local count=0
+    for k,v in pairs(value) do count=count+1;eq(v,true);yes(k:match("^k%d+$")) end
+    eq(count,n)
+    for i=1,n do eq(value["k"..i],true) end
+end
+for _,codec in ipairs({"ace","ls"}) do
+    test(codec.."Read accepts exactly 2048 entries and refuses 2049",function()
+        local _,ace,ls=entryFixture(2048)
+        checkEntries(C[codec.."Read"](codec=="ace" and ace or ls),2048)
+        _,ace,ls=entryFixture(2049)
+        eq(C[codec.."Read"](codec=="ace" and ace or ls),nil,"2049 entries refused")
+    end)
+    test(codec.."Write accepts exactly 2048 entries and refuses 2049",function()
+        local value=entryFixture(2048)
+        local wire=C[codec.."Write"](value)
+        yes(type(wire)=="string","2048-entry writer succeeds")
+        checkEntries(C[codec.."Read"](wire),2048)
+        eq(C[codec.."Write"]((entryFixture(2049))),nil,"2049 entries refused")
+    end)
+end
+test("serializer logical budget includes the root and nested table entries",function()
+    local value=entryFixture(2047);value.child={}
+    yes(C.aceWrite(value));yes(C.lsWrite(value)) -- root + 2048 key/value pairs = 4097
+    value.child.x=true
+    eq(C.aceWrite(value),nil);eq(C.lsWrite(value),nil) -- 4099 logical values
+end)
+test("LibSerialize wire value budget includes nil array slots",function()
+    local first=hex("012aa80800")..string.rep("\000",2048)
+    yes(C.lsRead(first..hex("a807fe")..string.rep("\000",2046)),"4097 wire values")
+    eq(C.lsRead(first..hex("a807ff")..string.rep("\000",2047)),nil,"4098 wire values")
 end)
 
 test("AceComm split/join all controls and boundaries",function()
@@ -168,7 +213,7 @@ test("AceComm split/join all controls and boundaries",function()
     eq(C.aceCommSplit("\001a")[1],"\004\001a")
     local f=C.aceCommSplit(string.rep("a",256));eq(f[1],"\001"..string.rep("a",254));eq(f[2],"\003aa")
 end)
-test("AceComm sender isolation, restart, orphan and exact TTL",function()
+test("AceComm sender isolation, restart, orphan and clock rollback",function()
     local st={now=0}
     eq(C.aceCommJoin(st,"a","\002orphan"),nil)
     eq(C.aceCommJoin(st,"a","\003orphan"),nil)
@@ -176,13 +221,91 @@ test("AceComm sender isolation, restart, orphan and exact TTL",function()
     eq(C.aceCommJoin(st,"b","\001other"),nil)
     eq(C.aceCommJoin(st,"a","\001new"),nil)
     eq(C.aceCommJoin(st,"a","single"),"single")
-    st.now=29.999;eq(C.aceCommJoin(st,"a","\003end"),"newend")
-    st.now=30;eq(C.aceCommJoin(st,"b","\003end"),nil,"exact ttl")
-    st.now=40;C.aceCommJoin(st,"a","\001old")
-    st.now=60;C.aceCommJoin(st,"a","\002middle")
-    st.now=70;eq(C.aceCommJoin(st,"a","\003end"),nil,"no idle refresh")
+    eq(C.aceCommJoin(st,"a","\003end"),"newend")
+    eq(C.aceCommJoin(st,"b","\003end"),"otherend")
     st.now=80;C.aceCommJoin(st,"a","\001old")
     st.now=79;eq(C.aceCommJoin(st,"a","\003end"),nil,"clock rollback")
+end)
+test("AceComm one-second frames join with the last frame at 29 seconds",function()
+    local st={now=0}
+    eq(C.aceCommJoin(st,"a","\001first"),nil)
+    for second=1,28 do
+        st.now=second;eq(C.aceCommJoin(st,"a","\002x"),nil)
+    end
+    st.now=29;eq(C.aceCommJoin(st,"a","\003end"),"first"..string.rep("x",28).."end")
+end)
+test("AceComm 20000-byte message joins at one 255-byte frame per second",function()
+    local raw=string.rep("x",20000)
+    local frames=C.aceCommSplit(raw)
+    eq(#frames,79,"paced fixture must exceed the old 30-second lifetime")
+    local st={now=0};local out
+    for i,frame in ipairs(frames) do
+        st.now=i-1
+        if i<#frames then eq(#frame,255) end
+        out=C.aceCommJoin(st,"a",frame)
+        if i<#frames then eq(out,nil) end
+    end
+    eq(st.now,78);eq(out,raw,"complete paced message")
+end)
+test("AceComm idle timeout is 15 seconds since the last accepted frame",function()
+    for _,idle in ipairs({14.999,15}) do
+        local st={now=0}
+        eq(C.aceCommJoin(st,"a","\001first"),nil)
+        st.now=10;eq(C.aceCommJoin(st,"a","\002middle"),nil)
+        st.now=10+idle
+        eq(C.aceCommJoin(st,"a","\003end"),idle<15 and "firstmiddleend" or nil,"idle boundary")
+        eq(C.aceCommJoin(st,"a","\003late"),nil,"completed or expired stream is gone")
+    end
+end)
+test("AceComm active streams join just before the 120-second total cap",function()
+    local st={now=0}
+    eq(C.aceCommJoin(st,"a","\001first"),nil)
+    for second=1,119 do
+        st.now=second;eq(C.aceCommJoin(st,"a","\002x"),nil)
+    end
+    st.now=119.999
+    eq(C.aceCommJoin(st,"a","\003end"),"first"..string.rep("x",119).."end")
+end)
+test("AceComm total cap drops active streams at 120 and 121 seconds",function()
+    for _,last in ipairs({120,121}) do
+        local st={now=0}
+        eq(C.aceCommJoin(st,"a","\001first"),nil)
+        for second=1,119 do
+            st.now=second;eq(C.aceCommJoin(st,"a","\002x"),nil)
+        end
+        st.now=last;eq(C.aceCommJoin(st,"a","\003end"),nil,"total lifetime from first frame")
+        eq(C.aceCommJoin(st,"a","\003late"),nil,"expired stream is gone")
+    end
+end)
+test("AceComm idle progress is isolated per stream",function()
+    local st={now=0}
+    eq(C.aceCommJoin(st,"a","\001active"),nil)
+    eq(C.aceCommJoin(st,"b","\001idle"),nil)
+    for second=1,14 do
+        st.now=second;eq(C.aceCommJoin(st,"a","\002x"),nil)
+    end
+    st.now=15;eq(C.aceCommJoin(st,"b","\003end"),nil,"other sender cannot refresh idle stream")
+    eq(C.aceCommJoin(st,"a","\003end"),"active"..string.rep("x",14).."end")
+end)
+test("AceComm rejected and standalone frames do not refresh idle progress",function()
+    for _,text in ipairs({"single","\004escaped",string.rep("x",256),"\002"..string.rep("x",255)}) do
+        local st={now=0}
+        eq(C.aceCommJoin(st,"a","\001first"),nil)
+        st.now=14
+        local out=C.aceCommJoin(st,"a",text)
+        if text=="single" then eq(out,"single")
+        elseif text=="\004escaped" then eq(out,"escaped")
+        else eq(out,nil,"oversized frame refused") end
+        st.now=15;eq(C.aceCommJoin(st,"a","\003end"),nil,"no accepted fragment since first")
+    end
+end)
+test("AceComm idle pruning releases stream capacity but retains active peers",function()
+    local st={now=0}
+    for i=1,16 do eq(C.aceCommJoin(st,tostring(i),"\001x"),nil) end
+    st.now=14;eq(C.aceCommJoin(st,"1","\002y"),nil)
+    st.now=15;eq(C.aceCommJoin(st,"17","\001new"),nil)
+    eq(C.aceCommJoin(st,"17","\003end"),"newend","idle slots released")
+    eq(C.aceCommJoin(st,"1","\003end"),"xyend","active peer retained")
 end)
 test("AceComm stream, bytes, fragment, key and frame ceilings",function()
     local st={now=0}
@@ -193,6 +316,9 @@ test("AceComm stream, bytes, fragment, key and frame ceilings",function()
     C.aceCommJoin(st,"a","\001"..string.rep("x",254))
     for _=1,128 do C.aceCommJoin(st,"a","\002"..string.rep("x",254)) end
     eq(C.aceCommJoin(st,"a","\003"..string.rep("x",3)),nil,"32769 bytes")
+    C.aceCommJoin(st,"b","\001x")
+    for _=2,255 do C.aceCommJoin(st,"b","\002x") end
+    eq(C.aceCommJoin(st,"b","\003x"),string.rep("x",256),"256 fragments accepted")
     C.aceCommJoin(st,"b","\001x")
     for _=2,256 do C.aceCommJoin(st,"b","\002x") end
     eq(C.aceCommJoin(st,"b","\003x"),nil,"257 fragments")

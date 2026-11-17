@@ -1,10 +1,13 @@
 -- Independent wire codecs. Format credits/pins: THIRD_PARTY.md. No library code.
 -- Pure Lua 5.1; no registration, globals, timers, network or direct client calls.
+-- Serializer API: one root table, depth <=8, <=2048 entries/table and <=4097
+-- logical values including the root (up to 4096 keys/values); finite numbers only.
 local _, N = ...
 local Cd, S = {}, N.Safe
 N.Codec = Cd
 local floor, char, byte, sub, concat = math.floor, string.char, string.byte, string.sub, table.concat
-local MAX_BYTES, MAX_DEPTH, MAX_VALUES, MAX_ENTRIES = 262144, 8, 4096, 2048
+-- The root itself needs one slot in addition to 2048 key/value pairs.
+local MAX_BYTES, MAX_DEPTH, MAX_VALUES, MAX_ENTRIES = 262144, 8, 4097, 2048
 local function fail() error("invalid codec input",0) end
 local function hidden(v) return S and S.secret(v) end
 local function finite(v)
@@ -197,6 +200,11 @@ local function inflate(input,maxOut)
     if pos~=#input+1 then fail() end -- no concatenated stream/trailing bytes
     return concat(out)
 end
+-- inflate(input, maxOut): pass a SMALL maxOut, the largest legitimate decoded
+-- payload for that network. The default/hard cap of 262144 is not a frame budget.
+-- Reviewer offline worst cases: 240000 7-bit-random bytes took 397 ms; 262144
+-- text-like bytes 253 ms; 120000 text-like bytes 95 ms. A bomb with maxOut=4096
+-- was refused in 0.3 ms. These are measured CPU costs, not in-game timings.
 function Cd.inflate(input,maxOut) return safe(inflate,input,maxOut) end
 function Cd.deflateStored(input)
     return safe(function()
@@ -498,8 +506,19 @@ function Cd.lsWrite(root)
     end)
 end
 
--- Caller owns st and updates st.now (monotonic seconds) before every join.
--- key must distinguish full sender, distribution and prefix. No normalization.
+-- aceCommJoin(st, key, text): caller owns st and updates st.now (monotonic seconds)
+-- before every join. Key distinguishes full sender, distribution and prefix.
+-- No normalization. Returns the complete bytes, or nil for pending/refused input.
+-- Per stream: expire at >=15 s idle since the last accepted fragment OR >=120 s
+-- from the first. Only accepted first/continuation fragments refresh idle time;
+-- a new first replaces that stream. Expiry is pruned on calls, not by a timer.
+-- Caps: 16 streams/state, 32768 assembled bytes, 256 frames, <=255 bytes/frame.
+-- ChatThrottleLib pacing (MAX_CPS=800, BURST=4000, 40 bytes overhead/message)
+-- gives ~689 payload bytes/s with full frames (254 payload + 1 control + 40).
+-- Ideal idle/full-burst sender: ~24.1 KB in 30 s; 32768 bytes takes ~42.6 s,
+-- within the new total cap. Shared traffic/client throttling can reduce this:
+-- one frame/s carries 20000 bytes in 79 frames (+78 s), but at most 30480 bytes
+-- before 120 s. The 32768-byte cap is admission, not guaranteed delivery.
 -- Private weak-key storage prevents foreign tables from forging stream counts.
 local assemblies=setmetatable({},{__mode="k"})
 local function aceCommJoin(st,key,text)
@@ -514,7 +533,7 @@ local function aceCommJoin(st,key,text)
     state.now=now
     local streams,count=state.streams,0
     for k,stream in next,streams do
-        if now-stream.at>=30 then streams[k]=nil else count=count+1 end
+        if now-stream.last>=15 or now-stream.at>=120 then streams[k]=nil else count=count+1 end
     end
     local control=byte(text,1) or 0
     if control<1 or control>9 then return text end
@@ -523,14 +542,14 @@ local function aceCommJoin(st,key,text)
     local part=sub(text,2)
     if control==1 then
         if not streams[key] and count>=16 then return nil end
-        streams[key]={at=now,parts={part},size=#part,count=1}
+        streams[key]={at=now,last=now,parts={part},size=#part,count=1}
         return nil
     end
     local stream=streams[key]
     if not stream then return nil end
     if stream.size+#part>32768 or stream.count>=256 then streams[key]=nil; return nil end
     stream.size=stream.size+#part; stream.count=stream.count+1
-    stream.parts[stream.count]=part
+    stream.parts[stream.count]=part; stream.last=now
     if control==3 then
         streams[key]=nil
         return concat(stream.parts)

@@ -17,7 +17,7 @@ local function checkTable(root)
     local count,total=0,0
     local active={}
     local function visit(v,depth)
-        count=count+1;assert(count<=4096)
+        count=count+1;assert(count<=4097)
         if type(v)=="string" then total=total+#v;assert(total<=262144)
         elseif type(v)=="table" then
             assert(depth<8 and not active[v] and getmetatable(v)==nil)

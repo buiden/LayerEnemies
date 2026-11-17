@@ -54,7 +54,8 @@ def run():
         assert result == value, mode
     print('ZLIB: %d inflate + %d stored-writer comparisons passed (%d input-cap refusals)' % (len(raw), len(raw), refused_at_input_cap), flush=True)
 
-    objects: list[dict] = [dict(data=bytes(range(256)), x=-1/3, empty={})]
+    objects: list[dict] = [dict(data=bytes(range(256)), x=-1/3, empty={}),
+                           {f"k{i}": True for i in range(1, 2049)}]
     for _ in range(250):
         objects.append({'k': bytes(rng.randrange(256) for _ in range(rng.randrange(128))),
                         'n': rng.uniform(-1e8, 1e8), 'i': rng.randrange(-2**52, 2**52),
