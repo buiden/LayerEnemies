@@ -33,7 +33,7 @@ add('integer server time', 'at%1==0', 'true', 'server time integer', 'LayerEnemi
 add('live clock rechecked at dispatch', 'local fresh=frame(kind,r,self,live)', 'local fresh=text', 'server clock unreadable')
 add('only own Find not Watch-only', 'ipairs(N.Main.find.entries)', 'ipairs(N.Find.new({"Enemy Player"}).entries)', 'only own Find')
 add('client GUID required', 'r.guid=S.str(v(game.playerGuid),80)', 'r.guid="Player-123-FFFFFFFF"', 'GUID only from live', 'LayerEnemies/Adapters.lua')
-add('no GUID adopted from inbound frame', 'local r=records[ev.guid]', 'local r=records[ev.guid]; for _,v in pairs(records) do v.guid=ev.guid end', 'same GUID debt')
+add('no GUID adopted from inbound frame', 'function T.note(ev)\n    local r=records[ev.guid]', 'function T.note(ev)\n    local r=records[ev.guid]; for _,v in pairs(records) do v.guid=ev.guid end', 'same GUID debt')
 add('confirmed A required', 'not peer.confirmed or', 'false or', 'confirmation rules')
 add('H does not resurrect expired confirmation', 'ctx.now-old.at<1200', 'true', 'H cannot revive', 'LayerEnemies/WarBoard.lua')
 add('peer expiry boundary', 'ctx.now-peer.at>=1200', 'ctx.now-peer.at>1200', 'confirmation rules')
@@ -60,18 +60,16 @@ add('renewal older than 300 withdraws', 'ctx.now-r.location>300', 'false', 'past
 add('300 second restart pause', 'ctx.now-w.at>=300', 'ctx.now-w.at>=200', 'first asks three')
 add('new handshake permits stale restart', '(w.renewal and who.handshake>w.at)', 'false', 'past 300')
 add('only post-stop handshake bypasses idle', 'who.handshake>w.at', 'who.handshake>(w.handshake or ctx.now)', 'handshake before')
-combined('three FBUN attempts maximum', [
-    ('LayerEnemies/WarBoardTrack.lua','elseif (r.tries or 0)>=3','elseif (r.tries or 0)>=4'),
-    ('LayerEnemies/WarBoardTrack.lua','elseif not r.closing or (r.tries or 0)>=3','elseif not r.closing or (r.tries or 0)>=4')], 'FBUN refused')
-add('FBUN retry admission sixty seconds', 'ctx.now-r.unlast<60', 'ctx.now-r.unlast<59', 'six forty-five')
+add('three FBUN attempts per window', '(r.tries or 0)<3', '(r.tries or 0)<4', 'FBUN refused')
+add('FBUN retry admission sixty seconds', 'now-r.unlast>=60', 'now-r.unlast>=59', 'six forty-five')
 add('debt before client call', 'r.sent=true; remember(r.guid)', 'r.sent=true', 'active request and')
 add('accepted FBUN only settles', 'if kind=="FBUN" and ok then', 'if kind=="FBUN" then', 'accepted FBUN')
 add('owed list retained at logout', 'T.closed=true', 'T.closed=true; for i=#owed,1,-1 do owed[i]=nil end', 'logout in combat')
 add('saved GUID sanitation', 'local g=guid(raw[k])', 'local g=raw[k]', 'only new saved')
 add('saved forty cap oldest out', 'if #owed>40 then', 'if #owed>41 then', 'only new saved')
 add('bounded session debt records', 'records[old]=nil --', 'do end --', 'restored forty')
-add('load resumes owed cleanup', 'records[g]={guid=g,closing=true,sent=true,tries=0}', 'records[g]=nil', 'crash login')
-add('load retains owed GUID list', 'N.WarBoardTrack.load(saved.warboardOwed)', 'N.WarBoardTrack.load(nil)', 'crash login', 'LayerEnemies/Main.lua')
+add('load resumes owed cleanup', 'records[g]={guid=g,closing=true,sent=true,tries=0,total=n or 0}', 'records[g]=nil', 'reload login')
+add('load retains owed GUID list', 'N.WarBoardTrack.load(saved.warboardOwed)', 'N.WarBoardTrack.load(nil)', 'reload login', 'LayerEnemies/Main.lua')
 add('switch defaults on', 'T.closed=nil; T.on=true', 'T.closed=nil; T.on=false', 'switch defaults')
 add('status prints track state', '(N.WarBoardTrack.on and "on" or "off")', '"on"', 'switch defaults', 'LayerEnemies/Main.lua')
 add('remove synchronously owes withdrawal', 'if N.WarBoardTrack then N.WarBoardTrack.changed(st) end\nend\nfunction F.hashes', 'do end\nend\nfunction F.hashes', 'remove quick', 'LayerEnemies/Find.lua')
@@ -85,7 +83,7 @@ for mode in ('share','guild','source'):
     add(mode+' allows only owed FBUN past stop gate', 'if withdrawal(net,id,prefix,text,prio) then return safe() end', 'do end', mode+' sends', 'LayerEnemies/BNet.lua')
 add('standdown still allows owed FBUN', 'if withdrawal(net,id,prefix,text,prio) then return safe() end', 'if withdrawal(net,id,prefix,text,prio) then return safe() and N.Net.allowed(net,"public") end', 'standdown sends', 'LayerEnemies/BNet.lua')
 add('disabled source still ticks cleanup', 'or (r.name=="warboard" and N.WarBoardTrack and N.WarBoardTrack.hasOwed()) then call', 'then call', 'source sends', 'LayerEnemies/Sources.lua')
-add('disabled source can confirm owed account', 'and not cleanup then return false end', 'then return false end', 'crash login', 'LayerEnemies/Sources.lua')
+add('disabled source can confirm owed account', 'and not cleanup then return false end', 'then return false end', 'reload login', 'LayerEnemies/Sources.lua')
 add('combat cleanup queue survives', 'not (q.cleanup and not safe()) and', 'true and', 'combat holds', 'LayerEnemies/BNet.lua')
 add('instance cleanup queue survives', 'not (q.cleanup and not safe()) and', 'true and', 'instance holds', 'LayerEnemies/BNet.lua')
 add('generic owed is not a bypass', 'if withdrawal(net,id,prefix,text,prio) then return safe() end', 'if prio=="owed" then return safe() end', 'no generic owed', 'LayerEnemies/BNet.lua')
@@ -94,6 +92,77 @@ add('tagged cancel preserves other targets', '(not tag or q.tag==tag)', 'true', 
 add('client completion settles debt', 'if q.done then S.call(q.done,ok) end', 'do end', 'accepted FBUN', 'LayerEnemies/BNet.lua')
 add('Find coordinate provenance unchanged', 'ev.pos="enemy"', 'ev.pos="observer"', 'positions remain', 'LayerEnemies/WarBoard.lua')
 add('no new guild forwarding', 'if accepted and N.WarBoardTrack then N.WarBoardTrack.note(ev) end', 'if accepted then N.Wire.send("WarBoard","forwarded","GUILD") end\n    if accepted and N.WarBoardTrack then N.WarBoardTrack.note(ev) end', 'positions remain', 'LayerEnemies/WarBoard.lua')
+
+
+def debt(rule, old, new, selector, file='LayerEnemies/WarBoardTrack.lua'):
+    MUTANTS.append((rule, [(file, old, new)], 'WarBoard debt: ' + selector))
+
+for mode in ('share', 'source', 'guild'):
+    debt('M1 ' + mode + ' debt handshake exception',
+         'if N.WarBoard and N.WarBoard.handshake(id,text) then return safe() end',
+         'do end', 'M1 ' + mode + ' relog', 'LayerEnemies/BNet.lua')
+MUTANTS.append(('M1 only owed account may use handshake exception', [
+    ('LayerEnemies/WarBoard.lua','local debt=N.WarBoardTrack and N.WarBoardTrack.owedAccount(id)\n    local function permit',
+     'local debt=N.WarBoardTrack and N.WarBoardTrack.hasOwed()\n    local function permit'),
+    ('LayerEnemies/WarBoard.lua','N.WarBoardTrack.owedAccount(id)~=nil','true')], 'WarBoard debt: M1 exception'))
+debt('M1 donor-owned H refreshes debt confirmation',
+     'peer.confirmed=true; peer.needAnswer=nil; proof(st,peer,ctx.now)',
+     'peer.needAnswer=nil', 'M1 donor relog', 'LayerEnemies/WarBoard.lua')
+MUTANTS.append(('M1 no duplicate H/A when donor loaded', [
+    ('LayerEnemies/WarBoard.lua','if N.Adapters.loaded("WarBoard") then return false end','do end'),
+    ('LayerEnemies/WarBoard.lua','or N.Adapters.loaded("WarBoard") then return false end','then return false end'),
+    ('LayerEnemies/BNet.lua','if A.loaded("WarBoard") then return false end','do end')],
+    'WarBoard debt: M1 donor relog'))
+MUTANTS.append(('M1 final queued handshake checks stand-down', [
+    ('LayerEnemies/WarBoard.lua','or N.Adapters.loaded("WarBoard") then return false end','then return false end'),
+    ('LayerEnemies/WarBoard.lua','and not N.Adapters.loaded("WarBoard") or false','or false'),
+    ('LayerEnemies/BNet.lua','if A.loaded("WarBoard") then return false end','do end')], 'WarBoard debt: M1 queued handshakes'))
+debt('M2 new H invalidates cleanup proof',
+     'if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end',
+     'if cmd=="H" then peer.needAnswer=true end', 'M2 latest safe H', 'LayerEnemies/WarBoard.lua')
+debt('M2 unsafe H retained for later answer',
+     'peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true\n        end',
+     'do end\n        end', 'M2 share target reload', 'LayerEnemies/WarBoard.lua')
+debt('M2 FBUN requires latest handshake proof',
+     'if cleanup and not T.ready(peer,ctx.now) then return nil end',
+     'do end', 'M2 latest safe H')
+debt('M2 failed A cannot confirm target handshake',
+     'if ok and st.peers[id]==peer and peer.hello==hello then',
+     'if st.peers[id]==peer and peer.hello==hello then', 'M2 latest safe H', 'LayerEnemies/WarBoard.lua')
+debt('M2 accepted withdrawal remains unverified',
+     'r.accepted=r.unlast -- sent, unverified; never settle on API acceptance',
+     'settled(r.guid)', 'M2 accepted send')
+debt('M2 roster is inspected independently of disabled source and Find',
+     'if N.WarBoardTrack then N.WarBoardTrack.roster(ev,d.roster,account,ctx) end',
+     'do end', 'M2 source off', 'LayerEnemies/WarBoard.lua')
+debt('M2 disabled source accepts owed account roster',
+     'or N.WarBoardTrack.owedAccount(id)', 'or false', 'M2 source off', 'LayerEnemies/Sources.lua')
+debt('M2 excluding roster settles debt', '    settled(r.guid)\nend\nlocal function retryDue',
+     '    do end\nend\nlocal function retryDue', 'M2 accepted send')
+debt('M2 included hunter invalidates silence fallback', 'r.accepted=nil -- observed failure',
+     'do end -- observed failure', 'M2 listed roster')
+debt('M2 included hunter forces fresh handshake', 'if peer then peer.proof=nil end -- a new exchange',
+     'do end -- a new exchange', 'M2 listed roster')
+debt('M2 silence fallback exactly fifteen minutes', 'ctx.now-r.accepted>=900',
+     'ctx.now-r.accepted>=899', 'M2 missing roster')
+debt('M2 roster target must match live account GUID',
+     'or who.guid~=r.guid or not me', 'or not me', 'M2 stale relayed')
+debt('M2 roster must be target-authored not relayed', 'or ev.kind~="self" or ev.at>ctx.now',
+     'or ev.at>ctx.now', 'M2 stale relayed')
+debt('M2 roster must be newer than withdrawal', '(r.unlast and ev.at<=r.unlast)',
+     'false', 'M2 stale relayed')
+debt('S1 retry window reopens after ten minutes', 'now-r.window>=600',
+     'now-r.window>=1200', 'S1 failed sends')
+debt('M2 six attempts over debt lifetime', 'if r.accepted or (r.total or 0)>=6 then',
+     'if r.accepted then', 'M2 lifetime six')
+debt('M2 lifetime bound persists across reload', 'total=n or 0', 'total=0', 'M2 lifetime six')
+debt('M2 persisted count clamps at six', 'math.min(6,math.max(0,math.floor(n)))',
+     'math.max(0,math.floor(n))', 'M2 saved attempts')
+debt('S3 debt remains per character', '## SavedVariablesPerCharacter: LayerEnemiesDB',
+     '## SavedVariables: LayerEnemiesDB', 'S3 per character', 'LayerEnemies/LayerEnemies.toc')
+for rule, phrase in [('S2 crash truth','client crash before'), ('S2 character login','that\ncharacter\'s next login'),
+                     ('N1 unsafe wait disclosure','target may keep broadcasting'), ('S2 narrow exception','**debt-settlement exception**')]:
+    debt(rule, phrase, 'undocumented', 'S2 N1 README', 'README.md')
 
 
 def main():

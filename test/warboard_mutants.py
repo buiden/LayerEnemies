@@ -36,7 +36,7 @@ add('public off silence', 'not authorized or not N.Main.sharing() or N.Net.conse
 add('stand down own sends', 'standDown="WarBoard"', 'standDown="Uninstalled"', 'stand down')
 add('handshake grammar cannot masquerade as FBAK', 'local text="WBF1|"..cmd', 'local text="WBF1|FBAK"..cmd', 'compatible H')
 add('no forwarding', 'if st.seen[encoded] then return duplicate() end', 'BN.send("warboard",71,"WarBoard","WBF1|D|"..encoded,"own")\n    if st.seen[encoded] then return duplicate() end', 'no unsolicited application response')
-add('no alternative send route', 'return BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'N.Wire.send("WarBoard",text,"GUILD")\n    return BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'compatible H')
+add('no alternative send route', 'local queued=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'N.Wire.send("WarBoard",text,"GUILD")\n    local queued=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'compatible H')
 add('confirmed peer required', 'if not peer or peer.rs~=ctx.rs', 'peer=peer or {rs=ctx.rs,key=who.key,faction=who.faction,at=ctx.now}\n    if not peer or peer.rs~=ctx.rs', 'unconfirmed wrong')
 add('peer lifetime bounded', 'ctx.now-peer.at>=1200', 'ctx.now-peer.at>1200', 'unconfirmed wrong')
 add('identity rechecked', 'peer.key~=who.key', 'false', 'unconfirmed wrong')
@@ -160,6 +160,13 @@ round2('untracked refusals are not remembered', 'if not untracked then remember(
 round2('mutant runner does not require owner scratch path', 'def main():\n    scratch = Path(tempfile.gettempdir())',
        "def main():\n    scratch = Path(os.environ.get('TMPDIR', '/opt/data/cache/scratch'))\n    assert str(scratch).startswith('/opt/data/cache/scratch')",
        'portable mutant runner', '../test/warboard_mutants.py')
+
+round2('identical mutant evidence is not rewritten',
+       'if not report.exists() or report.read_bytes() != content:\n        report.write_bytes(content)',
+       'if True:\n        report.write_bytes(content)', 'portable mutant runner', '../test/warboard_mutants.py')
+round2('random traceback paths and addresses normalized',
+       "def diagnostic(line):\n    line = re.sub(r'(?:table|function): 0x[0-9a-fA-F]+', '<object>', line)",
+       'def diagnostic(line):\n    return line', 'portable mutant runner', '../test/warboard_mutants.py')
 
 
 def diagnostic(line):

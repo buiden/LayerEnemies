@@ -141,7 +141,7 @@ test("FBUN refused and throwing client retries three times sixty seconds apart",
             end
             if throws then error("refused") end; return false
         end
-        stop(N,"track"); advance(180); eq(#attempts,3); eq(debt(a[71].playerGuid),1)
+        stop(N,"track"); advance(300); eq(#attempts,3); eq(debt(a[71].playerGuid),1)
         yes(attempts[2]-attempts[1]>=60); yes(attempts[3]-attempts[2]>=60)
         advance(600); eq(#attempts,6,"next window reopens, lifetime bound remains")
     end

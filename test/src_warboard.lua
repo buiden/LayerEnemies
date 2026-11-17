@@ -147,6 +147,7 @@ end
 
 test("stand down blocks both own hellos and owed answers",function()
     local N=setup(); h.loaded().WarBoard=true
+    no(N.Net.allowed("warboard","public"))
     N.BNet.peers=function() return {{id=71,faction="Horde"}} end
     advance(2); eq(#sends(),0)
     inbound(hello()); advance(1); eq(#sends("A"),0)
