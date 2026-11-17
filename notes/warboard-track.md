@@ -31,6 +31,240 @@ Work sequence: tests/baseline, handshake and verification, retry/persistence,
 documentation/legacy assertion migrations, mutants, full verify, separate evidence
 commit. Local commits only; no donor execution/copy or publication.
 
+## Current correction result (supersedes the first-round record below)
+
+Runtime commits: `7ffa85d`, `72ac02c`, `c46d1e8`; tests/bounds: `378a07a`, `1d00129`.
+The original source/probes stayed frozen in the detached a4dfbc40 worktree.
+
+- **M1:** debt-owned private H/A permissions pass share/source/Guild-only gates,
+  with current-account GUID validation at admission and dispatch. No generic
+  priority bypass. Once debt clears the exception ends. Real WarBoard owns all
+  H/A when loaded; LE sends neither, including already queued handshakes. Valid
+  owed-account H/A observations refresh cleanup confirmation. Known-account
+  observations heard while unsafe are deferred for identity/rules validation on
+  safe resumption, without scanning or sending while unsafe. Cleanup-only proof
+  is separate from received-A eligibility and cannot authorize a later FBAK.
+- **M2:** each target H invalidates cleanup proof. An accepted answer after that
+  H (or donor-owned observation) establishes later proof; queued FBUN rechecks it.
+  Accepted FBUN remains sent-unverified. Only a later valid direct target roster
+  excluding our hunter GUID, or 900 seconds after an uncontradicted accepted
+  call, clears debt. Inclusion invalidates silence fallback and requires a new
+  exchange before retry. Untracked/ignored/source-off targets still get cleanup
+  roster inspection; it does not admit evidence into Find or forward anything.
+- **S1:** three failed client attempts pause only the current 600-second window;
+  later windows reopen, with the existing 60-second spacing. All attempts,
+  failed ones included, count toward **six over the debt's life**. At six, retain
+  debt across relog and forbid new asks/FBUN; later excluding-roster evidence can
+  settle it. Silence clears only an accepted send not contradicted by a roster.
+  The target can remain subscribed indefinitely at the bound. Persisted bounded
+  `warboardOwed.attempts` accounting is the explicit schema ruling above.
+- **S2/S3/N1:** README now states the precise exception, disk writes only at
+  logout/reload, lost new debt/no FBUN after a crash before saving, per-character
+  next-login ownership, and continued target broadcasts during combat/instances.
+  GUID persistence is limited to warboardOwed; no account IDs, names, positions,
+  rosters or clocks were added. Legacy GUID-only saves load with zero attempts.
+- **N2:** E1 runner normalizes random traceback prefixes/object addresses and
+  skips identical report writes. Real repeated runs of both runners preserve
+  report bytes **and mtime**, not merely normalized comparisons.
+
+### Executed evidence
+
+- Initial ruling regressions on untouched **a4dfbc40**: **1 pass / 25 failures /
+  1398 assertions**. All 25 were actual assertion failures; S3 was already green.
+  Final `src_warboard_debt.lua`: **32 cases**, all green. Four later boundary /
+  adversarial cases were added while green and are not claimed as initial RED.
+  The donor-unsafe observation case separately failed on `1d00129` with
+  `expected 1, got 0`, then passed on `72ac02c`. Cleanup-only proof authorizing
+  fresh FBAK separately failed on `72ac02c` (`expected 0, got 3`) and passed
+  on `c46d1e8`; its mutant restores precisely that eligibility promotion.
+- The N2 real relocated-run test failed before the runner fix with
+  `AssertionError: evidence bytes/mtime changed on rerun`; it now passes.
+- Focused WarBoard suite: **191 tests passed, 0 failed, 41546 assertions**.
+- Final **`python3 test/verify.py`**, foreground subprocess timeout **1800 s**,
+  exit **0**: **RESULT: 1487 tests passed, 0 failed, 216736 assertions**.
+  Log: `/opt/data/cache/scratch/le-e2-r2-verify-eligibility.log`. All syntax, static/API
+  policy, harness discovery, media, TOC and archive/source parity checks pass.
+  Earlier full runs also passed; they are superseded by this post-fix run.
+- **100/100 E1 mutants** and **96/96 tracking mutants killed**, assertion failures
+  only (no timeout/syntax/empty-collection kills). Original 64 tracking rules
+  retained with migrated anchors; 32 new rule mutants added. N2 adds two E1 rules.
+  One inherited retry-window mutant initially survived because the old 180-second
+  observation ended just before a fourth attempt; extending it to 300 seconds
+  exposes that violation. Two new privacy/stand-down mutants needed combined
+  guard removal to bypass deliberate defense in depth, not weakened assertions.
+- Added-line security scan: no hardcoded credentials, shell execution or unsafe
+  deserialization matches. `git diff --check` passes.
+- Final archive `dist/LayerEnemies-1.1.0.zip` SHA-256:
+  `97734af060fa0b5c509fbf0a3fa5af1841f68fd2b25b7831ec32bc324ce3c051`.
+  Integration still owns the 1.2.0 version bump. No push or donor-code execution.
+
+### Reviewer probe readback
+
+All four original `src_zzmani*.lua` files were copied unchanged into private
+scratch worktrees, never edited in the reviewer's profile. Baseline observations
+reproduced each reported M1/M2/S1 failure. The candidate complete run reports
+22 cases / zero harness failures, but those probes swallow errors and primarily
+print OBS rows: **the rows, not their PASS labels, are the evidence**.
+
+- Share/source/Guild-only relog H-only cases: one FBUN, zero remote subscribers,
+  debt zero after the 30-minute run. Donor-loaded relog: one FBUN, **zero H/A**,
+  zero subscribers/debt.
+- 600/1300-second combat waits with target H prompts: one FBUN; subscriptions
+  and debt gone by the end, including the formerly stuck privacy modes.
+- Target reload while FBUN waits (share/source/Guild-only/track off): one A then
+  one FBUN, **zero rejected frames**, zero subscribers. Debt is correctly still
+  present at 400 seconds, not falsely cleared on the client call; the assertion
+  ports separately verify clearing after roster proof/900 seconds.
+- Ten-minute client failure: three attempts initially, **four total** after
+  recovery in the same session, target unsubscribed and debt zero. Next-login
+  cleanup is no longer needed in that successful recovery case.
+- The original donor-loaded 30-minute instance probe sends **no fresh target
+  handshake at all**, including during the wait. It correctly remains pending:
+  LE must not invent a confirmation or send its own H/A. New assertion ports
+  cover real target prompts during and after the wait. No-handshake, unavailable
+  identity, unknown ruleset and actual logout remain fail-closed waits.
+
+Logs: `/opt/data/cache/scratch/le-e2-r2-reviewer-{red,complete}.log`;
+private candidate checkout `/opt/data/cache/scratch/le-e2-r2-probes`.
+One complete-probe attempt hit a 180-second tool timeout; the unchanged command
+was rerun to completion with 600 seconds, not counted as a pass on timeout.
+
+### Exact changed-test ledger for this correction
+
+`test/src_warboard.lua`: **stand down blocks both own hellos and owed answers**
+replaces the old owed-A permission, per M1b; it also pins Net's stand-down gate.
+No other E1 test body changed.
+
+`test/src_warboard_track.lua`: its helper now **seeds already-confirmed unit
+fixture state**, rather than fabricating unsolicited A messages. These tests do
+not claim to exercise a handshake. All 58 cases using that shared helper are
+listed below. New debt integration tests use an independent target model that
+receives H, replies A, sends its own gated H, and refuses data until it has
+received A. The impossible source-off injected-A test is replaced by target H
+and actual LE answer/FBUN behavior. Stop/unsafe cases now require retained debt
+until verification; retry exhaustion expects reopened windows; restart/idle
+cases supply excluding-roster proof before a new request may start. Exact-wire,
+budgets, identity, privacy, persistence and timing assertions otherwise remain.
+
+- `WarBoard track: exact FBAK and FBUN audit fields and codec round trip`
+- `WarBoard track: remove sends exactly one owed FBUN through stop gates`
+- `WarBoard track: remove cancels an unsent ask without creating debt`
+- `WarBoard track: clear sends exactly one owed FBUN through stop gates`
+- `WarBoard track: clear cancels an unsent ask without creating debt`
+- `WarBoard track: track sends exactly one owed FBUN through stop gates`
+- `WarBoard track: track cancels an unsent ask without creating debt`
+- `WarBoard track: share sends exactly one owed FBUN through stop gates`
+- `WarBoard track: share cancels an unsent ask without creating debt`
+- `WarBoard track: guild sends exactly one owed FBUN through stop gates`
+- `WarBoard track: guild cancels an unsent ask without creating debt`
+- `WarBoard track: source sends exactly one owed FBUN through stop gates`
+- `WarBoard track: source cancels an unsent ask without creating debt`
+- `WarBoard track: standdown sends exactly one owed FBUN through stop gates`
+- `WarBoard track: standdown cancels an unsent ask without creating debt`
+- `WarBoard track: logout sends exactly one owed FBUN through stop gates`
+- `WarBoard track: logout cancels an unsent ask without creating debt`
+- `WarBoard track: combat holds cleanup until safe including an already queued FBUN`
+- `WarBoard track: instance holds cleanup until safe including an already queued FBUN`
+- `WarBoard track: FBUN refused and throwing client retries three times sixty seconds apart`
+- `WarBoard track: accepted FBUN remains unverified until roster proof not queue admission`
+- `WarBoard track: reload login settles GUID only with answered target H even source off`
+- `WarBoard track: logout in combat retains owed list and login while tracked cleans before asking`
+- `WarBoard track: only new saved field is bounded dense target GUID list oldest out`
+- `WarBoard track: switch defaults on is session only and status states limits`
+- `WarBoard track: only own Find names never shared Watch or untracked`
+- `WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed`
+- `WarBoard track: GUID only from live client never a received frame`
+- `WarBoard track: dispatch rechecks live GUID own identity scope and rules`
+- `WarBoard track: server time integer mandatory and not local wall clock`
+- `WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle`
+- `WarBoard track: fresh positions then renewal 45 to 300 seconds only and 45 apart`
+- `WarBoard track: newest position controls renewal and old out of order data cannot refresh`
+- `WarBoard track: past 300 seconds sends FBUN idle until 300 pause or new handshake`
+- `WarBoard track: six FBAK per rolling minute admission and dispatch max twenty targets`
+- `WarBoard track: owed A before FBUN before FBAK within ten frame WarBoard share`
+- `WarBoard track: positions remain honest Find evidence and never new guild relay`
+- `WarBoard track: rollback stays silent and tagged cancellation preserves other targets and A`
+- `WarBoard track: README send table first exact consequences and persistent debt`
+- `WarBoard track: active request and received evidence save only target GUID no other metadata`
+- `WarBoard track: no generic owed bypass for H FBAK foreign net or invented FBUN`
+- `WarBoard track: server clock unreadable at dispatch does not send or forget cleanup`
+- `WarBoard track: missing own name GUID faction version or rules never asks`
+- `WarBoard track: failed FBAK spends three attempts and still owes FBUN`
+- `WarBoard track: all actual request attempts respect six after shared queue delay`
+- `WarBoard track: same GUID debt cannot be redirected by a received forged position`
+- `WarBoard track: restored forty debt bound oldest out on the next attempted request`
+- `WarBoard track: remove quick stop resume cannot erase withdrawal obligation`
+- `WarBoard track: clear quick stop resume cannot erase withdrawal obligation`
+- `WarBoard track: track quick stop resume cannot erase withdrawal obligation`
+- `WarBoard track: share quick stop resume cannot erase withdrawal obligation`
+- `WarBoard track: guild quick stop resume cannot erase withdrawal obligation`
+- `WarBoard track: source quick stop resume cannot erase withdrawal obligation`
+- `WarBoard track: six forty-five and sixty second exact admission boundaries`
+- `WarBoard track: H cannot revive an expired A confirmation`
+- `WarBoard track: renewal exact forty-five second per target boundary`
+- `WarBoard track: twenty active targets even when corrupted Find holds twenty one`
+- `WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause`
+
+New `test/src_warboard_debt.lua` cases (all are real assertion tests):
+
+- `WarBoard debt: M1 share relog settles from target H only`
+- `WarBoard debt: M1 share combat 30 minute stop recovers`
+- `WarBoard debt: M1 share instance 30 minute stop recovers`
+- `WarBoard debt: M1 source relog settles from target H only`
+- `WarBoard debt: M1 source combat 30 minute stop recovers`
+- `WarBoard debt: M1 source instance 30 minute stop recovers`
+- `WarBoard debt: M1 guild relog settles from target H only`
+- `WarBoard debt: M1 guild combat 30 minute stop recovers`
+- `WarBoard debt: M1 guild instance 30 minute stop recovers`
+- `WarBoard debt: M1 donor relog settles from target H only`
+- `WarBoard debt: M1 donor combat 30 minute stop recovers`
+- `WarBoard debt: M1 donor instance 30 minute stop recovers`
+- `WarBoard debt: M2 share target reload during combat reanswers latest H`
+- `WarBoard debt: M2 source target reload during combat reanswers latest H`
+- `WarBoard debt: M2 guild target reload during combat reanswers latest H`
+- `WarBoard debt: M2 track target reload during combat reanswers latest H`
+- `WarBoard debt: M2 accepted send retained until later roster excludes hunter`
+- `WarBoard debt: M2 source off and removed Find still observes cleanup roster`
+- `WarBoard debt: M2 listed roster rehandshakes then resends lost withdrawal`
+- `WarBoard debt: M2 missing roster silence clears only at fifteen minute boundary`
+- `WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle`
+- `WarBoard debt: S1 failed sends reopen after ten minutes three per window`
+- `WarBoard debt: M2 lifetime six attempt bound survives reload with debt retained`
+- `WarBoard debt: M2 continuous listed rosters prevent quiet clearing at resend bound`
+- `WarBoard debt: S3 per character save waits for original hunter login`
+- `WarBoard debt: M1 exception cannot reach another account while debt remains`
+- `WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer`
+- `WarBoard debt: M1 donor observes owed H during unsafe wait without LE answer`
+- `WarBoard debt: M1 cleanup proof alone never authorizes a new FBAK`
+- `WarBoard debt: M1 queued handshakes stand down when real addon loads`
+- `WarBoard debt: M2 saved attempts sanitize only retained target GUIDs`
+- `WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee`
+
+Other changed tests/runners:
+- `test/warboard_mutants_portability_test.py::main`: actual repeated relocated
+  runner execution checks byte/mtime stability, plus path/address normalization.
+  The existing `WarBoard R2: portable mutant runner accepts relocated checkout
+  cwd and scratch` harness case executes it, unchanged.
+- `test/warboard_mutants.py`: only migrated send anchor, deterministic diagnostic
+  normalization/write behavior, and two N2 mutants; all prior 98 rules remain.
+- `test/warboard_track_mutants.py`: migrated anchors/selectors for revised state
+  and documentation, retained all original 64 rules and added 32 correction rules.
+- `test/verify.py`, API-policy tests and all eight saved-key allowlist tests are
+  unchanged in this correction. The bounded attempts map is inside warboardOwed,
+  not a new top-level saved key.
+
+Final review: **self-review (no independent reviewer tool in this subagent)**.
+Parent review remains independent. Native checks:
+**not run (alpha, owner's decision)**. Offline acceptance does not guarantee
+network delivery, silence-based settlement, crash durability or remote broadcast
+cessation at an exhausted/evicted debt.
+
+## Historical first-round record
+
+The following records a4dfbc40 and earlier only. Its accepted-call settlement,
+GUID-only contents, session-terminal retries and no-handshake-exception wording
+are explicitly superseded above; preserve it for original E1 assertion provenance.
+
 ## Exact sends, recipients, caps and stop rules (historical E2 first round)
 
 Both new types are `WBF1|D|` followed by `addonEncode(deflateStored(aceWrite(envelope)))`.
