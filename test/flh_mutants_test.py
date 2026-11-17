@@ -26,8 +26,22 @@ class MutationEvidenceTests(unittest.TestCase):
                 self.assertEqual(results[0], results[1])
                 self.assertIn('test/harness.lua:7', results[0]['caught_by'][0])
 
+    def test_hop_report_normalizes_runtime_identity_and_checkout_paths(self):
+        runner = runpy.run_path(str(ROOT / 'test/hop_fanout_mutants.py'))
+        results = []
+        for checkout, address in (('/scratch/clone-a', '0x123abc'), ('/scratch/clone-b', '0x789def')):
+            output = ('FAIL Hop fanout: identity: ' + checkout + '/test/harness.lua:7: '
+                      'expected nil, got table: ' + address + '\n')
+            proc = type('Process', (), {'returncode': 1, 'stdout': output, 'stderr': ''})()
+            with patch('subprocess.run', return_value=proc):
+                result = runner['run'](Path(checkout), '/lua')
+            results.append(result.stdout)
+        self.assertEqual(results[0], results[1])
+        self.assertIn('test/harness.lua:7', results[0])
+        self.assertIn('table: <address>', results[0])
+
     def test_report_writer_preserves_identical_evidence(self):
-        for name in ('flh_mutants.py', 'flh_member_mutants.py'):
+        for name in ('flh_mutants.py', 'flh_member_mutants.py', 'hop_fanout_mutants.py'):
             with self.subTest(runner=name), tempfile.TemporaryDirectory(dir=os.environ['TMPDIR']) as tmp:
                 runner = runpy.run_path(str(ROOT / 'test' / name))
                 self.assertTrue('write_report' in runner, 'missing stable report writer')

@@ -79,6 +79,48 @@ class ApiPolicyTests(unittest.TestCase):
             self.assertFalse(refs & {'SendAddonMessage', 'SendChatMessage', 'InviteUnit', 'AcceptGroup',
                                      'LeaveParty', 'LayerEnemiesDB', 'JoinChannelByName', 'SendGameData'})
 
+    def test_flh_route_gate_rejects_truthy_nonboolean_routes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for value in ('1', '"yes"', 'function() end', 'false'):
+            with self.subTest(value=value), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace('FLHNET2 = { kinds = { ',
+                    'FLHNET2 = { kinds = { CHANNEL = ' + value + ', '))
+
+    def test_flh_route_gate_rejects_bracket_routes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for key in ('["CHANNEL"]', '["CHAN".."NEL"]', '[routeName]'):
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace('FLHNET2 = { kinds = { ',
+                    'FLHNET2 = { kinds = { ' + key + ' = true, '))
+
+    def test_flh_route_gate_rejects_later_mutation_and_escape(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for later in ('ROUTES.FLHNET2.kinds.CHANNEL = true',
+                      'ROUTES["FLHNET2"].kinds["CHANNEL"] = 1',
+                      'local alias = ROUTES; alias.FLHNET2.kinds.CHANNEL = true',
+                      'rawset(ROUTES.FLHNET2.kinds,"CHANNEL",true)',
+                      'route.kinds.CHANNEL = true'):
+            with self.subTest(later=later), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source + '\n' + later)
+        VERIFY['check_route_policy'](source + '\n-- ROUTES.FLHNET2.kinds.CHANNEL = true\n'
+                                    'local inert="ROUTES.FLHNET2.kinds.CHANNEL = true"')
+
+    def test_flh_route_gate_requires_complete_unique_literal_routes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for kinds in ('GUILD = true, PARTY = true, RAID = true',
+                      'GUILD = true, PARTY = true, RAID = true, WHISPER = false',
+                      'GUILD = true, PARTY = true, RAID = true, WHISPER = true, WHISPER = false'):
+            changed = source.replace('FLHNET2 = { kinds = { GUILD = true, PARTY = true, RAID = true, WHISPER = true',
+                                     'FLHNET2 = { kinds = { ' + kinds)
+            with self.subTest(kinds=kinds), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](changed)
+
+    def test_flh_membership_side_effect_is_disclosed(self):
+        readme = (Path(__file__).resolve().parents[1] / 'README.md').read_text()
+        self.assertIn("A real Forever Layer Hop client on another realm that hears our messages may introduce "
+                      "our name, realm, map and layer on its own realm's channel, as it does for any Forever "
+                      "Layer Hop user; this is an accepted membership side effect.", readme)
+
     def test_dormant_who_aliases(self):
         for access in ('C_FriendList.SendWho', 'C_FriendList["Send".."Who"]',
                        '_G.C_FriendList["Send" .. ("Who")]',

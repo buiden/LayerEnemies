@@ -34,7 +34,7 @@ MUTANTS = [
     ('stand-down', [('FLHMember.lua', 'if A.loaded("ForeverLayerHop") then return false end', 'if false then return false end')]),
     ('owner-includes-owed-replies', [('FLHMember.lua', 'if A.loaded("ForeverLayerHop") then return false end', 'if tag~="WR" and tag~="CA" and A.loaded("ForeverLayerHop") then return false end')]),
     ('directory-slots', [('Directory.lua', 'local limited = key=="wanted" or key=="flh"', 'local limited = key=="wanted"')]),
-    ('directory-consent', [('Directory.lua', 'if key=="flh" then want=want and N.FLHMember.allowed("WHISPER","WP") end', 'if key=="flh" then want=true end')]),
+    ('directory-consent', [('Directory.lua', 'if key=="flh" then want=want and N.Main.sharing() and (joined[key] or N.FLHMember.allowed("WHISPER","WP")) end', 'if key=="flh" then want=true end')]),
     ('owed-reserve', [('Wire.lua', '#recent(publicTimes,now)<PUBLIC_MINUTE-Wr.FLH_REPLIES', '#recent(publicTimes,now)<PUBLIC_MINUTE')]),
     ('public-total-cap', [('Wire.lua', 'if kind=="WHISPER" and #publicTimes>=PUBLIC_MINUTE then return false end', 'if false then return false end')]),
     ('public-per-person-cap', [('Wire.lua', 'if kind=="WHISPER" and #(publicTo[key] or {})>=PUBLIC_ONE then return false end', 'if false then return false end')]),

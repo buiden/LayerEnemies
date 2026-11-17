@@ -242,11 +242,70 @@ def check_route_policy(wire):
         'WEFF1': {'GUILD', 'PARTY', 'RAID', 'WHISPER'}, 'HeadHunter': {'WHISPER'},
         'FLHNET2': {'GUILD', 'PARTY', 'RAID', 'WHISPER'},
     }
-    table = re.search(r'local ROUTES = \{(.*?)\n\}', wire, re.S)
-    assert table, 'missing private route table'
-    entries = re.findall(r'(\w+) = \{ kinds = \{ ([^}]+) \}', table[1])
-    actual = {prefix: set(re.findall(r'(\w+) = true', kinds)) for prefix, kinds in entries}
-    assert len(entries) == len(allowed) and actual == allowed, 'unapproved addon route'
+    tokens = lua_tokens(wire)
+    declaration = lua_tokens('local ROUTES = {')
+    starts = [i for i in range(len(tokens)) if tokens[i:i + len(declaration)] == declaration]
+    assert len(starts) == 1, 'missing or duplicate private route table'
+    at = starts[0] + len(declaration)
+    covered = set(range(starts[0], at))
+
+    def take(source):
+        nonlocal at
+        expected = lua_tokens(source)
+        assert tokens[at:at + len(expected)] == expected, 'nonliteral addon route'
+        covered.update(range(at, at + len(expected)))
+        at += len(expected)
+
+    actual = {}
+    while tokens[at:at + 1] != [('symbol', '}')]:
+        assert tokens[at][0] == 'name', 'nonliteral route prefix'
+        prefix = tokens[at][1]
+        assert prefix in allowed and prefix not in actual, 'unapproved or duplicate addon route'
+        take(prefix + ' = { kinds = {')
+        kinds = set()
+        while tokens[at:at + 1] != [('symbol', '}')]:
+            assert tokens[at][0] == 'name', 'nonliteral route kind'
+            kind = tokens[at][1]
+            assert kind in allowed[prefix] and kind not in kinds, 'unapproved or duplicate route kind'
+            take(kind + ' = true')
+            kinds.add(kind)
+            if tokens[at:at + 1] == [('symbol', ',')]:
+                take(',')
+            else:
+                assert tokens[at:at + 1] == [('symbol', '}')], 'nonliteral route value'
+        take('}')
+        assert kinds == allowed[prefix], 'missing addon route'
+        actual[prefix] = kinds
+        # The remaining entry contains the check/net fields, never another kinds
+        # table. Balance nested expressions without executing the Lua source.
+        depth = 1
+        while at < len(tokens) and depth:
+            token = tokens[at]
+            if token == ('symbol', '{'):
+                depth += 1
+            elif token == ('symbol', '}'):
+                depth -= 1
+            at += 1
+        assert depth == 0, 'unterminated route entry'
+        take(',')
+    take('}')
+    assert actual == allowed, 'missing addon route prefix'
+
+    # Freeze the two reads of the private table plus its public copy/boolean
+    # lookup. Any later assignment, alias, rawset or dynamic access fails closed.
+    for read in (
+        'Wr.ROUTES = {}',
+        'for prefix, r in pairs(ROUTES) do Wr.ROUTES[prefix] = {}; '
+        'for k in pairs(r.kinds) do Wr.ROUTES[prefix][k] = true end end',
+        'local route = type(prefix) == "string" and ROUTES[prefix]',
+        'if not (route and type(kind) == "string" and route.kinds[kind]) then return nil, "blocked route" end',
+    ):
+        expected = lua_tokens(read)
+        sites = [i for i in range(len(tokens)) if tokens[i:i + len(expected)] == expected]
+        assert len(sites) == 1, 'route access must remain read-only'
+        covered.update(range(sites[0], sites[0] + len(expected)))
+    for i, word in lua_references(tokens):
+        assert word not in ('ROUTES', 'kinds') or i in covered, 'route table mutation or escape'
 
 
 def main():
@@ -321,6 +380,7 @@ def main():
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
     subprocess.run([sys.executable, '-I', 'test/api_policy_test.py'], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, '-I', 'test/flh_mutants_test.py'], cwd=ROOT, check=True)
     subprocess.run([sys.executable, '-I', 'test/harness_sources_test.py'], cwd=ROOT, check=True)
     shipped = payload_files(listed)
     check_media()
