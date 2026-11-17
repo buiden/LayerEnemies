@@ -221,12 +221,51 @@ class WhisperHookPolicyTests(unittest.TestCase):
         verify.check_send_policy(source, filename)
 
     def test_exact_posthook_registrations_are_allowed_only_in_wire(self):
+        self.check(self.MODERN + '; ' + self.LEGACY)
         for source in (self.MODERN, self.LEGACY):
-            self.check(source)
             for filename in ('Main.lua', 'Adapters.lua', 'Sources.lua'):
                 with self.subTest(source=source, filename=filename):
                     with self.assertRaises(AssertionError):
                         self.check(source, filename)
+
+    def test_third_registration_is_rejected(self):
+        for extra in (self.MODERN, self.LEGACY):
+            with self.subTest(extra=extra), self.assertRaisesRegex(AssertionError, 'exactly once'):
+                self.check('; '.join((self.MODERN, self.LEGACY, extra)))
+
+    def test_fourth_registration_is_rejected(self):
+        with self.assertRaisesRegex(AssertionError, 'exactly once'):
+            self.check('; '.join((self.MODERN, self.LEGACY, self.MODERN, self.LEGACY)))
+
+    def test_missing_registration_is_rejected(self):
+        for source in ('', self.MODERN, self.LEGACY):
+            with self.subTest(source=source), self.assertRaisesRegex(AssertionError, 'exactly once'):
+                self.check(source)
+
+    def test_local_pcall_shadow_is_rejected(self):
+        with self.assertRaisesRegex(AssertionError, 'pcall'):
+            self.check('local pcall = function(...) end; ' + self.MODERN + '; ' + self.LEGACY)
+
+    def test_local_function_pcall_is_rejected(self):
+        with self.assertRaisesRegex(AssertionError, 'pcall'):
+            # The reviewer exploit: the inert method-name argument becomes a real call.
+            self.check('local function pcall(_, t, k, ...) return t[k](...) end; ' + self.MODERN + '; ' + self.LEGACY)
+
+    def test_global_pcall_assignment_is_rejected(self):
+        for lhs in ('pcall', '_G.pcall', '_G["p".."call"]'):
+            with self.subTest(lhs=lhs), self.assertRaisesRegex(AssertionError, 'pcall'):
+                self.check(lhs + ' = function(...) end; ' + self.MODERN + '; ' + self.LEGACY)
+
+    def test_other_pcall_bindings_are_rejected(self):
+        for binding in ('local a, pcall; ', 'function pcall(...) end; ',
+                        'local function f(pcall) end; ', 'local f = function(pcall) end; ',
+                        'for pcall in pairs({}) do end; ', 'for pcall = 1,2 do end; ',
+                        'pcall, other = f, g; '):
+            with self.subTest(binding=binding), self.assertRaisesRegex(AssertionError, 'pcall'):
+                self.check(binding + self.MODERN + '; ' + self.LEGACY)
+
+    def test_pcall_in_inert_text_is_not_a_binding(self):
+        self.check('-- local pcall = evil\nlocal note = "function pcall() end"; ' + self.MODERN + '; ' + self.LEGACY)
 
     def test_posthook_exemption_never_allows_a_chat_send(self):
         sends = ('SendChatMessage(...)', '_G.SendChatMessage(...)', 'C_ChatInfo.SendChatMessage(...)',
@@ -257,8 +296,8 @@ class WhisperHookPolicyTests(unittest.TestCase):
                        'pcall(_G.hooksecurefunc, C_ChatInfo, key, observeChatWhisper)',
                        'use(C_ChatInfo)', 'local c=C_ChatInfo; use(c)'):
             with self.subTest(source=source):
-                with self.assertRaises(AssertionError):
-                    self.check(source)
+                with self.assertRaisesRegex(AssertionError, 'chat namespace escapes'):
+                    self.check(self.MODERN + '; ' + self.LEGACY + '; ' + source)
 
 
 if __name__ == '__main__':

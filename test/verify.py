@@ -205,15 +205,26 @@ def check_chat_namespace(tokens, filename):
 
 def check_send_policy(source, filename):
     tokens = lua_tokens(source)
+    # Reserve pcall for bare invocations in Wire: no declarations, parameters,
+    # loop bindings, assignments or member aliases can replace the hook guard.
+    if filename == 'Wire.lua':
+        for at, word in lua_references(tokens):
+            if word == 'pcall':
+                assert (tokens[at] == ('name', 'pcall') and
+                        tokens[at + 1:at + 2] == [('symbol', '(')] and
+                        tokens[at - 1:at] not in ([('name', 'function')], [('symbol', '.')], [('symbol', ':')])), \
+                    'pcall must be an unbound bare invocation in Wire.lua'
     # Only these two protected post-hook registrations may expose a chat namespace.
-    # Remove the exact token spans, never an API lookup/call or an inline callback.
+    # Each must appear exactly once; extra copies are not additional permissions.
     for registration in ('pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)',
                          'pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)'):
         hook = lua_tokens(registration)
-        for i in range(len(tokens) - len(hook), -1, -1):
-            if tokens[i:i + len(hook)] == hook:
-                assert filename == 'Wire.lua', 'chat post-hook outside Wire.lua: ' + filename
-                del tokens[i:i + len(hook)]
+        sites = [i for i in range(len(tokens) - len(hook) + 1) if tokens[i:i + len(hook)] == hook]
+        if filename == 'Wire.lua':
+            assert len(sites) == 1, 'chat post-hook must appear exactly once in Wire.lua: ' + registration
+        for i in reversed(sites):
+            assert filename == 'Wire.lua', 'chat post-hook outside Wire.lua: ' + filename
+            del tokens[i:i + len(hook)]
     # Primitive nil comparisons reveal existence only, never a callable reference.
     # No type()/helper exemption: a shadowed helper could invoke its argument.
     for predicate in ('C_ChatInfo.SendChatMessage == nil', '_G.SendChatMessage == nil'):
