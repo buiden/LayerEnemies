@@ -1117,4 +1117,30 @@ PASS Kills R2 reserve: kill relays leave the guild-minute own slots
 PASS Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute
 PASS Kills R2 ledger: new kill stays visible after 300 guild kills at one per second
 PASS Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first
-RESULT: 1119 tests passed, 0 failed, 118428 assertions
+PASS FLH: hop layout LQ decodes without performing it
+PASS FLH: hop layout LO decodes without performing it
+PASS FLH: hop layout LR decodes without performing it
+PASS FLH: hop layout LN decodes without performing it
+PASS FLH: HI preserves the decimal fingerprint and advertises a host
+PASS FLH: separators metadata and unknown places preserve positions
+PASS FLH: malformed fields and unknown commands are silent nil
+PASS FLH: the wire limit accepts 255 bytes and refuses 256
+PASS FLH: its host cache is separate bounded and expires at 180 seconds
+PASS FLH: passive GUILD presence admits only explicit hosts
+PASS FLH: passive PARTY presence admits only explicit hosts
+PASS FLH: passive RAID presence admits only explicit hosts
+PASS FLH: passive WHISPER presence admits only explicit hosts
+PASS FLH: every received command is passive and non-presence cannot add hosts
+PASS FLH: route identity ignore and unreadable context fail closed
+PASS FLH: presence reaches friendly hosts without pretending to be a server key
+PASS FLH: host projection is zone scoped fresh and visible with own layer unknown
+PASS FLH: same identity merges independent provenance without changing LayerSwap fields
+PASS FLH: wire ingestion cannot persist names or silently refresh malformed hosts
+PASS FLH: seeded byte and structured fuzz is bounded silent and never sends
+PASS FLH: readable-looking secret strings are refused before any use
+PASS FLH: friendly text gets space for its separate provenance and age
+PASS FLH: presence layout WP keeps its positional fields
+PASS FLH: presence layout WR keeps its positional fields
+PASS FLH: presence layout CQ keeps its positional fields
+PASS FLH: presence layout CA keeps its positional fields
+RESULT: 1145 tests passed, 0 failed, 138022 assertions
