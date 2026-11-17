@@ -55,6 +55,18 @@ local function sends(op)
 end
 local function advance(n) for _=1,n do H.advance(1) end end
 
+for version=5,9 do
+    test("n3 busy HA version "..version,function()
+        local N=H.load();local P=N.OverlordPeer;local peer=P.new();local out={}
+        local c={now=100,wall=1800000000,me="Alice Vale",version="1.1.0",pool="global",faction="A",allowed=true,own=true,
+            send=function(_,text) out[#out+1]=text;return true end}
+        P.receive(peer,{origin="Birch Scout",hops=0,target=c.me,kind="HR",
+            payload=version..":V:1799999900:123n4n5f:1:LK:0:0:H"},"WHISPER","Birch Scout",nil,c)
+        eq(#out,version==8 and 1 or 0,"only protocol 8 gets a busy answer")
+        if version==8 then yes(out[1]:find("|HA|8:R:",1,true)) end
+    end)
+end
+
 for _,changed in ipairs({"pool","character"}) do
     test("n2 NH clock survives "..changed.." round trip",function()
         local N,state,refresh=fixture({two=true})

@@ -7,7 +7,7 @@
 | `HR 8:V:<E>:<nonce>:1:LK:0:0:<opposite faction>`; nonce ends `f` | At most two selected Battle.net friends of either faction, via Battle.net only | Unanswered requests back off: 200, 400, 800, 1600, then 1800 s; any valid HA/HB reply resets to 200 s; first request obeys the NH clock below |
 | `HR 8:K:<E>` | The same live feed sources | Shares that 200 s gap; only after an accepted reply/feed |
 | `HR 8:X:<E>` | Each source to which a request actually went | Once per cancellation, owed priority; retained through combat/instances, no duplicate after success |
-| `HA <v>:R:<E>:<nonce>:<seq>` (busy, no ranking profile) | Direct addressed HR V requester only | Shared NH/HA 150 s gap per peer; six owed frames/minute |
+| `HA 8:R:<E>:<nonce>:<seq>` (busy, no ranking profile) | Direct addressed protocol-8 HR V requester only | Shared NH/HA 150 s gap per peer; six owed frames/minute |
 | Own `NH`, `LayerEnemies <installed TOC version>` with **no suffix** | Non-source peers only | C2 limits below; never to a selected source's name or account, including owed replies |
 
 To be served the feed, LayerEnemies does not announce itself to the player it asks. Overlord serves peers it has not heard from, and refuses those it knows run an older protocol. LayerEnemies claims no capability it lacks; it relies on not having been heard.
@@ -60,7 +60,8 @@ and can serve. Silence/busy responses are normal. LE never advertises ranking
 capabilities (`~lp6`, `~lr`, `~ld` or any other suffix), never serves a ranking,
 forwards packets, fabricates kills or hosts maps. A zero comparison is an honest
 local count/hash, not a claim of page-service capability. Only addressed HR V requests get a bounded busy HA
-rather than a claim of equality. HR F, K and X get no reply; neither do unknown HR kinds.
+rather than a claim of equality, and only for protocol 8. Older protocol versions
+get nothing. HR F, K and X get no reply; neither do unknown HR kinds.
 
 Epochs stay source/pool scoped and never come from the clock: only an exact
 validated **13-field owner K** (race, sex, matching `B<E>`, level included), or

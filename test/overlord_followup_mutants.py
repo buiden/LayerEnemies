@@ -3,6 +3,8 @@ import argparse
 from overlord_peer_mutants import run
 
 MUTANTS = [
+    ('n3 busy HA only protocol 8', 'OverlordPeer.lua',
+     '^(8):([A-Z]):', '^([5-8]):([A-Z]):', 'Overlord followup: n3'),
     ('n2 NH ledger retained across scope changes', 'OverlordPeer.lua',
      'if not st.announced then',
      'if not st.announced or st.announced.pool~=c.pool or st.announced.me~=c.me then', 'Overlord followup: n2'),

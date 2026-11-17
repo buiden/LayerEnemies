@@ -139,7 +139,7 @@ function P.receive(st,p,route,sender,id,c)
     if p.kind=="NH" and route=="WHISPER" then
         P.emit(st,c,"NH",P.presence(c),route,target,"reply:"..key,150,true)
     elseif p.kind=="HR" then
-        local v,op,e,nonce,seq,tail=p.payload:match("^([5-8]):([A-Z]):(%d+):(%w+):(%d+):?(.*)$")
+        local v,op,e,nonce,seq,tail=p.payload:match("^(8):([A-Z]):(%d+):(%w+):(%d+):?(.*)$")
         if not v or #p.payload>250 or #nonce>32 or #e>10 or tonumber(e)<1
             or tonumber(e)>c.wall or #seq>5 or tonumber(seq)<1 or tonumber(seq)>10000 then return r end
         if op~="V" then return r end
