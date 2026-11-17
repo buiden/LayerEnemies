@@ -1,0 +1,18 @@
+[
+  {
+    "identical_report_bytes": true,
+    "portable_checkout_with_spaces": true,
+    "report": "flh-member-mutants.json",
+    "returncode": 0,
+    "sha256": "cff42c6b2aad9bc4bd82ee4b982de01c81a88b010e36ac9beabe6a7ea4f887fe",
+    "unchanged_write_mtime": true
+  },
+  {
+    "identical_report_bytes": true,
+    "portable_checkout_with_spaces": true,
+    "report": "flh-mutants.json",
+    "returncode": 0,
+    "sha256": "946db38c4489b2bf8f22c9e2c9118190479d1cf80d75978f49bdbe344a6f9090",
+    "unchanged_write_mtime": true
+  }
+]
