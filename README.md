@@ -280,7 +280,9 @@ availability or transport delivery.
 
 All six kinds go through **Wire**. FLH whispers, including those to guildmates, share the existing **20/minute public budget** and **4/minute per-person budget**. Probes leave six public slots for owed replies. Membership uses small separate reply/probe/presence ledgers, not the hop-any tokens: six owed replies alongside a running fan-out do not change its 8-then-1/s cadence. Guest LQ/LR use the unchanged hop ledger (8 burst, 1/s refill, 60/minute, 4/minute per target); no FLH sends are queued or automatically retried.
 
-`/le share off`, `/le net flh off`, combat, instances and unverifiable live state silence all FLH sends. **Guild only** retains guild presence but permits no group presence, whispers, probes, guest requests or directory join. `/le net flh on|off` is a **session-only** switch: reload restores on, without a new SavedVariables field. With the donor addon loaded, originating presence/probes/hops stand down; only the two bounded owed replies remain.
+`/le share off`, `/le net flh off`, combat, instances and unverifiable live state silence all FLH sends. **Guild only** retains guild presence but permits no group presence, whispers, probes, guest requests or directory join. `/le net flh on|off` is a **session-only** switch: reload restores on, without a new SavedVariables field.
+
+**Donor loaded:** when the real `ForeverLayerHop` addon is loaded, LayerEnemies sends **nothing on FLHNET2** (no HI, WR/CA owed replies, WP probes or LQ/LR) and does not join `ForeverLayerHopNet`. Incoming FLH data are still received and read. The real addon alone owns this player's outgoing state, so two clients cannot overwrite each other's state at peers.
 
 Identity and `BUILD` fields say **LayerEnemies and its installed version**, never an FLH version. The outgoing fingerprint is our verified current-zone NPC GUID field 5, not our server-layer key. Unknown or ambiguous own fingerprints defer presence and replies rather than guessing. Incoming FLH keys remain labelled claims; they never become a general host flag or a LayerSwap/Bulo layer key. Known-layer rows still sort first.
 

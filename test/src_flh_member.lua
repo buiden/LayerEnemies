@@ -93,7 +93,7 @@ test("FLH member: guild and group presence is change-driven and capped per route
     H.clock(H.clock()+120); N.Main.setConsent("guild"); N.Main.store.zoneUID=11; F.tick(H.clock())
     eq(#lines(),7); eq(lines()[7].kind,"GUILD","group is beyond guild consent")
     H.loaded().ForeverLayerHop=true; H.clock(H.clock()+120); N.Main.store.zoneUID=12; F.tick(H.clock()); eq(#lines(),7)
-    N.Main.setConsent("public"); receive(wp); eq(#lines(),8,"stand-down still owes replies")
+    N.Main.setConsent("public"); receive(wp); receive(cq); eq(#lines(),7,"the real addon owns even owed replies")
 end)
 
 local function open(N)
@@ -441,4 +441,59 @@ test("FLH member: failed presence is spent until our fingerprint changes",functi
     eq(#countCmd(N,"HI"),2,"a new fingerprint owns a new presence")
     eq(N.FLH.decode(countCmd(N,"HI")[2].text).key,"9")
     eq(N.Wire.queued(),0)
+end)
+
+for _,donor in ipairs({true,false}) do
+    test("FLH member: owner thirty-minute "..(donor and "stand-down" or "no-donor control"),function()
+        local N=member(); H.loaded().ForeverLayerHop=donor
+        local names={}; for i=1,40 do names[i]="Directory "..H.abc(i) end
+        H.channelMembers("ForeverLayerHopNet",names)
+        N.Directory.sync(); open(N); yes(N.FLHMember.windowOpen()); yes(N.FLHMember.context())
+        local started=H.clock()
+        for elapsed=0,1800 do
+            if elapsed>0 then H.advance(1) end
+            if elapsed%60==0 then
+                N.Main.store.zoneUID=elapsed%120==0 and 7 or 9
+                receive(wp,"WHISPER","Probe Asker")
+                receive(cq,"WHISPER","Claim Asker")
+                receive("HI|100|8|1|0.1.3|1234","GUILD","Reader Oak")
+            end
+        end
+        eq(H.clock()-started,1800)
+        if donor then
+            eq(#lines(),0,"no FLH sends including WR and CA while the donor owns the network")
+            eq(#H.joined(),0,"no directory join while the donor owns the network")
+            no(N.Directory.joined("flh"))
+        else
+            eq(#H.joined(),1); eq(H.joined()[1],"ForeverLayerHopNet")
+            for _,cmd in ipairs({"HI","WR","CA","WP"}) do yes(#countCmd(N,cmd)>0,cmd.." still runs without the donor") end
+        end
+        local seen
+        for _,row in ipairs(N.Main.candidates()) do if row.name=="Reader Oak" then seen=row end end
+        yes(seen,"receive path still reads host claims"); yes(seen.hosts.FLH); eq(seen.flhKey,"8")
+        eq(N.Wire.queued(),0); no(N.Main.error)
+    end)
+end
+
+test("FLH member: owner load blocks new guest queries and revokes an outstanding offer",function()
+    local N=member(); local row=host(N)
+    yes(N.Main.hopHostTo(row)); local id=N.FLH.decode(countCmd(N,"LQ")[1].text).id
+    H.loaded().ForeverLayerHop=true
+    offer(N,id); eq(#countCmd(N,"LR"),0); no(N.FLHMember.pending()); no(N.Main.invite.pending)
+    row=N.Main.candidates()[1]; yes(row.hosts.FLH,"donor-loaded claims remain readable")
+    local preview=N.Main.hostPreview(row); no(preview.enabled); no(N.Main.hopHostTo(row,preview))
+    SlashCmdList.LAYERENEMIES("hop flh"); eq(#countCmd(N,"LQ"),1,"no new query after the owner loads")
+    H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),0); no(N.Main.error)
+end)
+
+test("FLH member: owner loading at dispatch blocks owed replies at the final gate",function()
+    for _,text in ipairs({wp,cq}) do
+        local N=member(); local send=N.Wire.send; local attempts=0
+        N.Wire.send=function(prefix,payload,kind,target,opts)
+            if prefix=="FLHNET2" then attempts=attempts+1; H.loaded().ForeverLayerHop=true end
+            return send(prefix,payload,kind,target,opts)
+        end
+        receive(text); eq(attempts,1); eq(#lines(),0,"owner must be checked again inside Wire authorization")
+        no(N.Main.error)
+    end
 end)

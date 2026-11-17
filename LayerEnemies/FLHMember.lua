@@ -37,8 +37,8 @@ function F.allowed(kind,tag)
     elseif N.Net.consent()~="public" then return false end
     if kind=="PARTY" and (S.call(IsInGroup)~=true or S.call(IsInRaid)~=false) then return false end
     if kind=="RAID" and S.call(IsInRaid)~=true then return false end
-    -- Stand-down still answers the two debts, but never originates membership.
-    if tag~="WR" and tag~="CA" and A.loaded("ForeverLayerHop") then return false end
+    -- One owner per player: the real addon sends; we only receive and read.
+    if A.loaded("ForeverLayerHop") then return false end
     return true
 end
 dispatch=function(text,kind,target,prio)
