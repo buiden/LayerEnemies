@@ -120,10 +120,15 @@ local function queries(r)
     if r.sending then return end -- synchronous client hooks must not consume the cursor
     while guest==r and not r.offer and r.next<=#r.targets and F.checkGuest() do
         local v=r.targets[r.next]; local now=S.num(S.call(GetTime))
-        if N.Wire.offlineUntil(v.name,now) then
+        local live
+        for _,row in ipairs(N.Main.candidates()) do if row.short==v.short then live=row; break end end
+        if not eligible(live,F.context()) or not sameKey(live.flhKey,v.key) then
+            r.next=r.next+1 -- never redirect the click to a host's newly announced layer
+        elseif N.Wire.offlineUntil(v.name,now) then
             r.next=r.next+1 -- a terminally unavailable head must not hold the batch
         elseif not N.Wire.flhClickReady("LQ",v.name,now) then break
         else
+            v.key=live.flhKey -- same layer, but use the host's current wire key
             r.sending=v
             local sent,why,attempted=dispatch(FL.lq(r.id,F.context(),v.key),"WHISPER",v.name,"click")
             -- A send hook can stop/replace this guest, but cannot undo the

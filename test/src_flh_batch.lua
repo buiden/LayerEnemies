@@ -318,6 +318,33 @@ for _,phase in ipairs({"offer","paced","retry","selected"}) do
     end)
 end
 
+for _,change in ipairs({"other layer","own layer","same layer new spelling","withdrawn"}) do
+    test("FLH batch: paced query revalidates current host "..change,function()
+        local N=member(); hosts(N); ordinary(N,2)
+        local at=H.clock(); yes(N.FLHMember.hop()); eq(#lines("LQ"),5)
+        H.clock(at+1)
+        local key=change=="own layer" and N.FLHMember.context().key
+            or change=="same layer new spelling" and "00016" or "99"
+        receive("HI|100|"..key.."|"..(change=="withdrawn" and "0" or "1").."|0.1.3|1234","Host f")
+        local live
+        for _,row in ipairs(N.Main.candidates()) do if row.short=="host f" then live=row end end
+        if change=="withdrawn" then no(live) else yes(live); eq(live.flhKey,key,"new claim reached the real host row") end
+        H.clock(at+10); N.FLHMember.tick(H.clock())
+        local asked
+        for _,q in ipairs(lines("LQ")) do if q.target=="Host f" then asked=q end end
+        if change=="same layer new spelling" then
+            yes(asked); eq(N.FLH.decode(asked.text).wantedKey,key,"wire uses the exact current key, not the click-time spelling")
+            offer(N,asked); eq(#lines("LR"),1)
+        else
+            no(asked,"changed or withdrawn host must not receive a stale query")
+            no(N.Main.invite.asked["host f"],"a skipped host does not spend its cooldown")
+            local last=lines("LQ")[#lines("LQ")]; eq(last.target,"Host g","skip cannot stall the next target")
+            offer(N,last); eq(#lines("LR"),1)
+        end
+        ceilings(); no(N.Main.error)
+    end)
+end
+
 -- The reviewer's r2b/r2c cadence: 12 clicks over 3600 timer-driven seconds,
 -- refreshed host claims, 30 directory peers, and independent WP/CQ strangers.
 local function replay(strangers,offset,delay)

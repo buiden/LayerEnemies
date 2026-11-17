@@ -1,11 +1,11 @@
 {
   "baseline": {
     "lua": {
-      "assertions": 3039,
+      "assertions": 3840,
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 28
+      "tests": 38
     },
     "policy": {
       "assertions": null,
@@ -17,11 +17,11 @@
   },
   "final": {
     "lua": {
-      "assertions": 3039,
+      "assertions": 3840,
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 28
+      "tests": 38
     },
     "policy": {
       "assertions": null,
@@ -33,23 +33,27 @@
   },
   "mutants": [
     {
-      "assertions": 2850,
+      "assertions": 3508,
       "caught_by": [
         "FAIL FLH batch: ordinary whisper then offer at half a second accepts: test/src_flh_batch.lua:55: one shared token must remain for LR: expected 6, got 7",
         "FAIL FLH batch: unsent queries pace without spending the reserved token: test/src_flh_batch.lua:64: not equal: expected 5, got 6",
         "FAIL FLH batch: ordinary and owed traffic cannot steal the reserved LR: test/src_flh_batch.lua:78: not equal: expected 6, got 7",
         "FAIL FLH batch: a full burst paces all queries within the original click window: test/src_flh_batch.lua:162: not equal: expected 1, got 2",
-        "FAIL FLH batch: the last rolling-minute slot belongs to LR: test/src_flh_batch.lua:179: only five of six remaining minute slots are queryable: expected 5, got 6"
+        "FAIL FLH batch: the last rolling-minute slot belongs to LR: test/src_flh_batch.lua:179: only five of six remaining minute slots are queryable: expected 5, got 6",
+        "FAIL FLH batch: paced query revalidates current host other layer: test/src_flh_batch.lua:324: not equal: expected 5, got 6",
+        "FAIL FLH batch: paced query revalidates current host own layer: test/src_flh_batch.lua:324: not equal: expected 5, got 6",
+        "FAIL FLH batch: paced query revalidates current host same layer new spelling: test/src_flh_batch.lua:324: not equal: expected 5, got 6",
+        "FAIL FLH batch: paced query revalidates current host withdrawn: test/src_flh_batch.lua:324: not equal: expected 5, got 6"
       ],
-      "failed": 5,
+      "failed": 9,
       "killed": true,
       "mutant": "reserve-query-token",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 2890,
+      "assertions": 3691,
       "caught_by": [
         "FAIL FLH batch: ordinary and owed traffic cannot steal the reserved LR: test/harness.lua:8: sent: expected false, got true",
         "FAIL FLH batch: the last rolling-minute slot belongs to LR: test/harness.lua:8: sent: expected false, got true"
@@ -59,10 +63,10 @@
       "mutant": "reserve-ordinary-token",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 2916,
+      "assertions": 3717,
       "caught_by": [
         "FAIL FLH batch: the last rolling-minute slot belongs to LR: test/src_flh_batch.lua:179: only five of six remaining minute slots are queryable: expected 5, got 6"
       ],
@@ -71,25 +75,30 @@
       "mutant": "reserve-minute-slot",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 2881,
+      "assertions": 3506,
       "caught_by": [
         "FAIL FLH batch: unsent queries pace without spending the reserved token: test/src_flh_batch.lua:66: not equal: expected 6, got 5",
         "FAIL FLH batch: a full burst paces all queries within the original click window: test/src_flh_batch.lua:162: not equal: expected 1, got 0",
         "FAIL FLH batch: stop inside LQ 6 preserves attempted cooldown result 0: test/harness.lua:7: real client callback stopped the initial or paced batch: expected true, got false",
-        "FAIL FLH batch: stop inside LQ 6 preserves attempted cooldown result 3: test/harness.lua:7: real client callback stopped the initial or paced batch: expected true, got false"
+        "FAIL FLH batch: stop inside LQ 6 preserves attempted cooldown result 3: test/harness.lua:7: real client callback stopped the initial or paced batch: expected true, got false",
+        "FAIL FLH batch: recursive tick inside LQ 6 cannot consume remaining targets: test/harness.lua:7: client callback reentered the source tick: expected true, got false",
+        "FAIL FLH batch: paced query revalidates current host other layer: test/src_flh_batch.lua:341: skip cannot stall the next target: expected Host g, got Host e",
+        "FAIL FLH batch: paced query revalidates current host own layer: test/src_flh_batch.lua:341: skip cannot stall the next target: expected Host g, got Host e",
+        "FAIL FLH batch: paced query revalidates current host same layer new spelling: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL FLH batch: paced query revalidates current host withdrawn: test/src_flh_batch.lua:341: skip cannot stall the next target: expected Host g, got Host e"
       ],
-      "failed": 4,
+      "failed": 9,
       "killed": true,
       "mutant": "pace-unsent-queries",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 2943,
+      "assertions": 3744,
       "caught_by": [
         "FAIL FLH batch: LR success and explicit stop release shared capacity immediately: test/src_flh_batch.lua:196: not equal: expected 6, got 5"
       ],
@@ -98,10 +107,10 @@
       "mutant": "release-after-LR",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 2993,
+      "assertions": 3794,
       "caught_by": [
         "FAIL FLH batch: reserve expires at the original window without a tick: test/src_flh_batch.lua:90: expiry releases the reserve even before the guest tick: expected 8, got 7"
       ],
@@ -110,10 +119,10 @@
       "mutant": "release-at-expiry",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 2924,
+      "assertions": 3725,
       "caught_by": [
         "FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:120: not equal: expected 2, got 1",
         "FAIL FLH batch: successful retry never extends invite authority at 89: test/src_flh_batch.lua:130: not equal: expected 1, got 0",
@@ -126,10 +135,10 @@
       "mutant": "retry-unspent-selection",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 3017,
+      "assertions": 3818,
       "caught_by": [
         "FAIL FLH batch: third LR refusal ends the click with one exact chat line and row note: test/harness.lua:8: not equal: expected false, got true"
       ],
@@ -138,10 +147,10 @@
       "mutant": "two-retries-only",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 3013,
+      "assertions": 3814,
       "caught_by": [
         "FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:117: polls and duplicate offers must not spend retries: expected 1, got 3"
       ],
@@ -150,10 +159,10 @@
       "mutant": "retry-only-with-room",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 2969,
+      "assertions": 3770,
       "caught_by": [
         "FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:121: retry retains the original armed deadline: expected 11, got 71",
         "FAIL FLH batch: successful retry never extends invite authority at 90: test/src_flh_batch.lua:132: not equal: expected 0, got 1",
@@ -164,10 +173,10 @@
       "mutant": "original-LR-window",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 3007,
+      "assertions": 3808,
       "caught_by": [
         "FAIL FLH batch: a full burst paces all queries within the original click window: test/src_flh_batch.lua:163: not equal: expected 11, got 15"
       ],
@@ -176,10 +185,10 @@
       "mutant": "original-paced-window",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 3007,
+      "assertions": 3808,
       "caught_by": [
         "FAIL FLH batch: third LR refusal ends the click with one exact chat line and row note: test/src_flh_batch.lua:141: not equal: expected 1, got 0",
         "FAIL FLH batch: pending LR at expiry prints once and never sends after ninety seconds: test/src_flh_batch.lua:153: not equal: expected 1, got 0"
@@ -189,10 +198,10 @@
       "mutant": "failure-chat-line",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 3021,
+      "assertions": 3822,
       "caught_by": [
         "FAIL FLH batch: third LR refusal ends the click with one exact chat line and row note: test/harness.lua:7: not equal: expected true, got false"
       ],
@@ -201,10 +210,10 @@
       "mutant": "failure-row-note",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 2980,
+      "assertions": 3781,
       "caught_by": [
         "FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:117: polls and duplicate offers must not spend retries: expected 1, got 3",
         "FAIL FLH batch: a refused selection cannot be redirected by another queried host: test/src_flh_batch.lua:203: not equal: expected 0, got 1"
@@ -214,10 +223,10 @@
       "mutant": "pending-host-binding",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
-      "assertions": 3016,
+      "assertions": 3817,
       "caught_by": [
         "FAIL FLH batch: an offline head cannot block the paced batch: test/src_flh_batch.lua:239: not equal: expected 6, got 0"
       ],
@@ -226,7 +235,7 @@
       "mutant": "offline-query-head",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     },
     {
       "assertions": null,
@@ -324,7 +333,50 @@
       "tests": 25
     },
     {
-      "assertions": 2889,
+      "assertions": 3703,
+      "caught_by": [
+        "FAIL FLH batch: paced query revalidates current host other layer: test/harness.lua:8: changed or withdrawn host must not receive a stale query: expected false, got true",
+        "FAIL FLH batch: paced query revalidates current host own layer: test/harness.lua:8: changed or withdrawn host must not receive a stale query: expected false, got true",
+        "FAIL FLH batch: paced query revalidates current host same layer new spelling: test/src_flh_batch.lua:336: wire uses the exact current key, not the click-time spelling: expected 00016, got 16",
+        "FAIL FLH batch: paced query revalidates current host withdrawn: test/harness.lua:8: changed or withdrawn host must not receive a stale query: expected false, got true"
+      ],
+      "failed": 4,
+      "killed": true,
+      "mutant": "query-current-host-key",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 38
+    },
+    {
+      "assertions": 3760,
+      "caught_by": [
+        "FAIL FLH batch: join then leave between ticks revokes offer click: test/src_flh_batch.lua:314: transient join revokes deferred or initial LR authority: expected 0, got 1",
+        "FAIL FLH batch: join then leave between ticks revokes paced click: test/src_flh_batch.lua:314: transient join revokes deferred or initial LR authority: expected 0, got 1",
+        "FAIL FLH batch: join then leave between ticks revokes retry click: test/src_flh_batch.lua:314: transient join revokes deferred or initial LR authority: expected 0, got 1",
+        "FAIL FLH batch: join then leave between ticks revokes selected click: test/harness.lua:8: not equal: expected false, got true"
+      ],
+      "failed": 4,
+      "killed": true,
+      "mutant": "join-event-revokes-click",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 38
+    },
+    {
+      "assertions": 3767,
+      "caught_by": [
+        "FAIL FLH batch: recursive tick inside LQ 1 cannot consume remaining targets: test/src_flh_batch.lua:292: nested tick cannot discard eligible targets: expected 7, got 1",
+        "FAIL FLH batch: recursive tick inside LQ 6 cannot consume remaining targets: test/src_flh_batch.lua:292: nested tick cannot discard eligible targets: expected 7, got 6"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "query-reentrant-cursor",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 38
+    },
+    {
+      "assertions": 3690,
       "caught_by": [
         "FAIL FLH batch: stop inside LQ 2 preserves attempted cooldown result 0: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 11, got nil",
         "FAIL FLH batch: stop inside LQ 2 preserves attempted cooldown result 3: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 11, got nil",
@@ -336,7 +388,7 @@
       "mutant": "stop-inflight-name-cooldown",
       "rc": 1,
       "suite": "lua",
-      "tests": 28
+      "tests": 38
     }
   ]
 }
