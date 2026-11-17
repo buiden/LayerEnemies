@@ -4,6 +4,105 @@ Implementation commit: `b0d7aa1d7296d09a4c43cc74270249563bcd15be`.
 Base: `d9f0a71262d35cc59f1292757ed266ca08680eb9` (main, 1.1.0).
 Branch: `feat/bnet-presence`. Local only; origin push URL is `DISABLED`.
 
+## Round-1 reviewer fixes — stack/3-presence
+
+Applied to stack base `dc9df49d7d30e14cee2838f0c675e00179377e96`, without
+rewriting it or changing stack levels 1 or 2. The historical implementation
+record below describes the original feature, not the corrected adapter contract.
+
+### Owner rulings implemented
+
+1. `A.clubMember` reads `presence` and the one newly permitted club field,
+   `bnetAccountId`. It resolves `C_BattleNet.GetAccountInfoByID(...).gameAccountInfo`
+   and uses only the resolved character name, realm (`realmName` with
+   `realmDisplayName` fallback), zone, faction and optional player GUID. Online
+   `WoW` is required. Raw club name/zone/faction/GUID are no longer read or used
+   as character evidence. Missing, secret, throwing or incomplete resolution
+   admits no presence row. The friend route retains its online/project gate.
+2. Every visited club/member pair or friend-list slot replaces its own old
+   evidence immediately, even when offline, non-WoW, incomplete or unreadable.
+   Sources not visited retain the 660-second TTL. Source tokens are session-only;
+   no account IDs/names are retained or saved. Other-source records, sightings,
+   Ask targets and the 600-second notice cooldown are not cleared by withdrawal.
+3. `/le presence` now separates community members read, resolved to a character,
+   with a zone, and opposite faction, then labels matches as all-source totals.
+   Counts remain name/zone-free and do not cause a scan. Partial safe resolution
+   contributes only to the appropriate diagnostic stage, never a display row.
+4. Find-tab switches and Find-window reopens share a once-per-60-second forced
+   refresh allowance. Overlapping/unsafe scans do not consume another allowance;
+   the existing 300-second automatic cadence remains unchanged.
+5. Both deliberate deviations remain intended and are explicit in README:
+   same-faction namesakes are dropped, and only Battle.net-type clubs are read
+   because character communities are same-faction.
+
+API evidence remains Forever build `1.60.1.70938` at
+`bebcb6bf309cf41b41bd74f8ca651e6a105b2676`: generated
+`ClubDocumentation.lua:1819` declares `bnetAccountId`; generated
+`BattleNetDocumentation.lua:99-114` declares `GetAccountInfoByID`, and
+`:495,514-533` declares `gameAccountInfo` and the character fields. WarBoard's
+`Services/WarBoard_ForeverCommunity.lua:119-160` was read for API usage only.
+Its nearby no-reuse notice was observed; no donor code was copied, and no donor
+runtime dependency, subscription or wire protocol was introduced.
+
+### Observed RED → GREEN
+
+All names below have the `Presence: ` prefix and run through the real adapters,
+scan driver and Find projection in `test/harness.lua --presence-only`.
+
+| Ruling | Regression test | Observed RED before its production fix |
+|---|---|---|
+| 1 | `club character comes from account not member display name` | BattleTag member failed to resolve |
+| 1 | `account resolution unavailable secret incomplete and non WoW fail silent` | Missing resolver incorrectly accepted the raw member name |
+| 2 | `reread offline or non WoW drops personal and shared evidence immediately` | Offline reread retained the personal row before TTL |
+| 3 | `diagnostic separates unresolved zoneless same faction and unmatched members` | Resolution stage count missing |
+| 4 | `Find switches and window opens share one force per 60 seconds` | Twenty rapid tab/window reopens caused 21 reads rather than 1 |
+
+Each tracer passed after its own fix. The additional unread-TTL/other-source
+regression passed unchanged (not claimed as RED). An initial TTL fixture used
+integer time despite the `.001` scan tick; corrected it to the actual record
+stamp before accepting the RED result. Existing fixtures were migrated from raw
+club character fields to explicit game-account fields; guild-hash display now
+expects the resolved full name with realm. The old immediate-reopen assertion
+was explicitly migrated to the owner's 60-second contract. No test was removed.
+
+- Unchanged initial presence subset: `RESULT: 20 tests passed, 0 failed, 5874 assertions`.
+- Final test file replayed in a detached copy of the exact stack base:
+  `RESULT: 13 tests passed, 13 failed, 4990 assertions`. This includes failures
+  from migrated character fixtures, not thirteen independent new defects.
+- Corrected subset: `RESULT: 26 tests passed, 0 failed, 11002 assertions`.
+- Full level-3 `python3 test/verify.py` (foreground):
+  `RESULT: 1196 tests passed, 0 failed, 133691 assertions`.
+- `python3 test/presence_mutants.py`: **38/38 killed**, baseline/final green.
+  Seven mutants added, covering every new rule plus the retained faction rule;
+  the existing club-type mutant remains. Old anchors were updated to the new
+  character source/UI hook, and the UI mutant now violates the measured render
+  height rather than an obsolete minimum-height calculation. No survivors or
+  survivor-driven test additions. Full results: `notes/presence-mutants.json`.
+- Syntax, static policy, packaging/source parity, 5,000 fuzz inputs, verifier,
+  API-policy and asset gates all pass. `test/verify.py` and `Wire.lua` unchanged
+  from this task's stack base. `git diff --check` passes.
+- Level-3 deterministic archive SHA-256:
+  `02dffeb7aee65b2bcf47170389487416971c26b675f782ab52995e3b8c3d0643`.
+- Self-review only in this builder (no subagent review tool). The supplied
+  reviewer probe was copied and run read-only before fixing; source evidence is
+  not native-client validation. **Not tested in game (alpha, owner's decision).**
+
+Forward merges retain this record; each level regenerates its own
+`notes/test-results.txt` and `notes/verification.json`.
+
+### Forward integration — level 4
+
+- Merged corrected level 3 into `stack/4-flh` with `--no-ff`.
+- Only conflicts: `notes/test-results.txt`, `notes/verification.json`. Production
+  and test code auto-merged; FLH/Hosts and the FLH test file are unchanged from
+  the old level-4 head. Generated notes were replaced by a fresh full verify.
+- First verify's tests passed, but its later `git diff --check` refused unresolved
+  markers in verification metadata. Resolved the generated-note conflicts and
+  reran the full unchanged gate; no code or assertion change was needed.
+- Final: `RESULT: 1223 tests passed, 0 failed, 153365 assertions`, exit 0.
+- Archive SHA-256:
+  `f921e3f2beb8853c4d232645d6224c091410b869eb8a8292fae4d3da97c404a6`.
+
 ## Result and boundaries
 
 - Four protected adapters, pure `Presence.lua`, incremental Main scan, independent

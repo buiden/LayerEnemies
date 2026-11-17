@@ -34,6 +34,15 @@ local function ready(names)
     }
     _G.BNGetNumFriends=function() owner(); calls.count=calls.count+1; return #data.friends end
     _G.C_BattleNet.GetFriendAccountInfo=function(i) owner(); calls.friends=calls.friends+1; return data.friends[i] end
+    data.member.bnetAccountId=42
+    data.game={characterName="Cedar Vale",realmName="Test Realm",areaName="Stranglethorn Vale",
+        factionName="Horde",playerGuid="Player-1-cedar",isOnline=true,clientProgram="WoW"}
+    calls.accounts=0
+    _G.C_BattleNet.GetAccountInfoByID=function(id)
+        owner(); calls.accounts=calls.accounts+1
+        if type(data.game)~="function" then eq(id,42,"only supplied account ID") end
+        return {gameAccountInfo=type(data.game)=="function" and data.game(id) or data.game}
+    end
     local function refuse() calls.forbidden=calls.forbidden+1; error("presence must never send") end
     N.Wire.send=refuse; N.Main.offerRelay=refuse; _G.SendChatMessage=refuse; _G.BNSendGameData=refuse
     _G.C_BattleNet.SendGameData=refuse; _G.C_FriendList.SendWho=refuse
@@ -60,6 +69,48 @@ local function notices()
     local out={}; for _,s in ipairs(H.log()) do if s:find("online (",1,true) then out[#out+1]=s end end; return out
 end
 
+test("Presence: club character comes from account not member display name",function()
+    local N,data,calls=ready(); data.member={name="Cedar#1234",presence=1,bnetAccountId=42}
+    scan(N); yes(row(N).presence,"BattleTag member resolves to tracked character"); eq(calls.accounts,1)
+    eq(row(N).presence.zone,"Stranglethorn Vale"); eq(calls.forbidden,0)
+    N,data=ready(); data.game.characterName="Other Enemy"
+    scan(N); eq(row(N).presence,nil,"member display namesake is never a character match")
+    N,data=ready({"Cedar-OtherRealm"}); data.game.characterName="Cedar"
+    data.game.realmName=nil; data.game.realmDisplayName="Other Realm"
+    scan(N); yes(row(N).presence,"display realm fallback is normalized")
+end)
+
+test("Presence: account resolution unavailable secret incomplete and non WoW fail silent",function()
+    for _,mode in ipairs({"missing","throw","secret","index","gameMissing"}) do
+        local N,data=ready()
+        if mode=="missing" then C_BattleNet.GetAccountInfoByID=nil
+        else C_BattleNet.GetAccountInfoByID=function()
+            if mode=="throw" then error("unavailable") end
+            if mode=="secret" then return H.secret end
+            if mode=="index" then return setmetatable({},{__index=function() error("unreadable") end}) end
+            return {}
+        end end
+        scan(N); eq(row(N).presence,nil,mode.." resolution cannot use member name")
+    end
+    for _,field in ipairs({"characterName","realmName","areaName","factionName","isOnline","clientProgram"}) do
+        for _,mode in ipairs({"nil","secret","throw"}) do
+            local N,data=ready(); data.game[field]=mode=="secret" and H.secret or nil
+            if mode=="throw" then setmetatable(data.game,{__index=function(_,k) if k==field then error("unreadable") end end}) end
+            scan(N); eq(row(N).presence,nil,field.." "..mode)
+        end
+    end
+    for _,field in ipairs({"bnetAccountId","presence"}) do
+        for _,value in ipairs({false,H.secret,""}) do
+            local N,data=ready(); data.member[field]=value; scan(N); eq(row(N).presence,nil,field)
+        end
+    end
+    for _,change in ipairs({{isOnline=false},{clientProgram="D3"},{factionName="Alliance"},
+        {characterName="Cedar-RealmA",realmName="RealmB"}}) do
+        local N,data=ready({"Cedar-RealmA","Cedar Vale"}); for k,v in pairs(change) do data.game[k]=v end
+        scan(N); eq(next(N.Main.find.presence),nil,"online WoW opposite character required")
+    end
+end)
+
 test("Presence: friends use only online characters in this project and cap 200",function()
     local N,data,calls=ready(); data.clubs={}; data.friends={friend()}
     scan(N); yes(row(N).presence,"friend location"); eq(row(N).status,"online (friend)"); eq(calls.forbidden,0)
@@ -75,16 +126,18 @@ test("Presence: friends use only online characters in this project and cap 200",
 end)
 
 test("Presence: untracked offline mobile unknown and blank rows store nothing",function()
-    for _,change in ipairs({{name="Other Enemy"},{presence=0},{presence=2},{presence=3},{zone=""},{faction=1},{faction=2}}) do
-        local N,data,calls=ready(); for k,v in pairs(change) do data.member[k]=v end
+    for _,change in ipairs({{characterName="Other Enemy"},{presence=0},{presence=2},{presence=3},{areaName=""},{factionName="Alliance"},{factionName="Neutral"}}) do
+        local N,data,calls=ready(); for k,v in pairs(change) do
+            if k=="presence" then data.member[k]=v else data.game[k]=v end
+        end
         scan(N); eq(next(N.Main.find.presence),nil); eq(next(N.Main.presenceShared),nil); eq(calls.forbidden,0)
     end
     for _,p in ipairs({1,4,5}) do local N,data=ready(); data.member.presence=p; scan(N); yes(row(N).presence) end
 end)
 
 test("Presence: secret fields refuse exactly one row and diagnostic has no names",function()
-    for _,key in ipairs({"name","zone","faction","presence","guid"}) do
-        local N,data=ready(); data.member[key]=H.secret; scan(N)
+    for _,key in ipairs({"characterName","realmName","areaName","factionName","isOnline","clientProgram","playerGuid"}) do
+        local N,data=ready(); data.game[key]=H.secret; scan(N)
         eq(next(N.Main.find.presence),nil); yes(N.Main.presenceStats,"counts available")
         eq(N.Main.presenceStats.refused,1); eq(N.Main.presenceStats.secret,true)
         SlashCmdList.LAYERENEMIES("presence")
@@ -112,13 +165,73 @@ test("Presence: missing erroring and secret APIs or tables are silent",function(
         end
         scan(N); eq(next(N.Main.find.presence),nil)
     end
-    for _,key in ipairs({"name","zone","faction"}) do
+    for _,key in ipairs({"characterName","areaName","factionName"}) do
         for _,mode in ipairs({"nil","throw"}) do
-            local N,data=ready(); data.member[key]=nil
-            if mode=="throw" then setmetatable(data.member,{__index=function(_,k) if k==key then error("unreadable") end end}) end
+            local N,data=ready(); data.game[key]=nil
+            if mode=="throw" then setmetatable(data.game,{__index=function(_,k) if k==key then error("unreadable") end end}) end
             scan(N); eq(row(N).presence,nil)
         end
     end
+end)
+
+test("Presence: reread offline or non WoW drops personal and shared evidence immediately",function()
+    for _,route in ipairs({"community","friend"}) do
+        for _,mode in ipairs({"offline","nonWoW","missingCharacter"}) do
+            local N,data=ready(); if route=="friend" then data.clubs={}; data.friends={friend()} end
+            scan(N); yes(row(N).presence,"seed presence before transition")
+            N.Find.report(N.Main.find,{sender="Birch Scout",zone=100,at=H.time(),enemies={{name="Cedar Vale"}},source="spy"})
+            if route=="community" then
+                if mode=="offline" then data.member={presence=3} end
+                if mode=="nonWoW" then data.game={isOnline=true,clientProgram="D3"} end
+                if mode=="missingCharacter" then data.game.characterName=nil end
+            else
+                if mode=="offline" then data.friends[1]={gameAccountInfo={isOnline=false}} end
+                if mode=="nonWoW" then data.friends[1]={gameAccountInfo={isOnline=true,wowProjectID=12}} end
+                if mode=="missingCharacter" then data.friends[1].gameAccountInfo.characterName=nil end
+            end
+            H.time(101); scan(N); eq(row(N).presence,nil,route.." "..mode.." clears before TTL")
+            yes(row(N).canAsk,"sighting is not removed with presence")
+        end
+    end
+    local N,data=ready({"Personal Enemy"}); local hash=N.Watch.hash("Cedar Vale")
+    N.Watch.receive(N.Main.watch,"T|1|aa|1|1|"..hash,"Birch Scout",H.time()); scan(N)
+    yes(N.Main.presenceShared[hash],"seed shared presence")
+    data.game.isOnline=false; H.time(101); scan(N); eq(N.Main.presenceShared[hash],nil,"shared offline removed")
+    data.game.isOnline=true; scan(N); yes(N.Main.presenceShared[hash]); eq(#notices(),1,"offline cannot reset alert cooldown")
+end)
+
+test("Presence: unread members keep TTL and another source keeps its own evidence",function()
+    local N,data=ready(); scan(N); local at=N.Main.find.presence["Cedar Vale"].at
+    data.ids={}; H.time(101); scan(N); yes(row(N).presence,"not read is not offline")
+    H.time(at+659); yes(row(N).presence); H.time(at+660); eq(row(N).presence,nil,"unread still expires at 660")
+    N,data=ready(); data.friends={friend()}; scan(N); eq(row(N).presence.route,"friend")
+    data.member.presence=3; data.friends={}; H.time(101); scan(N)
+    eq(row(N).presence.route,"friend","community withdrawal cannot delete the friend read")
+end)
+
+test("Presence: diagnostic separates unresolved zoneless same faction and unmatched members",function()
+    for _,mode in ipairs({"unresolved","zoneless","sameFaction","unmatched","matched"}) do
+        local N,data=ready()
+        if mode=="unresolved" then C_BattleNet.GetAccountInfoByID=nil end
+        if mode=="zoneless" then data.game.areaName=nil end
+        if mode=="sameFaction" then data.game.factionName="Alliance" end
+        if mode=="unmatched" then data.game.characterName="Other Enemy" end
+        scan(N); SlashCmdList.LAYERENEMIES("presence"); local text=H.log()[#H.log()]
+        local resolved=mode=="unresolved" and 0 or 1
+        local zone=(mode=="unresolved" or mode=="zoneless") and 0 or 1
+        local opposite=(mode=="unmatched" or mode=="matched") and 1 or 0
+        local matches=mode=="matched" and 1 or 0
+        yes(text:find("members read: 1",1,true),mode.." member attempted")
+        yes(text:find("resolved to a character: "..resolved,1,true),mode.." resolution count")
+        yes(text:find("with a zone: "..zone,1,true),mode.." zone count")
+        yes(text:find("opposite faction: "..opposite,1,true),mode.." faction count")
+        yes(text:find("matches: "..matches,1,true),mode.." match count")
+        no(text:find("Cedar",1,true)); no(text:find("Enemy",1,true)); no(text:find("Stranglethorn",1,true))
+    end
+    local N,data,calls=ready(); N.Main.presenceStats=nil
+    SlashCmdList.LAYERENEMIES("presence"); local text=H.log()[#H.log()]
+    yes(text:find("resolved to a character: 0",1,true)); yes(text:find("opposite faction: 0",1,true))
+    eq(calls.clubs+calls.members+calls.accounts+calls.friends,0,"diagnostic does not scan")
 end)
 
 test("Presence: expiry boundary future clocks and remove clear session state",function()
@@ -163,27 +276,48 @@ test("Presence: fifty per tick thousand per club twenty clubs and guild exclusio
 end)
 
 test("Presence: qualified realm stays exact and bare name matches any realm",function()
-    local N,data=ready({"Cedar-RealmA"}); data.member.name="Cedar-RealmB"; scan(N); eq(row(N).presence,nil)
-    data.member.name="Cedar-RealmA"; scan(N); yes(row(N).presence)
-    N,data=ready({"Cedar"}); data.member.name="Cedar-RealmB"; scan(N); yes(row(N).presence,"bare tracker accepts foreign realm")
-    N,data=ready({"Cedar-RealmA"}); data.member.name="Cedar"; scan(N); eq(row(N).presence,nil,"unknown realm cannot confirm foreign")
+    local N,data=ready({"Cedar-RealmA"}); data.game.characterName="Cedar"; data.game.realmName="RealmB"; scan(N); eq(row(N).presence,nil)
+    data.game.realmName="RealmA"; scan(N); yes(row(N).presence)
+    N,data=ready({"Cedar"}); data.game.characterName="Cedar"; data.game.realmName="Realm B"; scan(N); yes(row(N).presence,"bare tracker accepts foreign realm")
+    N,data=ready({"Cedar-RealmA"}); data.game.characterName="Cedar"; data.game.realmName=nil; scan(N); eq(row(N).presence,nil,"unknown realm cannot confirm foreign")
 end)
 
 test("Presence: per name 600 second silent alert uses shared burst throttle",function()
     local N,data,calls=ready(); scan(N); eq(#notices(),1,"first notice")
-    H.time(699); data.member.zone="Ashenvale"; scan(N); eq(#notices(),1,"zone change cannot bypass 600s")
+    H.time(699); data.game.areaName="Ashenvale"; scan(N); eq(#notices(),1,"zone change cannot bypass 600s")
     H.time(700); scan(N); eq(#notices(),2); eq(calls.forbidden,0,"no sound")
     N,data,calls=ready({"Enemy Alpha","Enemy Bravo","Enemy Charlie","Enemy Delta"}); data.ids={1,2,3,4}
-    data.member=function(_,id) return {name=N.Main.find.names[id],zone="Stranglethorn Vale",faction=0,presence=1} end
+    data.member=function(_,id) return {presence=1,bnetAccountId=id} end
+    data.game=function(id) return {characterName=N.Main.find.names[id],realmName="Test Realm",areaName="Stranglethorn Vale",
+        factionName="Horde",isOnline=true,clientProgram="WoW"} end
     scan(N); eq(#notices(),3,"existing three-line burst limit"); eq(N.Main.find.alertWindow.more,1)
     eq(calls.forbidden,0)
+end)
+
+test("Presence: Find switches and window opens share one force per 60 seconds",function()
+    local N,data,calls=ready(); N.UI.frame:Show(); N.UI.select("find"); H.advance(.001)
+    eq(calls.clubs,1,"first Find open forces a scan")
+    for _=1,10 do
+        N.UI.select("friendly"); N.UI.select("find"); H.advance(.001)
+        N.UI.frame:Hide(); N.UI.frame:Show(); H.advance(.001)
+    end
+    eq(calls.clubs,1,"tab and window spam cannot bypass 60s")
+    H.time(159.999); N.UI.select("friendly"); N.UI.select("find"); H.advance(.0001)
+    eq(calls.clubs,1,"before exact boundary")
+    H.time(160); N.UI.select("friendly"); N.UI.select("find"); H.advance(.001)
+    eq(calls.clubs,2,"exact 60s boundary refreshes")
+    H.time(220); H.combat(true); N.UI.select("friendly"); N.UI.select("find"); H.advance(.001)
+    eq(calls.clubs,2,"unsafe open does no work")
+    H.combat(false); N.UI.select("friendly"); N.UI.select("find"); H.advance(.001)
+    eq(calls.clubs,3,"refused safety scan does not spend refresh allowance")
 end)
 
 test("Presence: automatic 300s cadence and Find opening refresh without overlap",function()
     local N,data,calls=ready(); N.Main.poll(); H.advance(.001); eq(calls.clubs,1)
     H.time(399); N.Main.poll(); eq(calls.clubs,1); H.time(400); N.Main.poll(); H.advance(.001); eq(calls.clubs,2)
     N.UI.frame:Show(); N.UI.select("find"); H.advance(.001); eq(calls.clubs,3,"Find tab opens")
-    N.UI.frame:Hide(); N.UI.frame:Show(); H.advance(.001); eq(calls.clubs,4,"Find window reopens")
+    N.UI.frame:Hide(); N.UI.frame:Show(); H.advance(.001); eq(calls.clubs,3,"Find reopen is rate limited")
+    H.time(461); N.UI.frame:Hide(); N.UI.frame:Show(); H.advance(.001); eq(calls.clubs,4,"Find window reopens after allowance")
     data.ids={}; for i=1,101 do data.ids[i]=i end
     N.Main.presenceScan(true); N.Main.presenceScan(true); eq(calls.clubs,5,"coalesced scan")
     H.instance(true); H.advance(.001); eq(N.Main.presenceJob,nil,"cancel instance")
@@ -197,7 +331,7 @@ test("Presence: UI and slash text show zone age and hide stale pooled line",func
     yes(N.Main.findText(row(N)):find("Stranglethorn Vale",1,true)); yes(N.UI.findTitle:GetText():find("1 located",1,true))
     local bottom= -card.presence.point[5]+card.presence.height
     yes(bottom<=card.height-24,"presence line fits above buttons")
-    data.member.zone=""; H.time(800); N.UI.render(); no(card.presence:IsShown(),"pooled stale line hidden")
+    data.game.areaName=""; H.time(800); N.UI.render(); no(card.presence:IsShown(),"pooled stale line hidden")
 end)
 
 test("Presence: invalid friend realm never falls back to a bare character",function()
@@ -212,7 +346,7 @@ test("Presence: guild watch hash matches are session-only possible rows and with
     yes(N.Watch.receive(N.Main.watch,"T|1|aa|1|1|"..hash,"Birch Scout",H.time()))
     scan(N)
     local found
-    for _,r in ipairs(N.Main.findRows()) do if r.name=="Cedar Vale" then found=r end end
+    for _,r in ipairs(N.Main.findRows()) do if r.name=="Cedar Vale-TestRealm" then found=r end end
     yes(found,"guild tracked presence shown"); yes(found.guildTracked,"hash match labelled possible")
     eq(found.presence.zone,"Stranglethorn Vale"); eq(found.canAsk,false); eq(calls.forbidden,0)
     eq(#LayerEnemiesDB.tracked,1); eq(next(N.Main.find.known.pairs or {}),nil)
@@ -230,7 +364,7 @@ end)
 
 test("Presence: malformed names and throwing pure row fields fail silently",function()
     for _,name in ipairs({"x", "Bad|Name", "Name-Realm!", "Name with three", string.rep("X",101), "\255"}) do
-        local N,data=ready(); data.member.name=name; scan(N); eq(next(N.Main.find.presence),nil)
+        local N,data=ready(); data.game.characterName=name; scan(N); eq(next(N.Main.find.presence),nil)
     end
     local N=ready()
     local ok,result=pcall(N.Presence.accept,setmetatable({},{__index=function() error("unreadable") end}),"community")
@@ -247,6 +381,7 @@ test("Presence: pure bounds and adapter field allowlists",function()
     base.zone="z"; base.faction=nil; eq(N.Presence.accept(base,"community"),nil)
     base.faction="Horde"; eq(N.Presence.accept(base,"who"),nil)
     setmetatable(data.member,{__index=function(_,k) error("not permitted: "..k) end})
+    setmetatable(data.game,{__index=function(_,k) error("not permitted game field: "..k) end})
     scan(N); yes(row(N).presence,"reads only allowed community fields")
     local copied=row(N).presence; copied.zone="changed"; eq(row(N).presence.zone,"Stranglethorn Vale","projection does not alias memory")
 end)
