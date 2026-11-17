@@ -8,6 +8,8 @@
 | `WBF1\|A\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | An eligible account that sent a valid protocol-5 H (including a recognized, different ruleset, so it can reject us) | At most 6 A frames per rolling 60 seconds, at both admission and dispatch; A never answers A |
 | **Nothing else** | Nobody | No `FBAK`, subscription, tracking request, data send, packet forwarding, or ordinary-addon/chat send |
 
+When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position.
+
 Both H and A use **only the shared Battle.net queue**: together at most 10
 WarBoard send attempts/minute and at most **30 attempts/minute across all
 networks**, with at least one second between attempts. They stop with
@@ -25,6 +27,13 @@ The independent WarBoard Forever **1.6.3** protocol reader accepts confirmed
 `WarBoardBN` guild/group/channel traffic. Only your Find names and guild Watch
 names are admitted through the source registry. No name or peer is saved.
 
+Receive work is capped at **16 decode attempts and 128 KiB per sender per rolling
+10 seconds**, shared across Battle.net and guild/group/channel routes, with an
+additional Battle.net account budget. Per-type inflation ceilings range from
+2 KiB to 96 KiB. A 512-entry, 60-second hash memory suppresses repeated decoded
+**and** failed payloads; `/le net` counts these as both refused and deduped.
+Unfinished assemblies are limited to two per account/sender as well as 16 globally.
+
 - **SHRD:** the sender's own zone and shard. Same-faction
   records are ignored. Its millisecond-like sequence is used for ordering and
   clock-skew checks, never displayed as an observation time; the hint expires
@@ -33,7 +42,8 @@ names are admitted through the source registry. No name or peer is saved.
 - **FBLP:** the target's current or explicitly approximate held position,
   zone/subzone and shard. Rank and hunter roster are validated, not imported. World
   coordinates become a map pin only when the client converts them safely to
-  that displayed map; otherwise the textual zone still appears.
+  that displayed map; otherwise the textual zone still appears. Relays say
+  "reported position"; only a matching Battle.net sender/subject says "own position".
 - **FREC:** killer-zone hints only, with the record age preserved. The victim
   is never attributed the killer's position. **FBLC / FCBD** location entries
   remain cached; FBLC has no live producer in the audited release. There is no
@@ -62,7 +72,7 @@ Developer interfaces and integration rules:
   Names are lower-case letters (32 bytes); at most 32 sources, 8 prefixes per
   source, 16 bytes per prefix. Registration is atomic and refuses duplicate names,
   duplicate prefixes and every prefix already owned by Main's chain. It copies
-  the descriptor; the supplied counter table exposes `heard/accepted/sent/refused`.
+  the descriptor; the supplied counter table exposes `heard/accepted/sent/refused/deduped`.
   `onAddon(prefix,text,dist,sender)`, `onBNet(prefix,text,gameAccountId)` and
   `tick(now)` are optional protected callbacks. No callback exception becomes a
   runtime-status error. `/le net <name> on|off` uses the existing saved switches;

@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 LUA = os.environ.get('LAYERENEMIES_LUA', '/opt/data/tools/lua/lua-5.1.5/src/lua')
 MUTANTS = []
 
-def add(rule, old, new, selector, file='WarBoard.lua'):
-    MUTANTS.append((rule, file, old, new, 'WarBoard: ' + selector))
+def add(rule, old, new, selector, file='WarBoard.lua', suite='WarBoard: '):
+    MUTANTS.append((rule, file, old, new, suite + selector))
 
 add('H answered; no A loop', 'if cmd=="H" then send(st,id,"A",ctx) end\n        return true', 'send(st,id,"A",ctx)\n        return true', 'compatible H')
 add('protocol exactly five', 'proto~="5"', 'false', 'wrong ruleset')
@@ -33,7 +33,7 @@ add('share off silence', 'not N.Main.sharing()', 'false', 'share stops', 'BNet.l
 add('public off silence', 'not authorized or not N.Main.sharing() or N.Net.consent()~="public" or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"public")', 'not authorized or not N.Main.sharing() or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"guild")', 'public stops', 'BNet.lua')
 add('stand down own sends', 'standDown="WarBoard"', 'standDown="Uninstalled"', 'stand down')
 add('no FBAK send', 'local text="WBF1|"..cmd', 'local text="WBF1|FBAK"..cmd', 'compatible H')
-add('no forwarding', 'if st.seen[encoded] then return false end', 'BN.send("warboard",71,"WarBoard","WBF1|D|"..encoded,"own")\n    if st.seen[encoded] then return false end', 'no FBAK or request')
+add('no forwarding', 'if st.seen[encoded] then return duplicate() end', 'BN.send("warboard",71,"WarBoard","WBF1|D|"..encoded,"own")\n    if st.seen[encoded] then return duplicate() end', 'no FBAK or request')
 add('no alternative send route', 'return BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'N.Wire.send("WarBoard",text,"GUILD")\n    return BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'compatible H')
 add('confirmed peer required', 'if not peer or peer.rs~=ctx.rs', 'peer=peer or {rs=ctx.rs,key=who.key,faction=who.faction,at=ctx.now}\n    if not peer or peer.rs~=ctx.rs', 'unconfirmed wrong')
 add('peer lifetime bounded', 'ctx.now-peer.at>=1200', 'ctx.now-peer.at>1200', 'unconfirmed wrong')
@@ -48,7 +48,7 @@ add('assembly count mismatch', 'if r and r.n~=n then', 'if false then', 'fragmen
 add('hundred twenty inbound frames', '#r.times>=120', '#r.times>=121', 'inbound rolling')
 add('two hundred sender buckets', 'slots(st.rates,ctx.now,60)>=200', 'slots(st.rates,ctx.now,60)>=201', 'inbound rolling')
 add('two hundred peers', 'slots(st.peers,ctx.now,1200)>=200', 'slots(st.peers,ctx.now,1200)>=201', 'inbound rolling')
-add('dedupe retains receipt time', 'if st.seen[encoded] then return false end', 'if false then return false end', 'dedupe FBLP')
+add('dedupe retains receipt time', 'if st.seen[encoded] then return duplicate() end', 'if false then return false end', 'dedupe FBLP')
 add('five hundred twelve dedupe entries', '#st.seenOrder>=512', '#st.seenOrder>=513', 'dedupe ring')
 add('one MiB encoded memory', 'st.seenBytes+#encoded>1048576', 'st.seenBytes+#encoded>2097152', 'dedupe byte bound')
 add('version upper bound', 'e.v>5', 'e.v>6', 'invalid SHRD v ')
@@ -78,6 +78,56 @@ add('rollback refusal', 'if st.high and ctx.now<st.high then', 'if false then', 
 add('secret value boundary', 'local ok, hidden = pcall(issecretvalue, v)', 'local ok, hidden = true, false', 'safe fields', 'Safe.lua')
 
 
+# Review rulings: each independent guard gets an assertion-killed mutant.
+def review(rule, old, new, selector, file='WarBoard.lua'):
+    add(rule, old, new, selector, file, suite='WarBoard review: ')
+
+for typ, cap in [('SHRD', 2048), ('FBLP', 40960), ('FREC', 73728), ('FBLC', 2048), ('FCBD', 98304)]:
+    review(typ + ' per-type inflate ceiling', f'{typ}={cap}', f'{typ}={cap // 2 if typ == "FCBD" else cap * 2}',
+           'largest normal location' if typ == 'FCBD' else typ + ' inflate ceiling')
+review('unknown type bounded before classification', 'math.min(98304,allowance or 98304)',
+       'math.min(262144,allowance or 262144)', 'SHRD inflate ceiling')
+review('streaming type limit lowers actual inflation', 'maxOut=math.min(maxOut,limit)',
+       'maxOut=maxOut', 'SHRD inflate ceiling', 'Codec.lua')
+review('sixteen decode attempts per sender', '#r.times>=16', '#r.times>=17', 'decode attempt cap')
+review('rolling ten-second decode window', 'now-r.times[i].at>=10', 'now-r.times[i].at>=9', 'decode attempt cap')
+review('sender inflated-byte allowance reaches inflater',
+       'local allowance=math.min(131072-rate.bytes,acct and (131072-acct.bytes) or 131072)',
+       'local allowance=98304', 'decode bytes budget')
+review('one decode owner across BN and addon paths', 'decodeRate(st.decodeRates,N.Invite.key(carrier),ctx.now)',
+       'decodeRate(st.decodeRates,(account and "bn:"..account or N.Invite.key(carrier)),ctx.now)', 'decode attempt cap')
+review('account decode bucket survives character change', 'account and decodeRate(st.decodeAccounts,account,ctx.now)',
+       'account and decodeRate(st.decodeAccounts,carrier,ctx.now)', 'BN decode quota')
+review('failed payload hash avoids repeated inflation', 'if st.frames[hash] then return duplicate() end',
+       'if false then return duplicate() end', 'reviewer 130 BN bombs')
+review('every decoded payload is hashed, not only failures', 'rememberFrame(st,hash,ctx.now)',
+       'if not e then rememberFrame(st,hash,ctx.now) end', 'decoded untracked frames')
+review('sixty-second frame memory', 'now-st.frames[key].at<60', 'now-st.frames[key].at<59', 'failed hashes last')
+review('duplicates do not refresh hash lifetime', 'if st.frames[hash] then return duplicate() end',
+       'if st.frames[hash] then st.frames[hash].at=ctx.now; return duplicate() end', 'failed hashes last')
+review('five hundred twelve frame hashes', '#st.frameOrder>=512', '#st.frameOrder>=513', 'failed hash cap')
+review('two hundred decode sender buckets', 'slots(rates,now,10)>=200', 'slots(rates,now,10)>=201',
+       'decode sender bucket cap')
+review('refused decode counted',
+       'or (e.scope~=nil and e.scope~="FACTION") or not S.tab(e.d) then return refuse() end',
+       'or (e.scope~=nil and e.scope~="FACTION") or not S.tab(e.d) then return false end', 'reviewer 130 BN bombs')
+review('dedupe hits counted', 'Src.count("warboard","deduped")', 'do end', 'accepted payload duplicates')
+review('two unfinished BN assemblies per account', 'if owned>=2 then return nil end',
+       'if owned>=16 then return nil end', 'one account holding unfinished')
+review('two unfinished addon assemblies per sender', 'if owned>=2 then return nil end',
+       'if owned>=16 then return nil end', 'addon assembly quota', 'Codec.lua')
+review('addon assembly owner independent of route key', 'Cd.aceCommJoin(st.comm,key,text,N.Invite.key(sender))',
+       'Cd.aceCommJoin(st.comm,key,text,key)', 'addon assembly quota')
+review('relayed position wording is not own position',
+       '(ev.kind=="self" and "own position; " or "reported position; ")',
+       '"own position; "', 'FBLP wording BN third')
+review('matching addon subject is not authenticated BN self',
+       'if e.t=="FBLP" and not bnetFaction then bridge=true end', 'do end', 'FBLP wording GUILD')
+review('README discloses new-peer publication',
+       'When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position.',
+       '', 'README explains', '../README.md')
+
+
 def main():
     scratch = Path(os.environ.get('TMPDIR', '/opt/data/cache/scratch'))
     assert str(scratch).startswith('/opt/data/cache/scratch')
@@ -86,13 +136,15 @@ def main():
         root = Path(tmp)
         for folder in ('LayerEnemies', 'test'):
             shutil.copytree(ROOT / folder, root / folder)
+        shutil.copyfile(ROOT / 'README.md', root / 'README.md')
         for rule, file, old, new, selector in MUTANTS:
             path = root / 'LayerEnemies' / file
             original = path.read_text()
             assert original.count(old) == 1, (rule, 'mutation must match exactly once')
             path.write_text(original.replace(old, new))
             try:
-                subprocess.run([str(Path(LUA).with_name('luac')), '-p', str(path)], check=True, capture_output=True)
+                if path.suffix == '.lua':
+                    subprocess.run([str(Path(LUA).with_name('luac')), '-p', str(path)], check=True, capture_output=True)
                 run = subprocess.run([LUA, 'test/harness.lua', '--only', selector], cwd=root,
                                      capture_output=True, text=True, errors='replace', timeout=90)
                 failures = [s for s in run.stdout.splitlines() if s.startswith('FAIL ')]

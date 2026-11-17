@@ -306,9 +306,12 @@ test("fragment limits sixty four parts sixteen streams ninety seconds and sender
     N=setup("Enemy Player"); confirmed(N); e=wire(N,"SHRD",shrd())
     p=parts(e,"aaa",65); for _,v in ipairs(p) do inbound(v) end; no(row(N).reported)
     N=setup("Enemy Player"); confirmed(N); e=wire(N,"SHRD",shrd())
-    for i=1,17 do local a=parts(e,string.format("%x",i),2); inbound(a[1]) end
+    -- Spread streams over accounts so the two/account quota cannot mask the
+    -- independent global cap. This deliberately migrates the former 16/account fixture.
+    for id=72,79 do confirmed(N,id) end
+    for i=1,17 do local a=parts(e,string.format("%x",i),2); inbound(a[1],71+math.floor((i-1)/2)) end
     eq(N.Safe.count(N.WarBoard.state.parts),16)
-    p=parts(e,"11",2); inbound(p[2]); no(row(N).reported,"seventeenth stream refused")
+    p=parts(e,"11",2); inbound(p[2],79); no(row(N).reported,"seventeenth stream refused")
     p=parts(e,"1",2); inbound(p[2],72); no(row(N).reported,"different account cannot finish")
     h.clock(h.clock()+90); h.wall(h.wall()+90); inbound(p[2]); no(row(N).reported,"exact expiry")
     eq(N.Safe.count(N.WarBoard.state.parts),1,"expired slots reclaimed before new tail")
@@ -325,7 +328,8 @@ end)
 test("frame four thousand bytes and assembled/inflated limits reject valid oversized data",function()
     local N=setup("Enemy Player"); confirmed(N)
     -- Arbitrary serializer whitespace is legal, making exact size positives possible.
-    local text=N.Codec.aceWrite({t="SHRD",v=5,rs="pvp",d=shrd()})
+    -- FREC's per-type ceiling exceeds the frame ceiling; SHRD no longer does.
+    local text=N.Codec.aceWrite({t="FREC",v=5,rs="pvp",d=kill()})
     local function padded(size)
         for n=size-80,size do
             local e=N.Codec.addonEncode(N.Codec.deflateStored(text..string.rep(" ",n-#text)))
@@ -356,7 +360,9 @@ end)
 test("dedupe ring bounded at five hundred twelve and one MiB with fresh evidence admitted",function()
     local N=setup("Enemy Player"); confirmed(N)
     for i=1,513 do
-        if i%100==0 then h.clock(h.clock()+60); h.wall(h.wall()+60) end
+        -- Stay inside the new sixteen-decodes/ten-seconds budget so it cannot
+        -- conceal a broken accepted-packet eviction bound.
+        if i%16==0 then h.clock(h.clock()+10); h.wall(h.wall()+10) end
         local d=kill(); d.id="id"..i; data(N,"FREC",d)
     end
     eq(#N.WarBoard.state.seenOrder,512); yes(N.WarBoard.state.seenBytes<=1048576); yes(row(N).reported)
@@ -485,18 +491,22 @@ end)
 test("dedupe FBLP retains observed and received clocks across differently routed copies",function()
     local N=setup("Enemy Player"); confirmed(N)
     local e=wire(N,"FBLP",position()); inbound("WBF1|D|"..e)
-    local got=row(N).got; local at=row(N).at; h.clock(h.clock()+10)
+    local got=row(N).got; local at=row(N).at; h.clock(h.clock()+61) -- beyond the new short-lived hash window
     inbound("WBF1|D|"..e); eq(row(N).got,got); eq(row(N).at,at)
 end)
 
 test("dedupe byte bound evicts older accepted encoded packets",function()
     local N=setup("Enemy Player"); confirmed(N)
     for i=1,400 do
-        if i%100==0 then h.clock(h.clock()+60); h.wall(h.wall()+60) end
+        -- Stay inside the new sixteen-decodes/ten-seconds budget so it cannot
+        -- conceal a broken accepted-packet eviction bound.
+        if i%16==0 then h.clock(h.clock()+10); h.wall(h.wall()+10) end
         local d=kill(); d.id="id"..i
         data(N,"FREC",d,{padding=string.rep("p",3000)})
     end
-    yes(row(N).reported); yes(N.WarBoard.state.seenBytes<=1048576); yes(#N.WarBoard.state.seenOrder<400)
+    yes(row(N).reported); yes(N.WarBoard.state.seenBytes<=1048576)
+    yes(#N.WarBoard.state.seenOrder>300,"exercise byte eviction, not decode throttling")
+    yes(#N.WarBoard.state.seenOrder<400)
 end)
 
 test("untracked FBLP and FREC never reach Known or save names",function()

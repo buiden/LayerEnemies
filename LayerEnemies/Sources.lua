@@ -13,7 +13,7 @@ function Src.owns(prefix) return S.str(prefix,16)~=nil and owners[prefix]~=nil e
 function Src.enabled(name) return Src.has(name) and N.Net.switch(name) end
 function Src.count(name,key)
     local r=S.str(name,32) and sources[name]
-    if r and (key=="heard" or key=="accepted" or key=="sent" or key=="refused") then
+    if r and (key=="heard" or key=="accepted" or key=="sent" or key=="refused" or key=="deduped") then
         r.counters[key]=(S.num(r.counters[key]) or 0)+1
     end
 end
@@ -43,7 +43,7 @@ local function register(r)
         if not prefix or legacy[prefix] or owners[prefix] or seen[prefix] then return false end
         seen[prefix]=true; copy.prefixes[#copy.prefixes+1]=prefix
     end
-    for _,key in ipairs({"heard","accepted","sent","refused"}) do copy.counters[key]=0 end
+    for _,key in ipairs({"heard","accepted","sent","refused","deduped"}) do copy.counters[key]=0 end
     sources[name]=copy; order[#order+1]=copy
     for _,prefix in ipairs(copy.prefixes) do owners[prefix]=copy end
     -- Registration opts in this source's switch without altering legacy readers.
@@ -177,7 +177,7 @@ function Src.lines()
     local out={}
     for _,r in ipairs(order) do
         local c=r.counters
-        out[#out+1]=r.name..": heard="..c.heard.." accepted="..c.accepted.." sent="..c.sent.." refused="..c.refused
+        out[#out+1]=r.name..": heard="..c.heard.." accepted="..c.accepted.." sent="..c.sent.." refused="..c.refused.." deduped="..c.deduped
     end
     return out
 end
