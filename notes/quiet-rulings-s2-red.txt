@@ -1,0 +1,4 @@
+FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:8: not equal: expected false, got true
+FAIL QuietAll review S2: 17 typed whispers fail open in on: test/harness.lua:8: full ledger protects own receipts too: expected false, got true
+FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:8: sixteen is full: expected false, got true
+RESULT: 0 tests passed, 3 failed, 155 assertions

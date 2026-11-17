@@ -1,0 +1,4 @@
+FAIL QuietAll review Note: on-mode typed protection Shared Person: test/harness.lua:8: not equal: expected false, got true
+FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/harness.lua:8: not equal: expected false, got true
+FAIL QuietAll review Note: on-mode typed protection élodie: test/harness.lua:8: not equal: expected false, got true
+RESULT: 0 tests passed, 3 failed, 138 assertions

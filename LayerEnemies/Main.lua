@@ -2174,9 +2174,9 @@ function M.hhHelloPump()
         end,"public") then M.hhHelloTimer=nil end
     end
 end
--- Observe only; system errors remain visible in every chat frame.
-function M.whisperSystem(text)
-    if N.Wire.system(text) and M.hhNet then
+-- The observer shares correlation with Wire's chat filter; either may run first.
+function M.whisperSystem(text,...)
+    if N.Wire.system(text,select(10,...)) and M.hhNet then
         N.HhNet.suppress(M.hhNet,N.Wire.offlineUntil,now())
         if not N.HhNet.owed(M.hhNet) then M.hhHelloTimer=nil end
     end
@@ -2320,6 +2320,16 @@ function M.setNet(key,on)
     if N.UI then N.UI.refresh() end
     return true
 end
+function M.quiet(command)
+    local state=command:match("^quiet%s+(%a+)$")
+    if command=="quiet" then state=N.Wire.quietMode(LayerEnemiesDB.quietWhispers)
+    elseif state~="on" and state~="off" and state~="all" then M.say("LayerEnemies: /le quiet on|off|all"); return
+    elseif S.tab(LayerEnemiesDB) then LayerEnemiesDB.quietWhispers=state end
+    M.say("LayerEnemies: quiet "..state..(state=="on" and " - hide only LayerEnemies' correlated offline whisper notices."
+        or state=="all" and not N.Wire.whisperObserverReady() and " - your own typed-whisper protection unavailable; all behaves like on (LayerEnemies whispers only)."
+        or state=="all" and " - hide all localized not-found lines except after your own typed whisper (10 seconds)."
+        or " - all offline whisper notices stay visible."))
+end
 function M.warboardTrack(on)
     N.WarBoardTrack.set(on)
     M.say("WarBoard tracking: "..(on and "on" or "off").." (this session; /le warboard track on|off)")
@@ -2328,6 +2338,11 @@ function M.net(command)
     local rest=command:match("^net%s*(.-)%s*$") or ""
     if rest=="" then
         M.say("Networks: "..(N.Net.consent()=="public" and "public" or "guild only"))
+        M.say("hidden (LayerEnemies whispers): "..N.Wire.hiddenNotices().."; hidden (other addons): "..N.Wire.hiddenOtherNotices().."; shown (your own whisper or mode): "..N.Wire.shownNotices())
+        M.say(N.Wire.whisperObserverReady() and "Typed-whisper protection: secure post-hook active."
+            or "Typed-whisper protection unavailable; all behaves like on (LayerEnemies whispers only).")
+        local ready,missing=N.Wire.whisperObserverReady()
+        if not ready then M.say("Missing typed-whisper hook: "..missing..".") end
         netLines(M.say)
         M.say(N.HeadHunter.summary(M.hh.stats))
         local s=M.overlord.stats
@@ -2431,6 +2446,7 @@ function M.start()
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- sharing our own sightings (O, War Effort C+E) and deaths (K): only a saved false turns it off
     LayerEnemiesDB.share=saved.share~=false
+    LayerEnemiesDB.quietWhispers=N.Wire.quietMode(saved.quietWhispers)
     LayerEnemiesDB.findShare=saved.findShare~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
     if N.WarBoardTrack then LayerEnemiesDB.warboardOwed=N.WarBoardTrack.load(saved.warboardOwed) end
@@ -2469,6 +2485,8 @@ function M.start()
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OverlordF") -- receive only
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OpenMapLoc") -- receive only, including hellos
     end
+    N.Wire.registerSystemFilter()
+    N.Wire.registerWhisperObserver()
     N.Sources.start()
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"
@@ -2493,6 +2511,7 @@ function M.start()
         if command=="hop any" then guarded(M.hopAny); return end
         if command=="hop auto on" then guarded(M.setAutoHop,true); return end
         if command=="net" or command:match("^net%s") then guarded(M.net,command); return end
+        if command=="quiet" or command:match("^quiet%s") then guarded(M.quiet,command); return end
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
         if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
         if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
@@ -2545,7 +2564,7 @@ local function dispatch(_,event,...)
         guarded(M.hopAnyStop,"combat started")
     elseif event=="PLAYER_DEAD" then N.OwnDeath.dead()
     elseif event=="PLAYER_ALIVE" or event=="PLAYER_UNGHOST" then N.OwnDeath.revived()
-    elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
+    elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,...)
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then
         if event=="PLAYER_ENTERING_WORLD" then N.OwnDeath.seed(...) end
         if N.WarBoardTrack and A.inInstance()~=false then N.WarBoardTrack.stop() end
