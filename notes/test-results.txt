@@ -1300,7 +1300,7 @@ PASS Wanted: record and sighting location fields do not alias each other
 PASS Wanted: bad hashes and malformed payloads increment refusal without chat
 PASS Wanted: record batch and flat-data limits reject valid oversized objects
 PASS Wanted: stale and future records are refused before the offer boundary
-PASS Wanted: immutable dedupe ceilings do not store or save new names
+PASS Wanted: bounded dedupe evictions do not save evidence or new names
 PASS Wanted: known same-faction GUIDs cannot become enemies through sightings
 PASS Wanted: echo realm identity and source switch cannot admit forged claims
 PASS Wanted: source diagnostics are opt-in bounded and protected
@@ -1334,4 +1334,18 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1336 tests passed, 0 failed, 198612 assertions
+PASS Wanted: R2 S4 one sighting a minute for two hours shows 120 of 120
+PASS Wanted: R2 S4 one sighting every twenty seconds shows all sixty
+PASS Wanted: R2 S4 twenty-second cadence stays live for two hours
+PASS Wanted: R2 S4 channel scout also shows 120 of 120
+PASS Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID
+PASS Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout
+PASS Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve
+PASS Wanted: R2 S4 eviction counter is visible through net wanted including zero
+PASS Wanted: R2 S4 counter counts public and global evictions not refusals
+PASS Wanted: R2 S4 overlapping sender and public limits count both evictions
+PASS Wanted: R2 S4 mixed records evict by admission not observation or expiry
+PASS Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry
+PASS Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs
+PASS Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks
+RESULT: 1350 tests passed, 0 failed, 201353 assertions
