@@ -4,7 +4,7 @@
     "selector": "WarBoard track: exact FBAK",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:67: not equal: expected 1, got 0"
+      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:79: not equal: expected 1, got 0"
     ]
   },
   {
@@ -12,7 +12,7 @@
     "selector": "WarBoard track: exact FBAK",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:45: not equal: expected WarBoard/1.6.3, got LayerEnemies/1.1.0"
+      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:57: not equal: expected WarBoard/1.6.3, got LayerEnemies/1.1.0"
     ]
   },
   {
@@ -20,7 +20,7 @@
     "selector": "WarBoard track: exact FBAK",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:45: not equal: expected Player-123-00000002, got Player-123-00000001"
+      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:57: not equal: expected Player-123-00000002, got Player-123-00000001"
     ]
   },
   {
@@ -28,7 +28,7 @@
     "selector": "WarBoard track: exact FBAK",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:45: not equal: expected Horde, got Alliance"
+      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:57: not equal: expected Horde, got Alliance"
     ]
   },
   {
@@ -44,7 +44,7 @@
     "selector": "WarBoard track: server time integer",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: server time integer mandatory and not local wall clock: test/src_warboard_track.lua:224: not equal: expected 0, got 1"
+      "FAIL WarBoard track: server time integer mandatory and not local wall clock: test/src_warboard_track.lua:237: not equal: expected 0, got 1"
     ]
   },
   {
@@ -52,7 +52,7 @@
     "selector": "WarBoard track: server time integer",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: server time integer mandatory and not local wall clock: test/src_warboard_track.lua:224: not equal: expected 0, got 1"
+      "FAIL WarBoard track: server time integer mandatory and not local wall clock: test/src_warboard_track.lua:237: not equal: expected 0, got 1"
     ]
   },
   {
@@ -60,7 +60,7 @@
     "selector": "WarBoard track: server clock unreadable",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: server clock unreadable at dispatch does not send or forget cleanup: test/src_warboard_track.lua:322: not equal: expected 0, got 1"
+      "FAIL WarBoard track: server clock unreadable at dispatch does not send or forget cleanup: test/src_warboard_track.lua:336: not equal: expected 0, got 1"
     ]
   },
   {
@@ -68,7 +68,7 @@
     "selector": "WarBoard track: only own Find",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: only own Find names never shared Watch or untracked: test/src_warboard_track.lua:183: not equal: expected 0, got 4"
+      "FAIL WarBoard track: only own Find names never shared Watch or untracked: test/src_warboard_track.lua:196: not equal: expected 0, got 4"
     ]
   },
   {
@@ -76,7 +76,7 @@
     "selector": "WarBoard track: GUID only from live",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: GUID only from live client never a received frame: test/src_warboard_track.lua:204: not equal: expected 0, got 1"
+      "FAIL WarBoard track: GUID only from live client never a received frame: test/src_warboard_track.lua:217: not equal: expected 0, got 1"
     ]
   },
   {
@@ -84,7 +84,7 @@
     "selector": "WarBoard track: same GUID debt",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: same GUID debt cannot be redirected by a received forged position: test/src_warboard_track.lua:358: not equal: expected 1, got 0"
+      "FAIL WarBoard track: same GUID debt cannot be redirected by a received forged position: test/src_warboard_track.lua:372: not equal: expected 1, got 0"
     ]
   },
   {
@@ -92,7 +92,7 @@
     "selector": "WarBoard track: confirmation rules",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:198: H: expected 0, got 1"
+      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:211: H: expected 0, got 1"
     ]
   },
   {
@@ -100,7 +100,7 @@
     "selector": "WarBoard track: H cannot revive",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: H cannot revive an expired A confirmation: test/src_warboard_track.lua:397: not equal: expected 0, got 1"
+      "FAIL WarBoard track: H cannot revive an expired A confirmation: test/src_warboard_track.lua:411: not equal: expected 0, got 1"
     ]
   },
   {
@@ -108,7 +108,7 @@
     "selector": "WarBoard track: confirmation rules",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:197: expiry admission boundary: expected 0, got 1"
+      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:210: expiry admission boundary: expected 0, got 1"
     ]
   },
   {
@@ -116,7 +116,7 @@
     "selector": "WarBoard track: confirmation rules",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:198: rules: expected 0, got 1"
+      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:211: rules: expected 0, got 1"
     ]
   },
   {
@@ -124,7 +124,7 @@
     "selector": "WarBoard track: confirmation rules",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:198: ambiguous: expected 0, got 1"
+      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:211: ambiguous: expected 0, got 1"
     ]
   },
   {
@@ -132,7 +132,7 @@
     "selector": "WarBoard track: twenty active",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: twenty active targets even when corrupted Find holds twenty one: test/src_warboard_track.lua:410: not equal: expected 20, got 21"
+      "FAIL WarBoard track: twenty active targets even when corrupted Find holds twenty one: test/src_warboard_track.lua:424: not equal: expected 20, got 21"
     ]
   },
   {
@@ -140,7 +140,7 @@
     "selector": "WarBoard track: dispatch rechecks",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: dispatch rechecks live GUID own identity scope and rules: test/src_warboard_track.lua:219: guid: expected 0, got 1"
+      "FAIL WarBoard track: dispatch rechecks live GUID own identity scope and rules: test/src_warboard_track.lua:232: guid: expected 0, got 1"
     ]
   },
   {
@@ -148,7 +148,7 @@
     "selector": "WarBoard track: dispatch rechecks",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: dispatch rechecks live GUID own identity scope and rules: test/src_warboard_track.lua:219: own: expected 0, got 1"
+      "FAIL WarBoard track: dispatch rechecks live GUID own identity scope and rules: test/src_warboard_track.lua:232: own: expected 0, got 1"
     ]
   },
   {
@@ -156,7 +156,7 @@
     "selector": "WarBoard track: six forty-five",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:384: not equal: expected 0, got 1"
+      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:398: not equal: expected 0, got 1"
     ]
   },
   {
@@ -164,7 +164,7 @@
     "selector": "WarBoard track: first asks three",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle: test/src_warboard_track.lua:233: not equal: expected 3, got 4"
+      "FAIL WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle: test/src_warboard_track.lua:246: not equal: expected 3, got 4"
     ]
   },
   {
@@ -172,7 +172,7 @@
     "selector": "WarBoard track: first asks three",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle: test/src_warboard_track.lua:233: not equal: expected 1, got 0"
+      "FAIL WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle: test/src_warboard_track.lua:246: not equal: expected 1, got 0"
     ]
   },
   {
@@ -180,7 +180,7 @@
     "selector": "WarBoard track: six FBAK",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: six FBAK per rolling minute admission and dispatch max twenty targets: test/src_warboard_track.lua:258: not equal: expected 6, got 20"
+      "FAIL WarBoard track: six FBAK per rolling minute admission and dispatch max twenty targets: test/src_warboard_track.lua:272: not equal: expected 6, got 20"
     ]
   },
   {
@@ -196,7 +196,7 @@
     "selector": "WarBoard track: six forty-five",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:387: not equal: expected 0, got 1"
+      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:401: not equal: expected 0, got 1"
     ]
   },
   {
@@ -204,7 +204,7 @@
     "selector": "WarBoard track: renewal exact",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: renewal exact forty-five second per target boundary: test/src_warboard_track.lua:402: not equal: expected 0, got 1"
+      "FAIL WarBoard track: renewal exact forty-five second per target boundary: test/src_warboard_track.lua:416: not equal: expected 0, got 1"
     ]
   },
   {
@@ -212,7 +212,7 @@
     "selector": "WarBoard track: newest position",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: newest position controls renewal and old out of order data cannot refresh: test/src_warboard_track.lua:247: not equal: expected 1, got 2"
+      "FAIL WarBoard track: newest position controls renewal and old out of order data cannot refresh: test/src_warboard_track.lua:260: not equal: expected 1, got 2"
     ]
   },
   {
@@ -220,7 +220,7 @@
     "selector": "WarBoard track: past 300",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: past 300 seconds sends FBUN idle until 300 pause or new handshake: test/src_warboard_track.lua:253: not equal: expected 1, got 0"
+      "FAIL WarBoard track: past 300 seconds sends FBUN idle until 300 pause or new handshake: test/src_warboard_track.lua:266: not equal: expected 1, got 0"
     ]
   },
   {
@@ -228,7 +228,7 @@
     "selector": "WarBoard track: first asks three",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle: test/src_warboard_track.lua:235: not equal: expected 3, got 6"
+      "FAIL WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle: test/src_warboard_track.lua:248: not equal: expected 3, got 6"
     ]
   },
   {
@@ -244,15 +244,15 @@
     "selector": "WarBoard track: handshake before",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause: test/src_warboard_track.lua:416: old handshake must not restart the stopped request: expected 1, got 2"
+      "FAIL WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause: test/src_warboard_track.lua:432: not equal: expected 1, got 4"
     ]
   },
   {
-    "rule": "three FBUN attempts maximum",
+    "rule": "three FBUN attempts per window",
     "selector": "WarBoard track: FBUN refused",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: FBUN refused and throwing client retries three times sixty seconds apart: test/src_warboard_track.lua:133: exhausted this session, debt retained: expected 3, got 4"
+      "FAIL WarBoard track: FBUN refused and throwing client retries three times sixty seconds apart: test/src_warboard_track.lua:144: not equal: expected 3, got 4"
     ]
   },
   {
@@ -260,7 +260,7 @@
     "selector": "WarBoard track: six forty-five",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:392: not equal: expected 0, got 1"
+      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:406: not equal: expected 0, got 1"
     ]
   },
   {
@@ -268,7 +268,7 @@
     "selector": "WarBoard track: active request and",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: active request and received evidence save only target GUID no other metadata: test/src_warboard_track.lua:45: not equal: expected nil, got Player-123-00000002"
+      "FAIL WarBoard track: active request and received evidence save only target GUID no other metadata: test/src_warboard_track.lua:57: not equal: expected nil, got Player-123-00000002"
     ]
   },
   {
@@ -276,7 +276,7 @@
     "selector": "WarBoard track: accepted FBUN",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: accepted FBUN clears debt only after the client accepts not queue admission: test/src_warboard_track.lua:143: not equal: expected 1, got 0"
+      "FAIL WarBoard track: accepted FBUN remains unverified until roster proof not queue admission: test/src_warboard_track.lua:157: not equal: expected 2, got 1"
     ]
   },
   {
@@ -284,7 +284,7 @@
     "selector": "WarBoard track: logout in combat",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: logout in combat retains owed list and login while tracked cleans before asking: test/src_warboard_track.lua:158: not equal: expected 1, got 0"
+      "FAIL WarBoard track: logout in combat retains owed list and login while tracked cleans before asking: test/src_warboard_track.lua:171: not equal: expected 1, got 0"
     ]
   },
   {
@@ -292,7 +292,7 @@
     "selector": "WarBoard track: only new saved",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: only new saved field is bounded dense target GUID list oldest out: test/src_warboard_track.lua:45: not equal: expected Enemy Player, got Player-123-ABC"
+      "FAIL WarBoard track: only new saved field is bounded dense target GUID list oldest out: test/src_warboard_track.lua:57: not equal: expected Enemy Player, got Player-123-ABC"
     ]
   },
   {
@@ -300,7 +300,7 @@
     "selector": "WarBoard track: only new saved",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: only new saved field is bounded dense target GUID list oldest out: test/src_warboard_track.lua:166: not equal: expected 40, got 41"
+      "FAIL WarBoard track: only new saved field is bounded dense target GUID list oldest out: test/src_warboard_track.lua:179: not equal: expected 40, got 41"
     ]
   },
   {
@@ -308,23 +308,23 @@
     "selector": "WarBoard track: restored forty",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: restored forty debt bound oldest out on the next attempted request: test/src_warboard_track.lua:368: not equal: expected 40, got 41"
+      "FAIL WarBoard track: restored forty debt bound oldest out on the next attempted request: test/src_warboard_track.lua:382: not equal: expected 40, got 41"
     ]
   },
   {
     "rule": "load resumes owed cleanup",
-    "selector": "WarBoard track: crash login",
+    "selector": "WarBoard track: reload login",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: crash login settles GUID only with confirmed client account even source off: test/src_warboard_track.lua:154: not equal: expected 1, got 0"
+      "FAIL WarBoard track: reload login settles GUID only with answered target H even source off: test/src_warboard_track.lua:167: not equal: expected 1, got 0"
     ]
   },
   {
     "rule": "load retains owed GUID list",
-    "selector": "WarBoard track: crash login",
+    "selector": "WarBoard track: reload login",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: crash login settles GUID only with confirmed client account even source off: test/src_warboard_track.lua:152: not equal: expected 1, got 0"
+      "FAIL WarBoard track: reload login settles GUID only with answered target H even source off: test/src_warboard_track.lua:166: not equal: expected 1, got 0"
     ]
   },
   {
@@ -332,7 +332,7 @@
     "selector": "WarBoard track: switch defaults",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: switch defaults on is session only and status states limits: test/src_warboard_track.lua:67: not equal: expected 1, got 0"
+      "FAIL WarBoard track: switch defaults on is session only and status states limits: test/src_warboard_track.lua:79: not equal: expected 1, got 0"
     ]
   },
   {
@@ -348,7 +348,7 @@
     "selector": "WarBoard track: remove quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: remove quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:379: not equal: expected 1, got 3"
+      "FAIL WarBoard track: remove quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
     ]
   },
   {
@@ -356,7 +356,7 @@
     "selector": "WarBoard track: clear quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: clear quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:379: not equal: expected 1, got 3"
+      "FAIL WarBoard track: clear quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
     ]
   },
   {
@@ -364,7 +364,7 @@
     "selector": "WarBoard track: track quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: track quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:379: not equal: expected 1, got 3"
+      "FAIL WarBoard track: track quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
     ]
   },
   {
@@ -372,7 +372,7 @@
     "selector": "WarBoard track: share quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: share quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:379: not equal: expected 1, got 3"
+      "FAIL WarBoard track: share quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
     ]
   },
   {
@@ -380,7 +380,7 @@
     "selector": "WarBoard track: guild quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: guild quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:379: not equal: expected 1, got 3"
+      "FAIL WarBoard track: guild quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
     ]
   },
   {
@@ -388,7 +388,7 @@
     "selector": "WarBoard track: source quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: source quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:379: not equal: expected 1, got 3"
+      "FAIL WarBoard track: source quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
     ]
   },
   {
@@ -396,7 +396,7 @@
     "selector": "WarBoard track: logout sends",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: logout sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:99: logout: expected 1, got 0"
+      "FAIL WarBoard track: logout sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: logout: expected 1, got 0"
     ]
   },
   {
@@ -404,7 +404,7 @@
     "selector": "WarBoard track: share sends",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: share sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:99: share: expected 1, got 0"
+      "FAIL WarBoard track: share sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: share: expected 1, got 0"
     ]
   },
   {
@@ -412,7 +412,7 @@
     "selector": "WarBoard track: guild sends",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: guild sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:99: guild: expected 1, got 0"
+      "FAIL WarBoard track: guild sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: guild: expected 1, got 0"
     ]
   },
   {
@@ -420,7 +420,7 @@
     "selector": "WarBoard track: source sends",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: source sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:99: source: expected 1, got 0"
+      "FAIL WarBoard track: source sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: source: expected 1, got 0"
     ]
   },
   {
@@ -428,7 +428,7 @@
     "selector": "WarBoard track: standdown sends",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: standdown sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:99: standdown: expected 1, got 0"
+      "FAIL WarBoard track: standdown sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: standdown: expected 1, got 0"
     ]
   },
   {
@@ -436,15 +436,15 @@
     "selector": "WarBoard track: source sends",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: source sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:99: source: expected 1, got 0"
+      "FAIL WarBoard track: source sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: source: expected 1, got 0"
     ]
   },
   {
     "rule": "disabled source can confirm owed account",
-    "selector": "WarBoard track: crash login",
+    "selector": "WarBoard track: reload login",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: crash login settles GUID only with confirmed client account even source off: test/src_warboard_track.lua:154: not equal: expected 1, got 0"
+      "FAIL WarBoard track: reload login settles GUID only with answered target H even source off: test/src_warboard_track.lua:167: not equal: expected 1, got 0"
     ]
   },
   {
@@ -452,7 +452,7 @@
     "selector": "WarBoard track: combat holds",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: combat holds cleanup until safe including an already queued FBUN: test/src_warboard_track.lua:114: already queued FBUN is held, not dropped: expected 1, got 0"
+      "FAIL WarBoard track: combat holds cleanup until safe including an already queued FBUN: test/src_warboard_track.lua:127: already queued FBUN is held, not dropped: expected 1, got 0"
     ]
   },
   {
@@ -460,7 +460,7 @@
     "selector": "WarBoard track: instance holds",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: instance holds cleanup until safe including an already queued FBUN: test/src_warboard_track.lua:114: already queued FBUN is held, not dropped: expected 1, got 0"
+      "FAIL WarBoard track: instance holds cleanup until safe including an already queued FBUN: test/src_warboard_track.lua:127: already queued FBUN is held, not dropped: expected 1, got 0"
     ]
   },
   {
@@ -476,7 +476,7 @@
     "selector": "WarBoard track: owed A before",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: owed A before FBUN before FBAK within ten frame WarBoard share: test/src_warboard_track.lua:271: not equal: expected WBF1|A|, got WBF1|D|"
+      "FAIL WarBoard track: owed A before FBUN before FBAK within ten frame WarBoard share: test/src_warboard_track.lua:285: not equal: expected WBF1|A|, got WBF1|D|"
     ]
   },
   {
@@ -484,7 +484,7 @@
     "selector": "WarBoard track: rollback stays",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: rollback stays silent and tagged cancellation preserves other targets and A: test/src_warboard_track.lua:286: not equal: expected WBF1|A|, got WBF1|D|"
+      "FAIL WarBoard track: rollback stays silent and tagged cancellation preserves other targets and A: test/src_warboard_track.lua:300: not equal: expected WBF1|A|, got WBF1|D|"
     ]
   },
   {
@@ -492,7 +492,7 @@
     "selector": "WarBoard track: accepted FBUN",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: accepted FBUN clears debt only after the client accepts not queue admission: test/src_warboard_track.lua:144: not equal: expected 2, got 1"
+      "FAIL WarBoard track: accepted FBUN remains unverified until roster proof not queue admission: test/src_warboard_track.lua:157: not equal: expected 2, got 1"
     ]
   },
   {
@@ -500,7 +500,7 @@
     "selector": "WarBoard track: positions remain",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: positions remain honest Find evidence and never new guild relay: test/src_warboard_track.lua:281: not equal: expected enemy, got observer"
+      "FAIL WarBoard track: positions remain honest Find evidence and never new guild relay: test/src_warboard_track.lua:295: not equal: expected enemy, got observer"
     ]
   },
   {
@@ -508,7 +508,263 @@
     "selector": "WarBoard track: positions remain",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: positions remain honest Find evidence and never new guild relay: test/src_warboard_track.lua:281: no forwarding attempt even if transport refuses: expected 0, got 1"
+      "FAIL WarBoard track: positions remain honest Find evidence and never new guild relay: test/src_warboard_track.lua:295: no forwarding attempt even if transport refuses: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M1 share debt handshake exception",
+    "selector": "WarBoard debt: M1 share relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 share relog settles from target H only: test/harness.lua:7: withdrawal delivered after relog: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M1 source debt handshake exception",
+    "selector": "WarBoard debt: M1 source relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 source relog settles from target H only: test/harness.lua:7: withdrawal delivered after relog: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M1 guild debt handshake exception",
+    "selector": "WarBoard debt: M1 guild relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 guild relog settles from target H only: test/harness.lua:7: withdrawal delivered after relog: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M1 only owed account may use handshake exception",
+    "selector": "WarBoard debt: M1 exception",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 exception cannot reach another account while debt remains: test/src_warboard_debt.lua:198: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M1 donor-owned H refreshes debt confirmation",
+    "selector": "WarBoard debt: M1 donor relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 donor relog settles from target H only: test/harness.lua:7: withdrawal delivered after relog: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M1 no duplicate H/A when donor loaded",
+    "selector": "WarBoard debt: M1 donor relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 donor relog settles from target H only: test/src_warboard_debt.lua:99: not equal: expected 0, got 3"
+    ]
+  },
+  {
+    "rule": "M1 final queued handshake checks stand-down",
+    "selector": "WarBoard debt: M1 queued handshakes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 queued handshakes stand down when real addon loads: test/src_warboard_debt.lua:229: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M1 cleanup proof cannot promote normal request eligibility",
+    "selector": "WarBoard debt: M1 cleanup proof",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 cleanup proof alone never authorizes a new FBAK: test/src_warboard_debt.lua:224: cleanup-only proof must not turn into normal request consent: expected 0, got 3"
+    ]
+  },
+  {
+    "rule": "M1 donor-owned unsafe control is validated on resumption",
+    "selector": "WarBoard debt: M1 donor observes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 donor observes owed H during unsafe wait without LE answer: test/src_warboard_debt.lua:214: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 new H invalidates cleanup proof",
+    "selector": "WarBoard debt: M2 latest safe H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:205: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 unsafe H retained for later answer",
+    "selector": "WarBoard debt: M2 share target reload",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 share target reload during combat reanswers latest H: test/src_warboard_debt.lua:124: no FBUN before answering latest H: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 FBUN requires latest handshake proof",
+    "selector": "WarBoard debt: M2 latest safe H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:205: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 failed A cannot confirm target handshake",
+    "selector": "WarBoard debt: M2 latest safe H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:205: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 accepted withdrawal remains unverified",
+    "selector": "WarBoard debt: M2 accepted send",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 accepted send retained until later roster excludes hunter: test/src_warboard_debt.lua:131: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 roster is inspected independently of disabled source and Find",
+    "selector": "WarBoard debt: M2 source off",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 source off and removed Find still observes cleanup roster: test/src_warboard_debt.lua:137: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 disabled source accepts owed account roster",
+    "selector": "WarBoard debt: M2 source off",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 source off and removed Find still observes cleanup roster: test/src_warboard_debt.lua:137: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 excluding roster settles debt",
+    "selector": "WarBoard debt: M2 accepted send",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 accepted send retained until later roster excludes hunter: test/src_warboard_debt.lua:132: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 included hunter invalidates silence fallback",
+    "selector": "WarBoard debt: M2 listed roster",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 listed roster rehandshakes then resends lost withdrawal: test/src_warboard_debt.lua:144: not equal: expected 2, got 1"
+    ]
+  },
+  {
+    "rule": "M2 included hunter forces fresh handshake",
+    "selector": "WarBoard debt: M2 listed roster",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 listed roster rehandshakes then resends lost withdrawal: test/harness.lua:7: fresh handshake before resend: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M2 silence fallback exactly fifteen minutes",
+    "selector": "WarBoard debt: M2 missing roster",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 missing roster silence clears only at fifteen minute boundary: test/src_warboard_debt.lua:150: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 roster target must match live account GUID",
+    "selector": "WarBoard debt: M2 stale relayed",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle: test/src_warboard_debt.lua:158: same name is not target account: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 roster must be target-authored not relayed",
+    "selector": "WarBoard debt: M2 stale relayed",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle: test/src_warboard_debt.lua:159: target carrier is not necessarily subject: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 roster must be newer than withdrawal",
+    "selector": "WarBoard debt: M2 stale relayed",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle: test/src_warboard_debt.lua:160: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "S1 retry window reopens after ten minutes",
+    "selector": "WarBoard debt: S1 failed sends",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S1 failed sends reopen after ten minutes three per window: test/src_warboard_debt.lua:167: not equal: expected 4, got 3"
+    ]
+  },
+  {
+    "rule": "M2 six attempts over debt lifetime",
+    "selector": "WarBoard debt: M2 lifetime six",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 lifetime six attempt bound survives reload with debt retained: test/src_warboard_debt.lua:175: reload cannot reset lifetime bound: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 lifetime bound persists across reload",
+    "selector": "WarBoard debt: M2 lifetime six",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 lifetime six attempt bound survives reload with debt retained: test/src_warboard_debt.lua:175: reload cannot reset lifetime bound: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 persisted count clamps at six",
+    "selector": "WarBoard debt: M2 saved attempts",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 saved attempts sanitize only retained target GUIDs: test/src_warboard_debt.lua:234: not equal: expected 6, got 99"
+    ]
+  },
+  {
+    "rule": "S3 debt remains per character",
+    "selector": "WarBoard debt: S3 per character",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S3 per character save waits for original hunter login: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "S2 crash truth",
+    "selector": "WarBoard debt: S2 N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee: test/harness.lua:7: client crash before: expected true, got false"
+    ]
+  },
+  {
+    "rule": "S2 character login",
+    "selector": "WarBoard debt: S2 N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee: test/harness.lua:7: that character's next login: expected true, got false"
+    ]
+  },
+  {
+    "rule": "N1 unsafe wait disclosure",
+    "selector": "WarBoard debt: S2 N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee: test/harness.lua:7: target may keep broadcasting: expected true, got false"
+    ]
+  },
+  {
+    "rule": "S2 narrow exception",
+    "selector": "WarBoard debt: S2 N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee: test/harness.lua:7: not equal: expected true, got false"
     ]
   }
 ]

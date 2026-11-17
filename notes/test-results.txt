@@ -1303,7 +1303,7 @@ PASS WarBoard: public stops new sends and cancels queued answers
 PASS WarBoard: switch stops new sends and cancels queued answers
 PASS WarBoard: combat stops new sends and cancels queued answers
 PASS WarBoard: instance stops new sends and cancels queued answers
-PASS WarBoard: stand down blocks own hellos but preserves owed answers
+PASS WarBoard: stand down blocks both own hellos and owed answers
 PASS WarBoard: live account identity and ruleset rechecked at dispatch
 PASS WarBoard: SHRD own zone and shard through registry, with sequence not seconds; clear and expiry
 PASS WarBoard: FBLP world coordinates convert only via client with axis order; labels survive no conversion
@@ -1352,6 +1352,38 @@ PASS WarBoard: full WarBoard evidence is measured before laying out the Find row
 PASS WarBoard: SHRD clear and sequence follow the player across direct and relayed identity spellings
 PASS WarBoard: same faction addon records never become tracked enemy evidence
 PASS WarBoard: 5000 deterministic hostile frames terminate within budget with bounded memory
+PASS WarBoard debt: M1 share relog settles from target H only
+PASS WarBoard debt: M1 share combat 30 minute stop recovers
+PASS WarBoard debt: M1 share instance 30 minute stop recovers
+PASS WarBoard debt: M1 source relog settles from target H only
+PASS WarBoard debt: M1 source combat 30 minute stop recovers
+PASS WarBoard debt: M1 source instance 30 minute stop recovers
+PASS WarBoard debt: M1 guild relog settles from target H only
+PASS WarBoard debt: M1 guild combat 30 minute stop recovers
+PASS WarBoard debt: M1 guild instance 30 minute stop recovers
+PASS WarBoard debt: M1 donor relog settles from target H only
+PASS WarBoard debt: M1 donor combat 30 minute stop recovers
+PASS WarBoard debt: M1 donor instance 30 minute stop recovers
+PASS WarBoard debt: M2 share target reload during combat reanswers latest H
+PASS WarBoard debt: M2 source target reload during combat reanswers latest H
+PASS WarBoard debt: M2 guild target reload during combat reanswers latest H
+PASS WarBoard debt: M2 track target reload during combat reanswers latest H
+PASS WarBoard debt: M2 accepted send retained until later roster excludes hunter
+PASS WarBoard debt: M2 source off and removed Find still observes cleanup roster
+PASS WarBoard debt: M2 listed roster rehandshakes then resends lost withdrawal
+PASS WarBoard debt: M2 missing roster silence clears only at fifteen minute boundary
+PASS WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle
+PASS WarBoard debt: S1 failed sends reopen after ten minutes three per window
+PASS WarBoard debt: M2 lifetime six attempt bound survives reload with debt retained
+PASS WarBoard debt: M2 continuous listed rosters prevent quiet clearing at resend bound
+PASS WarBoard debt: S3 per character save waits for original hunter login
+PASS WarBoard debt: M1 exception cannot reach another account while debt remains
+PASS WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer
+PASS WarBoard debt: M1 donor observes owed H during unsafe wait without LE answer
+PASS WarBoard debt: M1 cleanup proof alone never authorizes a new FBAK
+PASS WarBoard debt: M1 queued handshakes stand down when real addon loads
+PASS WarBoard debt: M2 saved attempts sanitize only retained target GUIDs
+PASS WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee
 PASS WarBoard review: SHRD inflate ceiling is applied before bomb expansion
 PASS WarBoard review: FBLP inflate ceiling is applied before bomb expansion
 PASS WarBoard review: FREC inflate ceiling is applied before bomb expansion
@@ -1430,8 +1462,8 @@ PASS WarBoard track: logout cancels an unsent ask without creating debt
 PASS WarBoard track: combat holds cleanup until safe including an already queued FBUN
 PASS WarBoard track: instance holds cleanup until safe including an already queued FBUN
 PASS WarBoard track: FBUN refused and throwing client retries three times sixty seconds apart
-PASS WarBoard track: accepted FBUN clears debt only after the client accepts not queue admission
-PASS WarBoard track: crash login settles GUID only with confirmed client account even source off
+PASS WarBoard track: accepted FBUN remains unverified until roster proof not queue admission
+PASS WarBoard track: reload login settles GUID only with answered target H even source off
 PASS WarBoard track: logout in combat retains owed list and login while tracked cleans before asking
 PASS WarBoard track: only new saved field is bounded dense target GUID list oldest out
 PASS WarBoard track: switch defaults on is session only and status states limits
@@ -1468,4 +1500,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 1455 tests passed, 0 failed, 214806 assertions
+RESULT: 1487 tests passed, 0 failed, 216736 assertions
