@@ -161,3 +161,74 @@ index 8bc1e42..e5149ca 100644
 
 Every runner executed in a private scratch copy with an explicit foreground `timeout 1800` command and subprocess timeout=1800; source hashes were checked after restoration and against the real checkout. The tool transport returned at its own 420-second wait cap for Wanted, membership, fan-out and verify; their existing bounded foreground subprocesses completed and their exit/result files were read, without relaunching or shell backgrounding.
 Generated reports and this document are committed separately from the merge code. The merge index temporarily retained the branch versions of conflicted generated reports; this notes-only commit replaces them with real regenerated results. Imported main documentation stays in the merge. `flh-main-merge-2-validation.json` records inventories and hashes.
+
+## Merge 2: quiet-whisper main catch-up
+
+- Completed merge 1 and its notes-only commit `09d4a526157f614a3986e6ac0f2d5cbc7515f45e` before fetching the requested new main.
+- Upstream `44e41e8d90617325aa6df1407b180ad1671cbaa5`; common base `5b8545532d82fdbfd716eb5267616c5efdf4e9bc`.
+- Tested non-fast-forward merge: `7693da55d5543cc9b7a054fcb5a55b6989330faa`.
+- Mechanical tree: `3f99c9612de9bd46032996af78dba7a0049b24f1`.
+
+### Complete conflict-hunk inventory
+
+2 files, 3 blocks; all generated evidence. **No production, verifier, test or allowlist conflict occurred.**
+
+| File | Hunk | Original line | Resolution |
+| --- | ---: | ---: | --- |
+| `notes/test-results.txt` | 1 | 1998 | Regenerated the complete unfiltered merged test results, keeping every FLH, WarBoard, tracking and quiet suite. |
+| `notes/verification.json` | 1 | 3 | Regenerated merged syntax/test/assertion counts and deterministic archive metadata; neither parent's numbers were selected. |
+| `notes/verification.json` | 2 | 20 | Regenerated merged syntax/test/assertion counts and deterministic archive metadata; neither parent's numbers were selected. |
+
+### Production-versus-mechanical result and combined gates
+
+**No differences.** The complete comparison is empty:
+
+```sh
+git diff 3f99c9612de9bd46032996af78dba7a0049b24f1 7693da55d5543cc9b7a054fcb5a55b6989330faa -- 'LayerEnemies/*.lua' test/verify.py
+```
+
+- Wire.lua auto-merged the CHAT_MSG_SYSTEM filter and both secure post-hooks with the existing FLHNET2 routes and shared-ceiling LR token/minute reservation.
+- Main.lua auto-merged quietWhispers loading, startup registration and `/le quiet` while retaining WarBoard owed cleanup and command handling plus all FLH membership cancellation/guest paths.
+- The full verifier retains the **entire exact ROUTES[prefix] lookup**, route-table/alias/computed-key restrictions and addon-wide debug ban from the branch. AST comparisons confirm `check_route_policy` and `check_api_policy` are unchanged from the pre-quiet branch.
+- `check_send_policy` is AST-identical to quiet main: both exact-once secure-hook registrations, both complete exact-once presence statements and all-addon pcall/hooksecurefunc binding rejection remain intact. Filter API ownership stays Wire-only.
+- Every new main file and the combined Wire.lua passed the stricter checker without a production fix or new gate exception. Existing saved-data allowlists auto-merged quietWhispers alongside bounded warboardOwed; no saved peer evidence was introduced by this merge.
+- No further test-runner repair was needed: every mutation anchor was preflighted, and all 22 complete packs ran again on this exact code.
+
+### Final verification
+
+**RESULT: 1943 tests passed, 0 failed, 504686 assertions**
+- `timeout 1800 python3 test/verify.py`: **exit 0**. Includes 31 full static/TOC/secure-hook gate regressions and 27 API/route-policy tests, all passing.
+- Lua syntax: **100 files PASS**; TOC/static ownership, archive integrity and exact packaged-source parity PASS.
+- All separately discovered Python `*_test.py` suites: **57 tests, OK**, including the pinned-font renderer.
+- Archive: `dist/LayerEnemies-1.1.0.zip`; **58 members**, **289863 bytes**.
+- Archive SHA-256: `adc6f29f88f084f6ee4cf0edced80e4ded41f333e41f317dfef0b8874d4b3a97`.
+
+| Runner | Killed / declared |
+| --- | ---: |
+| `chehulnet_mutants.py` | 57 / 57 |
+| `codec_mutants.py` | 56 / 56 |
+| `crowd_mutants.py` | 12 / 12 |
+| `find20_mutants.py` | 11 / 11 |
+| `flh_batch_mutants.py` | 26 / 26 |
+| `flh_member_mutants.py` | 52 / 52 |
+| `flh_mutants.py` | 39 / 39 |
+| `flh_rulings_mutants.py` | 20 / 20 |
+| `guild_intel_mutants.py` | 29 / 29 |
+| `hop_fanout_mutants.py` | 63 / 63 |
+| `kill_mutants.py` | 20 / 20 |
+| `overlord_mutants.py` | 54 / 54 |
+| `presence_mutants.py` | 41 / 41 |
+| `quiet_all_mutants.py` | 43 / 43 |
+| `quiet_mutants.py` | 38 / 38 |
+| `relay_policy_mutants.py` | 4 / 4 |
+| `source_mutants.py` | 41 / 41 |
+| `spy_mutants.py` | 7 / 7 |
+| `wanted_mutants.py` | 84 / 84 |
+| `warboard_mutants.py` | 115 / 115 |
+| `warboard_track_mutants.py` | 113 / 113 |
+| `watch_mutants.py` | 19 / 19 |
+| **Total (22 packs)** | **944 / 944** |
+
+Every declared inventory and unique mutation name was counted programmatically, and every saved report hash was read back. All runners exited 0, and their private-copy addon bytes matched the real checkout after restoration. No surviving mutant or timed-out mutant execution is counted as a kill.
+The same explicit foreground 1800-second command bounds were used. Tool transport timeouts again left bounded subprocesses running; their actual completion files and logs were read without duplicate launches. A standalone early gate command hit a 180-second tool limit; the final full verify reran the entire 31-test gate suite successfully in its 1800-second invocation.
+This section and refreshed generated evidence are a separate notes-only commit after the tested merge. See `flh-main-merge-2-quiet-validation.json` for the final inventories, parent/tree IDs, gate-equality proofs and hashes. Native testing remains **not run (alpha, owner's decision)**. No push, PR, GitHub write or installation was performed.

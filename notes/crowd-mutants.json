@@ -77,7 +77,7 @@
   "restored_sha256": {
     "LayerEnemies/Share.lua": "bf465536aeb25ce7f0a0f174ecbee45237e1d7f67bbf21c55cd1f4d148eea4bf",
     "LayerEnemies/Relay.lua": "5c9bbb8ab544f532841392e048a8521a3bfb79d9ea9f08e81b3c49d38bb88970",
-    "LayerEnemies/Main.lua": "bb9270d54840b434816721caaf1859f9e29ae42b05aabe7928a994ac4a39bcd3"
+    "LayerEnemies/Main.lua": "bba65782d672008a341aa25811ca180b633a7119f0d15e80c969c8e045c4e5f9"
   },
   "restored_result": "RESULT: 30 tests passed, 0 failed, 9840 assertions"
 }

@@ -19,7 +19,7 @@
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 26
+      "tests": 27
     }
   },
   "final": {
@@ -42,7 +42,7 @@
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 26
+      "tests": 27
     }
   },
   "mutants": [
@@ -252,7 +252,7 @@
       "mutant": "S4-truthy-extra-route",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,
@@ -266,7 +266,7 @@
       "mutant": "S4-bracket-extra-route",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,
@@ -280,7 +280,7 @@
       "mutant": "S4-post-table-assignment",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,
@@ -292,7 +292,7 @@
       "mutant": "N1-disclose-cross-realm-introduction",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,

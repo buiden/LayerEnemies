@@ -112,7 +112,7 @@
   {
     "rule": "table-depth",
     "killed": true,
-    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:90: write depth\nFAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:146: expected nil, got \u0001\u0016Rchild\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0006\nFAIL logical references cannot evade string, depth or table bounds: test/codec.lua:366: expected nil, got table: 0x5a5cc2178020"
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:90: write depth\nFAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:146: expected nil, got \u0001\u0016Rchild\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0006\nFAIL logical references cannot evade string, depth or table bounds: test/codec.lua:366: expected nil, got table: 0x5d46d91a7250"
   },
   {
     "rule": "logical-value-count",
@@ -127,12 +127,12 @@
   {
     "rule": "table-entry-count",
     "killed": true,
-    "evidence": "FAIL logical references cannot evade string, depth or table bounds: test/codec.lua:361: expected nil, got table: 0x5db3a43ce790"
+    "evidence": "FAIL logical references cannot evade string, depth or table bounds: test/codec.lua:361: expected nil, got table: 0x63bd05dd19f0"
   },
   {
     "rule": "logical-expanded-string-bytes",
     "killed": true,
-    "evidence": "FAIL logical references cannot evade string, depth or table bounds: test/codec.lua:363: expected nil, got table: 0x632577d68d80"
+    "evidence": "FAIL logical references cannot evade string, depth or table bounds: test/codec.lua:363: expected nil, got table: 0x5b322d92d7e0"
   },
   {
     "rule": "acyclic-graphs",
@@ -277,6 +277,6 @@
   {
     "rule": "acecomm-split-byte-count",
     "killed": true,
-    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:329: expected nil, got table: 0x56ddc6ddf680"
+    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:329: expected nil, got table: 0x588a668146c0"
   }
 ]

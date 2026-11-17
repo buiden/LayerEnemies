@@ -12,7 +12,7 @@
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 26
+      "tests": 27
     }
   },
   "final": {
@@ -28,7 +28,7 @@
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 26
+      "tests": 27
     }
   },
   "mutants": [
@@ -249,7 +249,7 @@
       "mutant": "route-loop-over-alias",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,
@@ -263,7 +263,7 @@
       "mutant": "route-computed-new-prefix",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,
@@ -277,7 +277,7 @@
       "mutant": "route-computed-channel",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,
@@ -290,7 +290,7 @@
       "mutant": "gate-alias-freeze",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,
@@ -304,7 +304,7 @@
       "mutant": "route-expression-new-prefix",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,
@@ -318,7 +318,7 @@
       "mutant": "route-expression-channel",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": null,
@@ -330,7 +330,7 @@
       "mutant": "route-debug-upvalue",
       "rc": 1,
       "suite": "policy",
-      "tests": 26
+      "tests": 27
     },
     {
       "assertions": 3703,

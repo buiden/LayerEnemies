@@ -3,28 +3,28 @@
     "rule": "exact protocol",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:386: not equal: expected nil, got table: 0x59e5fcf5e980"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:386: not equal: expected nil, got table: 0x56fe5246c0d0"
     ]
   },
   {
     "rule": "HELLO only",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:386: not equal: expected nil, got table: 0x5b394108b190"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:386: not equal: expected nil, got table: 0x6450edacb330"
     ]
   },
   {
     "rule": "six required fields",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:386: not equal: expected nil, got table: 0x605ec5ba7700"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:386: not equal: expected nil, got table: 0x5f96eed8b490"
     ]
   },
   {
     "rule": "no trailing field",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:386: not equal: expected nil, got table: 0x5d038acb08a0"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:386: not equal: expected nil, got table: 0x63dd43423d40"
     ]
   },
   {
@@ -38,21 +38,21 @@
     "rule": "255 bytes",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:398: not equal: expected nil, got table: 0x5ef614b8b530"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:398: not equal: expected nil, got table: 0x5576b53da370"
     ]
   },
   {
     "rule": "multipart controls ignored",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:394: not equal: expected nil, got table: 0x5e321500a680"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:394: not equal: expected nil, got table: 0x5a7c282e47e0"
     ]
   },
   {
     "rule": "no embedded controls",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:394: not equal: expected nil, got table: 0x612d8a534b60"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:394: not equal: expected nil, got table: 0x5b8d3cd01050"
     ]
   },
   {
@@ -113,7 +113,7 @@
     "rule": "text secret refusal",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:393: a readable scalar marked secret must be refused by the parser itself: expected nil, got table: 0x6075905b7470"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:393: a readable scalar marked secret must be refused by the parser itself: expected nil, got table: 0x5f2ddbf97300"
     ]
   },
   {
@@ -327,7 +327,7 @@
     "rule": "no saved names",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks: test/src_chehulnet.lua:68: not equal: expected autoHop=true;call=true;callArt=true;findNotice=true;findShare=true;guildHost=false;nets=chehulnet=true;hh=true;wanted=true;warboard=true;we=true;options=;share=true;tracked=;warboardOwed=, got autoHop=true;call=true;callArt=true;chehul=Elsewhere;findNotice=true;findShare=true;guildHost=false;nets=chehulnet=true;hh=true;wanted=true;warboard=true;we=true;options=;share=true;tracked=;warboardOwed="
+      "FAIL ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks: test/src_chehulnet.lua:68: not equal: expected autoHop=true;call=true;callArt=true;findNotice=true;findShare=true;guildHost=false;nets=chehulnet=true;hh=true;wanted=true;warboard=true;we=true;options=;quietWhispers=on;share=true;tracked=;warboardOwed=, got autoHop=true;call=true;callArt=true;chehul=Elsewhere;findNotice=true;findShare=true;guildHost=false;nets=chehulnet=true;hh=true;wanted=true;warboard=true;we=true;options=;quietWhispers=on;share=true;tracked=;warboardOwed="
     ]
   },
   {
