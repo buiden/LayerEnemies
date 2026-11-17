@@ -2189,6 +2189,7 @@ function M.hopDone()
 end
 function M.groupCheck()
     local grouped=A.grouped()
+    if grouped then N.FLHMember.stop("joined a group") end
     if grouped and M.hopAnyState and M.hopAnyState.round then M.hopAnyStop("joined a group") end
     -- the hop group ended (left by hand or otherwise): stop tracking at once
     if not grouped and M.wasGrouped and M.auto and M.auto.group and M.auto.group.joinedAt then M.auto.group=nil end

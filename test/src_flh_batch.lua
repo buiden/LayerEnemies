@@ -296,6 +296,28 @@ for _,reenterAt in ipairs({1,6}) do
     end)
 end
 
+for _,phase in ipairs({"offer","paced","retry","selected"}) do
+    test("FLH batch: join then leave between ticks revokes "..phase.." click",function()
+        local N=member(); hosts(N); local at=H.clock()
+        if phase=="paced" then ordinary(N,2)
+        elseif phase=="retry" then limitHost(N,"Host a") end
+        if phase=="offer" or phase=="selected" then namedQuery(N) else yes(N.FLHMember.hop()) end
+        local q=lines("LQ")[1]; yes(q)
+        if phase=="retry" or phase=="selected" then offer(N,q) end
+        local before,requests=#lines("LQ"),#lines("LR")
+        eq(requests,phase=="selected" and 1 or 0)
+        H.clock(at+.1); H.group(true); H.deliver("GROUP_ROSTER_UPDATE")
+        yes(N.Main.wasGrouped,"real group handler observed joining")
+        H.clock(at+.2); H.group(false); H.deliver("GROUP_ROSTER_UPDATE")
+        H.clock(at+.3); offer(N,q); H.deliver("PARTY_INVITE_REQUEST",q.target)
+        H.clock(at+60); N.FLHMember.tick(H.clock()); offer(N,q)
+        eq(#lines("LR"),requests,"transient join revokes deferred or initial LR authority")
+        eq(H.accepts(),0,"leaving cannot revive old click invite authority")
+        eq(#lines("LQ"),before,"transient join cancels unsent paced queries")
+        no(N.FLHMember.pending()); no(N.Main.invite.pending); ceilings(); no(N.Main.error)
+    end)
+end
+
 -- The reviewer's r2b/r2c cadence: 12 clicks over 3600 timer-driven seconds,
 -- refreshed host claims, 30 directory peers, and independent WP/CQ strangers.
 local function replay(strangers,offset,delay)
