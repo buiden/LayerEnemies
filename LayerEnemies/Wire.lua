@@ -308,7 +308,7 @@ function Wr.system(text, lineID)
     if mode == "all" and observerReady then
         notice.hide = not manualWhisper(key, now)
     else
-        notice.hide = notice.owned == true and mode ~= "off"
+        notice.hide = notice.owned == true and mode ~= "off" and not manualWhisper(key, now)
     end
     if not notice.hide then shownNotices = shownNotices + 1 end
     -- A hidden decision always keeps exact text: fingerprints cannot authorize a hide.

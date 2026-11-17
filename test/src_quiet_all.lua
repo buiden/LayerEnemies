@@ -181,10 +181,10 @@ test("QuietAll bookkeeping: manual exception does not alter own offline consumpt
             local marks,real=0,N.Wire.markOffline
             N.Wire.markOffline=function(...) marks=marks+1; return real(...) end
             if eventFirst then eventLine(text("Shared Person"),1) end
-            for i=1,3 do eq(filterLine(filter,text("Shared Person"),1),mode=="on") end
+            for i=1,3 do no(filterLine(filter,text("Shared Person"),1)) end
             if not eventFirst then eventLine(text("Shared Person"),1) end
             local untilAt=N.Wire.offlineUntil("Shared Person",T.clock()); eq(untilAt,T.clock()+3600); eq(marks,1)
-            T.clock(14); eq(filterLine(filter,text("Shared Person"),2),mode=="on"); eq(marks,1)
+            T.clock(14); no(filterLine(filter,text("Shared Person"),2)); eq(marks,1)
             eq(N.Wire.offlineUntil("Shared Person",T.clock()),untilAt)
         end
     end
@@ -304,3 +304,23 @@ test("QuietAll review M1: marker refresh, rollback and reload retain no invalid 
     T.clock(30); typed("modern","Invalid.Name")
     N,filter=setup(nil,LayerEnemiesDB); yes(filterLine(filter,text("Reload Person"),5))
 end)
+
+for _,target in ipairs({"Shared Person","Invalid.Name","élodie"}) do
+    test("QuietAll review Note: on-mode typed protection "..target,function()
+        for _,eventFirst in ipairs({true,false}) do
+            local N,filter,typed=setup(); SlashCmdList.LAYERENEMIES("quiet on")
+            yes(send(N,"Shared Person")); typed("modern",target)
+            if eventFirst then eventLine(text("Shared Person"),1) end
+            for i=1,3 do no(filterLine(filter,text("Shared Person"),1)) end
+            if not eventFirst then eventLine(text("Shared Person"),1) end
+            eq(N.Wire.offlineUntil("Shared Person",T.clock()),3610)
+            counts(0,0,1)
+            T.clock(13); yes(send(N,"Next Person"))
+            eq(filterLine(filter,text("Next Person"),2),target=="Shared Person")
+        end
+        for _,age in ipairs({9.999,10}) do
+            local N,filter,typed=setup(); yes(send(N,"Shared Person")); typed("legacy",target)
+            T.clock(10+age); eq(filterLine(filter,text("Shared Person"),1),age==10)
+        end
+    end)
+end
