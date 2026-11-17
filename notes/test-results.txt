@@ -1265,6 +1265,23 @@ PASS BNet queue: Wire cannot dispatch outside the queue's private delivery
 PASS BNet queue: failed client send is spent counted and never retried
 PASS BNet queue: per-network shares stand-down owed exception and live peer validation
 PASS BNet queue: bounds secrets rollback and timer absence fail closed
+PASS BNet queue: S1 configured admission cap wanted
+PASS BNet queue: S1 configured admission cap overlord
+PASS BNet queue: S1 configured admission cap warboard
+PASS BNet queue: S1 default fair admission share across 1 registered sources
+PASS BNet queue: S1 default fair admission share across 2 registered sources
+PASS BNet queue: S1 default fair admission share across 4 registered sources
+PASS BNet queue: S1 default fair admission share across 32 registered sources
+PASS BNet queue: S1 default fair share also limits rolling dispatch
+PASS BNet queue: S1 configured and default sources share one rolling cap
+PASS BNet queue: S1 normal flood leaves eight owed-only slots
+PASS BNet queue: S1 owed occupancy does not shrink the normal allowance
+PASS BNet queue: S1 reviewer flood admits another source and its owed answer within share
+PASS BNet queue: S1 exact sixty-second boundary is live but older frames drop
+PASS BNet queue: S1 delayed dispatch drops expired own frames
+PASS BNet queue: S1 delayed dispatch drops expired owed frames
+PASS BNet queue: S1 expiry runs while the rolling minute is exhausted
+PASS BNet queue: S1 unreadable admission clock fails closed
 PASS Codec: addon escaping exact bytes and roundtrip
 PASS Codec: addon malformed escapes and byte ceilings
 PASS Codec: inflate zlib known answers and stored writer
@@ -1308,4 +1325,4 @@ PASS Sources: OpenMap Battle.net keeps its original event path and values
 PASS Sources: guarded callbacks secrets and switches fail silent
 PASS Sources: unavailable optional timer and registration APIs fail silent
 PASS Sources: tick-only source runs at one second cadence and net counters append
-RESULT: 1310 tests passed, 0 failed, 200327 assertions
+RESULT: 1327 tests passed, 0 failed, 201847 assertions
