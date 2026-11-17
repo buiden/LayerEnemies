@@ -55,6 +55,20 @@ local function sends(op)
 end
 local function advance(n) for _=1,n do H.advance(1) end end
 
+for offset=100,130 do
+    test("S1 senderless cancellation offset "..offset,function()
+        local N,state,refresh=fixture({two=true});refresh()
+        advance(offset)
+        eq(#sends("|HR|8:V:"),1,"actual request before party join")
+        state.party={"Birch Scout","Test Realm"}
+        advance(75)
+        eq(#sends("|HR|8:X:"),1,"one stop at every queue/heartbeat phase")
+        advance(130)
+        eq(#sends("|HR|8:X:"),1,"no duplicate stop")
+        eq(N.Main.error,nil)
+    end)
+end
+
 for _,case in ipairs({
     {"foreign guild",{realm="Other Realm",guild={"Birch Scout-OtherRealm","Other Guy"}},false},
     {"same guild",{guild={"Birch Scout","Other Guy"}},false},

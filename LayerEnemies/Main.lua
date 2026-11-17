@@ -458,6 +458,7 @@ function M.overlordPool()
         return N.Overlord.pool(S.call(GetRealmName),hc,rp,pvp)
     end)
 end
+local overlordSend
 function M.overlordContext(time)
     local ok=N.Net.allowed("overlord","public")
     local me=A.ownIdentity()
@@ -480,6 +481,7 @@ function M.overlordContext(time)
         c.guildNames=S.call(IsInGuild)==false and {} or A.guildNames(A.peerIdentity)
         c.friends=N.BNet.peers(c.now)
     end
+    c.send=overlordSend -- prepare can cancel from a queued-send guard, not only the tick.
     return c
 end
 -- Only exact outstanding withdrawal bytes may cross closed privacy switches.
@@ -495,7 +497,7 @@ function M.overlordStopping(text,route,target)
     end
     return false
 end
-local function overlordSend(c,text,route,target,prio,job)
+overlordSend=function(c,text,route,target,prio,job)
     local P=N.OverlordPeer
     local function guard()
         if route=="BNET" and job.name then

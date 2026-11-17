@@ -3,6 +3,9 @@ import argparse
 from overlord_peer_mutants import run
 
 MUTANTS = [
+    ('S1 senderless cancellation', 'Main.lua',
+     'c.send=overlordSend -- prepare can cancel from a queued-send guard, not only the tick.',
+     '', 'Overlord followup: S1'),
     ('M full realm identity', 'OverlordFeed.lua',
      'if c.groups[identity] or c.guildNames[identity] then return false end',
      'if c.groups[key] or c.guildNames[key] then return false end', 'Overlord followup: M'),
