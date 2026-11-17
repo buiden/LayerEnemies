@@ -95,3 +95,31 @@ on the final composition); regenerated full verification notes. Full verify:
 
 A later owner instruction requires an additional six-name mixed Wanted,
 presence and Overlord geometry test at levels 7 and 8; that follow-up is below.
+
+### Later owner instruction: six mixed Find cards
+
+`Stack: six mixed Wanted presence and Overlord cards use measured heights and page without overlap`
+was added at level 7 and will run unchanged at level 8. Real numbered Wanted
+frames populate all six names, then newer Overlord events replace two claims;
+real community scans supply presence, in both arrival orders. Wanted and
+Overlord share one retained Reported slot, so the board contains four Wanted
+and two Overlord claims, not fabricated simultaneous duplicate claim slots.
+Every page must show at least two complete cards; all six must be reachable,
+nonoverlapping, measured exactly, with complete claim text and no Ask action.
+
+- Actual behavior RED: **3 passed / 1 failed / 332 assertions**, 24px claim text
+  occupied an assumed 44px box even after the presence floor fix.
+- Fix only presence-bearing Find cards: measure their complete detail strings
+  and use the ordinary card floor instead of summed evidence-slot estimates.
+  Unrelated Find-only, Friendly and Reported floors remain unchanged.
+- GREEN: **4 / 0 / 665**. Full verify: **1434 / 0 / 240311** (all gates pass).
+- Two initial fixture failures were corrected before that behavior RED: Wanted
+  IDs permit at most three characters, and Overlord integer timestamps must be
+  newer than Wanted's fractional receipt before replacing its claim. No assertion
+  was removed or weakened. Failed fixture logs are retained separately.
+- The presence card-surcharge mutant now injects the same old floor at the
+  minimum-height entry, so the new early mixed-card branch cannot mask it.
+
+Level 8 second forward merge: combined both history sections of this note and
+regenerated the two verification files. Code auto-merged. Full verify:
+**1447 passed, 0 failed, 253197 assertions**, including the mixed-card test.

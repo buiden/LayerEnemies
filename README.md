@@ -336,7 +336,9 @@ Find now reads the Battle.net communities you already belong to and your
 Battle.net friends. It adds `online (community)` or `online (friend)`, a zone,
 and the age of our read. Presence text uses its measured height, so a one-line
 presence-only card is as compact as a normal one-line card and wrapped zones
-still fit without overlapping. It joins nothing and sends nothing: no new addon
+still fit without overlapping. Mixed Find cards also measure the complete
+claim text before placing presence; assumed per-claim boxes do not add empty
+space. It joins nothing and sends nothing: no new addon
 messages, chat, Battle.net data, presence subscriptions, or `/who` by name.
 There is no per-community Watch button. No donor addon or donor code is used.
 

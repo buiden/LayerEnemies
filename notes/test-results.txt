@@ -1311,6 +1311,7 @@ PASS Overlord: slash Reported shows guild claim but no hop record
 PASS Overlord: secret map objects or map types skip the entire claim
 PASS Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap
 PASS Overlord: single guild rampage reaches Reported without a hop
+PASS Stack: six mixed Wanted presence and Overlord cards use measured heights and page without overlap
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
@@ -1444,4 +1445,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1446 tests passed, 0 failed, 252783 assertions
+RESULT: 1447 tests passed, 0 failed, 253197 assertions
