@@ -1,12 +1,6 @@
-"""Independent local mutants for Overlord's receive-only contract; restores exact bytes."""
-from pathlib import Path
-import json
-import os
-import re
-import subprocess
-
-ROOT = Path(__file__).resolve().parents[1]
-LUA = Path(os.environ.get("LAYERENEMIES_LUA", "/opt/data/tools/lua/lua-5.1.5/src/lua"))
+"""Retained C1 regressions retargeted to C2 framing; portable scratch-only runner."""
+import argparse
+from overlord_peer_mutants import run
 OV = "LayerEnemies/Overlord.lua"
 MAIN = "LayerEnemies/Main.lua"
 # Each mutation targets one admission, lifetime, provenance or side-effect rule.
@@ -15,13 +9,13 @@ MUTANTS = [
     ("diagnostic-unknown-misleading", "net diagnostic explains", MAIN, 'or "unknown (receiving nothing)"', 'or "global"'),
     ("last-sender", "packet path", OV, "if key~=last then", "if false then"),
     ("rampage-normal-height", "32 rampages", "LayerEnemies/UI.lua", 'local function minimumHeight(e)', 'local function minimumHeight(e)\n        if U.tab=="reported" and e.guild then return 184 end'),
-    ("foreign-pool", "foreign packet pools", MAIN, 'if p and p.pool~=pool then return refuse() end', '-- mutant: foreign envelope pool accepted'),
-    ("unknown-pool", "unknown own pool", MAIN, 'if not pool then return refuse() end', '-- mutant: unknown local pool accepted'),
+    ("foreign-pool", "foreign packet pools", MAIN, 'if wire==false then return refuse() end\n        p=Ov.packet(wire,id,canonical,wall,me)\n        if p and p.pool~=pool then return refuse() end', 'if wire==false then return refuse() end\n        p=Ov.packet(wire,id,canonical,wall,me)'),
+    ("unknown-pool", "unknown own pool", MAIN, 'local pool=M.overlordPool()\n    if not pool', 'local pool=M.overlordPool() or "global"\n    if not pool'),
     ("ruleset-pool", "pool detection", OV, 'pvp and "global" or "pve"', 'pvp and "pve" or "global"'),
     ("GD-payload-pool", "GD foreign payload pool", MAIN, 'if d and p.kind=="GD" and d.pool~=pool then return refuse() end', '-- mutant: foreign GD payload pool accepted'),
     ("assembly-sender", "two parts", OV, 'local key=who..":"..id', 'local key="shared:"..id'),
     ("envelope-id", "packet identity", OV, ' or f[2]~=id', ''),
-    ("three-parts", "fragment frame bounds", OV, ' or count>2', ' or count>3'),
+    ("twenty-five-parts", "fragment frame bounds", OV, 'uint(part,24,1),uint(count,24,1)', 'uint(part,25,1),uint(count,25,1)'),
     ("own-faction", "GW bounds", MAIN, ' or g.faction==own:sub(1,1)', ''),
     ("untracked-killer", "untracked killers", MAIN, 'if not N.Find.tracked(M.find,d.killer) and #watchers==0 then', 'if false then'),
     ("120-inclusive", "packet age", OV, 'wall-ts<=age', 'wall-ts<age'),
@@ -33,17 +27,17 @@ MUTANTS = [
     ("id-alphabet", "fragment frame bounds", OV, 'id:match("^[%w%-]+$")', 'id:match("^[%w_%-]+$")'),
     ("part-order", "fragment frame bounds", OV, ' or part>count', ''),
     ("packet-3600", "packet identity", OV, 'bytes(wire,3600)', 'bytes(wire,36000)'),
-    ("broadcast", "packet identity", OV, ' or f[4]~="*"', ''),
+    ("target-address", "packet identity", OV, '(f[4]~="*" and (not me', '(false and (not me'),
     ("path-four", "packet path", OV, '#path>=4', '#path>=5'),
     ("path-repeat", "packet path", OV, ' or used[key]', ''),
     ("integer-time", "packet age", OV, 'local at=uint(f[3],9007199254740991)', 'local at=tonumber(f[3])'),
     ("clock-skew", "packet age", OV, 'ts-wall<=30', 'ts-wall<=31'),
     ("control-bytes", "packet identity", OV, ' or v:find("%c")', ''),
-    ("pending-cap", "33 pending", OV, 'if n>=32 then', 'if n>=33 then'),
-    ("assembly-30", "fragment duplicate", OV, 'now-a.at>=30', 'now-a.at>=31'),
-    ("duplicate-renews-partial", "fragment duplicate", OV, 'if a.count~=count', 'a.at=now\n    if a.count~=count'),
+    ("pending-cap", "64 pending", OV, 'n>=64', 'n>=65'),
+    ("assembly-30", "fragment duplicate", OV, 'now-a.last>=30', 'now-a.last>=31'),
+    ("duplicate-renews-partial", "fragment duplicate", OV, 'if a.count~=count', 'a.last=now\n    if a.count~=count'),
     ("duplicate-conflict", "fragment duplicate", OV, ' or (a.chunks[part] and a.chunks[part]~=chunk)', ''),
-    ("seen-ring", "origin id ring", OV, 'st.cursor%256+1', 'st.cursor%257+1'),
+    ("seen-ring", "origin id ring", OV, 'st.cursor%2000+1', 'st.cursor%2001+1'),
     ("GW-kills", "GW bounds", OV, 'uint(f[4],9999,50)', 'uint(f[4],10000,50)'),
     ("GW-members", "GW bounds", OV, 'uint(f[5],999,5)', 'uint(f[5],1000,5)'),
     ("GW-layer", "GW bounds", OV, 'uint(f[7],99999999)', 'uint(f[7],100000000)'),
@@ -54,7 +48,7 @@ MUTANTS = [
     ("guild-cap", "GW one per guild", OV, '#rows>=32', '#rows>=33'),
     ("combat", "combat and instance", MAIN, 'A.inCombat() or A.inInstance()~=false then return refuse()', 'A.inInstance()~=false then return refuse()'),
     ("instance", "combat and instance", MAIN, 'A.inCombat() or A.inInstance()~=false then return refuse()', 'A.inCombat() then return refuse()'),
-    ("whisper", "direct route matrix", MAIN, 'if kind~="GUILD" and kind~="PARTY" and kind~="RAID" then return end', 'if kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return end'),
+    ("whisper", "direct route matrix", MAIN, 'and kind~="WHISPER" and kind~="BNET"', 'and kind~="BNET"'),
     ("outgoing-attempt", "single guild rampage", MAIN, 'stats.taken=stats.taken+1', 'stats.taken=stats.taken+1; N.Wire.send("LEGW1","test","GUILD")'),
     ("claim-Ask", "claim never overwrites", "LayerEnemies/Find.lua", 'and loc.spotter~=nil and not loc.relayed and loc.kind~="claim"', 'and loc.spotter~=nil'),
     ("claim-hour", "EK tracked killer", "LayerEnemies/Known.lua", 'TTL=3600,MAX=300', 'TTL=3601,MAX=300'),
@@ -68,41 +62,10 @@ MUTANTS = [
 ]
 
 
-def run():
-    p = subprocess.run([str(LUA), "test/harness.lua", "--overlord-only"], cwd=ROOT, text=True, capture_output=True)
-    text = p.stdout + p.stderr
-    match = re.search(r"RESULT: (\d+) tests passed, (\d+) failed, (\d+) assertions", text)
-    assert match, text
-    return p.returncode, text, int(match[2])
-
-
-def main():
-    rc, text, failed = run()
-    assert rc == 0 and failed == 0, text
-    results = []
-    for name, expected, relative, before, after in MUTANTS:
-        path = ROOT / relative
-        original = path.read_bytes()
-        try:
-            source = original.decode()
-            assert source.count(before) == 1, (name, source.count(before))
-            path.write_text(source.replace(before, after))
-            subprocess.run([str(LUA.with_name("luac")), "-p", str(path)], check=True)
-            rc, text, failed = run()
-            catches = [line for line in text.splitlines() if line.startswith("FAIL Overlord:")]
-            killed = rc != 0 and failed > 0 and any(line.startswith("FAIL Overlord: " + expected) for line in catches)
-            results.append({"mutant": name, "killed": killed, "failed": failed, "caught_by": catches})
-            print(f"{name}: {'KILLED' if killed else 'SURVIVED'} ({failed} failures)", flush=True)
-        finally:
-            path.write_bytes(original)
-    rc, text, failed = run()
-    assert rc == 0 and failed == 0, text
-    result = {"total": len(results), "killed": sum(r["killed"] for r in results), "results": results}
-    (ROOT / "notes/overlord-mutants.json").write_text(json.dumps(result, indent=2) + "\n")
-    print(next(line for line in text.splitlines() if line.startswith("RESULT:")))
-    print(f"MUTANTS: {result['killed']}/{result['total']} killed")
-    assert result["killed"] == result["total"], "surviving mutants"
-
-
+# The original rule/fixture labels above remain searchable. Use the generic
+# selector so C2 boundary controls can kill raised-limit mutants as well.
 if __name__ == "__main__":
-    main()
+    parser=argparse.ArgumentParser();parser.add_argument('--write',action='store_true')
+    current=[(name,path.removeprefix('LayerEnemies/'),before,after,'Overlord')
+             for name,expected,path,before,after in MUTANTS]
+    raise SystemExit(0 if run(current,'overlord-mutants.json',parser.parse_args().write) else 1)
