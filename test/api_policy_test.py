@@ -92,5 +92,18 @@ class ApiPolicyTests(unittest.TestCase):
                           'local note="AcceptGroup"; local text=[=[_G["Accept".."Group"]]=]')
 
 
+    def test_codec_has_only_local_protocol_exports_and_no_send_api(self):
+        import re
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Codec.lua').read_text()
+        self.check_source(source, 'Codec.lua')
+        VERIFY['check_send_policy'](source, 'Codec.lua')
+        exports = re.findall(r'function Cd\.(\w+)\(', source)
+        self.assertEqual(sorted(exports), sorted(('inflate', 'deflateStored', 'addonEncode', 'addonDecode',
+                                                 'aceRead', 'aceWrite', 'lsRead', 'lsWrite', 'aceCommJoin', 'aceCommSplit')))
+        names = [value for kind, value in VERIFY['lua_tokens'](source) if kind == 'name']
+        self.assertFalse(set(names) & {'_G', 'LibStub', 'CreateFrame', 'C_Timer', 'GetTime', 'time', 'loadstring', 'dofile'})
+        self.assertFalse(any(x.startswith('C_') for x in names))
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

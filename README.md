@@ -273,6 +273,77 @@ unchanged `python3 test/verify.py`. No native test is a gate: **not tested in ga
 native rendering remain unknown. If no guildmate/groupmate runs Overlord (or
 its messages never arrive), nothing new appears; the counter stays at zero.
 
+## Shared codecs (1.2.0 foundation, not yet connected to networks)
+
+`LayerEnemies/Codec.lua` provides independent, pure-Lua wire codecs through the
+addon-local `N.Codec` table. This foundation does not register a prefix, send a
+message, create a queue, or change `Main.lua`. No LibStub or donor installation is
+required. The public interface is:
+
+- `inflate(bytes, maxOut?) -> string | nil`: raw RFC 1951 stored/fixed/dynamic
+  blocks; default/hard output limit 262144 bytes. A caller may lower it, including
+  to zero. Compressed input is limited to 262169 bytes. Trailing streams/bytes,
+  invalid trees, distances, repeats and truncations are refused. A 4194304-token
+  work budget charges bit reads, output, tree entries and 1024 tokens per block;
+  an otherwise valid stream can also be refused by that budget.
+- `deflateStored(bytes) -> string | nil`: input <=262144 bytes; valid raw stored
+  blocks of at most 65535 bytes, output <=262169 bytes. No compressor is needed
+  for the planned sends. Highly incompressible output from *other* encoders may
+  exceed the compressed-input ceiling even when its decoded size would fit.
+- `addonEncode(bytes)` / `addonDecode(bytes) -> string | nil`: LibDeflate addon
+  channel byte escaping (`00 -> 01 02`, `01 -> 01 03`). Both input and output are
+  capped at 262144 bytes. Literal NUL and invalid/truncated escape pairs are
+  rejected on decode; this is binary escaping, not Base64.
+- `aceRead(text)` / `aceWrite(table)`: AceSerializer revision 1, used by WarBoard.
+  Reads return a table or nil; writes return bytes or nil.
+- `lsRead(bytes)` / `lsWrite(table)`: LibSerialize version 1 output, versions 1
+  and 2 input, used by Wanted. Readers handle every type-byte family, IEEE
+  binary64, compact integers, arrays/maps/mixed tables, string/table references.
+  The minimal writer emits maps, references and exact decimal float forms;
+  byte ordering is not canonical.
+- `aceCommJoin(st, key, text) -> whole | nil` and
+  `aceCommSplit(bytes) -> frames | nil`: AceComm first/next/last/escape controls.
+  Keep one plain `st` per transport consumer and set `st.now` to monotonic seconds
+  before **every** join. A missing/invalid clock refuses input; rollback drops
+  pending streams. Use an unambiguous key containing the **full sender, prefix
+  and distribution**, without realm stripping. Keys <=256 bytes, frames <=255
+  bytes, 16 concurrent streams per state, 32768 assembled bytes/stream, 256
+  fragments, and a 30-second **total** lifetime (not idle timeout). First replaces
+  that key's old stream; orphan continuations are ignored; completion releases
+  capacity. Reserved controls clear only that sender's stream. Split returns
+  physical frames but sends nothing. Nil means pending **or** refused.
+
+Serializer limits apply on both sides: one root table, 262144 input/output and
+expanded string bytes, table nesting 8, 2048 entries/table, 4096 total logical
+values (including keys and the root). Wire values are separately capped at 4096.
+Acyclic aliases and table keys are supported; cycles, metatables, non-finite
+numbers, unrepresentable 56-bit integer payloads, duplicate keys and trailing
+values are refused. This is an intentionally bounded network-envelope subset,
+not a drop-in arbitrary-object library. Ace formatting whitespace is accepted;
+other permissive upstream malformed-input behavior is not reproduced. All public
+functions return nil rather than propagating malformed-input errors. Secret
+checks use the existing `Safe.secret` boundary; no direct client APIs are called.
+
+Both audited network formats use raw DEFLATE and addon escaping. Zlib/gzip and
+EncodeForPrint are not needed here; WarBoard's printable campaign import/export
+is outside this network slice. [Format credits](THIRD_PARTY.md) and
+[implementation evidence](notes/shared-codecs.md) identify the exact sources.
+
+Offline checks (Lua 5.1 path may be set with `LAYERENEMIES_LUA`):
+
+```sh
+python3 test/codec_vectors.py
+python3 test/codec_check.py
+python3 test/codec_mutants.py
+python3 test/verify.py
+```
+
+The codec gate includes independent Python format/zlib vectors, constructed audit
+payloads, malformed inputs and bombs, 5000 seeded random inputs per public
+function, mutation checks, and an offline 4000-byte/16.667-ms frame-budget test.
+The existing send-policy gate is unchanged. Native-client testing was not run
+(alpha, owner's decision); offline results are not in-client timing claims.
+
 ## 1.1.0 at a glance
 
 Everything since 1.0.1, with the sections below and the reference chapters

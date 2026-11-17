@@ -17,6 +17,7 @@ Store.lua
 Reports.lua
 HeadHunter.lua
 Adapters.lua
+Codec.lua
 Sources.lua
 Invite.lua
 Hop.lua

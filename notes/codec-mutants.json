@@ -1,0 +1,247 @@
+[
+  {
+    "rule": "input-byte-ceiling",
+    "killed": true,
+    "evidence": "FAIL addon malformed escapes and byte ceilings: test/codec.lua:29: expected nil, got xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+    "rule": "compressed-input-ceiling",
+    "killed": true,
+    "evidence": "FAIL inflate malformed blocks, distance and work budget: test/codec.lua:58: valid stream above input cap"
+  },
+  {
+    "rule": "writer-output-ceiling",
+    "killed": true,
+    "evidence": "FAIL logical references cannot evade string, depth or table bounds: test/codec.lua:238: serialized byte cap"
+  },
+  {
+    "rule": "inflate-caller-output-ceiling",
+    "killed": true,
+    "evidence": "FAIL inflate zlib known answers and stored writer: test/codec.lua:42: text4000-0 output limit"
+  },
+  {
+    "rule": "inflate-hard-output-ceiling",
+    "killed": true,
+    "evidence": "FAIL inflate malformed blocks, distance and work budget: test/codec.lua:60: expected nil, got "
+  },
+  {
+    "rule": "inflate-work-ceiling",
+    "killed": true,
+    "evidence": "FAIL inflate malformed blocks, distance and work budget: test/codec.lua:62: block work budget"
+  },
+  {
+    "rule": "stored-length-complement",
+    "killed": true,
+    "evidence": "FAIL inflate malformed blocks, distance and work budget: test/codec.lua:56: expected nil, got A"
+  },
+  {
+    "rule": "raw-single-stream",
+    "killed": true,
+    "evidence": "FAIL inflate malformed blocks, distance and work budget: test/codec.lua:56: expected nil, got "
+  },
+  {
+    "rule": "oversubscribed-huffman",
+    "killed": true,
+    "evidence": "FAIL RFC bit-level malformed trees and degenerate valid alphabets: test/codec.lua:249: oversubscribed code lengths"
+  },
+  {
+    "rule": "incomplete-huffman",
+    "killed": true,
+    "evidence": "FAIL RFC bit-level malformed trees and degenerate valid alphabets: test/codec.lua:249: incomplete code lengths"
+  },
+  {
+    "rule": "repeat-needs-prior-length",
+    "killed": true,
+    "evidence": "FAIL RFC bit-level malformed trees and degenerate valid alphabets: test/codec.lua:249: repeat before first length"
+  },
+  {
+    "rule": "repeat-alphabet-ceiling",
+    "killed": true,
+    "evidence": "FAIL RFC bit-level malformed trees and degenerate valid alphabets: test/codec.lua:249: repeat past alphabet end"
+  },
+  {
+    "rule": "reserved-literal-length",
+    "killed": true,
+    "evidence": "FAIL RFC bit-level malformed trees and degenerate valid alphabets: test/codec.lua:249: reserved literal 286"
+  },
+  {
+    "rule": "reserved-distance",
+    "killed": true,
+    "evidence": "FAIL RFC bit-level malformed trees and degenerate valid alphabets: test/codec.lua:249: reserved distance 30"
+  },
+  {
+    "rule": "distance-history",
+    "killed": true,
+    "evidence": "FAIL RFC bit-level malformed trees and degenerate valid alphabets: test/codec.lua:249: distance before output"
+  },
+  {
+    "rule": "stored-final-bit",
+    "killed": true,
+    "evidence": "FAIL inflate zlib known answers and stored writer: test/codec.lua:43: stored empty-0"
+  },
+  {
+    "rule": "addon-zero-escape",
+    "killed": true,
+    "evidence": "FAIL addon escaping exact bytes and roundtrip: test/codec.lua:22: expected \u0001\u0002\u0001\u0003\u0002\ufffd, got \u0001\u0003\u0001\u0002\u0002\ufffd"
+  },
+  {
+    "rule": "addon-forbids-literal-zero",
+    "killed": true,
+    "evidence": "FAIL addon malformed escapes and byte ceilings: test/codec.lua:28: expected nil, got "
+  },
+  {
+    "rule": "addon-escape-suffix",
+    "killed": true,
+    "evidence": "FAIL addon malformed escapes and byte ceilings: test/codec.lua:28: expected nil, got "
+  },
+  {
+    "rule": "secret-boundary",
+    "killed": true,
+    "evidence": "/opt/data/tools/lua/lua-5.1.5/src/lua: test/codec_fuzz.lua:71: assertion failed!"
+  },
+  {
+    "rule": "plain-tables",
+    "killed": true,
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:96: metatable"
+  },
+  {
+    "rule": "finite-numbers",
+    "killed": true,
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:86: ^1^T^Sx^N1e999^t^^"
+  },
+  {
+    "rule": "table-depth",
+    "killed": true,
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:87: write depth\nFAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:143: expected nil, got \u0001\u0016Rchild\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0016\ufffd\u0001\u0006\nFAIL logical references cannot evade string, depth or table bounds: test/codec.lua:237: expected nil, got table: 0x62940b9cb3b0"
+  },
+  {
+    "rule": "logical-value-count",
+    "killed": true,
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:90: 4097 logical values\nFAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:146: expected nil, got \u0001\ufffd\b"
+  },
+  {
+    "rule": "table-entry-count",
+    "killed": true,
+    "evidence": "FAIL logical references cannot evade string, depth or table bounds: test/codec.lua:232: expected nil, got table: 0x5b00bf2fe740"
+  },
+  {
+    "rule": "logical-expanded-string-bytes",
+    "killed": true,
+    "evidence": "FAIL logical references cannot evade string, depth or table bounds: test/codec.lua:234: expected nil, got table: 0x5a0db9049a40"
+  },
+  {
+    "rule": "acyclic-graphs",
+    "killed": true,
+    "evidence": "FAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:141: 011ae801"
+  },
+  {
+    "rule": "one-root-table",
+    "killed": true,
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:86: ^1^N1^^\nFAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:141: 01ff"
+  },
+  {
+    "rule": "ace-version",
+    "killed": true,
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:86: ^2^T^t^^"
+  },
+  {
+    "rule": "ace-terminator-and-tail",
+    "killed": true,
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:86: ^1^T^t\nFAIL independent Python serializer vectors and audit network payloads: test/codec.lua:215: truncated ace"
+  },
+  {
+    "rule": "ace-string-escape",
+    "killed": true,
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:86: ^1^T^Sx^S~^t^^"
+  },
+  {
+    "rule": "duplicate-map-key",
+    "killed": true,
+    "evidence": "FAIL AceSerializer strict malformed and resource rejection: test/codec.lua:86: ^1^T^Sx^N1^Sx^N2^t^^\nFAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:141: 0126126b03126b05"
+  },
+  {
+    "rule": "libserialize-version",
+    "killed": true,
+    "evidence": "FAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:141: 030a"
+  },
+  {
+    "rule": "libserialize-exact-integer",
+    "killed": true,
+    "evidence": "FAIL logical references cannot evade string, depth or table bounds: test/codec.lua:240: inexact 56-bit integer"
+  },
+  {
+    "rule": "libserialize-reference-exists",
+    "killed": true,
+    "evidence": "FAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:141: 011ad000"
+  },
+  {
+    "rule": "libserialize-single-root",
+    "killed": true,
+    "evidence": "FAIL LibSerialize malformed, truncated, cycles and bounds: test/codec.lua:141: 010a00"
+  },
+  {
+    "rule": "acecomm-stream-count",
+    "killed": true,
+    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:187: stream cap"
+  },
+  {
+    "rule": "acecomm-byte-count",
+    "killed": true,
+    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:192: 32769 bytes"
+  },
+  {
+    "rule": "acecomm-fragment-count",
+    "killed": true,
+    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:195: 257 fragments"
+  },
+  {
+    "rule": "acecomm-total-lifetime",
+    "killed": true,
+    "evidence": "FAIL AceComm sender isolation, restart, orphan and exact TTL: test/codec.lua:177: exact ttl"
+  },
+  {
+    "rule": "acecomm-rollback",
+    "killed": true,
+    "evidence": "FAIL AceComm sender isolation, restart, orphan and exact TTL: test/codec.lua:182: clock rollback"
+  },
+  {
+    "rule": "acecomm-sender-key",
+    "killed": true,
+    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:187: stream cap\nFAIL AceComm invalid reserved frames abandon only their sender stream: test/codec.lua:259: expected otherend, got nil"
+  },
+  {
+    "rule": "acecomm-first-replaces",
+    "killed": true,
+    "evidence": "FAIL AceComm sender isolation, restart, orphan and exact TTL: test/codec.lua:176: expected newend, got firstend"
+  },
+  {
+    "rule": "acecomm-terminal-clears",
+    "killed": true,
+    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:189: released capacity"
+  },
+  {
+    "rule": "acecomm-physical-frame",
+    "killed": true,
+    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:196: expected nil, got xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+    "rule": "acecomm-key-length",
+    "killed": true,
+    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:197: expected nil, got a"
+  },
+  {
+    "rule": "acecomm-reserved-control",
+    "killed": true,
+    "evidence": "FAIL AceComm invalid reserved frames abandon only their sender stream: test/codec.lua:258: expected nil, got startjunkend"
+  },
+  {
+    "rule": "acecomm-split-escape",
+    "killed": true,
+    "evidence": "FAIL AceComm split/join all controls and boundaries: test/codec.lua:161: expected \u0001, got nil"
+  },
+  {
+    "rule": "acecomm-split-byte-count",
+    "killed": true,
+    "evidence": "FAIL AceComm stream, bytes, fragment, key and frame ceilings: test/codec.lua:200: expected nil, got table: 0x562fb2d07fa0"
+  }
+]
