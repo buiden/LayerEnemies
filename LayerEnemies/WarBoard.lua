@@ -497,7 +497,7 @@ local function defer(st,text,id)
     st.deferredBytes=st.deferredBytes+#text
 end
 local function drain(st,ctx)
-    if not ctx or not st.deferred then return end
+    if not ctx or (st.high and ctx.now<st.high) or not st.deferred then return end
     local pending=st.deferred; st.deferred=nil; st.deferredBytes=0
     for _,q in ipairs(pending) do
         if not W.bnet(st,q.text,q.id,ctx,q) and N.WarBoardTrack then N.WarBoardTrack.uncertain(q.id) end

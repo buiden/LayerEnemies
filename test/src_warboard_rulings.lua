@@ -265,6 +265,16 @@ for _,bytes in ipairs({false,true}) do
     end)
 end
 
+test("N2 deferred inbox remains held during clock rollback",function()
+    local N,r,hello,count,pos=start(); stop(N,"source"); advance(5)
+    h.combat(true); advance(10); pos(false,function(d) d.sentAt=h.wall()-5 end)
+    local received=h.clock(); h.combat(false); h.clock(received-3)
+    incoming("A")
+    eq(debt(),1,"rollback must not drain a queued roster before the ingress clock guard")
+    h.clock(received); N.WarBoard.tick(N.WarBoard.state,N.Adapters.warboardContext())
+    eq(debt(),0)
+end)
+
 test("N2 deferred roster cannot settle after current GUID changes",function()
     local N,r,hello,count,pos,a=start(); stop(N,"source"); advance(5)
     h.combat(true); advance(1); pos(false)

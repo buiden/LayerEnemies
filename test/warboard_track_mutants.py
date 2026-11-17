@@ -201,6 +201,9 @@ ruling('R2 N2 deferred frame cap', [
     ('LayerEnemies/WarBoard.lua', '#st.deferred>=128', '#st.deferred>=129')], 'N2 deferred inbox frame')
 ruling('R2 N2 deferred byte cap', [
     ('LayerEnemies/WarBoard.lua', 'st.deferredBytes+#text>262144', 'st.deferredBytes+#text>266144')], 'N2 deferred inbox byte')
+ruling('R2 N2 deferred inbox respects rollback guard', [
+    ('LayerEnemies/WarBoard.lua', 'if not ctx or (st.high and ctx.now<st.high) or not st.deferred then return end',
+     'if not ctx or not st.deferred then return end')], 'N2 deferred inbox remains')
 ruling('R2 N2 overflow invalidates silence fallback', [
     ('LayerEnemies/WarBoardTrack.lua', 'if r.closing and r.id==id then r.accepted=nil end', 'do end')], 'N2 deferred inbox')
 ruling('R2 N1 genuine recent confirmation permits new requests', [
