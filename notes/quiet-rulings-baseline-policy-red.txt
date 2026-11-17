@@ -1,0 +1,188 @@
+.FFFFFFFFF.FFFFFFF..FFF
+======================================================================
+FAIL: test_fourth_registration_is_rejected (__main__.WhisperHookPolicyTests.test_fourth_registration_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 237, in test_fourth_registration_is_rejected
+    with self.assertRaisesRegex(AssertionError, 'exactly once'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_global_pcall_assignment_is_rejected (__main__.WhisperHookPolicyTests.test_global_pcall_assignment_is_rejected) (lhs='pcall')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 256, in test_global_pcall_assignment_is_rejected
+    with self.subTest(lhs=lhs), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_global_pcall_assignment_is_rejected (__main__.WhisperHookPolicyTests.test_global_pcall_assignment_is_rejected) (lhs='_G.pcall')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 256, in test_global_pcall_assignment_is_rejected
+    with self.subTest(lhs=lhs), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_global_pcall_assignment_is_rejected (__main__.WhisperHookPolicyTests.test_global_pcall_assignment_is_rejected) (lhs='_G["p".."call"]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 256, in test_global_pcall_assignment_is_rejected
+    with self.subTest(lhs=lhs), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_local_function_pcall_is_rejected (__main__.WhisperHookPolicyTests.test_local_function_pcall_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 250, in test_local_function_pcall_is_rejected
+    with self.assertRaisesRegex(AssertionError, 'pcall'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_local_pcall_shadow_is_rejected (__main__.WhisperHookPolicyTests.test_local_pcall_shadow_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 246, in test_local_pcall_shadow_is_rejected
+    with self.assertRaisesRegex(AssertionError, 'pcall'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_missing_registration_is_rejected (__main__.WhisperHookPolicyTests.test_missing_registration_is_rejected) (source='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 242, in test_missing_registration_is_rejected
+    with self.subTest(source=source), self.assertRaisesRegex(AssertionError, 'exactly once'):
+                                      ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_missing_registration_is_rejected (__main__.WhisperHookPolicyTests.test_missing_registration_is_rejected) (source='pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 242, in test_missing_registration_is_rejected
+    with self.subTest(source=source), self.assertRaisesRegex(AssertionError, 'exactly once'):
+                                      ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_missing_registration_is_rejected (__main__.WhisperHookPolicyTests.test_missing_registration_is_rejected) (source='pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 242, in test_missing_registration_is_rejected
+    with self.subTest(source=source), self.assertRaisesRegex(AssertionError, 'exactly once'):
+                                      ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='local a, pcall; ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 264, in test_other_pcall_bindings_are_rejected
+    with self.subTest(binding=binding), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='function pcall(...) end; ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 264, in test_other_pcall_bindings_are_rejected
+    with self.subTest(binding=binding), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='local function f(pcall) end; ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 264, in test_other_pcall_bindings_are_rejected
+    with self.subTest(binding=binding), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='local f = function(pcall) end; ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 264, in test_other_pcall_bindings_are_rejected
+    with self.subTest(binding=binding), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='for pcall in pairs({}) do end; ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 264, in test_other_pcall_bindings_are_rejected
+    with self.subTest(binding=binding), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='for pcall = 1,2 do end; ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 264, in test_other_pcall_bindings_are_rejected
+    with self.subTest(binding=binding), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='pcall, other = f, g; ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 264, in test_other_pcall_bindings_are_rejected
+    with self.subTest(binding=binding), self.assertRaisesRegex(AssertionError, 'pcall'):
+                                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_read_only_presence_predicates_do_not_expose_functions (__main__.WhisperHookPolicyTests.test_read_only_presence_predicates_do_not_expose_functions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 282, in test_read_only_presence_predicates_do_not_expose_functions
+    self.check(self.MODERN + '; ' + self.LEGACY + '''
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        local absentModern = C_ChatInfo.SendChatMessage == nil
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        local absentLegacy = _G.SendChatMessage == nil
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ''')
+    ^^^^
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 221, in check
+    verify.check_send_policy(source, filename)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/verify.py", line 222, in check_send_policy
+    assert not forbidden, 'Unexpected outgoing/forbidden API: ' + word + ' in ' + filename
+           ^^^^^^^^^^^^^
+AssertionError: Unexpected outgoing/forbidden API: SendChatMessage in Wire.lua
+
+======================================================================
+FAIL: test_third_registration_is_rejected (__main__.WhisperHookPolicyTests.test_third_registration_is_rejected) (extra='pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 233, in test_third_registration_is_rejected
+    with self.subTest(extra=extra), self.assertRaisesRegex(AssertionError, 'exactly once'):
+                                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_third_registration_is_rejected (__main__.WhisperHookPolicyTests.test_third_registration_is_rejected) (extra='pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-rulings-red-s7mgz8_k/test/test_verify.py", line 233, in test_third_registration_is_rejected
+    with self.subTest(extra=extra), self.assertRaisesRegex(AssertionError, 'exactly once'):
+                                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.009s
+
+FAILED (failures=19)

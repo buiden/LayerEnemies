@@ -99,6 +99,15 @@ class ApiPolicyTests(unittest.TestCase):
         self.check_source('local f=_G["Accept".."Group"]', 'Wire.lua')
         self.check_source('local tip=_G.GameTooltip; local map=_G["C_".."Map"]')
 
+    def test_system_filter_owner_is_wire_only(self):
+        for access in ('ChatFrame_AddMessageEventFilter', '_G.ChatFrame_AddMessageEventFilter',
+                       '_G["ChatFrame_".."AddMessageEventFilter"]'):
+            code = 'if false then local fn=' + access + ' end'
+            self.check_source(code, 'Wire.lua')
+            for filename in ('Main.lua', 'Adapters.lua', 'Sources.lua'):
+                with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                    self.check_source(code, filename)
+
     def test_comments_and_plain_data_are_not_api_references(self):
         self.check_source('-- AcceptGroup\n--[=[ C_FriendList.SendWho ]=]\n'
                           'local note="AcceptGroup"; local text=[=[_G["Accept".."Group"]]=]')
@@ -131,6 +140,31 @@ class ApiPolicyTests(unittest.TestCase):
         # Wanted has numbered fragments, not AceComm. No extra event frame/wiring.
         self.assertNotIn('aceCommJoin', source)
         self.assertEqual((root / 'LayerEnemies.toc').read_text().count('Wanted.lua'), 1)
+
+    def test_warboard_is_pure_and_uses_only_the_shared_bnet_send(self):
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        source = (root / 'WarBoard.lua').read_text()
+        tokens = VERIFY['lua_tokens'](source)
+        names = {v for k, v in tokens if k == 'name'}
+        self.check_source(source, 'WarBoard.lua')
+        VERIFY['check_send_policy'](source, 'WarBoard.lua')
+        self.assertFalse(names & {'_G', 'C_Timer', 'CreateFrame', 'LibStub', 'GetTime', 'time',
+                                  'UnitFactionGroup', 'Wire', 'LayerEnemiesDB', 'loadstring', 'dofile'})
+        self.assertFalse(any(v.startswith('C_') for v in names))
+        self.assertEqual(source.count('BN.send('), 1)
+        self.assertIn('Src.register{name="warboard"', source)
+        self.assertNotIn('SendAddonMessage', names)
+        track = (root / 'WarBoardTrack.lua').read_text()
+        self.check_source(track, 'WarBoardTrack.lua')
+        VERIFY['check_send_policy'](track, 'WarBoardTrack.lua')
+        words = {v for k, v in VERIFY['lua_tokens'](track) if k == 'name'}
+        self.assertFalse(words & {'_G', 'C_Timer', 'CreateFrame', 'Wire', 'LayerEnemiesDB', 'UnitGUID', 'GetTime'})
+        self.assertEqual(track.count('BN.send('), 1)
+        self.assertNotIn('SendGameData', names)
+        for path in root.glob('*.lua'):
+            refs = {v for _, v in VERIFY['lua_references'](VERIFY['lua_tokens'](path.read_text()))}
+            if 'GetMapPosFromWorldPos' in refs:
+                self.assertEqual(path.name, 'Adapters.lua')
 
 
     def test_overlord_peer_is_pure_and_uses_owned_transport(self):

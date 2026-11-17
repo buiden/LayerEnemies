@@ -1,0 +1,8 @@
+{
+  "runner": "test/quiet_mutants.py",
+  "exit": 0,
+  "before_sha256": "06bdd768ae825a62a478d778965858a7175b1ebe25e4ee1fb8e99d2a366acbdc",
+  "after_sha256": "06bdd768ae825a62a478d778965858a7175b1ebe25e4ee1fb8e99d2a366acbdc",
+  "byte_stable": true,
+  "not_rewritten": true
+}

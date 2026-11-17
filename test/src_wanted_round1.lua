@@ -244,9 +244,11 @@ test("Wanted: R1 S3 replay ownership is carrier-wide across routes and record or
         end
     end
     eq(count(N.Wanted.state.seen),32); yes(shown(N,32))
-    event(N,33,"CHANNEL","Flood Sender","ee"); yes(shown(N,32),"sender quota covers packet and record IDs")
+    event(N,33,"CHANNEL","Flood Sender","ee"); yes(shown(N,33),"full sender quota evicts rather than silences")
+    eq(count(N.Wanted.state.seen),32,"sender quota still covers packet and record IDs")
     local r=record(99,"Invented Origin"); r.data.x=34
-    report(N,r,"GUILD","Flood Sender","ef"); yes(shown(N,32),"origin aliases cannot buy extra quota")
+    report(N,r,"GUILD","Flood Sender","ef"); yes(shown(N,34))
+    eq(count(N.Wanted.state.seen),32,"origin aliases cannot buy extra quota")
     event(N,35,"GUILD","Honest Mate"); yes(shown(N,35))
     h.clock(h.clock()+3600); N.Sources.tick(h.clock()); eq(count(N.Wanted.state.seen),0)
     event(N,36,"GUILD","Flood Sender","ee"); yes(shown(N,36),"expiry releases sender quota")
@@ -258,14 +260,14 @@ test("Wanted: R1 S3 replay reserves 256 guild entries within global 512",functio
         for i=1,32 do event(N,50,"CHANNEL",peer("Public",sender),string.format("%x",i)) end
     end
     eq(count(N.Wanted.state.seen),256)
-    event(N,51,"CHANNEL","Overflow Public"); eq(count(N.Wanted.state.seen),256); yes(shown(N,50))
+    event(N,51,"CHANNEL","Overflow Public"); eq(count(N.Wanted.state.seen),256); yes(shown(N,51))
     local r=record(1); r.data.x=52
-    report(N,r,"WHISPER","Overflow Whisper"); eq(count(N.Wanted.state.seen),256); yes(shown(N,50))
+    report(N,r,"WHISPER","Overflow Whisper"); eq(count(N.Wanted.state.seen),256); yes(shown(N,52))
     for sender=1,8 do
         for i=1,32 do event(N,53,"GUILD",peer("Guild",sender),string.format("%x",i)) end
     end
     eq(count(N.Wanted.state.seen),512); yes(shown(N,53))
-    event(N,54,"GUILD","Overflow Guild"); eq(count(N.Wanted.state.seen),512); yes(shown(N,53))
+    event(N,54,"GUILD","Overflow Guild"); eq(count(N.Wanted.state.seen),512); yes(shown(N,54))
     h.clock(h.clock()+3600); N.Sources.tick(h.clock()); eq(count(N.Wanted.state.seen),0)
     event(N,55,"CHANNEL","Overflow Public"); yes(shown(N,55))
 end)

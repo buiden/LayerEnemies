@@ -15,7 +15,7 @@ local function sent()
     local out={}; for _,s in ipairs(h.sent()) do if s.kind=="BN" then out[#out+1]=s end end; return out
 end
 
-for _,row in ipairs({{"wanted","WNTDB",4},{"overlord","OverlordF",8},{"warboard","WBQueue",10}}) do
+for _,row in ipairs({{"wanted","WNTDB",4},{"overlord","OverlordF",8},{"warboard","WarBoard",10}}) do
     test("BNet queue: S1 configured admission cap "..row[1],function()
         local N=setup(); local c=register(N,row[1],row[2])
         for i=1,row[3] do yes(N.BNet.send(row[1],71,row[2],"own-"..i,"own")) end
@@ -121,7 +121,7 @@ test("BNet queue: S1 owed occupancy does not shrink the normal allowance",functi
 end)
 
 test("BNet queue: S1 reviewer flood admits another source and its owed answer within share",function()
-    local N=setup(); local wanted=register(N,"wanted","WNTDB"); local other=register(N,"warboard","WBQueue")
+    local N=setup(); local wanted=register(N,"wanted","WNTDB"); local other=register(N,"warboard","WarBoard")
     local admitted,serial={},0
     local function offer(net,prefix,prio)
         serial=serial+1; local text=net..serial
@@ -132,8 +132,8 @@ test("BNet queue: S1 reviewer flood admits another source and its owed answer wi
     for _=1,1000 do if offer("wanted","WNTDB","own") then accepted=accepted+1 end end
     eq(accepted,4,"the reviewer's 1000-frame burst holds only Wanted's four slots")
     eq(wanted.refused,996)
-    local ok,normal=offer("warboard","WBQueue","own"); yes(ok,"other source is still admitted")
-    local owed; ok,owed=offer("warboard","WBQueue","owed"); yes(ok,"owed answer is still admitted")
+    local ok,normal=offer("warboard","WarBoard","own"); yes(ok,"other source is still admitted")
+    local owed; ok,owed=offer("warboard","WarBoard","owed"); yes(ok,"owed answer is still admitted")
     local start=h.clock()
     for _=1,125 do
         h.advance(1)

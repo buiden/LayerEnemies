@@ -515,7 +515,7 @@ overlordSend=function(c,text,route,target,prio,job)
         if job.kind=="HR" and route=="BNET" then live.friends=N.BNet.peers(live.now) end
         P.sent(M.overlordPeer,job,live)
     end
-    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,guard,sent) end
+    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,nil,nil,function(ok) if ok then sent() end end,guard) end
     local live=M.overlordContext()
     if not P.claim(M.overlordPeer,job,live,true) then return false end
     local ok,_,attempted=N.Wire.send("OverlordF",text,route,target,{net="overlord",prio=prio=="owed" and "owed" or "mesh"})
@@ -2235,9 +2235,9 @@ function M.hhHelloPump()
         end,"public") then M.hhHelloTimer=nil end
     end
 end
--- Observe only; system errors remain visible in every chat frame.
-function M.whisperSystem(text)
-    if N.Wire.system(text) and M.hhNet then
+-- The observer shares correlation with Wire's chat filter; either may run first.
+function M.whisperSystem(text,...)
+    if N.Wire.system(text,select(10,...)) and M.hhNet then
         N.HhNet.suppress(M.hhNet,N.Wire.offlineUntil,now())
         if not N.HhNet.owed(M.hhNet) then M.hhHelloTimer=nil end
     end
@@ -2347,7 +2347,7 @@ function M.setFindNotice(on)
 end
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
-    if not on then N.OwnDeath.cancel(); N.BNet.cancel(nil,true); M.overlordCancel() end
+    if not on then N.OwnDeath.cancel(); N.BNet.cancel(nil,nil,true); M.overlordCancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
     -- Off cancels all pending guild relays as well as our sync answers. Queued guild/own embassy lines
     -- are dropped by their still checks. A quick off/on must not revive the cancelled relay timers.
@@ -2381,16 +2381,40 @@ function M.setNet(key,on)
     if N.UI then N.UI.refresh() end
     return true
 end
+function M.quiet(command)
+    local state=command:match("^quiet%s+(%a+)$")
+    if command=="quiet" then state=N.Wire.quietMode(LayerEnemiesDB.quietWhispers)
+    elseif state~="on" and state~="off" and state~="all" then M.say("LayerEnemies: /le quiet on|off|all"); return
+    elseif S.tab(LayerEnemiesDB) then LayerEnemiesDB.quietWhispers=state end
+    M.say("LayerEnemies: quiet "..state..(state=="on" and " - hide only LayerEnemies' correlated offline whisper notices."
+        or state=="all" and not N.Wire.whisperObserverReady() and " - your own typed-whisper protection unavailable; all behaves like on (LayerEnemies whispers only)."
+        or state=="all" and " - hide all localized not-found lines except after your own typed whisper (10 seconds)."
+        or " - all offline whisper notices stay visible."))
+end
+function M.warboardTrack(on)
+    N.WarBoardTrack.set(on)
+    M.say("WarBoard tracking: "..(on and "on" or "off").." (this session; /le warboard track on|off)")
+end
 function M.net(command)
     local rest=command:match("^net%s*(.-)%s*$") or ""
     if rest=="" then
         M.say("Networks: "..(N.Net.consent()=="public" and "public" or "guild only"))
+        M.say("hidden (LayerEnemies whispers): "..N.Wire.hiddenNotices().."; hidden (other addons): "..N.Wire.hiddenOtherNotices().."; shown (your own whisper or mode): "..N.Wire.shownNotices())
+        M.say(N.Wire.whisperObserverReady() and "Typed-whisper protection: secure post-hook active."
+            or "Typed-whisper protection unavailable; all behaves like on (LayerEnemies whispers only).")
+        local ready,missing=N.Wire.whisperObserverReady()
+        if not ready then M.say("Missing typed-whisper hook: "..missing..".") end
         netLines(M.say)
         M.say(N.HeadHunter.summary(M.hh.stats))
         local s=M.overlord.stats
         local pool=M.overlordPool() or "unknown (receiving nothing)"
         M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused.." · pool "..pool)
         for _,line in ipairs(N.Sources.lines()) do M.say(line) end
+        return
+    end
+    if rest=="warboard" then
+        for _,line in ipairs(N.Sources.lines()) do if line:match("^warboard:") then M.say(line) end end
+        M.say("WarBoard tracking: "..(N.WarBoardTrack.on and "on" or "off").." (6/min; 3 tries 6s apart, renew 45s; /le warboard track on|off)")
         return
     end
     if rest=="guild" or rest=="public" then M.setConsent(rest); return end
@@ -2472,7 +2496,7 @@ function M.start()
     M.host=N.GuildHost.new()   -- guild-only hosting; the wish (want) is saved as LayerEnemiesDB.guildHost
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
-    -- Configuration only. Sightings and source identities never enter SavedVariables.
+    -- Configuration plus GUID-only owed withdrawals; never sightings or peer records.
     local saved=LayerEnemiesDB
     M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new()
     M.presenceShared={}; M.presenceSharedAlerts={presenceAlerts={}}
@@ -2483,8 +2507,10 @@ function M.start()
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- sharing our own sightings (O, War Effort C+E) and deaths (K): only a saved false turns it off
     LayerEnemiesDB.share=saved.share~=false
+    LayerEnemiesDB.quietWhispers=N.Wire.quietMode(saved.quietWhispers)
     LayerEnemiesDB.findShare=saved.findShare~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
+    if N.WarBoardTrack then LayerEnemiesDB.warboardOwed=N.WarBoardTrack.load(saved.warboardOwed) end
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
     LayerEnemiesDB.call=saved.call~=false
     LayerEnemiesDB.callArt=saved.callArt~=false
@@ -2520,6 +2546,8 @@ function M.start()
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OverlordF") -- receive only
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OpenMapLoc") -- receive only, including hellos
     end
+    N.Wire.registerSystemFilter()
+    N.Wire.registerWhisperObserver()
     N.Sources.start()
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"
@@ -2534,6 +2562,8 @@ function M.start()
         end
         if command=="find share on" or command=="find share off" then guarded(M.setFindShare,command=="find share on"); return end
         if command=="find notice on" or command=="find notice off" then guarded(M.setFindNotice,command=="find notice on"); return end
+        if words=="warboard track on" or words=="warboard track off" then guarded(M.warboardTrack,words=="warboard track on"); return end
+        if words=="warboard track" then M.say("/le warboard track on|off"); return end
         if command=="presence" then M.presenceStatus(); return end
         if command=="layer" then guarded(N.ChehulNet.layer); return end
         if command=="find" then M.track(nil); return end
@@ -2542,6 +2572,7 @@ function M.start()
         if command=="hop any" then guarded(M.hopAny); return end
         if command=="hop auto on" then guarded(M.setAutoHop,true); return end
         if command=="net" or command:match("^net%s") then guarded(M.net,command); return end
+        if command=="quiet" or command:match("^quiet%s") then guarded(M.quiet,command); return end
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
         if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
         if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
@@ -2579,7 +2610,9 @@ local function dispatch(_,event,...)
     end
     if event=="PLAYER_LOGIN" then guarded(M.start); return end
     if not M.started then return end
-    if event=="PLAYER_LOGOUT" then M.overlordClosing=true;guarded(M.overlordCancel);N.BNet.pump(now());guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
+    if event=="PLAYER_LOGOUT" then M.overlordClosing=true;guarded(M.overlordCancel);
+        if N.WarBoardTrack then N.WarBoardTrack.stop(true) end
+        N.BNet.pump(now());guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
     elseif event=="CHAT_MSG_ADDON" then guarded(M.message,...)
     elseif event=="BN_CHAT_MSG_ADDON" then
         local prefix,text,channel,id=...
@@ -2589,12 +2622,15 @@ local function dispatch(_,event,...)
     elseif event=="BN_FRIEND_LIST_SIZE_CHANGED" then
         N.BNet.invalidatePeers();guarded(M.overlordTick,now());N.BNet.pump(now())
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
-    elseif event=="PLAYER_REGEN_DISABLED" then guarded(M.hopAnyStop,"combat started")
+    elseif event=="PLAYER_REGEN_DISABLED" then
+        if N.WarBoardTrack then N.WarBoardTrack.stop() end
+        guarded(M.hopAnyStop,"combat started")
     elseif event=="PLAYER_DEAD" then N.OwnDeath.dead()
     elseif event=="PLAYER_ALIVE" or event=="PLAYER_UNGHOST" then N.OwnDeath.revived()
-    elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
+    elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,...)
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then
         if event=="PLAYER_ENTERING_WORLD" then N.OwnDeath.seed(...) end
+        if N.WarBoardTrack and A.inInstance()~=false then N.WarBoardTrack.stop() end
         guarded(M.hopAnySafe); guarded(M.boundary,A.location()); M.queuePoll()
     elseif event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
         if A.location()~=M.store.zone then guarded(M.boundary,A.location(),true) end

@@ -1,0 +1,49 @@
+{
+  "inventory": {
+    "stack9": 1598,
+    "feature": 1544,
+    "raw_union": 1748,
+    "composed": 1745,
+    "superseded": {
+      "WarBoard: no FBAK or request answer or forwarding for any application type": "WarBoard: no unsolicited application response or forwarding; FBAK requires verified Find target",
+      "Codec: AceComm sender isolation, restart, orphan and exact TTL": "Codec: AceComm sender isolation, restart, orphan and clock rollback",
+      "WarBoard: stand down blocks both own hellos and owed answers": "WarBoard: stand down cancels queued H and A when the real addon loads"
+    },
+    "unexplained_missing": [],
+    "unexplained_new": []
+  },
+  "mutants": {
+    "warboard-mutants.json": {
+      "total": 115,
+      "killed": 115,
+      "sha256": "611955408022516371ea7ca3319690ec14cf8eab0b886258ba46ab9cf25282aa"
+    },
+    "warboard-track-mutants.json": {
+      "total": 113,
+      "killed": 113,
+      "sha256": "cd705be6feecb34fd2ce5ee6f481fa29375d427b1347c5a999f70de9eea6989e"
+    }
+  },
+  "mutant_inventory": {
+    "stack9": 113,
+    "feature_protocol": 100,
+    "raw_union": 116,
+    "composed_protocol": 115,
+    "renamed_same_mutation": {
+      "no FBAK send": "handshake grammar cannot masquerade as FBAK"
+    },
+    "all_feature_tracking_rules_retained": true
+  },
+  "frozen_lower_refs": {
+    "refs/heads/stack/1-ui": "b62875efa22564c7a72a833ff4854e7880850be2",
+    "refs/heads/stack/2-hop": "a7a65e4f5a9c6db986ed140329ffb4c720965299",
+    "refs/heads/stack/3-presence": "d5b27d28a3a8cb36948c51505738e62ee525bf96",
+    "refs/heads/stack/4-flh": "ed7249b6b220846af824a36c7226642c28a22662",
+    "refs/heads/stack/5-overlord": "ea8a4f7d44a8224ef63ff91db2fe69a271d57b2b",
+    "refs/heads/stack/6-registry": "3579fe740f533870fe990433972e73c22a98d2e6",
+    "refs/heads/stack/7-wanted": "697c91ad5c4129910406074dcd09866e58a6295f",
+    "refs/heads/stack/8-chehul": "b24dee293df29cd9196187e97248484b16d916f8",
+    "refs/heads/stack/9-warboard": "4ee3fbb9b1a9d00b87bc4512b06dc347b39bf606"
+  },
+  "codec_equal_stack9": true
+}

@@ -1,0 +1,42 @@
+[
+  [
+    "LayerEnemies/Hop.lua",
+    "local sent, result = N.Wire.send(\"LayerSwap\", line, \"WHISPER\", candidate.name, { prio = \"click\" })"
+  ],
+  [
+    "LayerEnemies/Main.lua",
+    "if reply then N.Wire.send(\"LayerSwap\",reply,\"WHISPER\",sender,{prio=\"owed\"}) end"
+  ],
+  [
+    "LayerEnemies/Main.lua",
+    "ok,why=N.Wire.send(\"LayerSwap\",c.line or r.line,\"WHISPER\",c.name,{prio=\"click\",hopAny=true,hopKnown=c.known==true})"
+  ],
+  [
+    "LayerEnemies/Main.lua",
+    "if who then N.Wire.send(\"WEFF1\",text,\"WHISPER\",who,{net=\"we\",prio=\"owed\"}) end"
+  ],
+  [
+    "LayerEnemies/Main.lua",
+    "if stamp then N.Wire.send(\"WEFF1\",N.WeOut.joinOff(msg.id,stamp),\"WHISPER\",sender,{net=\"we\",prio=\"owed\"}) end"
+  ],
+  [
+    "LayerEnemies/Main.lua",
+    "else N.Wire.send(\"WEFF1\",o.text,\"WHISPER\",o.target,{net=\"we\",prio=\"embassy\",queue=true,still=embassyOn}) end"
+  ],
+  [
+    "LayerEnemies/Main.lua",
+    "if reply then N.Wire.send(\"WEFF1\",reply.text,\"WHISPER\",reply.target,{net=\"we\",prio=\"embassy\",queue=true,still=embassyOn}) end"
+  ],
+  [
+    "LayerEnemies/Main.lua",
+    "N.Wire.send(\"WEFF1\",o.text,\"WHISPER\",o.target,{net=\"we\",prio=\"embassy\",queue=true,still=still})"
+  ],
+  [
+    "LayerEnemies/Main.lua",
+    "N.Wire.send(\"HeadHunter\",text,\"WHISPER\",target,opts)"
+  ],
+  [
+    "LayerEnemies/Main.lua",
+    "local ok,why,attempted=N.Wire.send(\"HeadHunter\",N.HhNet.frame(ctx.side,\"N\",N.HhNet.HELLO),\"WHISPER\",who,{net=\"hh\",prio=\"mesh\"})"
+  ]
+]

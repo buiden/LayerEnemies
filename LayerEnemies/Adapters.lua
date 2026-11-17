@@ -229,13 +229,17 @@ function A.clubPeer(clubId,memberId)
         return gameId(v(r.bnetAccountId))
     end)
 end
-function A.bnGame(id)
+function A.bnGame(id,withGuid)
     return presenceRead(function(v)
         id=gameId(v(id)); if not id then return nil end
         local api=v(_G.C_BattleNet)
         if not S.tab(api) or type(v(api.GetGameAccountInfoByID))~="function" then return nil end
-        local r=peerGame(v(api.GetGameAccountInfoByID(id)),v)
-        if r and r.id==id then return r end
+        local game=v(api.GetGameAccountInfoByID(id))
+        local r=peerGame(game,v)
+        if r and r.id==id then
+            if withGuid then r.guid=S.str(v(game.playerGuid),80) end
+            return r
+        end
     end)
 end
 function A.bnAccount(id)
@@ -411,6 +415,67 @@ function A.bulo(epoch,now,known)
 end
 -- Wall clock, the base of both foreign lists' "at" fields.
 function A.wall() return S.num(S.call(_G.time)) end
+-- WarBoard's pure protocol driver consumes only this guarded client snapshot.
+-- Ruleset spellings are protocol facts; unknown/numeric realm tags stay unknown.
+function A.warboardContext(receiveOnly)
+    return presenceRead(function(v)
+        if not receiveOnly and (A.inCombat() or A.inInstance()~=false) then return nil end
+        local now,wall=S.num(v(S.call(GetTime))),S.num(v(A.wall()))
+        local realm=S.str(v(S.call(GetRealmName)),60)
+        local faction=S.str(v(S.call(UnitFactionGroup,"player")),16)
+        local tags={PvP="pvp",PvE="normal",RP="rp",RPPvP="rppvp",hardcore="hardcore"}
+        local rs=realm and tags[N.Directory.rulesetTag(realm)]
+        if not now or not wall or not rs or (faction~="Alliance" and faction~="Horde") then return nil end
+        local api=v(_G.C_AddOns)
+        local version=S.tab(api) and S.str(v(S.call(v(api.GetAddOnMetadata),"LayerEnemies","Version")),40) or nil
+        return {now=now,wall=wall,rs=rs,faction=faction,version=version}
+    end)
+end
+function A.warboardTime()
+    return presenceRead(function(v)
+        local at=S.num(v(S.call(_G.GetServerTime)))
+        return at and at>0 and at<=4000000000 and at%1==0 and at or nil
+    end)
+end
+function A.warboardSelf()
+    return presenceRead(function(v)
+        local fn=v(_G.UnitNameUnmodified) or v(_G.UnitName)
+        local first,last=S.call(fn,"player")
+        first,last=S.str(v(first),36),v(last)
+        if not first or (last~=nil and last~="" and not S.str(last,36)) then return nil end
+        local name=first..(last and last~="" and (" "..last) or "")
+        local guid=S.str(v(S.call(UnitGUID,"player")),80)
+        if not guid or not guid:match("^Player%-%d+%-%x+$") or not N.Find.name(name) then return nil end
+        return {name=name,guid=guid}
+    end)
+end
+-- HBD wire worldX/worldY correspond to Blizzard vector Y/X, respectively.
+-- Client-only conversion; no copied map transforms or donor library dependency.
+-- Forever MapDocumentation.lua at bebcb6bf: (continentID, vector2) -> uiMapID, vector2.
+function A.worldMapPos(worldX,worldY,instance)
+    return presenceRead(function(v)
+        worldX,worldY,instance=S.num(v(worldX)),S.num(v(worldY)),S.num(v(instance))
+        if not worldX or not worldY or not instance or math.abs(worldX)>100000000 or math.abs(worldY)>100000000
+            or instance<0 or instance>100000 or instance%1~=0 then return nil end
+        local api,vector=v(_G.C_Map),v(_G.CreateVector2D)
+        if not S.tab(api) or type(vector)~="function" or type(v(api.GetMapPosFromWorldPos))~="function" then return nil end
+        local point=v(vector(worldY,worldX)); if point==nil then return nil end
+        local map,pos=api.GetMapPosFromWorldPos(instance,point)
+        map,pos=S.num(v(map)),v(pos)
+        if not map or map<1 or map>999999 or map%1~=0 or pos==nil then return nil end
+        local zone=A.zone(map)
+        if not zone then return nil end
+        if zone~=map then
+            map,pos=api.GetMapPosFromWorldPos(instance,point,zone)
+            map,pos=S.num(v(map)),v(pos)
+            if map~=zone or pos==nil then return nil end
+        end
+        local get=v(pos.GetXY); if type(get)~="function" then return nil end
+        local x,y=get(pos); x,y=S.num(v(x)),S.num(v(y))
+        if not x or not y or x<0 or x>1 or y<0 or y>1 then return nil end
+        return {map=map,x=x,y=y}
+    end)
+end
 -- Unreadable (secret, missing, error) counts as grouped: the hop then refuses rather than assume.
 function A.grouped() return S.call(IsInGroup)~=false end
 -- true/false when readable, nil otherwise (callers fail closed).

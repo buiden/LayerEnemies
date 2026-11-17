@@ -19,14 +19,14 @@ RULES = [
     ('stop on source departure', 'OverlordFeed.lua', 'then Q.stop(st,peer,c,key);st.sources[key]=nil end', 'then st.sessions[key]=nil;st.sources[key]=nil end'),
     ('friend membership at receive', 'OverlordFeed.lua', 'or not friend(r,c)', 'or false'),
     ('stop expiry', 'OverlordFeed.lua', 'if c.now<row.at or row.safeAt and c.now-row.safeAt>60 then st.stops[key]=nil end', 'if false then st.stops[key]=nil end'),
-    ('stop on logout', 'Main.lua', 'guarded(M.overlordCancel);N.BNet.pump(now());', ''),
+    ('stop on logout', 'Main.lua', 'guarded(M.overlordCancel);\n        if N.WarBoardTrack then N.WarBoardTrack.stop(true) end\n        N.BNet.pump(now());', 'if N.WarBoardTrack then N.WarBoardTrack.stop(true) end\n        '),
     ('logout cannot reopen', 'Main.lua', 'not M.overlordClosing and M.sharing()', 'M.sharing()'),
     ('BN stop crosses off switches', 'BNet.lua', 'and N.Main.overlordStopping(text,"BNET",id) then return true end', 'and false then return true end'),
     ('stop requires an outstanding request', 'Main.lua', 'if not st then return false end\n    local c=M.overlordContext()', 'if not st then return false end\n    if text:find("|HR|8:X:",1,true) then return true end\n    local c=M.overlordContext()'),
     ('stop donor loaded silence', 'Main.lua', 'N.Net.SHIP.overlord==true and not A.loaded("Overlord")', 'N.Net.SHIP.overlord==true'),
     ('capability suffix absent', 'OverlordFeed.lua', 'Q.capability=""', 'Q.capability="~ld~lr~lp6"'),
     ('source switch cancellation', 'Net.lua', 'if on~=true and key=="overlord" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end', 'if false then N.Main.overlordCancel() end'),
-    ('share cancellation', 'Main.lua', 'N.BNet.cancel(nil,true); M.overlordCancel()', 'N.BNet.cancel(nil,true)'),
+    ('share cancellation', 'Main.lua', 'N.BNet.cancel(nil,nil,true); M.overlordCancel()', 'N.BNet.cancel(nil,nil,true)'),
     ('Guild only cancellation', 'Net.lua', 'if level~="public" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end', 'if false then N.Main.overlordCancel() end'),
 ]
 MUTANTS = [(rule, file, old, new, 'Overlord reach:') for rule, file, old, new in RULES]

@@ -1,0 +1,911 @@
+[
+  {
+    "rule": "exact request type",
+    "selector": "WarBoard track: exact FBAK",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:79: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "own addon identity",
+    "selector": "WarBoard track: exact FBAK",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:57: not equal: expected WarBoard/1.6.3, got LayerEnemies/1.1.0"
+    ]
+  },
+  {
+    "rule": "own hunter GUID",
+    "selector": "WarBoard track: exact FBAK",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:57: not equal: expected Player-123-00000002, got Player-123-00000001"
+    ]
+  },
+  {
+    "rule": "faction equals hunter faction",
+    "selector": "WarBoard track: exact FBAK",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/src_warboard_track.lua:57: not equal: expected Horde, got Alliance"
+    ]
+  },
+  {
+    "rule": "FBUN omits targetName",
+    "selector": "WarBoard track: exact FBAK",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: exact FBAK and FBUN audit fields and codec round trip: test/harness.lua:7: no extra wire field targetName: expected true, got false"
+    ]
+  },
+  {
+    "rule": "GetServerTime not local wall clock",
+    "selector": "WarBoard track: server time integer",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: server time integer mandatory and not local wall clock: test/src_warboard_track.lua:237: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "integer server time",
+    "selector": "WarBoard track: server time integer",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: server time integer mandatory and not local wall clock: test/src_warboard_track.lua:237: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "live clock rechecked at dispatch",
+    "selector": "WarBoard track: server clock unreadable",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: server clock unreadable at dispatch does not send or forget cleanup: test/src_warboard_track.lua:336: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "only own Find not Watch-only",
+    "selector": "WarBoard track: only own Find",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: only own Find names never shared Watch or untracked: test/src_warboard_track.lua:196: not equal: expected 0, got 4"
+    ]
+  },
+  {
+    "rule": "client GUID required",
+    "selector": "WarBoard track: GUID only from live",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: GUID only from live client never a received frame: test/src_warboard_track.lua:217: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "no GUID adopted from inbound frame",
+    "selector": "WarBoard track: same GUID debt",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: same GUID debt cannot be redirected by a received forged position: test/src_warboard_track.lua:379: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "confirmed A required",
+    "selector": "WarBoard track: confirmation rules",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:211: H: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "H does not resurrect expired confirmation",
+    "selector": "WarBoard track: H cannot revive",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: H cannot revive an expired A confirmation: test/src_warboard_track.lua:418: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "peer expiry boundary",
+    "selector": "WarBoard track: confirmation rules",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:210: expiry admission boundary: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "peer ruleset match",
+    "selector": "WarBoard track: confirmation rules",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:211: rules: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "ambiguous account is not a target",
+    "selector": "WarBoard track: confirmation rules",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed: test/src_warboard_track.lua:211: ambiguous: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "twenty active targets",
+    "selector": "WarBoard track: twenty active",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: twenty active targets even when corrupted Find holds twenty one: test/src_warboard_track.lua:431: not equal: expected 20, got 21"
+    ]
+  },
+  {
+    "rule": "current account GUID at dispatch",
+    "selector": "WarBoard track: dispatch rechecks",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: dispatch rechecks live GUID own identity scope and rules: test/src_warboard_track.lua:232: guid: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "current hunter GUID at dispatch",
+    "selector": "WarBoard track: dispatch rechecks",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: dispatch rechecks live GUID own identity scope and rules: test/src_warboard_track.lua:232: own: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "first attempt gap six seconds",
+    "selector": "WarBoard track: six forty-five",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:405: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "three first asks then cleanup",
+    "selector": "WarBoard track: first asks three",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle: test/src_warboard_track.lua:246: not equal: expected 3, got 4"
+    ]
+  },
+  {
+    "rule": "first ask timeout always withdraws",
+    "selector": "WarBoard track: first asks three",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle: test/src_warboard_track.lua:246: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "six admission budget",
+    "selector": "WarBoard track: six FBAK",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: six FBAK per rolling minute admission and dispatch max twenty targets: test/src_warboard_track.lua:272: not equal: expected 6, got 10"
+    ]
+  },
+  {
+    "rule": "six actual budget after delayed cohort",
+    "selector": "WarBoard track: all actual request",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: all actual request attempts respect six after shared queue delay: test/harness.lua:7: actual attempt sliding window: expected true, got false"
+    ]
+  },
+  {
+    "rule": "fresh positions not renewed",
+    "selector": "WarBoard track: six forty-five",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:408: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "renewal spacing forty five",
+    "selector": "WarBoard track: renewal exact",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: renewal exact forty-five second per target boundary: test/src_warboard_track.lua:423: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "newest position only",
+    "selector": "WarBoard track: newest position",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: newest position controls renewal and old out of order data cannot refresh: test/src_warboard_track.lua:260: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "renewal older than 300 withdraws",
+    "selector": "WarBoard track: past 300",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: past 300 seconds sends FBUN idle until 300 pause or new handshake: test/src_warboard_track.lua:266: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "300 second restart pause",
+    "selector": "WarBoard track: first asks three",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle: test/src_warboard_track.lua:248: not equal: expected 3, got 6"
+    ]
+  },
+  {
+    "rule": "new handshake permits stale restart",
+    "selector": "WarBoard track: past 300",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: past 300 seconds sends FBUN idle until 300 pause or new handshake: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "only post-stop handshake bypasses idle",
+    "selector": "WarBoard track: handshake before",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause: test/src_warboard_track.lua:439: not equal: expected 1, got 4"
+    ]
+  },
+  {
+    "rule": "three FBUN attempts per window",
+    "selector": "WarBoard track: FBUN refused",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: FBUN refused and throwing client retries three times sixty seconds apart: test/src_warboard_track.lua:144: not equal: expected 3, got 4"
+    ]
+  },
+  {
+    "rule": "FBUN retry admission sixty seconds",
+    "selector": "WarBoard track: six forty-five",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:413: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "debt before client call",
+    "selector": "WarBoard track: active request and",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: active request and received evidence save only target GUID no other metadata: test/src_warboard_track.lua:57: not equal: expected nil, got Player-123-00000002"
+    ]
+  },
+  {
+    "rule": "accepted FBUN only settles",
+    "selector": "WarBoard track: accepted FBUN",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: accepted FBUN remains unverified until roster proof not queue admission: test/src_warboard_track.lua:157: not equal: expected 2, got 1"
+    ]
+  },
+  {
+    "rule": "owed list retained at logout",
+    "selector": "WarBoard track: logout in combat",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: logout in combat retains owed list and login while tracked cleans before asking: test/src_warboard_track.lua:171: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "saved GUID sanitation",
+    "selector": "WarBoard track: only new saved",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: only new saved field is bounded dense target GUID list oldest out: test/src_warboard_track.lua:57: not equal: expected Enemy Player, got Player-123-ABC"
+    ]
+  },
+  {
+    "rule": "saved forty cap oldest out",
+    "selector": "WarBoard track: only new saved",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: only new saved field is bounded dense target GUID list oldest out: test/src_warboard_track.lua:179: not equal: expected 40, got 41"
+    ]
+  },
+  {
+    "rule": "bounded session debt records",
+    "selector": "WarBoard track: restored forty",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: restored forty debt bound oldest out on the next attempted request: test/src_warboard_track.lua:389: not equal: expected 40, got 41"
+    ]
+  },
+  {
+    "rule": "load resumes owed cleanup",
+    "selector": "WarBoard track: reload login",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: reload login settles GUID only with answered target H even source off: test/src_warboard_track.lua:167: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "load retains owed GUID list",
+    "selector": "WarBoard track: reload login",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: reload login settles GUID only with answered target H even source off: test/src_warboard_track.lua:166: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "switch defaults on",
+    "selector": "WarBoard track: switch defaults",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: switch defaults on is session only and status states limits: test/src_warboard_track.lua:79: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "status prints track state",
+    "selector": "WarBoard track: switch defaults",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: switch defaults on is session only and status states limits: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "remove synchronously owes withdrawal",
+    "selector": "WarBoard track: remove quick",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: remove quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
+    ]
+  },
+  {
+    "rule": "clear synchronously owes withdrawal",
+    "selector": "WarBoard track: clear quick",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: clear quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
+    ]
+  },
+  {
+    "rule": "track off synchronously owes withdrawal",
+    "selector": "WarBoard track: track quick",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: track quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
+    ]
+  },
+  {
+    "rule": "share off synchronously owes withdrawal",
+    "selector": "WarBoard track: share quick",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: share quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
+    ]
+  },
+  {
+    "rule": "Guild only synchronously owes withdrawal",
+    "selector": "WarBoard track: guild quick",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: guild quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
+    ]
+  },
+  {
+    "rule": "source off synchronously owes withdrawal",
+    "selector": "WarBoard track: source quick",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: source quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
+    ]
+  },
+  {
+    "rule": "logout owes withdrawal",
+    "selector": "WarBoard track: logout sends",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: logout sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: logout: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "share allows only owed FBUN past stop gate",
+    "selector": "WarBoard track: share sends",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: share sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: share: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "guild allows only owed FBUN past stop gate",
+    "selector": "WarBoard track: guild sends",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: guild sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: guild: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "source allows only owed FBUN past stop gate",
+    "selector": "WarBoard track: source sends",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: source sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: source: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "standdown still allows owed FBUN",
+    "selector": "WarBoard track: standdown sends",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: standdown sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: standdown: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "disabled source still ticks cleanup",
+    "selector": "WarBoard track: source sends",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: source sends exactly one owed FBUN through stop gates: test/src_warboard_track.lua:111: source: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "disabled source can confirm owed account",
+    "selector": "WarBoard track: reload login",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: reload login settles GUID only with answered target H even source off: test/src_warboard_track.lua:167: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "combat cleanup queue survives",
+    "selector": "WarBoard track: combat holds",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: combat holds cleanup until safe including an already queued FBUN: test/src_warboard_track.lua:127: already queued FBUN is held, not dropped: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "instance cleanup queue survives",
+    "selector": "WarBoard track: instance holds",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: instance holds cleanup until safe including an already queued FBUN: test/src_warboard_track.lua:127: already queued FBUN is held, not dropped: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "generic owed is not a bypass",
+    "selector": "WarBoard track: no generic owed",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: no generic owed bypass for H FBAK foreign net or invented FBUN: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "owed A precedes FBUN",
+    "selector": "WarBoard track: owed A before",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: owed A before FBUN before FBAK within ten frame WarBoard share: test/src_warboard_track.lua:285: not equal: expected WBF1|A|, got WBF1|D|"
+    ]
+  },
+  {
+    "rule": "tagged cancel preserves other targets",
+    "selector": "WarBoard track: rollback stays",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: rollback stays silent and tagged cancellation preserves other targets and A: test/src_warboard_track.lua:300: not equal: expected WBF1|A|, got WBF1|D|"
+    ]
+  },
+  {
+    "rule": "client completion settles debt",
+    "selector": "WarBoard track: accepted FBUN",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: accepted FBUN remains unverified until roster proof not queue admission: test/src_warboard_track.lua:157: not equal: expected 2, got 1"
+    ]
+  },
+  {
+    "rule": "Find coordinate provenance unchanged",
+    "selector": "WarBoard track: positions remain",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: positions remain honest Find evidence and never new guild relay: test/src_warboard_track.lua:295: not equal: expected enemy, got observer"
+    ]
+  },
+  {
+    "rule": "no new guild forwarding",
+    "selector": "WarBoard track: positions remain",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard track: positions remain honest Find evidence and never new guild relay: test/src_warboard_track.lua:295: no forwarding attempt even if transport refuses: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M1 share debt handshake exception",
+    "selector": "WarBoard debt: M1 share relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 share relog settles from target H only: test/harness.lua:7: withdrawal delivered after relog: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M1 source debt handshake exception",
+    "selector": "WarBoard debt: M1 source relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 source relog settles from target H only: test/harness.lua:7: withdrawal delivered after relog: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M1 guild debt handshake exception",
+    "selector": "WarBoard debt: M1 guild relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 guild relog settles from target H only: test/harness.lua:7: withdrawal delivered after relog: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M1 only owed account may use handshake exception",
+    "selector": "WarBoard debt: M1 exception",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 exception cannot reach another account while debt remains: test/src_warboard_debt.lua:196: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M1 donor-owned H refreshes debt confirmation",
+    "selector": "WarBoard debt: M1 donor relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 donor relog settles from target H only: test/harness.lua:7: withdrawal delivered after relog: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M1 no duplicate H/A when donor loaded",
+    "selector": "WarBoard debt: M1 donor relog",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 donor relog settles from target H only: test/src_warboard_debt.lua:99: not equal: expected 0, got 3"
+    ]
+  },
+  {
+    "rule": "M1 final queued handshake checks stand-down",
+    "selector": "WarBoard debt: M1 queued handshakes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 queued handshakes stand down when real addon loads: test/src_warboard_debt.lua:228: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M1 answered H alone cannot promote received-A eligibility",
+    "selector": "WarBoard debt: M1 answered H without received A",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 answered H without received A does not grant normal request eligibility: test/src_warboard_debt.lua:222: answered H alone is not a received-A confirmation: expected 0, got 3"
+    ]
+  },
+  {
+    "rule": "M1 donor-owned unsafe control is validated on resumption",
+    "selector": "WarBoard debt: M1 donor observes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M1 donor observes owed H during unsafe wait without LE answer: test/src_warboard_debt.lua:212: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 new H invalidates cleanup proof",
+    "selector": "WarBoard debt: M2 latest safe H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:203: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 unsafe H retained for later answer",
+    "selector": "WarBoard debt: M2 share target reload",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 share target reload during combat reanswers latest H: test/src_warboard_debt.lua:124: no FBUN before answering latest H: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 FBUN requires latest handshake proof",
+    "selector": "WarBoard debt: M2 latest safe H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:203: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 failed A cannot confirm target handshake",
+    "selector": "WarBoard debt: M2 latest safe H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:203: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 accepted withdrawal remains unverified",
+    "selector": "WarBoard debt: M2 accepted send",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 accepted send retained until later roster excludes hunter: test/src_warboard_debt.lua:131: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 roster is inspected independently of disabled source and Find",
+    "selector": "WarBoard debt: M2 source off",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 source off and removed Find still observes cleanup roster: test/src_warboard_debt.lua:137: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 disabled source accepts owed account roster",
+    "selector": "WarBoard debt: M2 source off",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 source off and removed Find still observes cleanup roster: test/src_warboard_debt.lua:137: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 excluding roster settles debt",
+    "selector": "WarBoard debt: M2 accepted send",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 accepted send retained until later roster excludes hunter: test/src_warboard_debt.lua:132: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "M2 included hunter invalidates silence fallback",
+    "selector": "WarBoard debt: M2 listed roster",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 listed roster rehandshakes then resends lost withdrawal: test/src_warboard_debt.lua:144: not equal: expected 2, got 1"
+    ]
+  },
+  {
+    "rule": "M2 included hunter forces fresh handshake",
+    "selector": "WarBoard debt: M2 listed roster",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 listed roster rehandshakes then resends lost withdrawal: test/harness.lua:7: fresh handshake before resend: expected true, got false"
+    ]
+  },
+  {
+    "rule": "M2 silence fallback exactly fifteen minutes",
+    "selector": "WarBoard debt: M2 missing roster",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 missing roster silence clears only at fifteen minute boundary: test/src_warboard_debt.lua:150: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 roster target must match live account GUID",
+    "selector": "WarBoard debt: M2 stale relayed",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle: test/src_warboard_debt.lua:158: same name is not target account: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 roster must be target-authored not relayed",
+    "selector": "WarBoard debt: M2 stale relayed",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle: test/src_warboard_debt.lua:159: target carrier is not necessarily subject: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 roster must be newer than withdrawal",
+    "selector": "WarBoard debt: M2 stale relayed",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle: test/src_warboard_debt.lua:160: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "S1 retry window reopens after ten minutes",
+    "selector": "WarBoard debt: S1 failed sends",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S1 failed sends reopen after ten minutes three per window: test/src_warboard_debt.lua:167: not equal: expected 4, got 3"
+    ]
+  },
+  {
+    "rule": "M2 six attempts per login",
+    "selector": "WarBoard rulings: S3 live proof",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S3 live proof cannot exceed six attempts within the same login: test/src_warboard_rulings.lua:215: new donor-owned proof cannot reopen the spent login allowance: expected 6, got 7"
+    ]
+  },
+  {
+    "rule": "S3 attempts reopen across reload",
+    "selector": "WarBoard debt: M2 login six",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 login six attempt bound reopens with debt retained: test/src_warboard_debt.lua:175: reload reopens six attempts: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "M2 persisted count resets safely at login",
+    "selector": "WarBoard debt: M2 saved attempts",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: M2 saved attempts sanitize only retained target GUIDs: test/src_warboard_debt.lua:233: not equal: expected 0, got 99"
+    ]
+  },
+  {
+    "rule": "S3 debt remains per character",
+    "selector": "WarBoard debt: S3 per character",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S3 per character save waits for original hunter login: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "S2 crash truth",
+    "selector": "WarBoard debt: S2 N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee: test/harness.lua:7: client crash before: expected true, got false"
+    ]
+  },
+  {
+    "rule": "S2 character login",
+    "selector": "WarBoard debt: S2 N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee: test/harness.lua:7: that character's next login: expected true, got false"
+    ]
+  },
+  {
+    "rule": "N1 unsafe wait disclosure",
+    "selector": "WarBoard debt: S2 N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee: test/harness.lua:7: target may keep broadcasting: expected true, got false"
+    ]
+  },
+  {
+    "rule": "S2 narrow exception",
+    "selector": "WarBoard debt: S2 N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "R2 M1 handshake exception requires pending withdrawal",
+    "selector": "WarBoard rulings: M1 share",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: M1 share exhausted debt has no handshake exception: test/src_warboard_rulings.lua:91: no answers after six attempts even with 120 target H: expected 0, got 120",
+      "FAIL WarBoard rulings: M1 share accepted debt has no handshake exception: test/src_warboard_rulings.lua:99: sent-unverified is not a pending withdrawal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 S1 roster preserves a fresh unused confirmation",
+    "selector": "WarBoard rulings: S1 delayed",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S1 delayed roster cannot wipe newer unused confirmation: test/src_warboard_rulings.lua:134: roster sent before confirmation must not wipe it: expected 5, got nil"
+    ]
+  },
+  {
+    "rule": "R2 S2 donor A alone cannot confirm us at target",
+    "selector": "WarBoard rulings: S2 donor A only safe",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S2 donor A only safe cannot confirm or clear debt: test/src_warboard_rulings.lua:153: A alone cannot authorize a withdrawal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 S2 unsafe donor A is not a new confirmation",
+    "selector": "WarBoard rulings: S2 donor A only combat",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S2 donor A only combat cannot confirm or clear debt: test/src_warboard_rulings.lua:153: A alone cannot authorize a withdrawal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 S2 unsafe H keeps its actual age",
+    "selector": "WarBoard rulings: S2 donor unsafe H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S2 donor unsafe H must still be under twenty minutes old: test/src_warboard_rulings.lua:164: unsafe H receipt must not become fresh merely on safe resumption: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 S3 saved exhausted debt reopens at login",
+    "selector": "WarBoard rulings: S3 share",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S3 share six attempts reopen once per login and M1 then closes: test/src_warboard_rulings.lua:190: each login permits six actual attempts: expected 6, got 0"
+    ]
+  },
+  {
+    "rule": "R2 N2 unsafe roster is retained before silence settlement",
+    "selector": "WarBoard rulings: N2 combat roster",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 combat roster listing us survives long source-off wait: test/src_warboard_rulings.lua:230: a listed roster heard while unsafe vetoes silence settlement: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "R2 N2 queued roster age measured at receipt",
+    "selector": "WarBoard rulings: N2 combat excluding",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 combat excluding multipart roster is validated at receipt time: test/src_warboard_rulings.lua:247: held valid roster settles before the silence deadline despite >121s wait: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 N2 deferred frame cap",
+    "selector": "WarBoard rulings: N2 deferred inbox frame",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 deferred inbox frame bound vetoes lost input silence: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "R2 N2 deferred byte cap",
+    "selector": "WarBoard rulings: N2 deferred inbox byte",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 deferred inbox byte bound vetoes lost input silence: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "R2 N2 deferred inbox respects rollback guard",
+    "selector": "WarBoard rulings: N2 deferred inbox remains",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 deferred inbox remains held during clock rollback: test/src_warboard_rulings.lua:273: rollback must not drain a queued roster before the ingress clock guard: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "R2 N2 overflow invalidates silence fallback",
+    "selector": "WarBoard rulings: N2 deferred inbox",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 deferred inbox frame bound vetoes lost input silence: test/harness.lua:8: overflow must not retain an unprovable silence fallback: expected false, got true",
+      "FAIL WarBoard rulings: N2 deferred inbox byte bound vetoes lost input silence: test/harness.lua:8: overflow must not retain an unprovable silence fallback: expected false, got true"
+    ]
+  },
+  {
+    "rule": "R2 N1 genuine recent confirmation permits new requests",
+    "selector": "WarBoard rulings: N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N1 README states revised confirmation and retry rules: test/harness.lua:7: A genuine confirmation under **20 minutes** old can authorize a new FBAK: expected true, got false"
+    ]
+  },
+  {
+    "rule": "Delta cleanup-only provenance survives a live final fragment",
+    "selector": "WarBoard rulings: delta cleanup-only",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: delta cleanup-only partial starts in combat and finishes safe: test/harness.lua:8: queued partial never becomes delayed Find evidence: expected false, got true",
+      "FAIL WarBoard rulings: delta cleanup-only partial starts in instance and finishes safe: test/harness.lua:8: queued partial never becomes delayed Find evidence: expected false, got true"
+    ]
+  },
+  {
+    "rule": "Delta fragments cannot cross character identity",
+    "selector": "WarBoard rulings: delta identity",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: delta identity change characterName discards queued partial before completion: test/src_warboard_rulings.lua:328: old character chunks must never complete under new identity: expected 0, got 1",
+      "FAIL WarBoard rulings: delta identity change realmName discards queued partial before completion: test/src_warboard_rulings.lua:328: old character chunks must never complete under new identity: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "Delta validated stale roster is not lost cleanup input",
+    "selector": "WarBoard rulings: delta stale",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: delta stale direct roster preserves accepted withdrawal: test/src_warboard_rulings.lua:348: old roster cannot erase newer accepted FBUN: expected 16, got nil",
+      "FAIL WarBoard rulings: delta stale multipart roster preserves accepted withdrawal: test/src_warboard_rulings.lua:348: old roster cannot erase newer accepted FBUN: expected 16, got nil"
+    ]
+  },
+  {
+    "rule": "Delta incomplete cleanup expires without silently settling",
+    "selector": "WarBoard rulings: delta incomplete",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: delta incomplete cleanup keeps acceptance until original assembly expiry: test/harness.lua:8: expired incomplete roster retains uncertainty: expected false, got true"
+    ]
+  }
+]

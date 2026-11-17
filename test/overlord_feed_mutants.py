@@ -64,11 +64,11 @@ RULES = [
 MUTANTS=[(rule,'OverlordFeed.lua',old,new,'Overlord feed:') for rule,old,new in RULES]
 MUTANTS += [
  ('no false equal response','OverlordPeer.lua','local body=table.concat({v,"R",e,nonce,seq},":")','local body=table.concat({v,"S",e,nonce,seq,"LK",0,0},":")','Overlord feed:'),
- ('share cancels lease','Main.lua','N.BNet.cancel(nil,true); M.overlordCancel()','N.BNet.cancel(nil,true)','Overlord feed:'),
+ ('share cancels lease','Main.lua','N.BNet.cancel(nil,nil,true); M.overlordCancel()','N.BNet.cancel(nil,nil,true)','Overlord feed:'),
  ('guild cancels lease','Net.lua','if level~="public" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end','if false then N.Main.overlordCancel() end','Overlord feed:'),
  ('switch cancels lease','Net.lua','if on~=true and key=="overlord" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end','if false then N.Main.overlordCancel() end','Overlord feed:'),
  ('pool-scoped epoch','OverlordPeer.lua','if old and old.pool~=(p.pool or c.pool) then old=nil end','if false then old=nil end','Overlord feed:'),
- ('success-only receipt','BNet.lua','if valid and allowed and deliver(q) then','if valid and allowed and (deliver(q) or true) then','Overlord feed:'),
+ ('success-only receipt','BNet.lua','local ok=valid and allowed and deliver(q) or false','local ok=valid and allowed and (deliver(q) or true) or false','Overlord feed:'),
 ]
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--write',action='store_true')

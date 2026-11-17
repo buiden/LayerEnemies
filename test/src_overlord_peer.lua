@@ -234,7 +234,7 @@ test("BNet shared queue used with eight frame cap and dispatch pool guard",funct
     for _,x in ipairs(calls) do yes(x.text:find("|HA|8:R:",1,true));no(x.text:find("|Birch Scout|",1,true)) end
     local P=N.OverlordPeer;local st=N.Main.overlordPeer
     local job={key="test",gap=120,pool="global",me="Alice Vale"}
-    yes(N.BNet.send("overlord",1,"OverlordF","queued","own",function() return P.claim(st,job,N.Main.overlordContext()) end))
+    yes(N.BNet.send("overlord",1,"OverlordF","queued","own",nil,nil,nil,function() return P.claim(st,job,N.Main.overlordContext()) end))
     C_GameRules.IsGameRuleActive=function() return false end
     H.advance(1);eq(#calls,6,"pool change cancels at actual dispatch")
 end)

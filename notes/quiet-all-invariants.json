@@ -1,0 +1,8 @@
+{
+  "offline_bookkeeping_unchanged": true,
+  "delivery_and_budgets_unchanged": true,
+  "system_evidence_consumption_unchanged": true,
+  "whisper_send_sites_unchanged": true,
+  "whisper_send_sites": 10,
+  "implementation_head": "ebf17e1fc074010d5f64da2c5e5454e6edf67336"
+}
