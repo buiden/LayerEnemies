@@ -20,6 +20,7 @@ MUTANTS = [
     ('host-flag', [('FLH.lua', 'fields={cmd,map,own,"0",version,realm}', 'fields={cmd,map,own,"1",version,realm}')]),
     ('presence-rate', [('Wire.lua', 'now-flhHi[lane]<120', 'now-flhHi[lane]<119')]),
     ('presence-change-driven', [('FLHMember.lua', 'and announced[kind]~=text', '')]),
+    ('no-presence-client-retry', [('FLHMember.lua', 'if sent or attempted then announced[kind]=text end', 'if sent then announced[kind]=text end')]),
     ('group-presence-lane', [('Wire.lua', 'kind=="GUILD" and "GUILD" or "GROUP"', 'kind')]),
     ('identity-is-layerenemies', [('FLH.lua', 'fields={cmd,map,own,"0",version,realm}', 'fields={cmd,map,own,"0","0.1.3",realm}')]),
     ('honest-build-marker', [('FLH.lua', 'fields[#fields+1]="BUILD="..version', 'fields[#fields+1]="BUILD=ForeverLayerHop 0.1.9"')]),

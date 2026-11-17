@@ -44,10 +44,10 @@ end
 dispatch=function(text,kind,target,prio)
     if not text or flight then return false end
     flight={text=text,kind=kind,target=target,prio=prio}
-    local ok,sent,why=pcall(N.Wire.send,"FLHNET2",text,kind,target,{net="flh",prio=prio})
+    local ok,sent,why,attempted=pcall(N.Wire.send,"FLHNET2",text,kind,target,{net="flh",prio=prio})
     flight=nil
     count(ok and sent and "sent" or "refused")
-    return ok and sent==true,why
+    return ok and sent==true,why,ok and attempted==true
 end
 local guest,notes=nil,{}
 F.WAIT=90
@@ -205,7 +205,8 @@ function F.tick(now)
     if not text then return end
     for _,kind in ipairs({"GUILD","PARTY","RAID"}) do
         if F.allowed(kind,"HI") and announced[kind]~=text then
-            if dispatch(text,kind,nil,"own") then announced[kind]=text end
+            local sent,_,attempted=dispatch(text,kind,nil,"own")
+            if sent or attempted then announced[kind]=text end
         end
     end
     if not F.allowed("WHISPER","WP") or not F.probeAllowed() then return end
