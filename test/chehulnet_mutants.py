@@ -1,9 +1,11 @@
 """G1 rule mutants, isolated copies only; no donor source is executed."""
+import argparse
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,38 +54,59 @@ MUTANTS = [
     ('no Reported projection', CORE, 'N.Sources.count("chehulnet","accepted")', 'N.Sources.count("chehulnet","accepted"); N.Main.reportedRows=function() return {{name=sender}} end'),
     ('no saved names', CORE, 'N.Sources.count("chehulnet","accepted")', 'N.Sources.count("chehulnet","accepted"); LayerEnemiesDB.chehul=sender'),
     ('other-layer hints only', CORE, 'if ally.rel=="other" then', 'if true then'),
-    ('host annotation', CORE, 'row.host and "layer differs, confirmed"', 'false and "layer differs, confirmed"'),
-    ('preserve host capabilities', CORE, 'row.chehulText="ChehulNet: "', 'row.layer=tostring(ally.zone); row.chehulText="ChehulNet: "'),
+    ('HELLO wording is a claim', CORE, 'other layer (ChehulNet claim)', 'layer differs, confirmed'),
+    ('preserve host capabilities', CORE, 'row.chehulText=', 'row.layer=tostring(ally.zone); row.chehulText='),
     ('no hint Ask', 'UI.lua', 'if e.chehulHint then askState(r,nil)', 'if e.chehulHint then askState(r,e.name,"Ask for invite")'),
     ('measure annotation before paging', 'UI.lua', 'if e.chehulText and not e.chehulHint then text=text.."\\n"..e.chehulText end', '-- annotation measured too late'),
     ('measure real text height', 'UI.lua', 'U.measure:SetText(text)\n        local layout=', 'U.measure:SetText(e.chehulText and "short" or text)\n        local layout='),
     ('layer command distinct count', CORE, 'S.count(layers).." distinct layers', '#rows.." distinct layers'),
     ('same names only', CORE, 'if row.rel=="same" then', 'if row.rel then'),
+    ('eight same-layer names maximum', CORE, 'if same<=8 then', 'if same<=9 then'),
+    ('exact overflow count', CORE, '(same-8)', '(same-7)'),
+    ('hints excluded from Friendly count', 'UI.lua', 'friendly="Friendly ("..#friends..")"', 'friendly="Friendly ("..(#friends+#hints)..")"'),
+    ('hints follow all hosts', 'UI.lua', 'for _,row in ipairs(hints) do friendlyRows[#friendlyRows+1]=row end', 'for _,row in ipairs(hints) do table.insert(friendlyRows,1,row) end'),
+    ('separate hints subsection title', 'UI.lua', 'Guildmates on other layers (hints)', 'guild on other layers'),
+    ('subsection heading measured', 'UI.lua', 'fitText(U.chehulTitle)+8', '(U.chehulTitle:SetHeight(12) or 12)+8'),
+    ('heading reserves space before hints', 'UI.lua', 'y=y+chehulHeadingHeight', 'y=y'),
+    ('explicit evidence writes only', 'test/chehulnet_mutants.py', '\n    if args.write:\n', '\n    if True:\n'),
 ]
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--write', action='store_true', help='replace notes/chehulnet-mutants.json with this run')
+    args = parser.parse_args()
     results = []
     with tempfile.TemporaryDirectory(prefix='le-chehulnet-mutants-') as tmp:
         root = Path(tmp)
         for folder in ('LayerEnemies', 'test'):
             shutil.copytree(ROOT / folder, root / folder)
         for name, filename, old, new in MUTANTS:
-            path = root / 'LayerEnemies' / filename
+            runner_test = filename == 'test/chehulnet_mutants.py'
+            path = root / filename if runner_test else root / 'LayerEnemies' / filename
             original = path.read_text()
             assert original.count(old) == 1, (name, 'nonunique mutation')
             path.write_text(original.replace(old, new))
             try:
-                subprocess.run([str(Path(LUA).with_name('luac')), '-p', str(path)], check=True, capture_output=True)
-                run = subprocess.run([LUA, 'test/harness.lua', '--only', 'ChehulNet:'], cwd=root,
-                                     capture_output=True, text=True, errors='replace', timeout=90)
-                failures = [line for line in run.stdout.splitlines() if line.startswith('FAIL ')]
-                killed = run.returncode != 0 and bool(failures) and 'RESULT:' in run.stdout
+                if runner_test:
+                    compile(path.read_text(), str(path), 'exec')
+                    run = subprocess.run([sys.executable, '-B', 'test/chehulnet_mutants_test.py'], cwd=root,
+                                         capture_output=True, text=True, errors='replace', timeout=90)
+                    failures = [line for line in run.stderr.splitlines() if line.startswith('FAIL: ')]
+                    completed = 'Ran 3 tests' in run.stderr
+                else:
+                    subprocess.run([str(Path(LUA).with_name('luac')), '-p', str(path)], check=True, capture_output=True)
+                    run = subprocess.run([LUA, 'test/harness.lua', '--only', 'ChehulNet:'], cwd=root,
+                                         capture_output=True, text=True, errors='replace', timeout=90)
+                    failures = [line for line in run.stdout.splitlines() if line.startswith('FAIL ')]
+                    completed = 'RESULT:' in run.stdout
+                killed = run.returncode != 0 and bool(failures) and completed
                 results.append({'rule': name, 'killed': killed, 'failures': failures})
                 print(('KILLED ' if killed else 'SURVIVED ') + name, flush=True)
             finally:
                 path.write_text(original)
-    (ROOT / 'notes/chehulnet-mutants.json').write_text(json.dumps(results, indent=2) + '\n')
+    if args.write:
+        (ROOT / 'notes/chehulnet-mutants.json').write_text(json.dumps(results, indent=2) + '\n')
     killed = sum(r['killed'] for r in results)
     print(f'RESULT: {killed}/{len(results)} ChehulNet mutants killed')
     if killed != len(results):

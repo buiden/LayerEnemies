@@ -68,7 +68,7 @@ function Ch.note(st,sender,rec,dist,wall)
     local ok,result=pcall(note,st,sender,rec,dist,wall)
     return ok and result==true
 end
--- Pure projection. myZone is a confirmed GUID-field-5 reading, not a server key.
+-- Pure projection. myZone is our own GUID-field-5 reading, not a server key.
 -- Optional ambiguity flag lets the live adapter explicitly withhold comparison.
 function Ch.view(st,myMap,myZone,wall,ambiguous)
     wall=S.num(wall)
@@ -122,8 +122,9 @@ function Ch.rows()
 end
 -- Display-only projection: the hop/ask collectors never see a hint. Clone rows
 -- so a ChehulNet annotation cannot change the independent host capabilities.
+-- Return hosts and hints separately; only hosts belong in the Friendly count.
 function Ch.friendly(hosts)
-    local out,index={},{}
+    local out,index,hints={},{},{}
     for _,host in ipairs(hosts) do
         local row={}; for key,value in pairs(host) do row[key]=value end
         out[#out+1]=row; index[row.short]=row
@@ -133,14 +134,14 @@ function Ch.friendly(hosts)
             local row=index[ally.short]
             local age="received "..math.floor(ally.age).." s ago; time unknown"
             if row then
-                row.chehulText="ChehulNet: "..(row.host and "layer differs, confirmed" or "another layer of your zone").." ("..age..")"
+                row.chehulText="ChehulNet: other layer (ChehulNet claim) ("..age..")"
             else
-                out[#out+1]={name=ally.name,short=ally.short,age=ally.age,sources={"ChehulNet"},chehulHint=true,
-                    chehulText="guild on other layers (guild/group)\nanother layer of your zone · ChehulNet ("..age..")\nHint only; whisper them yourself."}
+                hints[#hints+1]={name=ally.name,short=ally.short,age=ally.age,sources={"ChehulNet"},chehulHint=true,
+                    chehulText="another layer of your zone · ChehulNet claim (guild/group; "..age..")\nHint only; whisper them yourself."}
             end
         end
     end
-    return out
+    return out,hints
 end
 function Ch.layer()
     local rows,map,comparable=Ch.rows()
@@ -152,9 +153,12 @@ function Ch.layer()
     for _,row in ipairs(rows) do
         if row.rel=="same" then
             same=same+1
-            N.Main.say("ChehulNet: same layer as you: "..row.name.." (received "..math.floor(row.age).." s ago; time unknown).")
+            if same<=8 then
+                N.Main.say("ChehulNet: same layer as you: "..row.name.." (received "..math.floor(row.age).." s ago; time unknown).")
+            end
         end
     end
+    if same>8 then N.Main.say("ChehulNet: and "..(same-8).." more.") end
     if same==0 then N.Main.say("ChehulNet: nobody has reported your zone-layer yet.") end
 end
 N.Sources.register{name="chehulnet",prefixes={"ChehulNet"},counters=Ch.stats,onAddon=receive,
