@@ -1374,13 +1374,13 @@ PASS WarBoard debt: M2 listed roster rehandshakes then resends lost withdrawal
 PASS WarBoard debt: M2 missing roster silence clears only at fifteen minute boundary
 PASS WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle
 PASS WarBoard debt: S1 failed sends reopen after ten minutes three per window
-PASS WarBoard debt: M2 lifetime six attempt bound survives reload with debt retained
+PASS WarBoard debt: M2 login six attempt bound reopens with debt retained
 PASS WarBoard debt: M2 continuous listed rosters prevent quiet clearing at resend bound
 PASS WarBoard debt: S3 per character save waits for original hunter login
 PASS WarBoard debt: M1 exception cannot reach another account while debt remains
 PASS WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer
 PASS WarBoard debt: M1 donor observes owed H during unsafe wait without LE answer
-PASS WarBoard debt: M1 cleanup proof alone never authorizes a new FBAK
+PASS WarBoard debt: M1 answered H without received A does not grant normal request eligibility
 PASS WarBoard debt: M1 queued handshakes stand down when real addon loads
 PASS WarBoard debt: M2 saved attempts sanitize only retained target GUIDs
 PASS WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee
@@ -1442,6 +1442,79 @@ PASS WarBoard R2: untracked FBLC reopens immediately when the name is added
 PASS WarBoard R2: untracked FCBD reopens immediately when the name is added
 PASS WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch
 PASS WarBoard R2: overall window is rolling with exact expiry and rollback refusal
+PASS WarBoard rulings: M1 share exhausted debt has no handshake exception
+PASS WarBoard rulings: M1 share accepted debt has no handshake exception
+PASS WarBoard rulings: M1 source exhausted debt has no handshake exception
+PASS WarBoard rulings: M1 source accepted debt has no handshake exception
+PASS WarBoard rulings: M1 guild exhausted debt has no handshake exception
+PASS WarBoard rulings: M1 guild accepted debt has no handshake exception
+TIMING S1 donor 301 -> 302
+PASS WarBoard rulings: S1 donor handshake offset 301
+TIMING S1 donor 302 -> 303
+PASS WarBoard rulings: S1 donor handshake offset 302
+TIMING S1 donor 303 -> 304
+PASS WarBoard rulings: S1 donor handshake offset 303
+TIMING S1 donor 304 -> 305
+PASS WarBoard rulings: S1 donor handshake offset 304
+TIMING S1 donor 305 -> 306
+PASS WarBoard rulings: S1 donor handshake offset 305
+TIMING S1 donor 306 -> 307
+PASS WarBoard rulings: S1 donor handshake offset 306
+TIMING S1 donor 307 -> 308
+PASS WarBoard rulings: S1 donor handshake offset 307
+TIMING S1 donor 308 -> 309
+PASS WarBoard rulings: S1 donor handshake offset 308
+TIMING S1 donor 309 -> 310
+PASS WarBoard rulings: S1 donor handshake offset 309
+TIMING S1 donor 310 -> 311
+PASS WarBoard rulings: S1 donor handshake offset 310
+TIMING S1 donor 311 -> 312
+PASS WarBoard rulings: S1 donor handshake offset 311
+TIMING S1 donor 312 -> 313
+PASS WarBoard rulings: S1 donor handshake offset 312
+TIMING S1 donor 313 -> 314
+PASS WarBoard rulings: S1 donor handshake offset 313
+TIMING S1 donor 314 -> 315
+PASS WarBoard rulings: S1 donor handshake offset 314
+TIMING S1 donor 315 -> 316
+PASS WarBoard rulings: S1 donor handshake offset 315
+TIMING S1 own 301 -> 303
+PASS WarBoard rulings: S1 own handshake offset 301
+TIMING S1 own 303 -> 305
+PASS WarBoard rulings: S1 own handshake offset 303
+TIMING S1 own 305 -> 307
+PASS WarBoard rulings: S1 own handshake offset 305
+TIMING S1 own 307 -> 309
+PASS WarBoard rulings: S1 own handshake offset 307
+TIMING S1 own 309 -> 311
+PASS WarBoard rulings: S1 own handshake offset 309
+TIMING S1 own 311 -> 313
+PASS WarBoard rulings: S1 own handshake offset 311
+TIMING S1 own 313 -> 315
+PASS WarBoard rulings: S1 own handshake offset 313
+TIMING S1 own 315 -> 317
+PASS WarBoard rulings: S1 own handshake offset 315
+PASS WarBoard rulings: S1 delayed roster cannot wipe newer unused confirmation
+PASS WarBoard rulings: S2 donor A only safe cannot confirm or clear debt
+PASS WarBoard rulings: S2 donor A only combat cannot confirm or clear debt
+PASS WarBoard rulings: S2 donor A only instance cannot confirm or clear debt
+PASS WarBoard rulings: S2 donor unsafe H must still be under twenty minutes old
+PASS WarBoard rulings: S2 donor waits for target H then withdraws without rejected 3s send
+PASS WarBoard rulings: S2 donor still remembering an established exchange withdraws promptly
+PASS WarBoard rulings: S3 share six attempts reopen once per login and M1 then closes
+PASS WarBoard rulings: S3 source six attempts reopen once per login and M1 then closes
+PASS WarBoard rulings: S3 guild six attempts reopen once per login and M1 then closes
+PASS WarBoard rulings: S3 live proof cannot exceed six attempts within the same login
+PASS WarBoard rulings: N2 combat roster listing us survives long source-off wait
+PASS WarBoard rulings: N2 combat excluding multipart roster is validated at receipt time
+PASS WarBoard rulings: N2 instance roster listing us survives long source-off wait
+PASS WarBoard rulings: N2 instance excluding multipart roster is validated at receipt time
+PASS WarBoard rulings: N2 deferred inbox frame bound vetoes lost input silence
+PASS WarBoard rulings: N2 deferred inbox byte bound vetoes lost input silence
+PASS WarBoard rulings: N2 deferred inbox remains held during clock rollback
+PASS WarBoard rulings: N2 deferred roster cannot settle after current GUID changes
+PASS WarBoard rulings: N1 genuine recent confirmation permits FBAK when sharing resumes
+PASS WarBoard rulings: N1 README states revised confirmation and retry rules
 PASS WarBoard track: exact FBAK and FBUN audit fields and codec round trip
 PASS WarBoard track: remove sends exactly one owed FBUN through stop gates
 PASS WarBoard track: remove cancels an unsent ask without creating debt
@@ -1500,4 +1573,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 1487 tests passed, 0 failed, 216736 assertions
+RESULT: 1537 tests passed, 0 failed, 220351 assertions

@@ -540,7 +540,7 @@
     "selector": "WarBoard debt: M1 exception",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M1 exception cannot reach another account while debt remains: test/src_warboard_debt.lua:198: not equal: expected 0, got 1"
+      "FAIL WarBoard debt: M1 exception cannot reach another account while debt remains: test/src_warboard_debt.lua:196: not equal: expected 0, got 1"
     ]
   },
   {
@@ -564,15 +564,15 @@
     "selector": "WarBoard debt: M1 queued handshakes",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M1 queued handshakes stand down when real addon loads: test/src_warboard_debt.lua:229: not equal: expected 0, got 1"
+      "FAIL WarBoard debt: M1 queued handshakes stand down when real addon loads: test/src_warboard_debt.lua:228: not equal: expected 0, got 1"
     ]
   },
   {
-    "rule": "M1 cleanup proof cannot promote normal request eligibility",
-    "selector": "WarBoard debt: M1 cleanup proof",
+    "rule": "M1 answered H alone cannot promote received-A eligibility",
+    "selector": "WarBoard debt: M1 answered H without received A",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M1 cleanup proof alone never authorizes a new FBAK: test/src_warboard_debt.lua:224: cleanup-only proof must not turn into normal request consent: expected 0, got 3"
+      "FAIL WarBoard debt: M1 answered H without received A does not grant normal request eligibility: test/src_warboard_debt.lua:222: answered H alone is not a received-A confirmation: expected 0, got 3"
     ]
   },
   {
@@ -580,7 +580,7 @@
     "selector": "WarBoard debt: M1 donor observes",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M1 donor observes owed H during unsafe wait without LE answer: test/src_warboard_debt.lua:214: not equal: expected 1, got 0"
+      "FAIL WarBoard debt: M1 donor observes owed H during unsafe wait without LE answer: test/src_warboard_debt.lua:212: not equal: expected 1, got 0"
     ]
   },
   {
@@ -588,7 +588,7 @@
     "selector": "WarBoard debt: M2 latest safe H",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:205: not equal: expected 0, got 1"
+      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:203: not equal: expected 0, got 1"
     ]
   },
   {
@@ -604,7 +604,7 @@
     "selector": "WarBoard debt: M2 latest safe H",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:205: not equal: expected 0, got 1"
+      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:203: not equal: expected 0, got 1"
     ]
   },
   {
@@ -612,7 +612,7 @@
     "selector": "WarBoard debt: M2 latest safe H",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:205: not equal: expected 0, got 1"
+      "FAIL WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer: test/src_warboard_debt.lua:203: not equal: expected 0, got 1"
     ]
   },
   {
@@ -704,27 +704,27 @@
     ]
   },
   {
-    "rule": "M2 six attempts over debt lifetime",
-    "selector": "WarBoard debt: M2 lifetime six",
+    "rule": "M2 six attempts per login",
+    "selector": "WarBoard rulings: S3 live proof",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M2 lifetime six attempt bound survives reload with debt retained: test/src_warboard_debt.lua:175: reload cannot reset lifetime bound: expected 0, got 1"
+      "FAIL WarBoard rulings: S3 live proof cannot exceed six attempts within the same login: test/src_warboard_rulings.lua:215: new donor-owned proof cannot reopen the spent login allowance: expected 6, got 7"
     ]
   },
   {
-    "rule": "M2 lifetime bound persists across reload",
-    "selector": "WarBoard debt: M2 lifetime six",
+    "rule": "S3 attempts reopen across reload",
+    "selector": "WarBoard debt: M2 login six",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M2 lifetime six attempt bound survives reload with debt retained: test/src_warboard_debt.lua:175: reload cannot reset lifetime bound: expected 0, got 1"
+      "FAIL WarBoard debt: M2 login six attempt bound reopens with debt retained: test/src_warboard_debt.lua:175: reload reopens six attempts: expected 1, got 0"
     ]
   },
   {
-    "rule": "M2 persisted count clamps at six",
+    "rule": "M2 persisted count resets safely at login",
     "selector": "WarBoard debt: M2 saved attempts",
     "killed": true,
     "failures": [
-      "FAIL WarBoard debt: M2 saved attempts sanitize only retained target GUIDs: test/src_warboard_debt.lua:234: not equal: expected 6, got 99"
+      "FAIL WarBoard debt: M2 saved attempts sanitize only retained target GUIDs: test/src_warboard_debt.lua:233: not equal: expected 0, got 99"
     ]
   },
   {
@@ -765,6 +765,112 @@
     "killed": true,
     "failures": [
       "FAIL WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "R2 M1 handshake exception requires pending withdrawal",
+    "selector": "WarBoard rulings: M1 share",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: M1 share exhausted debt has no handshake exception: test/src_warboard_rulings.lua:91: no answers after six attempts even with 120 target H: expected 0, got 120",
+      "FAIL WarBoard rulings: M1 share accepted debt has no handshake exception: test/src_warboard_rulings.lua:99: sent-unverified is not a pending withdrawal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 S1 roster preserves a fresh unused confirmation",
+    "selector": "WarBoard rulings: S1 delayed",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S1 delayed roster cannot wipe newer unused confirmation: test/src_warboard_rulings.lua:134: roster sent before confirmation must not wipe it: expected 5, got nil"
+    ]
+  },
+  {
+    "rule": "R2 S2 donor A alone cannot confirm us at target",
+    "selector": "WarBoard rulings: S2 donor A only safe",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S2 donor A only safe cannot confirm or clear debt: test/src_warboard_rulings.lua:153: A alone cannot authorize a withdrawal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 S2 unsafe donor A is not a new confirmation",
+    "selector": "WarBoard rulings: S2 donor A only combat",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S2 donor A only combat cannot confirm or clear debt: test/src_warboard_rulings.lua:153: A alone cannot authorize a withdrawal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 S2 unsafe H keeps its actual age",
+    "selector": "WarBoard rulings: S2 donor unsafe H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S2 donor unsafe H must still be under twenty minutes old: test/src_warboard_rulings.lua:164: unsafe H receipt must not become fresh merely on safe resumption: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 S3 saved exhausted debt reopens at login",
+    "selector": "WarBoard rulings: S3 share",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: S3 share six attempts reopen once per login and M1 then closes: test/src_warboard_rulings.lua:190: each login permits six actual attempts: expected 6, got 0"
+    ]
+  },
+  {
+    "rule": "R2 N2 unsafe roster is retained before silence settlement",
+    "selector": "WarBoard rulings: N2 combat roster",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 combat roster listing us survives long source-off wait: test/src_warboard_rulings.lua:230: a listed roster heard while unsafe vetoes silence settlement: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "R2 N2 queued roster age measured at receipt",
+    "selector": "WarBoard rulings: N2 combat excluding",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 combat excluding multipart roster is validated at receipt time: test/src_warboard_rulings.lua:247: held valid roster settles before the silence deadline despite >121s wait: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "R2 N2 deferred frame cap",
+    "selector": "WarBoard rulings: N2 deferred inbox frame",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 deferred inbox frame bound vetoes lost input silence: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "R2 N2 deferred byte cap",
+    "selector": "WarBoard rulings: N2 deferred inbox byte",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 deferred inbox byte bound vetoes lost input silence: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "R2 N2 deferred inbox respects rollback guard",
+    "selector": "WarBoard rulings: N2 deferred inbox remains",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 deferred inbox remains held during clock rollback: test/src_warboard_rulings.lua:273: rollback must not drain a queued roster before the ingress clock guard: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "R2 N2 overflow invalidates silence fallback",
+    "selector": "WarBoard rulings: N2 deferred inbox",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N2 deferred inbox frame bound vetoes lost input silence: test/harness.lua:8: overflow must not retain an unprovable silence fallback: expected false, got true",
+      "FAIL WarBoard rulings: N2 deferred inbox byte bound vetoes lost input silence: test/harness.lua:8: overflow must not retain an unprovable silence fallback: expected false, got true"
+    ]
+  },
+  {
+    "rule": "R2 N1 genuine recent confirmation permits new requests",
+    "selector": "WarBoard rulings: N1 README",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: N1 README states revised confirmation and retry rules: test/harness.lua:7: A genuine confirmation under **20 minutes** old can authorize a new FBAK: expected true, got false"
     ]
   }
 ]
