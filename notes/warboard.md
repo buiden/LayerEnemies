@@ -1,145 +1,214 @@
 # PR E1 — WarBoard handshake and receive
 
-Base: `67953cfe6ef436c2df20b536f6cca5f0114ec773` (registry plus shared codecs).
-Feature commit: `856a46f3a573f5548c7ab8ca64968df3575ceb5b`.
+Review baseline: `8fcbb39200a78a16408f384403205a5e5529fef0`.
+Review-ruling implementation: `aabfdad53b46dd9a087b5ac01a0c03bdf1091687`.
+Original feature: `856a46f3a573f5548c7ab8ca64968df3575ceb5b`, on registry/codecs
+base `67953cfe6ef436c2df20b536f6cca5f0114ec773`.
 Local branch `feat/warboard`, clone `/opt/data/cache/scratch/le-warboard`.
 Push URL is `DISABLED`; no push or GitHub write. Generated verification notes
-and this report are a separate notes-only commit.
+and this report are committed separately from implementation and tests.
 
-## Exact sends and caps
+## Exact sends and consent
 
-| Frame | Recipient | Admission and actual-attempt limits | Code |
-|---|---|---|---|
-| `WBF1\|H\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | Eligible opposite-faction online WoW game accounts returned by the shared resolver, same project and realm | Scan no faster than 60 s; select at most 20; one H/account/600 s | `LayerEnemies/WarBoard.lua:47-80,315-328` |
-| `WBF1\|A\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | Eligible sender of protocol-5 H with a recognized ruleset; a different recognized ruleset receives our own-ruleset A but is not accepted | At most six A/rolling 60 s, both when queued and at dispatch; never answer A | `LayerEnemies/WarBoard.lua:59-72,281-302` |
+| Frame | Recipient | Admission and actual-attempt limits |
+|---|---|---|
+| `WBF1\|H\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | Eligible opposite-faction online WoW game accounts returned by the shared resolver, same project and realm | Scan no faster than 60 s; select at most 20; one H/account/600 s |
+| `WBF1\|A\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | Eligible sender of protocol-5 H with a recognized ruleset; a different recognized ruleset receives our own-ruleset A but is not accepted | At most six A/rolling 60 s, both when queued and at dispatch; never answer A |
 
-The one outbound call is `BN.send` at `LayerEnemies/WarBoard.lua:64`.
-WarBoard's H+A share is 10 attempts/minute (`LayerEnemies/BNet.lua:38`);
-all networks share 30/rolling minute with at least one second between attempts
-(`LayerEnemies/BNet.lua:83-97`). Client refusal spends an attempt. No retry.
+The only outbound call remains `BN.send` in `WarBoard.lua`'s local `send`.
+WarBoard's H+A share is 10 attempts/minute; all networks share 30/rolling minute
+with at least one second between attempts. Client refusal spends an attempt.
+There is no retry. Share off, Guild only/public off, source off, combat,
+instances, unknown ruleset or unreadable account state prevent sends, including
+queued sends. Loading the real WarBoard addon stops discovery/H; owed A may
+still leave under every privacy and budget gate. Stand-down does not stop
+read-only evidence admission.
 
-Share off, Guild only/public off, source off, combat, instances, unknown ruleset
-or unreadable account state prevent sends, including queued sends. Loading the
-real WarBoard addon stops our discovery/H; owed A may still leave, under all
-privacy and budget gates, as required by PLAN section 3. Stand-down never stops
-read-only evidence admission. No FBAK, forwarding, snapshot, tracking request,
-self-location, subscription, gameplay response, addon-channel or chat send exists.
-Every WarBoard test checks both gateway attempts and actual sends against the
-H/A-only grammar, even if a protected callback swallows a spy exception.
+There is no FBAK, forwarding, snapshot, tracking request, self-location,
+subscription, gameplay response, addon-channel or chat send. Every original
+WarBoard test checks both gateway attempts and actual sends against the H/A-only
+grammar, including protected callbacks that could otherwise swallow a spy error.
 
-## Reads and display
+The owner-requested plain line is directly below README's send table:
 
-- `Src.register` at `LayerEnemies/WarBoard.lua:330`: WarBoard BNet H/A/D/F and
-  WarBoard/WarBoardBN addon GUILD/PARTY/RAID/CHANNEL, bounded AceComm framing.
-- SHRD (`:162`): own zone/map/shard, unknown observation time, 180 s receipt
-  lifetime; sequence-aware clear removes only this source's SHRD claim. The
-  player has one sequence/cache spelling across direct and relayed carriers.
-- FBLP (`:186`): target world coordinates, zone/subzone, shard and sentAt; explicit
-  approximation survives. The native converter is `Adapters.lua:426`; HBD
-  worldX/worldY become the API vector Y/X. A child-map result is converted again
-  to the displayed parent zone before percentages are accepted. Text survives
-  an unavailable conversion; no transform or donor map database is copied.
-- FREC (`:209`): pvp_kill / witnessed_pvp_kill locate the named killer, never the
-  victim. FBLC (`:245`) and supported FCBD entries (`:264`) remain cached.
-  Rank/roster/reward fields are validated but not imported as counters or lists.
-- All evidence goes through `Sources.lua:106-168` into existing Find.report and
-  Known. Own Find entries show the existing Reported evidence line, with kind,
-  source, shard text, original age or unknown, receipt age and details. Guild
-  Watch-only names are admitted into session Known without adding names to our
-  own Find list; there is no new guild-list UI. `UI.lua:213,218-234` already
-  measures the complete details before row heights/paging; UI.lua is unchanged.
-- Claims cannot replace firsthand slots, become Seen, enable Ask/Hop, produce an
-  alert on a later poll, change verified kills, or rebroadcast to LE/WE/HH.
-  Same-faction and untracked data are discarded. No new SavedVariables schema,
-  saved names, peer book or history is introduced; existing network options
-  supply the source switch.
+When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position.
 
-## Audit rulings and conservative limits
+This discloses the remote new-peer publication side effect without inventing an
+LE data send or a request to begin location tracking.
 
-1. The audit distinguishes addon version, protocol, gameplay rules and serializer
-   revision. LE identifies itself as LayerEnemies/its own version, protocol 5,
-   gameplay-rules version 0 (not a tracking-capability flag). It does not claim
-   WarBoard's version or implement the donor reward system.
-2. Donors confirm peers on A, not their first H. PLAN 8.1 explicitly allows LE
-   to accept either compatible H or A. LE answers H and initiates periodic H;
-   it never loops A-to-A. No packet forwarding is a peer-admission obligation.
-3. SHRD sentAt is a millisecond-like sequence, and its `realm` is a surname,
-   not a server realm. Preserve sequence ordering; do not fabricate observation
-   seconds. A 120 s wall-skew check and 180 s receipt expiry are LE safeguards;
-   severely skewed donors are intentionally dropped. Carrier-added realm
-   spelling must not give a second sequence or defeat a later clear.
-4. FBLP approximate coordinates may be older than its current zone labels. Keep
-   both meanings explicit. Relayed transport does not turn target coordinates
-   into the relay carrier's coordinates. No donor shard is treated as an LE key.
-5. FREC is structurally validated location evidence, never a verified reward or
-   kill ledger. No objective/reward/campaign catalog is imported. Only the two
-   kill atypes are used; objective/transaction records do not become sightings.
-   FBLC has no active producer in the audited release; cached input is not
-   advertised as a periodic fresh feed.
-6. In addition to planned 4000-byte frames, 64 parts, 16 assemblies, 90 s assembly
-   lifetime and 120 frames/sender/rolling minute, LE bounds peers and sender
-   buckets to 200, SHRD sequence slots to 300, dedupe to 512 encoded packets and
-   1 MiB, encoded/inflated payloads to 256 KiB, and codec depth/count through the
-   shared decoder. Peer authority expires after 1200 s. FREC/FBLC older than one
-   hour are dropped; FBLP admits at most 120 s age/future skew. These are stricter
-   local safeguards, not claims that the donor enforces them.
-7. Dedupe is committed only after valid evidence is admitted. Raw bytes are kept
-   only in bounded volatile transport state. Existing shared friend/community
-   discovery and its ordering are reused, not the proprietary donor resolver.
-   Being eligible never guarantees a donor selects us among its first 20.
+## S1 — bounded decode work and all-frame memory
 
-## Necessary shared-file changes
+### Per-type inflation ceilings
 
-- `BNet.lua`: optional sixth `BN.send(...,still)` argument. The callback is
-  checked once when dispatch is budget-eligible; only literal true permits an
-  attempt. This prevents a delayed cohort bypassing H/A caps. Old callers keep
-  their behavior; there is still exactly one queue and send gateway.
-- `Sources.lua`: optional guarded `note` (360 bytes), `tag` (16), `clear` boolean,
-  `expiresAt` monotonic deadline within Known TTL, and `pos=enemy|observer`.
-  `Find.lua` carries the fields; `Known.lua` honors expiry and source/type-scoped
-  withdrawal while preserving firsthand slots.
-- `Adapters.lua`: protected context and native world-to-map conversion only.
-- `test/harness.lua`: inherited 5 s / 2 s heartbeat assertions now select Main's
-  own callback, not the earliest callback from any module. First production
-  source registration activates the already-existing one-second registry timer;
-  Main's production cadence is unchanged.
+These bounds cover the supported location producer schemas, not arbitrary extra
+Ace fields or every non-location ledger page. String budgets allow worst-case
+**two-byte Ace escaping for each source byte**, array indices, field names,
+numbers, table tags and envelope metadata. The positive fixtures fill string
+fields with `~` to force expansion, include 80-byte `av` and `senderName` fields,
+and test both `t`-first and `t`-last envelope orders.
 
-## RED → GREEN, mutants and verification
+| Type | `maxOut` bytes | Size of expanded stress fixture | Sizing reason |
+|---|---:|---:|---|
+| SHRD | 2,048 | 1,337 | One identity and location: name/surname 36 each, GUID 80, zone 100, shard 12 digits, optional objId 160, plus numbers/flags/envelope. No list. |
+| FBLP | 40,960 | 37,583 | Up to 100 roster rows, each with 80-byte GUID and name plus faction: the two escaped identity fields alone consume 32,000 bytes. Row syntax, target identity, two 100-byte zone labels, coordinates and envelope fit in the remaining allowance. |
+| FREC | 73,728 | 68,166 | Up to 200 unique cleared IDs of 160 bytes: worst-case escaping contributes up to 64,000 bytes. Allow all bounded optional record strings, array indices, numeric fields and envelope as well. |
+| FBLC | 2,048 | 971 | One 80-byte target GUID/name pair, 100-byte zone, faction, timestamp and envelope; no list. |
+| FCBD | 98,304 | 63,572 | At most 40 normal supported cached-location entries. The largest useful normal producer is `witnessed_kills`, with id, killer identity, victim GUID, witness identity, zone, counters and empty cleared-ID list. Reserve over 2 KiB per entry plus page/relay metadata; `bounty_locations` is smaller. |
 
-- Baseline: `RESULT: 1296 tests passed, 0 failed, 175119 assertions`.
-- Handshake before implementation: 0 passed / 11 failed (missing-source assertions).
-- Receive before implementation: 23 passed / 7 failed (missing evidence).
-- Location/structural corrections: 43 passed / 3 failed (relayed coordinate
-  subject, child-map conversion, FREC optional-field validation).
-- Final review regressions first demonstrated: 56 passed / 2 failed (cross-route
-  SHRD clear and same-faction addon admission). Both then fixed.
-- Final focused suite: `RESULT: 58 tests passed, 0 failed, 30767 assertions`.
-  Includes 5000 deterministic hostile frames, per-input Lua instruction budgets,
-  audit-section-11 opaque-pipe/reordered-fragment vectors, all send guards,
-  queue delays, independent bounds, stale/secret/oversized input and measured UI.
-- `python3 test/warboard_mutants.py`: `RESULT: 60/60 WarBoard mutants killed`.
-  Each syntax-valid mutation has an assertion kill in
-  [warboard-mutants.json](warboard-mutants.json); no syntax error, timeout or
-  runner failure counted. Bounds are tested independently so a downstream cap
-  cannot hide a missing upstream limit. Existing source/codec mutant suites
-  were not rerun; their normal regressions are in the full harness.
-- Final `python3 test/verify.py`, foreground, exit 0:
-  **`RESULT: 1354 tests passed, 0 failed, 205911 assertions`**.
-  Lua 5.1.5; 77 syntax files; static/send/API policy, harness-selection tests,
-  media tests, TOC and deterministic archive/source parity all pass.
-- Archive remains release-foundation version 1.1.0 until the release PR:
-  `dist/LayerEnemies-1.1.0.zip`, SHA256
-  `43240954cdd985b793e2c02aab9454b272a2ac4fcb56e2543568f89487b03542`.
-  Generated verification.json has inherited legacy descriptive strings; this
-  report and README's first send table specify the new WarBoard behavior.
-- Raw logs: `/opt/data/cache/scratch/le-warboard-{baseline,red-handshake,red-receive,red-location,red-cross-route,focused,mutants,verify-final}.log`.
+FCBD's `activity` producer selects objective/bounty transaction records, which LE
+does not use as kill sightings. Arbitrary combinations of 40 full FREC
+200-cleared-ID records are **not** a normal witnessed-kill location page. Such
+oversized pages, ignored extension fields and irrelevant ledger bulk are
+intentionally refused rather than restoring the old 262,144-byte inflate cap.
+The record and producer field reasoning follows the read-only WarBoard 1.6.3
+audit sections 4, 5.1, 5.3 and 5.6; no donor implementation was copied or run.
 
-Feature files: `LayerEnemies/{WarBoard,Adapters,BNet,Sources,Find,Known}.lua`,
-`LayerEnemies/LayerEnemies.toc`, `README.md`, `THIRD_PARTY.md`,
-`test/{src_warboard.lua,warboard_mutants.py,warboard_vectors.py,api_policy_test.py,harness.lua}`,
-`test/fixtures/warboard-bomb.bin`. Notes are committed separately.
+`t` is inside the compressed Ace table and Lua table iteration order is not
+fixed. `W.decode` therefore starts at the largest supported ceiling (98,304),
+further limited by the sender's remaining allowance. An incremental top-level
+Ace-token observer lowers output/work ceilings as soon as the actual envelope
+`t` appears. Nested `t` values cannot select or raise a ceiling. If `t` is late,
+work already performed is still charged, and the final per-type size check
+refuses oversized output. Unknown types are refused. Neither type order gets
+the former 262,144-byte WarBoard inflation allowance.
 
-Self-review and static security scan performed; parent independent review remains
-separate. No donor code/library was copied or executed. No native client,
-non-friend account resolution, live delivery, real fonts or coordinate conversion
-was exercised: **native checks not run (alpha, owner's decision)**.
+`Codec.inflate(raw,maxOut,policy)` adds an optional lowering-only streaming
+policy and a second return value for committed output bytes, including partial
+output before failure. Stored blocks are observed in slices; compressed literals
+and backreferences are observed before committing output. A policy also bounds
+codec work to `4096 + 32 * maxOut`, under the shared global work ceiling. Callers
+without a policy keep the prior codec limits and first-return contract.
+
+### Sender/account budget
+
+- At most **16 actual decode attempts** and **131,072 charged bytes per rolling
+  10 seconds** per normalized character identity, shared across Battle.net,
+  both addon prefixes and GUILD/PARTY/RAID/CHANNEL.
+- Battle.net also charges a game-account-ID bucket. Changing character or
+  renewing a handshake cannot reset that account's allowance.
+- Remaining byte allowance is passed into inflation, not checked only after a
+  full result. Successful decode charges its output length; failed inflation
+  charges at least the selected remaining ceiling or actual partial output,
+  whichever is larger. Invalid streams therefore do not receive free retries.
+- Each decode-bucket table has at most 200 entries, with expired entries reclaimed.
+  The existing input limit of 120 frames/sender/rolling minute remains separate.
+
+### Remember every attempted payload
+
+The new FIFO holds at most **512 payload fingerprints for 60 seconds**. A
+fingerprint is encoded length plus two rolling residues, not stored payload,
+decoded table or untracked player identity. It is refusal/dedupe memory, not
+proof of authenticity. Entries are added after every actual decode attempt:
+accepted, decoded-but-untracked, malformed, wrong-context and inflate failure.
+The cache is shared across carriers and transports, so a relay flood cannot
+repeat the same decompression. Hits do not refresh the first-receipt timestamp.
+
+A hit increments both `refused` and the new `deduped` counter exposed by
+`Sources.lines()` / `/le net`. Decode failures and exhausted budgets increment
+`refused`. The original accepted-payload replay cache remains independently
+bounded to 512 packets / 1 MiB; it prevents refreshing admitted evidence even
+after short-lived hash expiry. Local tracking/context changes do not reopen an
+untracked/context-refused payload before its 60-second hash expires.
+
+### The actual reviewer bomb, not a fabricated failure
+
+`test/fixtures/warboard-review-bomb.bin` is the reviewer's raw-DEFLATE payload:
+350 compressed bytes, **603 addon-encoded bytes**, or 610 including `WBF1|D|`.
+The regression first proves **262,006 output bytes and successful Ace parsing
+with the former 262,144 limit**. Only then does it reset the forwarding inflate
+meter and deliver the flood through real receive paths.
+
+- One confirmed BN account, 130 copies: **1 inflate, 1,892 actual output bytes**,
+  130 refusals. The handshake leaves 119 input slots: one decode and **118
+  dedupe hits**; the remaining frames fail the existing frame budget.
+- Twenty addon senders, 40 copies each: **1 inflate, 1,892 actual output bytes**,
+  **800 refusals and 799 dedupe hits**. Each encoded copy uses real AceComm parts.
+- Distinct large frames test the 131,072-byte allowance without hash-cache help;
+  distinct small frames isolate the sixteen-attempt cap across all routes.
+- The fixture generator reproduces the exact bytes with Python stdlib zlib.
+  Raw fixture SHA256:
+  `0d2af7304b78ac751c1663e50e976c860209574226ce1ac86f499429157ece52`.
+
+These are measured inflate-byte bounds, not wall-time claims about a live client.
+
+## S2 — assembly ownership
+
+Battle.net keeps the existing **16-global** unfinished-stream limit and adds
+**two per game account**, with the original 90-second first-part lifetime.
+Completion, count conflict and expiry release slots; duplicate parts cannot
+refresh age. One account starting 16 unfinished streams every 90 seconds now
+holds at most two. In the exact ten-minute starvation scenario, the other
+account successfully stores **20 of 20** fresh two-part SHRD reports (baseline
+stored zero).
+
+The separate shared AceComm pool retains its own 16-global / 30-second limits.
+An optional owner argument gives WarBoard **two unfinished streams per normalized
+sender across both prefixes and all addon routes**. Stream identity still
+includes full sender, prefix and distribution, preventing cross-route joins.
+Other codec callers omit the owner and retain their existing contract.
+
+The original global-16 regression now spreads streams over multiple accounts so
+the new owner cap cannot hide a broken global bound. Existing accepted-cache
+and frame-size tests similarly avoid masking by the new decode limits.
+
+## S3 — relayed position wording
+
+All ordinary-addon FBLP, including a same-named guild/group/channel carrier,
+says **reported position** and remains relayed. Battle.net FBLP about a third
+player also says **reported position**. Only a matching subject on an
+authenticated eligible Battle.net carrier retains **own position**.
+
+The coordinate subject remains the named enemy, not the relay. Approximation,
+zone/subzone, native conversion fallback and provenance are preserved. The
+regressions inspect the actual Find details and evidence kind on all four addon
+routes, BN third-party and the positive BN-self control.
+
+## Unchanged evidence/privacy behavior
+
+SHRD uses its millisecond-like sentAt only for sequence/skew checks, not a
+fabricated observation time; receipt life is 180 seconds and clear is scoped to
+this source/type. FREC locates the killer, not the victim. FBLC/FCBD stay cached;
+FBLC has no active producer in the audited version. FBLP's old held coordinates
+may coexist with current zone labels, with approximation explicitly retained.
+
+Find names and guild Watch-only names enter the existing Reported/Known path;
+untracked and same-faction data are discarded. Claims cannot replace firsthand
+slots, become Seen, enable Ask/Hop, alter verified kills, create alerts, or
+rebroadcast to LE/WE/HH. There is no new SavedVariables schema, saved player
+history or peer book. Existing shared resolver ordering is unchanged; eligible
+accounts are not guaranteed selection among the first 20.
+
+## RED → GREEN, mutants and full verification
+
+- Final reviewer regression file on the untouched `8fcbb392` baseline:
+  **`RESULT: 2 tests passed, 26 failed, 1215 assertions`**, exit 1. The two
+  controls are BN-self wording and fitting normal producer payloads.
+- Same regressions after implementation: all 28 pass. Combined WarBoard suite:
+  **`RESULT: 86 tests passed, 0 failed, 32068 assertions`**, exit 0.
+- `python3 test/warboard_mutants.py`, exit 0:
+  **`RESULT: 86/86 WarBoard mutants killed`** (60 existing plus 26 added).
+  Each independently changed rule has an assertion-killed mutant. The report
+  [warboard-mutants.json](warboard-mutants.json) records selectors and failures;
+  syntax errors, runner errors and timeouts do not count as kills.
+- `python3 test/verify.py`, foreground, exit 0:
+  **`RESULT: 1382 tests passed, 0 failed, 207212 assertions`**.
+  Lua 5.1.5; 78 syntax files; API/send/static policy, harness selection, media,
+  TOC and deterministic archive/source-parity checks all pass.
+- Archive: `dist/LayerEnemies-1.1.0.zip`, 54 members, 246,601 bytes; SHA256
+  `b40a76219a4c4ea7d34e00b5e9105ee5d24b98a9d6e94acf36890eb476e508cd`.
+  Foundation version remains 1.1.0 until the release PR. Generated
+  verification.json retains inherited legacy descriptive strings; this report
+  and README specify the WarBoard behavior.
+- Raw evidence: `/opt/data/cache/scratch/le-warboard-review-red-final.log`,
+  `le-warboard-review-focused.log`, `le-warboard-review-mutants.log`,
+  `le-warboard-review-verify.log` (all in that same scratch directory).
+
+Changed implementation/test files: `LayerEnemies/{WarBoard,Codec,Sources}.lua`,
+`README.md`, `test/{src_warboard.lua,src_warboard_review.lua,warboard_mutants.py,warboard_vectors.py}`,
+and `test/fixtures/warboard-review-bomb.bin`. Regenerated test, verification and
+mutant notes plus this report are a separate notes-only commit.
+
+Self-review and a staged added-line secret/shell/eval/pickle scan found no issues.
+The parent independent review is separate. No live client, remote account,
+real SendGameData, fonts or native coordinate conversion was exercised:
+**native checks not run (alpha, owner's decision)**.

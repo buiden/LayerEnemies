@@ -1352,4 +1352,44 @@ PASS WarBoard: full WarBoard evidence is measured before laying out the Find row
 PASS WarBoard: SHRD clear and sequence follow the player across direct and relayed identity spellings
 PASS WarBoard: same faction addon records never become tracked enemy evidence
 PASS WarBoard: 5000 deterministic hostile frames terminate within budget with bounded memory
-RESULT: 1354 tests passed, 0 failed, 205911 assertions
+PASS WarBoard review: SHRD inflate ceiling is applied before bomb expansion
+PASS WarBoard review: FBLP inflate ceiling is applied before bomb expansion
+PASS WarBoard review: FREC inflate ceiling is applied before bomb expansion
+PASS WarBoard review: FBLC inflate ceiling is applied before bomb expansion
+PASS WarBoard review: FCBD inflate ceiling is applied before bomb expansion
+WORK BN130: 1 inflate calls, 1892 inflated bytes
+PASS WarBoard review: reviewer 130 BN bombs have bounded inflated bytes and refusal accounting
+WORK addon800: 1 inflate calls, 1892 inflated bytes
+PASS WarBoard review: reviewer twenty addon senders cannot multiply repeated-bomb work
+PASS WarBoard review: decode attempt cap spans both prefixes and every route for one identity
+PASS WarBoard review: decode bytes budget stops distinct large frames before attempt cap
+PASS WarBoard review: failed hashes last sixty seconds without repeat refresh or retained payloads
+PASS WarBoard review: sender decode and failed-hash memory are bounded and expire
+PASS WarBoard review: decode sender bucket cap is independent of the input-frame bucket cap
+PASS WarBoard review: failed hash cap evicts oldest and does not retain more than 512
+PASS WarBoard review: BN decode quota belongs to account as well as current character
+PASS WarBoard review: every decoded frame is hashed even when record or context is refused
+PASS WarBoard review: decoded untracked frames are deduped until sixty-second expiry
+PASS WarBoard review: accepted payload duplicates count hash hits and preserve first receipt
+PASS WarBoard review: one account holding unfinished parts cannot starve another for ten minutes
+PASS WarBoard review: two assembly slots per account release on completion conflict and expiry
+PASS WarBoard review: FBLP wording GUILD
+PASS WarBoard review: FBLP wording PARTY
+PASS WarBoard review: FBLP wording RAID
+PASS WarBoard review: FBLP wording CHANNEL
+PASS WarBoard review: FBLP wording BN third
+PASS WarBoard review: FBLP wording BN self
+PASS WarBoard review: addon assembly quota aggregates all prefixes and routes for a sender
+SIZE SHRD: 1337 / 2048
+SIZE SHRD: 1337 / 2048
+SIZE FBLC: 971 / 2048
+SIZE FBLC: 971 / 2048
+SIZE FBLP: 37583 / 40960
+SIZE FBLP: 37583 / 40960
+SIZE FREC: 68166 / 73728
+SIZE FREC: 68166 / 73728
+SIZE FCBD: 63572 / 98304
+SIZE FCBD: 63572 / 98304
+PASS WarBoard review: largest normal location payloads survive either envelope key order
+PASS WarBoard review: README explains the new-peer publication side effect below the send table
+RESULT: 1382 tests passed, 0 failed, 207212 assertions
