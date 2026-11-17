@@ -104,6 +104,71 @@ oldest ordering, exact expiry and invalid-input isolation. Fixtures are
 constructed from the audit, Python zlib and an independent serializer, not live captures.
 **Native checks not run (alpha, owner's decision)**. This is D1 only, not D2.
 
+## Unreleased - ChehulNet hello (receive only)
+
+LE independently reads **ChehulNet v15 / LibChehulMesh v10**, as shipped in
+GuildOS v1.28.0. No donor addon is required and no code is copied. Only plain
+`ChehulNet` **GUILD, PARTY and RAID** HELLOs are accepted. This is an **ally**
+source: the game's sender identifies the player; the line carries class,
+level and an optional map / zoneUID, never coordinates or an enemy name.
+
+- **Friendly (the hop window):** allies reporting another layer of your
+  current zone appear **after all host rows** in their own subsection titled
+  **Guildmates on other layers (hints)**. These guild/group hints show their
+  name and receipt age, have **no Ask or Hop button**, and **do not count in
+  the Friendly tab total**. Whisper them yourself; a GuildOS user is not
+  necessarily an LE-compatible host. If an already listed host has the same
+  whole identity, its existing row instead gains **other layer (ChehulNet
+  claim)**, with the independent HELLO receipt age. Existing host capabilities,
+  server key, source and freshness are unchanged. Both the heading and complete
+  card text are measured before paging; the heading stays with the first
+  visible hint, including when scrolling within the subsection.
+- `/le layer` prints the number of distinct zoneUIDs reported for your current
+  zone and names **at most eight** allies reporting **same layer as you**,
+  followed by one **and N more** line if others remain. Comparisons require
+  the exact same map and your own zoneUID reading. An unknown own reading,
+  ambiguous layer, stale map context or unreadable clock permits no relation.
+  A HELLO is a claim from that player's client, not independently verified
+  location or a guarantee that an invitation will move you.
+- **Never an LE layer key:** ChehulNet sends creature-GUID field 5 (zoneUID),
+  not the field-3 server key used by LE. No comparison across maps and no
+  assignment to your own layer. These rows never enter Find, Reported,
+  sightings, host books, invite eligibility or hop fan-out. No alerts or sound,
+  including later polling. Only previously known hosts retain their actions.
+- Session-only memory: **200 players**, oldest receipt evicted at capacity,
+  refreshed by a new accepted HELLO. Expiry is **400 seconds** from receipt,
+  also on clock rollback. Nothing stores player names in SavedVariables.
+  Ages are receipt ages; the wire has no observation timestamp (`time unknown`).
+- Decoder limit: **255 bytes, six or seven pipe-separated fields**. `CHN1`
+  and `H` must match exactly. A missing legacy layer field is accepted; five
+  or fewer fields, extra fields, controls and multipart frames are ignored.
+  Caps containing colons/commas do not move the layer field. Whole decimal
+  levels 1–255 and map/UID values 1–99,999,999 are supported; invalid optional
+  values stay unknown. Unknown classes stay unknown. Secrets, ignored/own
+  senders and unreadable identity/context fail silently. No decoding in combat
+  or instances. No guild/group roster scan is needed.
+- `/le net chehulnet off|on` controls receipt/display (default **on**, switch
+  saved). Off hides held data; on can show still-fresh held data. `/le net`
+  includes `chehulnet: heard / accepted / sent / refused`; sent remains zero.
+  Guild-only consent and having a ChehulNet-family addon installed do not stop
+  this passive reader. There is no membership or outgoing stand-down work.
+
+**No new sends, channel joins of either faction, whisper replies, peer
+exchange, relay, discovery or subscriptions.** The rejected other-faction
+member-list channel is not implemented. Warmth camp announcements are ignored.
+The existing Wire route allowlist and all other sources stay unchanged.
+
+Offline tests: `test/src_chehulnet.lua` (including 5,000 deterministic fuzz
+inputs), `python3 -B test/chehulnet_mutants_test.py`,
+`python3 test/chehulnet_mutants.py`, and `python3 test/verify.py`.
+The mutant runner is read-only by default; pass `--write` only to replace
+`notes/chehulnet-mutants.json` with new review evidence.
+[Provenance](THIRD_PARTY.md) and [build evidence](notes/chehulnet-hello.md) pin
+the source. Target: Forever Interface 16001; package version remains 1.1.0
+until the 1.2.0 release PR. **Native checks not run (alpha, owner's decision)**:
+live traffic availability, transport name spelling, UID semantics and native
+text rendering remain unverified. If no HELLO arrives, nothing new appears.
+
 ## Unreleased - source registry (no behaviour change)
 
 PR 0b adds extension seams, **no registered source, no new discovery scan and no
@@ -1195,8 +1260,11 @@ ambiguous, a report on an equal key shows the relation as unknown (a
 different key still reads "other"), and Find, `/le hosts` and the layer
 check say "probably" where they would otherwise say "on your layer".
 
-The number after the "-" (the zoneUID) is private to each player and is never
-compared across sources. War Effort 1.6.x sends its own layer field;
+The number after the "-" (the zoneUID) is never used as a server-layer key.
+The receive-only ChehulNet exception compares that GUID-field-5 reading only
+within the same map, while your reading is confirmed and unambiguous, for
+the separate ally hints described above; other layer-key paths are unchanged.
+War Effort 1.6.x sends its own layer field;
 it is treated as a server key only when the reporter's hello announced a
 version that uses one (minor 13 to 19) and the value is not 0. Otherwise the
 report's layer is unknown.

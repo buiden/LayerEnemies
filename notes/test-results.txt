@@ -1349,6 +1349,22 @@ PASS BNet queue: S1 delayed dispatch drops expired own frames
 PASS BNet queue: S1 delayed dispatch drops expired owed frames
 PASS BNet queue: S1 expiry runs while the rolling minute is exhausted
 PASS BNet queue: S1 unreadable admission clock fails closed
+PASS ChehulNet: registry receives guild and group with counters and live switch
+PASS ChehulNet: unreadable foreign values and live context fail silent
+PASS ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks
+PASS ChehulNet: pure store accepts only guild group and whole other identities
+PASS ChehulNet: comparisons require own readings and never use server keys
+PASS ChehulNet: expiry rollback replacement and oldest eviction are bounded
+PASS ChehulNet: Friendly hints have no Ask and never become hop candidates
+PASS ChehulNet: hints never inflate the Friendly tab count
+PASS ChehulNet: hint subsection follows every host with measured paged rows
+PASS ChehulNet: existing hosts gain independent measured annotation without capability changes
+PASS ChehulNet: layer command counts distinct current-map UIDs and names our peers
+PASS ChehulNet: layer command caps same-layer names at eight with exact overflow
+PASS ChehulNet: 5000 deterministic fuzz inputs are bounded and silent
+PASS ChehulNet: live map changes withhold comparison and UI rows expire independently
+PASS ChehulNet: display context errors and missing clock cannot assert a relation
+PASS ChehulNet: exact HELLO grammar and optional layer
 PASS Codec: addon escaping exact bytes and roundtrip
 PASS Codec: addon malformed escapes and byte ceilings
 PASS Codec: inflate zlib known answers and stored writer
@@ -1446,4 +1462,4 @@ PASS Wanted: R2 S4 mixed records evict by admission not observation or expiry
 PASS Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry
 PASS Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs
 PASS Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks
-RESULT: 1448 tests passed, 0 failed, 243052 assertions
+RESULT: 1464 tests passed, 0 failed, 257834 assertions

@@ -24,14 +24,24 @@ class PresenceMutantPortability(unittest.TestCase):
             (cwd / "scratch").mkdir()
             output = work / "mutants.json"
             env = dict(os.environ, TMPDIR="scratch")
+            # Portability is a runner contract, not a second full mutation gate.
+            # Execute its real CLI entrypoint with one real mutation; the separate
+            # full-suite command still checks every rule with unchanged limits.
+            entrypoint = (
+                "import importlib.util, sys; "
+                "spec=importlib.util.spec_from_file_location('presence_mutants',sys.argv.pop(1)); "
+                "runner=importlib.util.module_from_spec(spec); spec.loader.exec_module(runner); "
+                "runner.MUTANTS=runner.MUTANTS[:1]; runner.main()"
+            )
             result = subprocess.run(
-                [sys.executable, str(clone / "test/presence_mutants.py"),
+                [sys.executable, "-c", entrypoint, str(clone / "test/presence_mutants.py"),
                  "--lua", str(lua), "--output", str(output)],
                 cwd=cwd, env=env, capture_output=True, text=True, timeout=180,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             report = json.loads(output.read_text())
             self.assertGreater(report["total"], 0)
+            self.assertEqual(report["total"], 1, "exactly the selected real mutant ran")
             self.assertEqual(report["caught"], report["total"])
             self.assertIn("0 failed", report["baseline"])
             self.assertIn("0 failed", report["final"])

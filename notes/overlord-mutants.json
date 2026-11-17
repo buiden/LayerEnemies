@@ -1,13 +1,30 @@
 {
-  "total": 52,
-  "killed": 52,
+  "total": 54,
+  "killed": 54,
   "results": [
+    {
+      "mutant": "diagnostic-pool-omitted",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: net diagnostic shows the currently detected pool on the Overlord line: test/harness.lua:7: diagnostic names the detected global pool: expected true, got false",
+        "FAIL Overlord: net diagnostic explains unknown pool receives nothing and updates on recovery: test/harness.lua:7: missing explains fail-closed receipt: expected true, got false"
+      ]
+    },
+    {
+      "mutant": "diagnostic-unknown-misleading",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: net diagnostic explains unknown pool receives nothing and updates on recovery: test/harness.lua:7: missing explains fail-closed receipt: expected true, got false"
+      ]
+    },
     {
       "mutant": "last-sender",
       "killed": true,
       "failed": 2,
       "caught_by": [
-        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout: expected nil, got table: 0x58a5fa663690",
+        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout: expected nil, got table: 0x5834b54f88a0",
         "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:348: not equal: expected 0, got 1"
       ]
     },
@@ -16,7 +33,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap: test/overlord.lua:466: normal measured Reported card height: expected 82, got 180"
+        "FAIL Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap: test/overlord.lua:506: normal measured Reported card height: expected 82, got 180"
       ]
     },
     {
@@ -39,7 +56,7 @@
     {
       "mutant": "ruleset-pool",
       "killed": true,
-      "failed": 18,
+      "failed": 20,
       "caught_by": [
         "FAIL Overlord: two parts join in either order reverse=false: test/overlord.lua:58: not equal: expected 1, got 0",
         "FAIL Overlord: two parts join in either order reverse=true: test/overlord.lua:58: not equal: expected 1, got 0",
@@ -54,11 +71,13 @@
         "FAIL Overlord: GW one per guild capped expiring and survives zone or layer boundary: test/overlord.lua:316: attempt to index field '?' (a nil value)",
         "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/harness.lua:7: not equal: expected true, got false",
         "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:349: not equal: expected 1, got 0",
-        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:385: not equal: expected 1, got 0",
-        "FAIL Overlord: map lookup failures cannot consume packet identity and secret names refuse: test/overlord.lua:424: not equal: expected 1, got 0",
+        "FAIL Overlord: net diagnostic shows the currently detected pool on the Overlord line: test/harness.lua:7: diagnostic names the detected global pool: expected true, got false",
+        "FAIL Overlord: net diagnostic explains unknown pool receives nothing and updates on recovery: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:425: not equal: expected 1, got 0",
+        "FAIL Overlord: map lookup failures cannot consume packet identity and secret names refuse: test/overlord.lua:464: not equal: expected 1, got 0",
         "FAIL Overlord: slash Reported shows guild claim but no hop record: test/harness.lua:7: not equal: expected true, got false",
-        "FAIL Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap: test/overlord.lua:456: not equal: expected 32, got 0",
-        "FAIL Overlord: single guild rampage reaches Reported without a hop: test/overlord.lua:482: not equal: expected 1, got 0"
+        "FAIL Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap: test/overlord.lua:496: not equal: expected 32, got 0",
+        "FAIL Overlord: single guild rampage reaches Reported without a hop: test/overlord.lua:522: not equal: expected 1, got 0"
       ]
     },
     {
@@ -83,7 +102,7 @@
       "killed": true,
       "failed": 2,
       "caught_by": [
-        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x59785cd71c50",
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x5ab39880ad80",
         "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:348: not equal: expected 0, got 1"
       ]
     },
@@ -127,7 +146,7 @@
       "failed": 2,
       "caught_by": [
         "FAIL Overlord: origin id ring takes once and caps at 256: test/harness.lua:7: not equal: expected true, got false",
-        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:385: not equal: expected 1, got 2"
+        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:425: not equal: expected 1, got 2"
       ]
     },
     {
@@ -183,7 +202,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:101: not equal: expected nil, got table: 0x5cc27208a650"
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:101: not equal: expected nil, got table: 0x60cfdc5840e0"
       ]
     },
     {
@@ -191,7 +210,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x592c6cad9360"
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x5deab9ac52e0"
       ]
     },
     {
@@ -199,7 +218,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Aa One,Bb Two,Cc Three,Dd Four,Birch Scout: expected nil, got table: 0x55a8ebd45d70"
+        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Aa One,Bb Two,Cc Three,Dd Four,Birch Scout: expected nil, got table: 0x5ebf02ba0670"
       ]
     },
     {
@@ -207,7 +226,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout,Birch Scout,OTHER SCOUT,Birch Scout: expected nil, got table: 0x5639de0936e0"
+        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout,Birch Scout,OTHER SCOUT,Birch Scout: expected nil, got table: 0x601387a52d00"
       ]
     },
     {
@@ -215,7 +234,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720100.5: expected nil, got table: 0x5f298d8e4180"
+        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720100.5: expected nil, got table: 0x5920bb62ca80"
       ]
     },
     {
@@ -223,8 +242,8 @@
       "killed": true,
       "failed": 2,
       "caught_by": [
-        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720131: expected nil, got table: 0x610b45a07280",
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 720131: expected nil, got table: 0x610b456c5bb0"
+        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720131: expected nil, got table: 0x5ab85a22d2c0",
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 720131: expected nil, got table: 0x5ab85a33a720"
       ]
     },
     {
@@ -232,7 +251,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x5979a6c53200"
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x5fade7d80df0"
       ]
     },
     {
@@ -282,7 +301,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 10000: expected nil, got table: 0x5b73e72a98b0"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 10000: expected nil, got table: 0x55ae2b58d910"
       ]
     },
     {
@@ -290,7 +309,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 1000: expected nil, got table: 0x62af3e7af320"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 1000: expected nil, got table: 0x58c74a9ed940"
       ]
     },
     {
@@ -298,7 +317,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 100000000: expected nil, got table: 0x5d933b54b840"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 100000000: expected nil, got table: 0x60c23dd690d0"
       ]
     },
     {
@@ -306,7 +325,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 719799: expected nil, got table: 0x57548bd8ce00"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 719799: expected nil, got table: 0x588677285510"
       ]
     },
     {
@@ -314,7 +333,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x56c4dbe4a370"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x62e6d4341820"
       ]
     },
     {
@@ -322,7 +341,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x617e435c9340"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x63ecb948c6e0"
       ]
     },
     {
@@ -388,7 +407,7 @@
         "FAIL Overlord: GW one per guild capped expiring and survives zone or layer boundary: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 35",
         "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
         "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
-        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:385: not equal: expected 1, got 2",
+        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:425: not equal: expected 1, got 2",
         "FAIL Overlord: map lookup failures cannot consume packet identity and secret names refuse: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
         "FAIL Overlord: slash Reported shows guild claim but no hop record: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
         "FAIL Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 32",
@@ -408,9 +427,9 @@
       "killed": true,
       "failed": 3,
       "caught_by": [
-        "FAIL Overlord: GD tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x63eb37fa85d0",
-        "FAIL Overlord: EK tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x63eb3849e810",
-        "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/overlord.lua:337: not equal: expected nil, got table: 0x63eb3832d8e0"
+        "FAIL Overlord: GD tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x637a256acad0",
+        "FAIL Overlord: EK tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x637a25e695f0",
+        "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/overlord.lua:337: not equal: expected nil, got table: 0x637a258acd70"
       ]
     },
     {
@@ -418,7 +437,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: map lookup failures cannot consume packet identity and secret names refuse: test/overlord.lua:426: secret map name must skip row: expected 0, got 1"
+        "FAIL Overlord: map lookup failures cannot consume packet identity and secret names refuse: test/overlord.lua:466: secret map name must skip row: expected 0, got 1"
       ]
     },
     {
@@ -426,7 +445,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:444: object: expected 0, got 1"
+        "FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:484: object: expected 0, got 1"
       ]
     },
     {
@@ -434,7 +453,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:444: type: expected 0, got 1"
+        "FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:484: type: expected 0, got 1"
       ]
     },
     {
@@ -442,7 +461,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:444: parent: expected 0, got 1"
+        "FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:484: parent: expected 0, got 1"
       ]
     },
     {

@@ -776,13 +776,18 @@ test("SavedVariables contain options only; no sightings survive reload",function
 end)
 test("heartbeat is five seconds idle, two while map shown",function()
     local N=loadAddon()
-    -- Registered sources have an independent one-second pulse; this asserts Main's heartbeat only.
-    local function nextDelay() local d=math.huge; for _,v in ipairs(timers) do
-        if debug.getinfo(v.fn,"S").source=="@LayerEnemies/Main.lua" then d=math.min(d,v.at-clock) end
-    end; return d end
-    eq(nextDelay(),5)
-    WorldMapFrame=CreateFrame("Frame"); advance(5); eq(nextDelay(),2)
-    WorldMapFrame:Hide(); advance(2); eq(nextDelay(),5); no(N.Main.error)
+    -- Registered sources now have their own 1 s timer. Check the original
+    -- Main heartbeat independently, not the earliest timer from any module.
+    local function nextDelay(source)
+        local d=math.huge
+        for _,v in ipairs(timers) do
+            if debug.getinfo(v.fn,"S").source==source then d=math.min(d,v.at-clock) end
+        end
+        return d
+    end
+    eq(nextDelay("@LayerEnemies/Main.lua"),5); eq(nextDelay("@LayerEnemies/Sources.lua"),1)
+    WorldMapFrame=CreateFrame("Frame"); advance(5); eq(nextDelay("@LayerEnemies/Main.lua"),2)
+    WorldMapFrame:Hide(); advance(2); eq(nextDelay("@LayerEnemies/Main.lua"),5); no(N.Main.error)
 end)
 test("missing timer and message-registration APIs degrade safely",function()
     local N=loadAddon(); C_Timer=nil; C_ChatInfo=nil

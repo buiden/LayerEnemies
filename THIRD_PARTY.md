@@ -17,6 +17,28 @@ Adler-32 integrity is checked, Ed25519 signatures and chain authority are not.
 D1 sends nothing and **does not claim any Wanted version**; incoming `v` is only
 an admission field. No signing keys, original record store or saved names.
 
+## ChehulNet HELLO protocol provenance (G1)
+
+| Author / reference | Pin | Use / rights |
+|---|---|---|
+| [danielcosta42](https://github.com/danielcosta42), ChehulNet and LibChehulMesh in [GuildOS v1.28.0](https://github.com/danielcosta42/guildos/releases/tag/v1.28.0) | ChehulNet v15 / LibChehulMesh v10; file SHA-256 below | **Protocol facts only, no code**. Independent receive-only guild/group HELLO parser; no library, assets, donor execution or runtime dependency. |
+
+- `Modules/ChehulNet.lua`: `a0a69a438b1b22a761909605f691a35536595429e1beeab9e1a28afd784f8d28`.
+- `Libs/LibChehulMesh.lua`: `1d973cb7afc3730ae6969b0297b778529db2c04584ad68d38cd370dd0390a5cf`.
+
+The two files contain **no licence text of their own**. They ship inside
+GuildOS and PartyLens (MIT) and Warmth (GPL-3.0); the standalone
+`danielcosta42/chehulnet` repository was not publicly reachable (HTTP 404) in
+the 2026-11-17 feasibility audit. This does not license the individual files
+by inference: nothing from them is copied, translated, bundled or executed.
+
+Source facts checked from the hash-matched v1.28.0 files: HELLO's positional
+fields, caps delimiters and optional layer (ChehulNet 170–181, 211–246),
+guild/group announcement routes (183–192), GUID field 5 (142–167), and plain
+single-part bytes versus control-prefixed multipart frames (LibChehulMesh
+414–434). GuildOS's latest release was rechecked and remained v1.28.0 on
+2026-11-17. The tests use independently constructed wire strings.
+
 ## Source registry and Battle.net seams (PR 0b)
 
 | Reference | Pin | Use |

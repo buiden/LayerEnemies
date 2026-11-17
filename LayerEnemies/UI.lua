@@ -121,7 +121,10 @@ function U.render()
     local liveSeen=#seen
     for _,e in ipairs(T.previous(M.store,time)) do seen[#seen+1]=e end
     local reports=M.reportedRows()
-    local friends=M.candidates()
+    local friends,hints=N.ChehulNet.friendly(M.candidates())
+    local friendlyRows={}
+    for _,row in ipairs(friends) do friendlyRows[#friendlyRows+1]=row end
+    for _,row in ipairs(hints) do friendlyRows[#friendlyRows+1]=row end
     local eligible={}; for _,c in ipairs(friends) do eligible[c.short]=true end
     local tracked=M.findRows()
     local function locatedAt(row) return math.max(row.at or -math.huge,row.place and row.place.at or -math.huge) end
@@ -134,7 +137,7 @@ function U.render()
     end)
     U.findTitle:SetText("Find ("..located.." located / "..#tracked..")")
     U.findTitle:SetShown(U.tab=="find")
-    local lists={localRows=seen,reported=reports,friendly=friends,find=tracked}
+    local lists={localRows=seen,reported=reports,friendly=friendlyRows,find=tracked}
     local rows=U.tab=="local" and lists.localRows or lists[U.tab]
     local titles={localRows="Seen by you ("..#seen..")",reported="Reported ("..#reports..")",friendly="Friendly ("..#friends..")",find="Find"}
     for key,b in pairs(U.tabs) do
@@ -197,6 +200,8 @@ function U.render()
     end
     -- Measure the actual strings before paging, not an assumed line count for
     -- each evidence slot. One hidden FontString serves every row in the pool.
+    U.chehulTitle:Hide()
+    local chehulHeadingHeight=U.tab=="friendly" and #hints>0 and fitText(U.chehulTitle)+8 or 0
     local layouts={}
     for index,e in ipairs(rows) do
         local detailHeight=knownHeight(e)
@@ -208,7 +213,8 @@ function U.render()
         elseif U.tab=="reported" then
             text="reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or "")
         elseif U.tab=="friendly" then
-            text=table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.flhKey and M.hostPlace(e) or (e.layer and "layer "..e.layer or "layer not known"))
+            text=e.chehulHint and e.chehulText or table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.flhKey and M.hostPlace(e) or (e.layer and "layer "..e.layer or "layer not known"))
+            if e.chehulText and not e.chehulHint then text=text.."\n"..e.chehulText end
         else
             text=M.findDetails(e) or (e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or ((e.place or e.presence) and "" or "Not located"))
             if e.probably and detailHeight==0 then text=text.." · probably your layer (key ambiguous)" end
@@ -238,11 +244,14 @@ function U.render()
     -- A hash line beside both cached slots and an OpenMap place can exceed
     -- the usual page. Grow only enough for one whole card; never hide it.
     local bodyHeight=300
-    for _,row in ipairs(rows) do bodyHeight=math.max(bodyHeight,top+rowHeight(row)) end
+    for _,row in ipairs(rows) do
+        bodyHeight=math.max(bodyHeight,top+rowHeight(row)+(row.chehulHint and chehulHeadingHeight or 0))
+    end
     U.bodyHeight=bodyHeight; U.body:SetHeight(bodyHeight)
     -- Clamp to the last full page, accounting for each row's own height.
-    local maximum,used=#rows,0
+    local maximum,used,hasHints=#rows,0,false
     for i=#rows,1,-1 do
+        if rows[i].chehulHint and not hasHints then used=used+chehulHeadingHeight; hasHints=true end
         used=used+rowHeight(rows[i]); if used>bodyHeight-top then break end
         maximum=i-1
     end
@@ -252,7 +261,14 @@ function U.render()
     for index=1,#rows-U.offset do
         local e=rows[index+U.offset]
         local height=rowHeight(e)
-        if y+height>bodyHeight then break end
+        -- Keep the section heading with its first visible hint, including
+        -- pages scrolled past the boundary. It is not a host or a list row.
+        local section=e.chehulHint and not U.chehulTitle:IsShown()
+        if y+height+(section and chehulHeadingHeight or 0)>bodyHeight then break end
+        if section then
+            U.chehulTitle:ClearAllPoints(); U.chehulTitle:SetPoint("TOPLEFT",U.body,"TOPLEFT",4,-y-4)
+            U.chehulTitle:Show(); y=y+chehulHeadingHeight
+        end
         visible=visible+1
         local r=U.pool[index]
         if not r then r=rowFrame(); U.pool[index]=r end
@@ -282,8 +298,9 @@ function U.render()
             r.title:SetText("Unknown "..className(e.class))
             hopState(r,e.record)
         elseif U.tab=="friendly" then
-            local p=not e.unknownOwn and M.hostPreview(e)
-            if e.unknownOwn then unknownState(r)
+            local p=not e.chehulHint and not e.unknownOwn and M.hostPreview(e)
+            if e.chehulHint then askState(r,nil)
+            elseif e.unknownOwn then unknownState(r)
             elseif p then hostState(r,e,p)
             else askState(r,e.name,"Ask for invite") end
         else
@@ -370,6 +387,8 @@ function U.create()
     end
     U.body=CreateFrame("Frame",nil,f); U.body:SetSize(348,300); U.body:SetPoint("TOPLEFT",6,-114)
     U.measure=font(U.body,10); U.measure:Hide()
+    U.chehulTitle=font(U.body,10,colors.muted); U.chehulTitle:SetWidth(340)
+    U.chehulTitle:SetText("Guildmates on other layers (hints)"); U.chehulTitle:Hide()
     U.body:EnableMouseWheel(true)
     U.body:SetScript("OnMouseWheel",function(_,delta) U.offset=math.max(0,U.offset-(delta>0 and 1 or -1)); U.render() end)
     U.findTitle=font(U.body,12); U.findTitle:SetPoint("TOPLEFT",4,0); U.findTitle:SetWidth(340); U.findTitle:Hide()

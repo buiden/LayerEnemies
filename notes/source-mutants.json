@@ -42,7 +42,7 @@
     "rule": "one-time registration",
     "killed": true,
     "failures": [
-      "FAIL Sources: registration is once and callbacks cannot be replaced by mutating a descriptor: test/src_registry.lua:38: not equal: expected 1, got 12",
+      "FAIL Sources: registration is once and callbacks cannot be replaced by mutating a descriptor: test/src_registry.lua:38: not equal: expected 1, got 15",
       "FAIL Sources: unavailable optional timer and registration APIs fail silent: test/src_registry.lua:69: not equal: expected 1, got 2"
     ]
   },
@@ -122,28 +122,28 @@
     "rule": "peer online",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isOnline: expected nil, got table: 0x5f8ed22cd740"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isOnline: expected nil, got table: 0x55fd5fad7c00"
     ]
   },
   {
     "rule": "peer project",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: wowProjectID: expected nil, got table: 0x60f46eaba9f0"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: wowProjectID: expected nil, got table: 0x61505c975d40"
     ]
   },
   {
     "rule": "peer client",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: clientProgram: expected nil, got table: 0x59f0bb334750"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: clientProgram: expected nil, got table: 0x558635b649d0"
     ]
   },
   {
     "rule": "peer region",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isInCurrentRegion: expected nil, got table: 0x64f5ea676540"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isInCurrentRegion: expected nil, got table: 0x5747254c0f30"
     ]
   },
   {
@@ -260,7 +260,7 @@
       "FAIL BNet queue: S1 configured admission cap wanted: test/src_bnet_queue_round1.lua:25: not equal: expected 1, got 0",
       "FAIL BNet queue: S1 configured admission cap overlord: test/src_bnet_queue_round1.lua:25: not equal: expected 1, got 0",
       "FAIL BNet queue: S1 configured admission cap warboard: test/src_bnet_queue_round1.lua:25: not equal: expected 1, got 0",
-      "FAIL BNet queue: S1 default fair share also limits rolling dispatch: test/src_bnet_queue_round1.lua:63: not equal: expected 10, got 0",
+      "FAIL BNet queue: S1 default fair share also limits rolling dispatch: test/src_bnet_queue_round1.lua:63: not equal: expected 7, got 0",
       "FAIL BNet queue: S1 configured and default sources share one rolling cap: forbidden API reached 30 time(s)",
       "FAIL BNet queue: S1 normal flood leaves eight owed-only slots: forbidden API reached 9 time(s)",
       "FAIL BNet queue: S1 reviewer flood admits another source and its owed answer within share: test/src_bnet_queue_round1.lua:160: not equal: expected 2, got 0",
