@@ -534,15 +534,15 @@
     "rule": "chat-send-ban-stays",
     "caught": true,
     "failures": [
+      "FAIL: test_extra_presence_predicates_are_rejected (__main__.WhisperHookPolicyTests.test_extra_presence_predicates_are_rejected) (source='C_ChatInfo.SendChatMessage == nil')",
+      "FAIL: test_extra_presence_predicates_are_rejected (__main__.WhisperHookPolicyTests.test_extra_presence_predicates_are_rejected) (source='_G.SendChatMessage == nil')",
       "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='SendChatMessage(...)')",
       "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='_G.SendChatMessage(...)')",
       "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='C_ChatInfo.SendChatMessage(...)')",
       "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='C_ChatInfo[\"Send\"..\"ChatMessage\"](...)')",
       "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='_G[\"SendChatMessage\"](...)')",
       "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='local fn=C_ChatInfo.SendChatMessage; fn(...)')",
-      "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='pcall(SendChatMessage,...)')",
-      "FAIL: test_read_only_presence_predicates_do_not_expose_functions (__main__.WhisperHookPolicyTests.test_read_only_presence_predicates_do_not_expose_functions) (source='C_ChatInfo.SendChatMessage == nil')",
-      "FAIL: test_read_only_presence_predicates_do_not_expose_functions (__main__.WhisperHookPolicyTests.test_read_only_presence_predicates_do_not_expose_functions) (source='_G.SendChatMessage == nil')"
+      "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='pcall(SendChatMessage,...)')"
     ]
   },
   {

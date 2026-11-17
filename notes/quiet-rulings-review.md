@@ -1,5 +1,7 @@
 # Quiet notice review rulings: verified follow-up
 
+**Gate correction:** The comparison-only exemption claim below is superseded by [the exact-statement and addon-wide guard follow-up](quiet-gate-delta.md). This document records the earlier revision, not the corrected gate.
+
 ## Result and scope
 
 - Reviewed base: `b054fae86e7deacd40aaea656e6d43006386dff7` on `fix/hide-own-not-found`; PR base remains main `2675e03d`.
