@@ -1,5 +1,15 @@
 # Third-party provenance
 
+## Source registry and Battle.net seams (PR 0b)
+
+| Reference | Pin | Use |
+|---|---|---|
+| Blizzard Forever API documentation via Gethe/wow-ui-source | build 70938, `bebcb6bf309cf41b41bd74f8ca651e6a105b2676` | `BattleNetDocumentation.lua` (`GetGameAccountInfoByID`, `GetAccountInfoByID`, friend-game enumeration, `BNetGameAccountInfo`, `SendGameData`) and `ClubDocumentation.lua` (`ClubMemberInfo.bnetAccountId`); function/field facts only, independently written adapters and queue. |
+
+No donor or library code, assets or runtime dependency. Account names, battle
+tags and club notes are never read. API declarations were inspected; native
+presence resolution and actual Battle.net delivery are not verified.
+
 ## Forever Layer Hop protocol provenance
 
 | Donor | Use | Version / rights | Reuse |

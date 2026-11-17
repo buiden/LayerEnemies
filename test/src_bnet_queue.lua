@@ -1,0 +1,121 @@
+local h=...
+local test,eq,yes,no=h.test,h.eq,h.yes,h.no
+local function setup()
+    local N=h.load(); yes(N.BNet and type(N.BNet.send)=="function","shared queue exists")
+    for _,pair in ipairs({{"alpha","AlphaSrc"},{"beta","BetaSrc"}}) do
+        yes(N.Sources.register{name=pair[1],prefixes={pair[2]},counters={}})
+    end
+    _G.WOW_PROJECT_ID=42
+    C_BattleNet.GetGameAccountInfoByID=function(id)
+        return {gameAccountID=id,characterName="Other Player",realmName="Other Realm",factionName="Horde",clientProgram="WoW",
+            isOnline=true,wowProjectID=42,isInCurrentRegion=true}
+    end
+    return N
+end
+local function bnSent()
+    local out={}; for _,s in ipairs(h.sent()) do if s.kind=="BN" then out[#out+1]=s end end; return out
+end
+
+test("BNet queue: single shared thirty per minute cap and one second pace",function()
+    local N=setup()
+    for i=1,40 do
+        local odd=i%2==1
+        yes(N.BNet.send(odd and "alpha" or "beta",71,odd and "AlphaSrc" or "BetaSrc","line"..i,"own"))
+    end
+    eq(#bnSent(),0,"enqueue is not a send")
+    h.advance(.5); eq(#bnSent(),0)
+    h.advance(.5); eq(#bnSent(),1)
+    for _=1,29 do h.advance(1) end; eq(#bnSent(),30)
+    for _=1,30 do h.advance(1) end; eq(#bnSent(),30,"rolling minute is shared across nets")
+    h.advance(1); eq(#bnSent(),31,"exact sixty-second boundary")
+    h.advance(500); eq(#bnSent(),32,"no catch-up burst")
+end)
+
+test("BNet queue: owed answers precede own work FIFO within a priority",function()
+    local N=setup()
+    yes(N.BNet.send("alpha",71,"AlphaSrc","own-a","own"))
+    yes(N.BNet.send("beta",71,"BetaSrc","owed-b","owed"))
+    yes(N.BNet.send("alpha",71,"AlphaSrc","owed-a","owed"))
+    for _=1,3 do h.advance(1) end
+    local s=bnSent(); eq(#s,3); eq(s[1].text,"owed-b"); eq(s[2].text,"owed-a"); eq(s[3].text,"own-a")
+end)
+
+test("BNet queue: unregistered source wrong prefix and dormant PR never send",function()
+    local N=h.load(); yes(N.BNet and type(N.BNet.send)=="function")
+    no(N.BNet.send("alpha",71,"AlphaSrc","line","owed"))
+    for _=1,120 do h.advance(1) end; eq(#bnSent(),0)
+    N=setup(); no(N.BNet.send("alpha",71,"BetaSrc","line","owed")); no(N.BNet.send("alpha",71,"OpenMapLoc","line","owed"))
+    for _=1,120 do h.advance(1) end; eq(#bnSent(),0)
+    eq(N.BNet.queued(),0)
+end)
+
+for _,mode in ipairs({"share","public","switch","combat","instance"}) do
+    test("BNet queue: "..mode.." off refuses and drops pending work before dispatch",function()
+        local N=setup()
+        yes(N.BNet.send("alpha",71,"AlphaSrc","pending","owed"))
+        local function off()
+            if mode=="share" then N.Main.setShare(false)
+            elseif mode=="public" then N.Net.setConsent("guild")
+            elseif mode=="switch" then N.Net.setSwitch("alpha",false)
+            elseif mode=="combat" then h.combat(true) else h.instance(true) end
+        end
+        local function on()
+            if mode=="share" then N.Main.setShare(true)
+            elseif mode=="public" then N.Net.setConsent("public")
+            elseif mode=="switch" then N.Net.setSwitch("alpha",true)
+            elseif mode=="combat" then h.combat(false) else h.instance(false) end
+        end
+        off(); no(N.BNet.send("alpha",71,"AlphaSrc","blocked","owed")); h.advance(1); eq(#bnSent(),0); eq(N.BNet.queued(),0)
+        on(); h.advance(2); eq(#bnSent(),0)
+        yes(N.BNet.send("alpha",71,"AlphaSrc","fresh","owed")); h.advance(1); eq(#bnSent(),1)
+        if mode=="share" or mode=="public" or mode=="switch" then
+            yes(N.BNet.send("alpha",71,"AlphaSrc","cancelled","owed")); off(); on(); h.advance(1); eq(#bnSent(),1)
+        end
+    end)
+end
+
+test("BNet queue: Wire cannot dispatch outside the queue's private delivery",function()
+    local N=setup(); local count=0
+    no(N.Wire.bnet("alpha",71,"AlphaSrc","bypass","owed",function() count=count+1; return 0 end))
+    eq(count,0); eq(#bnSent(),0)
+    yes(N.BNet.send("alpha",71,"AlphaSrc","allowed","owed")); h.advance(1); eq(#bnSent(),1)
+end)
+
+test("BNet queue: failed client send is spent counted and never retried",function()
+    local N=setup(); local count=0
+    -- Independent caller-frame spy for unavailable/refused clients; do not bypass the gate.
+    C_BattleNet.SendGameData=function()
+        count=count+1
+        local level=2; local info=debug.getinfo(level,"S")
+        while info.what=="C" do level=level+1; info=debug.getinfo(level,"S") end
+        eq(info.source,"@LayerEnemies/Wire.lua")
+        return false
+    end
+    yes(N.BNet.send("alpha",71,"AlphaSrc","refused","owed")); h.advance(1); eq(count,1); eq(N.BNet.queued(),0)
+    for _=1,65 do h.advance(1) end; eq(count,1)
+    N.Main.net("net"); yes(table.concat(h.log(),"\n"):find("alpha: heard=0 accepted=0 sent=0 refused=1",1,true))
+end)
+
+test("BNet queue: per-network shares stand-down owed exception and live peer validation",function()
+    local N=setup()
+    yes(N.Sources.register{name="wanted",prefixes={"WNTDB"},counters={}})
+    for _=1,5 do yes(N.BNet.send("wanted",71,"WNTDB","hello","own")) end
+    for _=1,5 do h.advance(1) end; eq(#bnSent(),4)
+    N.Net.LIST.alpha.standDown="Donor"; h.loaded().Donor=true
+    no(N.BNet.send("alpha",71,"AlphaSrc","own","own")); yes(N.BNet.send("alpha",71,"AlphaSrc","owed","owed"))
+    h.advance(1); eq(#bnSent(),5)
+    yes(N.BNet.send("alpha",71,"AlphaSrc","gone","owed")); C_BattleNet.GetGameAccountInfoByID=function() return nil end
+    h.advance(1); eq(#bnSent(),5); eq(N.BNet.queued(),0)
+end)
+
+test("BNet queue: bounds secrets rollback and timer absence fail closed",function()
+    local N=setup()
+    for _,a in ipairs({{h.secret,71,"AlphaSrc","x","owed"},{"alpha",h.secret,"AlphaSrc","x","owed"},
+        {"alpha",71,h.secret,"x","owed"},{"alpha",71,"AlphaSrc",h.secret,"owed"},
+        {"alpha",71,"AlphaSrc","x",h.secret},{"alpha",0,"AlphaSrc","x","owed"},
+        {"alpha",71,"AlphaSrc",string.rep("x",4097),"owed"}}) do no(N.BNet.send(unpack(a))) end
+    for _=1,60 do yes(N.BNet.send("alpha",71,"AlphaSrc","line","own")) end
+    no(N.BNet.send("alpha",71,"AlphaSrc","overflow","own")); eq(N.BNet.queued(),60)
+    h.advance(1); eq(#bnSent(),1); h.clock(h.clock()-10); N.BNet.pump(h.clock()); eq(#bnSent(),1)
+    N=setup(); C_Timer=nil; no(N.BNet.send("alpha",71,"AlphaSrc","timerless","own")); eq(N.BNet.queued(),0)
+end)

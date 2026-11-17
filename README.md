@@ -1,5 +1,101 @@
 # LayerEnemies
 
+## Unreleased - source registry (no behaviour change)
+
+PR 0b adds extension seams, **no registered source, no new discovery scan and no
+Battle.net send**. Presence, Forever Layer Hop and Overlord keep their built
+readers and `Main.lua` wiring; OpenMap's Battle.net path is unchanged. A future
+source must explicitly register and request work before this queue does anything.
+
+Developer interfaces and integration rules:
+
+- `N.Sources.register{ name, prefixes, onAddon, onBNet, tick, counters } -> bool`.
+  Names are lower-case letters (32 bytes); at most 32 sources, 8 prefixes per
+  source, 16 bytes per prefix. Registration is atomic and refuses duplicate names,
+  duplicate prefixes and every prefix already owned by Main's chain. It copies
+  the descriptor; the supplied counter table exposes `heard/accepted/sent/refused`.
+  `onAddon(prefix,text,dist,sender)`, `onBNet(prefix,text,gameAccountId)` and
+  `tick(now)` are optional protected callbacks. No callback exception becomes a
+  runtime-status error. `/le net <name> on|off` uses the existing saved switches;
+  `/le net` appends registered source counters after existing diagnostics.
+- `N.Sources.owns(prefix) -> bool`, `addon(prefix,text,dist,sender) -> bool`,
+  `bnet(prefix,text,gameAccountId) -> bool`, `tick(now)`, `start()` and
+  `lines() -> {string}` are Main's dispatch/lifecycle seams. `has(name)`,
+  `enabled(name)`, `authorized(name,prefix)` and `count(name,counter)` are shared
+  admission/accounting helpers. A separate **1-second** timer starts only after
+  registration: Main's actual inherited heartbeat is 2/5 seconds, not 1 second.
+  Its extra `Sources.tick(now)` call is deduplicated against that timer.
+- `N.Sources.offer(ev) -> bool`, where
+  `ev={name,guid,faction,zone,map,x,y,shard,at,got,kind,net,via}`. `kind` is
+  `self|witness|relayed|cached`; `net` is a registered source name. **Times are
+  monotonic `GetTime()` seconds**: convert wire/server timestamps in the source.
+  `at=nil` means unknown, displayed as such; `got` defaults to receipt time.
+  Own Find names use existing name/realm matching (bare names wildcard, explicit
+  conflicting realms refuse, missing realm stays labelled unconfirmed). A live
+  guild Watch hash also admits the claim; hashes are not proof of exact identity.
+  Untracked input never enters Known. Map-percent coordinates must be in `[0,1]`,
+  supplied as a pair with a map; `zone` may be a zone name or UI map ID. Metadata
+  and original/receipt times survive in Known. Source shard text never becomes
+  an LE layer. All these unverified network observations use the existing claim
+  slot, with their precise evidence kind retained in `evidenceKind` and detail;
+  no new `row.heard`, Ask/Hop target, relay or sound (including later alert polls).
+  `self` positions are labelled enemy, other positions observer. A source with
+  only online-zone presence uses `Presence.note`, not this sighting gate.
+- `N.BNet.peers(now) -> {{id,name,realm,faction,friend,club}}`: on-demand cache,
+  30 seconds, friends first, unique game IDs, returned as copies. Requires online
+  WoW, this project, `isInCurrentRegion=true`, readable character identity. No
+  account names or battle tags. Up to 200 friends / 10 games each; existing
+  club bounds remain 20 communities / 1,000 members each. No scans in combat or
+  instances. `N.BNet.who(gameAccountId) -> {name,realm,faction}|nil` re-reads live
+  client identity; it never trusts an inbound frame's claimed identity.
+- New adapters: `A.clubPeer(clubId,memberId) -> bnetAccountId|nil`,
+  `A.bnGame(gameAccountId) -> {id,name,realm,faction}|nil`,
+  `A.bnAccount(bnetAccountId) -> {id,name,realm,faction}|nil`, and
+  `A.bnFriendGames() -> {identity}|nil`, using the existing `presenceRead` guard.
+  The four presence readers are byte-for-byte unchanged; peer readers need no zone.
+- `N.BNet.send(net,gameAccountId,prefix,text,prio) -> bool`: true means **queued**,
+  not delivered. `prio="owed"|"own"` (default own); owed first, FIFO ties. One
+  60-entry queue, **one frame/second, 30 attempted frames/rolling minute across
+  all networks**, no catch-up burst. Overlord/Wanted/WarBoard shares are 8/4/10
+  per minute; other registered sources share the global 30. A budget wait stays
+  queued; invalidated work and refused/failed client calls are dropped, counted,
+  never retried. Privacy is checked at admission and dispatch; share off, Guild
+  only, network off, combat, instances or unavailable live identity block all
+  sends, including owed answers. Share/consent/switch off cancels held work even
+  if switched on before the next timer. Stand-down alone permits owed answers.
+  A registered source may send only its prefixes; the reserved exception is a
+  future tick-only `overlord` registration sending `OverlordF` without taking its
+  existing receiver. Nothing registers that source here.
+- Queue internals: `BNet.pump(now)`, `cancel([net])`, `queued() -> count`,
+  `allowed(net,id,prefix,text,prio) -> bool` and
+  `dispatching(net,id,prefix,text,prio,fn) -> bool`. `Wire.bnet` has the same six
+  arguments as `dispatching` and invokes the client only during that private
+  delivery. It cannot bypass queue admission. There is exactly one
+  `C_BattleNet.SendGameData` lookup, in BNet's local `deliver`; the actual call
+  occurs in Wire's caller frame. `verify.py` permits this one lookup only there;
+  all legacy BN sends and all other files remain forbidden. The existing
+  `SendAddonMessage` route gate is unchanged.
+
+**Future source files** load immediately before `UI.lua` in the TOC. Add tests as
+`test/src_<name>.lua`; the harness discovers them in sorted order and passes its
+shared fixture table. Use `lua test/harness.lua --only '<literal substring>'` or
+`--only=<substring>`; empty/no matches and unknown arguments fail closed. Old
+`--x-only` spellings remain compatibility aliases for existing mutant scripts.
+Use `python3 test/source_mutants.py` for this seam's mutants only.
+
+**Measured rows, not appended text:** source details belong in the existing Find
+report/detail projection (`Main.findDetails`) before `UI.refresh` builds
+`layouts[e]`. That pass measures with `U.measure`, computes `subHeight`, place /
+presence heights and `layout.height`, then paginates. Rendering consumes only the
+measured strings. A future extra line must be prepared and measured in that same
+pass, never appended after `rowHeight`/paging or by a source's own `SetText` call.
+No UI code or appearance is changed by this seam.
+
+Forever Interface 16001; API declarations checked at build 70938, commit
+`bebcb6bf309cf41b41bd74f8ca651e6a105b2676`. **Native checks not run (alpha, owner's
+decision)**; a readable API identity or accepted send is not proof of live peer
+availability or transport delivery.
+
 ## Unreleased - Forever Layer Hop hosts (receive only)
 
 Without Forever Layer Hop installed, LE listens on `FLHNET2` for the direct
