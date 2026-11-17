@@ -47,7 +47,12 @@ for _,presenceFirst in ipairs({true,false}) do
         _G.C_Club={
             GetSubscribedClubs=function() return {{clubId="504",clubType=0}} end,
             GetClubMembers=function() return {1} end,
-            GetMemberInfo=function() return {name="Cedar Vale",zone="Duskwood",faction=0,presence=1,guid="Player-1-cedar"} end}
+            GetMemberInfo=function() return {name="Cedar#1234",presence=1,bnetAccountId=42} end}
+        _G.C_BattleNet.GetAccountInfoByID=function(id)
+            eq(id,42,"club member resolves through its account")
+            return {gameAccountInfo={characterName="Cedar Vale",realmName="Test Realm",areaName="Duskwood",
+                factionName="Horde",playerGuid="Player-1-cedar",isOnline=true,clientProgram="WoW"}}
+        end
         _G.WOW_PROJECT_ID=11; _G.BNGetNumFriends=function() return 0 end
         _G.C_BattleNet.GetFriendAccountInfo=function() return nil end
         local function scan()

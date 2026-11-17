@@ -1170,16 +1170,22 @@ PASS UI layout: local, Reported and Friendly cards also fit long wrapped details
 PASS UI layout: presence follows measured sighting and OpenMap lines and shrinks on reuse
 PASS UI layout: FLH and LayerSwap provenance is measured before Friendly paging
 PASS UI layout: Overlord guild claims measure complete text and never inherit report actions
+PASS Presence: club character comes from account not member display name
+PASS Presence: account resolution unavailable secret incomplete and non WoW fail silent
 PASS Presence: friends use only online characters in this project and cap 200
 PASS Presence: untracked offline mobile unknown and blank rows store nothing
 PASS Presence: secret fields refuse exactly one row and diagnostic has no names
 PASS Presence: missing erroring and secret APIs or tables are silent
+PASS Presence: reread offline or non WoW drops personal and shared evidence immediately
+PASS Presence: unread members keep TTL and another source keeps its own evidence
+PASS Presence: diagnostic separates unresolved zoneless same faction and unmatched members
 PASS Presence: expiry boundary future clocks and remove clear session state
 PASS Presence: real sighting and OpenMap retain their status and Ask target
 PASS Presence: no roster adapters with empty Find combat instance or unknown safety
 PASS Presence: fifty per tick thousand per club twenty clubs and guild exclusion
 PASS Presence: qualified realm stays exact and bare name matches any realm
 PASS Presence: per name 600 second silent alert uses shared burst throttle
+PASS Presence: Find switches and window opens share one force per 60 seconds
 PASS Presence: automatic 300s cadence and Find opening refresh without overlap
 PASS Presence: UI and slash text show zone age and hide stale pooled line
 PASS Presence: invalid friend realm never falls back to a bare character
@@ -1248,4 +1254,4 @@ PASS Overlord: single guild rampage reaches Reported without a hop
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
-RESULT: 1250 tests passed, 0 failed, 163546 assertions
+RESULT: 1256 tests passed, 0 failed, 168676 assertions

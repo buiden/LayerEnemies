@@ -3,6 +3,7 @@ local _,N=...
 local P,S={},N.Safe
 N.Presence=P
 P.TTL,P.EVERY,P.STEP=660,300,50
+P.OPEN=60
 -- Pinned build 70938 ClubMemberPresence: Online=1, Away=4, Busy=5.
 local function accept(member,route)
     if not S.tab(member) or (route~="community" and route~="friend") then return nil end
@@ -21,7 +22,14 @@ function P.accept(member,route)
     if ok then return record end
 end
 function P.note(st,name,record,now)
-    st.presence[name]={zone=record.zone,route=record.route,faction=record.faction,guid=record.guid,at=now}
+    st.presence[name]={zone=record.zone,route=record.route,faction=record.faction,guid=record.guid,source=record.source,at=now}
+end
+-- A newly read source replaces its old evidence, even when it no longer yields
+-- an online character. Sources not visited retain only their ordinary TTL.
+function P.forget(records,source)
+    for name,r in pairs(records) do
+        if r.source==source then records[name]=nil end
+    end
 end
 function P.sweep(st,now)
     for name,r in pairs(st.presence) do

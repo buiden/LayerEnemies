@@ -80,19 +80,26 @@ messages, chat, Battle.net data, presence subscriptions, or `/who` by name.
 There is no per-community Watch button. No donor addon or donor code is used.
 
 - Reads start every 300 seconds while your personal Find list is nonempty,
-  and when you open the Find tab/window. An active scan is not duplicated.
+  and when you open the Find tab/window. Tab switches and window reopens share
+  a forced-refresh limit of once per 60 seconds. An active scan is not duplicated.
   No roster reads in combat or an instance, or when either safety check is
   unreadable; an in-progress scan stops at its next tick.
 - At most the first 20 subscribed club entries are inspected. Only Battle.net
-  communities are read, never guild/character clubs. Each community contributes
+  communities are read, never guild/character clubs. This is intentional:
+  character communities are same-faction. Each community contributes
   at most 1,000 member IDs, with at most 50 member-info reads per timer tick.
   The friend reader checks at most 200 accounts and only accepts online game
   accounts whose `wowProjectID` equals this client's `WOW_PROJECT_ID`.
-- A readable character name, zone, and opposite faction are required.
-  Community presence must be Online, Away, or Busy. Missing, secret, malformed,
-  or erroring data is silently skipped; no guessed names, factions or zones.
-  Only the documented character fields are read, never account names, battle
-  tags, member notes, or Battle.net account IDs.
+- A readable character name, realm, zone, and opposite faction are required.
+  A community member's `bnetAccountId` is used only for
+  `C_BattleNet.GetAccountInfoByID`; its `gameAccountInfo` supplies the character,
+  realm (`realmName` or `realmDisplayName`), zone and faction. It must be online
+  in `WoW`, and community presence must be Online, Away, or Busy. A club member's
+  display name is never a character match. Account IDs are not saved or printed;
+  no account names, battle tags or member notes are read. Missing, secret,
+  malformed, or erroring resolution fails silently, without a fallback name.
+  Same-faction matches are deliberately dropped: a namesake must never become
+  an enemy claim. The friend route keeps its existing online/project gate.
 - Your personal `Name-Realm` entries require that realm; a bare `Name` accepts
   any realm. OpenMap's existing exact matching is unchanged. Guildmates' shared
   watch hashes can also produce **possible guild watch match** rows, never
@@ -102,25 +109,30 @@ There is no per-community Watch button. No donor addon or donor code is used.
   Find list. Their rows do not change your saved personal list.
 - Presence adds no layer, coordinates, reporter, Ask or Hop target. Existing
   sightings and OpenMap positions keep their own status, age and actions.
-  Evidence expires at 660 seconds (and is dropped on a backwards clock).
-  A skipped/unavailable read does not renew previous evidence. Read age is
-  **not** a guarantee of the server's presence freshness.
+  A reread replaces that source's old evidence immediately, including offline,
+  non-WoW, incomplete or unreadable character results. Only sources not visited
+  keep their old evidence until 660 seconds (or a backwards clock). A source
+  token is session-only (club/member pair or friend-list slot); no account
+  identity is retained. Other-source evidence is not withdrawn by that token.
+  Read age is **not** a guarantee of the server's presence freshness.
 - A newly read match can print one local chat notice per name per 600 seconds,
   through Find's existing three-lines-per-ten-seconds burst throttle. No sound.
   All presence data and notice history are session-only; no new SavedVariables
   player names. Nothing is fed to the guild, relay, host or sighting stores.
 
 `/le presence` prints counts only: clubs read, community members read,
-community members with a readable zone and required fields, accepted matches
-(across both sources), secret refusal flag and refusal count. It never prints
-names or zones and never starts a scan itself. The zone counter does not count
-friend zones, so it cannot mask missing community-zone data.
+resolved to a character, with a zone, opposite faction, matches (all sources),
+secret refusal flag and refusal count. Resolution requires a valid character
+and realm; zone and opposite-faction counts show the later admission stages.
+Thus zero matches is distinguishable from nothing resolvable. The community
+stage counts exclude friends; matches explicitly includes both sources. No
+names or zones are printed, and the diagnostic never starts a scan itself.
 
 The target remains Forever, Interface 16001. Contracts were checked against
 `Gethe/wow-ui-source@bebcb6bf309cf41b41bd74f8ca651e6a105b2676`, build
 `1.60.1.70938`. **Not tested in game (alpha, owner's decision).** Whether
-opposite-faction community name/zone/faction/presence are populated without a
-subscription, how fresh those fields are, and live chat-lockdown restrictions
+opposite-faction community accounts resolve to characters/zones/factions without
+a subscription, how fresh those fields are, and live chat-lockdown restrictions
 remain unknown. The TOC/package version remains 1.1.0 until the release PR.
 
 ## Unreleased - Overlord (receive only)

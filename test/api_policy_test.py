@@ -7,7 +7,7 @@ VERIFY = runpy.run_path(str(Path(__file__).with_name('verify.py')))
 
 
 PRESENCE_READS = {'GetSubscribedClubs', 'GetClubMembers', 'GetMemberInfo',
-                  'BNGetNumFriends', 'GetFriendAccountInfo'}
+                  'BNGetNumFriends', 'GetFriendAccountInfo', 'GetAccountInfoByID'}
 
 
 def presence_policy(source, filename):
