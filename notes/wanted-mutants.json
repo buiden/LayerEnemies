@@ -724,7 +724,7 @@
     "rule": "no saved evidence",
     "killed": true,
     "failures": [
-      "FAIL Wanted: bounded dedupe evictions do not save evidence or new names: test/src_wanted.lua:130: no evidence or name writes to saved state: expected \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy OnerautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006, got \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy One\ufffdwantedName\ufffdWitness PlayerrautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006"
+      "FAIL Wanted: bounded dedupe evictions do not save evidence or new names: test/src_wanted.lua:130: no evidence or name writes to saved state: expected \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy OnerautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`BnetsF\"hh`bwanted`\ufffdchehulnet`\"we`roptions\u0006, got \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy One\ufffdwantedName\ufffdWitness PlayerrautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`BnetsF\"hh`bwanted`\ufffdchehulnet`\"we`roptions\u0006"
     ]
   }
 ]
