@@ -174,6 +174,11 @@ class SendGateTests(unittest.TestCase):
                     error = self.gate_error(altered, 'Wire.lua', replace=statement)
                     self.assertIsNotNone(error, 'source gate accepted an altered presence statement')
                     self.assertIn('chat presence statement must appear exactly once', error or '')
+            for suffix in (' and true', ' or false', ' .. "x"', ' + 1', ', replacement'):
+                with self.subTest(statement=statement, mutation='suffix ' + suffix):
+                    error = self.gate_error(statement + suffix, 'Wire.lua', replace=statement)
+                    self.assertIsNotNone(error, 'source gate accepted an extended presence statement')
+                    self.assertIn('chat presence statement must appear exactly once', error or '')
             with self.subTest(statement=statement, mutation='outside owner'):
                 self.assertIsNotNone(self.gate_error(statement, 'Main.lua'))
 
@@ -271,6 +276,72 @@ class SendGateTests(unittest.TestCase):
                        'local note=[==[ BNSendWhisper ]=] ]==]; BNChannelSendMessage(...)'):
             with self.subTest(source=source):
                 self.assertIsNotNone(self.gate_error('if false then ' + source + ' end'))
+
+
+class ImmutableHookGuardPolicyTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.sources = {p.name: p.read_text() for p in sorted((verify.ROOT / 'LayerEnemies').glob('*.lua'))}
+
+    def refuse(self, code, filenames):
+        # Compile each plant once, then exercise the real policy against each
+        # complete shipped module. A missing Wire fixture cannot mask a binding.
+        plant = '\nif false then ' + code + ' end\n'
+        subprocess.run([str(verify.LUAC), '-p', '-'], input=plant, text=True, capture_output=True, check=True)
+        for filename in filenames:
+            with self.subTest(filename=filename, code=code):
+                with self.assertRaisesRegex(AssertionError, 'pcall|hooksecurefunc'):
+                    verify.check_send_policy(self.sources[filename] + plant, filename)
+
+    def test_no_shipped_file_rebinds_hook_guards(self):
+        self.assertIn('Wire.lua', self.sources)
+        for filename, source in self.sources.items():
+            with self.subTest(filename=filename):
+                verify.check_send_policy(source, filename)
+
+    def test_guard_assignments_are_rejected_in_every_addon_file(self):
+        for name in ('pcall', 'hooksecurefunc'):
+            for lhs in (name, '_G.' + name, '_G["' + name + '"]'):
+                self.refuse(lhs + ' = function(...) end', self.sources)
+
+    def test_folded_guard_keys_and_multiple_assignments_are_rejected(self):
+        for name in ('pcall', 'hooksecurefunc'):
+            forms = (name, '_G.' + name, "_G['" + name + "']",
+                     '_G["' + name[:2] + '".."' + name[2:] + '"]',
+                     '_G[ [=[' + name + ']=] ]',
+                     '_G["\\' + str(ord(name[0])).zfill(3) + name[1:] + '"]')
+            for lhs in forms:
+                for code in (lhs + ' = replacement', lhs + ', other = replacement, nil',
+                             'other, ' + lhs + ' = nil, replacement'):
+                    self.refuse(code, ('Wire.lua', 'Main.lua', 'Adapters.lua'))
+
+    def test_guard_declarations_parameters_and_loop_bindings_are_rejected(self):
+        for name in ('pcall', 'hooksecurefunc'):
+            for code in (
+                    'local ' + name,
+                    'local other, ' + name + ' = nil, replacement',
+                    'local function ' + name + '(...) end',
+                    'function ' + name + '(...) end',
+                    'function _G.' + name + '(...) end',
+                    'local function f(' + name + ') end',
+                    'local f = function(other, ' + name + ') end',
+                    'for ' + name + ' = 1, 2 do end',
+                    'for other, ' + name + ' in pairs({}) do end'):
+                self.refuse(code, ('Wire.lua', 'Main.lua', 'Adapters.lua'))
+
+    def test_real_calls_and_inert_guard_names_remain_allowed(self):
+        code = '''
+            pcall(function() end)
+            hooksecurefunc("GetTime", function() end)
+            _G.hooksecurefunc("GetTime", function() end)
+            local hookPresent = type(S.clean(_G.hooksecurefunc)) == "function"
+            local note = 'local pcall, hooksecurefunc = replacement, replacement'
+            -- _G.pcall = replacement; _G["hooksecurefunc"] = replacement
+            --[=[ function pcall() end; function hooksecurefunc() end ]=]
+        '''
+        for filename in ('Wire.lua', 'Main.lua', 'Adapters.lua'):
+            with self.subTest(filename=filename):
+                verify.check_send_policy(self.sources[filename] + '\n' + code, filename)
 
 
 class WhisperHookPolicyTests(unittest.TestCase):

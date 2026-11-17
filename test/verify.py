@@ -205,15 +205,25 @@ def check_chat_namespace(tokens, filename):
 
 def check_send_policy(source, filename):
     tokens = lua_tokens(source)
-    # Reserve pcall for bare invocations in Wire: no declarations, parameters,
-    # loop bindings, assignments or member aliases can replace the hook guard.
-    if filename == 'Wire.lua':
-        for at, word in lua_references(tokens):
-            if word == 'pcall':
-                assert (tokens[at] == ('name', 'pcall') and
-                        tokens[at + 1:at + 2] == [('symbol', '(')] and
-                        tokens[at - 1:at] not in ([('name', 'function')], [('symbol', '.')], [('symbol', ':')])), \
-                    'pcall must be an unbound bare invocation in Wire.lua'
+    # Reserve both hook guards in EVERY addon file, before exempting any spans.
+    # Bare calls cannot be Lua bindings; hooksecurefunc also has the existing
+    # _G call, protected-call argument and S.clean inspection forms. Everything
+    # else (declarations, parameters, loop/multiple assignments, folded keys,
+    # member aliases) fails closed instead of trying to infer lexical scope.
+    for at, word in lua_references(tokens):
+        if word not in ('pcall', 'hooksecurefunc'):
+            continue
+        following = tokens[at + 1:at + 2]
+        allowed = (tokens[at] == ('name', word) and following == [('symbol', '(')] and
+                   tokens[at - 1:at] not in ([('name', 'function')], [('symbol', '.')], [('symbol', ':')]))
+        if (word == 'hooksecurefunc' and tokens[at - 2:at] == [('name', '_G'), ('symbol', '.')] and
+                tokens[at - 3:at - 2] not in ([('name', 'function')], [('symbol', '.')], [('symbol', ':')])):
+            allowed = (following == [('symbol', '(')] or
+                       (tokens[at - 4:at - 2] == [('name', 'pcall'), ('symbol', '(')] and
+                        following == [('symbol', ',')]) or
+                       (tokens[at - 6:at - 2] == [('name', 'S'), ('symbol', '.'), ('name', 'clean'), ('symbol', '(')] and
+                        following == [('symbol', ')')]))
+        assert allowed, word + ' must remain an unbound hook guard in ' + filename
     # Only these two protected post-hook registrations may expose a chat namespace.
     # Each must appear exactly once; extra copies are not additional permissions.
     for registration in ('pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)',
@@ -232,7 +242,11 @@ def check_send_policy(source, filename):
             'local modernAbsent = not S.tab(C_ChatInfo) or S.call(function() return C_ChatInfo.SendChatMessage == nil end) == true',
             'local legacyAbsent = S.call(function() return _G.SendChatMessage == nil end) == true'):
         probe = lua_tokens(statement)
-        sites = [i for i in range(len(tokens) - len(probe) + 1) if tokens[i:i + len(probe)] == probe]
+        # A matching prefix of a longer RHS is not the reviewed full statement.
+        continuations = {'and', 'or', '..', '+', '-', '*', '/', '%', '^', '<', '>', '~', '=', ','}
+        sites = [i for i in range(len(tokens) - len(probe) + 1)
+                 if tokens[i:i + len(probe)] == probe and
+                 (i + len(probe) == len(tokens) or tokens[i + len(probe)][1] not in continuations)]
         if filename == 'Wire.lua':
             assert len(sites) == 1, 'chat presence statement must appear exactly once in Wire.lua: ' + statement
         for i in reversed(sites):

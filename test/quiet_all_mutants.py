@@ -56,7 +56,7 @@ MUTANTS = [
     ('review-S2-overflow-lifetime', WIRE, 'if #manualWhispers >= 16 then manualProtectAll = now; return end', 'if #manualWhispers >= 16 then table.remove(manualWhispers, 1) end'),
     ('review-S2-full-ledger', WIRE, 'if manualProtectAll or #manualWhispers >= 16 then return true end', 'if manualProtectAll then return true end'),
     ('review-S3-exact-once', GATE, "assert len(sites) == 1, 'chat post-hook must appear exactly once in Wire.lua: ' + registration", "assert len(sites) >= 1, 'chat post-hook must appear exactly once in Wire.lua: ' + registration"),
-    ('review-S3-no-pcall-binding', GATE, "if word == 'pcall':", 'if False:'),
+    ('review-S3-no-pcall-binding', GATE, "if word not in ('pcall', 'hooksecurefunc'):", "if word not in ('hooksecurefunc',):"),
 ]
 
 
