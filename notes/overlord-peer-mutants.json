@@ -229,7 +229,10 @@
       "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: emitted capability claim: expected false, got true",
       "FAIL Overlord peer: donor loading cancels queued owed answers and gateway bypass: emitted capability claim: expected false, got true",
       "FAIL Overlord peer: path target loop and malformed assemblies never learn routes: emitted capability claim: expected false, got true",
-      "FAIL Overlord peer: pure peer announces own truthful identity and answers targeted NH: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL Overlord peer: pure peer announces own truthful identity and answers targeted NH: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Overlord peer: rotation skips a member marked offline for one hour: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: rotation survives member five going offline for three hours: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: rotation canonicalizes a home-realm-qualified member: emitted capability claim: expected false, got true"
     ],
     "killed": true,
     "rule": "own identity"

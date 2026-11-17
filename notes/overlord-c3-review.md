@@ -1,4 +1,7 @@
-# C3 reviewer rulings — corrected engine, feed unavailable
+# Historical C3 reviewer rulings — corrected engine, feed unavailable
+
+Superseded by the owner-approved NH-free build. Current checkpoint, sends and
+verification are in `overlord-c3-completion.md`; the record below is historical.
 
 Base for this separately openable C3: corrected C2 `a72c529d2c0c4d8ad87c9014293e6c5f017788d9` (`fix/c2`, `le-1.2.0-c2-overlord-peer`). C3 is on `fix/c3`; production/test/doc commit verified below: `d4c16ad8c88bc9ef6ee5deadd433eeb42c886ba1`. The following evidence-only commit is the C3 head/tag. Original C3 `cef328ac` is retained by `backup/overlord-c3-review`; only its implementation commit was rebuilt, not its obsolete evidence claims.
 
