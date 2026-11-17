@@ -30,7 +30,7 @@ MUTANTS = [
     ('no-csv-validation', 'FLH.lua', 'for key in (value..","):gmatch("([^,]*),") do if not FL.key(key) then return nil end end', 'for key in (value..","):gmatch("([^,]*),") do if false then return nil end end'),
     ('no-prefix-registration', 'Main.lua', 'S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FLHNET2") -- legacy receive owner; F2 sends through Wire', '-- receive registration missing'),
     ('no-prefix-dispatch', 'Main.lua', 'if prefix=="FLHNET2" then return M.flhIn(text,kind,sender) end', '-- dispatch missing'),
-    ('channel-presence', 'Main.lua', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER"', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" and kind~="CHANNEL"'),
+    ('channel-presence', 'Main.lua', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return end\n    if not M.heard', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" and kind~="CHANNEL" then return end\n    if not M.heard'),
     ('requests-become-hosts', 'Main.lua', '(msg.cmd~="HI" and msg.cmd~="WR" and msg.cmd~="CA")', '(msg.cmd~="HI" and msg.cmd~="WR" and msg.cmd~="CA" and msg.cmd~="WP" and msg.cmd~="CQ")'),
     ('answer-received-lines', 'Main.lua', 'local msg=N.FLH.decode(text)', 'N.Wire.send("FLHNET2","WR|42|1234|0.1.3|100|8|0","WHISPER",sender)\n    local msg=N.FLH.decode(text)'),
     ('own-echo-host', 'Main.lua', 'if not A.ownIdentity() or M.isMe(sender) or A.ignored(sender) then return end', 'if not A.ownIdentity() or A.ignored(sender) then return end'),
