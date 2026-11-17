@@ -37,3 +37,9 @@ owner's decision); UI geometry uses width-aware harness metrics.
 Rulings: reuse the assigned clone/ledger and retain previous evidence; implement
 this explicit reviewer UI correction directly; keep the existing 1.1.0 package
 version while preparing the 1.2.0 stack. No inherited assertion weakened.
+
+## Level 4: forward merge from corrected presence
+
+Only `notes/test-results.txt` and `notes/verification.json` conflicted; regenerated
+both. Production, tests and README auto-merged. Full verify: **1276 passed,
+0 failed, 160562 assertions**, all syntax/static/package/source parity gates pass.

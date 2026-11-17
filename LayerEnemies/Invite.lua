@@ -124,6 +124,11 @@ local function addSource(c,label)
     c.sources[#c.sources+1]=label
 end
 local function better(a,b)
+    -- Layerless FLH-only claims must not displace real layer rows at the cap.
+    -- Keep the existing reporter and known-layer ordering otherwise.
+    local af=a.flhKey~=nil and not a.layer and not a.reporter
+    local bf=b.flhKey~=nil and not b.layer and not b.reporter
+    if af~=bf then return not af end
     if (a.probably==true)~=(b.probably==true) then return not a.probably end
     if a.reporter~=b.reporter then return a.reporter end
     if a.host~=b.host then return a.host end
@@ -167,6 +172,27 @@ function I.collect(env)
     end
     source("Bulo","bulo",env.bulo,I.BULO_STALE)
     source("LayerSwap","book",env.book,I.BOOK_FRESH)
+    -- FLH's GUID field 5 is a fingerprint claim, not a server key. Merge only
+    -- the player's identity/provenance; never promote it to layer/uid or a
+    -- LayerSwap/Bulo host flag. Automated FLH hopping belongs to PR 3b.
+    local flhCount=0
+    if env.self and S.num(env.wall) and S.num(env.zone) and S.tab(env.flh) then
+        for _,e in pairs(env.flh) do
+            local name,key=I.name(e.name)
+            local age=env.wall-e.at
+            if name and key~=env.self and e.map==env.zone and age>=0 and age<N.Hosts.FLH_KEEP then
+                local c=byName[key]
+                if not c then
+                    c={name=name,short=key,age=age,host=true,hosts={},sources={},unknownOwn=not env.ownKey or nil}
+                    byName[key]=c
+                end
+                c.flhKey,c.flhAge=e.key,age
+                c.hosts.FLH=true; addSource(c,"Forever Layer Hop")
+                flhCount=flhCount+1
+            end
+        end
+    end
+    status.flh=flhCount.." fresh in this zone (receive only)"
     local reports=0
     if env.self and S.num(env.now) then
         for _,r in ipairs(env.reporters or {}) do

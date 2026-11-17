@@ -90,6 +90,19 @@ was explicitly migrated to the owner's 60-second contract. No test was removed.
 Forward merges retain this record; each level regenerates its own
 `notes/test-results.txt` and `notes/verification.json`.
 
+### Forward integration — level 4
+
+- Merged corrected level 3 into `stack/4-flh` with `--no-ff`.
+- Only conflicts: `notes/test-results.txt`, `notes/verification.json`. Production
+  and test code auto-merged; FLH/Hosts and the FLH test file are unchanged from
+  the old level-4 head. Generated notes were replaced by a fresh full verify.
+- First verify's tests passed, but its later `git diff --check` refused unresolved
+  markers in verification metadata. Resolved the generated-note conflicts and
+  reran the full unchanged gate; no code or assertion change was needed.
+- Final: `RESULT: 1223 tests passed, 0 failed, 153365 assertions`, exit 0.
+- Archive SHA-256:
+  `f921e3f2beb8853c4d232645d6224c091410b869eb8a8292fae4d3da97c404a6`.
+
 ## Result and boundaries
 
 - Four protected adapters, pure `Presence.lua`, incremental Main scan, independent

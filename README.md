@@ -1,5 +1,47 @@
 # LayerEnemies
 
+## Unreleased - Forever Layer Hop hosts (receive only)
+
+Without Forever Layer Hop installed, LE listens on `FLHNET2` for the direct
+`HI`, `WR` and `CA` presence lines on GUILD, PARTY, RAID and WHISPER. Only
+an explicit host flag of `1` with a readable map and fingerprint adds a host.
+Flag `0` or a well-formed unknown place removes that sender's previous FLH
+host. Other sources for the same player are left alone. Malformed and unknown
+lines are silently ignored, as are ignored players, our own echo, combat and
+instance traffic, and unreadable identity/context.
+
+Hosts appear in **Friendly** and `/le hosts` for your current zone, labelled
+**Forever Layer Hop** and **FLH key … (claim, … ago)**. This is same-faction
+host presence, not an enemy sighting. The decimal fingerprint is GUID field 5
+(zoneUID), **not** the field-3 server key used by LayerSwap/Bulo. LE keeps it
+separate: no invented server layer, no same/other-layer inference from FLH,
+and no promotion to a LayerSwap host. If another source already lists the
+same whole player name, the row keeps that source's server layer and age,
+with the FLH claim and its age alongside it. Long fingerprints are abbreviated
+with `...` in the display only; their stored spelling is unchanged.
+
+FLH presence is session-only, bounded to 64 hosts, and removed at **180 seconds**
+from receipt (also on clock rollback). Unknown own layer still shows the host
+with the existing action-disabled hint. An FLH-only row has the existing manual
+**Ask for invite** flow once your layer is known; it does not offer an automatic
+FLH hop. Same-layer filtering from other, comparable sources still applies.
+
+**No new sends, joins, scans or SavedVariables.** Registration is for receive
+only; the outgoing route allowlist is unchanged. The decoder also understands
+`WP`, `CQ`, `LQ`, `LO`, `LR` and `LN`, but none is answered, used to select an
+invite, or added as a host in this slice. Both `|` and `:` delimiters work;
+empty positions stay in place and optional `KEY=value` metadata is ignored.
+Lines over 255 bytes, invalid numeric fields and non-decimal fingerprints are
+refused. The version string is not a compatibility gate.
+
+In practice this slice hears guild/group broadcasts: it sends no discovery or
+membership traffic, so it cannot expect unsolicited whisper answers. Automatic
+FLH membership and hop requests belong to PR 3b, after hop fan-out integration.
+Protocol interoperation only, no donor code copied; see [THIRD_PARTY.md](THIRD_PARTY.md).
+**Not tested in game (alpha, owner's decision).** Actual host availability,
+Forever transport-name spelling and native text layout remain unverified.
+
+
 WoW Forever addon 1.1.0, Interface 16001, Lua 5.1.
 
 Find a tracked enemy through your own sightings or possible War Effort hash

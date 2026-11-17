@@ -180,3 +180,17 @@ test("UI layout: presence follows measured sighting and OpenMap lines and shrink
     rows={{name="Cedar Vale"}}; U.render(); rowFits(U.pool[1],U)
     no(U.pool[1].presence:IsShown()); eq(U.body.height,300); yes(U.pool[1].clear:IsShown())
 end)
+
+test("UI layout: FLH and LayerSwap provenance is measured before Friendly paging",function()
+    local N=H.load(); H.establish(N); local U,M=N.UI,N.Main
+    local row={name="Cedar Vale",short="cedar vale",sources={"BuloLayerForever","LayerSwap guild host","Forever Layer Hop"},
+        host=true,hosts={FLH=true},layer="7102",flhKey=string.rep("9",100),flhAge=179,age=30}
+    M.candidates=function() return {row,{name="Elm Grove",short="elm grove",sources={"guild"},unknownOwn=true}} end
+    U.toggle(); U.select("friendly"); rowFits(U.pool[1],U); header(U,false)
+    yes(U.pool[1].sub:GetText():find("FLH key "..string.rep("9",20).."...",1,true))
+    yes(U.pool[1].sub:GetText():find("layer 7102",1,true))
+    local tall=U.pool[1].height
+    row.flhKey=nil; row.sources={"guild"}; U.render(); rowFits(U.pool[1],U)
+    yes(U.pool[1].height<tall,"pooled card shrinks after FLH expires")
+    no(U.pool[1].sub:GetText():find("FLH key",1,true))
+end)

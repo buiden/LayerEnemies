@@ -191,7 +191,7 @@ function U.render()
             if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0) end
             return e.place and 146 or e.at and 106 or 76
         end
-        return U.tab=="local" and 48 or U.tab=="friendly" and 68 or 80
+        return U.tab=="local" and 48 or U.tab=="friendly" and (e.flhKey and 104 or 68) or 80
     end
     -- Measure the actual strings before paging, not an assumed line count for
     -- each evidence slot. One hidden FontString serves every row in the pool.
@@ -204,12 +204,12 @@ function U.render()
         elseif U.tab=="reported" then
             text="reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or "")
         elseif U.tab=="friendly" then
-            text=table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.layer and "layer "..e.layer or "layer not known")
+            text=table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.flhKey and M.hostPlace(e) or (e.layer and "layer "..e.layer or "layer not known"))
         else
             text=M.findDetails(e) or (e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or ((e.place or e.presence) and "" or "Not located"))
             if e.probably and detailHeight==0 then text=text.." · probably your layer (key ambiguous)" end
         end
-        local minimum=U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or 24
+        local minimum=U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or (U.tab=="friendly" and e.flhKey) and 60 or 24
         U.measure:SetWidth(U.tab=="friendly" and 200 or 294); U.measure:SetText(text)
         local layout={text=text,subHeight=fitText(U.measure,minimum)}
         local bottom=26+layout.subHeight

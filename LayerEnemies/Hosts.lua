@@ -5,9 +5,10 @@ local S = N.Safe
 local Hs = {}
 N.Hosts = Hs
 Hs.KEEP, Hs.MAX = 720, 64
+Hs.FLH_KEEP = 180
 
 Hs.ASK_EVERY = 60
-function Hs.new() return { heard = {}, askedAt = nil } end
+function Hs.new() return { heard = {}, flhHosts = {}, askedAt = nil } end
 
 -- ask(st, now, inGuild) -> ok, message. One LFSw "Q" on GUILD: Bulo users in the guild answer with their own layer
 -- line within 1 to 6 s (each at most once per 60 s, so a faster question is wasted). Only from a click.
@@ -35,6 +36,30 @@ end
 function Hs.prune(st, wall)
     if not S.num(wall) then return end
     for name, e in pairs(st.heard) do if wall - e.at >= Hs.KEEP then st.heard[name] = nil end end
+    for key,e in pairs(st.flhHosts) do
+        if wall<e.at or wall-e.at>=Hs.FLH_KEEP then st.flhHosts[key]=nil end
+    end
+end
+
+-- Passive FLH presence, never a LayerSwap reply. nil withdraws only this source.
+-- Map and decimal zoneUID stay separate from the server-key namespace.
+function Hs.flh(st,name,claim,wall)
+    local _,key,target=N.Invite.name(name)
+    if not key or not S.num(wall) then return false end
+    Hs.prune(st,wall)
+    if claim==nil then st.flhHosts[key]=nil; return false end
+    if not S.tab(claim) then return false end
+    local map,layer=S.num(claim.map),N.FLH.key(claim.key)
+    if not map or map<1 or map%1~=0 or not layer then return false end
+    if not st.flhHosts[key] and S.count(st.flhHosts)>=Hs.MAX then
+        local oldest
+        for k,e in pairs(st.flhHosts) do
+            if not oldest or e.at<st.flhHosts[oldest].at then oldest=k end
+        end
+        st.flhHosts[oldest]=nil
+    end
+    st.flhHosts[key]={name=target,map=map,key=layer,at=wall}
+    return true
 end
 
 -- heard(st, name, reply, wall): reply is a Hop.reply table from the player we asked (Hop.receive already checked
