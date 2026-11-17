@@ -22,7 +22,7 @@ end
 local function row(N) return N.Main.findRows()[1] end
 local function dbCheck(N)
     local allowed={options=true,tracked=true,position=true,guildHost=true,consent=true,nets=true,share=true,call=true,callArt=true,
-        netNotice=true,autoHop=true,weReportId=true,findShare=true,findNotice=true}
+        netNotice=true,autoHop=true,weReportId=true,findShare=true,findNotice=true,warboardOwed=type(LayerEnemiesDB.warboardOwed)=="table" and #LayerEnemiesDB.warboardOwed<=40}
     for k in pairs(LayerEnemiesDB) do yes(allowed[k],"configuration only: "..tostring(k)) end
     local seen={}
     local function walk(t)

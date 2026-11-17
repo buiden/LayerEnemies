@@ -1,4 +1,4 @@
--- Extension seams only: no source is registered by this release.
+-- Shared extension seams; source modules register themselves explicitly.
 local _,N=...
 local Src,S={},N.Safe
 N.Sources=Src
@@ -13,7 +13,7 @@ function Src.owns(prefix) return S.str(prefix,16)~=nil and owners[prefix]~=nil e
 function Src.enabled(name) return Src.has(name) and N.Net.switch(name) end
 function Src.count(name,key)
     local r=S.str(name,32) and sources[name]
-    if r and (key=="heard" or key=="accepted" or key=="sent" or key=="refused") then
+    if r and (key=="heard" or key=="accepted" or key=="sent" or key=="refused" or key=="deduped") then
         r.counters[key]=(S.num(r.counters[key]) or 0)+1
     end
 end
@@ -43,10 +43,10 @@ local function register(r)
         if not prefix or legacy[prefix] or owners[prefix] or seen[prefix] then return false end
         seen[prefix]=true; copy.prefixes[#copy.prefixes+1]=prefix
     end
-    for _,key in ipairs({"heard","accepted","sent","refused"}) do copy.counters[key]=0 end
+    for _,key in ipairs({"heard","accepted","sent","refused","deduped"}) do copy.counters[key]=0 end
     sources[name]=copy; order[#order+1]=copy
     for _,prefix in ipairs(copy.prefixes) do owners[prefix]=copy end
-    -- Registration opts in a future network, not any network in this PR.
+    -- Registration opts in this source's switch without altering legacy readers.
     if not N.Net.LIST[name] then N.Net.LIST[name]={name=name}; N.Net.SHIP[name]=true end
     if started then Src.start() end
     return true
@@ -65,15 +65,24 @@ end
 function Src.bnet(prefix,text,id)
     if not Src.owns(prefix) or S.secret(text) or not S.num(id) or id<1 or id%1~=0 then return false end
     local r=owners[prefix]
-    if not Src.enabled(r.name) or type(text)~="string" or #text>4096 then return false end
+    if type(text)~="string" or #text>4096 then return false end
+    local cleanup=r.name=="warboard" and N.WarBoardTrack and N.WarBoardTrack.hasOwed()
+        and (text:match("^WBF1|[HA]|") or N.WarBoardTrack.owedAccount(id)
+            or (N.WarBoard and N.WarBoard.state.peers[id]))
+    if not Src.enabled(r.name) and not cleanup then return false end
     Src.count(r.name,"heard"); return call(r,"onBNet",prefix,text,id)
 end
 function Src.tick(now)
     now=S.num(now)
     if not now or (last and now-last<1) then return end
     last=now
-    if N.Adapters.inCombat() or N.Adapters.inInstance()~=false then return end
-    for _,r in ipairs(order) do if Src.enabled(r.name) then call(r,"tick",now) end end
+    if N.Adapters.inCombat() or N.Adapters.inInstance()~=false then
+        if N.WarBoardTrack then N.WarBoardTrack.stop() end
+        return
+    end
+    for _,r in ipairs(order) do
+        if Src.enabled(r.name) or (r.name=="warboard" and N.WarBoardTrack and N.WarBoardTrack.hasOwed()) then call(r,"tick",now) end
+    end
 end
 local function pulse()
     timer=false
@@ -106,7 +115,7 @@ local kinds={self="said by own client",witness="seen by witness",relayed="via re
 local function offer(ev)
     local M,A,F=N.Main,N.Adapters,N.Find
     if not S.tab(ev) or not M or not M.find or A.inCombat() or A.inInstance()~=false then return false end
-    for _,key in ipairs({"name","guid","faction","zone","map","x","y","shard","at","got","kind","net","via"}) do
+    for _,key in ipairs({"name","guid","faction","zone","map","x","y","shard","at","got","kind","net","via","note","tag","clear","expiresAt","pos"}) do
         if S.secret(ev[key]) then return false end
     end
     local net,kind=S.str(ev.net,32),S.str(ev.kind,16)
@@ -140,15 +149,29 @@ local function offer(ev)
     local guid,faction,shard,via=S.str(ev.guid,160),S.str(ev.faction,16),S.str(ev.shard,80),N.Invite.name(ev.via)
     if (ev.guid~=nil and not guid) or (ev.faction~=nil and faction~="Horde" and faction~="Alliance")
         or (ev.shard~=nil and not shard) or (ev.via~=nil and not via) then return false end
+    local note,tag=S.str(ev.note,360),S.str(ev.tag,16)
+    local expires=S.num(ev.expiresAt)
+    if (ev.note~=nil and not note) or (ev.tag~=nil and not tag)
+        or (ev.pos~=nil and ev.pos~="enemy" and ev.pos~="observer")
+        or (ev.clear~=nil and type(ev.clear)~="boolean")
+        or (ev.expiresAt~=nil and (not expires or expires<=got or expires>at+N.Known.TTL)) then return false end
+    if ev.clear then
+        if not tag then return false end
+        N.Known.withdraw(M.find.known,net,name,tag,now)
+        Src.count(net,"accepted"); if N.UI then N.UI.refresh() end
+        return true
+    end
     local detail=net.." "..kind..": "..kinds[kind].." (claim)"
-    if x and kind~="self" then detail=detail.." · seen near observer" end
+    if x and kind~="self" and ev.pos~="enemy" then detail=detail.." · seen near observer" end
     if zoneText then detail=detail.." · "..zoneText end
     if shard then detail=detail.." · shard "..shard.." (source key)" end
     if ev.at==nil then detail=detail.." · time unknown" end
+    if note then detail=detail.." · "..note end
     F.report(M.find,{sender=via or name,zone=zone,at=at,now=now,enemies={{name=name}},source=net,
         kind="claim",relayed=kind=="relayed" or kind=="cached",detail=detail,x=x,y=y,
-        pos=kind=="self" and "enemy" or "observer",ns="unknown",
-        observedAt=ev.at,got=got,evidenceKind=kind,guid=guid,faction=faction,shard=shard,map=map},M.homeRealm())
+        pos=ev.pos or (kind=="self" and "enemy" or "observer"),ns="unknown",
+        observedAt=ev.at,got=got,evidenceKind=kind,guid=guid,faction=faction,shard=shard,map=map,
+        expiresAt=expires,evidenceTag=tag},M.homeRealm())
     Src.count(net,"accepted")
     if N.UI then N.UI.refresh() end
     return true
@@ -165,7 +188,7 @@ function Src.lines(name)
     for _,r in ipairs(order) do
         if name==nil or name==r.name then
             local c=r.counters
-            out[#out+1]=r.name..": heard="..c.heard.." accepted="..c.accepted.." sent="..c.sent.." refused="..c.refused
+            out[#out+1]=r.name..": heard="..c.heard.." accepted="..c.accepted.." sent="..c.sent.." refused="..c.refused.." deduped="..c.deduped
             -- Only an explicit /le net <source> asks for bounded extra diagnostics.
             if name and r.status and Src.enabled(name) then
                 pcall(function()
