@@ -7,6 +7,10 @@ Local clone `/opt/data/cache/scratch/le-wanted`, branch `feat/wanted-receive`, p
 Round-1 follow-up base: `108fb6f0cb1c8f46e3c61dd392ed1b6522f7c51a`. Owner rulings
 S1/S2/S3/N6 supersede the original receive bounds below. Reviewer verdict and
 probes under `/opt/data/profiles/mani/cache/scratch/d120` were read only.
+Round-2 follow-up base: `8da62639d5220f474da3cb45c6ef17d4902da642`. The owner's
+S4 ruling supersedes round-1 replay-cap refusal; historical results below are
+labelled by round. Round-2 changes only Wanted.lua, Wanted tests, this README
+section and notes; no push or installed-client action is authorized.
 
 ## Delivered
 
@@ -77,9 +81,15 @@ probes under `/opt/data/profiles/mani/cache/scratch/d120` were read only.
 - Locations expire at 3600 seconds from observation (receipt only for E/S), reject
   any future wire time. Replay ledger <=512, <=32 per canonical transport sender
   across addon routes and packet/record kinds, <=256 non-guild (256 guild-reserved).
-  Record origins cannot multiply a carrier's allowance. Refuse on any full quota,
-  no live eviction: a busy sender may wait up to one hour for its own quota to
-  expire; this preserves duplicate age but does not freeze other senders.
+  Record origins cannot multiply a carrier's allowance. Prune expired IDs, then
+  admit new accepted evidence by evicting oldest admissions in the saturated
+  sender pool, non-guild pool, and global pool, in that order. A monotonic ordinal
+  resolves same-clock ties independently of record observation/expiry time.
+  Duplicates still remembered never refresh age/order. Failed or untracked input
+  never evicts live IDs. `Wanted replay: evicted=N` in `/le net wanted` counts
+  every displacement; ordinary expiry and refusal are not evictions.
+  Cost: an evicted sighting ID can be accepted again inside its old one-hour
+  lifetime. Records still use their original observation time and expiry.
 - Rate identities <=128 **per lane** (guild, whisper, channel, BNet), idle expiry
   120s, fixed minute caps addon60 per sender per route / BNet30 per game ID. WNTD
   tags/routes/basic shapes and numbered BNet shapes validate before sender entry
@@ -147,7 +157,8 @@ The Wanted README section documents the new bounds and their trade-offs.
 - **S3:** two open assemblies per canonical sender, 16 global, eight guild-reserved;
   replay memory 512 global, 32 per transport sender, 256 guild-reserved. Sender
   ownership crosses addon routes and packet/record kinds; forged origins cannot
-  multiply quota. No live replay identity is evicted. Expiry releases quotas.
+  multiply quota. At round 1 no live replay identity was evicted; expiry released
+  quotas. S4 below replaces that refusal policy with counted oldest-ID eviction.
 - **N6:** any numeric patch in exactly 1.29.x, including .0 and multi-digit patches;
   old/other minors, majors and suffixes remain refused. No outgoing version claim.
 - **N7:** mutant output normalizes Lua object addresses and writes only changed
@@ -205,10 +216,10 @@ the harness's outer 420-second tool deadline; these partial runs are not reporte
 as complete gates. Long gates run in the foreground of a tracked PTY shell,
 without `&`, with durable exit results.
 
-The unchanged reviewer stress case with 20 guildmates, one sighting every seven
-seconds for 70 minutes, remains 597/600 (global 512-entry lifetime capacity).
-These fixes isolate individual/public pressure; they do not promise unlimited
-traffic or eliminate the documented full-global-ledger refusal.
+At round 1, the unchanged reviewer stress case with 20 guildmates, one sighting
+every seven seconds for 70 minutes remained 597/600 (global 512-entry lifetime
+capacity). That full-ledger refusal policy is superseded by S4 below; this
+historical stress result is not presented as a round-2 rerun.
 
 ### Round-1 final verification
 
@@ -239,3 +250,110 @@ Self-review covered the complete production diff, scope isolation, changed
 assertion contracts and mutation survivors. Parent's independent review/stack
 merge remain outside this builder lane. Native checks **not run (alpha, owner's
 decision)**; no in-game or installed-client verification is claimed.
+
+## Round-2 fix (S4: do not silence a busy sender)
+
+Ruling source: `parent-verdict-wanted-r2.txt`, S4, under the read-only reviewer
+folder named above. The owner chose oldest-ID eviction rather than a shorter
+TTL. Replay memory still has the exact 32/carrier, 256/non-guild and 512/global
+ceilings. No sender-rate, assembly, route, wire-validation or source-off policy
+changed. Only Wanted.lua changes production behavior.
+
+Capacity is enforced when accepted evidence is remembered, not before decoding
+or offering it. Sender saturation replaces that sender's oldest admission;
+public saturation replaces the oldest non-guild admission; remaining global
+saturation replaces the oldest global admission. Guild traffic may borrow spare
+public capacity, but public traffic can never leave more than 256 non-guild IDs.
+Tests exercise a fully guild-owned ledger transitioning to the full public pool,
+as well as public-first admission and guild reserve protection. If sender and
+public caps require different removals, both evictions are counted. Expiry and
+retained duplicates do not count. The diagnostic remains readable in combat.
+
+### Tests-first and unchanged reviewer reproduction
+
+- Five sender/cadence regressions first ran on detached `8da62639`: **0 passed,
+  5 failed**. The failures were 64/120 at one/minute, 32/60 at one/20 seconds,
+  64/360 at one/20 seconds for two hours, 64/120 on channel, and refusal of the
+  sender's 33rd ID. All five passed after sender-only eviction was implemented.
+- Three public/global regressions then failed against that sender-only fix and
+  passed after pool eviction. Three counter regressions then failed against the
+  pool fix and passed after adding the counter/status line. Slice logs are
+  `/opt/data/cache/scratch/wanted-r2-{sender,pools,counter}-{red,green}.log`.
+- The final `test/src_wanted_round2.lua` contains **14 cases**. Copying only that
+  file into the detached base returned **2 passed, 12 failed, 2332 assertions**
+  (exit 1), saved in `wanted-r2-frozen-final-red.log` under the same scratch path.
+  Exact expiry and invalid/duplicate isolation are inherited green controls.
+  Mixed record/sighting admission-order coverage was added after the initial
+  fix and also fails on the base; it is not claimed as a pre-implementation RED.
+- All Wanted tests: **54 passed, 0 failed, 26210 assertions** (exit 0), log
+  `wanted-r2-focused.log`. Assertions cover retained duplicate drops across
+  routes/carriers, unchanged replay age/order, same-clock admission ordering,
+  record observation time distinct from eviction order, expiry before eviction,
+  invalid/untracked isolation, pool ownership and every eviction count.
+- Three inherited tests were migrated only where S4 intentionally reverses the
+  old refusal contract: full-ledger no-save coverage, cross-route/record carrier
+  ownership, and guild/public caps. The synthetic ledger now carries admission
+  order; quota, no-save and expiry assertions remain. No cases were removed.
+
+The reviewer's `src_zzmani6.lua` was copied byte-for-byte into private base and
+candidate snapshots and executed, with external assertions on its OBS results
+and rejection of its swallowed-error marker. Probe SHA256:
+`3a670f728ac66079f7b34041eb8ab4b2d2a35c29c8032430e33481400be5c58d`.
+Runner: `/opt/data/cache/scratch/wanted-r2-review-replay.py`.
+Logs: `/opt/data/cache/scratch/wanted-r2-review-{base,candidate}.log`.
+
+| Unchanged reviewer scenario | 8da62639 | Round-2 fix |
+| --- | --- | --- |
+| One guild sighting/minute, two hours | 64/120 | 120/120 |
+| One guild sighting/20 seconds, 60 attempts | 32/60 | 60/60 |
+| One channel sighting/minute, two hours | 64/120 | 120/120 |
+| One guild sighting/two minutes, 60 attempts | 60/60 | 60/60 |
+| Forty guild sightings at the same time | 32/40 | 40/40 |
+
+The additional two-hour 20-second regression shows **360/360**. The reviewer's
+coarse retry probe now succeeds at its first five-minute sample (300 seconds,
+previously 3600); the dedicated 33rd-ID regression proves immediate admission,
+so that sampling interval is not a newly introduced wait.
+
+### Round-2 mutation controls
+
+`python3 test/wanted_mutants.py`, foreground in a tracked PTY shell, exit 0:
+**84/84 killed on the first complete run**. All 71 inherited rule identities are
+retained (four replay anchors migrated); 13 new rules independently restore full
+sender/public/global refusal, choose newest or expiry order instead of oldest
+admission, evict from the wrong sender/public pool, omit eviction accounting or
+diagnostics, delay expiry, remember unaccepted input, refresh duplicate order,
+or collapse same-clock admissions. Every mutant was syntax-validated; every
+kill is backed by a real assertion failure, not a compile error or timeout.
+No survivors required extra test additions after this run.
+
+Evidence: `notes/wanted-mutants.json`, SHA256
+`c85bee1e2e440ff79a630b9279d363471e3b220f2e26aa1cb95d072b33525c7b`.
+Log: `/opt/data/cache/scratch/wanted-r2-mutants.log`. Mutants run in disposable
+scratch copies and leave production source untouched. Final round-2-only rerun:
+`RESULT: 14 tests passed, 0 failed, 2736 assertions` (exit 0).
+
+### Round-2 full verification
+
+Code/tests/README commit: `37d156f6605f798fc52f8839f10ea48d3637bfb9`, parent
+`8da62639d5220f474da3cb45c6ef17d4902da642`. Generated verification, mutation and
+round-2 notes are committed separately on top, as requested.
+
+`python3 test/verify.py`, foreground in a tracked PTY shell, no `&`, exit 0:
+
+`RESULT: 1350 tests passed, 0 failed, 201353 assertions`
+
+- Lua 5.1.5 syntax: **80 files PASS**. Static/TOC/send policy PASS.
+- Verifier 11, API policy 11, source-discovery 4, call-assets 11: all PASS.
+- Five independent vectors PASS; stable-evidence Python regression: 1 passed.
+- Added-production-line security scan: no findings. README bytes outside the
+  Wanted section are identical to the base; only Wanted.lua changed in addon code.
+- Archive integrity/source parity PASS; foundation-version archive remains
+  `dist/LayerEnemies-1.1.0.zip`, SHA256:
+  `c017a013f4e7c4038fcdae715fea66f9f9a0cb19072ed558cfc08ce43a27e9c2`.
+- Full verification log: `/opt/data/cache/scratch/wanted-r2-verify.log`.
+
+Self-review covered quota ordering, accepted-only mutation, duplicate/expiry
+semantics, diagnostics and the complete scoped diff. Parent review/stack merge
+remain outside this builder lane. Native checks **not run (alpha, owner's
+decision)**. No push, release, installation or client action.

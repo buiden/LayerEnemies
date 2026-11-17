@@ -59,10 +59,16 @@ receive policy is never advertised. No timestamped location at least one hour
 old or ahead of server time is accepted. No-time sightings expire one hour after first receipt. Session
 replay ledger: **512 identities, at most 32 per canonical carrier across addon
 routes and packet/record kinds; 256 reserved for guild**. Claimed record origins
-do not get their own carrier quota. A full sender/public/global quota refuses
-new evidence until expiry; no live ID is evicted or refreshed. A very busy sender
-can therefore stop contributing new evidence for up to an hour, but cannot
-consume another sender's quota. Rate ledgers: **128 identities each for guild,
+do not get their own carrier quota. Expired IDs are pruned first. New accepted
+evidence evicts the **oldest remembered ID** from a full sender quota, then from
+the non-guild pool if full, then globally if still full; it is never refused just
+because replay memory is full. Admission order breaks same-clock ties; duplicate
+IDs still remembered are dropped without refreshing age or order. Invalid or
+untracked input cannot evict live IDs. `/le net wanted` shows **Wanted replay:
+evicted=N**, counting each live ID displaced (not expiry or a refusal).
+Trade-off: an evicted sighting ID can be accepted again before its original hour
+expires; timestamped records still retain their original observation/expiry time.
+Other receive-rate and assembly limits remain. Rate ledgers: **128 identities each for guild,
 whisper, channel and Battle.net**, with 120-second idle expiry; 60 addon datagrams
 per sender per route / 30 Battle.net datagrams per game ID per fixed minute.
 WNTD tag/route and basic fragment shape validate before taking a sender entry;
@@ -90,8 +96,12 @@ Reproduce: `lua test/harness.lua --only Wanted:`, `python3 test/wanted_vectors.p
 `python3 test/verify.py`. Mutation evidence normalizes Lua object addresses and
 is not rewritten when unchanged. Round-1 regressions reproduce the 300-user
 channel flood (75/75 guild sightings), 128 junk senders (20/20), and renewed
-assembly holds (20/20 five-frame guild messages). Fixtures are constructed
-from the audit, Python zlib and an independent serializer, not live captures.
+assembly holds (20/20 five-frame guild messages). Round-2 S4 regressions show all
+120 sightings at one/minute for two hours, all 60 at one/20 seconds, and all 360
+at that faster cadence for two hours; retained duplicates still drop. Pool and
+counter tests cover sender/public/global eviction, shared carrier ownership,
+oldest ordering, exact expiry and invalid-input isolation. Fixtures are
+constructed from the audit, Python zlib and an independent serializer, not live captures.
 **Native checks not run (alpha, owner's decision)**. This is D1 only, not D2.
 
 ## Unreleased - ChehulNet hello (receive only)
