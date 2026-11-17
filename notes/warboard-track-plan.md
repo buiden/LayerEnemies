@@ -12,6 +12,11 @@
   per-ruling mutants and separate regenerated evidence. See `notes/warboard-track.md`.
 - Ruling: queue overflow/unvalidatable held input retains uncertainty rather than silence success;
   this can delay cleanup but never reports a lost contradictory roster as withdrawal proof.
+- dcc7e6f: deferred ingress rollback RED → GREEN; held evidence cannot drain before the clock guard.
+- Final frozen e1bc2239 ruling pack: 24 passed / 26 assertion failures / 3365 assertions; candidate 50/50.
+- Final full verify: 1537 passed / 0 failed / 220351 assertions, foreground timeout 1800 s.
+- Final mutants: E1 100/100, tracking 109/109; relocated real reruns preserve report bytes and mtime.
+- Self-review only in this subagent; parent review independent. Evidence commits remain separate.
 - No publication, install, donor execution or native client tests.
 
 ## Historical first-round ledger (superseded where above differs)

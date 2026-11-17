@@ -56,8 +56,67 @@ six-attempt/reload assertion with next-login recovery, changes restored count
 behavior. All other inherited tests remain unchanged. Mutant anchors track the
 same receiver guards after deferred-context refactoring; obsolete permanent
 exhaustion mutants now enforce the owner's per-login bound. New ruling mutants
-cover each correction plus inbox bounds and age. Generated reports/verify notes
-will be committed separately after final execution.
+cover each correction plus inbox bounds and age. Final reports/verify notes are
+committed separately after execution, as recorded below.
+
+### Final round-2 correction evidence
+
+- Final independent ruling file on untouched **e1bc2239**: **24 passed, 26 failed,
+  3365 assertions** (50 collected cases, all failures are assertions). Per family:
+  M1 0/6; S1 20/4; S2 1/5; S3 1/3; N2 1/7; N1 1/1. The already-green controls
+  and later mutation-strengthening cases are not claimed as original RED.
+  Log: `/opt/data/cache/scratch/le-e2-r3-final-50-base-red.log`.
+- Candidate: **50/50 ruling cases**, **241 total WarBoard cases**. Donor-loaded
+  offset sweep **15/15** withdraws at offset+1 seconds, with no LE H/A. Own
+  offset 313 now withdraws at **315**, not **603**, seconds; other own offsets
+  remain offset+2. The reviewer's log, not its informal 303→603 shorthand, is
+  the timing authority. Newer delayed roster confirmation is retained too.
+- M1: **120 A / two hours → 0** after exhaustion in each privacy mode, plus
+  **1 → 0** while only sent-unverified debt remains. Next login grants six fresh
+  attempts by S3, then closes the exception again; two hours of 60-second H
+  prompts after that second exhaustion also produce zero H/A/FBUN/FBAK.
+- S2: A-only safe/combat/instance confirmations produce **0 FBUN and retained
+  debt after 15-minute silence**, rather than one rejected FBUN and false
+  settlement. Real target H produces prompt withdrawal with zero rejection.
+  An already established, still-fresh exchange withdraws within five seconds
+  when the real addon loads. A relogged A-only peer (even one that remotely
+  remembers us) must now wait for target H: LE cannot infer that hidden remote
+  state from A. Unsafe H older than 20 minutes also waits for new H.
+- S3: each of two failed logins permits **6** attempts, preserving **3/600 s**
+  and **60 s** spacing. Toggling does not reopen; the next working login sends
+  **1** FBUN and settles. GUID ownership remains per character.
+- N2: listed rosters held through **1000-second** combat/instance waits veto
+  silence; excluding multipart rosters held **300 seconds** settle before the
+  fallback deadline. Inbox byte/frame overflow retains uncertainty; current
+  GUID changes cannot settle; receipt rollback keeps input held. The rollback
+  case independently failed on a1e637b (`expected 1, got 0`) then passed.
+- **`python3 test/verify.py`**, foreground subprocess timeout **1800 s**, exit **0**:
+  **RESULT: 1537 tests passed, 0 failed, 220351 assertions**.
+  Log: `/opt/data/cache/scratch/le-e2-r3-verify-final.log`. Syntax, policy, harness
+  discovery, media, TOC and archive/source parity pass. No send/rate cap increased.
+- Mutants: **100/100 E1**, **109/109 tracking**, all assertion kills. Two inherited
+  mutants initially survived: the queued-answer fixture no longer queued an A
+  under corrected M1, and proof expiry masked the six-attempt limit. Added a
+  contradictory roster plus an actual queue assertion to the former, and fresh
+  donor H after exhaustion to the latter; unchanged limits now kill both.
+- Both complete runners were rerun from `le-e2-r3-portable/different checkout`,
+  an unrelated CWD, and relative TMPDIR. The seeded reports retained identical
+  **bytes and mtime**; scratch was cleaned. E1 SHA-256:
+  `9424ae5921b95459fa8214295f5554c8f3f51ed832224d83db44764cafbc0f2c`.
+  Tracking SHA-256:
+  `052a25b74fb6440a2acdd114058c3fdcf8fc70a7becf8f64af4b3b30e840d3ea`.
+- Archive `dist/LayerEnemies-1.1.0.zip` SHA-256:
+  `eb9d44898bccb9d32843804fad14e661e9e5125cd74db4007d05ec0ecf0b492c`.
+  Release integration still owns the version bump. Generated verification and
+  mutation notes are committed separately from runtime/test/documentation fixes.
+- Added-line security scan: no credential, shell-execution or unsafe-deserialization
+  matches. `git diff --check` passes. No donor execution, installation or publication.
+
+Changed runtime: `WarBoard.lua`, `WarBoardTrack.lua`, `Adapters.lua`, `Sources.lua`.
+New test: `test/src_warboard_rulings.lua`; migrated tests: `src_warboard_debt.lua`;
+mutant runners: `warboard_mutants.py`, `warboard_track_mutants.py`; README and
+both tracking notes updated. The only additional inherited fixture change is
+`M1 queued handshakes stand down when real addon loads`, described above.
 
 Final review is self-review in this subagent; parent review is independent.
 Native checks: not run (alpha, owner's decision). Local commits only; no push.
@@ -132,9 +191,10 @@ The original source/probes stayed frozen in the detached a4dfbc40 worktree.
   Final `src_warboard_debt.lua`: **32 cases**, all green. Four later boundary /
   adversarial cases were added while green and are not claimed as initial RED.
   The donor-unsafe observation case separately failed on `1d00129` with
-  `expected 1, got 0`, then passed on `72ac02c`. Cleanup-only proof authorizing
-  fresh FBAK separately failed on `72ac02c` (`expected 0, got 3`) and passed
-  on `c46d1e8`; its mutant restores precisely that eligibility promotion.
+  `expected 1, got 0`, then passed on `72ac02c`. An answered H without a received
+  A was incorrectly promoted to new-request eligibility on `72ac02c`
+  (`expected 0, got 3`) and corrected on `c46d1e8`; its mutant restores that
+  specific promotion. A genuine recent received-A confirmation remains reusable.
 - The N2 real relocated-run test failed before the runner fix with
   `AssertionError: evidence bytes/mtime changed on rerun`; it now passes.
 - Focused WarBoard suite: **191 tests passed, 0 failed, 41546 assertions**.
