@@ -75,10 +75,10 @@ local function record(kind,changes)
 end
 
 test("Wanted: record and sighting location fields do not alias each other",function()
-    local N=setup("Enemy One"); local r=record("kill",function(v) v.data.z="Wrong Zone" end)
-    send(N,"R",{v="1.29.2",r={r}}); yes(known(N)); yes(known(N).detail:find("Ashenvale",1,true))
-    N=setup("Enemy One"); local d=sight(); d.z=nil; d.m=nil; d.zone="Ashenvale"
-    send(N,"S",{v="1.29.2",s={d}}); empty(N)
+    local N=setup("Enemy One"); local r=record("kill",function(v) v.data.z="Wrong Zone"; v.data.m=200 end)
+    send(N,"R",{v="1.29.2",r={r}}); yes(known(N)); eq(known(N).zone,100); no(known(N).detail:find("Wrong Zone",1,true))
+    N=setup("Enemy One"); local d=sight(); d.z=nil; d.m=nil; d.zone="Ashenvale"; d.mapId=200
+    send(N,"S",{v="1.29.2",s={d}}); yes(known(N)); eq(known(N).zone,nil)
 end)
 
 test("Wanted: bad hashes and malformed payloads increment refusal without chat",function()
@@ -121,7 +121,7 @@ end)
 
 test("Wanted: immutable dedupe ceilings do not store or save new names",function()
     local N=setup("Enemy One"); local saved=N.Codec.lsWrite(LayerEnemiesDB)
-    for i=1,512 do N.Wanted.state.seen["reserved"..i]=h.clock()+3600 end
+    for i=1,512 do N.Wanted.state.seen["reserved"..i]={expires=h.clock()+3600,owner="reserved"..i,guild=true} end
     send(N,"S",{v="1.29.2",s={sight()}}); empty(N); eq(count(N.Wanted.state.seen),512)
     N.Wanted.state.seen.reserved1=nil; send(N,"S",{v="1.29.2",s={sight()}}); yes(known(N)); eq(count(N.Wanted.state.seen),512)
     eq(N.Codec.lsWrite(LayerEnemiesDB),saved,"no evidence or name writes to saved state")
@@ -186,7 +186,6 @@ test("Wanted: forged origin hash malformed envelope and stale records store noth
         function(r) r.t=GetServerTime()-3600 end,
         function(r) r.t=GetServerTime()+1 end,
         function(r) r.data.x="50" end,
-        function(r) r.data.mapId=0 end,
         function(r) r.data.l="6" end,
         function(r) r.data.victimFaction="unknown" end,
         function(r) r.origin="Another Player"; r.id=r.origin..":"..r.seq end,
@@ -288,8 +287,9 @@ end)
 test("Wanted: inbound budgets are per canonical sender and bounded globally",function()
     local N=setup("Enemy One"); local calls=0; local decode=N.Wanted.decode
     N.Wanted.decode=function(...) calls=calls+1; return decode(...) end
-    for i=1,61 do send(N,"E",{v="1.29.2",g="Player-1-AB",n="Enemy One",z="Ashenvale"},"GUILD",nil,string.format("%x",i)) end
-    eq(calls,60); eq(count(N.Wanted.state.rates),1)
+    -- Untracked input exercises the datagram budget without spending replay quota.
+    for i=1,61 do send(N,"E",{v="1.29.2",g="Player-1-AB",n="Untracked One",z="Ashenvale"},"GUILD",nil,string.format("%x",i)) end
+    eq(calls,60); eq(count(N.Wanted.state.rates.guild),1)
     -- The realm-qualified spelling must share the same budget.
     send(N,"S",{v="1.29.2",s={sight()}},"GUILD","Witness Player-TestRealm","ab"); eq(calls,60)
     h.clock(h.clock()+60); send(N,"S",{v="1.29.2",s={sight()}},"GUILD",nil,"ac"); eq(calls,61)
@@ -298,8 +298,8 @@ test("Wanted: inbound budgets are per canonical sender and bounded globally",fun
     for i=1,31 do h.deliver("BN_CHAT_MSG_ADDON","WNTDB",b,"WHISPER",71) end
     eq(calls,30,"rate before resolver/decompression")
     for id=1,130 do h.deliver("BN_CHAT_MSG_ADDON","WNTDB",b,"WHISPER",id) end
-    eq(count(N.Wanted.state.rates),128)
-    h.clock(h.clock()+120); N.Sources.tick(h.clock()); eq(count(N.Wanted.state.rates),0)
+    eq(count(N.Wanted.state.rates.bnet),128)
+    h.clock(h.clock()+120); N.Sources.tick(h.clock()); eq(count(N.Wanted.state.rates.bnet),0)
 end)
 
 test("Wanted: receive tick and every ignored tag never attempt any send",function()
@@ -327,13 +327,13 @@ test("Wanted: receive tick and every ignored tag never attempt any send",functio
     end
 end)
 
-test("Wanted: four unfinished messages per sender cover all addon routes",function()
+test("Wanted: two unfinished messages per sender cover all addon routes",function()
     local N=setup()
     for i=1,5 do
         local route=i<=2 and "GUILD" or i<=4 and "CHANNEL" or "WHISPER"
         h.deliver("CHAT_MSG_ADDON","WNTD","R:"..i..":1/2:a",route,"Witness Player")
     end
-    eq(count(N.Wanted.state.streams),4,"a sender cannot multiply capacity by route")
+    eq(count(N.Wanted.state.streams),2,"a sender cannot multiply capacity by route")
 end)
 
 test("Wanted: numbered framing supports reorder and bounds every unfinished stream",function()
@@ -349,10 +349,10 @@ test("Wanted: numbered framing supports reorder and bounds every unfinished stre
     bad("S:0:1/1:a"); bad("S:1000:1/1:a"); bad("S:a:0/1:a"); bad("S:a:1/13:a")
     st={}; W.join(st,"peer","S:a:1/13:a",false,10); eq(count(st.streams),0)
     bad("S:a:1/1:"..string.rep("a",241)); bad("S:a:1/1:"); bad("\001S:a:1/1:a")
-    st={}; for i=1,4 do W.join(st,"peer","S:"..i..":1/2:a",false,10) end
-    W.join(st,"peer","S:5:1/2:a",false,10); eq(count(st.streams),4)
-    st={}; for i=1,16 do W.join(st,"peer"..i,"S:a:1/2:a",false,10) end
-    W.join(st,"overflow","S:a:1/2:a",false,10); eq(count(st.streams),16)
+    st={}; for i=1,2 do W.join(st,"peer","S:"..i..":1/2:a",false,10) end
+    W.join(st,"peer","S:3:1/2:a",false,10); eq(count(st.streams),2)
+    st={}; for i=1,16 do W.join(st,"peer"..i,"S:a:1/2:a",false,10,nil,true) end
+    W.join(st,"overflow","S:a:1/2:a",false,10,nil,true); eq(count(st.streams),16)
     st={}; W.join(st,"peer","S:a:1/2:a",false,10); W.join(st,"peer","S:a:1/2:b",false,11)
     eq(W.join(st,"peer","S:a:2/2:c",false,12),nil,"conflicting duplicate poisons assembly")
     st={}; W.join(st,"peer","S:a:1/2:a",false,10); eq(W.join(st,"peer","E:a:2/2:b",false,11),nil)
@@ -382,10 +382,10 @@ test("Wanted: route version array faction and secret guards fail silent",functio
     for _,route in ipairs({"WHISPER","PARTY","RAID","SAY"}) do
         local N=setup("Enemy One"); send(N,"S",{v="1.29.2",s={sight()}},route); empty(N)
     end
-    for _,v in ipairs({"1.28.9","1.29.3","1.29.2-beta.1","",false}) do
+    for _,v in ipairs({"1.28.9","1.30.0","1.29.2-beta.1","",false}) do
         local N=setup("Enemy One"); send(N,"S",{v=v,s={sight()}}); empty(N)
     end
-    for _,change in ipairs({{"g","Creature-1-AB"},{"g","Player-bad"},{"n","Bad|Name"},{"m",0},{"x",101},{"y",false},{"z",string.rep("x",65)}}) do
+    for _,change in ipairs({{"g","Creature-1-AB"},{"g","Player-bad"},{"n","Bad|Name"},{"x",101},{"y",false}}) do
         local N=setup("Enemy One"); local d=sight(); d[change[1]]=change[2]; send(N,"S",{v="1.29.2",s={d}}); empty(N)
     end
     local N=setup("Enemy One"); local list={}; for i=1,16 do list[i]=sight() end

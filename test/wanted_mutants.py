@@ -1,6 +1,7 @@
 """D1-only behavioral mutants, isolated under scratch; no donor or other mutant execution."""
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -15,9 +16,9 @@ MUTANTS = [
     ('WNTDP eight parts', 'Wanted.lua', 'bnet and 8 or 12', 'bnet and 9 or 12'),
     ('WNTD part size', 'Wanted.lua', 'bnet and 3784 or 240', 'bnet and 3784 or 241'),
     ('WNTDP part size', 'Wanted.lua', 'bnet and 3784 or 240', 'bnet and 3785 or 240'),
-    ('per-sender assemblies across routes', 'Wanted.lua', 'text,false,now,"addon:"..key)', 'text,false,now)'),
-    ('four addon assemblies per sender', 'Wanted.lua', 'bnet and 2 or 4', 'bnet and 2 or 5'),
-    ('two BNet assemblies per sender', 'Wanted.lua', 'bnet and 2 or 4', 'bnet and 3 or 4'),
+    ('per-sender assemblies across routes', 'Wanted.lua', 'text,false,now,"addon:"..key,dist=="GUILD")', 'text,false,now,nil,dist=="GUILD")'),
+    ('two addon assemblies per sender', 'Wanted.lua', 'own>=2', 'own>=3'),
+    ('two BNet assemblies per sender', 'Wanted.lua', 'text,true,now)', 'text,true,now,"bn:"..id..":"..text:match("^(%d+):"))'),
     ('sixteen global assemblies', 'Wanted.lua', 'total>=16', 'total>=17'),
     ('thirty second assembly lifetime', 'Wanted.lua', 'now-v.at>=30', 'now-v.at>30'),
     ('assembly rollback', 'Wanted.lua', 'if st.time and now<st.time then', 'if false then'),
@@ -25,7 +26,7 @@ MUTANTS = [
     ('fragment total conflict', 'Wanted.lua', 'r.tag~=tag or r.total~=n', 'r.tag~=tag'),
     ('fragment duplicate conflict', 'Wanted.lua', '(r.parts[p] and r.parts[p]~=b)', 'false'),
     ('audited release version', 'Wanted.lua', 'not plain(t) or not version(t.v)', 'not plain(t)'),
-    ('E/S not whisper', 'Wanted.lua', 'if dist=="WHISPER" and (tag=="E" or tag=="S") then', 'if false then'),
+    ('E/S not whisper', 'Wanted.lua', 'if not tag or (dist=="WHISPER" and (tag=="E" or tag=="S")) then', 'if not tag then'),
     ('sighting batch ceiling', 'Wanted.lua', 'array(t.s,15)', 'array(t.s,16)'),
     ('R record batch ceiling', 'Wanted.lua', 'tag=="R" and 10 or 8', 'tag=="R" and 11 or 8'),
     ('F record batch ceiling', 'Wanted.lua', 'tag=="R" and 10 or 8', 'tag=="R" and 10 or 9'),
@@ -47,9 +48,9 @@ MUTANTS = [
     ('F always relayed', 'Wanted.lua', '(tag=="F" or origin~=key)', '(origin~=key)'),
     ('relayed R honest provenance', 'Wanted.lua', '(tag=="F" or origin~=key)', '(tag=="F")'),
     ('record replay id', 'Wanted.lua', 'local identity="record:"..r.id', 'local identity="record:"..sender..r.id'),
-    ('packet replay age', 'Wanted.lua', 'not state.seen[key] and S.count(state.seen)<512', 'S.count(state.seen)<512'),
-    ('bounded dedupe ledger', 'Wanted.lua', 'S.count(state.seen)<512', 'S.count(state.seen)<513'),
-    ('location field namespaces', 'Wanted.lua', 'if mapKey=="m" then zone=d.z else zone=d.zone end', 'zone=d.z or d.zone'),
+    ('packet replay age', 'Wanted.lua', 'not state.seen[key] and total<512', 'total<512'),
+    ('bounded dedupe ledger', 'Wanted.lua', 'total<512', 'total<513'),
+    ('location field namespaces', 'Wanted.lua', 'local map=d[mapKey]', 'local map=d.m or d.mapId'),
     ('observer percentages', 'Wanted.lua', 'x,y=x/100,y/100', 'x,y=x/200,y/200'),
     ('seen near label', 'Sources.lua', 'if x and kind~="self" then', 'if false then'),
     ('tracked names gate', 'Sources.lua', 'if not F.tracked(M.find,name) and #(watchers or {})==0 then', 'if false then'),
@@ -63,15 +64,28 @@ MUTANTS = [
     ('summary twenty carriers', 'Wanted.lua', 'S.count(state.far)>=20', 'S.count(state.far)>=21'),
     ('summary ten minute expiry', 'Wanted.lua', 'now-r.at>=600', 'now-r.at>600'),
     ('summary count clamp', 'Wanted.lua', 'math.min(200,math.floor(v.n))', 'math.floor(v.n)'),
-    ('sixty addon datagrams', 'Wanted.lua', 'budget("addon:"..key,now,60)', 'budget("addon:"..key,now,61)'),
-    ('thirty BNet datagrams', 'Wanted.lua', 'budget("bn:"..id,now,30)', 'budget("bn:"..id,now,31)'),
-    ('rate identity ceiling', 'Wanted.lua', 'S.count(state.rates)>=128', 'S.count(state.rates)>=129'),
+    ('sixty addon datagrams', 'Wanted.lua', 'budget(route,"addon:"..key,now,60)', 'budget(route,"addon:"..key,now,61)'),
+    ('thirty BNet datagrams', 'Wanted.lua', 'budget("bnet","bn:"..id,now,30)', 'budget("bnet","bn:"..id,now,31)'),
+    ('rate identity ceiling', 'Wanted.lua', 'S.count(rates)>=128', 'S.count(rates)>=129'),
     ('no Wanted roster scan', 'Directory.lua', 'if key~="wanted" then schedule(key, D.FIRST) end', 'schedule(key, D.FIRST)'),
     ('channel free slots', 'Directory.lua', 'slots<=7', 'slots<=8'),
     ('donor stand-down', 'Wanted.lua', 'N.Net.LIST.wanted.standDown="WantedDeadOrDead"', 'N.Net.LIST.wanted.standDown=nil'),
+    ('basic shape before sender admission', 'Wanted.lua', 'local tag=frame(text,false)', 'local tag=frame(text,false) or "R"'),
+    ('independent sender tables per route', 'Wanted.lua', 'local rates=state.rates[route]', 'local rates=state.rates.guild'),
+    ('no free sighting zone text', 'Wanted.lua', 'return {map=map,x=x,y=y,shard=shard}', 'return {zone=d.z or d.zone,map=map,x=x,y=y,shard=shard}'),
+    ('no free record zone text', 'Wanted.lua', 'local e={name=name,guid=g,faction=f,map=loc.map', 'local e={name=name,guid=g,faction=f,zone=r.data.zone,map=loc.map'),
+    ('guild reserved assemblies', 'Wanted.lua', '(not guild and public>=8)', 'false'),
+    ('per-carrier replay quota', 'Wanted.lua', 'own<32', 'own<33'),
+    ('record quota owned by carrier not claimed origin', 'Wanted.lua', 'remember(identity,at+N.Known.TTL,key,dist=="GUILD")', 'remember(identity,at+N.Known.TTL,origin,dist=="GUILD")'),
+    ('guild reserved replay entries', 'Wanted.lua', 'public<256', 'public<257'),
+    ('later 1.29 patches accepted', 'Wanted.lua', '^1%.29%.%d+$', '^1%.29%.[012]$'),
     ('no receive sends', 'Wanted.lua', 'local function addon(prefix,text,dist,sender)\n', 'local function addon(prefix,text,dist,sender)\n    N.BNet.send("wanted",71,"WNTDB","bad","own")\n'),
-    ('no saved evidence', 'Wanted.lua', 'if accepted then state.seen[identity]=now+N.Known.TTL end', 'if accepted then state.seen[identity]=now+N.Known.TTL; LayerEnemiesDB.wantedName=sender end'),
+    ('no saved evidence', 'Wanted.lua', 'if accepted then remember(identity,now+N.Known.TTL,key,dist=="GUILD") end', 'if accepted then remember(identity,now+N.Known.TTL,key,dist=="GUILD"); LayerEnemiesDB.wantedName=sender end'),
 ]
+
+def stable_failure(line):
+    return re.sub(r"\b(table|function|thread|userdata): 0x[0-9a-fA-F]+\b", r"\1: <address>", line)
+
 
 def main():
     results=[]
@@ -89,13 +103,16 @@ def main():
                 subprocess.run([str(Path(LUA).with_name('luac')),'-p',str(path)], check=True, capture_output=True)
                 run=subprocess.run([LUA,'test/harness.lua','--only','Wanted:'],cwd=root,
                                    capture_output=True,text=True,errors='replace',timeout=180)
-                failures=[line for line in run.stdout.splitlines() if line.startswith('FAIL ')]
+                failures=[stable_failure(line) for line in run.stdout.splitlines() if line.startswith('FAIL ')]
                 killed=run.returncode!=0 and bool(failures) and 'RESULT:' in run.stdout
                 results.append(dict(rule=name,killed=killed,failures=failures))
                 print(('KILLED ' if killed else 'SURVIVED ')+name,flush=True)
             finally:
                 path.write_text(original)
-    (ROOT/'notes/wanted-mutants.json').write_text(json.dumps(results,indent=2)+'\n')
+    path=ROOT/'notes/wanted-mutants.json'
+    evidence=json.dumps(results,indent=2)+'\n'
+    if not path.exists() or path.read_text()!=evidence:
+        path.write_text(evidence)
     killed=sum(r['killed'] for r in results)
     print(f'Wanted mutants: {killed}/{len(results)} killed')
     raise SystemExit(0 if killed==len(results) else 1)
