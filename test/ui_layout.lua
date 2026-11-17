@@ -117,6 +117,11 @@ local function rowFits(r,U)
         if r.sub:GetText()~="" then below(r.place,r.sub,U.frame,"place below complete detail text") end
         last=r.place
     end
+    if r.presence and r.presence:IsShown() then
+        yes(r.presence:GetStringHeight()<=r.presence.height,"all wrapped presence lines fit")
+        if last:GetText()~="" then below(r.presence,last,U.frame,"presence below complete preceding text") end
+        last=r.presence
+    end
     for _,b in ipairs({r.ask,r.clear}) do if b:IsShown() then below(b,last,U.frame,"actions below complete row text") end end
     local a,b=box(last,U.frame),box(r,U.frame); yes(a.y+a.h<=b.y+b.h,"row text inside card")
     local c=box(U.body,U.frame); yes(b.y+b.h<=c.y+c.h,"card inside list")
@@ -154,4 +159,24 @@ test("UI layout: local, Reported and Friendly cards also fit long wrapped detail
     M.candidates=function() return {{name=name,short=name,sources={"BuloLayerForever","LayerSwap guild host","War Effort"},unknownOwn=true}} end
     M.hopPreview=function() return {label="Ask for invite",enabled=false,reason="test"} end
     for _,tab in ipairs({"local","reported","friendly"}) do U.select(tab); rowFits(U.pool[1],U) end
+end)
+
+test("UI layout: presence follows measured sighting and OpenMap lines and shrinks on reuse",function()
+    local N=H.load(); local U,M=N.UI,N.Main; local t=H.clock()
+    M.zoneName=function() return string.rep(longZone.." ",3) end
+    local row={name="Cedar Vale",at=t,status="possible match",zone=100,class="MAGE",level=60,
+        canAsk=true,spotter="Birch Moss",
+        seen={at=t,spotter="Birch Moss",zone=100,own=true,layer="7086",status="last known: previous zone"},
+        place={map=100,x=.4,y=.5,at=t,age=10,faction="opposite"},
+        presence={zone=string.rep(longZone.." ",3),route="community",age=3}}
+    local rows={row,{name="Elm Grove"}}
+    M.findRows=function() return rows end
+    U.toggle(); U.select("find"); rowFits(U.pool[1],U); header(U,false)
+    yes(U.pool[1].presence:GetStringHeight()>56,"presence exceeds the old fixed height")
+    local tall=U.body.height; yes(tall>300,"presence participates in page sizing")
+    row.seen=nil; row.at=nil; row.place=nil; row.canAsk=false
+    U.render(); rowFits(U.pool[1],U); eq(U.pool[1].sub:GetText(),"","presence alone is located")
+    row.guildTracked=true; U.render(); no(U.pool[1].clear:IsShown(),"shared watch has no personal Clear action")
+    rows={{name="Cedar Vale"}}; U.render(); rowFits(U.pool[1],U)
+    no(U.pool[1].presence:IsShown()); eq(U.body.height,300); yes(U.pool[1].clear:IsShown())
 end)

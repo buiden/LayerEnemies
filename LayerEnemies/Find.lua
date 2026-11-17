@@ -66,7 +66,7 @@ function F.home(st,home)
     if not st.home and home then st.home=home; F.rebuild(st) end
 end
 function F.new(saved,home)
-    local st={names={},locations={},alerts={},places={},home=S.str(home),known=N.Known.new(),epoch=0}
+    local st={names={},locations={},alerts={},places={},presence={},presenceAlerts={},home=S.str(home),known=N.Known.new(),epoch=0}
     local seen={}
     if S.tab(saved) then
         for i=1,F.MAX do
@@ -87,7 +87,7 @@ end
 function F.remove(st,raw)
     if raw==nil then
         local changed=#st.names>0
-        st.names={}; st.locations={}; st.alerts={}; st.places={}
+        st.names={}; st.locations={}; st.alerts={}; st.places={}; st.presence={}; st.presenceAlerts={}
         if changed then F.rebuild(st) end
         return
     end
@@ -98,6 +98,7 @@ function F.remove(st,raw)
         local name=st.names[i]
         if F.fold(name)==key then
             table.remove(st.names,i); st.locations[name]=nil; st.alerts[name]=nil; st.places[name]=nil
+            st.presence[name]=nil; st.presenceAlerts[name]=nil
             changed=true
         end
     end
@@ -245,6 +246,7 @@ end
 function F.rows(st,now,zone,sameSpotter)
     local out={}
     N.Known.prune(st.known,now)
+    N.Presence.sweep(st,now)
     local function ownEligible(e)
         return e.source=="own" and now-e.at<F.TTL and e.zone==zone and e.layer~=nil and e.epoch==st.epoch
     end
@@ -303,11 +305,21 @@ function F.rows(st,now,zone,sameSpotter)
             row.place.age=now-place.at
             if not loc then row.status="shared position"; row.canAsk=false end
         end
+        local presence=st.presence[name]
+        if presence then
+            row.presence={zone=presence.zone,route=presence.route,age=now-presence.at}
+            if not loc and not place then row.status="online ("..presence.route..")"; row.canAsk=false end
+        end
         out[#out+1]=row
     end
     return out
 end
-function F.alert(st,row,now)
+function F.alert(st,row,now,presence)
+    if presence then
+        local old=st.presenceAlerts[row.name]
+        if old and now>=old and now-old<600 then return false end
+        st.presenceAlerts[row.name]=now; return true
+    end
     if not row.at or now-row.at>=F.TTL or now<row.at then return false end
     local old=st.alerts[row.name]
     if old and old.zone==row.zone and now-old.at<F.ALERT then return false end

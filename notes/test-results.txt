@@ -1167,4 +1167,25 @@ PASS UI layout: tab notes reserve their wrapped height before controls and rows
 PASS UI layout: wrapped footer and hint stay clear of settings and inside window
 PASS UI layout: Find measures every retained line and OpenMap place before paging
 PASS UI layout: local, Reported and Friendly cards also fit long wrapped details
-RESULT: 1169 tests passed, 0 failed, 122577 assertions
+PASS UI layout: presence follows measured sighting and OpenMap lines and shrinks on reuse
+PASS Presence: friends use only online characters in this project and cap 200
+PASS Presence: untracked offline mobile unknown and blank rows store nothing
+PASS Presence: secret fields refuse exactly one row and diagnostic has no names
+PASS Presence: missing erroring and secret APIs or tables are silent
+PASS Presence: expiry boundary future clocks and remove clear session state
+PASS Presence: real sighting and OpenMap retain their status and Ask target
+PASS Presence: no roster adapters with empty Find combat instance or unknown safety
+PASS Presence: fifty per tick thousand per club twenty clubs and guild exclusion
+PASS Presence: qualified realm stays exact and bare name matches any realm
+PASS Presence: per name 600 second silent alert uses shared burst throttle
+PASS Presence: automatic 300s cadence and Find opening refresh without overlap
+PASS Presence: UI and slash text show zone age and hide stale pooled line
+PASS Presence: invalid friend realm never falls back to a bare character
+PASS Presence: guild watch hash matches are session-only possible rows and withdraw
+PASS Presence: shared lists alone do not trigger an empty personal Find scan
+PASS Presence: malformed names and throwing pure row fields fail silently
+PASS Presence: pure bounds and adapter field allowlists
+PASS Presence: absent namespaces counts project and own faction fail closed
+PASS Presence: cancel stale queued work on empty list and restart
+PASS Presence: tracked community tracer has zone and no action or send
+RESULT: 1190 tests passed, 0 failed, 128563 assertions
