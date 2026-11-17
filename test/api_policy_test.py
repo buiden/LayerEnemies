@@ -115,6 +115,74 @@ class ApiPolicyTests(unittest.TestCase):
             with self.subTest(kinds=kinds), self.assertRaises(AssertionError):
                 VERIFY['check_route_policy'](changed)
 
+    def test_flh_route_gate_rejects_loop_over_local_alias(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        read = 'local route = type(prefix) == "string" and ROUTES[prefix]'
+        plant = ('\n    if route then for _, value in pairs(route) do '
+                 'if type(value) == "table" then value.CHANNEL = true end end end')
+        self.assertEqual(source.count(read), 1)
+        with self.assertRaises(AssertionError):
+            VERIFY['check_route_policy'](source.replace(read, read + plant))
+
+    def test_flh_route_gate_rejects_computed_replacement_routes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        read = 'local route = type(prefix) == "string" and ROUTES[prefix]'
+        for plant in (
+            'if prefix == "ReviewPrefix" then local key = "ki" .. "nds"; '
+            'route = { [key] = { GUILD = true }, check = function() return "line" end } end',
+            'if prefix == "FLHNET2" and kind == "CHANNEL" then local key = "ki" .. "nds"; '
+            'route = { [key] = { CHANNEL = true }, check = route.check } end',
+        ):
+            with self.subTest(plant=plant), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(read, read + '\n    ' + plant))
+
+    def test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for i, changed in enumerate((
+            source.replace('local ROUTES = {', 'local key="ki".."nds"\nlocal ROUTES = {')
+                  .replace('check = flhText', 'check = flhText, [key] = { CHANNEL = true }'),
+            source.replace('local tag = route.check(text, kind)',
+                           'local alias=route; for _, v in pairs(alias) do if type(v)=="table" then v.CHANNEL=true end end\n'
+                           '    local tag = route.check(text, kind)'),
+            source.replace('local route, tag, public', 'local route, tag, public\n    route={ [key]={ CHANNEL=true } }'),
+        )):
+            with self.subTest(plant=i), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](changed)
+        VERIFY['check_route_policy'](source + '\n-- route = { [key] = { CHANNEL=true } }\n'
+                                    'local inert=[=[for _,v in pairs(route) do v.CHANNEL=true end]=]')
+
+    def test_flh_route_gate_still_rejects_all_fourteen_earlier_reviewer_plants(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        start = source.index('FLHNET2 = { kinds = { ')
+        end = source.index('\n', start)
+        line = source[start:end]
+        table_end = source.index('\n}', start) + 2
+        def inline(before, after):
+            return source[:start] + line.replace(before, after, 1) + source[end:]
+        def later(text):
+            return source[:table_end] + '\n' + text + source[table_end:]
+        plants = [
+            inline('kinds = { ', 'kinds = { CHANNEL = true, '),
+            inline('kinds = { ', 'kinds = { CHANNEL = 1, '),
+            inline('kinds = { ', 'kinds = { ["CHANNEL"] = true, '),
+            later('ROUTES.FLHNET2.kinds.CHANNEL = true'),
+            later('rawset(ROUTES.FLHNET2.kinds,"CHANNEL",true)'),
+            later('local R = ROUTES; R.FLHNET2["kin".."ds"].CHANNEL = true'),
+            inline('check = flhText', 'check = flhText, kinds = { CHANNEL = true }'),
+            inline('check = flhText', 'check = flhText, ["kinds"] = { CHANNEL = true }'),
+            inline('check = flhText', 'check = flhText, ["kin".."ds"] = { CHANNEL = true }'),
+            source.replace('WHISPER = true', 'WHISPER = true, YELL = true', 1),
+            source[:start] + 'EVILPFX = { kinds = { WHISPER = true } },\n    ' + source[start:],
+            later('local ROUTES = { X = { kinds = { CHANNEL = true } } }'),
+            later('local ROUTES = setmetatable({}, {__index=function() return {kinds={CHANNEL=true}} end})'),
+            source.replace('if not (route and type(kind)',
+                           'route = route or { ["kin".."ds"] = { CHANNEL = true } }\n    if not (route and type(kind)', 1),
+        ]
+        self.assertEqual(len(plants), 14)
+        for i, changed in enumerate(plants):
+            with self.subTest(plant=i), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](changed)
+
     def test_flh_membership_side_effect_is_disclosed(self):
         readme = (Path(__file__).resolve().parents[1] / 'README.md').read_text()
         self.assertIn("A real Forever Layer Hop client on another realm that hears our messages may introduce "
