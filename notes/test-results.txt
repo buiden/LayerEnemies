@@ -1262,6 +1262,8 @@ PASS FLH: route identity ignore and unreadable context fail closed
 PASS FLH: presence reaches friendly hosts without pretending to be a server key
 PASS FLH: host projection is zone scoped fresh and visible with own layer unknown
 PASS FLH: same identity merges independent provenance without changing LayerSwap fields
+PASS FLH: claim never promotes a listed nonhost or changes hop-any priority
+PASS FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via
 PASS FLH: wire ingestion cannot persist names or silently refresh malformed hosts
 PASS FLH: seeded byte and structured fuzz is bounded silent and never sends
 PASS FLH: readable-looking secret strings are refused before any use
@@ -1270,4 +1272,4 @@ PASS FLH: presence layout WP keeps its positional fields
 PASS FLH: presence layout WR keeps its positional fields
 PASS FLH: presence layout CQ keeps its positional fields
 PASS FLH: presence layout CA keeps its positional fields
-RESULT: 1272 tests passed, 0 failed, 158304 assertions
+RESULT: 1274 tests passed, 0 failed, 158418 assertions
