@@ -472,8 +472,10 @@ function M.overlordContext(time)
             local _,_,_,watchers=N.Watch.match(M.watch,name,now())
             return N.Find.tracked(M.find,name) or #(watchers or {})>0
         end}
+    c.stopPaused=A.inCombat() or A.inInstance()~=false
+    c.stopQueued=function(row) return N.BNet.pending("overlord",row.text) end
     c.stopAllowed=N.Net.SHIP.overlord==true and not A.loaded("Overlord")
-        and not A.inCombat() and A.inInstance()==false
+        and not c.stopPaused
     if c.allowed and c.pool then
         c.guild=S.call(IsInGuild)==true
         c.group=S.call(IsInRaid)==true and "RAID" or S.call(IsInGroup)==true and "PARTY" or nil
@@ -492,7 +494,7 @@ function M.overlordStopping(text,route,target)
     local c=M.overlordContext()
     if not c.stopAllowed or not c.pool or not c.me or not c.now then return false end
     for _,s in pairs(st.stops) do
-        if s.text==text and s.pool==c.pool and s.me==c.me and c.now>=s.at and c.now-s.at<=60
+        if s.text==text and s.pool==c.pool and s.me==c.me and c.now>=s.at and s.safeAt and c.now-s.safeAt<=60
             and ((route=="BNET" and s.id==target) or (route=="WHISPER" and s.name==target and not s.id)) then return true end
     end
     return false

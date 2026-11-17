@@ -6,7 +6,7 @@
 |---|---|---|
 | `HR 8:V:<E>:<nonce>:1:LK:0:0:<opposite faction>`; nonce ends `f` | At most two selected Battle.net friends of either faction, via Battle.net only | Unanswered requests back off: 200, 400, 800, 1600, then 1800 s; any valid HA/HB reply resets to 200 s; first request obeys the NH clock below |
 | `HR 8:K:<E>` | The same live feed sources | Shares that 200 s gap; only after an accepted reply/feed |
-| `HR 8:X:<E>` | Each source to which a request actually went | Once per cancellation, best effort, owed priority; no retry |
+| `HR 8:X:<E>` | Each source to which a request actually went | Once per cancellation, owed priority; retained through combat/instances, no duplicate after success |
 | `HA <v>:R:<E>:<nonce>:<seq>` (busy, no ranking profile) | Direct addressed HR V requester only | Shared NH/HA 150 s gap per peer; six owed frames/minute |
 | Own `NH`, `LayerEnemies <installed TOC version>` with **no suffix** | Non-source peers only | C2 limits below; never to a selected source's name or account, including owed replies |
 
@@ -21,7 +21,9 @@ Feed sources are Battle.net friends only. Guild and group members remain ordinar
 C2 peers: the feed never suppresses guild, party or raid presence. A friend in
 our guild or group is ineligible; an unreadable or incomplete roster means it
 might be there, so no friend is selected until that roster is readable. The
-same Unicode name fold and own-realm stripping apply to every source comparison,
+same full character-plus-realm key applies to guild rows, party units and game
+accounts; realm display spaces and the home realm are normalized. Unreadable
+realm identity fails closed, and a foreign-realm namesake stays distinct,
 including Battle.net character names and whisper recipients. Targeted NH to a
 selected source's name or account is suppressed at admission and actual dispatch.
 
@@ -41,8 +43,11 @@ Stops are attempted on unsubscribe, source departure/unfriending, `/le net
 overlord off`, share off, Guild only, epoch/route invalidation and logout.
 Local leases cancel immediately. Only the exact outstanding stop can cross the
 privacy/off switches; combat, instances, unknown pool/identity and real-Overlord
-stand-down still silence **all** sends, including stops. Pending stops expire
-at 60 s without retry. Logout pumps the existing queue once, subject to its
+stand-down still silence **all** sends, including stops. Combat/instance stops
+remain owed and are queued when safe, within 60 s after the fight/instance ends
+under available transport budgets. Local refusal or queue pruning may be retried
+only in that 60 s safe window; successful stops are never repeated. Logout pumps
+the existing queue once, subject to its
 normal budgets; delivery is not guaranteed. The donor's subscription expires
 900 s after its last renewal, not 200 s. 200 s is the keep-alive interval.
 Battle.net uses `BN.send` and Wire's client-call boundary: eight frames/minute

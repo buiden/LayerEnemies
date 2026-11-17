@@ -150,6 +150,10 @@ function BN.cancel(net,keepStops)
     end
 end
 function BN.queued() return #queue end
+function BN.pending(net,text)
+    for _,q in ipairs(queue) do if q.net==net and q.text==text then return true end end
+    return false
+end
 
 function BN.who(id)
     if not safe() then return nil end

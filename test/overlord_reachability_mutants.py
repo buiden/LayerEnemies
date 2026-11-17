@@ -18,7 +18,7 @@ RULES = [
     ('stop after busy', 'OverlordFeed.lua', 'not s.opened or not peer', 'not s.asked or not peer'),
     ('stop on source departure', 'OverlordFeed.lua', 'then Q.stop(st,peer,c,key);st.sources[key]=nil end', 'then st.sessions[key]=nil;st.sources[key]=nil end'),
     ('friend membership at receive', 'OverlordFeed.lua', 'or not friend(r,c)', 'or false'),
-    ('stop expiry', 'OverlordFeed.lua', 'if c.now<row.at or c.now-row.at>60 then st.stops[key]=nil end', 'if false then st.stops[key]=nil end'),
+    ('stop expiry', 'OverlordFeed.lua', 'if c.now<row.at or row.safeAt and c.now-row.safeAt>60 then st.stops[key]=nil end', 'if false then st.stops[key]=nil end'),
     ('stop on logout', 'Main.lua', 'guarded(M.overlordCancel);N.BNet.pump(now());', ''),
     ('logout cannot reopen', 'Main.lua', 'not M.overlordClosing and M.sharing()', 'M.sharing()'),
     ('BN stop crosses off switches', 'BNet.lua', 'and N.Main.overlordStopping(text,"BNET",id) then return true end', 'and false then return true end'),

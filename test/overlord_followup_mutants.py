@@ -3,6 +3,9 @@ import argparse
 from overlord_peer_mutants import run
 
 MUTANTS = [
+    ('n1 preserve paused stops', 'OverlordFeed.lua',
+     'if c.stopPaused then row.safeAt=nil',
+     'if c.stopPaused then st.stops[key]=nil;row.safeAt=nil', 'Overlord followup: n1'),
     ('S2 friend cache invalidation', 'BNet.lua',
      'function BN.invalidatePeers() cache,cacheAt={},nil end',
      'function BN.invalidatePeers() end', 'Overlord followup: S2'),

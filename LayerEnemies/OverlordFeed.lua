@@ -66,7 +66,7 @@ end
 -- Only isolated Battle.net friends may be selected. Shared C2 lanes keep talking.
 function Q.prepare(st,peer,c)
     peer.feed=st;st.peer=peer
-    Q.pruneStops(st,c)
+    Q.flushStops(st,peer,c)
     if not Q.available or not ready(c) then return end
     for key,source in pairs(st.sources) do
         local r=st.heard[key]
@@ -110,25 +110,36 @@ function Q.stop(st,peer,c,key)
     if not s or not s.opened or not peer or not c then return end
     local row={name=s.name,id=s.id,route=s.route,pool=s.pool,me=st.me,epoch=s.epoch,at=c.now}
     st.stops[key]=row
-    local route=row.route=="BNET" and "BNET" or "WHISPER"
-    local target=route=="BNET" and {name=row.name,id=row.id} or row.name
-    local function valid(live)
-        return st.stops[key]==row and live.pool==row.pool and live.me==row.me
-            and live.now>=row.at and live.now-row.at<=60
+    Q.flushStops(st,peer,c)
+end
+function Q.flushStops(st,peer,c)
+    Q.pruneStops(st,c)
+    if not c or not c.stopAllowed or type(c.send)~="function" then return end
+    for key,row in pairs(st.stops) do
+        local queued=row.queued and (not c.stopQueued or c.stopQueued(row))
+        if not queued and row.pool==c.pool and row.me==c.me then
+            local route=row.route=="BNET" and "BNET" or "WHISPER"
+            local target=route=="BNET" and {name=row.name,id=row.id} or row.name
+            local function valid(live)
+                return st.stops[key]==row and live.pool==row.pool and live.me==row.me
+                    and live.now>=row.at and row.safeAt and live.now-row.safeAt<=60
+            end
+            row.queued=P.emit(peer,c,"HR","8:X:"..row.epoch,route,target,"stop:"..key,0,true,
+                {stop=row,valid=valid,sent=function() st.stops[key]=nil end})
+        end
     end
-    local ok=P.emit(peer,c,"HR","8:X:"..row.epoch,route,target,"stop:"..key,0,true,
-        {stop=row,valid=valid,sent=function() st.stops[key]=nil end})
-    if not ok then st.stops[key]=nil end -- best effort, no retry of refusal
 end
 function Q.cancel(st,peer,c)
     for key in pairs(st.sessions) do Q.stop(st,peer,c,key) end
     st.sources={}
-    Q.pruneStops(st,c)
+    Q.flushStops(st,peer,c)
 end
 function Q.pruneStops(st,c)
     if not c or not S.num(c.now) then return end
     for key,row in pairs(st.stops) do
-        if c.now<row.at or c.now-row.at>60 then st.stops[key]=nil end
+        if c.stopPaused then row.safeAt=nil
+        elseif not row.safeAt then row.safeAt=c.now end
+        if c.now<row.at or row.safeAt and c.now-row.safeAt>60 then st.stops[key]=nil end
     end
 end
 function Q.observe(st,peer,p,r,c)

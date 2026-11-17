@@ -55,6 +55,26 @@ local function sends(op)
 end
 local function advance(n) for _=1,n do H.advance(1) end end
 
+for _,mode in ipairs({"combat","instance"}) do
+    for _,queued in ipairs({false,true}) do
+        for _,duration in ipairs({1,90}) do
+            test("n1 deferred stop "..mode.." queued="..tostring(queued).." duration="..duration,function()
+                local N,state,refresh=fixture();refresh();advance(2)
+                eq(#sends("|HR|8:V:"),1)
+                if queued then N.Main.setShare(false);eq(N.BNet.queued(),1) end
+                if mode=="combat" then H.combat(true) else H.instance(true) end
+                N.Main.setShare(false);N.Main.setShare(false)
+                advance(duration);eq(#sends("|HR|8:X:"),0,"unsafe stop remains silent")
+                if mode=="combat" then H.combat(false) else H.instance(false) end
+                local ended=H.clock();advance(60)
+                local out=sends("|HR|8:X:");eq(#out,1,"exactly one after safety resumes")
+                yes(out[1].at-ended<=60);advance(90);eq(#sends("|HR|8:X:"),1)
+                eq(next(N.Main.overlordFeed.stops),nil)
+            end)
+        end
+    end
+end
+
 for _,active in ipairs({false,true}) do
     test("S2 removal invalidates cached friend active="..tostring(active),function()
         local N,state,refresh=fixture()
