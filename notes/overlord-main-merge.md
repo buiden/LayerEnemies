@@ -34,3 +34,24 @@ Pre-gate composition checks: BNet queue 29 passed/0 failed/2313 assertions; Over
 Intermediate merge gates: receiver mutants 54/54 and peer mutants 57/57. Full verification exposed seven shared-fixture mismatches, then four mixed-traffic reach failures: WarBoard's mock counted every shared BNet.peers read as its own scan after C2 became live. All production behavior was retained. Fixtures now use the real OverlordF prefix, forward every transport callback argument, and count the actual WarBoard scan timestamp while preserving the 60-second cadence assertion. The unchanged reach expectations pass for 12/20/25/40 accounts in both arrival modes (plus unreadable controls): 10 tests, 0 failures, 190527 assertions. No failing interim run is a completion claim.
 
 During verification the owner explicitly retargeted Part B to `44e41e8d90617325aa6df1407b180ad1671cbaa5`, adding /le quiet. It will be merged as a second --no-ff main merge onto C2, preserving the already committed 5b85455 merge. Final gates below cover that exact target.
+
+## C2: requested main `44e41e8d` into the already integrated C2
+
+Merge commit `e436d830393480f3f39a7a7d8d8a656862260e29`. Every conflict:
+- `README.md`
+- `notes/test-results.txt`
+- `notes/verification.json`
+
+README keeps both complete unreleased sections. Generated verification notes are regenerated below. Production changes from Git's AUTO_MERGE `4079e0a5994ed13288ec8e9167d57d8cef53717d`: **none**. Wire's exact-once CHAT_MSG_SYSTEM filter and both post-hooks, the stricter gate, `quietWhispers`, `warboardOwed`, and both WarBoard modules remain intact. The stricter API gate passed without any weakening or additional production repair; its 15 policy unit tests passed too.
+
+### C2 final gates
+
+- `python3 test/verify.py`: RESULT: 1849 tests passed, 0 failed, 542339 assertions; exit 0. Syntax, static/TOC and archive/source parity PASS.
+- RESULT: 54/54 mutants killed; exit 0.
+- RESULT: 57/57 mutants killed; exit 0.
+- RESULT: 115/115 WarBoard mutants killed; exit 0.
+- RESULT: 113/113 WarBoard tracking mutants killed; exit 0.
+- MUTANTS: 38/38 caught; exit 0.
+- MUTANTS: 43/43 caught; exit 0.
+
+Complete machine-readable C2 evidence: [`overlord-c2-main-gates.json`](overlord-c2-main-gates.json); regenerated per-suite mutation JSONs and verification notes are in this commit. All requested runners used foreground subprocesses with explicit 1800-second timeouts; the tool's 420-second response window expired on long jobs, but their existing foreground calls were allowed to finish, their exit-status files were read, and no duplicate runners were started. No native client checks (alpha, owner's decision).
