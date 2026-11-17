@@ -1,0 +1,17 @@
+Frozen base: 67953cfe6ef436c2df20b536f6cca5f0114ec773
+Copied only candidate test/codec.lua into a detached base worktree.
+Command: /opt/data/tools/lua/lua-5.1.5/src/lua test/codec.lua
+Exit: 1
+FAIL aceRead accepts exactly 2048 entries and refuses 2049: test/codec.lua:14: table at the entry ceiling is accepted
+FAIL aceWrite accepts exactly 2048 entries and refuses 2049: test/codec.lua:14: 2048-entry writer succeeds
+FAIL lsRead accepts exactly 2048 entries and refuses 2049: test/codec.lua:14: table at the entry ceiling is accepted
+FAIL lsWrite accepts exactly 2048 entries and refuses 2049: test/codec.lua:14: 2048-entry writer succeeds
+FAIL serializer logical budget includes the root and nested table entries: test/codec.lua:14: expected true, got false
+FAIL LibSerialize wire value budget includes nil array slots: test/codec.lua:14: 4097 wire values
+FAIL AceComm 20000-byte message joins at one 255-byte frame per second: test/codec.lua:248: complete paced message
+FAIL AceComm idle timeout is 15 seconds since the last accepted frame: test/codec.lua:256: idle boundary
+FAIL AceComm active streams join just before the 120-second total cap: test/codec.lua:267: expected firstxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxend, got nil
+FAIL AceComm idle progress is isolated per stream: test/codec.lua:287: other sender cannot refresh idle stream
+FAIL AceComm rejected and standalone frames do not refresh idle progress: test/codec.lua:299: no accepted fragment since first
+FAIL AceComm idle pruning releases stream capacity but retains active peers: test/codec.lua:307: idle slots released
+CODEC: 18 tests passed, 12 failed, 9965 assertions

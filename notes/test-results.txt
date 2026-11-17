@@ -1274,8 +1274,22 @@ PASS Codec: AceSerializer strict malformed and resource rejection
 PASS Codec: LibSerialize hand answers and table/string references
 PASS Codec: LibSerialize every scalar and explicit count family
 PASS Codec: LibSerialize malformed, truncated, cycles and bounds
+PASS Codec: aceRead accepts exactly 2048 entries and refuses 2049
+PASS Codec: aceWrite accepts exactly 2048 entries and refuses 2049
+PASS Codec: lsRead accepts exactly 2048 entries and refuses 2049
+PASS Codec: lsWrite accepts exactly 2048 entries and refuses 2049
+PASS Codec: serializer logical budget includes the root and nested table entries
+PASS Codec: LibSerialize wire value budget includes nil array slots
 PASS Codec: AceComm split/join all controls and boundaries
-PASS Codec: AceComm sender isolation, restart, orphan and exact TTL
+PASS Codec: AceComm sender isolation, restart, orphan and clock rollback
+PASS Codec: AceComm one-second frames join with the last frame at 29 seconds
+PASS Codec: AceComm 20000-byte message joins at one 255-byte frame per second
+PASS Codec: AceComm idle timeout is 15 seconds since the last accepted frame
+PASS Codec: AceComm active streams join just before the 120-second total cap
+PASS Codec: AceComm total cap drops active streams at 120 and 121 seconds
+PASS Codec: AceComm idle progress is isolated per stream
+PASS Codec: AceComm rejected and standalone frames do not refresh idle progress
+PASS Codec: AceComm idle pruning releases stream capacity but retains active peers
 PASS Codec: AceComm stream, bytes, fragment, key and frame ceilings
 PASS Codec: independent Python serializer vectors and audit network payloads
 PASS Codec: logical references cannot evade string, depth or table bounds
@@ -1294,4 +1308,4 @@ PASS Sources: OpenMap Battle.net keeps its original event path and values
 PASS Sources: guarded callbacks secrets and switches fail silent
 PASS Sources: unavailable optional timer and registration APIs fail silent
 PASS Sources: tick-only source runs at one second cadence and net counters append
-RESULT: 1296 tests passed, 0 failed, 175119 assertions
+RESULT: 1310 tests passed, 0 failed, 200327 assertions
