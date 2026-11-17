@@ -23,10 +23,14 @@ its **20/minute**, four/minute/target budget. Own Overlord announcements use the
 low-priority reserve so ordinary LE guild traffic keeps priority within the
 shared **20 guild frames/minute**. Owed responses are attempted immediately;
 there is no retry of a client attempt or addon backlog. Directory greetings
-rotate round-robin: with forty stable unanswered members all get a turn within
-forty eligible minutes, not just the first ten. A queue/gate refusal spends no
-candidate or minute cooldown; the next tick may try that unattempted candidate. Queue guards recheck pool, identity, privacy
-and actual per-target gaps at dispatch. A successful send is not proof of delivery.
+rotate round-robin: with forty stable unanswered reachable members all get a turn
+within forty eligible minutes, not just the first ten. A local queue/gate refusal
+spends no candidate or minute cooldown: the same tick skips that member and scans
+on, at most one directory pass and one charged greeting. An actual client attempt,
+including a refused send, does consume the cooldown. Names use the shared canonical
+rule (only our own realm suffix is stripped), so equivalent spellings share a
+candidate cooldown. Queue guards recheck pool, identity, privacy and actual
+per-target gaps at dispatch. A successful send is not proof of delivery.
 
 LE identifies itself as **`LayerEnemies <its installed TOC version>`**, never as
 Overlord. C2 advertises no capability, rank, map digest or helper flag. It does

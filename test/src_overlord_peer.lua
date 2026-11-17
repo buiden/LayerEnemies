@@ -142,7 +142,7 @@ end)
 
 test("whisper greeting once a minute stops at six partners",function()
     local N=setup();local P=N.OverlordPeer;local st=P.new();local c=ctx(N);c.guild=false;c.group=nil
-    for i=1,8 do c.directory[i]=H.abc(i).." Scout" end
+    for i=1,8 do c.directory[i]="Dir"..H.abc(i).." Scout" end
     for i=1,6 do
         c.now=100+(i-1)*60;P.tick(st,c);eq(#c.out,i)
         local name=c.out[i].target
@@ -156,7 +156,7 @@ end)
 
 test("directory greeting rotates through forty unanswered members",function()
     local N=setup();local P=N.OverlordPeer;local st=P.new();local c=ctx(N);c.guild=false;c.group=nil
-    for i=1,40 do c.directory[i]=H.abc(i).." Scout" end
+    for i=1,40 do c.directory[i]="Dir"..H.abc(i).." Scout" end
     local seen,last={},{}
     for i=1,60 do
         c.now=100+(i-1)*60;P.tick(st,c);eq(#c.out,i)

@@ -139,11 +139,12 @@ function P.tick(st,c)
         local members=c.directory or {}
         for step=1,#members do
             local index=((st.greeter or 0)+step-1)%#members+1
-            local name=members[index];local key=F.fold(name)
-            if not st.routes[key] and due(st.gaps["hello:"..key],c.now,600) then
+            local _,key,name=N.Invite.name(members[index])
+            if name and not st.routes[key] and due(st.gaps["hello:"..key],c.now,600) then
                 local _,charged=P.emit(st,c,"NH",P.presence(c),"WHISPER",name,"hello:"..key,600,false)
-                if charged then st.greeting=c.now;st.greeter=index end
-                break -- one admission attempt per tick, never scan-flood a full gate
+                if charged then st.greeting=c.now;st.greeter=index;break end
+                -- A local refusal costs no cooldown: try the next member this tick.
+                -- One bounded directory pass, at most one charged greeting.
             end
         end
     end
