@@ -3,8 +3,8 @@ local A,S = {},N.Safe
 N.Adapters=A
 
 -- WHO UI ownership is temporary and session-only. No hiding windows or replacing SendWho.
--- Registered frames are detached during our query. On timeout/Stop their registrations return immediately;
--- a short-lived OnEvent guard swallows the late result (max 30 s). A player's SendWho wins ownership.
+-- Hidden, registered frames are detached during our query and its late-result guard (max 30 s).
+-- A player's SendWho wins ownership. Open windows and all frame scripts are left untouched.
 A.WHO_LATE=30
 local whoLease,whoSending,whoHooked=nil,false,nil
 local function whoLater(delay,fn)
@@ -28,13 +28,7 @@ end
 local function whoRelease(q)
     if whoLease~=q then return end
     whoRegisters(q)
-    for _,v in ipairs(q.frames) do
-        pcall(function()
-            -- Never overwrite a script another addon changed while we held the lease.
-            if v.frame:GetScript("OnEvent")==v.guard then v.frame:SetScript("OnEvent",v.script) end
-        end)
-    end
-    q.block=false; whoLease=nil
+    whoLease=nil
     local visible=false
     for _,frame in pairs(whoFrames()) do
         pcall(function() if frame:IsVisible() then visible=true end end)
@@ -43,10 +37,10 @@ local function whoRelease(q)
 end
 function A.whoEnd(reason)
     local q=whoLease; if not q then return end
-    q.active=false; whoRegisters(q)
+    q.active=false
     if reason=="result" or q.event then
         q.event=true
-        -- Registration order is not promised by the client: keep guards until this event has finished.
+        -- Keep frames detached through this dispatch, even if ours runs first.
         if not whoLater(0,function() whoRelease(q) end) then whoRelease(q) end
     elseif reason~="timeout" and reason~="stop" then whoRelease(q) end
 end
@@ -60,7 +54,7 @@ function A.whoEvent()
 end
 local function whoHush(cancel)
     if whoLease then whoRelease(whoLease) end
-    local q={at=S.num(S.call(GetTime)) or 0,frames={},active=true,block=true}
+    local q={at=S.num(S.call(GetTime)) or 0,frames={},active=true}
     whoLease=q
     -- Without a deadline timer, do not acquire UI state which could be left behind.
     if not whoLater(A.WHO_LATE,function() whoRelease(q) end) then whoLease=nil; return end
@@ -81,17 +75,12 @@ local function whoHush(cancel)
     if whoHooked~=_G.C_FriendList then return end -- missing hook: retain the old UI behavior
     for _,frame in pairs(whoFrames()) do
         pcall(function()
-            for _,method in ipairs({"IsEventRegistered","RegisterEvent","UnregisterEvent","GetScript","SetScript"}) do
+            for _,method in ipairs({"IsEventRegistered","RegisterEvent","UnregisterEvent","IsVisible"}) do
                 if type(S.clean(frame[method]))~="function" then return end
             end
-            if frame:IsEventRegistered("WHO_LIST_UPDATE")~=true then return end
-            local v={frame=frame,script=frame:GetScript("OnEvent")}
-            v.guard=function(self,event,...)
-                if event=="WHO_LIST_UPDATE" and q.block then return end
-                if type(v.script)=="function" then return v.script(self,event,...) end
-            end
+            if frame:IsVisible()~=false or frame:IsEventRegistered("WHO_LIST_UPDATE")~=true then return end
+            local v={frame=frame}
             q.frames[#q.frames+1]=v
-            frame:SetScript("OnEvent",v.guard)
             -- Mark first so even a partially failing client method is restored on every exit.
             v.detached=true
             frame:UnregisterEvent("WHO_LIST_UPDATE")
