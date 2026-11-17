@@ -126,6 +126,16 @@ for _,active in ipairs({false,true}) do
     end)
 end
 
+test("S1 cancellation from a fresh dispatch context queues the stop now",function()
+    local N,state,refresh=fixture({two=true});refresh();advance(3)
+    eq(#sends("|HR|8:V:"),1);eq(N.BNet.queued(),0)
+    state.party={"Birch Scout","Test Realm"}
+    local c=N.Main.overlordContext()
+    N.OverlordFeed.prepare(N.Main.overlordFeed,N.Main.overlordPeer,c)
+    eq(N.BNet.queued(),1,"dispatch-time stop is queued, not waiting for a heartbeat")
+    advance(1);eq(#sends("|HR|8:X:"),1)
+end)
+
 for offset=100,130 do
     test("S1 senderless cancellation offset "..offset,function()
         local N,state,refresh=fixture({two=true});refresh()
