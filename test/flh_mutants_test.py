@@ -2,6 +2,9 @@
 from pathlib import Path
 import os
 import runpy
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -11,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class MutationEvidenceTests(unittest.TestCase):
     def test_reports_normalize_runtime_identity_and_checkout_paths(self):
-        for name in ('flh_mutants.py', 'flh_member_mutants.py'):
+        for name in ('flh_mutants.py', 'flh_member_mutants.py', 'flh_batch_mutants.py'):
             with self.subTest(runner=name):
                 runner = runpy.run_path(str(ROOT / 'test' / name))
                 results = []
@@ -41,7 +44,7 @@ class MutationEvidenceTests(unittest.TestCase):
         self.assertIn('table: <address>', results[0])
 
     def test_report_writer_preserves_identical_evidence(self):
-        for name in ('flh_mutants.py', 'flh_member_mutants.py', 'hop_fanout_mutants.py'):
+        for name in ('flh_mutants.py', 'flh_member_mutants.py', 'hop_fanout_mutants.py', 'flh_batch_mutants.py'):
             with self.subTest(runner=name), tempfile.TemporaryDirectory(dir=os.environ['TMPDIR']) as tmp:
                 runner = runpy.run_path(str(ROOT / 'test' / name))
                 self.assertTrue('write_report' in runner, 'missing stable report writer')
@@ -53,6 +56,36 @@ class MutationEvidenceTests(unittest.TestCase):
                 before = path.read_bytes(), path.stat().st_mtime_ns
                 runner['write_report'](path, {'mutants': [], 'baseline': {'rc': 0}})
                 self.assertEqual((path.read_bytes(), path.stat().st_mtime_ns), before)
+
+    def test_batch_runner_works_from_copied_checkouts_and_an_unrelated_directory(self):
+        lua = str(runpy.run_path(str(ROOT / 'test/verify.py'))['LUA'])
+        with tempfile.TemporaryDirectory(dir=os.environ['TMPDIR']) as tmp:
+            scratch = Path(tmp)
+            outside = scratch / 'outside'
+            outside.mkdir()
+            reports = []
+            for name in ('copy-a', 'copy-b'):
+                root = scratch / name
+                for folder in ('LayerEnemies', 'test'):
+                    shutil.copytree(ROOT / folder, root / folder)
+                shutil.copy2(ROOT / 'README.md', root / 'README.md')
+                source = {p.relative_to(root): p.read_bytes() for folder in ('LayerEnemies', 'test')
+                          for p in (root / folder).rglob('*') if p.is_file()}
+                command = [sys.executable, '-B', str(root / 'test/flh_batch_mutants.py'),
+                           '--lua', lua, '--scratch', str(scratch), '--only', 'failure-chat-line']
+                proc = subprocess.run(command, cwd=outside, capture_output=True, text=True, timeout=1800)
+                self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+                report = root / 'notes/flh-batch-mutants.json'
+                reports.append(report.read_bytes())
+                os.utime(report, ns=(1_000_000_000, 1_000_000_000))
+                proc = subprocess.run(command, cwd=outside, capture_output=True, text=True, timeout=1800)
+                self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+                self.assertEqual(report.stat().st_mtime_ns, 1_000_000_000)
+                self.assertEqual(report.read_bytes(), reports[-1])
+                self.assertEqual(source, {p.relative_to(root): p.read_bytes() for folder in ('LayerEnemies', 'test')
+                                         for p in (root / folder).rglob('*') if p.is_file()})
+            self.assertEqual(reports[0], reports[1])
+            self.assertNotIn(tmp.encode(), reports[0])
 
 
 if __name__ == '__main__':
