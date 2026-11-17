@@ -57,9 +57,19 @@ Developer interfaces and integration rules:
   not delivered. `prio="owed"|"own"` (default own); owed first, FIFO ties. One
   60-entry queue, **one frame/second, 30 attempted frames/rolling minute across
   all networks**, no catch-up burst. Overlord/Wanted/WarBoard shares are 8/4/10
-  per minute; other registered sources share the global 30. A budget wait stays
-  queued; invalidated work and refused/failed client calls are dropped, counted,
-  never retried. Privacy is checked at admission and dispatch; share off, Guild
+  per minute. Other registered sources get `max(1, floor(30 / registered sources))`
+  each; legacy networks outside Sources do not count. The same share caps each
+  network's queued frames (both priorities combined): an excess request returns
+  false immediately, not a held backlog. New registrations tighten future
+  admissions and dispatch shares without evicting already-admitted work.
+  **At most 52 queued frames may be normal (`own`): eight slots are owed-only.**
+  Owed answers still obey their network's admission and dispatch caps and the
+  absolute 60-entry queue bound. A budget wait stays queued only while live:
+  frames **older than 60 seconds from admission** are dropped before dispatch,
+  even when a budget is exhausted; exact age 60 is still eligible. Admission
+  requires a readable monotonic clock. Expired/invalidated work, admission
+  refusals and refused/failed client calls increment the source's `refused`
+  counter, never retried. Privacy is checked at admission and dispatch; share off, Guild
   only, network off, combat, instances or unavailable live identity block all
   sends, including owed answers. Share/consent/switch off cancels held work even
   if switched on before the next timer. Stand-down alone permits owed answers.

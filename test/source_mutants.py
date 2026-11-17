@@ -42,13 +42,16 @@ MUTANTS = [
     ('public off', 'BNet.lua',
      'if not authorized or not N.Main.sharing() or N.Net.consent()~="public" or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"public")',
      'if not authorized or not N.Main.sharing() or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"guild")', 'BNet queue:'),
-    ('dispatch privacy recheck', 'BNet.lua', 'if not BN.allowed(q.net,q.id,q.prefix,q.text,q.prio) or not BN.who(q.id) then', 'if false then', 'BNet queue:'),
+    ('dispatch privacy recheck', 'BNet.lua', 'if now-q.at>60 or not BN.allowed(q.net,q.id,q.prefix,q.text,q.prio) or not BN.who(q.id) then', 'if now-q.at>60 then', 'BNet queue:'),
     ('cancel off-on share', 'Main.lua', 'N.OwnDeath.cancel(); N.BNet.cancel()', 'N.OwnDeath.cancel()', 'BNet queue:'),
     ('per-network share', 'BNet.lua', 'wanted=4', 'wanted=5', 'BNet queue:'),
     ('failed send dropped', 'BNet.lua', 'if deliver(q) then N.Sources.count(q.net,"sent") else refuse(q.net) end', 'if deliver(q) then N.Sources.count(q.net,"sent") else refuse(q.net); queue[#queue+1]=q end', 'BNet queue:'),
     ('Wire caller frame', 'BNet.lua', 'pcall(N.Wire.bnet,q.net,q.id,q.prefix,q.text,q.prio,fn)', 'pcall(fn,q.id,q.prefix,q.text)', 'BNet queue:'),
     ('Wire private dispatch', 'Wire.lua', 'or not N.BNet.dispatching(net,id,prefix,text,prio,fn)', 'or false', 'BNet queue:'),
     ('queue bound', 'BNet.lua', '#queue>=60', '#queue>60', 'BNet queue:'),
+    ('S1 per-network admission cap', 'BNet.lua', 'count>=share(net)', 'false', 'BNet queue: S1'),
+    ('S1 owed-only queue reserve', 'BNet.lua', 'normal>=52', 'normal>=60', 'BNet queue: S1'),
+    ('S1 sixty-second frame age', 'BNet.lua', 'now-q.at>60', 'false', 'BNet queue: S1'),
 ]
 
 

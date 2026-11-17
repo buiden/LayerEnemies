@@ -36,6 +36,13 @@ end
 -- Queued is admission only; clients can still refuse at dispatch. No retries.
 local queue,times,lastSend,timer,serial={},{},nil,false,0
 local shares={overlord=8,wanted=4,warboard=10}
+local function share(net)
+    if shares[net] then return shares[net] end
+    local count=0
+    for name in pairs(N.Net.LIST) do if N.Sources.has(name) then count=count+1 end end
+    -- New registrations tighten future admissions and dispatch, not held work.
+    return math.max(1,math.floor(30/math.max(1,count)))
+end
 local function refuse(net) N.Sources.count(net,"refused"); return false end
 function BN.allowed(net,id,prefix,text,prio)
     if not S.str(net,32) or not S.str(prefix,16) or not S.num(id) or id<1 or id%1~=0
@@ -70,10 +77,10 @@ local schedule
 function BN.pump(now)
     now=S.num(now)
     if not now then return end
-    -- Privacy and safety are rechecked even while a budget is exhausted.
+    -- Expiry, privacy and safety are rechecked even while a budget is exhausted.
     for i=#queue,1,-1 do
         local q=queue[i]
-        if not BN.allowed(q.net,q.id,q.prefix,q.text,q.prio) or not BN.who(q.id) then
+        if now-q.at>60 or not BN.allowed(q.net,q.id,q.prefix,q.text,q.prio) or not BN.who(q.id) then
             refuse(q.net); table.remove(queue,i)
         end
     end
@@ -88,7 +95,7 @@ function BN.pump(now)
         for i,q in ipairs(queue) do
             local count=0
             for _,stamp in ipairs(times) do if stamp.net==q.net then count=count+1 end end
-            if count<(shares[q.net] or 30) then
+            if count<share(q.net) then
                 table.remove(queue,i)
                 lastSend=now; times[#times+1]={at=now,net=q.net} -- spend before the client, including failures
                 if deliver(q) then N.Sources.count(q.net,"sent") else refuse(q.net) end
@@ -112,9 +119,17 @@ end
 function BN.send(net,id,prefix,text,prio)
     if S.secret(prio) then return refuse(net) end
     prio=prio==nil and "own" or prio
-    if not BN.allowed(net,id,prefix,text,prio) or not BN.who(id) or #queue>=60 or not schedule() then return refuse(net) end
+    if not BN.allowed(net,id,prefix,text,prio) or not BN.who(id) or #queue>=60 then return refuse(net) end
+    local count,normal=0,0
+    for _,q in ipairs(queue) do
+        if q.net==net then count=count+1 end
+        if q.prio~="owed" then normal=normal+1 end
+    end
+    -- Eight of the sixty slots are owed-only; both priorities share the net cap.
+    local now=S.num(S.call(GetTime))
+    if not now or count>=share(net) or (prio~="owed" and normal>=52) or not schedule() then return refuse(net) end
     serial=serial+1
-    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial}
+    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now}
     return true
 end
 function BN.cancel(net)

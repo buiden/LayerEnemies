@@ -18,17 +18,25 @@ end
 
 test("BNet queue: single shared thirty per minute cap and one second pace",function()
     local N=setup()
-    for i=1,40 do
+    for i=1,30 do
         local odd=i%2==1
         yes(N.BNet.send(odd and "alpha" or "beta",71,odd and "AlphaSrc" or "BetaSrc","line"..i,"own"))
     end
     eq(#bnSent(),0,"enqueue is not a send")
     h.advance(.5); eq(#bnSent(),0)
     h.advance(.5); eq(#bnSent(),1)
-    for _=1,29 do h.advance(1) end; eq(#bnSent(),30)
+    -- Refill freed slots, rather than assuming a source may queue above its share.
+    for i=1,10 do
+        local odd=i%2==1
+        yes(N.BNet.send(odd and "alpha" or "beta",71,odd and "AlphaSrc" or "BetaSrc","refill"..i,"own"))
+        h.advance(1)
+    end
+    for _=1,19 do h.advance(1) end; eq(#bnSent(),30)
     for _=1,30 do h.advance(1) end; eq(#bnSent(),30,"rolling minute is shared across nets")
+    yes(N.BNet.send("alpha",71,"AlphaSrc","fresh-a","own"))
+    yes(N.BNet.send("alpha",71,"AlphaSrc","fresh-b","own"))
     h.advance(1); eq(#bnSent(),31,"exact sixty-second boundary")
-    h.advance(500); eq(#bnSent(),32,"no catch-up burst")
+    h.advance(50); eq(#bnSent(),32,"no catch-up burst with still-live work")
 end)
 
 test("BNet queue: owed answers precede own work FIFO within a priority",function()
@@ -99,7 +107,8 @@ end)
 test("BNet queue: per-network shares stand-down owed exception and live peer validation",function()
     local N=setup()
     yes(N.Sources.register{name="wanted",prefixes={"WNTDB"},counters={}})
-    for _=1,5 do yes(N.BNet.send("wanted",71,"WNTDB","hello","own")) end
+    for _=1,4 do yes(N.BNet.send("wanted",71,"WNTDB","hello","own")) end
+    no(N.BNet.send("wanted",71,"WNTDB","overflow","own"))
     for _=1,5 do h.advance(1) end; eq(#bnSent(),4)
     N.Net.LIST.alpha.standDown="Donor"; h.loaded().Donor=true
     no(N.BNet.send("alpha",71,"AlphaSrc","own","own")); yes(N.BNet.send("alpha",71,"AlphaSrc","owed","owed"))
@@ -114,8 +123,8 @@ test("BNet queue: bounds secrets rollback and timer absence fail closed",functio
         {"alpha",71,h.secret,"x","owed"},{"alpha",71,"AlphaSrc",h.secret,"owed"},
         {"alpha",71,"AlphaSrc","x",h.secret},{"alpha",0,"AlphaSrc","x","owed"},
         {"alpha",71,"AlphaSrc",string.rep("x",4097),"owed"}}) do no(N.BNet.send(unpack(a))) end
-    for _=1,60 do yes(N.BNet.send("alpha",71,"AlphaSrc","line","own")) end
-    no(N.BNet.send("alpha",71,"AlphaSrc","overflow","own")); eq(N.BNet.queued(),60)
+    for _=1,15 do yes(N.BNet.send("alpha",71,"AlphaSrc","line","own")) end
+    no(N.BNet.send("alpha",71,"AlphaSrc","overflow","own")); eq(N.BNet.queued(),15)
     h.advance(1); eq(#bnSent(),1); h.clock(h.clock()-10); N.BNet.pump(h.clock()); eq(#bnSent(),1)
     N=setup(); C_Timer=nil; no(N.BNet.send("alpha",71,"AlphaSrc","timerless","own")); eq(N.BNet.queued(),0)
 end)
