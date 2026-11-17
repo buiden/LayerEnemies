@@ -144,7 +144,9 @@ function T.roster(ev,roster,id,ctx)
         if hunter.guid==me.guid then
             r.accepted=nil -- observed failure invalidates the silence fallback
             local peer=N.WarBoard.state.peers[id]
-            if peer then peer.proof=nil end -- a new exchange is required before resend
+            -- Retire only the proof used by the contradicted send. Later
+            -- rosters cannot erase a fresh exchange still waiting to be used.
+            if peer and peer.proof==r.unproof and (not peer.proofAt or peer.proofAt<=ev.at) then peer.proof=nil end
             return
         end
     end
@@ -207,6 +209,7 @@ local function enqueue(st,r,kind,me,ctx)
             r.sent=true; remember(r.guid) -- before the call, including ambiguous failures
         else
             r.tries=(r.tries or 0)+1; r.unlast=now; r.window=r.window or now
+            r.unproof=st.peers[r.id].proof
             r.total=(r.total or 0)+1
             owed.attempts=owed.attempts or {}; owed.attempts[r.guid]=r.total
         end

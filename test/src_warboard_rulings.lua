@@ -100,3 +100,40 @@ for _,mode in ipairs({"share","source","guild"}) do
         eq(count("H",before),0); eq(count("FBUN",before),0)
     end)
 end
+
+for _,donor in ipairs({true,false}) do
+    local offsets=donor and {301,302,303,304,305,306,307,308,309,310,311,312,313,314,315} or {301,303,305,307,309,311,313,315}
+    for _,offset in ipairs(offsets) do
+        test("S1 "..(donor and "donor" or "own").." handshake offset "..offset,function()
+            local N,r,hello,count,pos=start()
+            h.combat(true); h.deliver("PLAYER_REGEN_DISABLED")
+            if not donor then stop(N,"share") end
+            h.deliver("PLAYER_LOGOUT"); local saved=LayerEnemiesDB; h.combat(false)
+            N,r,hello,count,pos=setup(saved,r); h.loaded().WarBoard=donor; r.confirmed=false
+            local withdrawn
+            for t=1,3600 do
+                -- Simulate the installed donor's outgoing H and the target's A.
+                if donor and (t==3 or t%600==0) then incoming("A") end
+                if t%600==offset then hello() end
+                if t%15==0 and r.sub then pos(true) end
+                advance(1)
+                if not r.sub then withdrawn=t; break end
+            end
+            print("TIMING S1 "..(donor and "donor" or "own").." "..offset.." -> "..tostring(withdrawn))
+            yes(withdrawn and withdrawn<=offset+3,"fresh target H must withdraw promptly, not wait another handshake")
+            if donor then eq(count("H"),0); eq(count("A"),0) end
+        end)
+    end
+end
+
+test("S1 delayed roster cannot wipe newer unused confirmation",function()
+    local N,r,hello,count,pos=start(); r.drop=true; stop(N,"share"); advance(5)
+    eq(count("FBUN"),1); pos(true); advance(3); hello(); advance(1)
+    local peer=N.WarBoard.state.peers[71]; local fresh=peer.proof
+    yes(fresh); pos(true,function(d) d.sentAt=h.wall()-2 end)
+    eq(peer.proof,fresh,"roster sent before confirmation must not wipe it")
+    r.drop=false
+    for t=1,65 do if t%15==0 and r.sub then pos(true) end; advance(1) end
+    eq(count("FBUN"),2,"later listed rosters cannot repeatedly wipe an unused confirmation")
+    no(r.sub)
+end)
