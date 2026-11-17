@@ -75,7 +75,7 @@ end
 local function advance(n) for _=1,n do h.advance(1) end end
 local function queueOtherThirty(N)
     local fixture=assert(loadfile("test/bnet_queue_fixture.lua"))(h)
-    local rows={{"wanted","WNTDB",4},{"overlord","OLQueue",8}}
+    local rows={{"wanted","WNTDB",4},{"overlord","OverlordF",8}}
     for _,r in ipairs(rows) do fixture.register(N,r[1],r[2]) end
     local existing=#N.Sources.lines(); local count=0
     repeat count=count+1 until 12+count*math.max(1,math.floor(30/(existing+count)))>=30
@@ -178,7 +178,7 @@ for _,count in ipairs({12,20,25,40}) do
             local traffic={}
             if mixed then
                 local fixture=assert(loadfile("test/bnet_queue_fixture.lua"))(h)
-                traffic={{"wanted","WNTDB",4},{"overlord","OLQueue",8}}
+                traffic={{"wanted","WNTDB",4},{"overlord","OverlordF",8}}
                 for _,r in ipairs(traffic) do fixture.register(N,r[1],r[2]) end
                 -- Enough distinct registered sources to exercise the shared 30/min cap.
                 for i=1,8 do
@@ -775,7 +775,7 @@ end)
 test("H cannot consume owed reserve while six real A answers use it",function()
     local N=setup(); local fixture=assert(loadfile("test/bnet_queue_fixture.lua"))(h)
     local filled=0
-    for _,r in ipairs({{"wanted","WNTDB",4},{"overlord","OLQueue",8}}) do
+    for _,r in ipairs({{"wanted","WNTDB",4},{"overlord","OverlordF",8}}) do
         fixture.register(N,r[1],r[2])
         for _=1,r[3] do yes(N.BNet.send(r[1],71,r[2],"normal","own")); filled=filled+1 end
     end
