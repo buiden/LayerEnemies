@@ -22,13 +22,15 @@ end
 function P.dispatching(text,route,target)
     return flight and flight.text==text and flight.route==route and flight.target==target or false
 end
--- Called once immediately before each actual transport attempt, including failures.
+-- Check without spending before Wire admission; charge only a client attempt.
+-- Battle.net charges at dispatch, including failures.
 -- Queued Battle.net frames cannot burst across a new admission window.
-function P.claim(st,job,c)
+function P.claim(st,job,c,checkOnly)
     if not ready(c,job.owed) or c.pool~=job.pool or c.me~=job.me then return false end
     if not due(st.actual[job.key],c.now,job.gap) then return false end
     st.actualOwed=recent(st.actualOwed,c.now)
     if job.owed and #st.actualOwed>=6 then return false end
+    if checkOnly then return true end
     st.actual[job.key]=c.now
     if job.owed then st.actualOwed[#st.actualOwed+1]=c.now end
     return true
@@ -41,8 +43,6 @@ function P.emit(st,c,kind,payload,route,target,key,gap,owed)
     if owed and #st.owed>=6 then return false end
     -- Bound target cooldowns independently of the expiring route table.
     if not st.gaps[key] and S.count(st.gaps)>=256 then return false end
-    st.gaps[key]=c.now
-    if owed then st.owed[#st.owed+1]=c.now end
     st.serial=st.serial+1
     local id=tostring(math.floor(c.wall)).."-"..st.serial
     local dest=(route=="BNET" and target.name) or (route=="WHISPER" and target) or "*"
@@ -53,9 +53,14 @@ function P.emit(st,c,kind,payload,route,target,key,gap,owed)
     local address=route=="BNET" and target.id or target
     local job={key=key,gap=gap,owed=owed==true,pool=c.pool,me=c.me}
     flight={text=text,route=route,target=address}
-    local ok,result=pcall(c.send,c,text,route,address,owed and "owed" or "own",job)
+    local ok,result,attempted=pcall(c.send,c,text,route,address,owed and "owed" or "own",job)
     flight=nil
-    return ok and result==true
+    local charged=ok and (result==true or attempted==true)
+    if charged then
+        st.gaps[key]=c.now
+        if owed then st.owed[#st.owed+1]=c.now end
+    end
+    return ok and result==true,charged
 end
 local function learn(st,p,route,sender,id,c)
     P.sweep(st,c.now)
@@ -131,12 +136,14 @@ function P.tick(st,c)
     local partners=0
     for _,r in pairs(st.routes) do if r.hops==0 and r.route=="WHISPER" and r.nh then partners=partners+1 end end
     if partners<6 and due(st.greeting,c.now,60) then
-        for _,name in ipairs(c.directory or {}) do
-            local key=F.fold(name)
+        local members=c.directory or {}
+        for step=1,#members do
+            local index=((st.greeter or 0)+step-1)%#members+1
+            local name=members[index];local key=F.fold(name)
             if not st.routes[key] and due(st.gaps["hello:"..key],c.now,600) then
-                st.greeting=c.now
-                P.emit(st,c,"NH",P.presence(c),"WHISPER",name,"hello:"..key,600,false)
-                break
+                local _,charged=P.emit(st,c,"NH",P.presence(c),"WHISPER",name,"hello:"..key,600,false)
+                if charged then st.greeting=c.now;st.greeter=index end
+                break -- one admission attempt per tick, never scan-flood a full gate
             end
         end
     end

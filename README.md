@@ -16,12 +16,16 @@
 local character or own addon version. No off-switch withdrawal is sent.
 When the real Overlord addon is loaded, **every Overlord send stops**, including
 NH replies, HA answers, greetings and feed requests on guild, group, whisper and
-Battle.net. Queued work is also refused at dispatch. LE still receives traffic. Battle.net uses `BN.send`: **eight frames/minute**, inside the shared
+Battle.net. Queued work is also refused at dispatch. LE still receives traffic.
+Battle.net uses `BN.send`: **eight frames/minute**, inside the shared
 30/minute and one/second queue. Addon messages use Wire; stranger whispers share
 its **20/minute**, four/minute/target budget. Own Overlord announcements use the
 low-priority reserve so ordinary LE guild traffic keeps priority within the
 shared **20 guild frames/minute**. Owed responses are attempted immediately;
-there is no retry or addon backlog. Queue guards recheck pool, identity, privacy
+there is no retry of a client attempt or addon backlog. Directory greetings
+rotate round-robin: with forty stable unanswered members all get a turn within
+forty eligible minutes, not just the first ten. A queue/gate refusal spends no
+candidate or minute cooldown; the next tick may try that unattempted candidate. Queue guards recheck pool, identity, privacy
 and actual per-target gaps at dispatch. A successful send is not proof of delivery.
 
 LE identifies itself as **`LayerEnemies <its installed TOC version>`**, never as

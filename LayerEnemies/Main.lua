@@ -473,10 +473,12 @@ local function overlordSend(c,text,route,target,prio,job)
     local P=N.OverlordPeer
     local function guard() return P.claim(M.overlordPeer,job,M.overlordContext()) end
     if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,guard) end
-    if not guard() then return false end
-    local ok=N.Wire.send("OverlordF",text,route,target,{net="overlord",prio=prio=="owed" and "owed" or "mesh"})
+    local live=M.overlordContext()
+    if not P.claim(M.overlordPeer,job,live,true) then return false end
+    local ok,_,attempted=N.Wire.send("OverlordF",text,route,target,{net="overlord",prio=prio=="owed" and "owed" or "mesh"})
+    if attempted then P.claim(M.overlordPeer,job,live) end
     N.Sources.count("overlord",ok and "sent" or "refused")
-    return ok
+    return ok,attempted
 end
 function M.overlordTick(time)
     if not M.overlordPeer then return end

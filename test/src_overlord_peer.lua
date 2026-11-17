@@ -154,6 +154,47 @@ test("whisper greeting once a minute stops at six partners",function()
     c.now=460;P.tick(st,c);eq(#c.out,6)
 end)
 
+test("directory greeting rotates through forty unanswered members",function()
+    local N=setup();local P=N.OverlordPeer;local st=P.new();local c=ctx(N);c.guild=false;c.group=nil
+    for i=1,40 do c.directory[i]=H.abc(i).." Scout" end
+    local seen,last={},{}
+    for i=1,60 do
+        c.now=100+(i-1)*60;P.tick(st,c);eq(#c.out,i)
+        local name=c.out[i].target
+        if i<=40 then no(seen[name],"round robin before any repeat") end
+        if last[name] then yes(c.now-last[name]>=600) end
+        seen[name]=true;last[name]=c.now
+        c.now=c.now+59;P.tick(st,c);eq(#c.out,i,"minute cap")
+    end
+    eq(N.Safe.count(seen),40)
+end)
+
+test("refused greeting does not spend candidate or global cooldown",function()
+    local N=setup();enable(N);N.BNet.peers=function() return {} end
+    N.Directory.members=function() return {"Directory Scout"} end
+    local original=N.Wire.send;local attempts=0
+    N.Wire.send=function(prefix,text,route,...)
+        if prefix=="OverlordF" and route=="WHISPER" then attempts=attempts+1;return false,"throttled" end
+        return original(prefix,text,route,...)
+    end
+    N.Main.overlordTick(H.clock());eq(attempts,1)
+    local st=N.Main.overlordPeer;eq(st.gaps["hello:directory scout"],nil);eq(st.actual["hello:directory scout"],nil)
+    eq(st.greeting,nil)
+    N.Wire.send=original;H.advance(1);N.Main.overlordTick(H.clock())
+    local n=0;for _,v in ipairs(onlySent()) do if v.kind=="WHISPER" then n=n+1;eq(v.target,"Directory Scout") end end
+    eq(n,1,"next tick remains eligible")
+end)
+
+test("queue refusal spends no peer cooldown but client attempts do",function()
+    local N=setup();local P=N.OverlordPeer;local st=P.new();local c=ctx(N)
+    c.send=function() return false end
+    no(P.emit(st,c,"NH",P.presence(c),"BNET",{id=71,name="Birch Scout"},"bn:71",120,false))
+    eq(st.gaps["bn:71"],nil)
+    c.send=function() return false,true end -- client attempted and refused, not local admission refusal
+    no(P.emit(st,c,"NH",P.presence(c),"WHISPER","Birch Scout","hello:birch scout",600,false))
+    eq(st.gaps["hello:birch scout"],c.now)
+end)
+
 test("truthful empty V answer busy unsupported request and no invented map",function()
     local N=setup();local P=N.OverlordPeer;local st=P.new();local c=ctx(N)
     local p={origin="Birch Scout",target=c.me,hops=0,kind="HR",payload="8:V:1699488000:123n4n5f:1:LK:0:0:H"}

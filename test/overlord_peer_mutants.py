@@ -12,6 +12,10 @@ ROOT = Path(__file__).resolve().parents[1]
 LUA = os.environ.get('LAYERENEMIES_LUA') or shutil.which('lua5.1') or shutil.which('lua') or '/opt/data/tools/lua/lua-5.1.5/src/lua'
 # rule, file, unique anchor, replacement, test selector
 MUTANTS = [
+ ('round robin directory','OverlordPeer.lua','((st.greeter or 0)+step-1)%#members+1','step','Overlord peer:'),
+ ('refused admission is uncharged','OverlordPeer.lua','local charged=ok and (result==true or attempted==true)','local charged=true','Overlord peer:'),
+ ('refused greeting global gap','OverlordPeer.lua','if charged then st.greeting=c.now;st.greeter=index end','st.greeting=c.now;st.greeter=index','Overlord peer:'),
+ ('Wire refusal actual gap','Main.lua','if attempted then P.claim(M.overlordPeer,job,live) end','P.claim(M.overlordPeer,job,live)','Overlord peer:'),
  ('shared NH HA gap','OverlordPeer.lua','P.emit(st,c,"HA",body,route,target,"reply:"..key,150,true)','P.emit(st,c,"HA",body,route,target,"answer:"..key,150,true)','Overlord peer:'),
  ('donor loaded context silence','Main.lua','and ok==true and not A.inCombat()','and true and not A.inCombat()','Overlord peer:'),
  ('donor loaded BNet silence','BNet.lua','net~="overlord" and why=="stand down"','why=="stand down"','Overlord peer:'),
