@@ -198,3 +198,67 @@ for _,mode in ipairs({"share","source","guild"}) do
         no(r.sub); eq(debt(),1); advance(901); eq(debt(),0)
     end)
 end
+
+for _,unsafe in ipairs({"combat","instance"}) do
+    test("N2 "..unsafe.." roster listing us survives long source-off wait",function()
+        local N,r,hello,count,pos=start(); r.drop=true; stop(N,"source"); advance(5)
+        eq(count("FBUN"),1); eq(debt(),1); yes(r.sub)
+        local before=#h.sent(); local scans=0
+        local account=C_BattleNet.GetGameAccountInfoByID
+        C_BattleNet.GetGameAccountInfoByID=function(...) scans=scans+1; return account(...) end
+        h.combat(unsafe=="combat"); h.instance(unsafe=="instance"); advance(3)
+        pos(true); advance(1000)
+        eq(scans,0,"unsafe receive does not scan accounts"); eq(count(nil,before),0)
+        h.loaded().WarBoard=true; h.combat(false); h.instance(false); advance(5)
+        eq(debt(),1,"a listed roster heard while unsafe vetoes silence settlement")
+        eq(count("FBUN",before),0,"old confirmation is invalidated, not used to retry")
+        hello(); r.drop=false; advance(5); eq(count("FBUN",before),1); no(r.sub)
+        pos(false); eq(debt(),0)
+    end)
+    test("N2 "..unsafe.." excluding multipart roster is validated at receipt time",function()
+        local N,r,hello,count,pos=start(); stop(N,"source"); advance(5)
+        eq(count("FBUN"),1); eq(debt(),1)
+        -- Produce a valid frame without delivering it, then deliver only pieces while unsafe.
+        local deliver=h.deliver; local text
+        h.deliver=function(_,_,s) text=s end; pos(false); h.deliver=deliver
+        h.combat(unsafe=="combat"); h.instance(unsafe=="instance")
+        local encoded=text:sub(8); local mid=math.floor(#encoded/2)
+        h.deliver("BN_CHAT_MSG_ADDON","WarBoard","WBF1|F|abc|1|2|"..encoded:sub(1,mid),"WHISPER",71)
+        h.deliver("BN_CHAT_MSG_ADDON","WarBoard","WBF1|F|abc|2|2|"..encoded:sub(mid+1),"WHISPER",71)
+        advance(300); eq(debt(),1)
+        h.combat(false); h.instance(false); advance(1)
+        eq(debt(),0,"held valid roster settles before the silence deadline despite >121s wait")
+    end)
+end
+
+for _,bytes in ipairs({false,true}) do
+    test("N2 deferred inbox "..(bytes and "byte" or "frame").." bound vetoes lost input silence",function()
+        local N,r,hello,count,pos=start(); r.drop=true; stop(N,"source"); advance(5)
+        local record=N.WarBoardTrack.owedAccount(71); yes(record.accepted)
+        h.combat(true)
+        local text="WBF1|D|"..string.rep("x",bytes and 3993 or 1)
+        for i=1,200 do
+            h.deliver("BN_CHAT_MSG_ADDON","WarBoard",text,"WHISPER",71)
+            if i==100 then advance(61) end
+        end
+        local st=N.WarBoard.state; yes(st.deferred)
+        yes(#st.deferred<=128); yes(st.deferredBytes<=262144)
+        no(record.accepted,"overflow must not retain an unprovable silence fallback")
+        eq(count("FBUN"),1); eq(debt(),1)
+    end)
+end
+
+test("N2 deferred roster cannot settle after current GUID changes",function()
+    local N,r,hello,count,pos,a=start(); stop(N,"source"); advance(5)
+    h.combat(true); advance(1); pos(false)
+    a[71].playerGuid="Player-123-000000FF"
+    h.combat(false); advance(1); eq(debt(),1,"queued evidence must match the live target GUID")
+end)
+
+test("N1 genuine recent confirmation permits FBAK when sharing resumes",function()
+    local N,r,hello,count,pos=setup({tracked={"Enemy Player"},warboardOwed={G}}, {confirmed=true,sub=true,rejected=0})
+    stop(N,"share"); advance(1000); eq(debt(),0); no(r.sub)
+    local before=#h.sent(); N.Main.setShare(true); advance(2)
+    eq(count("FBAK",before),1,"recent real confirmation is reusable, not cleanup-only consent")
+    eq(count("H",before),0,"fresh ask need not wait for a new H while confirmation is under 20 min")
+end)

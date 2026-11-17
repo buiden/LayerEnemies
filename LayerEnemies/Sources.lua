@@ -67,7 +67,8 @@ function Src.bnet(prefix,text,id)
     local r=owners[prefix]
     if type(text)~="string" or #text>4096 then return false end
     local cleanup=r.name=="warboard" and N.WarBoardTrack and N.WarBoardTrack.hasOwed()
-        and (text:match("^WBF1|[HA]|") or N.WarBoardTrack.owedAccount(id))
+        and (text:match("^WBF1|[HA]|") or N.WarBoardTrack.owedAccount(id)
+            or (N.WarBoard and N.WarBoard.state.peers[id]))
     if not Src.enabled(r.name) and not cleanup then return false end
     Src.count(r.name,"heard"); return call(r,"onBNet",prefix,text,id)
 end

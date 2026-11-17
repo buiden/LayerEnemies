@@ -55,6 +55,13 @@ function T.owedAccount(id)
     local who=BN.who(id,true)
     return who and guid(who.guid) and owes(who.guid) and records[who.guid] or nil
 end
+-- A bounded deferred inbox cannot silently forget a possible contradiction.
+-- Called without any client lookup when a known account's queued input is lost.
+function T.uncertain(id)
+    for _,r in pairs(records) do
+        if r.closing and r.id==id then r.accepted=nil end
+    end
+end
 function T.needsHandshake(id)
     local r=T.owedAccount(id)
     return r and r.closing and not r.accepted and (r.total or 0)<6

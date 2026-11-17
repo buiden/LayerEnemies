@@ -410,9 +410,9 @@ end
 function A.wall() return S.num(S.call(_G.time)) end
 -- WarBoard's pure protocol driver consumes only this guarded client snapshot.
 -- Ruleset spellings are protocol facts; unknown/numeric realm tags stay unknown.
-function A.warboardContext()
+function A.warboardContext(receiveOnly)
     return presenceRead(function(v)
-        if A.inCombat() or A.inInstance()~=false then return nil end
+        if not receiveOnly and (A.inCombat() or A.inInstance()~=false) then return nil end
         local now,wall=S.num(v(S.call(GetTime))),S.num(v(A.wall()))
         local realm=S.str(v(S.call(GetRealmName)),60)
         local faction=S.str(v(S.call(UnitFactionGroup,"player")),16)
