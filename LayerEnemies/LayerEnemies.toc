@@ -6,6 +6,7 @@
 ## SavedVariablesPerCharacter: LayerEnemiesDB
 ## OptionalDeps: BuloLayerForever, WarEffortScout, LayerSwap
 Safe.lua
+Codec.lua
 Hash.lua
 Layer.lua
 Record.lua

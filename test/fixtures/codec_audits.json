@@ -1,0 +1,153 @@
+{
+  "source_command": "python3 test/codec_vectors.py --audit-dir /opt/data/handoffs/2026-11-17-le-1.2.0",
+  "note": "Illustrative audit section 11 vectors, not captured network traffic.",
+  "wanted": [
+    {
+      "name": "Wanted example 1",
+      "serial": "0136126b1248127662312e32392e32126603",
+      "encoded": "633413ca16f2102a4b32d433b2d433124a63060102",
+      "expected": {
+        "k": "H",
+        "v": "1.29.2",
+        "f": 1
+      }
+    },
+    {
+      "name": "Wanted example 2",
+      "serial": "0136126b1241127662312e32392e32126603",
+      "encoded": "633413ca1672142a4b32d433b2d433124a63060102",
+      "expected": {
+        "k": "A",
+        "v": "1.29.2",
+        "f": 1
+      }
+    },
+    {
+      "name": "Wanted example 3",
+      "serial": "0126126b124c127a1a36126d0459126c52312d302d36126e07",
+      "encoded": "635413ca16f211aa923213ca658914ca0932d435d03513ca63070102",
+      "expected": {
+        "k": "L",
+        "z": [
+          {
+            "m": 1424,
+            "l": "1-0-6",
+            "n": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "Wanted example 4",
+      "serial": "0126126b124e126e1a561262927731323334616263641267b2506c617965722d312d4142126e92456e656d79204f6e6512610827101274286afb9900",
+      "encoded": "635413ca16f213ca930a134a9a546e68646c9298949c2294be292027b132b548d750d7d149286f926b5e6a6ea5827f5eaa502287ba80508946d6ef990c0102",
+      "expected": {
+        "k": "N",
+        "n": [
+          {
+            "b": "w1234abcd",
+            "g": "Player-1-AB",
+            "n": "Enemy One",
+            "a": 10000,
+            "t": 1794873600
+          }
+        ]
+      }
+    },
+    {
+      "name": "Wanted example 5",
+      "serial": "0126127662312e32392e3212630a",
+      "encoded": "6354132a4b32d433b2d433124ae6020102",
+      "expected": {
+        "v": "1.29.2",
+        "c": {}
+      }
+    },
+    {
+      "name": "Wanted example 6",
+      "serial": "0146127662312e32392e32127252507650203112780312630a",
+      "encoded": "6374132a4b32d433b2d433122a0a0a280b503014aa60164ae6020102",
+      "expected": {
+        "v": "1.29.2",
+        "r": "PvP 1",
+        "x": 1,
+        "c": {}
+      }
+    },
+    {
+      "name": "Wanted example 7",
+      "serial": "0126127662312e32392e3212630a",
+      "encoded": "6354132a4b32d433b2d433124ae6020102",
+      "expected": {
+        "v": "1.29.2",
+        "c": {}
+      }
+    },
+    {
+      "name": "Wanted example 8",
+      "serial": "0126127662312e32392e3212731a861267b2506c617965722d312d4142126e92456e656d79204f6e651263424d414745126c79127a724475726f746172126d3458127865127951",
+      "encoded": "6354132a4b32d433b2d433122a966a134adf14909358995aa46ba8ebe8249437c9352f35b752c13f2f5528d9c9d7d1dd5528a752a8aac8a5b428bf24b14828d72442a82255a832100102",
+      "expected": {
+        "v": "1.29.2",
+        "s": [
+          {
+            "g": "Player-1-AB",
+            "n": "Enemy One",
+            "c": "MAGE",
+            "l": 60,
+            "z": "Durotar",
+            "m": 1411,
+            "x": 50,
+            "y": 40
+          }
+        ]
+      }
+    },
+    {
+      "name": "Wanted example 9",
+      "serial": "0116126e01",
+      "encoded": "631413ca63040102",
+      "expected": {
+        "n": 0
+      }
+    },
+    {
+      "name": "Wanted example 10",
+      "serial": "0126126b124c127a1a36126d0459126c52312d302d36126e07",
+      "encoded": "635413ca16f211aa923213ca658914ca0932d435d03513ca63070102",
+      "expected": {
+        "k": "L",
+        "z": [
+          {
+            "m": 1424,
+            "l": "1-0-6",
+            "n": 3
+          }
+        ]
+      }
+    }
+  ],
+  "warboard": {
+    "serial": "5e315e545e53745e53534852445e53765e4e355e5372735e537076705e5361765e53312e362e335e5373656e6465724e616d655e53546573747e6053636f75745e5374746c5e4e315e53645e545e5366616374696f6e5e53486f7264655e53677569645e53506c617965722d312d4142435e536e616d655e53546573745e537265616c6d5e5353636f75745e5373656e7441745e4e313739343837333630303030305e53697347726f75704c65616465725e625e5373686172645e533132335e537a6f6e655e53417a73686172615e536d617049445e4e37365e745e745e5e",
+    "encoded": "3d8e5d0b824010457f51d1f6a1f56809158444b7e74b536e25a82beb2ad443bfbd91a099b7e1ce399786672210d89d52a267b6207c4b347d43484f9871349e11adad73eb33a92c71b66df85c70739d3e86503233443e80ee720b85ab899df3b9261f5d9113c7525ed68fcc28596f88facf509395b252f90fa58e9004a5c5abf9329e45936188a2dd7ad735072bda8057cd3dc52bd64cb5d7dbd54a4bdec34d884a9a7dca2c8e1874f905",
+    "expected": {
+      "t": "SHRD",
+      "v": 5,
+      "rs": "pvp",
+      "av": "1.6.3",
+      "senderName": "Test Scout",
+      "ttl": 1,
+      "d": {
+        "faction": "Horde",
+        "guid": "Player-1-ABC",
+        "name": "Test",
+        "realm": "Scout",
+        "sentAt": 1794873600000,
+        "isGroupLeader": false,
+        "shard": "123",
+        "zone": "Azshara",
+        "mapID": 76
+      }
+    }
+  }
+}

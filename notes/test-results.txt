@@ -1117,4 +1117,4 @@ PASS Kills R2 reserve: kill relays leave the guild-minute own slots
 PASS Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute
 PASS Kills R2 ledger: new kill stays visible after 300 guild kills at one per second
 PASS Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first
-RESULT: 1119 tests passed, 0 failed, 118428 assertions
+RESULT: 1119 tests passed, 0 failed, 118447 assertions

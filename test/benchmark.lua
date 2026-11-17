@@ -21,4 +21,16 @@ end
 measure("256-entry store prune",1000,function() N.Store.prune(t,200) end)
 measure("256-entry unchanged Bulo snapshot",200,function() N.Adapters.bulo(t.epoch,200,t.localSeen) end)
 measure("invalid-wire rejection",10000,function() N.Protocol.decode("C|1|100|nan|0|7|1|100") end)
+-- Shared codec frame-budget regression. Pure Linux/Lua 5.1, not a client claim.
+assert(loadfile("LayerEnemies/Codec.lua"))("LayerEnemies",N)
+local vectors=dofile("test/fixtures/codec_vectors.lua")
+for _,v in ipairs(vectors.deflate) do
+    if v.name=="text4000-7" or v.name=="dynamic4000-7" or v.name=="random4000-0" then
+        local start=os.clock()
+        for _=1,100 do assert(N.Codec.inflate(v.wire)==v.plain) end
+        local ms=(os.clock()-start)*10
+        print(string.format("codec %s: %d wire bytes -> %d bytes; %.6f ms/call; budget 16.667 ms",v.name,#v.wire,#v.plain,ms))
+        assert(ms<1000/60,"codec exceeded offline frame budget")
+    end
+end
 print("Offline Linux/Lua 5.1 microbenchmarks only, not in-client CPU measurements.")
