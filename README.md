@@ -1,5 +1,54 @@
 # LayerEnemies
 
+## Unreleased - WarBoard
+
+| What LE sends | To whom | Maximum frequency |
+|---|---|---|
+| `WBF1\|H\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | Eligible online opposite-faction WoW game accounts on the same realm and client project | At most 20 accounts selected per scan; scans at most once per 60 seconds; at most one H per account per 600 seconds, checked both when queued and when dispatched |
+| `WBF1\|A\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | An eligible account that sent a valid protocol-5 H (including a recognized, different ruleset, so it can reject us) | At most 6 A frames per rolling 60 seconds, at both admission and dispatch; A never answers A |
+| **Nothing else** | Nobody | No `FBAK`, subscription, tracking request, data send, packet forwarding, or ordinary-addon/chat send |
+
+Both H and A use **only the shared Battle.net queue**: together at most 10
+WarBoard send attempts/minute and at most **30 attempts/minute across all
+networks**, with at least one second between attempts. They stop with
+`/le share off`, public networks off (**Guild only**), the WarBoard source
+switch off, or combat/instances. Loading the real WarBoard addon stops H
+and discovery; only owed A answers remain eligible, still under every privacy
+and rate gate. Queued frames
+recheck consent, current account eligibility, ruleset and their caps at dispatch;
+unknown rulesets are silent. The final `0` is LE's gameplay-rules version (LE
+implements none of WarBoard's scoring rules). Discovery does not request
+any location broadcast. Most players will therefore supply no position.
+
+The independent WarBoard Forever **1.6.3** protocol reader accepts confirmed
+`WBF1|D|...` Battle.net traffic and bounded fragments, plus `WarBoard` and
+`WarBoardBN` guild/group/channel traffic. Only your Find names and guild Watch
+names are admitted through the source registry. No name or peer is saved.
+
+- **SHRD:** the sender's own zone and shard. Same-faction
+  records are ignored. Its millisecond-like sequence is used for ordering and
+  clock-skew checks, never displayed as an observation time; the hint expires
+  180 seconds after receipt. An accepted clear removes only WarBoard's SHRD
+  evidence, not other evidence for that player.
+- **FBLP:** the target's current or explicitly approximate held position,
+  zone/subzone and shard. Rank and hunter roster are validated, not imported. World
+  coordinates become a map pin only when the client converts them safely to
+  that displayed map; otherwise the textual zone still appears.
+- **FREC:** killer-zone hints only, with the record age preserved. The victim
+  is never attributed the killer's position. **FBLC / FCBD** location entries
+  remain cached; FBLC has no live producer in the audited release. There is no
+  leaderboard import.
+
+Accepted hints feed Find's existing **Reported** evidence line and measured row
+builder, with source/provenance, location, detail, observation age (or unknown)
+and receipt age. Bridge or different-carrier traffic stays relayed; batch hints
+stay cached. It never becomes Seen, changes a verified kill count, creates a
+sound/alert, enables a hop, hides firsthand evidence, or gets rebroadcast to
+LE/WE/HH. SHRD remains zone-only, without a fabricated pin. No live WarBoard
+client or native coordinate conversion has been verified; harness geometry is
+not a screenshot claim. See [provenance](THIRD_PARTY.md) and
+[test evidence and audit rulings](notes/warboard.md).
+
 ## Unreleased - source registry (no behaviour change)
 
 PR 0b adds extension seams, **no registered source, no new discovery scan and no

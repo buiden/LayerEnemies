@@ -1,4 +1,4 @@
--- Extension seams only: no source is registered by this release.
+-- Shared extension seams; source modules register themselves explicitly.
 local _,N=...
 local Src,S={},N.Safe
 N.Sources=Src
@@ -46,7 +46,7 @@ local function register(r)
     for _,key in ipairs({"heard","accepted","sent","refused"}) do copy.counters[key]=0 end
     sources[name]=copy; order[#order+1]=copy
     for _,prefix in ipairs(copy.prefixes) do owners[prefix]=copy end
-    -- Registration opts in a future network, not any network in this PR.
+    -- Registration opts in this source's switch without altering legacy readers.
     if not N.Net.LIST[name] then N.Net.LIST[name]={name=name}; N.Net.SHIP[name]=true end
     if started then Src.start() end
     return true
@@ -106,7 +106,7 @@ local kinds={self="said by own client",witness="seen by witness",relayed="via re
 local function offer(ev)
     local M,A,F=N.Main,N.Adapters,N.Find
     if not S.tab(ev) or not M or not M.find or A.inCombat() or A.inInstance()~=false then return false end
-    for _,key in ipairs({"name","guid","faction","zone","map","x","y","shard","at","got","kind","net","via"}) do
+    for _,key in ipairs({"name","guid","faction","zone","map","x","y","shard","at","got","kind","net","via","note","tag","clear","expiresAt","pos"}) do
         if S.secret(ev[key]) then return false end
     end
     local net,kind=S.str(ev.net,32),S.str(ev.kind,16)
@@ -140,14 +140,28 @@ local function offer(ev)
     local guid,faction,shard,via=S.str(ev.guid,160),S.str(ev.faction,16),S.str(ev.shard,80),N.Invite.name(ev.via)
     if (ev.guid~=nil and not guid) or (ev.faction~=nil and faction~="Horde" and faction~="Alliance")
         or (ev.shard~=nil and not shard) or (ev.via~=nil and not via) then return false end
+    local note,tag=S.str(ev.note,360),S.str(ev.tag,16)
+    local expires=S.num(ev.expiresAt)
+    if (ev.note~=nil and not note) or (ev.tag~=nil and not tag)
+        or (ev.pos~=nil and ev.pos~="enemy" and ev.pos~="observer")
+        or (ev.clear~=nil and type(ev.clear)~="boolean")
+        or (ev.expiresAt~=nil and (not expires or expires<=got or expires>at+N.Known.TTL)) then return false end
+    if ev.clear then
+        if not tag then return false end
+        N.Known.withdraw(M.find.known,net,name,tag,now)
+        Src.count(net,"accepted"); if N.UI then N.UI.refresh() end
+        return true
+    end
     local detail=net.." "..kind..": "..kinds[kind].." (claim)"
     if zoneText then detail=detail.." · "..zoneText end
     if shard then detail=detail.." · shard "..shard.." (source key)" end
     if ev.at==nil then detail=detail.." · time unknown" end
+    if note then detail=detail.." · "..note end
     F.report(M.find,{sender=via or name,zone=zone,at=at,now=now,enemies={{name=name}},source=net,
         kind="claim",relayed=kind=="relayed" or kind=="cached",detail=detail,x=x,y=y,
-        pos=kind=="self" and "enemy" or "observer",ns="unknown",
-        observedAt=ev.at,got=got,evidenceKind=kind,guid=guid,faction=faction,shard=shard,map=map},M.homeRealm())
+        pos=ev.pos or (kind=="self" and "enemy" or "observer"),ns="unknown",
+        observedAt=ev.at,got=got,evidenceKind=kind,guid=guid,faction=faction,shard=shard,map=map,
+        expiresAt=expires,evidenceTag=tag},M.homeRealm())
     Src.count(net,"accepted")
     if N.UI then N.UI.refresh() end
     return true

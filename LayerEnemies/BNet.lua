@@ -90,6 +90,9 @@ function BN.pump(now)
             for _,stamp in ipairs(times) do if stamp.net==q.net then count=count+1 end end
             if count<(shares[q.net] or 30) then
                 table.remove(queue,i)
+                -- Optional source-owned final admission: checked exactly once at
+                -- dispatch, not while waiting on another network's budget.
+                if q.still and S.call(q.still,now)~=true then refuse(q.net); break end
                 lastSend=now; times[#times+1]={at=now,net=q.net} -- spend before the client, including failures
                 if deliver(q) then N.Sources.count(q.net,"sent") else refuse(q.net) end
                 break -- never catch up several frames after a long pause
@@ -109,12 +112,13 @@ schedule=function()
     timer=ok and result==true
     return timer
 end
-function BN.send(net,id,prefix,text,prio)
+function BN.send(net,id,prefix,text,prio,still)
     if S.secret(prio) then return refuse(net) end
+    if S.secret(still) or (still~=nil and type(still)~="function") then return refuse(net) end
     prio=prio==nil and "own" or prio
     if not BN.allowed(net,id,prefix,text,prio) or not BN.who(id) or #queue>=60 or not schedule() then return refuse(net) end
     serial=serial+1
-    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial}
+    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,still=still}
     return true
 end
 function BN.cancel(net)
