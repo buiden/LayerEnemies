@@ -1401,6 +1401,44 @@ PASS Sources: offer uses only live guild Watch matches and never adds saved trac
 PASS Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh
 PASS Sources: readable-looking secret scalars cannot be offered
 PASS Sources: malformed secret and throwing offers store nothing and never set runtime error
+PASS Overlord feed: honest advert omits unsupported ranking page capabilities
+PASS Overlord feed: feed fails closed without honest ranking page support
+PASS Overlord feed: empty comparison never claims equality to nonempty requester
+PASS Overlord feed: only exact donor thirteen-field K establishes an epoch
+PASS Overlord feed: solicited full then compact rows offer only tracked opposite names as unknown-time claims
+PASS Overlord feed: two sources 200 second request keep and busy state machine
+PASS Overlord feed: compact unknown no-zone stale totals and marker reset
+PASS Overlord feed: feed identities accept donor race strings then compact updates
+PASS Overlord feed: immediate share off-on cancels lease without HR X
+PASS Overlord feed: immediate guild off-on cancels lease without HR X
+PASS Overlord feed: immediate switch off-on cancels lease without HR X
+PASS Overlord feed: removed BNet friend cannot feed a prior subscriber
+PASS Overlord feed: queued subscription cancels if the route changes before dispatch
+PASS Overlord feed: campaign epochs remain source and pool scoped and unknown never guessed
+PASS Overlord feed: envelope direct addressing source lease and epoch gates
+PASS Overlord feed: parser exact 600 byte 48 row 250 row-byte and three digit bounds
+PASS Overlord feed: per source 240 rows and 14400 bytes per minute before decode
+PASS Overlord feed: 64 identities per source bounded and untracking prunes session-only state
+PASS Overlord feed: active subscription silent during share
+PASS Overlord feed: active subscription silent during guild
+PASS Overlord feed: active subscription silent during switch
+PASS Overlord feed: active subscription silent during combat
+PASS Overlord feed: active subscription silent during instance
+PASS Overlord feed: active subscription silent during pool
+PASS Overlord feed: active subscription silent during donor
+PASS Overlord feed: 5000 fuzz inputs bounded without forwarding or saved feed names
+PASS Overlord feed: real BNet friend crosses factions only after actual request dispatch
+PASS Overlord feed: NH while request waits in BNet queue preserves its answer
+PASS Overlord feed: failed hello or failed request never grants a feed lease
+PASS Overlord feed: measured Find row has no Ask or Hop and feed data is not saved
+PASS Overlord feed: live feed keeps its lease beyond 900 seconds without another pull
+PASS Overlord feed: malformed owner K cannot bootstrap epoch
+PASS Overlord feed: zero totals and invalid full identities are not locations
+PASS Overlord feed: dispatch gap stale epochs routes old releases and foreign ACK are refused
+PASS Overlord feed: batch row ceiling and marker byte bound are independent
+PASS Overlord feed: global feed budget survives source rotation and privacy cancellation
+PASS Overlord feed: global byte and batch-row ceilings hold across replacement sources
+PASS Overlord feed: unknown epoch silent then direct owner K opens truthful v8 subscription
 PASS Overlord peer: directory uses audited pool channel and two free slots
 PASS Overlord peer: real whisper owes one truthful reply; no forwarding or bypass
 PASS Overlord peer: all sends silent with share
@@ -1481,4 +1519,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1483 tests passed, 0 failed, 269081 assertions
+RESULT: 1521 tests passed, 0 failed, 286706 assertions
