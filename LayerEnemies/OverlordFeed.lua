@@ -12,6 +12,14 @@ end
 local function split(s,max)
     local out={};for v in (s..":"):gmatch("(.-):") do out[#out+1]=v;if #out>max then return nil end end;return out
 end
+-- Canonical wire race names (protocol data, SyncAux.lua:1824-1872).
+local raceNames={}
+for name in ("Human Dwarf NightElf Gnome Orc Scourge Tauren Troll Skyborne "..
+    "Draenei Worgen BloodElf Goblin Pandaren Nightborne HighmountainTauren "..
+    "VoidElf LightforgedDraenei ZandalariTroll KulTiran DarkIronDwarf Vulpera "..
+    "MagharOrc Mechagnome Dracthyr Earthen EarthenDwarf Haranir Harronir Haronir"):gmatch("%S+") do
+    raceNames[name]=true
+end
 local identity
 local function ready(c)
     return c.allowed==true and c.own==true and S.str(c.pool,16) and S.str(c.me,50)
@@ -46,11 +54,12 @@ function Q.observe(st,peer,p,r,c)
     local e
     -- Learn only this direct peer's current epoch; never turn it into global authority.
     if p.kind=="K" then
-        local f=split(p.payload,12)
-        if f and (#f==11 or #f==12) and F.fold(f[1])==F.fold(p.origin)
+        local f=split(p.payload,13)
+        if f and #f==13 and F.fold(f[1])==F.fold(p.origin)
             and #f[2]<=24 and (f[2]:match("^#%d+$") or f[2]:match("^@[%w_%-]+$"))
-            and identity("k"..table.concat({f[1],f[3],f[4],f[5],f[8],f[7],f[9],f[11]},":"),c.wall)
-            and f[10]=="B"..f[6] and uint(f[11],60,1) then e=uint(f[6],9999999999,1) end
+            and identity("k"..table.concat({f[1],f[3],f[4],f[5],f[8],f[7],f[9],f[13]},":"),c.wall)
+            and raceNames[f[10]] and f[11]:match("^[023]$")
+            and f[12]=="B"..f[6] and uint(f[13],60,1) then e=uint(f[6],9999999999,1) end
     elseif p.kind=="HR" and p.target==c.me then
         local v=split(p.payload,10)
         if v and #v==9 and v[1]=="8" and v[2]=="V" and v[4]:match("^%w+$") and #v[4]<=32

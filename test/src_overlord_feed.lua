@@ -29,7 +29,7 @@ end
 local function epoch(N,name,e,route)
     name=name or "Birch Scout";e=e or GetServerTime()-100
     hear("NH","2.5.4~la~l9~ld~lr~lp6",name,route)
-    hear("K",name..":#1434:21:WARRIOR:Horde:"..e.."::en:0:B"..e..":60",name,route,"*")
+    hear("K",name..":#1434:21:WARRIOR:Horde:"..e.."::en:0:Orc:2:B"..e..":60",name,route,"*")
     N.Main.overlordTick(H.clock());return e
 end
 
@@ -45,6 +45,23 @@ end
 local function known(N,name)
     local p=N.Known.get(N.Main.find.known,name or "Enemy One",H.clock());return p and p.reported
 end
+
+test("only exact donor thirteen-field K establishes an epoch",function()
+    local N=setup();local e=GetServerTime()-100
+    local stem="Birch Scout:#1434:21:WARRIOR:Horde:"..e.."::en:0:"
+    for i,body in ipairs({stem.."B"..e..":60",stem.."B"..e..":60:garbage",
+        stem.."Orc:2:B"..e..":60:garbage",stem.."garbage:2:B"..e..":60",
+        stem.."Orc:1:B"..e..":60",stem.."Orc:2:B"..(e+1)..":60"}) do
+        N=setup();hear("NH","2.5.4~ld~lr~lp6")
+        hear("K",body,nil,nil,"*");N.Main.overlordTick(H.clock())
+        eq(N.Main.overlordPeer.routes["birch scout"].epoch,nil,"bad K "..i)
+        eq(#requestSends(),0)
+    end
+    N=setup();hear("NH","2.5.4~ld~lr~lp6")
+    hear("K",stem.."Orc:2:B"..e..":60",nil,nil,"*")
+    eq(N.Main.overlordPeer.routes["birch scout"].epoch,e,"donor race/sex precede bucket and level")
+    N.Main.overlordTick(H.clock());eq(#requestSends(),1)
+end)
 
 test("solicited full then compact rows offer only tracked opposite names as unknown-time claims",function()
     local N=setup();yes(N.Find.add(N.Main.find,"Enemy One"));local e=epoch(N)
@@ -75,7 +92,7 @@ local function model(N,count,route)
         local p={origin=name,pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4~lp8"}
         local r=P.receive(peer,p,route or "WHISPER",name,id,c)
         if id then P.emit(peer,c,"NH",P.presence(c),"BNET",{id=id,name=name},"bn:"..id,120,false) end
-        p.kind="K";p.payload=name..":#1434:20:WARRIOR:Horde:1699488000::en:0:B1699488000:60"
+        p.kind="K";p.payload=name..":#1434:20:WARRIOR:Horde:1699488000::en:0:Orc:2:B1699488000:60"
         Q.observe(st,peer,p,r,c)
     end
     Q.tick(st,peer,c);return Q,st,peer,c
@@ -140,7 +157,7 @@ test("campaign epochs remain source and pool scoped and unknown never guessed",f
     local N=setup();local Q,st,peer,c=model(N);local r=peer.routes["peera scout"]
     local old=r.epoch
     for _,v in ipairs({{"Other Scout",old+1},{r.name,c.wall+1}}) do
-        Q.observe(st,peer,{kind="K",origin=r.name,hops=0,target="*",payload=v[1]..":#1434:1:WARRIOR:Horde:"..v[2].."::en:0:B"..v[2]..":60"},r,c)
+        Q.observe(st,peer,{kind="K",origin=r.name,hops=0,target="*",payload=v[1]..":#1434:1:WARRIOR:Horde:"..v[2].."::en:0:Orc:2:B"..v[2]..":60"},r,c)
         eq(r.epoch,old)
     end
     Q.observe(st,peer,{kind="HR",origin=r.name,hops=0,target=c.me,payload="8:V:1699488001:123n1n1f:1:LK:0:0:H"},r,c)
@@ -301,9 +318,9 @@ end)
 
 test("malformed owner K cannot bootstrap epoch",function()
     for _,body in ipairs({
-        "Birch Scout:#1434:21:BADCLASS:Horde:E::en:0:BE:60",
-        "Birch Scout:|bad:21:WARRIOR:Horde:E::en:0:BE:60",
-        "Birch Scout:#1434:21:WARRIOR:Horde:E::en:0:BE:0"}) do
+        "Birch Scout:#1434:21:BADCLASS:Horde:E::en:0:Orc:2:BE:60",
+        "Birch Scout:|bad:21:WARRIOR:Horde:E::en:0:Orc:2:BE:60",
+        "Birch Scout:#1434:21:WARRIOR:Horde:E::en:0:Orc:2:BE:0"}) do
         local N=setup();hear("NH","2.5.4~lp8")
         local e=tostring(GetServerTime()-100);body=body:gsub("BE","B"..e):gsub(":E:",":"..e..":")
         hear("K",body,nil,nil,"*");N.Main.overlordTick(H.clock());eq(#requestSends(),0)
