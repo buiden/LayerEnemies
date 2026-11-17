@@ -497,3 +497,62 @@ test("FLH member: owner loading at dispatch blocks owed replies at the final gat
         no(N.Main.error)
     end
 end)
+
+test("FLH member: probe rotation reaches forty names under a shared two-slot budget",function()
+    local N=member(); local names=directory(N,40); open(N); N.Net.SHIP.hh=true
+    for minute=1,21 do
+        -- Twelve real public sends leave only two probe slots after the six owed
+        -- reply slots are reserved. Keep the real directory snapshot fresh.
+        N.UI.frame:Hide(); N.Directory.refresh("flh"); H.advance(3)
+        for i=1,12 do
+            yes(N.Wire.send("HeadHunter","1AH:own","WHISPER","Load "..H.abc(i),{net="hh",prio="own"}))
+            H.clock(H.clock()+3)
+        end
+        N.UI.frame:Show()
+        for _=1,21 do H.advance(1) end
+        eq(#countCmd(N,"WP"),minute*2,"two admitted probes per minute under the real shared cap")
+    end
+    local out=countCmd(N,"WP"); local seen,last={},{}
+    for i,v in ipairs(out) do
+        local recent=0
+        for j=1,i do if v.at-out[j].at<60 then recent=recent+1 end end
+        yes(recent<=4,"round-robin does not widen the rolling probe cap")
+        if last[v.target] then yes(v.at-last[v.target]>=600,"per-name cooldown is unchanged") end
+        last[v.target]=v.at
+        if i<=40 then seen[v.target]=true end
+    end
+    eq(N.Safe.count(seen),40,"every directory name gets a turn before the head repeats")
+    for i,v in ipairs(out) do eq(v.target,names[(i-1)%#names+1],"stable round-robin order") end
+    no(N.Main.error)
+end)
+
+test("FLH member: probe gate refusal from a transport pause does not charge the name",function()
+    local N=member(); local names=directory(N,1); open(N)
+    H.result(3); receive(wp); H.result(0)
+    local refusedAt=H.clock()
+    yes(N.Wire.flhProbeReady(names[1],refusedAt),"the probe passes preflight before the final pause gate")
+    N.FLHMember.tick(H.clock()); eq(#countCmd(N,"WP"),0)
+    H.clock(refusedAt+N.Wire.PAUSE-.01); N.FLHMember.tick(H.clock()); eq(#countCmd(N,"WP"),0)
+    H.clock(refusedAt+N.Wire.PAUSE); N.FLHMember.tick(H.clock())
+    eq(#countCmd(N,"WP"),1,"a locally refused probe can send when the pause clears, not after 600 s")
+    eq(countCmd(N,"WP")[1].target,names[1]); yes(H.clock()-refusedAt<600)
+    eq(N.Wire.queued(),0); no(N.Main.error)
+end)
+
+test("FLH member: probe gate refusal rotates past a full target without charging its name",function()
+    local N=member(); local names=directory(N,2); open(N); N.Net.SHIP.hh=true
+    local first=H.clock()
+    for i=1,4 do
+        yes(N.Wire.send("HeadHunter","1AH:own","WHISPER",names[1],{net="hh",prio="own"}))
+        H.clock(H.clock()+3)
+    end
+    local refusedAt=H.clock()
+    yes(N.Wire.flhProbeReady(names[1],refusedAt),"the final per-person gate is stricter than probe preflight")
+    N.FLHMember.tick(H.clock()); eq(#countCmd(N,"WP"),0)
+    H.clock(H.clock()+1); N.FLHMember.tick(H.clock())
+    eq(#countCmd(N,"WP"),1); eq(countCmd(N,"WP")[1].target,names[2],"refusal does not monopolize selection")
+    H.clock(first+60); N.FLHMember.tick(H.clock())
+    eq(#countCmd(N,"WP"),2,"the first target can use a newly free slot without a false 600 s cooldown")
+    eq(countCmd(N,"WP")[2].target,names[1]); yes(H.clock()-refusedAt<600)
+    eq(N.Wire.queued(),0); no(N.Main.error)
+end)

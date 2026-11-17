@@ -16,6 +16,8 @@ MUTANTS = [
     ('probe-total-cap', [('Wire.lua', 'Wr.FLH_NAME = 6, 4, 60, 600', 'Wr.FLH_NAME = 6, 5, 60, 600')]),
     ('probe-name-gap', [('Wire.lua', 'Wr.FLH_NAME = 6, 4, 60, 600', 'Wr.FLH_NAME = 6, 4, 60, 0'), ('FLHMember.lua', 'if now-at>=600 then probed[k]=nil end', 'if now-at>=0 then probed[k]=nil end')]),
     ('probe-window', [('FLHMember.lua', 'return F.windowOpen() and not', 'return true and not')]),
+    ('probe-round-robin', [('FLHMember.lua', 'probeCursor=i -- resume after this selection, including gate refusals', 'probeCursor=0 -- restart at the roster head')]),
+    ('probe-gate-refusal-free', [('FLHMember.lua', 'if sent or attempted then probed[key]=now end', 'probed[key]=now')]),
     ('probe-during-fanout', [('FLHMember.lua', 'return F.windowOpen() and not (M.hopAnyState and M.hopAnyState.round) and not M.asking()', 'return F.windowOpen()')]),
     ('host-flag', [('FLH.lua', 'fields={cmd,map,own,"0",version,realm}', 'fields={cmd,map,own,"1",version,realm}')]),
     ('presence-rate', [('Wire.lua', 'now-flhHi[lane]<120', 'now-flhHi[lane]<119')]),

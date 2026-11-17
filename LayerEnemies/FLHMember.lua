@@ -8,6 +8,7 @@ local flight,sequence=nil,0
 local dispatch
 local announced={}
 local probed={}
+local probeCursor=0
 local function count(key) N.Sources.count("flh",key) end
 function F.context()
     local M=N.Main
@@ -213,13 +214,18 @@ function F.tick(now)
     local names=N.Directory.members("flh")
     if not names then return end
     for k,at in pairs(probed) do if now-at>=600 then probed[k]=nil end end
-    for i=1,math.min(#names,N.Directory.MAX) do
+    local n=math.min(#names,N.Directory.MAX)
+    for step=1,n do
+        local i=(probeCursor+step-1)%n+1
         local _,key,target=I.name(names[i])
         if key and not probed[key] and S.count(probed)<64 and not A.ignored(target) and not N.Main.isMe(target)
             and not N.Wire.offlineUntil(target,now) and N.Wire.flhProbeReady(target,now) then
             sequence=sequence%2147483646+1
-            probed[key]=now -- a failed client attempt is never retried
-            dispatch(FL.wp(sequence,c),"WHISPER",target,"mesh")
+            probeCursor=i -- resume after this selection, including gate refusals
+            local sent,_,attempted=dispatch(FL.wp(sequence,c),"WHISPER",target,"mesh")
+            -- Only an actual client attempt spends this name; a gate refusal
+            -- remains eligible on a later turn, without a queued retry.
+            if sent or attempted then probed[key]=now end
             break -- at most one probe per registry tick
         end
     end
