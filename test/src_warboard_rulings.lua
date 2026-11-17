@@ -137,3 +137,39 @@ test("S1 delayed roster cannot wipe newer unused confirmation",function()
     eq(count("FBUN"),2,"later listed rosters cannot repeatedly wipe an unused confirmation")
     no(r.sub)
 end)
+
+for _,unsafe in ipairs({"safe","combat","instance"}) do
+    test("S2 donor A only "..unsafe.." cannot confirm or clear debt",function()
+        local N,r,hello,count,pos=setup({warboardOwed={G}})
+        h.loaded().WarBoard=true; r.sub=true; r.confirmed=false
+        if unsafe~="safe" then
+            -- Establish receive identity, then age that proof out before A.
+            hello(); h.combat(unsafe=="combat"); h.instance(unsafe=="instance")
+            advance(1300); r.confirmed=false
+        end
+        incoming("A") -- answer to the installed donor's H, NOT its answer to target H
+        advance(5); h.combat(false); h.instance(false)
+        advance(901)
+        eq(count("FBUN"),0,"A alone cannot authorize a withdrawal")
+        eq(debt(),1,"A-only traffic plus silence cannot falsely settle")
+        yes(r.sub); eq(r.rejected,0); eq(count("H"),0); eq(count("A"),0)
+        hello(); advance(5); eq(count("FBUN"),1); no(r.sub)
+    end)
+end
+
+test("S2 donor waits for target H then withdraws without rejected 3s send",function()
+    local N,r,hello,count,pos=setup({warboardOwed={G}})
+    h.loaded().WarBoard=true; r.sub=true
+    advance(2); incoming("A"); advance(295)
+    eq(count("FBUN"),0,"no withdrawal at 3 seconds from an A-only exchange")
+    hello(); advance(5)
+    eq(count("FBUN"),1); eq(r.rejected,0); no(r.sub); eq(debt(),1)
+    advance(901); eq(debt(),0)
+end)
+
+test("S2 donor still remembering an established exchange withdraws promptly",function()
+    local N,r,hello,count,pos=start(); local before=#h.sent()
+    h.loaded().WarBoard=true; stop(N,"track"); advance(5)
+    eq(count("FBUN",before),1); no(r.sub); eq(r.rejected,0)
+    eq(count("H",before),0); eq(count("A",before),0)
+end)

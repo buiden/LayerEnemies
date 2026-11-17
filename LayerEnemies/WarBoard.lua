@@ -494,7 +494,7 @@ function W.bnet(st,text,id,ctx)
         local peer=st.peers[id]
         if peer and rs==peer.rs and S.str(version,80) and #rv<=7 then
             if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end
-            peer.donorObserved=N.Adapters.loaded("WarBoard") or nil
+            if cmd=="H" then peer.donorObserved=N.Adapters.loaded("WarBoard") or nil end
         end
         return false
     end
@@ -517,9 +517,10 @@ function W.bnet(st,text,id,ctx)
         st.peers[id]=peer
         if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end
         local debt=N.WarBoardTrack and N.WarBoardTrack.owedAccount(id)
-        if debt and N.Adapters.loaded("WarBoard") then
+        local donor=N.Adapters.loaded("WarBoard")
+        if debt and donor and cmd=="H" then
             peer.needAnswer=nil; proof(st,peer,ctx.now)
-        elseif cmd=="A" and not peer.needAnswer then proof(st,peer,ctx.now) end
+        elseif not donor and cmd=="A" and not peer.needAnswer then proof(st,peer,ctx.now) end
         if cmd=="H" then send(st,id,"A",ctx) end
         return true
     end
