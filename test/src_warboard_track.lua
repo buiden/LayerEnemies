@@ -111,6 +111,7 @@ for _,mode in ipairs({"combat","instance"}) do
             if queued then stop(N,"track"); tick(N); yes(N.BNet.queued()>0) end
             if mode=="combat" then h.combat(true); h.deliver("PLAYER_REGEN_DISABLED") else h.instance(true); h.deliver("PLAYER_ENTERING_WORLD",false,false) end
             stop(N,"share"); advance(180); eq(#frames(N,"FBUN"),0); eq(debt(a[71].playerGuid),1)
+            if queued then eq(N.BNet.queued(),1,"already queued FBUN is held, not dropped") end
             if mode=="combat" then h.combat(false) else h.instance(false) end
             advance(4); eq(#frames(N,"FBUN"),1); eq(debt(a[71].playerGuid),0)
             advance(121); eq(#frames(N,"FBUN"),1)
@@ -193,7 +194,8 @@ test("confirmation rules identity expiry and ambiguous accounts fail closed",fun
         elseif mode=="realm" then a[71].realmName="Other"
         elseif mode=="offline" then a[71].isOnline=false
         elseif mode=="ambiguous" then a[72]={}; for k,v in pairs(a[71]) do a[72][k]=v end; a[72].gameAccountID=72; confirm(72) end
-        tick(N); advance(3); eq(#frames(N,"FBAK"),0,mode)
+        tick(N); if mode=="expired" then eq(N.BNet.queued(),0,"expiry admission boundary") end
+        advance(3); eq(#frames(N,"FBAK"),0,mode)
     end
 end)
 test("GUID only from live client never a received frame",function()
@@ -249,7 +251,7 @@ test("past 300 seconds sends FBUN idle until 300 pause or new handshake",functio
     local N,a=start(); position(N,a[71]); local at=h.clock()
     h.clock(at+300); tick(N); eq(#frames(N,"FBUN"),0)
     h.clock(at+301); tick(N); advance(2); eq(#frames(N,"FBUN"),1)
-    advance(296); local count=#frames(N,"FBAK"); tick(N); eq(#frames(N,"FBAK"),count)
+    advance(100); local count=#frames(N,"FBAK"); tick(N); eq(#frames(N,"FBAK"),count)
     confirm(); advance(4); yes(#frames(N,"FBAK")>count)
 end)
 test("six FBAK per rolling minute admission and dispatch max twenty targets",function()
@@ -271,9 +273,12 @@ test("owed A before FBUN before FBAK within ten frame WarBoard share",function()
     advance(10); eq(#frames(N,"FBUN"),6)
 end)
 test("positions remain honest Find evidence and never new guild relay",function()
-    local N,a=start(); local before=#h.sent(); position(N,a[71],h.wall()-12)
+    local N,a=start(); local before=#h.sent(); local routed=0; local send=N.Wire.send
+    N.Wire.send=function(prefix,...) if prefix=="WarBoard" then routed=routed+1 end; return send(prefix,...) end
+    position(N,a[71],h.wall()-12)
     local r=N.Find.rows(N.Main.find,h.clock(),100)[1]; yes(r.reported); eq(r.evidenceKind,"self"); eq(r.source,"warboard")
     yes(r.detail:find("own position",1,true)); no(r.canAsk); no(N.Find.alert(N.Main.find,r,h.clock()))
+    eq(r.pos,"enemy"); eq(routed,0,"no forwarding attempt even if transport refuses")
     advance(3); for i=before+1,#h.sent() do no(h.sent()[i].prefix=="WarBoard" and h.sent()[i].kind~="BN") end
 end)
 test("rollback stays silent and tagged cancellation preserves other targets and A",function()
@@ -290,4 +295,117 @@ test("README send table first exact consequences and persistent debt",function()
     yes(tableAt<effect)
     yes(text:find("Those broadcasts go to the whole WarBoard network and carry a hunter list with your character's name; anyone running WarBoard, including the tracked player, can see that you are tracking them.",1,true))
     yes(text:find("warboardOwed",1,true))
+end)
+
+test("active request and received evidence save only target GUID no other metadata",function()
+    local N,a=setup(); local before={}
+    for k,v in pairs(LayerEnemiesDB) do if k~="warboardOwed" then before[k]=N.Codec.aceWrite({v}) end end
+    confirm(); tick(N); advance(1); position(N,a[71]); advance(2)
+    same({a[71].playerGuid},LayerEnemiesDB.warboardOwed)
+    for k,v in pairs(LayerEnemiesDB) do
+        if k~="warboardOwed" then yes(before[k],"no new saved key"); eq(N.Codec.aceWrite({v}),before[k]) end
+    end
+end)
+test("no generic owed bypass for H FBAK foreign net or invented FBUN",function()
+    local N,a=start(); local ask=frames(N,"FBAK")[1].send.text
+    stop(N,"share"); tick(N); yes(N.BNet.queued()>0)
+    no(N.BNet.send("warboard",71,"WarBoard",ask,"owed"))
+    no(N.BNet.send("warboard",71,"WarBoard","WBF1|A|5|pvp|LayerEnemies/1.1.0|0","owed"))
+    local un=expected("FBUN",GetServerTime(),a[71]); un.d.targetGuid="Player-123-FFFFFFFF"
+    local text="WBF1|D|"..N.Codec.addonEncode(N.Codec.deflateStored(N.Codec.aceWrite(un)))
+    no(N.BNet.send("warboard",71,"WarBoard",text,"owed")); no(N.BNet.send("other",71,"WarBoard",text,"owed"))
+    advance(3); eq(#frames(N,"FBUN"),1)
+end)
+test("server clock unreadable at dispatch does not send or forget cleanup",function()
+    local N,a=start(); stop(N,"track"); tick(N); local server=GetServerTime
+    GetServerTime=function() return h.secret end; advance(3)
+    eq(#frames(N,"FBUN"),0); eq(debt(a[71].playerGuid),1)
+    GetServerTime=server; advance(3); eq(#frames(N,"FBUN"),1)
+end)
+test("missing own name GUID faction version or rules never asks",function()
+    for _,mode in ipairs({"name","guid","faction","version","rules"}) do
+        local N=setup(); confirm()
+        if mode=="name" then UnitNameUnmodified=function() return h.secret end
+        elseif mode=="guid" then UnitGUID=function() return nil end
+        elseif mode=="faction" then UnitFactionGroup=function() return nil end
+        elseif mode=="version" then C_AddOns.GetAddOnMetadata=function() return nil end
+        else GetRealmName=function() return "123" end end
+        advance(3); eq(#frames(N),0,mode)
+    end
+end)
+test("failed FBAK spends three attempts and still owes FBUN",function()
+    local N,a=setup(); confirm(); local kinds={}
+    C_BattleNet.SendGameData=function(id,prefix,text)
+        if text:sub(1,7)=="WBF1|D|" then kinds[#kinds+1]=decode(N,text).t end; return false
+    end
+    advance(40); same({"FBAK","FBAK","FBAK","FBUN"},kinds); eq(debt(a[71].playerGuid),1)
+end)
+test("all actual request attempts respect six after shared queue delay",function()
+    local N,a=many(20); yes(N.Sources.register{name="alpha",prefixes={"AlphaTest"}})
+    -- Occupy the entire shared minute before sources get their first tick.
+    for _=1,30 do yes(N.BNet.send("alpha",71,"AlphaTest","load","own")) end
+    for _=1,30 do h.clock(h.clock()+1); N.BNet.pump(h.clock()) end
+    tick(N); eq(N.BNet.queued(),6); advance(29); eq(#frames(N),0)
+    advance(100); local out=frames(N,"FBAK"); yes(#out>=6)
+    for _,r in ipairs(out) do local n=0
+        for _,q in ipairs(out) do if q.send.at>r.send.at-60 and q.send.at<=r.send.at then n=n+1 end end
+        yes(n<=6,"actual attempt sliding window")
+    end
+end)
+test("same GUID debt cannot be redirected by a received forged position",function()
+    local N,a=start(); local g=a[71].playerGuid
+    position(N,a[71],nil,"Player-123-FFFFFFFF"); stop(N,"track"); advance(3)
+    local un=frames(N,"FBUN"); eq(#un,1); eq(un[1].e.d.targetGuid,g)
+end)
+test("restored forty debt bound oldest out on the next attempted request",function()
+    local raw={}; for i=1,40 do raw[i]="Player-123-"..string.format("%08X",i+100) end
+    local N,a=setup(nil,{warboardOwed=raw}); confirm(); tick(N); advance(1)
+    eq(#frames(N,"FBAK"),1); eq(#LayerEnemiesDB.warboardOwed,40)
+    eq(LayerEnemiesDB.warboardOwed[1],raw[2]); eq(LayerEnemiesDB.warboardOwed[40],a[71].playerGuid)
+    -- The bounded debt list must not leave an unbounded session tombstone map.
+    local retained
+    for i=1,20 do local key,v=debug.getupvalue(N.WarBoardTrack.size,i); if key=="records" then retained=v end end
+    yes(retained); eq(N.Safe.count(retained),40)
+end)
+
+for _,mode in ipairs({"remove","clear","track","share","guild","source"}) do
+    test(mode.." quick stop resume cannot erase withdrawal obligation",function()
+        local N=start(); stop(N,mode)
+        if mode=="remove" or mode=="clear" then N.Find.add(N.Main.find,"Enemy Player")
+        elseif mode=="track" then SlashCmdList.LAYERENEMIES("warboard track on")
+        elseif mode=="share" then N.Main.setShare(true)
+        elseif mode=="guild" then N.Net.setConsent("public")
+        elseif mode=="source" then N.Net.setSwitch("warboard",true) end
+        advance(30); eq(#frames(N,"FBUN"),1); eq(#frames(N,"FBAK"),1)
+    end)
+end
+test("six forty-five and sixty second exact admission boundaries",function()
+    local N,a=start(); local at=h.clock()
+    h.clock(at+5); tick(N); eq(N.BNet.queued(),0)
+    h.clock(at+6); tick(N); eq(N.BNet.queued(),1)
+    N,a=start(); h.clock(h.clock()+10); position(N,a[71]); at=h.clock()
+    h.clock(at+44); tick(N); eq(N.BNet.queued(),0)
+    h.clock(at+45); tick(N); eq(N.BNet.queued(),1)
+    N,a=start(); stop(N,"track"); local tried
+    C_BattleNet.SendGameData=function() tried=h.clock(); return false end
+    tick(N); advance(1); yes(tried); at=tried
+    h.clock(at+59); tick(N); eq(N.BNet.queued(),0)
+    h.clock(at+60); tick(N); eq(N.BNet.queued(),1)
+end)
+test("H cannot revive an expired A confirmation",function()
+    local N=setup(); confirm(); h.clock(h.clock()+1200); confirm(71,"H"); advance(3)
+    eq(#frames(N,"FBAK"),0)
+end)
+test("renewal exact forty-five second per target boundary",function()
+    local N,a=start(); position(N,a[71]); advance(47)
+    local asks=frames(N,"FBAK"); eq(#asks,2); local at=asks[2].send.at
+    h.clock(at+44); tick(N); eq(N.BNet.queued(),0)
+    h.clock(at+45); tick(N); eq(N.BNet.queued(),1)
+end)
+test("twenty active targets even when corrupted Find holds twenty one",function()
+    local N,a=many(20); local e=N.Find.new({"Extra Player"}).entries[1]
+    N.Main.find.entries[21]=e; N.Main.find.byName[e.shortKey]={e}
+    a[91]={}; for k,v in pairs(a[71]) do a[91][k]=v end
+    a[91].gameAccountID=91; a[91].characterName="Extra Player"; a[91].playerGuid="Player-123-FFFFFFFF"; confirm(91)
+    tick(N); eq(N.WarBoardTrack.size(),20)
 end)

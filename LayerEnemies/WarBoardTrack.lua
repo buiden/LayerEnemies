@@ -18,7 +18,10 @@ end
 local function remember(g)
     if owes(g) then return end
     owed[#owed+1]=g
-    if #owed>40 then table.remove(owed,1) end -- bounded, oldest outstanding first
+    if #owed>40 then
+        local old=table.remove(owed,1) -- bounded, oldest outstanding first
+        records[old]=nil -- do not retain a forgotten debt's session record forever
+    end
 end
 local function settled(g)
     for i=#owed,1,-1 do if owed[i]==g then table.remove(owed,i) end end

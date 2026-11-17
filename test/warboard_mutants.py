@@ -29,7 +29,7 @@ add('six answers admitted per minute', '#st.answers>=6', '#st.answers>=7', 'A si
 add('six answers actually attempted per minute', '#st.answerSent>=6', '#st.answerSent>=7', 'A dispatch cap')
 add('ten shared WarBoard sends per minute', 'warboard=10', 'warboard=11', 'discovery selects', 'BNet.lua')
 add('thirty shared network sends per minute', '#times<30', '#times<31', 'A dispatch cap', 'BNet.lua')
-add('final source predicate honored', 'if q.still and S.call(q.still,now)~=true then', 'if false then', 'live account identity', 'BNet.lua')
+add('final source predicate honored', 'if valid~=true then refuse(q.net); complete(q,false); break end', 'do end', 'live account identity', 'BNet.lua')
 add('share off silence', 'not N.Main.sharing()', 'false', 'share stops', 'BNet.lua')
 add('public off silence', 'not authorized or not N.Main.sharing() or N.Net.consent()~="public" or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"public")', 'not authorized or not N.Main.sharing() or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"guild")', 'public stops', 'BNet.lua')
 add('stand down own sends', 'standDown="WarBoard"', 'standDown="Uninstalled"', 'stand down')
