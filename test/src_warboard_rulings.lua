@@ -1,0 +1,102 @@
+-- Round-2 E2 ruling regressions. Independent wire peer; no donor code executed.
+-- The peer answers H with A, but only receiving our A confirms us at its side.
+local h=...
+local eq,yes,no=h.eq,h.yes,h.no
+local function test(name,fn) h.test("WarBoard rulings: "..name,fn) end
+local ME,G="Player-123-00000001","Player-123-00000002"
+local function advance(n) for _=1,n do h.advance(1) end end
+local function incoming(cmd,id)
+    h.deliver("BN_CHAT_MSG_ADDON","WarBoard","WBF1|"..cmd.."|5|pvp|1.6.3|3","WHISPER",id or 71)
+end
+local function decode(N,text)
+    if text:sub(1,7)=="WBF1|D|" then
+        return N.Codec.aceRead(N.Codec.inflate(N.Codec.addonDecode(text:sub(8)),4000))
+    end
+end
+local function setup(saved,remote)
+    local N=h.load(saved); N.Net.SHIP.warboard=true
+    WOW_PROJECT_ID=42; GetRealmName=function() return "PvP 123" end
+    UnitNameUnmodified=function() return "Hunter","Player" end
+    UnitGUID=function(u) return u=="player" and ME end
+    GetServerTime=function() return h.wall() end
+    C_AddOns.GetAddOnMetadata=function() return "1.1.0" end
+    local accounts={}
+    for id=71,72 do accounts[id]={gameAccountID=id,characterName=id==71 and "Enemy Player" or "Other Player",
+        realmName="123",factionName="Horde",clientProgram="WoW",isOnline=true,wowProjectID=42,
+        isInCurrentRegion=true,playerGuid=id==71 and G or "Player-123-00000003"} end
+    C_BattleNet.GetGameAccountInfoByID=function(id) return accounts[id] end
+    N.BNet.peers=function() return {{id=71,name="Enemy Player",realm="123",faction="Horde"}} end
+    local r=remote or {confirmed=false,sub=false,rejected=0}
+    C_BattleNet.SendGameData=function(id,prefix,text)
+        local out=h.sent(); out[#out+1]={target=id,prefix=prefix,text=text,kind="BN",at=h.clock()}
+        local e=decode(N,text)
+        if r.fail or (r.failD and e) then return 1 end
+        if id~=71 or prefix~="WarBoard" then return 0 end
+        if text:sub(1,7)=="WBF1|H|" then incoming("A")
+        elseif text:sub(1,7)=="WBF1|A|" then r.confirmed=true
+        elseif e then
+            if not r.confirmed then r.rejected=r.rejected+1
+            elseif e.t=="FBAK" then r.sub=true
+            elseif e.t=="FBUN" and not r.drop then r.sub=false end
+        end
+        return 0
+    end
+    local function hello()
+        incoming("H")
+        if h.loaded().WarBoard then r.confirmed=true end -- the real addon's answer
+    end
+    local function count(kind,from)
+        local out={}
+        for i=(from or 0)+1,#h.sent() do local s=h.sent()[i]
+            if s.prefix=="WarBoard" then local e=decode(N,s.text); local k=e and e.t or s.text:sub(6,6)
+                if not kind or k==kind then out[#out+1]=s end
+            end
+        end
+        return #out,out
+    end
+    local function position(listed,edit,id)
+        id=id or 71; local a=accounts[id]
+        local d={targetGuid=a.playerGuid,targetName=a.characterName,faction="Horde",rank=1,worldX=1,worldY=2,
+            instanceID=1,zone="Ashenvale",subZone="Astranaar",sentAt=h.wall(),
+            roster=listed and {{guid=ME,name="Hunter Player",faction="Alliance"}} or {}}
+        if edit then edit(d) end
+        local text="WBF1|D|"..N.Codec.addonEncode(N.Codec.deflateStored(N.Codec.aceWrite({t="FBLP",v=5,rs="pvp",d=d})))
+        h.deliver("BN_CHAT_MSG_ADDON","WarBoard",text,"WHISPER",id)
+        return text
+    end
+    return N,r,hello,count,position,accounts
+end
+local function stop(N,mode)
+    if mode=="share" then N.Main.setShare(false)
+    elseif mode=="source" then N.Net.setSwitch("warboard",false)
+    elseif mode=="guild" then N.Net.setConsent("guild")
+    else N.WarBoardTrack.set(false) end
+end
+local function debt() return #LayerEnemiesDB.warboardOwed end
+local function start()
+    local N,r,hello,count,pos,a=setup()
+    yes(N.Find.add(N.Main.find,"Enemy Player")); hello()
+    for _=1,30 do advance(1); if r.sub then break end end
+    yes(r.sub,"target subscribed before stop"); eq(debt(),1)
+    return N,r,hello,count,pos,a
+end
+
+for _,mode in ipairs({"share","source","guild"}) do
+    test("M1 "..mode.." exhausted debt has no handshake exception",function()
+        local N,r,hello,count,pos=start(); r.failD=true; stop(N,mode)
+        for t=1,1800 do if t%300==0 then hello() end; advance(1) end
+        eq(count("FBUN"),6); eq(debt(),1); yes(r.sub)
+        local before=#h.sent()
+        for t=1,7200 do if t%60==0 then hello() end; advance(1) end
+        eq(count("A",before),0,"no answers after six attempts even with 120 target H")
+        eq(count("H",before),0); eq(count("FBUN",before),0); eq(count("FBAK",before),0)
+        eq(debt(),1)
+    end)
+    test("M1 "..mode.." accepted debt has no handshake exception",function()
+        local N,r,hello,count,pos=start(); stop(N,mode); advance(5)
+        eq(count("FBUN"),1); eq(debt(),1); no(r.sub)
+        local before=#h.sent(); hello(); advance(5)
+        eq(count("A",before),0,"sent-unverified is not a pending withdrawal")
+        eq(count("H",before),0); eq(count("FBUN",before),0)
+    end)
+end
