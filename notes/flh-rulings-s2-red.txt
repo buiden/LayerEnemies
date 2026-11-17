@@ -1,0 +1,6 @@
+FAIL FLH member: R2 directory stays joined through twenty combat periods: test/src_flh_rulings.lua:125: not equal: expected ForeverLayerHopNet, got nil
+FAIL FLH member: R2 directory stays joined through twenty instance periods: test/src_flh_rulings.lua:125: not equal: expected ForeverLayerHopNet, got nil
+RESULT: 0 tests passed, 2 failed, 94 assertions
+FAIL FLH member: R2 privacy leave waits until after combat: test/src_flh_rulings.lua:137: not equal: expected 0, got 1
+FAIL FLH member: R2 privacy leave waits until after instance: test/src_flh_rulings.lua:137: not equal: expected 0, got 1
+RESULT: 0 tests passed, 2 failed, 90 assertions

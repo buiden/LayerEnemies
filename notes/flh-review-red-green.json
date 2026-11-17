@@ -1,0 +1,36 @@
+{
+  "red-a76e249c": {
+    "batch": {
+      "exit": 1,
+      "summary": [
+        "RESULT: 24 tests passed, 14 failed, 3400 assertions"
+      ],
+      "log": "notes/flh-review-red-a76e249c-batch.txt"
+    },
+    "gate": {
+      "exit": 1,
+      "summary": [
+        "Ran 25 tests in 1.407s",
+        "FAILED (failures=184)"
+      ],
+      "log": "notes/flh-review-red-a76e249c-gate.txt"
+    }
+  },
+  "green-20bf55f": {
+    "batch": {
+      "exit": 0,
+      "summary": [
+        "RESULT: 38 tests passed, 0 failed, 3840 assertions"
+      ],
+      "log": "notes/flh-review-green-20bf55f-batch.txt"
+    },
+    "gate": {
+      "exit": 0,
+      "summary": [
+        "Ran 25 tests in 1.144s",
+        "OK"
+      ],
+      "log": "notes/flh-review-green-20bf55f-gate.txt"
+    }
+  }
+}

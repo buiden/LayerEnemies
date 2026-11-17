@@ -1,0 +1,51 @@
+{
+  "baseline": {
+    "lua": {
+      "assertions": 3499,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 34
+    },
+    "policy": {
+      "assertions": null,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 25
+    }
+  },
+  "final": {
+    "lua": {
+      "assertions": 3499,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 34
+    },
+    "policy": {
+      "assertions": null,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 25
+    }
+  },
+  "mutants": [
+    {
+      "assertions": 3419,
+      "caught_by": [
+        "FAIL FLH batch: join then leave between ticks revokes offer click: test/src_flh_batch.lua:314: transient join revokes deferred or initial LR authority: expected 0, got 1",
+        "FAIL FLH batch: join then leave between ticks revokes paced click: test/src_flh_batch.lua:314: transient join revokes deferred or initial LR authority: expected 0, got 1",
+        "FAIL FLH batch: join then leave between ticks revokes retry click: test/src_flh_batch.lua:314: transient join revokes deferred or initial LR authority: expected 0, got 1",
+        "FAIL FLH batch: join then leave between ticks revokes selected click: test/harness.lua:8: not equal: expected false, got true"
+      ],
+      "failed": 4,
+      "killed": true,
+      "mutant": "join-event-revokes-click",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 34
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "tested_head": "9c564ed3005045f61e1a68e74c82471e579364fc",
+  "upstream": "2675e03d9363d4299a02d6d60815e0d65298967c",
+  "merge_base": "90d4444cc32d1463e98c9ede1274750bea5af98f",
+  "mechanical_merge_tree": "d404d33e16ddca78e821456b2bd0bd6ebf69a304",
+  "production_deviations_from_mechanical_merge": [],
+  "production_tree": "bcdafe7626be6cf75b7685b6ef31860fd5537159",
+  "verify_result": "RESULT: 1598 tests passed, 0 failed, 320361 assertions",
+  "archive_sha256": "b30ee0e06e1fa9bf3154a3bfa11f09f851521862b8be6a2a6f5e672367cee582",
+  "mutants": {
+    "flh-batch": {
+      "killed": 26,
+      "total": 26,
+      "report": "notes/flh-batch-mutants.json",
+      "report_sha256": "08033ecf251d61a69543210c197b68fd8ea8034b16703e9210a7ca4d3e5c2c23"
+    },
+    "flh-rulings": {
+      "killed": 20,
+      "total": 20,
+      "report": "notes/flh-rulings-mutants.json",
+      "report_sha256": "680b12d0fd01b7b983a0ec868b6e450103078db646cf069b942c4e7268bd7567"
+    },
+    "flh-member": {
+      "killed": 52,
+      "total": 52,
+      "report": "notes/flh-member-mutants.json",
+      "report_sha256": "1446e4de5720ac7a8cfa1fd8538de38a106db4a2d13c7b93b7b653a08ba88814"
+    },
+    "flh": {
+      "killed": 39,
+      "total": 39,
+      "report": "notes/flh-mutants.json",
+      "report_sha256": "b5c35e3ff32b3e0a1c5cb5cd6f241b5f359913fd2982c8302655e87709510c98"
+    },
+    "hop-fanout": {
+      "killed": 63,
+      "total": 63,
+      "report": "notes/hop-fanout-mutants.json",
+      "report_sha256": "14d7f58d8123e0836f5c688d0567b7ba16ccfea053c12cc18e299cfe76a69d40"
+    },
+    "overlord": {
+      "killed": 54,
+      "total": 54,
+      "report": "notes/overlord-mutants.json",
+      "report_sha256": "86b890bc0c3c97b8ebaa16c4d525185194b0867568af796263dc8d19dffe9d87"
+    },
+    "wanted": {
+      "killed": 84,
+      "total": 84,
+      "report": "notes/wanted-mutants.json",
+      "report_sha256": "0aa69eda8545350d1dde4af11d089186a8137efaf9705aa2a895c82c12930daa"
+    },
+    "chehulnet": {
+      "killed": 57,
+      "total": 57,
+      "report": "notes/chehulnet-mutants.json",
+      "report_sha256": "13d6c3d059e4be3d8f580e55fda7d5125af7654d6b340fb766d672d99a12e620"
+    },
+    "source": {
+      "killed": 41,
+      "total": 41,
+      "report": "notes/source-mutants.json",
+      "report_sha256": "09e07a830724633b24e17af85957fc2eedd8485f98fb1257ebc953fb3e58c329"
+    },
+    "codec": {
+      "killed": 56,
+      "total": 56,
+      "report": "notes/codec-mutants.json",
+      "report_sha256": "c8fc2a313e061c02bd93328eea4ffebee9d003cc564894ee2ed18d9cd8daab5d"
+    },
+    "presence": {
+      "killed": 41,
+      "total": 41,
+      "report": "notes/presence-mutants.json",
+      "report_sha256": "98d352f907725cd15fe6ecbe1e9ab8bcb5bfadafdf8aa2ac4abd6427594edd65"
+    }
+  },
+  "mutants_total": 533,
+  "mutants_killed": 533,
+  "native_checks": "not run (alpha, owner decision)"
+}

@@ -1,0 +1,30 @@
+FAIL FLH member: R2 eight ordinary plus six owed replies never exceeds eight at once: test/src_flh_rulings.lua:68: not equal: expected 8, got 14
+FAIL FLH member: R2 forty ordinary in fifty nine seconds leaves no reply room: test/src_flh_rulings.lua:75: not equal: expected 40, got 46
+FAIL FLH member: R2 replies charge the shared bucket before ordinary traffic: test/src_flh_rulings.lua:81: not equal: expected 2, got 8
+FAIL FLH member: R2 HI spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 WR spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 CA spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 WP spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 LQ spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 LR spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 6, got 8
+FAIL FLH member: R2 probes leave six shared burst slots for owed replies: test/src_flh_rulings.lua:101: probe loses priority at the shared ceiling: expected 0, got 1
+FAIL FLH member: R2 probes leave six shared minute slots for owed replies: test/src_flh_rulings.lua:108: not equal: expected 0, got 1
+FAIL FLH member: R2 directory stays joined through twenty combat periods: test/src_flh_rulings.lua:125: not equal: expected ForeverLayerHopNet, got nil
+FAIL FLH member: R2 privacy leave waits until after combat: test/src_flh_rulings.lua:137: not equal: expected 0, got 1
+FAIL FLH member: R2 directory stays joined through twenty instance periods: test/src_flh_rulings.lua:125: not equal: expected ForeverLayerHopNet, got nil
+FAIL FLH member: R2 privacy leave waits until after instance: test/src_flh_rulings.lua:137: not equal: expected 0, got 1
+FAIL FLH member: R2 host status LD|%d cancels and prints once: test/src_flh_rulings.lua:150: not equal: expected 0, got 1
+FAIL FLH member: R2 host status LA|%d cancels and prints once: test/src_flh_rulings.lua:150: not equal: expected 0, got 1
+FAIL FLH member: R2 host status HQ|%d|2 cancels and prints once: test/src_flh_rulings.lua:150: not equal: expected 0, got 1
+FAIL FLH member: R2 host status LN|%d cancels and prints once: test/src_flh_rulings.lua:150: not equal: expected 0, got 1
+FAIL FLH member: R2 host status LN|%d|busy cancels and prints once: test/src_flh_rulings.lua:152: not equal: expected 1, got 0
+PASS FLH member: R2 only the selected host and matching status can cancel
+FAIL FLH member: R2 LI transfers authority only to its named whole leader: test/src_flh_rulings.lua:174: not equal: expected 0, got 1
+FAIL FLH member: R2 LI retains the original ninety second window at 89: test/src_flh_rulings.lua:186: not equal: expected 1, got 0
+PASS FLH member: R2 LI retains the original ninety second window at 90
+PASS FLH member: R2 LI retains the original ninety second window at 91
+PASS FLH member: R2 LI cannot arm without the selected host successful LR and id
+FAIL FLH member: R2 LI missing or invalid leader never accepts anyone: test/src_flh_rulings.lua:211: not equal: expected 0, got 1
+FAIL FLH member: R2 bare LI is only an acknowledgement and cannot undo a handoff: test/src_flh_rulings.lua:221: not equal: expected 0, got 1
+FAIL FLH member: R2 decline after LI cancels leader authority too: test/harness.lua:8: not equal: expected false, got true
+RESULT: 4 tests passed, 25 failed, 1829 assertions

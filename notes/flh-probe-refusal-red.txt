@@ -1,0 +1,3 @@
+FAIL FLH member: probe gate refusal from a transport pause does not charge the name: test/src_flh_member.lua:537: a locally refused probe can send when the pause clears, not after 600 s: expected 1, got 0
+FAIL FLH member: probe gate refusal rotates past a full target without charging its name: test/src_flh_member.lua:555: the first target can use a newly free slot without a false 600 s cooldown: expected 2, got 1
+RESULT: 0 tests passed, 2 failed, 105 assertions

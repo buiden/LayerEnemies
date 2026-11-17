@@ -44,6 +44,7 @@ function D.channel(key)
         return pool and suffix[pool] and ("OverlordF"..suffix[pool]) or nil
     end
     if key == "hh" then return "HeadHunterSync" end
+    if key == "flh" then return "ForeverLayerHopNet" end
     if key == "wanted" then
         local faction = S.str(S.call(UnitFactionGroup,"player"),16)
         return (faction=="Alliance" or faction=="Horde") and ("WantedNet"..faction) or nil
@@ -93,6 +94,7 @@ local function me()
 end
 local function read(key)
     pending[key] = nil
+    if key=="flh" and not N.FLHMember.allowed("WHISPER","WP") then return end
     -- conditions may have changed in the 3 s: combat, an instance or the Channels window stop the read
     if windowOpen() or not calm() then return end
     local name = joined[key]
@@ -121,6 +123,7 @@ local function read(key)
 end
 -- refresh(key) -> asked: select the channel now, read its list D.WAIT s later
 function D.refresh(key)
+    if key=="flh" and not N.FLHMember.allowed("WHISPER","WP") then return false end
     local name = joined[key]
     if not name or pending[key] or windowOpen() or not calm() then return false end
     local i = index(name)
@@ -148,12 +151,15 @@ function D.sync()
     for _, key in ipairs(keys) do
         local want = N.Net.allowed(key, "public")
         if key=="overlord" then want=want and N.Main and N.Main.sharing() and N.Main.overlordPool()~=nil end
+        -- Combat/instances pause FLH activity, not its directory membership.
+        -- Join still uses the full live gate; privacy/owner changes still leave.
+        if key=="flh" then want=want and N.Main.sharing() and (joined[key] or N.FLHMember.allowed("WHISPER","WP")) end
         if want and not joined[key] then
             local name = D.channel(key)
             if name and calm() and listReady() then
                 -- already in that channel (the player joined it): read it, never join or leave it
                 local result, called = false, false
-                local limited=key=="wanted" or key=="overlord"
+                local limited=key=="wanted" or key=="overlord" or key=="flh"
                 local slots = limited and S.num(S.call(GetNumDisplayChannels)) or nil
                 if not index(name) and not handLeft[key] and (not limited or (slots and slots>=1 and slots<=7)) then
                     called = true
@@ -170,7 +176,7 @@ function D.sync()
                     if key~="wanted" then schedule(key, D.FIRST) end
                 end
             end
-        elseif not want and joined[key] then
+        elseif not want and joined[key] and (key~="flh" or calm()) then
             local name, mine = joined[key], ours[key]
             joined[key], members[key], pending[key], ours[key], asked[key] = nil, nil, nil, nil, nil
             if mine then pcall(LeaveChannelByName, name) end

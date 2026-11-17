@@ -36,7 +36,7 @@ MUTANTS = [
      'if expected==true or (S.str(token,30) and S.str(S.call(UnitGUID,token),160)==expected) then guarded(M.observe,token) end',
      'guarded(M.observe,token)'),
     ('hash-detail-card-hidden', 'LayerEnemies/UI.lua',
-     'bodyHeight=math.max(bodyHeight,top+rowHeight(row))', 'bodyHeight=300'),
+     'bodyHeight=math.max(bodyHeight,top+rowHeight(row)+(row.chehulHint and chehulHeadingHeight or 0))', 'bodyHeight=300'),
     ('boundary-wipes-memory', 'LayerEnemies/Find.lua', 'st.epoch=st.epoch+1',
      'st.epoch=st.epoch+1; st.known=N.Known.new(); st.locations={}'),
     ('retention-unbounded', 'LayerEnemies/Known.lua', 'TTL=3600,MAX=300', 'TTL=3600000000,MAX=300'),
@@ -87,7 +87,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--lua', default='lua')
     args = parser.parse_args()
-    command = [args.lua, 'test/harness.lua']
+    command = [args.lua, 'test/harness.lua', '--guild-intel-only']
     baseline = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
     assert baseline.returncode == 0, baseline.stdout + baseline.stderr
     results = []

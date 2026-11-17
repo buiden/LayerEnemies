@@ -130,6 +130,8 @@ def check_api_policy(source, filename):
         expected = API_OWNERS.get(word)
         assert expected is None or filename == expected, word + ' outside ' + str(expected) + ': ' + filename
     tokens = lua_tokens(source)
+    for _, word in lua_references(tokens):
+        assert word != 'debug', 'debug access forbidden: ' + filename
     for i, (kind, value) in enumerate(tokens):
         if kind != 'name':
             continue
@@ -283,6 +285,127 @@ def check_send_policy(source, filename):
             api + ' must belong to the single local deliver function in ' + filename
 
 
+def check_route_policy(wire):
+    """Freeze composed FLH membership and Overlord peer routes exactly."""
+    allowed = {
+        'LayerSwap': {'WHISPER'}, 'LEGW1': {'GUILD'}, 'LFSw': {'GUILD'},
+        'WEFF1': {'GUILD', 'PARTY', 'RAID', 'WHISPER'}, 'HeadHunter': {'WHISPER'},
+        'FLHNET2': {'GUILD', 'PARTY', 'RAID', 'WHISPER'},
+        'OverlordF': {'GUILD', 'PARTY', 'RAID', 'WHISPER'},
+    }
+    checks = {
+        'FLHNET2': 'flhText', 'LayerSwap': 'layerswapText', 'LEGW1': 'legw1Text',
+        'LFSw': 'function(text) return text == Wr.LFSW_TEXT and "q" or nil end',
+        'WEFF1': 'weText', 'HeadHunter': 'hhText',
+        'OverlordF': 'function(text) return text:match("^BF:[%w%-]+:1:1:") and "peer" end',
+    }
+    nets = {'WEFF1': 'we', 'HeadHunter': 'hh', 'OverlordF': 'overlord'}
+    tokens = lua_tokens(wire)
+    declaration = lua_tokens('local ROUTES = {')
+    starts = [i for i in range(len(tokens)) if tokens[i:i + len(declaration)] == declaration]
+    assert len(starts) == 1, 'missing or duplicate private route table'
+    at = starts[0] + len(declaration)
+    covered = set(range(starts[0], at))
+
+    def take(source):
+        nonlocal at
+        expected = lua_tokens(source)
+        assert tokens[at:at + len(expected)] == expected, 'nonliteral addon route'
+        covered.update(range(at, at + len(expected)))
+        at += len(expected)
+
+    actual = {}
+    while tokens[at:at + 1] != [('symbol', '}')]:
+        assert tokens[at][0] == 'name', 'nonliteral route prefix'
+        prefix = tokens[at][1]
+        assert prefix in allowed and prefix not in actual, 'unapproved or duplicate addon route'
+        take(prefix + ' = { kinds = {')
+        kinds = set()
+        while tokens[at:at + 1] != [('symbol', '}')]:
+            assert tokens[at][0] == 'name', 'nonliteral route kind'
+            kind = tokens[at][1]
+            assert kind in allowed[prefix] and kind not in kinds, 'unapproved or duplicate route kind'
+            take(kind + ' = true')
+            kinds.add(kind)
+            if tokens[at:at + 1] == [('symbol', ',')]:
+                take(',')
+            else:
+                assert tokens[at:at + 1] == [('symbol', '}')], 'nonliteral route value'
+        take('}')
+        assert kinds == allowed[prefix], 'missing addon route'
+        actual[prefix] = kinds
+        # Consume every field, not just kinds. In particular, a computed key
+        # could replace kinds without spelling that identifier anywhere.
+        take(', check = ' + checks[prefix])
+        if prefix in nets:
+            take(', net = "' + nets[prefix] + '"')
+        take('},')
+    take('}')
+    assert actual == allowed, 'missing addon route prefix'
+
+    # Match the whole lookup through the next statement, not a prefix of its
+    # RHS: an appended and/or expression can substitute a computed route table.
+    lookup = ('local route = type(prefix) == "string" and ROUTES[prefix]\n'
+              'if not (route and type(kind) == "string" and route.kinds[kind]) then return nil, "blocked route" end')
+    expected = lua_tokens(lookup)
+    sites = [i for i in range(len(tokens)) if tokens[i:i + len(expected)] == expected]
+    assert len(sites) == 1, 'route lookup must be the exact literal statement'
+    subscripts = set(range(sites[0], sites[0] + len(expected)))
+
+    # No new table constructor or computed subscript may hide inside check.
+    # Its only other table syntax is the existing empty options default.
+    header = lua_tokens('local function check(prefix, text, kind, target, opts)')
+    starts = [i for i in range(len(tokens)) if tokens[i:i + len(header)] == header]
+    assert len(starts) == 1, 'missing or duplicate route check'
+    start, depth, end = starts[0] + 1, 0, None
+    for i in range(start, len(tokens)):
+        kind, word = tokens[i]
+        if kind == 'name' and word in ('function', 'if', 'do', 'repeat'):
+            depth += 1
+        elif kind == 'name' and word in ('end', 'until'):
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    assert end is not None, 'unterminated route check'
+    default = lua_tokens('opts = S.tab(opts) and opts or {}')
+    defaults = [i for i in range(start, end) if tokens[i:i + len(default)] == default]
+    assert len(defaults) == 1, 'route options default must remain literal'
+    subscripts.update(range(defaults[0], defaults[0] + len(default)))
+    for i in range(start, end):
+        assert tokens[i] not in (('symbol', '{'), ('symbol', '[')) or i in subscripts, \
+            'unreviewed table or computed key in route check'
+
+    # Freeze all references to the table, its local route aliases, and the
+    # check function that returns those aliases. This intentionally rejects
+    # new readers until reviewed: a loop over route can write an aliased kinds
+    # table without mentioning ROUTES/kinds. No additional binding/escape or
+    # assignment (including a computed replacement table) may be overlooked.
+    for read in (
+        'Wr.ROUTES = {}',
+        'for prefix, r in pairs(ROUTES) do Wr.ROUTES[prefix] = {}; '
+        'for k in pairs(r.kinds) do Wr.ROUTES[prefix][k] = true end end',
+        'local route = type(prefix) == "string" and ROUTES[prefix]',
+        'if not (route and type(kind) == "string" and route.kinds[kind]) then return nil, "blocked route" end',
+        'local function check(prefix, text, kind, target, opts)',
+        'local tag = route.check(text, kind)',
+        'return route,tag,target,opts,kind=="WHISPER"',
+        'if route.net and not withdraw then',
+        'if opts.net ~= route.net then return nil, "network off" end',
+        'local ok, why = N.Net.allowed(route.net, public and "public" or "guild")',
+        'return route, tag, target, opts, public',
+        'local route, tag, public',
+        'route, tag, target, opts, public = check(prefix, text, kind, target, opts)',
+        'if not route then return false, tag end',
+    ):
+        expected = lua_tokens(read)
+        sites = [i for i in range(len(tokens)) if tokens[i:i + len(expected)] == expected]
+        assert len(sites) == 1, 'route access must remain read-only'
+        covered.update(range(sites[0], sites[0] + len(expected)))
+    for i, word in lua_references(tokens):
+        assert word not in ('ROUTES', 'kinds', 'route', 'check') or i in covered, 'route table mutation or escape'
+
+
 def main():
     notes = ROOT / 'notes'
     notes.mkdir(exist_ok=True)
@@ -308,6 +431,7 @@ def main():
     # the party calls (guild host invite, auto accept and leave): InviteUnit, AcceptGroup and LeaveParty exactly
     # once each and C_PartyInfo only in Wire.lua
     wire = (ROOT / 'LayerEnemies/Wire.lua').read_text()
+    check_route_policy(wire)
     for word in ('InviteUnit', 'AcceptGroup', 'LeaveParty', 'C_PartyInfo'):
         users = sorted(p.name for p in (ROOT / 'LayerEnemies').glob('*.lua')
                        if re.search(r'\b' + word + r'\b', p.read_text()))
@@ -354,6 +478,7 @@ def main():
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
     subprocess.run([sys.executable, '-I', 'test/api_policy_test.py'], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, '-I', 'test/flh_mutants_test.py'], cwd=ROOT, check=True)
     subprocess.run([sys.executable, '-I', 'test/harness_sources_test.py'], cwd=ROOT, check=True)
     shipped = payload_files(listed)
     check_media()
@@ -417,7 +542,9 @@ def main():
         'guild_host': 'Off until turned on, then saved (guildHost boolean, ON line at login); guild members only, guild name readable and unchanged; at most one InviteUnit per request, 10 s apart, 6 per 600 s; never in combat; refused beside LayerSwap or Bulo',
         'networks': 'Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches',
         'sends': 'LayerSwap/WHISPER, LEGW1/GUILD (including K1 own-death, share switch, 1/120s and 5/30min), LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and '
-                 'HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope)',
+                 'HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope); '
+                 'FLHNET2 HI on GUILD/PARTY/RAID, WR/CA/WP/LQ/LR on WHISPER through Wire, no hosting or channel sends; '
+                 'OverlordF direct peer on GUILD/PARTY/RAID/WHISPER through Wire and friends through the shared BNet queue',
         'visual_design': 'Approved B implemented with fourth Find tab; native client appearance unverified',
     }
     (notes / 'verification.json').write_text(json.dumps(result, indent=2) + '\n')

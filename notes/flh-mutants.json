@@ -1,83 +1,86 @@
 {
   "baseline": {
-    "passed": 28,
+    "caught_by": [],
     "failed": 0,
-    "rc": 0,
-    "caught_by": []
+    "passed": 29,
+    "rc": 0
+  },
+  "final": {
+    "caught_by": [],
+    "failed": 0,
+    "passed": 29,
+    "rc": 0
   },
   "mutants": [
     {
-      "passed": 22,
-      "failed": 6,
-      "rc": 1,
       "caught_by": [
-        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x5d1f85bec0a0",
-        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x5d1f860004c0",
-        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x5d1f85c9edd0",
-        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x5d1f85a91760",
+        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: <address>",
+        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: <address>",
+        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: <address>",
+        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: <address>",
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/flh.lua:189: not equal: expected nil, got 8",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/harness.lua:8: not equal: expected false, got true"
       ],
+      "failed": 6,
+      "killed": true,
       "mutant": "host-zero-is-host",
-      "killed": true
+      "passed": 23,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: the wire limit accepts 255 bytes and refuses 256: test/flh.lua:69: not equal: expected nil, got table: 0x6280e98c0560"
+        "FLH: the wire limit accepts 255 bytes and refuses 256: test/flh.lua:69: not equal: expected nil, got table: <address>"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "no-length-cap",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 26,
-      "failed": 2,
-      "rc": 1,
       "caught_by": [
         "FLH: its host cache is separate bounded and expires at 180 seconds: test/flh.lua:79: not equal: expected nil, got cedar vale",
         "FLH: host projection is zone scoped fresh and visible with own layer unknown: test/flh.lua:173: not equal: expected 0, got 1"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "720-second-flh-hosts",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 26,
-      "failed": 2,
-      "rc": 1,
       "caught_by": [
         "FLH: its host cache is separate bounded and expires at 180 seconds: test/flh.lua:79: not equal: expected nil, got cedar vale",
         "FLH: host projection is zone scoped fresh and visible with own layer unknown: test/flh.lua:173: not equal: expected 0, got 1"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "ttl-off-by-one",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
         "FLH: its host cache is separate bounded and expires at 180 seconds: test/flh.lua:81: not equal: expected nil, got cedar vale"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "clock-rollback-retains-cache",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 26,
-      "failed": 2,
-      "rc": 1,
       "caught_by": [
         "FLH: its host cache is separate bounded and expires at 180 seconds: test/flh.lua:83: not equal: expected 64, got 65",
         "FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via: test/flh.lua:219: not equal: expected 64, got 100"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "unbounded-cache",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 17,
-      "failed": 11,
-      "rc": 1,
       "caught_by": [
         "FLH: its host cache is separate bounded and expires at 180 seconds: test/flh.lua:77: attempt to index field 'cedar vale' (a nil value)",
         "FLH: passive GUILD presence admits only explicit hosts: test/harness.lua:7: not equal: expected true, got false",
@@ -88,54 +91,54 @@
         "FLH: route identity ignore and unreadable context fail closed: test/harness.lua:7: not equal: expected true, got false",
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/flh.lua:189: not equal: expected nil, got 8",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/harness.lua:8: not equal: expected false, got true",
-        "FLH: wire ingestion cannot persist names or silently refresh malformed hosts: test/flh.lua:237: attempt to index field 'cedar vale' (a nil value)",
+        "FLH: wire ingestion cannot persist names or silently refresh malformed hosts: test/flh.lua:245: attempt to index field 'cedar vale' (a nil value)",
         "FLH: readable-looking secret strings are refused before any use: test/harness.lua:7: not equal: expected true, got false"
       ],
+      "failed": 11,
+      "killed": true,
       "mutant": "case-duplicates",
-      "killed": true
+      "passed": 18,
+      "rc": 1
     },
     {
-      "passed": 21,
-      "failed": 7,
-      "rc": 1,
       "caught_by": [
         "FLH: its host cache is separate bounded and expires at 180 seconds: test/flh.lua:86: not equal: expected 63, got 64",
-        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57bf1fc98820",
-        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57bf2034de20",
-        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57bf1ff087c0",
-        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57bf2036bc40",
+        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: <address>",
+        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: <address>",
+        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: <address>",
+        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: <address>",
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/flh.lua:189: not equal: expected nil, got 8",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/harness.lua:8: not equal: expected false, got true"
       ],
+      "failed": 7,
+      "killed": true,
       "mutant": "no-withdrawal",
-      "killed": true
+      "passed": 22,
+      "rc": 1
     },
     {
-      "passed": 26,
-      "failed": 2,
-      "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x58b49aee0c10",
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: <address>",
         "FLH: seeded byte and structured fuzz is bounded silent and never sends: test/harness.lua:8: fuzz receive threw: expected false, got true"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "non-numeric-id",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 26,
-      "failed": 2,
-      "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x5799137e67f0",
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: <address>",
         "FLH: seeded byte and structured fuzz is bounded silent and never sends: test/harness.lua:7: not equal: expected true, got false"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "unknown-is-presence",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 23,
-      "failed": 5,
-      "rc": 1,
       "caught_by": [
         "FLH: separators metadata and unknown places preserve positions: test/harness.lua:7: not equal: expected true, got false",
         "FLH: presence layout WP keeps its positional fields: test/harness.lua:7: not equal: expected true, got false",
@@ -143,105 +146,106 @@
         "FLH: presence layout CQ keeps its positional fields: test/harness.lua:7: not equal: expected true, got false",
         "FLH: presence layout CA keeps its positional fields: test/harness.lua:7: not equal: expected true, got false"
       ],
+      "failed": 5,
+      "killed": true,
       "mutant": "pipe-only-split",
-      "killed": true
+      "passed": 24,
+      "rc": 1
     },
     {
-      "passed": 22,
-      "failed": 6,
-      "rc": 1,
       "caught_by": [
         "FLH: separators metadata and unknown places preserve positions: test/harness.lua:7: not equal: expected true, got false",
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x61d38307d3f0",
-        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x61d382d06d20",
-        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x61d383232880",
-        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x61d382ee62f0",
-        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x61d383278680"
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: <address>",
+        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: <address>",
+        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: <address>",
+        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: <address>",
+        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: <address>"
       ],
+      "failed": 6,
+      "killed": true,
       "mutant": "drop-empty-fields",
-      "killed": true
+      "passed": 23,
+      "rc": 1
     },
     {
-      "passed": 26,
-      "failed": 2,
-      "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x62338fc7a790",
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: <address>",
         "FLH: readable-looking secret strings are refused before any use: test/harness.lua:8: not equal: expected false, got true"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "zero-fingerprint",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 25,
-      "failed": 3,
-      "rc": 1,
       "caught_by": [
         "FLH: HI preserves the decimal fingerprint and advertises a host: test/flh.lua:21: not equal: expected 007, got 7",
         "FLH: its host cache is separate bounded and expires at 180 seconds: test/flh.lua:77: not equal: expected 007, got 7",
-        "FLH: friendly text gets space for its separate provenance and age: test/flh.lua:296: display must not rewrite the fingerprint: expected 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999, got 8"
+        "FLH: friendly text gets space for its separate provenance and age: test/flh.lua:304: display must not rewrite the fingerprint: expected 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999, got 8"
       ],
+      "failed": 3,
+      "killed": true,
       "mutant": "discard-fingerprint-spelling",
-      "killed": true
+      "passed": 26,
+      "rc": 1
     },
     {
-      "passed": 26,
-      "failed": 2,
-      "rc": 1,
       "caught_by": [
-        "FLH: readable-looking secret strings are refused before any use: test/flh.lua:275: not equal: expected nil, got table: 0x6090e6dcac10",
+        "FLH: readable-looking secret strings are refused before any use: test/flh.lua:283: not equal: expected nil, got table: <address>",
         "FLH: friendly text gets space for its separate provenance and age: test/harness.lua:7: retain the FLH detail minimum after measured-layout composition: expected true, got false"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "no-secret-check",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x5a5fa37ce540"
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: <address>"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "no-control-check",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x570d1c119980"
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: <address>",
+        "FLH: seeded byte and structured fuzz is bounded silent and never sends: test/harness.lua:7: not equal: expected true, got false"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "no-metadata-validation",
-      "killed": true
-    },
-    {
       "passed": 27,
-      "failed": 1,
-      "rc": 1,
-      "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x61209ef0f890"
-      ],
-      "mutant": "no-csv-validation",
-      "killed": true
+      "rc": 1
     },
     {
-      "passed": 24,
-      "failed": 4,
-      "rc": 1,
+      "caught_by": [
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: <address>"
+      ],
+      "failed": 1,
+      "killed": true,
+      "mutant": "no-csv-validation",
+      "passed": 28,
+      "rc": 1
+    },
+    {
       "caught_by": [
         "FLH: passive GUILD presence admits only explicit hosts: test/harness.lua:7: not equal: expected true, got false",
         "FLH: passive PARTY presence admits only explicit hosts: test/harness.lua:7: not equal: expected true, got false",
         "FLH: passive RAID presence admits only explicit hosts: test/harness.lua:7: not equal: expected true, got false",
         "FLH: passive WHISPER presence admits only explicit hosts: test/harness.lua:7: not equal: expected true, got false"
       ],
+      "failed": 4,
+      "killed": true,
       "mutant": "no-prefix-registration",
-      "killed": true
+      "passed": 25,
+      "rc": 1
     },
     {
-      "passed": 14,
-      "failed": 14,
-      "rc": 1,
       "caught_by": [
         "FLH: passive GUILD presence admits only explicit hosts: test/harness.lua:7: not equal: expected true, got false",
         "FLH: passive PARTY presence admits only explicit hosts: test/harness.lua:7: not equal: expected true, got false",
@@ -254,220 +258,220 @@
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/flh.lua:185: not equal: expected 8, got nil",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/harness.lua:7: not equal: expected true, got false",
         "FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via: test/flh.lua:219: not equal: expected 64, got 0",
-        "FLH: wire ingestion cannot persist names or silently refresh malformed hosts: test/flh.lua:237: attempt to index field 'cedar vale' (a nil value)",
+        "FLH: fresh claims cannot displace an older known-layer nonhost: test/flh.lua:231: not equal: expected 40, got 1",
+        "FLH: wire ingestion cannot persist names or silently refresh malformed hosts: test/flh.lua:245: attempt to index field 'cedar vale' (a nil value)",
         "FLH: readable-looking secret strings are refused before any use: test/harness.lua:7: not equal: expected true, got false",
         "FLH: friendly text gets space for its separate provenance and age: test/harness.lua:7: retain the FLH detail minimum after measured-layout composition: expected true, got false"
       ],
+      "failed": 15,
+      "killed": true,
       "mutant": "no-prefix-dispatch",
-      "killed": true
+      "passed": 14,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
         "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:130: not equal: expected nil, got cedar vale"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "channel-presence",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
         "FLH: every received command is passive and non-presence cannot add hosts: test/flh.lua:116: not equal: expected nil, got cedar vale"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "requests-become-hosts",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 26,
-      "failed": 2,
-      "rc": 1,
       "caught_by": [
         "FLH: every received command is passive and non-presence cannot add hosts: test/flh.lua:119: not equal: expected 0, got 35",
-        "FLH: seeded byte and structured fuzz is bounded silent and never sends: test/flh.lua:268: not equal: expected 0, got 5000"
+        "FLH: seeded byte and structured fuzz is bounded silent and never sends: test/flh.lua:276: not equal: expected 0, got 5000"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "answer-received-lines",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
         "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:130: not equal: expected nil, got me"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "own-echo-host",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:137: not equal: expected nil, got table: 0x5e5ef88f4b20"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:137: not equal: expected nil, got table: <address>"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "ignored-host",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:141: not equal: expected nil, got table: 0x5e47efb18f10"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:141: not equal: expected nil, got table: <address>"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "unreadable-own-identity",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:143: not equal: expected nil, got table: 0x5bc8dabceca0"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:143: not equal: expected nil, got table: <address>"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "combat-ingress",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:143: not equal: expected nil, got table: 0x60186ee202f0"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:143: not equal: expected nil, got table: <address>"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "instance-ingress",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:146: not equal: expected nil, got table: 0x5c24bcbeba30"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:146: not equal: expected nil, got table: <address>"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "guildless-ingress",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 22,
-      "failed": 6,
-      "rc": 1,
       "caught_by": [
         "FLH: presence reaches friendly hosts without pretending to be a server key: test/flh.lua:153: not equal: expected 1, got 0",
         "FLH: host projection is zone scoped fresh and visible with own layer unknown: test/flh.lua:170: not equal: expected 1, got 0",
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/flh.lua:185: not equal: expected 8, got nil",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/harness.lua:7: not equal: expected true, got false",
         "FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via: test/flh.lua:220: not equal: expected 40, got 1",
+        "FLH: fresh claims cannot displace an older known-layer nonhost: test/flh.lua:231: not equal: expected 40, got 1",
         "FLH: friendly text gets space for its separate provenance and age: test/harness.lua:7: retain the FLH detail minimum after measured-layout composition: expected true, got false"
       ],
+      "failed": 7,
+      "killed": true,
       "mutant": "missing-host-projection",
-      "killed": true
+      "passed": 22,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
         "FLH: host projection is zone scoped fresh and visible with own layer unknown: test/flh.lua:171: not equal: expected 1, got 2"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "all-zone-hosts",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 24,
-      "failed": 4,
-      "rc": 1,
       "caught_by": [
         "FLH: presence reaches friendly hosts without pretending to be a server key: test/flh.lua:155: not equal: expected nil, got 7086",
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/flh.lua:185: not equal: expected 7102, got 8",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/flh.lua:207: not equal: expected 7102, got 8",
-        "FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via: test/flh.lua:220: not equal: expected Real Host, got Fresha"
+        "FLH: fresh claims cannot displace an older known-layer nonhost: test/flh.lua:231: not equal: expected Known Guest, got Fresha"
       ],
+      "failed": 4,
+      "killed": true,
       "mutant": "flh-is-server-layer",
-      "killed": true
+      "passed": 25,
+      "rc": 1
     },
     {
-      "passed": 26,
-      "failed": 2,
-      "rc": 1,
       "caught_by": [
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/flh.lua:185: not equal: expected 30, got 0",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/flh.lua:207: not equal: expected 30, got 0"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "flh-renews-legacy-age",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 25,
-      "failed": 3,
-      "rc": 1,
       "caught_by": [
         "FLH: presence reaches friendly hosts without pretending to be a server key: test/harness.lua:7: not equal: expected true, got false",
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/harness.lua:7: not equal: expected true, got false",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/harness.lua:8: not equal: expected false, got true"
       ],
+      "failed": 3,
+      "killed": true,
       "mutant": "flh-becomes-layerswap-host",
-      "killed": true
+      "passed": 26,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
+        "FLH: presence reaches friendly hosts without pretending to be a server key: test/harness.lua:8: not equal: expected false, got true",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/harness.lua:8: FLH must not promote the general host flag on a listed player: expected false, got true"
       ],
+      "failed": 2,
+      "killed": true,
       "mutant": "flh-promotes-listed-nonhost",
-      "killed": true
+      "passed": 27,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via: test/flh.lua:220: not equal: expected Real Host, got Fresha"
+        "FLH: fresh claims cannot displace an older known-layer nonhost: test/flh.lua:231: not equal: expected Known Guest, got Fresha"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "flh-evicts-known-layer-host",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
-        "FLH: wire ingestion cannot persist names or silently refresh malformed hosts: test/flh.lua:242: not equal: expected {autoHop=true,call=true,callArt=true,findNotice=true,findShare=true,guildHost=false,nets={hh=true,we=true},options={},share=true,tracked={}}, got {autoHop=true,call=true,callArt=true,findNotice=true,findShare=true,flh={cedar vale={at=1800000000,key=8,map=100,name=Cedar Vale}},guildHost=false,nets={hh=true,we=true},options={},share=true,tracked={}}"
+        "FLH: wire ingestion cannot persist names or silently refresh malformed hosts: test/flh.lua:250: not equal: expected {autoHop=true,call=true,callArt=true,findNotice=true,findShare=true,guildHost=false,nets={chehulnet=true,hh=true,wanted=true,warboard=true,we=true},options={},quietWhispers=on,share=true,tracked={},warboardOwed={}}, got {autoHop=true,call=true,callArt=true,findNotice=true,findShare=true,flh={cedar vale={at=1800000000,key=8,map=100,name=Cedar Vale}},guildHost=false,nets={chehulnet=true,hh=true,wanted=true,warboard=true,we=true},options={},quietWhispers=on,share=true,tracked={},warboardOwed={}}"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "persist-host-names",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
         "FLH: presence reaches friendly hosts without pretending to be a server key: test/harness.lua:7: not equal: expected true, got false"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "no-honest-flh-label",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     },
     {
-      "passed": 27,
-      "failed": 1,
-      "rc": 1,
       "caught_by": [
         "FLH: friendly text gets space for its separate provenance and age: test/harness.lua:7: retain the FLH detail minimum after measured-layout composition: expected true, got false"
       ],
+      "failed": 1,
+      "killed": true,
       "mutant": "clipped-provenance",
-      "killed": true
+      "passed": 28,
+      "rc": 1
     }
-  ],
-  "final": {
-    "passed": 28,
-    "failed": 0,
-    "rc": 0,
-    "caught_by": []
-  }
+  ]
 }

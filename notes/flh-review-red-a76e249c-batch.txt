@@ -1,0 +1,39 @@
+PASS FLH batch: ordinary whisper then offer at half a second accepts
+PASS FLH batch: unsent queries pace without spending the reserved token
+PASS FLH batch: ordinary and owed traffic cannot steal the reserved LR
+PASS FLH batch: reserve expires at the original window without a tick
+PASS FLH batch: refused LR keeps selection and waits for actual budget room
+PASS FLH batch: successful retry never extends invite authority at 89
+PASS FLH batch: successful retry never extends invite authority at 90
+PASS FLH batch: third LR refusal ends the click with one exact chat line and row note
+PASS FLH batch: pending LR at expiry prints once and never sends after ninety seconds
+PASS FLH batch: a full burst paces all queries within the original click window
+PASS FLH batch: the last rolling-minute slot belongs to LR
+PASS FLH batch: LR success and explicit stop release shared capacity immediately
+PASS FLH batch: a refused selection cannot be redirected by another queried host
+PASS FLH batch: retry and paced query cancellation on stop
+PASS FLH batch: retry and paced query cancellation on share
+PASS FLH batch: retry and paced query cancellation on consent
+PASS FLH batch: retry and paced query cancellation on network
+PASS FLH batch: retry and paced query cancellation on combat
+PASS FLH batch: retry and paced query cancellation on instance
+PASS FLH batch: retry and paced query cancellation on zone
+PASS FLH batch: retry and paced query cancellation on donor
+PASS FLH batch: retry and paced query cancellation on rollback
+PASS FLH batch: an offline head cannot block the paced batch
+PASS FLH batch: paced discovery still caps the whole click at seven queries
+FAIL FLH batch: stop inside LQ 2 preserves attempted cooldown result 0: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 11, got nil
+FAIL FLH batch: stop inside LQ 2 preserves attempted cooldown result 3: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 11, got nil
+FAIL FLH batch: stop inside LQ 6 preserves attempted cooldown result 0: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 13, got nil
+FAIL FLH batch: stop inside LQ 6 preserves attempted cooldown result 3: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 13, got nil
+FAIL FLH batch: recursive tick inside LQ 1 cannot consume remaining targets: test/src_flh_batch.lua:292: nested tick cannot discard eligible targets: expected 7, got 1
+FAIL FLH batch: recursive tick inside LQ 6 cannot consume remaining targets: test/src_flh_batch.lua:292: nested tick cannot discard eligible targets: expected 7, got 6
+FAIL FLH batch: join then leave between ticks revokes offer click: test/src_flh_batch.lua:314: transient join revokes deferred or initial LR authority: expected 0, got 1
+FAIL FLH batch: join then leave between ticks revokes paced click: test/src_flh_batch.lua:314: transient join revokes deferred or initial LR authority: expected 0, got 1
+FAIL FLH batch: join then leave between ticks revokes retry click: test/src_flh_batch.lua:314: transient join revokes deferred or initial LR authority: expected 0, got 1
+FAIL FLH batch: join then leave between ticks revokes selected click: test/harness.lua:8: not equal: expected false, got true
+FAIL FLH batch: paced query revalidates current host other layer: test/harness.lua:8: changed or withdrawn host must not receive a stale query: expected false, got true
+FAIL FLH batch: paced query revalidates current host own layer: test/harness.lua:8: changed or withdrawn host must not receive a stale query: expected false, got true
+FAIL FLH batch: paced query revalidates current host same layer new spelling: test/src_flh_batch.lua:336: wire uses the exact current key, not the click-time spelling: expected 00016, got 16
+FAIL FLH batch: paced query revalidates current host withdrawn: test/harness.lua:8: changed or withdrawn host must not receive a stale query: expected false, got true
+RESULT: 24 tests passed, 14 failed, 3400 assertions
