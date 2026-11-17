@@ -74,7 +74,7 @@ local function allowed(ctx)
 end
 local function target(st,id,ctx,cleanup)
     local peer=st.peers[id]
-    if not peer or not peer.confirmed or peer.rs~=ctx.rs or ctx.now<peer.at or ctx.now-peer.at>=1200 then return nil end
+    if not peer or (not cleanup and not peer.confirmed) or peer.rs~=ctx.rs or ctx.now<peer.at or ctx.now-peer.at>=1200 then return nil end
     if cleanup and not T.ready(peer,ctx.now) then return nil end
     local who=BN.who(id,true)
     local full=who and N.OpenMap.bnName(who.name,who.realm)

@@ -214,6 +214,15 @@ test("M1 donor observes owed H during unsafe wait without LE answer",function()
     eq(count("FBUN",71,before),1); no(r.sub)
     eq(count("H",nil,before),0); eq(count("A",nil,before),0)
 end)
+test("M1 cleanup proof alone never authorizes a new FBAK",function()
+    local g="Player-123-00000002"
+    local N,r,hello,count,pos=setup({tracked={"Enemy Player"},warboardOwed={g}})
+    N.BNet.peers=function() return {} end
+    hello(); h.clock(h.clock()+1); N.BNet.pump(h.clock()) -- deliver A before discovery
+    advance(5); eq(count("FBUN"),1); eq(count("H"),0)
+    pos(false); eq(debt(),0); advance(305)
+    eq(count("FBAK"),0,"cleanup-only proof must not turn into normal request consent")
+end)
 test("M1 queued handshakes stand down when real addon loads",function()
     local N,r,hello,count,pos=start(); stop(N,"share"); advance(5)
     local before=#h.sent(); hello(); h.loaded().WarBoard=true; advance(5)

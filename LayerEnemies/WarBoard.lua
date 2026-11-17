@@ -135,8 +135,7 @@ local function send(st,id,cmd,ctx)
             peer.answerPending=nil
             if ok and st.peers[id]==peer and peer.hello==hello then
                 peer.needAnswer=nil; proof(st,peer,sentAt)
-                -- Debt settlement does not authorize a new tracking request.
-                if debt then peer.confirmed=true end
+                -- Cleanup proof is separate from received-A request eligibility.
             end
         end
     end)
@@ -519,7 +518,7 @@ function W.bnet(st,text,id,ctx)
         if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end
         local debt=N.WarBoardTrack and N.WarBoardTrack.owedAccount(id)
         if debt and N.Adapters.loaded("WarBoard") then
-            peer.confirmed=true; peer.needAnswer=nil; proof(st,peer,ctx.now)
+            peer.needAnswer=nil; proof(st,peer,ctx.now)
         elseif cmd=="A" and not peer.needAnswer then proof(st,peer,ctx.now) end
         if cmd=="H" then send(st,id,"A",ctx) end
         return true
@@ -549,7 +548,7 @@ function W.tick(st,ctx)
         for id,peer in pairs(st.peers) do
             local who=peer.donorObserved and T.owedAccount(id) and identity(id,ctx)
             if who and peer.rs==ctx.rs and who.key==peer.key and who.faction==peer.faction then
-                peer.donorObserved=nil; peer.needAnswer=nil; peer.confirmed=true; peer.at=ctx.now
+                peer.donorObserved=nil; peer.needAnswer=nil; peer.at=ctx.now
                 proof(st,peer,ctx.now)
             end
         end

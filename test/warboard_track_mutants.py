@@ -34,7 +34,7 @@ add('live clock rechecked at dispatch', 'local fresh=frame(kind,r,self,live)', '
 add('only own Find not Watch-only', 'ipairs(N.Main.find.entries)', 'ipairs(N.Find.new({"Enemy Player"}).entries)', 'only own Find')
 add('client GUID required', 'r.guid=S.str(v(game.playerGuid),80)', 'r.guid="Player-123-FFFFFFFF"', 'GUID only from live', 'LayerEnemies/Adapters.lua')
 add('no GUID adopted from inbound frame', 'function T.note(ev)\n    local r=records[ev.guid]', 'function T.note(ev)\n    local r=records[ev.guid]; for _,v in pairs(records) do v.guid=ev.guid end', 'same GUID debt')
-add('confirmed A required', 'not peer.confirmed or', 'false or', 'confirmation rules')
+add('confirmed A required', '(not cleanup and not peer.confirmed)', 'false', 'confirmation rules')
 add('H does not resurrect expired confirmation', 'ctx.now-old.at<1200', 'true', 'H cannot revive', 'LayerEnemies/WarBoard.lua')
 add('peer expiry boundary', 'ctx.now-peer.at>=1200', 'ctx.now-peer.at>1200', 'confirmation rules')
 add('peer ruleset match', 'peer.rs~=ctx.rs', 'false', 'confirmation rules')
@@ -106,7 +106,7 @@ MUTANTS.append(('M1 only owed account may use handshake exception', [
      'local debt=N.WarBoardTrack and N.WarBoardTrack.hasOwed()\n    local function permit'),
     ('LayerEnemies/WarBoard.lua','N.WarBoardTrack.owedAccount(id)~=nil','true')], 'WarBoard debt: M1 exception'))
 debt('M1 donor-owned H refreshes debt confirmation',
-     'peer.confirmed=true; peer.needAnswer=nil; proof(st,peer,ctx.now)',
+     'peer.needAnswer=nil; proof(st,peer,ctx.now)',
      'peer.needAnswer=nil', 'M1 donor relog', 'LayerEnemies/WarBoard.lua')
 MUTANTS.append(('M1 no duplicate H/A when donor loaded', [
     ('LayerEnemies/WarBoard.lua','if N.Adapters.loaded("WarBoard") then return false end','do end'),
@@ -117,6 +117,9 @@ MUTANTS.append(('M1 final queued handshake checks stand-down', [
     ('LayerEnemies/WarBoard.lua','or N.Adapters.loaded("WarBoard") then return false end','then return false end'),
     ('LayerEnemies/WarBoard.lua','and not N.Adapters.loaded("WarBoard") or false','or false'),
     ('LayerEnemies/BNet.lua','if A.loaded("WarBoard") then return false end','do end')], 'WarBoard debt: M1 queued handshakes'))
+debt('M1 cleanup proof cannot promote normal request eligibility',
+     '-- Cleanup proof is separate from received-A request eligibility.',
+     'if debt then peer.confirmed=true end', 'M1 cleanup proof', 'LayerEnemies/WarBoard.lua')
 debt('M1 donor-owned unsafe control is validated on resumption',
      'peer.donorObserved=N.Adapters.loaded("WarBoard") or nil',
      'peer.donorObserved=nil', 'M1 donor observes', 'LayerEnemies/WarBoard.lua')
