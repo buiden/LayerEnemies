@@ -169,6 +169,182 @@ until the 1.2.0 release PR. **Native checks not run (alpha, owner's decision)**:
 live traffic availability, transport name spelling, UID semantics and native
 text rendering remain unverified. If no HELLO arrives, nothing new appears.
 
+## Unreleased - WarBoard tracking request
+
+| What LE sends | To whom | How often and when it stops |
+|---|---|---|
+| `WBF1\|D\|<encoded FBAK>` first ask | Only a uniquely resolved character on **your own Find list**, directly to that one live game account after a compatible WarBoard A handshake; target GUID/name from the client API only | **3 tries, at least 6 seconds apart**, then FBUN and **300 seconds idle** if no position arrives; never Watch-only or untracked names; at most 20 active targets |
+| `FBAK` renewal | That same confirmed account only | Only while its newest position is **45–300 seconds old**, at most once per **45 seconds** per target. Past 300 seconds: FBUN, idle, retry after 300 seconds or a new handshake. Dead/in-instance silence does not accelerate requests |
+| `WBF1\|D\|<encoded FBUN>` | The same target GUID with an outstanding request, including a restored debt, through a currently confirmed account | **Sent, unverified** after each accepted call; at most **3 attempts per 10-minute window**, at least **60 seconds apart**, at most **6 FBUN attempts per debt per login**, including failures. Stops: Find removal/clear, tracking off, share off, Guild only, WarBoard source off, stand-down, give-up, best effort logout. Also retires requests on local combat/instance entry. Cleanup survives those switches and waits until out of combat/instance |
+| All kinds, including existing H/A | **Only `BN.send`**, prefix `WarBoard`; never guild/group/channel/chat forwarding | **6 FBAK/rolling minute**, within **10 WarBoard attempts/minute**, **30 shared/minute**, **one/second**. Owed A answers first, FBUN before own traffic. Budgets may delay attempts; failures spend them |
+
+This asks the tracked player's WarBoard client to broadcast its position to WarBoard peers every 15 seconds, as a WarBoard hunter's client does.
+
+Those broadcasts go to the whole WarBoard network and carry a hunter list with your character's name; anyone running WarBoard, including the tracked player, can see that you are tracking them.
+
+Tracking is **on by default at login**. `/le warboard track on|off` changes it
+for this session; `/le net warboard` shows the switch and caps. The existing
+saved source/share/consent switches also stop requests. Identity fields say
+`LayerEnemies/<our own version>` and carry our real character name/GUID and
+faction. `sentAt` is an integer from **GetServerTime**, never a local-clock
+fallback; unreadable identity, ruleset or server time means no send.
+
+WarBoard never expires a subscriber. Its **FBUN** has no `targetName` and removes
+only our own `hunterGuid`. The only new saved field is per-character
+`LayerEnemiesDB.warboardOwed`: a dense, deduplicated, oldest-first array of **at
+most 40 target GUID strings**, oldest out, with an optional `attempts[guid]`
+map of integers 0–6 for those same GUIDs. Login/reload resets those counts to
+zero once, reopening six attempts for each retained debt. No names, accounts, zones, timestamps, locations or
+hunter roster are saved there. Older GUID-only lists remain readable.
+
+Debt is recorded in memory before an attempted request, but written to disk
+**only at logout or reload**. A client crash before that save loses new debt;
+then **no FBUN follows** for that lost debt and the target can keep broadcasting.
+A crash can also lose unsaved attempt counts. A saved debt waits for **that
+character's next login**; an alt on the same Battle.net account cannot settle it.
+At login, debts are withdrawn once a matching live client account is handshaken,
+even if tracking/source/share is off or the name is no longer on Find.
+Still-tracked debts must settle before new asks too.
+
+Queue admission never settles debt. An accepted FBUN client call leaves it
+**sent, unverified**: a later, validated direct FBLP from that target without our
+GUID in its hunter roster clears it. If a later roster still lists us, LE
+invalidates the confirmation used by that send and resends FBUN after a fresh
+exchange. A newer, unused confirmation is retained, even if another roster
+arrives before the resend. Otherwise the debt clears after
+**15 minutes** from an accepted call with no subsequent FBLP listing us. Silence
+is a fallback, not proof of delivery. Three failed attempts pause the window;
+it reopens every **10 minutes**, with at least 60 seconds between attempts.
+At **6 FBUN attempts** in that login (failures included), LE stops sending FBUN
+and debt-settlement H/A, retains the debt, and blocks new asks for it. Each
+login/reload reopens six attempts; toggling tracking or privacy does not reset
+them. A later excluding roster can still clear it; the silence fallback remains
+available only for an accepted send that no later roster contradicted. The target
+may remain subscribed until a later successful login's cleanup, indefinitely if
+no usable exchange occurs, or if the 40-entry oldest-out limit evicts its debt;
+LE does not claim success on those paths.
+
+Entering combat or an instance retires the request, but FBUN waits until safe;
+the **target may keep broadcasting** for that entire time. No scans or sends
+occur in combat/instances. Queued FBUN gets fresh server time at dispatch and
+must have handshake confirmation newer than the target's latest H (including
+an H observed while waiting), so a target reload cannot reuse an old confirmation.
+Known-account data received while unsafe is held in a bounded inbox (128 frames,
+256 KiB total), including multipart rosters, and validated before silence can
+settle debt. Receipt-time age checks and current-account GUID validation both
+apply. This inbox is cleanup-only, not delayed Find evidence. Overflow or input
+that cannot be revalidated invalidates that account's silence fallback rather
+than claiming withdrawal succeeded; no account scans or sends occur while unsafe.
+
+The **debt-settlement exception** permits only H, A in answer to that account's
+H, and the concrete outstanding FBUN, only to live client-resolved accounts in
+the owed list. H/A pass these gates only while a withdrawal needs a handshake:
+not while merely waiting to verify an accepted FBUN, nor after six attempts.
+These may pass share off, WarBoard source off or Guild only; nothing else goes to anyone under those
+settings. A generic `owed` priority does not bypass the gates. With the real
+WarBoard addon loaded, LE sends **no H or A**: the real addon answers. LE instead
+refreshes cleanup confirmation only from an observed valid **H from the target**,
+which the real addon answers. The target's A alone does not confirm us at the
+target and cannot authorize FBUN or a silence-based settlement. If no target H
+or still-fresh established confirmation is available, cleanup waits. All these
+frames retain the same rate/safety limits. A genuine confirmation under **20
+minutes** old can authorize a new FBAK when tracking and the ordinary send
+settings are on; confirmation is not categorically restricted to cleanup.
+No cancellation delivery acknowledgement exists: an accepted API call is not
+proof of remote delivery. Non-friend account visibility, remote community-roster
+acceptance and logout delivery remain unverified and fail silent.
+
+Positions use the existing Find path whether or not we asked: own-client,
+relayed, cached and approximate wording remain honest, with no Ask/Hop authority,
+new sound or guild relay. No donor code was copied or run. See
+[implementation and assertion migrations](notes/warboard-track.md).
+Native checks: **not run (alpha, owner's decision)**.
+
+## Unreleased - WarBoard
+
+| What LE sends | To whom | Maximum frequency |
+|---|---|---|
+| `WBF1\|H\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | Eligible online opposite-faction WoW game accounts on the same realm and client project | At most 20 accounts selected per scan; scans at most once per 60 seconds; at most one H per account per 600 seconds, checked both when queued and when dispatched |
+| `WBF1\|A\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | An eligible account that sent a valid protocol-5 H (including a recognized, different ruleset, so it can reject us) | At most 6 A frames per rolling 60 seconds, at both admission and dispatch; A never answers A |
+| Tracking request/cancel | See the E2 send table above | FBAK/FBUN only under the tracking rules; still no forwarding or ordinary-addon/chat send |
+
+**Why the handshake is needed**
+
+WarBoard only sends its data—a player's zone and shard, positions, and kill records—over Battle.net to peers that have completed its hello/answer exchange. A client that never answers a hello receives nothing at all, so reading WarBoard is impossible without it. LayerEnemies sends only that hello and answer, under its own name and version, to every eligible opposite-faction Battle.net friend or community member account that is online in WoW. When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user. This handshake does not request a position broadcast; the tracking-request section above does.
+
+H, A, FBAK and FBUN use **only the shared Battle.net queue**: together at most 10
+WarBoard send attempts/minute and at most **30 attempts/minute across all
+networks**, with at least one second between attempts.
+WarBoard may hold at most **10 queued frames** across H/A/FBAK/FBUN; eight of
+all networks' shared 60 slots are owed-only. Frames older than 60 seconds are
+dropped; an unsafe queued FBUN is held until safe, then expired/revalidated
+without discarding its durable debt, which can enqueue a fresh withdrawal.
+Selection of 20 accounts does not promise 20 sends. Scans rotate in stable
+account-ID order, starting after the last accepted hello or unreadable account.
+Unreadable identities do not consume the selection cap. A queue refusal does
+not spend the 600-second hello cooldown: the account can be reconsidered on a
+later scan, without an immediate retry. Accepted frames still keep their
+cooldown even if later dropped or refused at dispatch. Owed answers go before
+new hellos. Normal H/A and all FBAK stop with `/le share off`, public networks
+off (**Guild only**), or the WarBoard source switch off. Only debt-settlement
+H/A and FBUN have the narrow exception above. Combat/instances block every send.
+Loading the real WarBoard addon stops all LE H/A and discovery, including queued
+handshakes; receiving and reading continue, and only owed FBUN can still be sent.
+Queued frames
+recheck consent, current account eligibility, ruleset and their caps at dispatch;
+unknown rulesets are silent. The final `0` is LE's gameplay-rules version (LE
+implements none of WarBoard's scoring rules). Discovery itself does not request
+a location broadcast; the E2 tracking feature above does.
+
+The independent WarBoard Forever **1.6.3** protocol reader accepts confirmed
+`WBF1|D|...` Battle.net traffic and bounded fragments, plus `WarBoard` and
+`WarBoardBN` guild/group/channel traffic. Only your Find names and guild Watch
+names are admitted through the source registry. No name or peer is saved.
+
+All unauthenticated guild/group/channel routes together share **192 KiB of charged
+inflate work per rolling 10 seconds**. Channel traffic can spend at most 128 KiB,
+reserving **64 KiB for guild/party/raid**. Confirmed Battle.net peers have separate
+account budgets, outside that aggregate pool. Channel-only senders may occupy
+only 100 of the 200 input-name slots, so strangers cannot fill the guild's room.
+
+Each normalized sender still has a **128 KiB/10-second** byte limit across routes;
+Battle.net also retains its account limit. Only decodes charged **over 2 KiB**
+spend the **16 expensive attempts/10 seconds**. After those attempts, decoding
+still permits up to 2 KiB per frame, within every byte limit: a burst of 119 small
+SHRD reports from one confirmed account is accepted. The separate 120 incoming
+frames/sender/rolling minute limit and 2–96 KiB per-type inflate ceilings remain.
+
+A 512-entry, 60-second hash memory suppresses repeated decode failures and decoded
+outcomes, **except untracked-name refusals**: adding that name to Find allows the
+same previously refused frame immediately. Accepted copies retain replay protection;
+`/le net` counts duplicates as both refused and deduped. Unfinished assemblies
+remain limited to two per account/sender as well as 16 globally.
+
+- **SHRD:** the sender's own zone and shard. Same-faction
+  records are ignored. Its millisecond-like sequence is used for ordering and
+  clock-skew checks, never displayed as an observation time; the hint expires
+  180 seconds after receipt. An accepted clear removes only WarBoard's SHRD
+  evidence, not other evidence for that player.
+- **FBLP:** the target's current or explicitly approximate held position,
+  zone/subzone and shard. Rank and hunter roster are validated, not imported. World
+  coordinates become a map pin only when the client converts them safely to
+  that displayed map; otherwise the textual zone still appears. Relays say
+  "reported position"; only a matching Battle.net sender/subject says "own position".
+- **FREC:** killer-zone hints only, with the record age preserved. The victim
+  is never attributed the killer's position. **FBLC / FCBD** location entries
+  remain cached; FBLC has no live producer in the audited release. There is no
+  leaderboard import.
+
+Accepted hints feed Find's existing **Reported** evidence line and measured row
+builder, with source/provenance, location, detail, observation age (or unknown)
+and receipt age. Bridge or different-carrier traffic stays relayed; batch hints
+stay cached. It never becomes Seen, changes a verified kill count, creates a
+sound/alert, enables a hop, hides firsthand evidence, or gets rebroadcast to
+LE/WE/HH. SHRD remains zone-only, without a fabricated pin. No live WarBoard
+client or native coordinate conversion has been verified; harness geometry is
+not a screenshot claim. See [provenance](THIRD_PARTY.md) and
+[test evidence and audit rulings](notes/warboard.md).
+
 ## Unreleased - source registry (no behaviour change)
 
 PR 0b adds extension seams, **no registered source, no new discovery scan and no
@@ -182,7 +358,7 @@ Developer interfaces and integration rules:
   Names are lower-case letters (32 bytes); at most 32 sources, 8 prefixes per
   source, 16 bytes per prefix. Registration is atomic and refuses duplicate names,
   duplicate prefixes and every prefix already owned by Main's chain. It copies
-  the descriptor; the supplied counter table exposes `heard/accepted/sent/refused`.
+  the descriptor; the supplied counter table exposes `heard/accepted/sent/refused/deduped`.
   `onAddon(prefix,text,dist,sender)`, `onBNet(prefix,text,gameAccountId)` and
   `tick(now)` are optional protected callbacks. No callback exception becomes a
   runtime-status error. `/le net <name> on|off` uses the existing saved switches;
@@ -233,15 +409,22 @@ Developer interfaces and integration rules:
   admissions and dispatch shares without evicting already-admitted work.
   **At most 52 queued frames may be normal (`own`): eight slots are owed-only.**
   Owed answers still obey their network's admission and dispatch caps and the
-  absolute 60-entry queue bound. A budget wait stays queued only while live:
-  frames **older than 60 seconds from admission** are dropped before dispatch,
-  even when a budget is exhausted; exact age 60 is still eligible. Admission
-  requires a readable monotonic clock. Expired/invalidated work, admission
-  refusals and refused/failed client calls increment the source's `refused`
-  counter, never retried. Privacy is checked at admission and dispatch; share off, Guild
-  only, network off, combat, instances or unavailable live identity block all
-  sends, including owed answers. Share/consent/switch off cancels held work even
-  if switched on before the next timer. Stand-down alone permits owed answers.
+  absolute 60-entry queue bound. Frames **older than 60 seconds from admission**
+  are dropped before dispatch, even when a budget is exhausted; exact age 60
+  is still eligible. Unsafe queued FBUN waits until safe before this check;
+  expiry completes it as unsent, retaining the debt for a fresh attempt.
+  Admission requires a readable monotonic clock. Expired/invalidated work,
+  admission refusals and refused/failed client calls increment the source's
+  `refused` counter and are not retried by BNet itself. WarBoardTrack alone
+  retries owed FBUN: 3 attempts per 10-minute window, 60 seconds apart, at most
+  6 actual attempts per debt per login. Privacy is checked at admission and
+  dispatch. Share off, Guild only and network off block normal sends; the
+  debt-settlement exception above allows only H, A answering that owed account's
+  H, and FBUN to accounts still owed cleanup. With real WarBoard loaded LE
+  sends no H/A. Combat, instances and unavailable live identity block all sends.
+  Share/consent/switch off cancels normal held work even if switched on before
+  the next timer; owed cleanup survives. Other networks retain their existing
+  stand-down answer policy.
   A registered source may send only its prefixes; the reserved exception is a
   future tick-only `overlord` registration sending `OverlordF` without taking its
   existing receiver. Nothing registers that source here.
@@ -922,8 +1105,10 @@ Every addon message and the one party invite go through one file (Wire.lua).
 Five prefixes are allowed. Two scopes matter for your settings: guild scope
 (guild, party and raid lines, and whispers to guildmates online in your roster)
 and public scope (whispers to anyone else, and the two public channels joined
-for reading). `/le net guild` turns every public send and both channel joins
-off; guild scope keeps working. Guild only stops all automatic public sends; a
+for reading). `/le net guild` turns normal public sends and both channel joins
+off; guild scope keeps working. The sole automatic public-send exception is
+WarBoard debt settlement: H, A answering an owed account's H, and its FBUN, only
+while that account is owed cleanup (no LE H/A with real WarBoard loaded). A
 Hop you click still whispers that one host. **Hop to another layer is refused
 in guild-only mode**, including a round already in progress.
 
@@ -1953,9 +2138,11 @@ last 10 minutes.
 ## Storage and performance limits
 
 LayerEnemiesDB is SavedVariablesPerCharacter. It stores options, up to 20
-explicitly tracked names (typed or chosen with On my way), and window position. It never persists
-sightings, unselected identities, GUIDs, hashes, locations, report payloads,
-asked names, alert history or source settings. Besides those three it holds
+explicitly tracked names (typed or chosen with On my way), and window position.
+Target GUIDs are persisted **only in `warboardOwed`**, with bounded withdrawal
+attempt counts as described above. It never persists sightings, other unselected
+identities, hashes, locations, report payloads, asked names or alert history.
+Besides those three it holds
 `guildHost` (hosting for your guild) and `autoHop` (Auto accept and leave),
 `consent` ("guild" after `/le net guild`, "public" after `/le net public`,
 absent until either: public), `nets` (one

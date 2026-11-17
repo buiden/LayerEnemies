@@ -52,7 +52,7 @@ MUTANTS = [
     ('bounded dedupe ledger', 'Wanted.lua', 'trimSeen(nil,false,512)', 'trimSeen(nil,false,513)'),
     ('location field namespaces', 'Wanted.lua', 'local map=d[mapKey]', 'local map=d.m or d.mapId'),
     ('observer percentages', 'Wanted.lua', 'x,y=x/100,y/100', 'x,y=x/200,y/200'),
-    ('seen near label', 'Sources.lua', 'if x and kind~="self" then', 'if false then'),
+    ('seen near label', 'Sources.lua', 'if x and kind~="self" and ev.pos~="enemy" then', 'if false then'),
     ('tracked names gate', 'Sources.lua', 'if not F.tracked(M.find,name) and #(watchers or {})==0 then', 'if false then'),
     ('silent later alert poll', 'Find.lua', 'if row.evidenceKind then return false end', 'if false then return false end'),
     ('source switch', 'Sources.lua', 'Src.has(name) and N.Net.switch(name)', 'Src.has(name)'),

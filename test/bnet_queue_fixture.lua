@@ -5,12 +5,17 @@ local yes,eq=h.yes,h.eq
 local F={}
 function F.register(N,name,prefix)
     if N.Sources.has(name) then
-        eq(name,"wanted","only the shipped Wanted registration is reused")
-        yes(N.Sources.owns(prefix)); yes(N.Wanted and N.Wanted.stats)
-        -- loadAddon disables every already-shipped transport for test isolation.
-        -- Restore only this queue test's real Wanted lane, as for new registrations.
-        eq(N.shipped.wanted,true); N.Net.SHIP.wanted=N.shipped.wanted
-        return N.Wanted.stats
+        local shipped={wanted="WNTDB",warboard="WarBoard"}
+        eq(prefix,shipped[name],"reuse only the real shipped source and its own prefix")
+        -- loadAddon disables already-shipped transports for test isolation.
+        eq(N.shipped[name],true); N.Net.SHIP[name]=N.shipped[name]
+        yes(N.Sources.authorized(name,prefix))
+        -- WarBoard keeps its counters private; read the real public diagnostic,
+        -- rather than replacing registration, callbacks or the transport.
+        return setmetatable({},{__index=function(_,key)
+            local line=N.Sources.lines(name)[1]
+            return tonumber(line:match(key.."=(%d+)"))
+        end})
     end
     local counters={}
     yes(N.Sources.register{name=name,prefixes={prefix},counters=counters})
@@ -22,7 +27,7 @@ function F.defaultShare(N)
 end
 function F.mixed(N,total)
     total=total or 30
-    local rows={{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WBQueue",10},
+    local rows={{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WarBoard",10},
         {"alpha","AlphaQueue"},{"beta","BetaQueue"}}
     for _,r in ipairs(rows) do r.c=F.register(N,r[1],r[2]) end
     -- Keep one alpha admission slot for the expiry test's owed replacement;
@@ -45,7 +50,7 @@ function F.fill(N,amount,prio,tag)
     if not pool then
         -- Use the configured shares too: another tick-only source must not make
         -- a queue-cap test hit the 32-source registry ceiling first.
-        pool={{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WBQueue",10}}
+        pool={{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WarBoard",10}}
         for _,r in ipairs(pool) do F.register(N,r[1],r[2]); r.used=0 end
         pools[N]=pool
     end

@@ -33,7 +33,8 @@ function BN.peers(now)
 end
 
 -- A single bounded queue and rolling attempt ledger, shared by every network.
--- Queued is admission only; clients can still refuse at dispatch. No retries.
+-- Queued is admission only; clients can still refuse at dispatch. No retries
+-- here. WarBoardTrack alone retries its owed FBUN after a failed completion.
 local queue,times,lastSend,timer,serial={},{},nil,false,0
 local shares={overlord=8,wanted=4,warboard=10}
 local function share(net)
@@ -44,10 +45,19 @@ local function share(net)
     return math.max(1,math.floor(30/math.max(1,count)))
 end
 local function refuse(net) N.Sources.count(net,"refused"); return false end
+local function withdrawal(net,id,prefix,text,prio)
+    return net=="warboard" and prefix=="WarBoard" and prio=="owed" and N.WarBoardTrack
+        and N.WarBoardTrack.withdrawal(id,text)==true
+end
 function BN.allowed(net,id,prefix,text,prio)
     if not S.str(net,32) or not S.str(prefix,16) or not S.num(id) or id<1 or id%1~=0
         or S.secret(text) or type(text)~="string" or #text<1 or #text>4096
         or not S.str(prio,16) or (prio~="owed" and prio~="own") then return false end
+    if net=="warboard" and prefix=="WarBoard" and text:match("^WBF1|[HA]|") then
+        if A.loaded("WarBoard") then return false end
+        if N.WarBoard and N.WarBoard.handshake(id,text) then return safe() end
+    end
+    if withdrawal(net,id,prefix,text,prio) then return safe() end
     -- C2 extends the built Overlord receiver in place; its tick-only registration
     -- may use its legacy prefix without seizing Main's receive ownership.
     local authorized=N.Sources.authorized(net,prefix)
@@ -74,14 +84,18 @@ local function deliver(q)
     return called and result==true
 end
 local schedule
+local function complete(q,ok)
+    if q.done then S.call(q.done,ok) end
+end
 function BN.pump(now)
     now=S.num(now)
     if not now then return end
     -- Expiry, privacy and safety are rechecked even while a budget is exhausted.
     for i=#queue,1,-1 do
         local q=queue[i]
-        if now-q.at>60 or not BN.allowed(q.net,q.id,q.prefix,q.text,q.prio) or not BN.who(q.id) then
-            refuse(q.net); table.remove(queue,i)
+        if not (q.cleanup and not safe()) and
+            (now-q.at>60 or not BN.allowed(q.net,q.id,q.prefix,q.text,q.prio) or not BN.who(q.id)) then
+            refuse(q.net); table.remove(queue,i); complete(q,false)
         end
     end
     local keep={}
@@ -90,15 +104,26 @@ function BN.pump(now)
     if #times<30 and (not lastSend or now-lastSend>=1) then
         table.sort(queue,function(a,b)
             if a.prio~=b.prio then return a.prio=="owed" end
+            if a.cleanup~=b.cleanup then return not a.cleanup end -- H/A answers before FBUN
             return a.seq<b.seq
         end)
         for i,q in ipairs(queue) do
             local count=0
             for _,stamp in ipairs(times) do if stamp.net==q.net then count=count+1 end end
-            if count<share(q.net) then
+            if count<share(q.net) and not (q.cleanup and not safe()) then
                 table.remove(queue,i)
+                -- Optional source-owned final admission: checked exactly once at
+                -- dispatch, not while waiting on another network's budget.
+                local valid=q.still and S.call(q.still,now) or not q.still
+                if type(valid)=="string" then
+                    q.text=valid
+                    valid=BN.allowed(q.net,q.id,q.prefix,q.text,q.prio)
+                end
+                if valid~=true then refuse(q.net); complete(q,false); break end
                 lastSend=now; times[#times+1]={at=now,net=q.net} -- spend before the client, including failures
-                if deliver(q) then N.Sources.count(q.net,"sent") else refuse(q.net) end
+                local ok=deliver(q)
+                if ok then N.Sources.count(q.net,"sent") else refuse(q.net) end
+                complete(q,ok)
                 break -- never catch up several frames after a long pause
             end
         end
@@ -116,8 +141,10 @@ schedule=function()
     timer=ok and result==true
     return timer
 end
-function BN.send(net,id,prefix,text,prio)
+function BN.send(net,id,prefix,text,prio,still,tag,done)
     if S.secret(prio) then return refuse(net) end
+    if S.secret(still) or (still~=nil and type(still)~="function") then return refuse(net) end
+    if S.secret(done) or (done~=nil and type(done)~="function") then return refuse(net) end
     prio=prio==nil and "own" or prio
     if not BN.allowed(net,id,prefix,text,prio) or not BN.who(id) or #queue>=60 then return refuse(net) end
     local count,normal=0,0
@@ -129,18 +156,22 @@ function BN.send(net,id,prefix,text,prio)
     local now=S.num(S.call(GetTime))
     if not now or count>=share(net) or (prio~="owed" and normal>=52) or not schedule() then return refuse(net) end
     serial=serial+1
-    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now}
+    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,still=still,tag=tag,done=done,
+        cleanup=withdrawal(net,id,prefix,text,prio)==true}
     return true
 end
-function BN.cancel(net)
+function BN.cancel(net,tag)
     for i=#queue,1,-1 do
-        if not net or queue[i].net==net then refuse(queue[i].net); table.remove(queue,i) end
+        local q=queue[i]
+        if not q.cleanup and (not net or q.net==net) and (not tag or q.tag==tag) then
+            refuse(q.net); table.remove(queue,i); complete(q,false)
+        end
     end
 end
 function BN.queued() return #queue end
 
-function BN.who(id)
+function BN.who(id,withGuid)
     if not safe() then return nil end
-    local r=A.bnGame(id)
-    if r then return {name=r.name,realm=r.realm,faction=r.faction} end
+    local r=A.bnGame(id,withGuid)
+    if r then return {name=r.name,realm=r.realm,faction=r.faction,guid=r.guid} end
 end

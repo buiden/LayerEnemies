@@ -290,6 +290,31 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertNotIn('aceCommJoin', source)
         self.assertEqual((root / 'LayerEnemies.toc').read_text().count('Wanted.lua'), 1)
 
+    def test_warboard_is_pure_and_uses_only_the_shared_bnet_send(self):
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        source = (root / 'WarBoard.lua').read_text()
+        tokens = VERIFY['lua_tokens'](source)
+        names = {v for k, v in tokens if k == 'name'}
+        self.check_source(source, 'WarBoard.lua')
+        VERIFY['check_send_policy'](source, 'WarBoard.lua')
+        self.assertFalse(names & {'_G', 'C_Timer', 'CreateFrame', 'LibStub', 'GetTime', 'time',
+                                  'UnitFactionGroup', 'Wire', 'LayerEnemiesDB', 'loadstring', 'dofile'})
+        self.assertFalse(any(v.startswith('C_') for v in names))
+        self.assertEqual(source.count('BN.send('), 1)
+        self.assertIn('Src.register{name="warboard"', source)
+        self.assertNotIn('SendAddonMessage', names)
+        track = (root / 'WarBoardTrack.lua').read_text()
+        self.check_source(track, 'WarBoardTrack.lua')
+        VERIFY['check_send_policy'](track, 'WarBoardTrack.lua')
+        words = {v for k, v in VERIFY['lua_tokens'](track) if k == 'name'}
+        self.assertFalse(words & {'_G', 'C_Timer', 'CreateFrame', 'Wire', 'LayerEnemiesDB', 'UnitGUID', 'GetTime'})
+        self.assertEqual(track.count('BN.send('), 1)
+        self.assertNotIn('SendGameData', names)
+        for path in root.glob('*.lua'):
+            refs = {v for _, v in VERIFY['lua_references'](VERIFY['lua_tokens'](path.read_text()))}
+            if 'GetMapPosFromWorldPos' in refs:
+                self.assertEqual(path.name, 'Adapters.lua')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

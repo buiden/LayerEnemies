@@ -61,7 +61,7 @@ MUTANTS = [
 
 
 def run(lua):
-    result = subprocess.run([lua, "test/harness.lua"], cwd=ROOT,
+    result = subprocess.run([lua, "test/harness.lua", "--only=crowd"], cwd=ROOT,
                             text=True, capture_output=True, timeout=120)
     match = re.search(r"^RESULT: (\d+) tests passed, (\d+) failed, (\d+) assertions$",
                       result.stdout, re.M)

@@ -89,6 +89,7 @@ function F.remove(st,raw)
         local changed=#st.names>0
         st.names={}; st.locations={}; st.alerts={}; st.places={}; st.presence={}; st.presenceAlerts={}
         if changed then F.rebuild(st) end
+        if N.WarBoardTrack then N.WarBoardTrack.changed(st) end
         return
     end
     local _,key=F.name(raw)
@@ -103,6 +104,7 @@ function F.remove(st,raw)
         end
     end
     if changed then F.rebuild(st) end
+    if N.WarBoardTrack then N.WarBoardTrack.changed(st) end
 end
 function F.hashes(name,home)
     local out={}
@@ -226,7 +228,8 @@ function F.report(st,r,home)
                 local cached=N.Known.put(st.known,{name=e.name,zone=r.zone,x=r.x,y=r.y,pos=r.pos,at=r.at,
                     source=source,spotter=r.sender,class=e.class,level=e.level,layer=r.layer,ns=r.ns,
                     kind=(r.kind=="claim" or r.relayed or source=="death") and "claim" or "seen",detail=r.detail,
-                    observedAt=r.observedAt,got=r.got,evidenceKind=r.evidenceKind,guid=r.guid,faction=r.faction,shard=r.shard,map=r.map},r.now or r.at)
+                    observedAt=r.observedAt,got=r.got,evidenceKind=r.evidenceKind,guid=r.guid,faction=r.faction,shard=r.shard,map=r.map,
+                    expiresAt=r.expiresAt,evidenceTag=r.evidenceTag},r.now or r.at)
                 for _,entry in ipairs(candidates or {}) do remember(st,entry,cached) end
             end
         end

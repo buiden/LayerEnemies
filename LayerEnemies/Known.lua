@@ -7,8 +7,9 @@ local sources={own=true,guild=true,relayed=true,spy=true,death=true,headhunter=t
 local fields={"name","zone","x","y","pos","at","source","spotter","class","level","layer","ns","kind",
     -- Own-source identity and epoch preserve the existing Find matcher and layer-unknown rule.
     "ownName","realm","epoch","detail",
-    "observedAt","got","evidenceKind","guid","faction","shard","map"}
-local function fresh(e,now) return e and now>=e.at and now-e.at<K.TTL end
+    "observedAt","got","evidenceKind","guid","faction","shard","map","expiresAt","evidenceTag"}
+local function expiry(e) return math.min(e.at+K.TTL,e.expiresAt or math.huge) end
+local function fresh(e,now) return e and now>=e.at and now<expiry(e) end
 local function empty(t) for _ in pairs(t) do return false end; return true end
 local function unindex(st,key,p)
     for alias in pairs(p.keys or {}) do
@@ -35,6 +36,16 @@ local function remove(st,key,p)
     unindex(st,key,p); st.entries[key]=nil
 end
 function K.new() return {entries={},byName={},nextExpiry=math.huge} end
+-- Source-scoped withdrawal never removes another source, type or first-hand slot.
+function K.withdraw(st,source,name,tag,now)
+    local key=N.Find.fold(name); local p=st.entries[key]
+    local e=p and p.reported
+    if e and e.source==source and e.evidenceTag==tag then
+        p.reported=nil
+        if not p.own and not p.seen then remove(st,key,p) else index(st,key,p) end
+        st.nextExpiry=now
+    end
+end
 function K.prune(st,now)
     -- Polls between expiry deadlines do no cache walk; clock rollback still
     -- invalidates future evidence. Put maintains both aliases and the deadline.
@@ -50,9 +61,9 @@ function K.prune(st,now)
         if not p.own and not p.seen and not p.reported then remove(st,key,p)
         else
             if p.own~=own or p.seen~=seen or p.reported~=reported then index(st,key,p) end
-            if p.own then st.nextExpiry=math.min(st.nextExpiry,p.own.at+K.TTL) end
-            if p.seen then st.nextExpiry=math.min(st.nextExpiry,p.seen.at+K.TTL) end
-            if p.reported then st.nextExpiry=math.min(st.nextExpiry,p.reported.at+K.TTL) end
+            if p.own then st.nextExpiry=math.min(st.nextExpiry,expiry(p.own)) end
+            if p.seen then st.nextExpiry=math.min(st.nextExpiry,expiry(p.seen)) end
+            if p.reported then st.nextExpiry=math.min(st.nextExpiry,expiry(p.reported)) end
         end
     end
 end
@@ -94,6 +105,6 @@ function K.put(st,e,now)
     if not firsthand then copy.kind="claim" end
     p[slot]=copy
     index(st,key,p)
-    st.nextExpiry=math.min(st.nextExpiry,copy.at+K.TTL)
+    st.nextExpiry=math.min(st.nextExpiry,expiry(copy))
     return copy
 end

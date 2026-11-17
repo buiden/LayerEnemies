@@ -104,14 +104,26 @@ local lengthExtra={0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0}
 local distanceBase={1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577}
 local distanceExtra={0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13}
 local codeOrder={16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15}
-local function inflate(input,maxOut)
+local function inflate(input,maxOut,policy,meter)
     bytes(input,MAX_DEFLATE)
     if maxOut==nil then maxOut=MAX_BYTES end
     if not finite(maxOut) or maxOut<0 or maxOut>MAX_BYTES or maxOut~=floor(maxOut) then fail() end
+    if policy~=nil and type(policy)~="function" then fail() end
+    local maxWork=policy and math.min(MAX_WORK,4096+maxOut*32) or MAX_WORK
     local pos,buffer,nbits,work=1,0,0,0
+    -- Optional streaming policy can only LOWER the output/work ceilings. It
+    -- observes bounded chunks before output is committed, not a full inflate.
+    local function observe(part)
+        if not policy then return end
+        local limit,done=policy(part)
+        if not finite(limit) or limit<0 or limit~=floor(limit) then fail() end
+        maxOut=math.min(maxOut,limit)
+        maxWork=math.min(maxWork,4096+maxOut*32)
+        if done then policy=nil end
+    end
     local function charge(n)
         work=work+n
-        if work>MAX_WORK then fail() end
+        if work>maxWork then fail() end
     end
     local function take(n)
         charge(n+1)
@@ -162,6 +174,7 @@ local function inflate(input,maxOut)
     local function reserve(n)
         if size+n>maxOut then fail() end
         charge(n)
+        meter.bytes=size+n
     end
     local final
     repeat
@@ -172,6 +185,13 @@ local function inflate(input,maxOut)
             buffer=0; nbits=0 -- discard padding to the next byte
             local len,nlen=take(16),take(16)
             if len+nlen~=65535 or pos+len-1>#input then fail() end
+            if policy then
+                -- Stored blocks can be 64 KiB: inspect in small slices too.
+                for i=pos,pos+len-1,256 do
+                    observe(sub(input,i,math.min(i+255,pos+len-1)))
+                    if not policy then break end
+                end
+            end
             reserve(len)
             for i=pos,pos+len-1 do size=size+1; out[size]=sub(input,i,i) end
             pos=pos+len
@@ -181,6 +201,7 @@ local function inflate(input,maxOut)
             while true do
                 local v=symbol(lit)
                 if v<256 then
+                    observe(char(v))
                     reserve(1); size=size+1; out[size]=char(v)
                 elseif v==256 then break
                 else
@@ -191,6 +212,11 @@ local function inflate(input,maxOut)
                     if di>30 then fail() end
                     local offset=distanceBase[di]+take(distanceExtra[di])
                     if offset>size or offset>32768 then fail() end
+                    if policy then
+                        local piece={}
+                        for i=1,len do piece[i]=i<=offset and out[size-offset+i] or piece[i-offset] end
+                        observe(concat(piece))
+                    end
                     reserve(len)
                     for _=1,len do size=size+1; out[size]=out[size-offset] end
                 end
@@ -205,7 +231,11 @@ end
 -- Reviewer offline worst cases: 240000 7-bit-random bytes took 397 ms; 262144
 -- text-like bytes 253 ms; 120000 text-like bytes 95 ms. A bomb with maxOut=4096
 -- was refused in 0.3 ms. These are measured CPU costs, not in-game timings.
-function Cd.inflate(input,maxOut) return safe(inflate,input,maxOut) end
+function Cd.inflate(input,maxOut,policy)
+    local meter={bytes=0}
+    local ok,value=pcall(inflate,input,maxOut,policy,meter)
+    return ok and value or nil,meter.bytes
+end
 function Cd.deflateStored(input)
     return safe(function()
         bytes(input)
@@ -521,9 +551,10 @@ end
 -- before 120 s. The 32768-byte cap is admission, not guaranteed delivery.
 -- Private weak-key storage prevents foreign tables from forging stream counts.
 local assemblies=setmetatable({},{__mode="k"})
-local function aceCommJoin(st,key,text)
+local function aceCommJoin(st,key,text,owner)
     if not plain(st) or not finite(st.now) or st.now<0 then fail() end
     bytes(key,256); if #key==0 then fail() end
+    if owner~=nil then bytes(owner,256); if #owner==0 then fail() end end
     bytes(text,255)
     local now=st.now
     local state=assemblies[st]
@@ -542,7 +573,12 @@ local function aceCommJoin(st,key,text)
     local part=sub(text,2)
     if control==1 then
         if not streams[key] and count>=16 then return nil end
-        streams[key]={at=now,last=now,parts={part},size=#part,count=1}
+        if owner and not streams[key] then
+            local owned=0
+            for _,stream in next,streams do if stream.owner==owner then owned=owned+1 end end
+            if owned>=2 then return nil end
+        end
+        streams[key]={at=now,last=now,owner=owner,parts={part},size=#part,count=1}
         return nil
     end
     local stream=streams[key]
@@ -555,7 +591,9 @@ local function aceCommJoin(st,key,text)
         return concat(stream.parts)
     end
 end
-function Cd.aceCommJoin(st,key,text) return safe(aceCommJoin,st,key,text) end
+-- Optional quota owner shares two slots across otherwise distinct route keys.
+-- Callers without an owner retain the original shared-codec contract.
+function Cd.aceCommJoin(st,key,text,owner) return safe(aceCommJoin,st,key,text,owner) end
 function Cd.aceCommSplit(input)
     return safe(function()
         bytes(input,32768)
