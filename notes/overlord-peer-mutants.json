@@ -1,7 +1,10 @@
 [
   {
     "failures": [
-      "FAIL Overlord peer: directory greeting rotates through forty unanswered members: test/harness.lua:8: round robin before any repeat: expected false, got true"
+      "FAIL Overlord peer: directory greeting rotates through forty unanswered members: test/harness.lua:8: round robin before any repeat: expected false, got true",
+      "FAIL Overlord peer: rotation skips a member marked offline for one hour: test/src_overlord_rotation.lua:64: every reachable member is greeted: expected 39, got 10",
+      "FAIL Overlord peer: rotation survives member five going offline for three hours: test/src_overlord_rotation.lua:64: every reachable member is greeted: expected 39, got 10",
+      "FAIL Overlord peer: rotation canonicalizes a home-realm-qualified member: test/src_overlord_rotation.lua:64: every reachable member is greeted: expected 40, got 10"
     ],
     "killed": true,
     "rule": "round robin directory"
@@ -9,21 +12,34 @@
   {
     "failures": [
       "FAIL Overlord peer: refused greeting does not spend candidate or global cooldown: test/src_overlord_peer.lua:181: not equal: expected nil, got 10",
-      "FAIL Overlord peer: queue refusal spends no peer cooldown but client attempts do: test/src_overlord_peer.lua:192: not equal: expected nil, got 100"
+      "FAIL Overlord peer: queue refusal spends no peer cooldown but client attempts do: test/src_overlord_peer.lua:192: not equal: expected nil, got 100",
+      "FAIL Overlord peer: rotation skips a member marked offline for one hour: test/src_overlord_rotation.lua:62: gate-refused members cannot consume a minute: expected 60, got 58",
+      "FAIL Overlord peer: rotation survives member five going offline for three hours: test/src_overlord_rotation.lua:62: gate-refused members cannot consume a minute: expected 180, got 178"
     ],
     "killed": true,
     "rule": "refused admission is uncharged"
   },
   {
     "failures": [
-      "FAIL Overlord peer: refused greeting does not spend candidate or global cooldown: test/src_overlord_peer.lua:182: not equal: expected nil, got 10"
+      "FAIL Overlord peer: refused greeting does not spend candidate or global cooldown: test/src_overlord_peer.lua:182: not equal: expected nil, got 10",
+      "FAIL Overlord peer: rotation skips a member marked offline for one hour: test/src_overlord_rotation.lua:62: gate-refused members cannot consume a minute: expected 60, got 58",
+      "FAIL Overlord peer: rotation survives member five going offline for three hours: test/src_overlord_rotation.lua:62: gate-refused members cannot consume a minute: expected 180, got 178"
     ],
     "killed": true,
     "rule": "refused greeting global gap"
   },
   {
     "failures": [
-      "FAIL Overlord peer: refused greeting does not spend candidate or global cooldown: test/src_overlord_peer.lua:181: not equal: expected nil, got 10"
+      "FAIL Overlord peer: rotation skips a member marked offline for one hour: test/src_overlord_rotation.lua:62: gate-refused members cannot consume a minute: expected 60, got 1",
+      "FAIL Overlord peer: rotation survives member five going offline for three hours: test/src_overlord_rotation.lua:62: gate-refused members cannot consume a minute: expected 180, got 124"
+    ],
+    "killed": true,
+    "rule": "gate refusal blocks rotation"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: refused greeting does not spend candidate or global cooldown: test/src_overlord_peer.lua:181: not equal: expected nil, got 10",
+      "FAIL Overlord peer: rotation skips a member marked offline for one hour: test/src_overlord_rotation.lua:67: offline admission spends no actual gap: expected nil, got 11"
     ],
     "killed": true,
     "rule": "Wire refusal actual gap"
@@ -334,7 +350,10 @@
   {
     "failures": [
       "FAIL Overlord peer: whisper greeting once a minute stops at six partners: test/src_overlord_peer.lua:152: not equal: expected 1, got 2",
-      "FAIL Overlord peer: directory greeting rotates through forty unanswered members: test/src_overlord_peer.lua:167: minute cap: expected 1, got 2"
+      "FAIL Overlord peer: directory greeting rotates through forty unanswered members: test/src_overlord_peer.lua:167: minute cap: expected 1, got 2",
+      "FAIL Overlord peer: rotation skips a member marked offline for one hour: test/harness.lua:7: one greeting attempt per 60 seconds: expected true, got false",
+      "FAIL Overlord peer: rotation survives member five going offline for three hours: test/harness.lua:7: one greeting attempt per 60 seconds: expected true, got false",
+      "FAIL Overlord peer: rotation canonicalizes a home-realm-qualified member: test/harness.lua:7: one greeting attempt per 60 seconds: expected true, got false"
     ],
     "killed": true,
     "rule": "greeting cadence"
