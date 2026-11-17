@@ -42,7 +42,7 @@
     "rule": "one-time registration",
     "killed": true,
     "failures": [
-      "FAIL Sources: registration is once and callbacks cannot be replaced by mutating a descriptor: test/src_registry.lua:38: not equal: expected 1, got 3",
+      "FAIL Sources: registration is once and callbacks cannot be replaced by mutating a descriptor: test/src_registry.lua:38: not equal: expected 1, got 12",
       "FAIL Sources: unavailable optional timer and registration APIs fail silent: test/src_registry.lua:69: not equal: expected 1, got 2"
     ]
   },
@@ -122,75 +122,75 @@
     "rule": "peer online",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:45: isOnline: expected nil, got table: 0x617f0b02f4f0"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isOnline: expected nil, got table: 0x5f8ed22cd740"
     ]
   },
   {
     "rule": "peer project",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:45: wowProjectID: expected nil, got table: 0x63eb3add0620"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: wowProjectID: expected nil, got table: 0x60f46eaba9f0"
     ]
   },
   {
     "rule": "peer client",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:45: clientProgram: expected nil, got table: 0x62810e66c6b0"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: clientProgram: expected nil, got table: 0x59f0bb334750"
     ]
   },
   {
     "rule": "peer region",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:45: isInCurrentRegion: expected nil, got table: 0x5c7baec8af60"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isInCurrentRegion: expected nil, got table: 0x64f5ea676540"
     ]
   },
   {
     "rule": "peer cache TTL",
     "killed": true,
     "failures": [
-      "FAIL BNet: peers are friends first deduplicated and cached thirty seconds: test/src_bnet_peers.lua:37: not equal: expected 4, got 2"
+      "FAIL BNet: peers are friends first deduplicated and cached thirty seconds: test/src_bnet_peers.lua:46: not equal: expected 4, got 2"
     ]
   },
   {
     "rule": "club reader cap",
     "killed": true,
     "failures": [
-      "FAIL BNet: thousand member club bounded and friend game enumeration capped: test/src_bnet_peers.lua:73: not equal: expected 1000, got 1001"
+      "FAIL BNet: thousand member club bounded and friend game enumeration capped: test/src_bnet_peers.lua:82: not equal: expected 1000, got 1001"
     ]
   },
   {
     "rule": "friend game cap",
     "killed": true,
     "failures": [
-      "FAIL BNet: thousand member club bounded and friend game enumeration capped: test/src_bnet_peers.lua:78: not equal: expected 2000, got 2200"
+      "FAIL BNet: thousand member club bounded and friend game enumeration capped: test/src_bnet_peers.lua:87: not equal: expected 2000, got 2200"
     ]
   },
   {
     "rule": "shared minute budget",
     "killed": true,
     "failures": [
-      "FAIL BNet queue: S1 configured and default sources share one rolling cap: test/src_bnet_queue_round1.lua:77: individual shares must not enlarge the global thirty-attempt limit: expected 30, got 31"
+      "FAIL BNet queue: S1 configured and default sources share one rolling cap: test/src_bnet_queue_round1.lua:79: individual shares must not enlarge the global thirty-attempt limit: expected 30, got 31"
     ]
   },
   {
     "rule": "one second pace",
     "killed": true,
     "failures": [
-      "FAIL BNet queue: single shared thirty per minute cap and one second pace: test/src_bnet_queue.lua:26: not equal: expected 0, got 1",
-      "FAIL BNet queue: S1 expiry runs while the rolling minute is exhausted: test/src_bnet_queue_round1.lua:203: not equal: expected 30, got 31"
+      "FAIL BNet queue: single shared thirty per minute cap and one second pace: test/src_bnet_queue.lua:34: not equal: expected 0, got 1",
+      "FAIL BNet queue: S1 expiry runs while the rolling minute is exhausted: test/src_bnet_queue_round1.lua:205: not equal: expected 30, got 31"
     ]
   },
   {
     "rule": "owed first",
     "killed": true,
     "failures": [
-      "FAIL BNet queue: owed answers precede own work FIFO within a priority: test/src_bnet_queue.lua:48: not equal: expected owed-b, got own-a",
-      "FAIL BNet queue: S1 normal flood leaves eight owed-only slots: test/harness.lua:8: dispatching owed does not release a normal slot: expected false, got true",
-      "FAIL BNet queue: S1 reviewer flood admits another source and its owed answer within share: test/src_bnet_queue_round1.lua:146: owed answer goes first: expected warboard1002, got wanted1",
-      "FAIL BNet queue: S1 exact sixty-second boundary is live but older frames drop: test/src_bnet_queue_round1.lua:170: owed wins at exactly sixty seconds: expected too-old, got at-boundary",
-      "FAIL BNet queue: S1 expiry runs while the rolling minute is exhausted: test/src_bnet_queue_round1.lua:203: expired work is not held until the minute opens: expected 0, got 1"
+      "FAIL BNet queue: owed answers precede own work FIFO within a priority: test/src_bnet_queue.lua:56: not equal: expected owed-b, got own-a",
+      "FAIL BNet queue: S1 normal flood leaves eight owed-only slots: test/src_bnet_queue_round1.lua:107: all eight owed frames leave before normal traffic: expected owed-1, got Fillnormal1:1",
+      "FAIL BNet queue: S1 reviewer flood admits another source and its owed answer within share: test/src_bnet_queue_round1.lua:145: owed answer goes first: expected warboard1002, got wanted1",
+      "FAIL BNet queue: S1 exact sixty-second boundary is live but older frames drop: test/src_bnet_queue_round1.lua:169: owed wins at exactly sixty seconds: expected too-old, got at-boundary",
+      "FAIL BNet queue: S1 expiry runs while the rolling minute is exhausted: test/src_bnet_queue_round1.lua:205: expired work is not held until the minute opens: expected 0, got 1"
     ]
   },
   {
@@ -218,14 +218,14 @@
     "rule": "dispatch privacy recheck",
     "killed": true,
     "failures": [
-      "FAIL BNet queue: per-network shares stand-down owed exception and live peer validation: test/src_bnet_queue.lua:117: not equal: expected 5, got 6"
+      "FAIL BNet queue: per-network shares stand-down owed exception and live peer validation: test/src_bnet_queue.lua:126: not equal: expected 5, got 6"
     ]
   },
   {
     "rule": "cancel off-on share",
     "killed": true,
     "failures": [
-      "FAIL BNet queue: share off refuses and drops pending work before dispatch: test/src_bnet_queue.lua:80: not equal: expected 1, got 2"
+      "FAIL BNet queue: share off refuses and drops pending work before dispatch: test/src_bnet_queue.lua:88: not equal: expected 1, got 2"
     ]
   },
   {
@@ -234,14 +234,14 @@
     "failures": [
       "FAIL BNet queue: per-network shares stand-down owed exception and live peer validation: test/harness.lua:8: not equal: expected false, got true",
       "FAIL BNet queue: S1 configured admission cap wanted: test/harness.lua:8: refuse beyond the network share at admission: expected false, got true",
-      "FAIL BNet queue: S1 reviewer flood admits another source and its owed answer within share: test/src_bnet_queue_round1.lua:134: the reviewer's 1000-frame burst holds only Wanted's four slots: expected 4, got 5"
+      "FAIL BNet queue: S1 reviewer flood admits another source and its owed answer within share: test/src_bnet_queue_round1.lua:133: the reviewer's 1000-frame burst holds only Wanted's four slots: expected 4, got 5"
     ]
   },
   {
     "rule": "failed send dropped",
     "killed": true,
     "failures": [
-      "FAIL BNet queue: failed client send is spent counted and never retried: test/src_bnet_queue.lua:102: not equal: expected 0, got 1"
+      "FAIL BNet queue: failed client send is spent counted and never retried: test/src_bnet_queue.lua:110: not equal: expected 0, got 1"
     ]
   },
   {
@@ -257,17 +257,17 @@
       "FAIL BNet queue: instance off refuses and drops pending work before dispatch: forbidden API reached 1 time(s)",
       "FAIL BNet queue: Wire cannot dispatch outside the queue's private delivery: forbidden API reached 1 time(s)",
       "FAIL BNet queue: per-network shares stand-down owed exception and live peer validation: forbidden API reached 5 time(s)",
-      "FAIL BNet queue: S1 configured admission cap wanted: test/src_bnet_queue_round1.lua:28: not equal: expected 1, got 0",
-      "FAIL BNet queue: S1 configured admission cap overlord: test/src_bnet_queue_round1.lua:28: not equal: expected 1, got 0",
-      "FAIL BNet queue: S1 configured admission cap warboard: test/src_bnet_queue_round1.lua:28: not equal: expected 1, got 0",
-      "FAIL BNet queue: S1 default fair share also limits rolling dispatch: test/src_bnet_queue_round1.lua:61: not equal: expected 15, got 0",
+      "FAIL BNet queue: S1 configured admission cap wanted: test/src_bnet_queue_round1.lua:25: not equal: expected 1, got 0",
+      "FAIL BNet queue: S1 configured admission cap overlord: test/src_bnet_queue_round1.lua:25: not equal: expected 1, got 0",
+      "FAIL BNet queue: S1 configured admission cap warboard: test/src_bnet_queue_round1.lua:25: not equal: expected 1, got 0",
+      "FAIL BNet queue: S1 default fair share also limits rolling dispatch: test/src_bnet_queue_round1.lua:63: not equal: expected 10, got 0",
       "FAIL BNet queue: S1 configured and default sources share one rolling cap: forbidden API reached 30 time(s)",
       "FAIL BNet queue: S1 normal flood leaves eight owed-only slots: forbidden API reached 9 time(s)",
-      "FAIL BNet queue: S1 reviewer flood admits another source and its owed answer within share: test/src_bnet_queue_round1.lua:161: not equal: expected 2, got 0",
-      "FAIL BNet queue: S1 exact sixty-second boundary is live but older frames drop: test/src_bnet_queue_round1.lua:171: not equal: expected 0, got 1",
-      "FAIL BNet queue: S1 delayed dispatch drops expired own frames: test/src_bnet_queue_round1.lua:186: not equal: expected 1, got 0",
-      "FAIL BNet queue: S1 delayed dispatch drops expired owed frames: test/src_bnet_queue_round1.lua:186: not equal: expected 1, got 0",
-      "FAIL BNet queue: S1 expiry runs while the rolling minute is exhausted: test/src_bnet_queue_round1.lua:201: not equal: expected 0, got 15"
+      "FAIL BNet queue: S1 reviewer flood admits another source and its owed answer within share: test/src_bnet_queue_round1.lua:160: not equal: expected 2, got 0",
+      "FAIL BNet queue: S1 exact sixty-second boundary is live but older frames drop: test/src_bnet_queue_round1.lua:170: not equal: expected 0, got 1",
+      "FAIL BNet queue: S1 delayed dispatch drops expired own frames: test/src_bnet_queue_round1.lua:185: not equal: expected 1, got 0",
+      "FAIL BNet queue: S1 delayed dispatch drops expired owed frames: test/src_bnet_queue_round1.lua:185: not equal: expected 1, got 0",
+      "FAIL BNet queue: S1 expiry runs while the rolling minute is exhausted: test/src_bnet_queue_round1.lua:203: not equal: expected 0, got 4"
     ]
   },
   {
@@ -292,11 +292,11 @@
       "FAIL BNet queue: S1 configured admission cap wanted: test/harness.lua:8: refuse beyond the network share at admission: expected false, got true",
       "FAIL BNet queue: S1 configured admission cap overlord: test/harness.lua:8: refuse beyond the network share at admission: expected false, got true",
       "FAIL BNet queue: S1 configured admission cap warboard: test/harness.lua:8: refuse beyond the network share at admission: expected false, got true",
-      "FAIL BNet queue: S1 default fair admission share across 1 registered sources: test/harness.lua:8: default is a fair share, not all 60 slots: expected false, got true",
-      "FAIL BNet queue: S1 default fair admission share across 2 registered sources: test/harness.lua:8: default is a fair share, not all 60 slots: expected false, got true",
-      "FAIL BNet queue: S1 default fair admission share across 4 registered sources: test/harness.lua:8: default is a fair share, not all 60 slots: expected false, got true",
-      "FAIL BNet queue: S1 default fair admission share across 32 registered sources: test/harness.lua:8: default is a fair share, not all 60 slots: expected false, got true",
-      "FAIL BNet queue: S1 reviewer flood admits another source and its owed answer within share: test/src_bnet_queue_round1.lua:134: the reviewer's 1000-frame burst holds only Wanted's four slots: expected 4, got 52"
+      "FAIL BNet queue: S1 default fair admission share with 1 requested default sources: test/harness.lua:8: default is a fair share, not all 60 slots: expected false, got true",
+      "FAIL BNet queue: S1 default fair admission share with 2 requested default sources: test/harness.lua:8: default is a fair share, not all 60 slots: expected false, got true",
+      "FAIL BNet queue: S1 default fair admission share with 4 requested default sources: test/harness.lua:8: default is a fair share, not all 60 slots: expected false, got true",
+      "FAIL BNet queue: S1 default fair admission share with 32 requested default sources: test/harness.lua:8: default is a fair share, not all 60 slots: expected false, got true",
+      "FAIL BNet queue: S1 reviewer flood admits another source and its owed answer within share: test/src_bnet_queue_round1.lua:133: the reviewer's 1000-frame burst holds only Wanted's four slots: expected 4, got 52"
     ]
   },
   {
@@ -310,10 +310,10 @@
     "rule": "S1 sixty-second frame age",
     "killed": true,
     "failures": [
-      "FAIL BNet queue: S1 exact sixty-second boundary is live but older frames drop: test/src_bnet_queue_round1.lua:173: expiry runs even inside the one-second pacing gate: expected 0, got 1",
-      "FAIL BNet queue: S1 delayed dispatch drops expired own frames: test/src_bnet_queue_round1.lua:183: an old frame never reaches the client: expected 0, got 1",
-      "FAIL BNet queue: S1 delayed dispatch drops expired owed frames: test/src_bnet_queue_round1.lua:183: an old frame never reaches the client: expected 0, got 1",
-      "FAIL BNet queue: S1 expiry runs while the rolling minute is exhausted: test/src_bnet_queue_round1.lua:203: expired work is not held until the minute opens: expected 0, got 1"
+      "FAIL BNet queue: S1 exact sixty-second boundary is live but older frames drop: test/src_bnet_queue_round1.lua:172: expiry runs even inside the one-second pacing gate: expected 0, got 1",
+      "FAIL BNet queue: S1 delayed dispatch drops expired own frames: test/src_bnet_queue_round1.lua:182: an old frame never reaches the client: expected 0, got 1",
+      "FAIL BNet queue: S1 delayed dispatch drops expired owed frames: test/src_bnet_queue_round1.lua:182: an old frame never reaches the client: expected 0, got 1",
+      "FAIL BNet queue: S1 expiry runs while the rolling minute is exhausted: test/src_bnet_queue_round1.lua:205: expired work is not held until the minute opens: expected 0, got 1"
     ]
   },
   {

@@ -1,5 +1,81 @@
 # LayerEnemies
 
+## Unreleased - Wanted (receive only)
+
+Reads Wanted v1.29.2 without Wanted installed; **no greetings, replies, requests,
+relays, invites, addon-message sends, Battle.net sends or outgoing version claim**.
+No new SavedVariables fields, record ledger, signing keys or saved player names.
+The existing `/le net wanted on|off` switch defaults on. If Wanted itself is
+loaded, passive membership stands down but incoming data still work.
+
+- `WNTD` **E/S** on guild or channel: tracked enemy sightings. Find's measured
+  **Reported** detail says **seen near observer**; percentage coordinates belong
+  to the observer, not the enemy. Observation time stays unknown; age is receipt
+  age. Known same-faction GUIDs are refused. E/S on whisper are not donor formats.
+- `WNTD` **R/F** on guild, channel or whisper: `kill`, `death`, `assist`, `claim`,
+  `bounty` and `spotted`. Named participants are matched against your Find list
+  or a live guild Watch; known friendly participants are omitted. Direct R has
+  witness provenance only when origin equals the transport sender; F and carried
+  R are relayed. All are **unverified claims**, not authenticated records: Adler-32
+  is checked, Ed25519 and chain authority are not. Bounty last-seen information is
+  cached, aged from `seenAt`; claims use `killT`, other records use record `t`.
+  `spotted` has only a GUID and is used only if existing tracked Find evidence
+  already binds it to one name. No new GUID-to-name cache is created.
+- `WNTDB` whole / `WNTDP` numbered **L** summaries: anonymous opposite-faction
+  counts, only from a live same-realm game account resolved through BNet. View
+  map/layer counts with `/le net wanted`; overlapping carriers use max, not sum.
+  They never identify or locate a player. H/A/N and all other bridge kinds are
+  ignored. A silent new listener is not normally sent bridge data until D2's
+  handshake exists; D1 does not initiate it.
+- A conservative read-only join of `WantedNetAlliance` / `WantedNetHorde` uses
+  the existing Directory ownership/consent checks and leaves two channel slots
+  free. No roster scans or directory names are collected for D1. If the channel
+  is unavailable, guild and any already-delivered whisper records still work.
+  Channel migration/password/control messages and all fast-path whispers are
+  ignored, never answered. No location becomes an LE layer, Ask/Hop target, sound
+  (including later alert polls) or outgoing relay.
+
+Named evidence uses the existing `Sources.offer` → Known/Find claim projection,
+not a new board or a kill list. It appears in Find's existing measured Reported
+line, **not** the separate zone-local Reported tab. Guild-Watch-only matches are
+retained by the shared registry in session Known; they do not add saved Find
+names or new rows of their own. This is the existing registry projection.
+
+Limits (deliberately stricter than the donor where needed): WNTD 255 bytes/frame,
+240-byte chunks, 12 parts, four unfinished/sender; WNTDP 3800 bytes/frame,
+3784-byte chunks, eight parts, two unfinished/sender; **16 assemblies globally**,
+30 seconds total lifetime. Encoded payload at most 30272 bytes, inflation at most
+65536 bytes; shared codec depth 8 / 4096 logical values. Batches: 15 sightings,
+10 R records, eight F records. Records: 64 scalar data fields, 512 bytes/string,
+live sequence 1000001–2147483647, valid ID/hash; no nested data. WNTD versions
+1.29.0–1.29.2 only (receive policy, never advertised); a newer unknown format is
+ignored. No timestamped location at least one hour old or ahead of server time
+is accepted. No-time sightings expire one hour after first receipt. Session
+replay ledger: 512, full means refuse new evidence until expiry, never evict live
+IDs to refresh replays. Rate ledger: 128 identities, 120-second idle expiry;
+60 addon / 30 Battle.net datagrams per sender per fixed minute. L: 20 carriers ×
+12 rows, counts clamped at 200, expiry at 600 seconds. Decoder/record/offer/budget
+and protected-call failures contribute refusals; ignored tags and pending
+fragments need not. Every store is session-only and bounded.
+
+Protocol difference from the plan shorthand: Wanted uses its own **numbered
+fragments, not AceComm**. The shared `addonDecode`, `inflate`, `lsRead` are used;
+AceComm control bytes are rejected, not mistaken for Wanted framing. The audit's
+E/S producer is guild/channel only. Coordinates without a usable map retain
+only zone information; missing bounty `seenAt`, unresolved spotted GUIDs and
+unreadable faction/identity/time fail silent.
+
+Registry addition: optional `status() -> {string,...}` on `Sources.register` and
+`Sources.lines(name)` support opt-in diagnostics (240 lines, 160 bytes/line,
+protected and sanitized). `/le net` remains one counter line per network; one
+new generic command branch dispatches `/le net <registered source>`. The existing
+addon/BNet event wiring, heartbeat and UI measuring/rendering code are unchanged.
+
+Reproduce: `lua test/harness.lua --only Wanted:`, `python3 test/wanted_vectors.py`,
+`python3 test/wanted_mutants.py`, `python3 test/verify.py`. Fixtures are constructed
+from the audit, Python zlib and an independent serializer, not live captures.
+**Native checks not run (alpha, owner's decision)**. This is D1 only, not D2.
+
 ## Unreleased - source registry (no behaviour change)
 
 PR 0b adds extension seams, **no registered source, no new discovery scan and no

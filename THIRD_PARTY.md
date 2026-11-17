@@ -1,5 +1,22 @@
 # Third-party provenance
 
+## Wanted receive-only protocol (D1)
+
+| Donor | Version / immutable pin | License | Use |
+|---|---|---|---|
+| [Wanted: Dead or... Dead](https://github.com/wanteddeadordead/wanted-dead-or-dead/tree/4fbb231f63413ec60e6c22f36a5360cc3a24a902) | v1.29.2, git `4fbb231f63413ec60e6c22f36a5360cc3a24a902`; distribution SHA-256 `c95f1f9a598858ed4e61428d4db9b1af74da36b4fbcde99ea025e206a7cf3cec` | MIT | **Protocol facts only, no copied code**, assets, libraries or runtime dependency. Independently written WNTD / WNTDB / WNTDP listener. |
+
+Credit: Wanted: Dead or... Dead authors, `wanteddeadordead/wanted-dead-or-dead`.
+Reference: handoff `audit-wanted.md`, sections 1–6, 8 and 11; pinned `Sync.lua`,
+`Bridge.lua`, `Store.lua`, `Recorder.lua`, `Enemies.lua`, `Shard.lua`, `Bounties.lua`
+and `Tracks.lua`. No donor/library code was executed or copied. Test vectors
+are independent format constructions and Python stdlib zlib; the shared codec's
+independent LibSerialize/DEFLATE implementation is credited separately below.
+Wanted's numbered multipart grammar is not AceComm. All records remain claims:
+Adler-32 integrity is checked, Ed25519 signatures and chain authority are not.
+D1 sends nothing and **does not claim any Wanted version**; incoming `v` is only
+an admission field. No signing keys, original record store or saved names.
+
 ## Source registry and Battle.net seams (PR 0b)
 
 | Reference | Pin | Use |

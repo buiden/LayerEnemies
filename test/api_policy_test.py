@@ -105,5 +105,21 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertFalse(any(x.startswith('C_') for x in names))
 
 
+    def test_wanted_is_receive_only_and_reuses_shared_codecs(self):
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        source = (root / 'Wanted.lua').read_text()
+        self.check_source(source, 'Wanted.lua')
+        VERIFY['check_send_policy'](source, 'Wanted.lua')
+        names = {v for k, v in VERIFY['lua_tokens'](source) if k == 'name'}
+        self.assertFalse(names & {'SendAddonMessage', 'SendGameData', 'BNSendGameData', 'Wire',
+                                 'JoinChannelByName', 'LeaveChannelByName', 'CreateFrame', 'C_Timer',
+                                 'LayerEnemiesDB', 'LibStub', 'lsWrite', 'aceWrite', 'addonEncode'})
+        for use in ('Cd.addonDecode', 'Cd.inflate', 'Cd.lsRead', 'Src.register', 'Src.offer'):
+            self.assertIn(use, source)
+        # Wanted has numbered fragments, not AceComm. No extra event frame/wiring.
+        self.assertNotIn('aceCommJoin', source)
+        self.assertEqual((root / 'LayerEnemies.toc').read_text().count('Wanted.lua'), 1)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

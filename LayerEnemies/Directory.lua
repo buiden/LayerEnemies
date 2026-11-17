@@ -39,6 +39,10 @@ end
 -- channel(key) -> the channel name for that network, or nil while it cannot be known
 function D.channel(key)
     if key == "hh" then return "HeadHunterSync" end
+    if key == "wanted" then
+        local faction = S.str(S.call(UnitFactionGroup,"player"),16)
+        return (faction=="Alliance" or faction=="Horde") and ("WantedNet"..faction) or nil
+    end
     if key ~= "we" then return nil end
     local tag = D.rulesetTag((S.call(GetRealmName)))
     local faction = S.call(UnitFactionGroup, "player")
@@ -143,7 +147,8 @@ function D.sync()
             if name and calm() and listReady() then
                 -- already in that channel (the player joined it): read it, never join or leave it
                 local result, called = false, false
-                if not index(name) and not handLeft[key] then
+                local slots = key=="wanted" and S.num(S.call(GetNumDisplayChannels)) or nil
+                if not index(name) and not handLeft[key] and (key~="wanted" or (slots and slots>=1 and slots<=7)) then
                     called = true
                     local now = S.num(S.call(GetTime))
                     asked[key] = now and { name = name, at = now } or nil
@@ -154,7 +159,8 @@ function D.sync()
                 end
                 if result or (not called and index(name)) then
                     joined[key] = name
-                    schedule(key, D.FIRST)
+                    -- D1 is only a passive channel receiver, not a whisper-directory peer.
+                    if key~="wanted" then schedule(key, D.FIRST) end
                 end
             end
         elseif not want and joined[key] then

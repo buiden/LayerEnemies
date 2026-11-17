@@ -1,5 +1,6 @@
 local h=...
 local test,eq,yes,no=h.test,h.eq,h.yes,h.no
+local fixture=assert(loadfile("test/bnet_queue_fixture.lua"))(h)
 local function setup()
     local N=h.load(); yes(N.BNet and type(N.BNet.send)=="function","shared queue exists")
     for _,pair in ipairs({{"alpha","AlphaSrc"},{"beta","BetaSrc"}}) do
@@ -18,17 +19,24 @@ end
 
 test("BNet queue: single shared thirty per minute cap and one second pace",function()
     local N=setup()
-    for i=1,30 do
-        local odd=i%2==1
-        yes(N.BNet.send(odd and "alpha" or "beta",71,odd and "AlphaSrc" or "BetaSrc","line"..i,"own"))
+    -- Production sources count in default shares. Include configured networks so
+    -- this still reaches the exact shared 30/minute boundary, not a smaller cap.
+    local rows={{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WBQueue",10},
+        {"alpha","AlphaSrc",4},{"beta","BetaSrc",4}}
+    for i=1,3 do fixture.register(N,rows[i][1],rows[i][2]) end
+    yes(fixture.defaultShare(N)>=4)
+    local byPrefix={}
+    for _,r in ipairs(rows) do
+        byPrefix[r[2]]=r[1]
+        for i=1,r[3] do yes(N.BNet.send(r[1],71,r[2],r[1]..i,"own")) end
     end
     eq(#bnSent(),0,"enqueue is not a send")
     h.advance(.5); eq(#bnSent(),0)
     h.advance(.5); eq(#bnSent(),1)
     -- Refill freed slots, rather than assuming a source may queue above its share.
     for i=1,10 do
-        local odd=i%2==1
-        yes(N.BNet.send(odd and "alpha" or "beta",71,odd and "AlphaSrc" or "BetaSrc","refill"..i,"own"))
+        local delivered=bnSent(); local last=delivered[#delivered]
+        yes(N.BNet.send(byPrefix[last.prefix],71,last.prefix,"refill"..i,"own"))
         h.advance(1)
     end
     for _=1,19 do h.advance(1) end; eq(#bnSent(),30)
@@ -106,7 +114,8 @@ end)
 
 test("BNet queue: per-network shares stand-down owed exception and live peer validation",function()
     local N=setup()
-    yes(N.Sources.register{name="wanted",prefixes={"WNTDB"},counters={}})
+    if not N.Sources.has("wanted") then yes(N.Sources.register{name="wanted",prefixes={"WNTDB"},counters={}}) end
+    N.Net.SHIP.wanted=true -- reuse the real registered source when D1 is present
     for _=1,4 do yes(N.BNet.send("wanted",71,"WNTDB","hello","own")) end
     no(N.BNet.send("wanted",71,"WNTDB","overflow","own"))
     for _=1,5 do h.advance(1) end; eq(#bnSent(),4)
@@ -123,8 +132,9 @@ test("BNet queue: bounds secrets rollback and timer absence fail closed",functio
         {"alpha",71,h.secret,"x","owed"},{"alpha",71,"AlphaSrc",h.secret,"owed"},
         {"alpha",71,"AlphaSrc","x",h.secret},{"alpha",0,"AlphaSrc","x","owed"},
         {"alpha",71,"AlphaSrc",string.rep("x",4097),"owed"}}) do no(N.BNet.send(unpack(a))) end
-    for _=1,15 do yes(N.BNet.send("alpha",71,"AlphaSrc","line","own")) end
-    no(N.BNet.send("alpha",71,"AlphaSrc","overflow","own")); eq(N.BNet.queued(),15)
+    local limit=fixture.defaultShare(N)
+    for _=1,limit do yes(N.BNet.send("alpha",71,"AlphaSrc","line","own")) end
+    no(N.BNet.send("alpha",71,"AlphaSrc","overflow","own")); eq(N.BNet.queued(),limit)
     h.advance(1); eq(#bnSent(),1); h.clock(h.clock()-10); N.BNet.pump(h.clock()); eq(#bnSent(),1)
     N=setup(); C_Timer=nil; no(N.BNet.send("alpha",71,"AlphaSrc","timerless","own")); eq(N.BNet.queued(),0)
 end)
