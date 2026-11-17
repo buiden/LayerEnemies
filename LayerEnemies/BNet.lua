@@ -48,6 +48,8 @@ function BN.allowed(net,id,prefix,text,prio)
     if not S.str(net,32) or not S.str(prefix,16) or not S.num(id) or id<1 or id%1~=0
         or S.secret(text) or type(text)~="string" or #text<1 or #text>4096
         or not S.str(prio,16) or (prio~="owed" and prio~="own") then return false end
+    if net=="overlord" and prefix=="OverlordF" and prio=="owed"
+        and N.Main.overlordStopping(text,"BNET",id) then return true end
     -- C2 extends the built Overlord receiver in place; its tick-only registration
     -- may use its legacy prefix without seizing Main's receive ownership.
     local authorized=N.Sources.authorized(net,prefix)

@@ -43,7 +43,7 @@ end
 local function eligible(r,c)
     return r and r.hops==0 and r.pool==c.pool and c.now>=r.at and c.now-r.at<300
         and supported(r) and (r.route=="BNET" and friend(r,c)
-            or r.route~="BNET" and c.groups and c.groups[F.fold(r.name)]==true)
+            or r.route~="BNET" and c.groups and c.groups[F.fold(r.name)]==c.faction)
 end
 local function current(r,c)
     return eligible(r,c) and r.epoch and r.epoch<=c.wall and c.now>=r.epochAt and c.now-r.epochAt<600
@@ -87,7 +87,7 @@ end
 function Q.stop(st,peer,c,key)
     local s=st.sessions[key]
     st.sessions[key]=nil
-    if not s or not s.asked or not peer or not c then return end
+    if not s or not s.opened or not peer or not c then return end
     local row={name=s.name,id=s.id,route=s.route,pool=s.pool,me=st.me,epoch=s.epoch,at=c.now}
     st.stops[key]=row
     local route=row.route=="BNET" and "BNET" or "WHISPER"
@@ -264,7 +264,7 @@ function Q.tick(st,peer,c)
                 end
                 local function sent(at,live)
                     if not valid(live) then return end
-                    if keep then s.kept=at else s.asked=at;s.nonce=nonce;s.live=nil end
+                    if keep then s.kept=at else s.opened=true;s.asked=at;s.nonce=nonce;s.live=nil end
                 end
                 P.emit(peer,c,"HR",body,route,target,"feed:"..key,200,false,{valid=valid,sent=sent})
             end

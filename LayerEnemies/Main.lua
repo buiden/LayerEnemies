@@ -463,7 +463,7 @@ function M.overlordContext(time)
     local me=A.ownIdentity()
     local version=S.call(function() return C_AddOns.GetAddOnMetadata("LayerEnemies","Version") end)
     local faction=S.str(S.call(UnitFactionGroup,"player"),16)
-    return {now=time or S.num(S.call(GetTime)),wall=S.num(S.call(GetServerTime)),pool=M.overlordPool(),
+    local c={now=time or S.num(S.call(GetTime)),wall=S.num(S.call(GetServerTime)),pool=M.overlordPool(),
         me=me,version=S.str(version,32),faction=faction and faction:sub(1,1),
         allowed=M.sharing() and N.Net.consent()=="public" and N.Net.switch("overlord")
             and ok==true and not A.inCombat() and A.inInstance()==false,
@@ -471,6 +471,27 @@ function M.overlordContext(time)
             local _,_,_,watchers=N.Watch.match(M.watch,name,now())
             return N.Find.tracked(M.find,name) or #(watchers or {})>0
         end}
+    c.stopAllowed=N.Net.SHIP.overlord==true and not A.loaded("Overlord")
+        and not A.inCombat() and A.inInstance()==false
+    if c.allowed and c.pool then
+        c.guild=S.call(IsInGuild)==true
+        c.group=S.call(IsInRaid)==true and "RAID" or S.call(IsInGroup)==true and "PARTY" or nil
+        c.groups=A.groupNames();c.guildNames=A.guildNames();c.friends=N.BNet.peers(c.now)
+    end
+    return c
+end
+-- Only exact outstanding withdrawal bytes may cross closed privacy switches.
+-- Hardware gates and real-Overlord stand-down still apply, at every dispatch.
+function M.overlordStopping(text,route,target)
+    local st=M.overlordFeed
+    if not st then return false end
+    local c=M.overlordContext()
+    if not c.stopAllowed or not c.pool or not c.me or not c.now then return false end
+    for _,s in pairs(st.stops) do
+        if s.text==text and s.pool==c.pool and s.me==c.me and c.now>=s.at and c.now-s.at<=60
+            and ((route=="BNET" and s.id==target) or (route=="WHISPER" and s.name==target and not s.id)) then return true end
+    end
+    return false
 end
 local function overlordSend(c,text,route,target,prio,job)
     local P=N.OverlordPeer
@@ -498,13 +519,18 @@ local function overlordSend(c,text,route,target,prio,job)
     return ok,attempted
 end
 function M.overlordCancel()
-    if M.overlordFeed then N.OverlordFeed.cancel(M.overlordFeed) end
+    if M.overlordFeed then
+        local c=M.overlordContext();c.send=overlordSend
+        N.OverlordFeed.cancel(M.overlordFeed,M.overlordPeer,c)
+    end
 end
 function M.overlordTick(time)
     if not M.overlordPeer then return end
     local c=M.overlordContext(time);c.send=overlordSend
     if not M.overlordFeed then M.overlordFeed=N.OverlordFeed.new() end
-    if not c.allowed or not c.pool then N.BNet.cancel("overlord");N.OverlordFeed.cancel(M.overlordFeed);return end
+    M.overlordPeer.feed=M.overlordFeed
+    if not c.allowed or not c.pool then N.OverlordFeed.cancel(M.overlordFeed,M.overlordPeer,c);return end
+    N.OverlordFeed.prepare(M.overlordFeed,M.overlordPeer,c)
     c.guild=S.call(IsInGuild)==true
     c.group=S.call(IsInRaid)==true and "RAID" or S.call(IsInGroup)==true and "PARTY" or nil
     if c.own then c.friends=N.BNet.peers(time);c.directory=N.Directory.members("overlord") end
@@ -551,8 +577,9 @@ local function overlordReceive(text,kind,sender,account)
         local c=M.overlordContext(time);c.send=overlordSend
         if p.kind~="GW" and p.kind~="GD" then
             if Ov.seen(M.overlord,p.origin,id) then return end
-            local r=N.OverlordPeer.receive(M.overlordPeer,p,kind,canonical,account,c)
             if not M.overlordFeed then M.overlordFeed=N.OverlordFeed.new() end
+            M.overlordPeer.feed=M.overlordFeed
+            local r=N.OverlordPeer.receive(M.overlordPeer,p,kind,canonical,account,c)
             N.OverlordFeed.observe(M.overlordFeed,M.overlordPeer,p,r,c)
             if p.kind=="HB" or p.kind=="HA" then
                 c.friends=N.BNet.peers(time)
@@ -2546,7 +2573,7 @@ local function dispatch(_,event,...)
     end
     if event=="PLAYER_LOGIN" then guarded(M.start); return end
     if not M.started then return end
-    if event=="PLAYER_LOGOUT" then guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
+    if event=="PLAYER_LOGOUT" then guarded(M.overlordCancel);N.BNet.pump(now());guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
     elseif event=="CHAT_MSG_ADDON" then guarded(M.message,...)
     elseif event=="BN_CHAT_MSG_ADDON" then
         local prefix,text,channel,id=...

@@ -31,7 +31,7 @@ local function fixture(route)
     local N=H.load();local P,Q=N.OverlordPeer,N.OverlordFeed
     local peer,st=P.new(),Q.new();peer.feed=st
     local c={now=100,wall=1800000000,me="Alice Vale",version="1.1.0",pool="global",faction="A",
-        allowed=true,own=true,stopAllowed=true,group="PARTY",groups={["birch scout"]=true},guild=true,guildNames={},
+        allowed=true,own=true,stopAllowed=true,group="PARTY",groups={["birch scout"]="A"},guild=true,guildNames={},
         friends={},out={},tracked=function() return true end,offer=function() end}
     route=route or "WHISPER"
     if route=="BNET" then c.friends={{id=71,name="Birch Scout",friend=true}} end
@@ -108,3 +108,67 @@ test("keep at 200 then one stop on unsubscribe",function()
     Q.cancel(st,peer,c);eq(d.stops,1);eq(next(st.sessions),nil);eq(next(st.sources),nil)
     Q.cancel(st,peer,c);eq(d.stops,1)
 end)
+
+test("stop remains owed after busy HA may have created remote subscription",function()
+    local N,P,Q,peer,st,c,d,hear=fixture()
+    hear(100);hear(250);hear(401);Q.tick(st,peer,c);eq(d.served,1)
+    local r=peer.routes["birch scout"];local s=st.sessions["birch scout"]
+    Q.receive(st,peer,{origin=r.name,pool=c.pool,target=c.me,hops=0,kind="HA",payload="8:R:"..s.epoch..":"..s.nonce..":1"},r,c)
+    Q.cancel(st,peer,c);eq(d.stops,1,"request was sent even though receive lease was unarmed")
+end)
+
+local wireSerial=0
+local function live(route)
+    local N=H.load();N.Net.SHIP.overlord=true
+    Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
+    C_GameRules={IsGameRuleActive=function(i) return i==3 end}
+    C_AddOns.GetAddOnMetadata=function() return "1.1.0" end
+    UnitName=function(unit) return unit=="party1" and "Birch Scout" or "Alice Vale",GetRealmName() end
+    UnitFactionGroup=function() return "Alliance" end
+    IsInGroup=function() return true end;IsInRaid=function() return false end
+    UnitExists=function(unit) return unit=="player" or unit=="party1" end
+    GetNumGroupMembers=function() return 2 end
+    N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Horde"} end
+    N.BNet.peers=function() return route=="BNET" and {{id=71,name="Birch Scout",friend=true}} or {} end
+    local function hear(kind,body,target)
+        wireSerial=wireSerial+1;local id="live"..wireSerial
+        local text=table.concat({"global",id,math.floor(GetServerTime()),target or "Alice Vale","Birch Scout",kind,body},"|")
+        if route=="BNET" then H.deliver("BN_CHAT_MSG_ADDON","OverlordF","R2:Forever_global_H:BR:"..text,nil,71)
+        else H.deliver("CHAT_MSG_ADDON","OverlordF","BF:"..id..":1:1:"..text,"WHISPER","Birch Scout") end
+    end
+    local e=GetServerTime()-100
+    local function refresh()
+        hear("NH","2.5.4~ld~lr~lp6")
+        hear("K","Birch Scout:#1434:21:WARRIOR:Horde:"..e.."::en:0:Orc:2:B"..e..":60","*")
+    end
+    local function mature()
+        refresh();N.Main.overlordTick(H.clock())
+        H.advance(150);refresh();N.Main.overlordTick(H.clock())
+        H.advance(151);refresh();N.Main.overlordTick(H.clock())
+        H.advance(1)
+    end
+    return N,mature,hear,e
+end
+for _,route in ipairs({"WHISPER","BNET"}) do
+    for _,mode in ipairs({"share","guild","switch","leave","logout"}) do
+        test("live "..route.." source sends stop on "..mode,function()
+            local N,mature,hear,e=live(route);mature()
+            local s=N.Main.overlordFeed.sessions["birch scout"];yes(s and s.asked,"live path opened a subscription")
+            for _,v in ipairs(H.sent()) do
+                honest(v.text)
+                if v.prefix=="OverlordF" and (v.target=="Birch Scout" or v.target==71 or v.kind=="PARTY") then no(v.text:find("|NH|",1,true)) end
+            end
+            if mode=="share" then N.Main.setShare(false)
+            elseif mode=="guild" then N.Net.setConsent("guild")
+            elseif mode=="switch" then N.Net.setSwitch("overlord",false)
+            elseif mode=="logout" then H.deliver("PLAYER_LOGOUT")
+            elseif route=="BNET" then N.BNet.peers=function() return {} end;N.Main.overlordTick(H.clock())
+            else IsInGroup=function() return false end;N.Main.overlordTick(H.clock()) end
+            H.advance(2)
+            local stops=0
+            for _,v in ipairs(H.sent()) do if v.text:find("|HR|8:X:"..e,1,true) then stops=stops+1 end end
+            eq(stops,1,"one best-effort stop, including after privacy closes")
+            eq(next(N.Main.overlordFeed.sessions),nil)
+        end)
+    end
+end

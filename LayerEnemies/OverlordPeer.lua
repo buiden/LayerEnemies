@@ -4,8 +4,8 @@ local P,S,F={},N.Safe,N.Find
 N.OverlordPeer=P
 local flight
 function P.new() return {routes={},gaps={},actual={},owed={},actualOwed={},serial=0,probe=0} end
-local function ready(c,owed)
-    return c.allowed==true and (owed or c.own==true) and S.str(c.pool,16)
+local function ready(c,owed,stop)
+    return (stop and c.stopAllowed==true or not stop and c.allowed==true) and (owed or c.own==true) and S.str(c.pool,16)
         and S.str(c.me,50) and S.str(c.version,32) and (c.faction=="A" or c.faction=="H")
         and S.num(c.now) and S.num(c.wall)
 end
@@ -26,7 +26,7 @@ end
 -- Battle.net charges at dispatch, including failures.
 -- Queued Battle.net frames cannot burst across a new admission window.
 function P.claim(st,job,c,checkOnly)
-    if not ready(c,job.owed) or c.pool~=job.pool or c.me~=job.me then return false end
+    if not ready(c,job.owed,job.stop) or c.pool~=job.pool or c.me~=job.me then return false end
     if job.kind=="NH" and N.OverlordFeed and N.OverlordFeed.suppressed(st,c,job.route,job.name,job.id) then return false end
     if job.valid and not job.valid(c) then return false end
     if not due(st.actual[job.key],c.now,job.gap) then return false end
@@ -38,7 +38,7 @@ function P.claim(st,job,c,checkOnly)
     return true
 end
 function P.sent(st,job,c)
-    if not ready(c,job.owed) or c.pool~=job.pool or c.me~=job.me then return end
+    if not ready(c,job.owed,job.stop) or c.pool~=job.pool or c.me~=job.me then return end
     if job.kind=="NH" then
         local r=job.name and st.routes[F.fold(job.name)]
         if r then r.announced,r.announcePool,r.announceMe=c.now,c.pool,c.me end
@@ -51,7 +51,7 @@ function P.sent(st,job,c)
     if job.sent then job.sent(c.now,c) end
 end
 function P.emit(st,c,kind,payload,route,target,key,gap,owed,callbacks)
-    if not ready(c,owed) or not due(st.gaps[key],c.now,gap) then return false end
+    if not ready(c,owed,callbacks and callbacks.stop) or not due(st.gaps[key],c.now,gap) then return false end
     if route~="GUILD" and route~="PARTY" and route~="RAID" and route~="WHISPER" and route~="BNET" then return false end
     if kind~="NH" and kind~="HA" and kind~="HR" then return false end
     st.owed=recent(st.owed,c.now)
