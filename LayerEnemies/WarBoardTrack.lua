@@ -21,13 +21,16 @@ local function remember(g)
     if #owed>40 then
         local old=table.remove(owed,1) -- bounded, oldest outstanding first
         records[old]=nil -- do not retain a forgotten debt's session record forever
+        if owed.attempts then owed.attempts[old]=nil end
     end
 end
 local function settled(g)
     for i=#owed,1,-1 do if owed[i]==g then table.remove(owed,i) end end
+    if owed.attempts then owed.attempts[g]=nil end
+    records[g]=nil
 end
--- Main owns the only new saved field. This table contains target GUID strings
--- only, never names, account IDs, clocks, positions or peer/evidence records.
+-- Main owns the per-character GUID array. Optional attempts[guid] counts
+-- enforce the lifetime cap across reloads; no names, accounts, clocks or evidence.
 function T.load(raw)
     owed={}; records={}; waits={}; admitted={}; attempted={}; high=nil; T.closed=nil; T.on=true
     if S.tab(raw) then
@@ -39,10 +42,29 @@ function T.load(raw)
         table.sort(keys)
         for _,k in ipairs(keys) do local g=guid(raw[k]); if g then remember(g) end end
     end
-    for _,g in ipairs(owed) do records[g]={guid=g,closing=true,sent=true,tries=0} end
+    for _,g in ipairs(owed) do
+        local n=S.tab(raw) and S.tab(raw.attempts) and S.num(raw.attempts[g])
+        if n then
+            n=math.min(6,math.max(0,math.floor(n)))
+            owed.attempts=owed.attempts or {}; owed.attempts[g]=n
+        end
+        records[g]={guid=g,closing=true,sent=true,tries=0,total=n or 0}
+    end
     return owed
 end
 function T.hasOwed() return #owed>0 end
+function T.owedAccount(id)
+    local who=BN.who(id,true)
+    return who and guid(who.guid) and owes(who.guid) and records[who.guid] or nil
+end
+function T.needsHandshake(id)
+    local r=T.owedAccount(id)
+    return r and r.closing and not r.accepted and (r.total or 0)<6
+end
+function T.ready(peer,now)
+    return peer and peer.proof and peer.proof>(peer.hello or 0) and peer.proofAt
+        and now>=peer.proofAt and now-peer.proofAt<1200
+end
 function T.size()
     local n=0; for _,r in pairs(records) do if not r.closing then n=n+1 end end; return n
 end
@@ -53,6 +75,7 @@ end
 local function target(st,id,ctx,cleanup)
     local peer=st.peers[id]
     if not peer or not peer.confirmed or peer.rs~=ctx.rs or ctx.now<peer.at or ctx.now-peer.at>=1200 then return nil end
+    if cleanup and not T.ready(peer,ctx.now) then return nil end
     local who=BN.who(id,true)
     local full=who and N.OpenMap.bnName(who.name,who.realm)
     if not full or not guid(who.guid) or not S.str(who.name,80) or not N.Find.name(who.name)
@@ -107,6 +130,31 @@ function T.note(ev)
         r.location=ev.at -- newest observed position; old/out-of-order frames do not refresh it
     end
 end
+-- Called only after full FBLP validation, independently of Find/source admission.
+function T.roster(ev,roster,id,ctx)
+    local r=records[ev.guid]
+    local who=id and BN.who(id,true)
+    local me=N.Adapters.warboardSelf()
+    if not r or not r.closing or not r.sent or not who or who.guid~=r.guid or not me
+        or (r.hunter and r.hunter~=me.guid) or ev.kind~="self" or ev.at>ctx.now
+        or (r.unlast and ev.at<=r.unlast) or (not r.unlast and (r.total or 0)<6) then return end
+    if r.rosterAt and ev.at<=r.rosterAt then return end
+    r.rosterAt=ev.at
+    for _,hunter in ipairs(roster) do
+        if hunter.guid==me.guid then
+            r.accepted=nil -- observed failure invalidates the silence fallback
+            local peer=N.WarBoard.state.peers[id]
+            if peer then peer.proof=nil end -- a new exchange is required before resend
+            return
+        end
+    end
+    settled(r.guid)
+end
+local function retryDue(r,now)
+    if r.accepted or (r.total or 0)>=6 then return false end
+    if r.window and now-r.window>=600 then r.window=nil; r.tries=0 end
+    return (r.tries or 0)<3 and (not r.unlast or now-r.unlast>=60)
+end
 local function frame(kind,r,me,ctx)
     local sentAt=N.Adapters.warboardTime()
     if not sentAt or not S.str(ctx.version,40) then return nil end
@@ -134,7 +182,7 @@ local function enqueue(st,r,kind,me,ctx)
     if r.pending then return end
     if kind=="FBAK" then
         if not due(r,ctx.now) or not room(admitted,ctx.now) then return end
-    elseif (r.tries or 0)>=3 or (r.unlast and ctx.now-r.unlast<60) then return end
+    elseif not retryDue(r,ctx.now) then return end
     local text=frame(kind,r,me,ctx)
     if not text or #text>4000 then return end
     r.text=text
@@ -150,20 +198,23 @@ local function enqueue(st,r,kind,me,ctx)
         if kind=="FBAK" then
             local picked=allowed(live) and not r.closing and picks(st,live)[r.guid]
             if not picked or picked.id~=r.id or not due(r,now) or not room(attempted,now) then return false end
-        elseif not r.closing or (r.tries or 0)>=3 or (r.unlast and now-r.unlast<60) then return false end
+        elseif not r.closing or not retryDue(r,now) then return false end
         -- Refresh sentAt after a long queue wait; no stale clock gets onto wire.
         local fresh=frame(kind,r,self,live); if not fresh then return false end
         r.text=fresh
         if kind=="FBAK" then
             attempted[#attempted+1]=now; r.last=now; r.asks=(r.asks or 0)+1
             r.sent=true; remember(r.guid) -- before the call, including ambiguous failures
-        else r.tries=(r.tries or 0)+1; r.unlast=now end
+        else
+            r.tries=(r.tries or 0)+1; r.unlast=now; r.window=r.window or now
+            r.total=(r.total or 0)+1
+            owed.attempts=owed.attempts or {}; owed.attempts[r.guid]=r.total
+        end
         return fresh
     end,r,function(ok)
         r.pending=nil; r.text=nil
         if kind=="FBUN" and ok then
-            settled(r.guid) -- only an accepted client send settles, never enqueue
-            records[r.guid]=nil
+            r.accepted=r.unlast -- sent, unverified; never settle on API acceptance
         end
     end)
     if queued then if kind=="FBAK" then admitted[#admitted+1]=ctx.now end
@@ -176,6 +227,7 @@ function T.tick(st,ctx)
     local me=N.Adapters.warboardSelf()
     local selected=allowed(ctx) and me and picks(st,ctx) or {}
     for g,r in pairs(records) do
+        if r.closing and r.accepted and ctx.now-r.accepted>=900 then settled(g) end
         if not r.closing then
             local who=selected[g]
             if not who or who.id~=r.id or r.hunter~=(me and me.guid) or r.rs~=ctx.rs then retire(r,ctx.now)

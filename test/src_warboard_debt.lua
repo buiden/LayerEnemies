@@ -171,7 +171,7 @@ test("M2 lifetime six attempt bound survives reload with debt retained",function
     N,r,hello,count,pos=setup(saved,r); hello(); advance(1800)
     eq(count("FBUN"),0,"reload cannot reset lifetime bound"); eq(debt(),1); yes(r.sub)
     -- Explicit evidence may still resolve exhausted debt; do not invent success.
-    pos(false); eq(debt(),0)
+    hello(); advance(3); pos(false); eq(debt(),0)
 end)
 test("M2 continuous listed rosters prevent quiet clearing at resend bound",function()
     local N,r,hello,count,pos=start(); r.drop=true; stop(N,"share")
@@ -187,7 +187,7 @@ test("S3 per character save waits for original hunter login",function()
     eq(count("FBUN"),1); no(r.sub)
 end)
 test("S2 N1 README states cleanup limitations without crash guarantee",function()
-    local f=assert(io.open("README.md")); local s=f:read("*a"); f:close()
+    local f=assert(io.open("README.md")); local s=f:read("*a"):gsub("%s+"," "); f:close()
     for _,phrase in ipairs({"client crash before", "no FBUN", "that character's next login", "sent, unverified", "15 minutes", "6 FBUN", "10 minutes", "debt-settlement exception", "target may keep broadcasting"}) do
         yes(s:find(phrase,1,true),phrase)
     end

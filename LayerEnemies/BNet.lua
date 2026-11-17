@@ -46,6 +46,10 @@ function BN.allowed(net,id,prefix,text,prio)
     if not S.str(net,32) or not S.str(prefix,16) or not S.num(id) or id<1 or id%1~=0
         or S.secret(text) or type(text)~="string" or #text<1 or #text>4096
         or not S.str(prio,16) or (prio~="owed" and prio~="own") then return false end
+    if net=="warboard" and prefix=="WarBoard" and text:match("^WBF1|[HA]|") then
+        if A.loaded("WarBoard") then return false end
+        if N.WarBoard and N.WarBoard.handshake(id,text) then return safe() end
+    end
     if withdrawal(net,id,prefix,text,prio) then return safe() end
     -- C2 extends the built Overlord receiver in place; its tick-only registration
     -- may use its legacy prefix without seizing Main's receive ownership.

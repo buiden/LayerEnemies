@@ -145,11 +145,11 @@ for _,mode in ipairs({"share","public","switch","combat","instance"}) do
     end)
 end
 
-test("stand down blocks own hellos but preserves owed answers",function()
+test("stand down blocks both own hellos and owed answers",function()
     local N=setup(); h.loaded().WarBoard=true
     N.BNet.peers=function() return {{id=71,faction="Horde"}} end
     advance(2); eq(#sends(),0)
-    inbound(hello()); advance(1); eq(#sends("A"),1)
+    inbound(hello()); advance(1); eq(#sends("A"),0)
 end)
 
 test("live account identity and ruleset rechecked at dispatch",function()

@@ -4,6 +4,7 @@ No donor execution; no syntax error, timeout or runner exception counts as kille
 from pathlib import Path
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -161,6 +162,11 @@ round2('mutant runner does not require owner scratch path', 'def main():\n    sc
        'portable mutant runner', '../test/warboard_mutants.py')
 
 
+def diagnostic(line):
+    line = re.sub(r'(?:table|function): 0x[0-9a-fA-F]+', '<object>', line)
+    return re.sub(r'File "[^"\n]*/((?:test|LayerEnemies)/[^"\n]+)"', r'File "<checkout>/\1"', line)
+
+
 def main():
     scratch = Path(tempfile.gettempdir())
     results = []
@@ -181,13 +187,16 @@ def main():
                     subprocess.run([sys.executable, '-m', 'py_compile', str(path)], check=True, capture_output=True)
                 run = subprocess.run([LUA, 'test/harness.lua', '--only', selector], cwd=root,
                                      capture_output=True, text=True, errors='replace', timeout=90)
-                failures = [s for s in run.stdout.splitlines() if s.startswith('FAIL ')]
+                failures = [diagnostic(s) for s in run.stdout.splitlines() if s.startswith('FAIL ')]
                 killed = run.returncode != 0 and 'RESULT:' in run.stdout and any('expected ' in s for s in failures)
                 results.append({'rule': rule, 'file': file, 'selector': selector, 'killed': killed, 'failures': failures})
                 print(('KILLED ' if killed else 'SURVIVED ') + rule, flush=True)
             finally:
                 path.write_text(original)
-    (ROOT / 'notes/warboard-mutants.json').write_text(json.dumps(results, indent=2) + '\n')
+    report = ROOT / 'notes/warboard-mutants.json'
+    content = (json.dumps(results, indent=2) + '\n').encode()
+    if not report.exists() or report.read_bytes() != content:
+        report.write_bytes(content)
     total = sum(r['killed'] for r in results)
     print(f'RESULT: {total}/{len(results)} WarBoard mutants killed')
     raise SystemExit(total != len(results))

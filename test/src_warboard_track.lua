@@ -3,8 +3,9 @@ local h=...
 local eq,yes,no=h.eq,h.yes,h.no
 local function test(name,fn) h.test("WarBoard track: "..name,fn) end
 local function advance(n) for _=1,n do h.advance(1) end end
+local current
 local function setup(names,saved)
-    local N=h.load(saved); N.Net.SHIP.warboard=true
+    local N=h.load(saved); current=N; N.Net.SHIP.warboard=true
     _G.WOW_PROJECT_ID=42
     _G.GetRealmName=function() return "PvP 123" end
     _G.UnitNameUnmodified=function() return "Hunter","Player" end
@@ -21,8 +22,19 @@ local function setup(names,saved)
     N.BNet.peers=function() return {} end
     return N,accounts
 end
+-- Tracking-unit fixtures seed already-confirmed state, never an unsolicited A.
+-- Real symmetric H/A exchanges and target rejection live in src_warboard_debt.lua.
 local function confirm(id,cmd)
-    h.deliver("BN_CHAT_MSG_ADDON","WarBoard","WBF1|"..(cmd or "A").."|5|pvp|1.6.3|3","WHISPER",id or 71)
+    id=id or 71
+    if cmd=="H" then
+        h.deliver("BN_CHAT_MSG_ADDON","WarBoard","WBF1|H|5|pvp|1.6.3|3","WHISPER",id)
+    else
+        local N=current
+        local st=N.WarBoard.state; local who=N.BNet.who(id,true)
+        st.serial=(st.serial or 0)+1
+        st.peers[id]={at=h.clock(),key=N.Invite.key(N.OpenMap.bnName(who.name,who.realm)),
+            faction=who.faction,rs="pvp",confirmed=true,proof=st.serial,proofAt=h.clock()}
+    end
 end
 local function decode(N,text)
     eq(text:sub(1,7),"WBF1|D|")
@@ -52,10 +64,10 @@ local function expected(kind,at,target)
     if kind=="FBAK" then d.targetName=target.characterName end
     return {t=kind,v=5,rs="pvp",av="LayerEnemies/1.1.0",senderName="Hunter Player",d=d}
 end
-local function position(N,account,at,guid)
+local function position(N,account,at,guid,absent)
     local d={targetGuid=guid or account.playerGuid,targetName=account.characterName,faction="Horde",rank=1,
         worldX=1,worldY=2,instanceID=1,zone="Ashenvale",subZone="Astranaar",sentAt=at or h.wall(),
-        roster={{guid="Player-123-00000001",name="Hunter Player",faction="Alliance"}}}
+        roster=absent and {} or {{guid="Player-123-00000001",name="Hunter Player",faction="Alliance"}}}
     local e={t="FBLP",v=5,rs="pvp",d=d}
     h.deliver("BN_CHAT_MSG_ADDON","WarBoard","WBF1|D|"..N.Codec.addonEncode(N.Codec.deflateStored(N.Codec.aceWrite(e))),"WHISPER",account.gameAccountID)
 end
@@ -96,8 +108,9 @@ end)
 for _,mode in ipairs({"remove","clear","track","share","guild","source","standdown","logout"}) do
     test(mode.." sends exactly one owed FBUN through stop gates",function()
         local N,a=start(); eq(debt(a[71].playerGuid),1)
-        stop(N,mode); advance(4); eq(#frames(N,"FBUN"),1,mode); eq(debt(a[71].playerGuid),0)
+        stop(N,mode); advance(4); eq(#frames(N,"FBUN"),1,mode); eq(debt(a[71].playerGuid),1)
         advance(130); eq(#frames(N,"FBUN"),1,"no duplicate stop"); eq(#frames(N,"FBAK"),1)
+        advance(771); eq(debt(a[71].playerGuid),0)
     end)
     test(mode.." cancels an unsent ask without creating debt",function()
         local N=setup(); confirm(); tick(N); eq(N.BNet.queued(),1)
@@ -113,7 +126,7 @@ for _,mode in ipairs({"combat","instance"}) do
             stop(N,"share"); advance(180); eq(#frames(N,"FBUN"),0); eq(debt(a[71].playerGuid),1)
             if queued then eq(N.BNet.queued(),1,"already queued FBUN is held, not dropped") end
             if mode=="combat" then h.combat(false) else h.instance(false) end
-            advance(4); eq(#frames(N,"FBUN"),1); eq(debt(a[71].playerGuid),0)
+            advance(4); eq(#frames(N,"FBUN"),1); eq(debt(a[71].playerGuid),1)
             advance(121); eq(#frames(N,"FBUN"),1)
         end
     end)
@@ -130,10 +143,10 @@ test("FBUN refused and throwing client retries three times sixty seconds apart",
         end
         stop(N,"track"); advance(180); eq(#attempts,3); eq(debt(a[71].playerGuid),1)
         yes(attempts[2]-attempts[1]>=60); yes(attempts[3]-attempts[2]>=60)
-        advance(600); eq(#attempts,3,"exhausted this session, debt retained")
+        advance(600); eq(#attempts,6,"next window reopens, lifetime bound remains")
     end
 end)
-test("accepted FBUN clears debt only after the client accepts not queue admission",function()
+test("accepted FBUN remains unverified until roster proof not queue admission",function()
     local N,a=start(); stop(N,"track"); tick(N); eq(debt(a[71].playerGuid),1)
     local old=C_BattleNet.SendGameData; local count=0
     C_BattleNet.SendGameData=function(id,prefix,text)
@@ -141,18 +154,18 @@ test("accepted FBUN clears debt only after the client accepts not queue admissio
         return true
     end
     advance(59); eq(debt(a[71].playerGuid),1); eq(count,1)
-    advance(5); eq(count,2); eq(debt(a[71].playerGuid),0)
+    advance(5); eq(count,2); eq(debt(a[71].playerGuid),1)
+    position(N,a[71],nil,nil,true); eq(debt(a[71].playerGuid),0)
     advance(121); eq(count,2)
 end)
-test("crash login settles GUID only with confirmed client account even source off",function()
+test("reload login settles GUID only with answered target H even source off",function()
     local N,a=start(); local saved=LayerEnemiesDB; local g=a[71].playerGuid
     saved.tracked={}; saved.nets.warboard=false
     N,a=setup({},saved); a[88]={gameAccountID=88,characterName="Renamed Target",realmName="123",factionName="Horde",
         clientProgram="WoW",isOnline=true,wowProjectID=42,isInCurrentRegion=true,playerGuid=g}
     advance(4); eq(#frames(N),0); eq(debt(g),1)
-    confirm(88,"H"); advance(3); eq(#frames(N),0,"H alone cannot confirm")
-    confirm(88); advance(3); local un=frames(N,"FBUN"); eq(#un,1); eq(un[1].send.target,88); eq(un[1].e.d.targetGuid,g)
-    eq(debt(g),0); eq(#frames(N,"FBAK"),0)
+    confirm(88,"H"); advance(3); local un=frames(N,"FBUN"); eq(#un,1); eq(un[1].send.target,88); eq(un[1].e.d.targetGuid,g)
+    eq(debt(g),1); position(N,a[88],nil,nil,true); eq(debt(g),0); eq(#frames(N,"FBAK"),0)
 end)
 test("logout in combat retains owed list and login while tracked cleans before asking",function()
     local N,a=start(); h.combat(true); h.deliver("PLAYER_LOGOUT"); eq(debt(a[71].playerGuid),1)
@@ -230,7 +243,7 @@ test("server time integer mandatory and not local wall clock",function()
     eq(frames(N,"FBAK")[1].e.d.sentAt,1700000123)
 end)
 test("first asks three attempts six seconds apart then FBUN and 300 second idle",function()
-    local N=start(); advance(25); local asks=frames(N,"FBAK"); eq(#asks,3); eq(#frames(N,"FBUN"),1)
+    local N,a=start(); advance(25); position(N,a[71],nil,nil,true); local asks=frames(N,"FBAK"); eq(#asks,3); eq(#frames(N,"FBUN"),1)
     for i=2,3 do yes(asks[i].send.at-asks[i-1].send.at>=6); yes(asks[i].send.at-asks[i-1].send.at<=7) end
     advance(280); eq(#frames(N,"FBAK"),3)
     advance(25); yes(#frames(N,"FBAK")>3)
@@ -251,6 +264,7 @@ test("past 300 seconds sends FBUN idle until 300 pause or new handshake",functio
     local N,a=start(); position(N,a[71]); local at=h.clock()
     h.clock(at+300); tick(N); eq(#frames(N,"FBUN"),0)
     h.clock(at+301); tick(N); advance(2); eq(#frames(N,"FBUN"),1)
+    position(N,a[71],nil,nil,true)
     advance(100); local count=#frames(N,"FBAK"); tick(N); eq(#frames(N,"FBAK"),count)
     confirm(); advance(4); yes(#frames(N,"FBAK")>count)
 end)
@@ -413,6 +427,7 @@ test("handshake before stale give-up cannot bypass the subsequent idle pause",fu
     local N,a=start(); position(N,a[71]); local at=h.clock()
     h.clock(at+10); confirm() -- newer than initial ask, but not a post-stop handshake
     h.clock(at+301); tick(N); advance(4); eq(#frames(N,"FBUN"),1)
+    position(N,a[71],nil,nil,true)
     eq(#frames(N,"FBAK"),1,"old handshake must not restart the stopped request")
     advance(100); eq(#frames(N,"FBAK"),1)
     confirm(); advance(3); eq(#frames(N,"FBAK"),2)
