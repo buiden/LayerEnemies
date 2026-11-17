@@ -1265,6 +1265,19 @@ PASS BNet queue: Wire cannot dispatch outside the queue's private delivery
 PASS BNet queue: failed client send is spent counted and never retried
 PASS BNet queue: per-network shares stand-down owed exception and live peer validation
 PASS BNet queue: bounds secrets rollback and timer absence fail closed
+PASS ChehulNet: registry receives guild and group with counters and live switch
+PASS ChehulNet: unreadable foreign values and live context fail silent
+PASS ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks
+PASS ChehulNet: pure store accepts only guild group and whole other identities
+PASS ChehulNet: comparisons are map scoped confirmed and never server keys
+PASS ChehulNet: expiry rollback replacement and oldest eviction are bounded
+PASS ChehulNet: Friendly hints have no Ask and never become hop candidates
+PASS ChehulNet: existing hosts gain independent measured annotation without capability changes
+PASS ChehulNet: layer command counts distinct current-map UIDs and names our peers
+PASS ChehulNet: 5000 deterministic fuzz inputs are bounded and silent
+PASS ChehulNet: live map changes withhold comparison and UI rows expire independently
+PASS ChehulNet: display context errors and missing clock cannot assert a relation
+PASS ChehulNet: exact HELLO grammar and optional layer
 PASS Codec: addon escaping exact bytes and roundtrip
 PASS Codec: addon malformed escapes and byte ceilings
 PASS Codec: inflate zlib known answers and stored writer
@@ -1294,4 +1307,4 @@ PASS Sources: OpenMap Battle.net keeps its original event path and values
 PASS Sources: guarded callbacks secrets and switches fail silent
 PASS Sources: unavailable optional timer and registration APIs fail silent
 PASS Sources: tick-only source runs at one second cadence and net counters append
-RESULT: 1296 tests passed, 0 failed, 175119 assertions
+RESULT: 1309 tests passed, 0 failed, 188015 assertions
