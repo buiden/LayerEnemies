@@ -1279,11 +1279,11 @@ PASS Overlord: two parts join in either order reverse=false
 PASS Overlord: two parts join in either order reverse=true
 PASS Overlord: fragment frame bounds and single-part fast path
 PASS Overlord: fragment duplicate conflicts and timeout do not extend assembly life
-PASS Overlord: 33 pending evicts oldest including same-time arrivals
+PASS Overlord: sender cap preserves existing assemblies including same-time arrivals
 PASS Overlord: packet identity exact seven fields broadcast and allowed kinds
 PASS Overlord: packet path one to four no repeats and last sender
 PASS Overlord: packet age accepts 120 not 121 and skew 30 not 31
-PASS Overlord: origin id ring takes once and caps at 256
+PASS Overlord: origin id ring takes once and caps at 2000
 PASS Overlord: foreign packet pools are refused before evidence or dedupe
 PASS Overlord: unknown own pool accepts no wrapped direct or partial traffic and recovers without reload
 PASS Overlord: pool detection maps readable rules and explicit realm fallback without a PvP guess
@@ -1401,6 +1401,34 @@ PASS Sources: offer uses only live guild Watch matches and never adds saved trac
 PASS Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh
 PASS Sources: readable-looking secret scalars cannot be offered
 PASS Sources: malformed secret and throwing offers store nothing and never set runtime error
+PASS Overlord peer: directory uses audited pool channel and two free slots
+PASS Overlord peer: real whisper owes one truthful reply; no forwarding or bypass
+PASS Overlord peer: all sends silent with share
+PASS Overlord peer: all sends silent with guild
+PASS Overlord peer: all sends silent with switch
+PASS Overlord peer: all sends silent with combat
+PASS Overlord peer: all sends silent with instance
+PASS Overlord peer: all sends silent with pool
+PASS Overlord peer: all sends silent with version
+PASS Overlord peer: all sends silent with identity
+PASS Overlord peer: owed cap six per minute and 150 seconds per peer
+PASS Overlord peer: guild alone 600 group 120 and heard guild 120
+PASS Overlord peer: five live bridges two unheard friends per 120 second cycle
+PASS Overlord peer: club-only accounts and disallowed pure contexts stay silent
+PASS Overlord peer: whisper greeting once a minute stops at six partners
+PASS Overlord peer: truthful empty V answer busy unsupported request and no invented map
+PASS Overlord peer: claim dispatch stamps actual gap cap and changed pool
+PASS Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard
+PASS Overlord peer: stand down suppresses own presence but permits owed NH
+PASS Overlord peer: path target loop and malformed assemblies never learn routes
+PASS Overlord peer: route ring reserves guild and expires at 300 seconds
+PASS Overlord peer: global assembly bytes and all 64 slots preserve guild room
+PASS Overlord peer: work budgets canonical cross-route sender global and guild reserve
+PASS Overlord peer: 5000 deterministic fuzz frames bounded silent and no saved names
+PASS Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime
+PASS Overlord peer: per sender assembly cap and guild reserve
+PASS Overlord peer: whisper and R2 battle net receive GW; foreign band silent
+PASS Overlord peer: pure peer announces own truthful identity and answers targeted NH
 PASS Sources: registry routes addon and Battle.net with unchanged arguments
 PASS Sources: every legacy prefix is refused atomically and counted
 PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
@@ -1448,4 +1476,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1450 tests passed, 0 failed, 255093 assertions
+RESULT: 1478 tests passed, 0 failed, 268621 assertions
