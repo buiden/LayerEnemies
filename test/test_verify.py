@@ -239,6 +239,18 @@ class WhisperHookPolicyTests(unittest.TestCase):
                 with self.assertRaises(AssertionError):
                     self.check(self.MODERN + '; ' + self.LEGACY + '; ' + source)
 
+    def test_read_only_presence_predicates_do_not_expose_functions(self):
+        self.check(self.MODERN + '; ' + self.LEGACY + '''
+            local absentModern = C_ChatInfo.SendChatMessage == nil
+            local absentLegacy = _G.SendChatMessage == nil
+        ''')
+        for source in ('C_ChatInfo.SendChatMessage == nil', '_G.SendChatMessage == nil'):
+            with self.subTest(source=source):
+                with self.assertRaises(AssertionError):
+                    self.check('local absent = ' + source, 'Main.lua')
+                with self.assertRaises(AssertionError):
+                    self.check(self.MODERN + '; ' + self.LEGACY + '; local absent = ' + source + '; SendChatMessage(...)')
+
     def test_namespace_escape_is_not_a_general_hook_permission(self):
         for source in ('pcall(other, C_ChatInfo, "SendChatMessage", observeChatWhisper)',
                        'pcall(_G.hooksecurefunc, C_ChatInfo, "SendAddonMessage", observeChatWhisper)',

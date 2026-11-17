@@ -137,6 +137,7 @@ local function who(target) local _, key = N.Invite.name(target); return key end
 -- it or replace it. Both native entrypoints may exist; secure hooks return no value.
 -- This conservative exception also covers visible chat sent by another addon.
 local manualWhispers, observerAttempted, observerReady = {}, false, false
+local observerMissing = "not initialized"
 local manualProtectAll
 local function pruneManual(now)
     if manualProtectAll and (now < manualProtectAll or now - manualProtectAll >= 10) then manualProtectAll = nil end
@@ -168,15 +169,26 @@ end
 function Wr.registerWhisperObserver()
     if observerAttempted then return end
     observerAttempted = true
-    if type(S.clean(_G.hooksecurefunc)) ~= "function" then return end
+    -- Read only nil predicates: never store or call either chat-send function.
+    -- A throwing/unreadable lookup is not proof of absence and still needs a hook.
+    local modernAbsent = not S.tab(C_ChatInfo) or S.call(function() return C_ChatInfo.SendChatMessage == nil end) == true
+    local legacyAbsent = S.call(function() return _G.SendChatMessage == nil end) == true
     local modern, legacy = false, false
-    if S.tab(C_ChatInfo) then
-        modern = pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)
+    if type(S.clean(_G.hooksecurefunc)) == "function" then
+        if not modernAbsent then
+            modern = pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)
+        end
+        if not legacyAbsent then
+            legacy = pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)
+        end
     end
-    legacy = pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)
-    observerReady = modern or legacy
+    observerReady = (modern or legacy) and (modernAbsent or modern) and (legacyAbsent or legacy)
+    local missing = {}
+    if not modernAbsent and not modern then missing[#missing + 1] = "C_ChatInfo.SendChatMessage" end
+    if not legacyAbsent and not legacy then missing[#missing + 1] = "SendChatMessage" end
+    observerMissing = modernAbsent and legacyAbsent and "no chat-send entrypoint" or table.concat(missing, ", ")
 end
-function Wr.whisperObserverReady() return observerReady end
+function Wr.whisperObserverReady() return observerReady, observerMissing end
 local function manualWhisper(key, now)
     pruneManual(now)
     if manualProtectAll then return true end

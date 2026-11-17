@@ -26,7 +26,7 @@ local function setup(options,saved)
             else return previous(tbl,key,fn) end
             attempts[path]=(attempts[path] or 0)+1
             local target=path=="modern" and C_ChatInfo.SendChatMessage or SendChatMessage
-            if options.throw or options[path]==false or type(target)~="function" then error("unavailable hook") end
+            if options.throw or options.fail==path or options[path]==false or type(target)~="function" then error("unavailable hook") end
             eq(type(fn),"function"); hooks[path]=fn
         end
         if options.noHook then hooksecurefunc=nil end
@@ -261,6 +261,23 @@ test("QuietAll coexistence: all mode works with donors loaded without starting t
     typed("modern","Donor Target"); no(filterLine(filter,text("Donor Target"),2))
     eq(#T.sent(),0); counts(0,1,1)
 end)
+
+for _,failedHook in ipairs({"modern","legacy"}) do
+    test("QuietAll review S1: failed existing "..failedHook.." hook disables all",function()
+        local N,filter,typed=setup({fail=failedHook}); SlashCmdList.LAYERENEMIES("quiet all")
+        no(N.Wire.whisperObserverReady(),"one successful hook cannot cover both entrypoints")
+        typed(failedHook,"Manual Person"); no(filterLine(filter,text("Manual Person"),1))
+        no(filterLine(filter,text("Unrelated Person"),2))
+        yes(send(N,"Our Person")); yes(filterLine(filter,text("Our Person"),3),"fallback is on, not off")
+        T.clock(13); yes(send(N,"Shared Person"))
+        typed(failedHook=="modern" and "legacy" or "modern","Shared Person")
+        no(filterLine(filter,text("Shared Person"),4),"working hook still protects own receipts")
+        local first=#T.log()+1; SlashCmdList.LAYERENEMIES("net")
+        yes(logged("all behaves like on",first))
+        yes(logged("Missing typed-whisper hook: "..(failedHook=="modern" and "C_ChatInfo.SendChatMessage" or "SendChatMessage")..".",first))
+        SlashCmdList.LAYERENEMIES("quiet"); yes(T.log()[#T.log()]:find("all behaves like on",1,true))
+    end)
+end
 
 -- Exact reviewer targets: no permissive name repair or UTF-8 case folding.
 for _,case in ipairs({

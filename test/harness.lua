@@ -354,7 +354,10 @@ local function loadAddon(savedCallTest,beforeLoad)
             if type(sendResult)=="function" then return sendResult() end
             return sendResult
         end},
-        {__index=function(_,key) forbidden=forbidden+1; error("must never use C_ChatInfo."..tostring(key)) end})
+        {__index=function(_,key)
+            if key=="SendChatMessage" then return nil end -- read-only presence probe; calling it still errors
+            forbidden=forbidden+1; error("must never use C_ChatInfo."..tostring(key))
+        end})
     _G.GetTime=function() return clock end
     _G.GetServerTime=function() return server end
     _G.GetRealmName=function() return "Test Realm" end
@@ -1451,7 +1454,11 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
         local f=assert(io.open("LayerEnemies/"..file..".lua")); local text=f:read("*a"); f:close()
         -- Only inert hook-registration strings; executable API references still fail
         -- here, and verify.py separately gates the exact protected registration shapes.
-        if file=="Wire" then text=text:gsub('"SendChatMessage"','""') end
+        if file=="Wire" then
+            -- Python's token gate owns these exact hooks and primitive presence predicates.
+            text=text:gsub('"SendChatMessage"','""'):gsub('"C_ChatInfo%.SendChatMessage"','""')
+                :gsub('C_ChatInfo%.SendChatMessage == nil','false'):gsub('_G%.SendChatMessage == nil','false')
+        end
         for _,word in ipairs({"SendChatMessage","RunMacroText","JoinChannel","UninviteUnit","ConfirmInviteUnit","ConvertToRaid","DeclineGroup","RequestInviteFromUnit","ConfirmLeaveParty"}) do
             -- 1.0 T3: Directory.lua joins its two channels (checked in the T3 tests)
             if not (file=="Directory" and word=="JoinChannel") then eq(text:find(word,1,true),nil,file.." mentions "..word) end

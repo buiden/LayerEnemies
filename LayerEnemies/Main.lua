@@ -2275,6 +2275,8 @@ function M.net(command)
         M.say("hidden (LayerEnemies whispers): "..N.Wire.hiddenNotices().."; hidden (other addons): "..N.Wire.hiddenOtherNotices().."; shown (your own whisper or mode): "..N.Wire.shownNotices())
         M.say(N.Wire.whisperObserverReady() and "Typed-whisper protection: secure post-hook active."
             or "Typed-whisper protection unavailable; all behaves like on (LayerEnemies whispers only).")
+        local ready,missing=N.Wire.whisperObserverReady()
+        if not ready then M.say("Missing typed-whisper hook: "..missing..".") end
         netLines(M.say)
         M.say(N.HeadHunter.summary(M.hh.stats))
         local s=M.overlord.stats

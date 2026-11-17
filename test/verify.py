@@ -214,6 +214,14 @@ def check_send_policy(source, filename):
             if tokens[i:i + len(hook)] == hook:
                 assert filename == 'Wire.lua', 'chat post-hook outside Wire.lua: ' + filename
                 del tokens[i:i + len(hook)]
+    # Primitive nil comparisons reveal existence only, never a callable reference.
+    # No type()/helper exemption: a shadowed helper could invoke its argument.
+    for predicate in ('C_ChatInfo.SendChatMessage == nil', '_G.SendChatMessage == nil'):
+        probe = lua_tokens(predicate)
+        for i in range(len(tokens) - len(probe), -1, -1):
+            if tokens[i:i + len(probe)] == probe:
+                assert filename == 'Wire.lua', 'chat presence probe outside Wire.lua: ' + filename
+                tokens[i:i + len(probe)] = [('name', 'false')]
     send_sites = []
     for at, word in lua_references(tokens):
         forbidden = (word == 'SendGameData' and filename != 'BNet.lua') or word == 'SendChatMessage' or re.fullmatch(r'BN\w*Send\w*', word)
