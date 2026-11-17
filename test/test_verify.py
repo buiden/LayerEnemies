@@ -211,5 +211,43 @@ class SendGateTests(unittest.TestCase):
                 self.assertIsNotNone(self.gate_error('if false then ' + source + ' end'))
 
 
+class WhisperHookPolicyTests(unittest.TestCase):
+    MODERN = 'pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)'
+    LEGACY = 'pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)'
+
+    def check(self, source, filename='Wire.lua'):
+        if filename == 'Wire.lua':
+            source = 'local function deliver() return C_ChatInfo.SendAddonMessage end\n' + source
+        verify.check_send_policy(source, filename)
+
+    def test_exact_posthook_registrations_are_allowed_only_in_wire(self):
+        for source in (self.MODERN, self.LEGACY):
+            self.check(source)
+            for filename in ('Main.lua', 'Adapters.lua', 'Sources.lua'):
+                with self.subTest(source=source, filename=filename):
+                    with self.assertRaises(AssertionError):
+                        self.check(source, filename)
+
+    def test_posthook_exemption_never_allows_a_chat_send(self):
+        sends = ('SendChatMessage(...)', '_G.SendChatMessage(...)', 'C_ChatInfo.SendChatMessage(...)',
+                 'C_ChatInfo["Send".."ChatMessage"](...)', '_G["SendChatMessage"](...)',
+                 'local fn=C_ChatInfo.SendChatMessage; fn(...)', 'pcall(SendChatMessage,...)',
+                 'pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", function() SendChatMessage(...) end)',
+                 'local c=C_ChatInfo; local k="SendChatMessage"; c[k](...)')
+        for source in sends:
+            with self.subTest(source=source):
+                with self.assertRaises(AssertionError):
+                    self.check(self.MODERN + '; ' + self.LEGACY + '; ' + source)
+
+    def test_namespace_escape_is_not_a_general_hook_permission(self):
+        for source in ('pcall(other, C_ChatInfo, "SendChatMessage", observeChatWhisper)',
+                       'pcall(_G.hooksecurefunc, C_ChatInfo, "SendAddonMessage", observeChatWhisper)',
+                       'pcall(_G.hooksecurefunc, C_ChatInfo, key, observeChatWhisper)',
+                       'use(C_ChatInfo)', 'local c=C_ChatInfo; use(c)'):
+            with self.subTest(source=source):
+                with self.assertRaises(AssertionError):
+                    self.check(source)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -34,8 +34,10 @@ local function countLine(expected,others)
     local start=#T.log()
     SlashCmdList.LAYERENEMIES("net")
     local seen=0
-    local needle="offline whisper notices hidden: "..expected
-    if others~=nil then needle=needle.."; from other addons or you: "..others end
+    local needle="hidden (LayerEnemies whispers): "..expected..";"
+    -- Preserve the old uncorrelated-evidence assertions independently of the new
+    -- UI's shown counter (which also counts our own notices when the mode is off).
+    if others~=nil then eq(LayerEnemies.Wire.unmatchedNotices(),others) end
     for i=start+1,#T.log() do
         if T.log()[i]:find(needle,1,true) then seen=seen+1 end
     end
@@ -110,15 +112,15 @@ test("Quiet: missing lineID deduplicates only this tick, not a later identical f
     end
 end)
 
-test("Quiet: saved boolean switch defaults on and off never disables offline bookkeeping",function()
+test("Quiet: saved mode defaults on and off never disables offline bookkeeping",function()
     local N,registered=setup(); local filter=registered(); local marked=marks(N)
-    eq(LayerEnemiesDB.quietWhispers,true); countLine(0)
-    SlashCmdList.LAYERENEMIES("quiet off"); eq(LayerEnemiesDB.quietWhispers,false)
+    eq(LayerEnemiesDB.quietWhispers,"on"); countLine(0)
+    SlashCmdList.LAYERENEMIES("quiet off"); eq(LayerEnemiesDB.quietWhispers,"off")
     yes(T.log()[#T.log()]:find("quiet off",1,true),"visible switch feedback")
     yes(send(N,"First Surname")); eventLine(text("First Surname"),201)
     for i=1,3 do no(filterLine(filter,{},text("First Surname"),201)) end
     eq(marked(),1); countLine(0)
-    SlashCmdList.LAYERENEMIES("quiet on"); eq(LayerEnemiesDB.quietWhispers,true)
+    SlashCmdList.LAYERENEMIES("quiet on"); eq(LayerEnemiesDB.quietWhispers,"on")
     yes(T.log()[#T.log()]:find("quiet on",1,true))
     no(filterLine(filter,{},text("First Surname"),201),"off decision stays shown for this line")
     tick(.01); no(filterLine(filter,{},text("First Surname"),202),"off also consumed the attempt")
@@ -126,10 +128,10 @@ test("Quiet: saved boolean switch defaults on and off never disables offline boo
     for i=1,3 do yes(filterLine(filter,{},text("Second Surname"),203)) end
     eventLine(text("Second Surname"),203); countLine(1); eq(marked(),2)
     local saved=LayerEnemiesDB
-    N,registered=setup(saved); eq(LayerEnemiesDB.quietWhispers,true); countLine(0)
+    N,registered=setup(saved); eq(LayerEnemiesDB.quietWhispers,"on"); countLine(0)
     SlashCmdList.LAYERENEMIES("quiet off"); saved=LayerEnemiesDB
-    N,registered=setup(saved); eq(LayerEnemiesDB.quietWhispers,false); countLine(0)
-    SlashCmdList.LAYERENEMIES("quiet maybe"); eq(LayerEnemiesDB.quietWhispers,false)
+    N,registered=setup(saved); eq(LayerEnemiesDB.quietWhispers,"off"); countLine(0)
+    SlashCmdList.LAYERENEMIES("quiet maybe"); eq(LayerEnemiesDB.quietWhispers,"off")
     yes(T.log()[#T.log()]:find("/le quiet on|off",1,true))
 end)
 test("Quiet: hidden counter counts lines, not chat frames or observer-only events",function()
@@ -269,7 +271,7 @@ test("Quiet: nothing about notice identities or counts is saved",function()
         yes(keys[key],"unexpected saved field "..key)
         no(type(value)=="string" and (value:find("First",1,true) or value:find("Other",1,true)))
     end
-    eq(type(LayerEnemiesDB.quietWhispers),"boolean")
+    eq(type(LayerEnemiesDB.quietWhispers),"string")
 end)
 local function upvalue(fn,wanted)
     for i=1,100 do

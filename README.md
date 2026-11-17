@@ -1,40 +1,70 @@
 # LayerEnemies
 
-## Unreleased - hide "No player named" lines caused by LayerEnemies' own whispers
+## Unreleased - quiet not-found notices, including other addons
 
-`/le quiet on|off` controls a narrow system-chat filter, **on by default**, saved
-as one per-character boolean. It hides only the client's localized player-not-found
-line correlated with a LayerEnemies addon whisper to that exact player in the
-last **30 seconds** (at most 64 recent attempts). One whisper accounts for at most
-one notice. Spaced Forever names are preserved; foreign realm suffixes remain
-part of the identity. A bare name shared by recent targets on different realms
-is ambiguous and stays visible, even after one namesake was marked offline.
+`/le quiet on|off|all` controls the client's localized **"No player named ..."**
+system line. `/le quiet` prints the current mode and what it hides.
 
-Other system messages, uncorrelated not-found lines, expired attempts, secret or
-unreadable text, unsupported/missing localization, locally blocked/queued-only
-sends, and client failures other than TargetOffline are **not hidden**. The
-filter does not send anything or change the existing offline hold. Turning quiet
-off leaves all notices visible while offline bookkeeping and counting continue.
-Unavailable/throwing filter APIs fail open. Multiple chat frames reuse one
-message decision: a positive line ID when available, otherwise identical text
-in the same `GetTime()` tick. A later identical line is a new notice.
+- **`on` (default):** hide only notices correlated with LayerEnemies' own addon
+  whispers. An actual whisper to that exact player in the last **30 seconds**
+  accounts for at most one notice; at most 64 recent attempts are retained.
+- **`all`:** hide these lines **whichever addon caused them**, and **show them for
+  your own typed whispers** to that name within the last **10 seconds**, so you
+  can see that your whisper failed. That exception takes priority even if
+  LayerEnemies also whispered the same player. It remembers at most **16 distinct
+  targets**, in session memory only; repeated whispers refresh that target.
+- **`off`:** keep all notices visible. Offline bookkeeping still runs.
 
-`/le net` adds **offline whisper notices hidden: N; from other addons or you: M**.
-Both counters reset on reload. M counts localized notices without an eligible,
-unconsumed LayerEnemies whisper, **not proven attribution to another addon**;
-late/ambiguous/duplicate notices also count there. No names or counters are saved;
-unmatched diagnostics retain only bounded numeric deduplication fingerprints,
-not names or message text. With no line ID, two identical notices in the same
-tick cannot be distinguished (and a fingerprint collision can undercount only).
-If another addon or you whisper the same target during our 30-second window,
-the game's identical failure text cannot prove which send caused it.
+The existing per-character `quietWhispers` setting now saves one of `on`, `off`,
+or `all`. Older `true`/`false` settings migrate to `on`/`off`; missing or invalid
+values default to `on`. No target names, message contents or counters are saved.
+
+The typed-whisper exception uses **secure post-hooks**, not replacement send
+functions, on the modern chat-send entrypoint and its legacy alias when each is
+available. LayerEnemies **never calls either chat-send function**. If neither
+hook can be installed, `all` behaves like `on`; `/le quiet` and `/le net` say so.
+Hooks observe only `WHISPER`, not say/guild/channel/Battle.net chat. A normal
+visible chat whisper sent programmatically by another addon is conservatively
+protected too: these APIs cannot prove that a human typed it. Addon-message
+whispers do not create a typed-whisper exception.
+
+Spaced Forever names are preserved, case is folded, only the home realm is
+stripped, and foreign realm suffixes remain part of the identity. In `on`, a bare
+name shared by recent addon targets on different realms is ambiguous and stays
+visible. `all` matches every supported localized not-found line, not just valid
+addon targets. Other system messages, secret/unreadable text and unsupported or
+missing localization are never hidden. Unavailable/throwing filter APIs fail
+open. This changes no send policy, budget or existing offline hold in any mode.
+
+`/le net` shows:
+
+`hidden (LayerEnemies whispers): N; hidden (other addons): K; shown (your own whisper or mode): M`
+
+These session counters reset on reload. N and K count actual filter hides; M
+counts observed matching notices classified to stay visible. "Other addons"
+means **not correlated with an eligible LayerEnemies whisper**, not proven
+attribution: late/ambiguous/duplicate errors can count there too. Multiple chat
+frames and the system observer share one decision, using a positive line ID or,
+without one, identical text in the same `GetTime()` tick. Changes of mode or
+manual-whisper state do not change a decision already made for that event.
+Hidden decisions retain exact text in the existing bounded session ledger;
+shown, uncorrelated diagnostics keep only numeric fingerprints. Fingerprints
+never authorize hiding. Without IDs, identical independent failures in one tick
+cannot be distinguished.
 
 With the real **HeadHunter** or **WarEffortScout** loaded, LayerEnemies already
 stands down its respective network sends. Guild hosting already stands down
-beside **LayerSwap** or **BuloLayerForever**. Explicit LayerEnemies hop requests
-still send with those addons loaded. These policies are unchanged; this is not
-a global suppression of the other addons' whisper errors. Native behavior on
-Forever build 70938 is not tested (alpha, owner's decision).
+beside **LayerSwap** or **BuloLayerForever**; explicit LayerEnemies hop requests
+can still send. Those policies are unchanged. Use `all`, not `on`, to also hide
+the other addons' not-found lines.
+
+Source evidence: Forever `1.60.1.70938`, pinned UI commit
+`bebcb6bf309cf41b41bd74f8ca651e6a105b2676`. Its typed-whisper path calls
+`C_ChatInfo.SendChatMessage`; the loaded compatibility file also defines
+`SendChatMessage`. Native hook availability, taint behavior, exact error timing
+relative to the post-hook, stable line IDs and other addons' filters are **not
+live-tested (alpha, owner's decision)**. An error delivered before the post-hook
+cannot yet be recognized as a manual whisper. No live installation was made.
 
 ## Unreleased - Wanted (receive only)
 

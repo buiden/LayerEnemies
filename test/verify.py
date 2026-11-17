@@ -205,6 +205,15 @@ def check_chat_namespace(tokens, filename):
 
 def check_send_policy(source, filename):
     tokens = lua_tokens(source)
+    # Only these two protected post-hook registrations may expose a chat namespace.
+    # Remove the exact token spans, never an API lookup/call or an inline callback.
+    for registration in ('pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)',
+                         'pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)'):
+        hook = lua_tokens(registration)
+        for i in range(len(tokens) - len(hook), -1, -1):
+            if tokens[i:i + len(hook)] == hook:
+                assert filename == 'Wire.lua', 'chat post-hook outside Wire.lua: ' + filename
+                del tokens[i:i + len(hook)]
     send_sites = []
     for at, word in lua_references(tokens):
         forbidden = (word == 'SendGameData' and filename != 'BNet.lua') or word == 'SendChatMessage' or re.fullmatch(r'BN\w*Send\w*', word)

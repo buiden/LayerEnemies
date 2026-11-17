@@ -2260,16 +2260,21 @@ function M.setNet(key,on)
 end
 function M.quiet(command)
     local state=command:match("^quiet%s+(%a+)$")
-    if state~="on" and state~="off" then M.say("LayerEnemies: /le quiet on|off"); return end
-    if S.tab(LayerEnemiesDB) then LayerEnemiesDB.quietWhispers=state=="on" end
-    M.say("LayerEnemies: quiet "..state..(state=="on" and " - hide only our correlated offline whisper notices."
-        or " - offline whisper notices stay visible."))
+    if command=="quiet" then state=N.Wire.quietMode(LayerEnemiesDB.quietWhispers)
+    elseif state~="on" and state~="off" and state~="all" then M.say("LayerEnemies: /le quiet on|off|all"); return
+    elseif S.tab(LayerEnemiesDB) then LayerEnemiesDB.quietWhispers=state end
+    M.say("LayerEnemies: quiet "..state..(state=="on" and " - hide only LayerEnemies' correlated offline whisper notices."
+        or state=="all" and not N.Wire.whisperObserverReady() and " - your own typed-whisper protection unavailable; all behaves like on (LayerEnemies whispers only)."
+        or state=="all" and " - hide all localized not-found lines except after your own typed whisper (10 seconds)."
+        or " - all offline whisper notices stay visible."))
 end
 function M.net(command)
     local rest=command:match("^net%s*(.-)%s*$") or ""
     if rest=="" then
         M.say("Networks: "..(N.Net.consent()=="public" and "public" or "guild only"))
-        M.say("offline whisper notices hidden: "..N.Wire.hiddenNotices().."; from other addons or you: "..N.Wire.unmatchedNotices())
+        M.say("hidden (LayerEnemies whispers): "..N.Wire.hiddenNotices().."; hidden (other addons): "..N.Wire.hiddenOtherNotices().."; shown (your own whisper or mode): "..N.Wire.shownNotices())
+        M.say(N.Wire.whisperObserverReady() and "Typed-whisper protection: secure post-hook active."
+            or "Typed-whisper protection unavailable; all behaves like on (LayerEnemies whispers only).")
         netLines(M.say)
         M.say(N.HeadHunter.summary(M.hh.stats))
         local s=M.overlord.stats
@@ -2367,7 +2372,7 @@ function M.start()
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- sharing our own sightings (O, War Effort C+E) and deaths (K): only a saved false turns it off
     LayerEnemiesDB.share=saved.share~=false
-    LayerEnemiesDB.quietWhispers=saved.quietWhispers~=false
+    LayerEnemiesDB.quietWhispers=N.Wire.quietMode(saved.quietWhispers)
     LayerEnemiesDB.findShare=saved.findShare~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
@@ -2406,6 +2411,7 @@ function M.start()
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OpenMapLoc") -- receive only, including hellos
     end
     N.Wire.registerSystemFilter()
+    N.Wire.registerWhisperObserver()
     N.Sources.start()
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"

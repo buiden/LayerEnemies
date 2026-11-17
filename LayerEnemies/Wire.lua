@@ -8,6 +8,13 @@ local S = N.Safe
 local Wr = {}
 N.Wire = Wr
 
+function Wr.quietMode(value)
+    value = S.clean(value)
+    if value == false or value == "off" then return "off" end
+    if value == "all" then return "all" end
+    return "on"
+end
+
 -- Routes: kinds allowed and a text check per prefix. The live table is file-local; Wr.ROUTES is a copy of the kinds
 -- for reading, and changing it changes nothing. A route with a net is also gated by Net (ship constant, switch,
 -- consent, stand-down).
@@ -126,6 +133,48 @@ local function recent(list, now)
 end
 -- one player, one key (Invite.name: case, and our realm, do not make another player)
 local function who(target) local _, key = N.Invite.name(target); return key end
+-- Typed chat and addon messages are different APIs. Observe chat only, never call
+-- it or replace it. Both native entrypoints may exist; secure hooks return no value.
+-- This conservative exception also covers visible chat sent by another addon.
+local manualWhispers, observerAttempted, observerReady = {}, false, false
+local function pruneManual(now)
+    local keep = {}
+    for _, r in ipairs(manualWhispers) do
+        if now >= r.at and now - r.at < 10 then keep[#keep + 1] = r end
+    end
+    manualWhispers = keep
+end
+local function observeChatWhisper(_, chatType, _, target)
+    pcall(function()
+        if S.str(chatType, 30) ~= "WHISPER" then return end
+        local key, now = who(target), S.num(S.call(GetTime))
+        if not key or not now then return end
+        pruneManual(now)
+        -- Refresh a target, including duplicate callbacks through the legacy alias.
+        for i = #manualWhispers, 1, -1 do
+            if manualWhispers[i].key == key then table.remove(manualWhispers, i) end
+        end
+        if #manualWhispers >= 16 then table.remove(manualWhispers, 1) end
+        manualWhispers[#manualWhispers + 1] = { key = key, at = now }
+    end)
+end
+function Wr.registerWhisperObserver()
+    if observerAttempted then return end
+    observerAttempted = true
+    if type(S.clean(_G.hooksecurefunc)) ~= "function" then return end
+    local modern, legacy = false, false
+    if S.tab(C_ChatInfo) then
+        modern = pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)
+    end
+    legacy = pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)
+    observerReady = modern or legacy
+end
+function Wr.whisperObserverReady() return observerReady end
+local function manualWhisper(key, now)
+    pruneManual(now)
+    for _, r in ipairs(manualWhispers) do if r.key == key then return true end end
+    return false
+end
 -- Correlation is session-only, metadata-only and bounded. A local refusal/queued line is NOT an actual whisper.
 Wr.RECENT_WINDOW, Wr.RECENT_MAX = 30, 64
 local whispers = {}
@@ -198,10 +247,13 @@ end
 -- Positive line IDs identify one event; without one, reuse only text in this GetTime tick.
 -- Never persist text/names. Both this ledger and the whisper ledger are bounded to 64 / 30 s.
 local notices, hiddenNotices, unmatchedNotices = {}, 0, 0
+local hiddenOtherNotices, shownNotices = 0, 0
 function Wr.hiddenNotices() return hiddenNotices end
 function Wr.unmatchedNotices() return unmatchedNotices end
--- Unmatched diagnostics keep no name/text: this fingerprint is for counting only.
--- A collision can undercount a notice, never grant a hide (owned decisions compare exact text).
+function Wr.hiddenOtherNotices() return hiddenOtherNotices end
+function Wr.shownNotices() return shownNotices end
+-- Shown, unowned diagnostics keep no name/text: this fingerprint is for counting only.
+-- A collision can undercount a notice, never grant a hide (hidden decisions compare exact text).
 local function noticeFingerprint(text)
     local h = 5381
     for i = 1, #text do h = (h * 33 + text:byte(i)) % 4294967296 end
@@ -223,7 +275,8 @@ function Wr.system(text, lineID)
     for _, r in ipairs(notices) do
         if now >= r.at and now - r.at < Wr.RECENT_WINDOW and (r.id or now == r.at) then
             keep[#keep + 1] = r
-            if r.id == lineID and (r.text == text or (not r.text and r.fingerprint == fingerprint and r.bytes == #text)) then cached = r end
+            if r.id == lineID and (r.text == text or (not r.text and r.fingerprint == fingerprint and r.bytes == #text))
+                and (not cached or r.text == text) then cached = r end
         end
     end
     notices = keep
@@ -243,8 +296,15 @@ function Wr.system(text, lineID)
         notice.owned = match.display
     end
     if not notice.owned then unmatchedNotices = unmatchedNotices + 1 end
-    notice.hide = notice.owned == true and (not S.tab(LayerEnemiesDB) or LayerEnemiesDB.quietWhispers ~= false)
-    if not notice.owned then notice.text, notice.fingerprint, notice.bytes = nil, fingerprint, #text end
+    local mode = Wr.quietMode(S.tab(LayerEnemiesDB) and LayerEnemiesDB.quietWhispers)
+    if mode == "all" and observerReady then
+        notice.hide = not manualWhisper(key, now)
+    else
+        notice.hide = notice.owned == true and mode ~= "off"
+    end
+    if not notice.hide then shownNotices = shownNotices + 1 end
+    -- A hidden decision always keeps exact text: fingerprints cannot authorize a hide.
+    if not notice.owned and not notice.hide then notice.text, notice.fingerprint, notice.bytes = nil, fingerprint, #text end
     if #notices >= Wr.RECENT_MAX then table.remove(notices, 1) end
     notices[#notices + 1] = notice
     return notice.key, notice
@@ -256,7 +316,11 @@ local function systemFilter(_, event, text, ...)
         if S.str(event, 50) ~= "CHAT_MSG_SYSTEM" then return nil end
         local _, notice = Wr.system(text, lineID)
         if not notice or not notice.hide then return false end
-        if not notice.counted then hiddenNotices = hiddenNotices + 1; notice.counted = true end
+        if not notice.counted then
+            if notice.owned then hiddenNotices = hiddenNotices + 1
+            else hiddenOtherNotices = hiddenOtherNotices + 1 end
+            notice.counted = true
+        end
         return true
     end)
     return ok and hide == true or false
