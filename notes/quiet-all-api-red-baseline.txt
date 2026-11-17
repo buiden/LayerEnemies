@@ -1,0 +1,23 @@
+F..
+======================================================================
+FAIL: test_exact_posthook_registrations_are_allowed_only_in_wire (__main__.WhisperHookPolicyTests.test_exact_posthook_registrations_are_allowed_only_in_wire)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-all-red-dil4totg/test/test_verify.py", line 225, in test_exact_posthook_registrations_are_allowed_only_in_wire
+    self.check(source)
+    ~~~~~~~~~~^^^^^^^^
+  File "/opt/data/cache/scratch/le-quiet-all-red-dil4totg/test/test_verify.py", line 221, in check
+    verify.check_send_policy(source, filename)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/opt/data/cache/scratch/le-quiet-all-red-dil4totg/test/verify.py", line 217, in check_send_policy
+    check_chat_namespace(tokens, filename)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/opt/data/cache/scratch/le-quiet-all-red-dil4totg/test/verify.py", line 202, in check_chat_namespace
+    assert inspection and tokens[end:end + 1] == [('symbol', ')')], 'chat namespace escapes: ' + filename
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: chat namespace escapes: Wire.lua
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+FAILED (failures=1)

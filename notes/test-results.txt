@@ -1407,7 +1407,7 @@ PASS Quiet names: pattern characters in a surname are invalid targets not wildca
 PASS Quiet: own localized failure is hidden by a once-registered filter
 PASS Quiet: lineID hides three chat frames once in either dispatcher order
 PASS Quiet: missing lineID deduplicates only this tick, not a later identical failure
-PASS Quiet: saved boolean switch defaults on and off never disables offline bookkeeping
+PASS Quiet: saved mode defaults on and off never disables offline bookkeeping
 PASS Quiet: hidden counter counts lines, not chat frames or observer-only events
 PASS Quiet: unmatched localized notices count once per line, never by chat frame
 PASS Quiet: each pending whisper hides one notice without renewing the offline hold
@@ -1426,6 +1426,23 @@ PASS Quiet: correlation and message ledgers obey the original capacity and expir
 PASS Quiet: accepted legacy boolean send also supplies one display receipt
 PASS Quiet: readable-looking secret strings are not compared or hidden
 PASS Quiet: donor presence leaves send stand-down policy unchanged
+PASS QuietAll modes: booleans migrate, strings survive, invalid values default on
+PASS QuietAll modes: slash accepts all, persists it and reports current scope
+PASS QuietAll hook: both secure post-hooks install at startup without sends or replacements
+PASS QuietAll filter: any localized not-found is hidden, only typed targets are excepted
+PASS QuietAll hook: each available API works alone and failed installs fall back to on
+PASS QuietAll counters: own, other and shown decisions are separate and per event
+PASS QuietAll counters: observer-only hides are not counted and reload resets totals
+PASS QuietAll manual: only WHISPER is recorded, with existing full name normalization
+PASS QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices
+PASS QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot
+PASS QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode
+PASS QuietAll decisions: repeated frames freeze both outcomes across mode and time changes
+PASS QuietAll privacy: no target, message or counter is saved and reload forgets manual names
+PASS QuietAll safety: exact localized pattern only and protected callbacks never escape
+PASS QuietAll status: no-hook query explains fallback instead of claiming blanket hiding
+PASS QuietAll decisions: a numeric fingerprint collision can never hide a manual failure
+PASS QuietAll coexistence: all mode works with donors loaded without starting their sends
 PASS Sources: registry routes addon and Battle.net with unchanged arguments
 PASS Sources: every legacy prefix is refused atomically and counted
 PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
@@ -1487,4 +1504,4 @@ PASS Wanted: R2 S4 mixed records evict by admission not observation or expiry
 PASS Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry
 PASS Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs
 PASS Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks
-RESULT: 1489 tests passed, 0 failed, 259860 assertions
+RESULT: 1506 tests passed, 0 failed, 262193 assertions
