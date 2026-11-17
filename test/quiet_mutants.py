@@ -76,7 +76,7 @@ def main():
                 if path.suffix == '.lua':
                     subprocess.run([str(LUA.with_name('luac')), '-p', str(path)], check=True, capture_output=True)
                     result = run(root)
-                    failures = [line for line in result.stdout.splitlines() if line.startswith('FAIL ')]
+                    failures = [re.sub(r'0x[0-9a-fA-F]+', '0xADDR', line) for line in result.stdout.splitlines() if line.startswith('FAIL ')]
                 else:
                     result = subprocess.run(['python3', 'test/api_policy_test.py', 'ApiPolicyTests.test_system_filter_owner_is_wire_only'],
                                             cwd=root, capture_output=True, text=True, timeout=30)
@@ -88,7 +88,9 @@ def main():
                 path.write_text(original)
         out = ROOT / 'notes/quiet-mutants.json'
         out.parent.mkdir(exist_ok=True)
-        out.write_text(json.dumps(results, indent=2) + '\n')
+        content = json.dumps(results, indent=2) + '\n'
+        if not out.exists() or out.read_text() != content:
+            out.write_text(content)
         caught = sum(row['caught'] for row in results)
         print(f'MUTANTS: {caught}/{len(results)} caught')
         assert caught == len(results), [r['rule'] for r in results if not r['caught']]

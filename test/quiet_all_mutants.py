@@ -22,10 +22,10 @@ MUTANTS = [
     ('modern-registration-protected', WIRE, 'modern = pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)', 'modern = _G.hooksecurefunc(C_ChatInfo, "SendChatMessage", observeChatWhisper)'),
     ('legacy-registration-protected', WIRE, 'legacy = pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)', 'legacy = _G.hooksecurefunc("SendChatMessage", observeChatWhisper)'),
     ('one-registration-attempt', WIRE, 'if observerAttempted then return end', 'if false then return end'),
-    ('either-hook-is-sufficient', WIRE, 'observerReady = modern or legacy', 'observerReady = modern and legacy'),
+    ('available-hook-is-sufficient', WIRE, 'observerReady = (modern or legacy) and (modernAbsent or modern) and (legacyAbsent or legacy)', 'observerReady = modern and legacy'),
     ('no-hook-fallback', WIRE, 'if mode == "all" and observerReady then', 'if mode == "all" then'),
     ('whisper-chat-type-only', WIRE, 'if S.str(chatType, 30) ~= "WHISPER" then return end', 'if false then return end'),
-    ('existing-name-rule', WIRE, 'local key, now = who(target), S.num(S.call(GetTime))', 'local key, now = target:lower(), S.num(S.call(GetTime))'),
+    ('existing-name-rule', WIRE, 'and S.call(who, raw)', 'and raw:lower()'),
     ('ten-second-lifetime', WIRE, 'now - r.at < 10 then', 'now - r.at < 11 then'),
     ('manual-rollback', WIRE, 'if now >= r.at and now - r.at < 10 then', 'if now - r.at < 10 then'),
     ('sixteen-target-limit', WIRE, 'if #manualWhispers >= 16 then', 'if #manualWhispers >= 17 then'),
@@ -49,6 +49,14 @@ MUTANTS = [
     ('chat-send-ban-stays', GATE, "or word == 'SendChatMessage' or", 'or False or'),
     ('hook-owner-gate', GATE, "assert filename == 'Wire.lua', 'chat post-hook outside Wire.lua: ' + filename", "assert True, 'mutant: hook anywhere'"),
     ('namespace-not-generally-allowed', GATE, "assert inspection and tokens[end:end + 1] == [('symbol', ')')], 'chat namespace escapes: ' + filename", "assert True, 'mutant: namespace escapes'"),
+    ('review-M1-protect-everything', WIRE, 'if not key then manualProtectAll = now; return end', 'if not key then return end'),
+    ('review-M1-non-ASCII', WIRE, r'not raw:find("[\128-\255]")', 'true'),
+    ('review-Note-on-mode', WIRE, 'notice.hide = notice.owned == true and mode ~= "off" and not manualWhisper(key, now)', 'notice.hide = notice.owned == true and mode ~= "off"'),
+    ('review-S1-every-existing-hook', WIRE, 'observerReady = (modern or legacy) and (modernAbsent or modern) and (legacyAbsent or legacy)', 'observerReady = modern or legacy'),
+    ('review-S2-overflow-lifetime', WIRE, 'if #manualWhispers >= 16 then manualProtectAll = now; return end', 'if #manualWhispers >= 16 then table.remove(manualWhispers, 1) end'),
+    ('review-S2-full-ledger', WIRE, 'if manualProtectAll or #manualWhispers >= 16 then return true end', 'if manualProtectAll then return true end'),
+    ('review-S3-exact-once', GATE, "assert len(sites) == 1, 'chat post-hook must appear exactly once in Wire.lua: ' + registration", "assert len(sites) >= 1, 'chat post-hook must appear exactly once in Wire.lua: ' + registration"),
+    ('review-S3-no-pcall-binding', GATE, "if word == 'pcall':", 'if False:'),
 ]
 
 
@@ -75,13 +83,16 @@ def main():
                 if path.suffix == '.lua':
                     subprocess.run([str(LUA.with_name('luac')), '-p', str(path)], check=True, capture_output=True)
                 result = run(root, file == GATE)
-                failures = [line for line in (result.stdout + result.stderr).splitlines() if line.startswith(('FAIL ', 'FAIL: '))]
+                failures = [re.sub(r'0x[0-9a-fA-F]+', '0xADDR', line) for line in (result.stdout + result.stderr).splitlines() if line.startswith(('FAIL ', 'FAIL: '))]
                 caught = result.returncode != 0 and bool(failures)
                 results.append({'rule': rule, 'caught': caught, 'failures': failures})
                 print(('CAUGHT ' if caught else 'SURVIVED ') + rule, flush=True)
             finally:
                 path.write_text(original)
-    (ROOT / 'notes/quiet-all-mutants.json').write_text(json.dumps(results, indent=2) + '\n')
+    report = ROOT / 'notes/quiet-all-mutants.json'
+    content = json.dumps(results, indent=2) + '\n'
+    if not report.exists() or report.read_text() != content:
+        report.write_text(content)
     caught = sum(row['caught'] for row in results)
     print(f'MUTANTS: {caught}/{len(results)} caught')
     assert caught == len(results), [r['rule'] for r in results if not r['caught']]
