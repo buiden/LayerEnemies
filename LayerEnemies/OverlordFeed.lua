@@ -205,8 +205,8 @@ function Q.tick(st,peer,c)
                     local latest=peer.routes[key]
                     return st.sessions[key]==s and current(latest,live) and latest.epoch==s.epoch and latest.id==s.id
                 end
-                local function sent(at)
-                    if not valid() then return end
+                local function sent(at,live)
+                    if not valid(live) then return end
                     if keep then s.kept=at else s.asked=at;s.nonce=nonce;s.live=nil end
                 end
                 P.emit(peer,c,"HR",body,route,target,"feed:"..key,200,false,{valid=valid,sent=sent})

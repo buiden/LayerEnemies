@@ -483,7 +483,11 @@ local function overlordSend(c,text,route,target,prio,job)
         if job.kind=="HR" and route=="BNET" then live.friends=N.BNet.peers(live.now) end
         return P.claim(M.overlordPeer,job,live)
     end
-    local function sent() P.sent(M.overlordPeer,job,M.overlordContext()) end
+    local function sent()
+        local live=M.overlordContext()
+        if job.kind=="HR" and route=="BNET" then live.friends=N.BNet.peers(live.now) end
+        P.sent(M.overlordPeer,job,live)
+    end
     if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,guard,sent) end
     local live=M.overlordContext()
     if not P.claim(M.overlordPeer,job,live,true) then return false end

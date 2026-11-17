@@ -3,6 +3,7 @@ import argparse
 from overlord_peer_mutants import run
 
 RULES = [
+ ('receipt uses live context','if not valid(live) then return end','if not valid() then return end'),
  ('race strings not integers','(#f==9 and not raceWire(f[9]))','(#f==9 and not uint(f[9],255,1))'),
  ('race strings validated','(#f==9 and not raceWire(f[9]))','false'),
  ('K exact thirteen fields','local f=split(p.payload,13)','local f=split(p.payload,14); if f and #f==14 then table.remove(f) end'),

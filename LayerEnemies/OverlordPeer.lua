@@ -47,7 +47,7 @@ function P.sent(st,job,c)
         if job.route=="GUILD" then st.announced.guild=c.now
         elseif job.route=="PARTY" or job.route=="RAID" then st.announced.group=c.now end
     end
-    if job.sent then job.sent(c.now) end
+    if job.sent then job.sent(c.now,c) end
 end
 function P.emit(st,c,kind,payload,route,target,key,gap,owed,callbacks)
     if not ready(c,owed) or not due(st.gaps[key],c.now,gap) then return false end

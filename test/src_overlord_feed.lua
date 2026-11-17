@@ -13,7 +13,7 @@ end
 local serial=0
 local function hear(kind,payload,name,route,target,path,pool)
     serial=serial+1;local id="feed"..serial;name=name or "Birch Scout"
-    local wire=table.concat({pool or "global",id,GetServerTime(),target or "Alice Vale",path or name,kind,payload},"|")
+    local wire=table.concat({pool or "global",id,math.floor(GetServerTime()),target or "Alice Vale",path or name,kind,payload},"|")
     if route=="BNET" then
         H.deliver("BN_CHAT_MSG_ADDON","OverlordF","R2:Forever_"..(pool or "global").."_H:BR:"..wire,nil,71)
     else
@@ -286,6 +286,23 @@ test("real BNet friend crosses factions only after actual request dispatch",func
     eq(requests,1);feed(e,{"z#1434",full()},nil,"BNET");yes(known(N));eq(known(N).faction,"Horde")
     N.BNet.peers=function() return {} end
     feed(e,{"z#1434",full(nil,22)},nil,"BNET");eq(N.Main.overlordFeed.sessions["birch scout"].known["enemy one"].total,21)
+end)
+
+test("NH while request waits in BNet queue preserves its answer",function()
+    local N=setup();N.Find.add(N.Main.find,"Enemy One")
+    N.BNet.who=function() return {name="Birch Scout",faction="Horde",realm="Test Realm"} end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true}} end
+    local requests=0;C_BattleNet.SendGameData=function(_,_,text)
+        if text:find("|HR|",1,true) then requests=requests+1 end
+        return true
+    end
+    local e=epoch(N,nil,nil,"BNET");H.advance(1);N.Main.overlordTick(H.clock())
+    local s=N.Main.overlordFeed.sessions["birch scout"]
+    yes(s);eq(s.asked,nil);eq(N.BNet.queued(),1,"HR waits after successful NH")
+    H.advance(0.5);hear("NH","2.5.4~ld~lr~lp6",nil,"BNET")
+    eq(N.Main.overlordPeer.routes["birch scout"].at,H.clock(),"NH really refreshed the route")
+    H.advance(0.5);eq(requests,1);eq(s.asked,H.clock(),"receipt uses dispatch time, not enqueue snapshot")
+    feed(e,{"z#1434",full()..":o2"},nil,"BNET");yes(known(N),"answer retained after refreshed NH")
 end)
 
 test("failed hello or failed request never grants a feed lease",function()
