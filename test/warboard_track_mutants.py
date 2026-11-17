@@ -117,12 +117,15 @@ MUTANTS.append(('M1 final queued handshake checks stand-down', [
     ('LayerEnemies/WarBoard.lua','or N.Adapters.loaded("WarBoard") then return false end','then return false end'),
     ('LayerEnemies/WarBoard.lua','and not N.Adapters.loaded("WarBoard") or false','or false'),
     ('LayerEnemies/BNet.lua','if A.loaded("WarBoard") then return false end','do end')], 'WarBoard debt: M1 queued handshakes'))
+debt('M1 donor-owned unsafe control is validated on resumption',
+     'peer.donorObserved=N.Adapters.loaded("WarBoard") or nil',
+     'peer.donorObserved=nil', 'M1 donor observes', 'LayerEnemies/WarBoard.lua')
 debt('M2 new H invalidates cleanup proof',
-     'if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end',
-     'if cmd=="H" then peer.needAnswer=true end', 'M2 latest safe H', 'LayerEnemies/WarBoard.lua')
+     'if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end\n        local debt',
+     'if cmd=="H" then peer.needAnswer=true end\n        local debt', 'M2 latest safe H', 'LayerEnemies/WarBoard.lua')
 debt('M2 unsafe H retained for later answer',
-     'peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true\n        end',
-     'do end\n        end', 'M2 share target reload', 'LayerEnemies/WarBoard.lua')
+     'if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end\n            peer.donorObserved',
+     'do end\n            peer.donorObserved', 'M2 share target reload', 'LayerEnemies/WarBoard.lua')
 debt('M2 FBUN requires latest handshake proof',
      'if cleanup and not T.ready(peer,ctx.now) then return nil end',
      'do end', 'M2 latest safe H')

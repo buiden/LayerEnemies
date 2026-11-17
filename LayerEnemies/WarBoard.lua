@@ -491,10 +491,11 @@ function W.bnet(st,text,id,ctx)
     if not ctx then
         -- No identity scans or sends while unsafe. Remember only a possible H
         -- from an already known account; revalidate its client identity when safe.
-        local rs,version,rv=text:match("^WBF1|H|5|([^|]+)|([^|]+)|(%d+)$")
+        local cmd,rs,version,rv=text:match("^WBF1|([HA])|5|([^|]+)|([^|]+)|(%d+)$")
         local peer=st.peers[id]
         if peer and rs==peer.rs and S.str(version,80) and #rv<=7 then
-            peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true
+            if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end
+            peer.donorObserved=N.Adapters.loaded("WarBoard") or nil
         end
         return false
     end
@@ -542,6 +543,17 @@ function W.addon(st,prefix,text,dist,sender,ctx)
 end
 function W.tick(st,ctx)
     local T=N.WarBoardTrack
+    if T and T.hasOwed() and ctx and not (st.high and ctx.now<st.high) and N.Adapters.loaded("WarBoard") then
+        -- Validate deferred donor-owned control observations only when safe;
+        -- no LE handshake or account scan was performed in combat/instances.
+        for id,peer in pairs(st.peers) do
+            local who=peer.donorObserved and T.owedAccount(id) and identity(id,ctx)
+            if who and peer.rs==ctx.rs and who.key==peer.key and who.faction==peer.faction then
+                peer.donorObserved=nil; peer.needAnswer=nil; peer.confirmed=true; peer.at=ctx.now
+                proof(st,peer,ctx.now)
+            end
+        end
+    end
     if T and T.hasOwed() and ctx and not (st.high and ctx.now<st.high) and not N.Adapters.loaded("WarBoard") then
         -- Only debt accounts may use the handshake exception, even with every
         -- normal send switch off. The usual H/A caps and shared budgets remain.
