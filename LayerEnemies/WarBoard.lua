@@ -1,5 +1,5 @@
 -- WarBoard Forever 1.6.3 protocol facts only; independent implementation.
--- No donor code, ledger, subscriptions, forwarding or SavedVariables. See THIRD_PARTY.md.
+-- No donor code, ledger, forwarding or SavedVariables. Tracking is in WarBoardTrack.lua.
 local _,N=...
 local W,S,BN,Src={},N.Safe,N.BNet,N.Sources
 N.WarBoard=W
@@ -65,7 +65,7 @@ local function input(st,key,ctx,channel)
     r.at=ctx.now; r.times[#r.times+1]=ctx.now
     return true
 end
--- The ONLY outbound grammar. The protocol/rules digits describe the wire, not
+-- The handshake outbound grammar (tracking owns FBAK/FBUN separately). The protocol/rules digits describe the wire, not
 -- WarBoard's identity or gameplay implementation. LE has no gameplay rules: 0.
 local function send(st,id,cmd,ctx)
     if cmd~="H" and cmd~="A" then return refuse() end
@@ -362,6 +362,7 @@ local function location(st,t,d,e,ctx,carrier,bridge,cached)
     else return false end
     ev.tag=t
     local accepted=Src.offer(ev)
+    if accepted and N.WarBoardTrack then N.WarBoardTrack.note(ev) end
     return accepted or nil,not accepted and not knownName(ev.name,ctx) and "untracked" or nil
 end
 local types={SHRD=true,FBLP=true,FREC=true,FBLC=true,FCBD=true}
@@ -441,6 +442,7 @@ local function payload(st,encoded,ctx,carrier,bridge,bnetFaction,account,channel
     return true
 end
 function W.bnet(st,text,id,ctx)
+    if N.WarBoardTrack and N.WarBoardTrack.closed then return false end
     if not ctx or S.secret(text) or type(text)~="string" or #text>4000 or #text<1 or not S.num(id) or id<1 or id%1~=0 then return refuse() end
     local who=identity(id,ctx)
     if not who or not input(st,"bn:"..id,ctx) then return refuse() end
@@ -453,7 +455,10 @@ function W.bnet(st,text,id,ctx)
             return false
         end
         if not st.peers[id] and slots(st.peers,ctx.now,1200)>=200 then return refuse() end
-        st.peers[id]={at=ctx.now,key=who.key,faction=who.faction,rs=rs}
+        local old=st.peers[id]
+        local confirmed=cmd=="A" or (old and old.confirmed and ctx.now>=old.at and ctx.now-old.at<1200
+            and old.key==who.key and old.rs==rs and old.faction==who.faction)
+        st.peers[id]={at=ctx.now,key=who.key,faction=who.faction,rs=rs,confirmed=confirmed}
         if cmd=="H" then send(st,id,"A",ctx) end
         return true
     end
@@ -475,6 +480,8 @@ function W.addon(st,prefix,text,dist,sender,ctx)
     return encoded and payload(st,encoded,ctx,sender,prefix=="WarBoardBN",nil,nil,dist=="CHANNEL") or false
 end
 function W.tick(st,ctx)
+    if N.WarBoardTrack and N.WarBoardTrack.closed then return end
+    if N.WarBoardTrack then N.WarBoardTrack.tick(st,ctx) end
     if not ctx or (st.high and ctx.now<st.high) then return end
     if recent(st.scan,ctx.now,60) then return end
     if not Src.enabled("warboard") or not N.Main.sharing() or not N.Net.allowed("warboard","public") then return end

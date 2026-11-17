@@ -2,13 +2,26 @@
 local h=...
 local eq,yes,no=h.eq,h.yes,h.no
 local active
+local function allowedFrame(N,id,text)
+    if text:match("^WBF1|[HA]|5|[^|]+|LayerEnemies/[^|]+|0$") then return true end
+    if text:sub(1,7)~="WBF1|D|" then return false end
+    local raw=N.Codec.addonDecode(text:sub(8)); local plain=raw and N.Codec.inflate(raw,4000)
+    local e=plain and N.Codec.aceRead(plain)
+    if not e or (e.t~="FBAK" and e.t~="FBUN") then return false end
+    local peer=N.WarBoard.state.peers[id]; local who=N.BNet.who(id,true)
+    local me=N.Adapters.warboardSelf(); local d=e.d
+    if not peer or not peer.confirmed or not who or not me or not d or who.guid~=d.targetGuid
+        or d.hunterGuid~=me.guid or d.hunterName~=me.name or d.hunterFaction~="Alliance" or d.faction~="Alliance"
+        or e.av~="LayerEnemies/1.1.0" or e.senderName~=me.name or e.rs~="pvp" or e.v~=5 then return false end
+    return e.t=="FBUN" or (N.WarBoardTrack.on and N.Find.tracked(N.Main.find,N.OpenMap.bnName(who.name,who.realm)))
+end
 local function checkSends()
     if not active then return end
     eq(active.badSend,0,"no forbidden attempt, even if protected callbacks swallowed it")
     for _,s in ipairs(h.sent()) do
         if s.prefix=="WarBoard" or s.prefix=="WarBoardBN" then
             eq(s.kind,"BN","WarBoard never uses addon/chat routes")
-            yes(s.text:match("^WBF1|[HA]|5|[^|]+|LayerEnemies/[^|]+|0$"),"every send is truthful H/A only; NEVER FBAK")
+            yes(allowedFrame(active,s.target,s.text),"truthful H/A or verified own-Find FBAK / scoped FBUN only")
         end
     end
 end
@@ -32,7 +45,7 @@ local function setup(name)
     local queued=N.BNet.send
     N.BNet.send=function(net,id,prefix,text,prio,still)
         if net=="warboard" or prefix=="WarBoard" or prefix=="WarBoardBN" then
-            if net~="warboard" or prefix~="WarBoard" or not text:match("^WBF1|[HA]|5|[^|]+|LayerEnemies/[^|]+|0$") then
+            if net~="warboard" or prefix~="WarBoard" or not allowedFrame(N,id,text) then
                 N.badSend=N.badSend+1
             end
         end
@@ -390,7 +403,7 @@ for _,mode in ipairs({"share","public","switch"}) do
     end)
 end
 
-test("no FBAK or request answer or forwarding for any application type",function()
+test("no unsolicited application response or forwarding; FBAK requires verified Find target",function()
     local N=setup("Enemy Player"); confirmed(N)
     for _,t in ipairs({"FBAK","FBUN","FCRQ","KSRQ","WBTP","WBTA","KSTR","FCON","FWDA","FBNT","FBCP","FBCW","FBCL","FBPR","MOVE"}) do
         data(N,t,position()); localData(N,t,position())

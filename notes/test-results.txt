@@ -1333,7 +1333,7 @@ PASS WarBoard: A dispatch cap survives a shared-budget delay and global queue ne
 PASS WarBoard: share off then on before timer cannot resurrect queued data
 PASS WarBoard: public off then on before timer cannot resurrect queued data
 PASS WarBoard: switch off then on before timer cannot resurrect queued data
-PASS WarBoard: no FBAK or request answer or forwarding for any application type
+PASS WarBoard: no unsolicited application response or forwarding; FBAK requires verified Find target
 PASS WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations
 PASS WarBoard: safe fields clocks and conversions fail closed, source input cannot change saved fields
 PASS WarBoard: relayed FBLP still carries target coordinates and different current zone labels
@@ -1410,4 +1410,49 @@ PASS WarBoard R2: untracked FBLC reopens immediately when the name is added
 PASS WarBoard R2: untracked FCBD reopens immediately when the name is added
 PASS WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch
 PASS WarBoard R2: overall window is rolling with exact expiry and rollback refusal
-RESULT: 1397 tests passed, 0 failed, 208973 assertions
+PASS WarBoard track: exact FBAK envelope targets a confirmed Find player's live GUID
+PASS WarBoard track: only own Find names, never Watch-only or untracked targets
+PASS WarBoard track: confirmed A only, not unconfirmed or hello-only, expired, mismatched peer
+PASS WarBoard track: missing secret malformed GUID and ambiguous account matches fail silent
+PASS WarBoard track: own identity and ruleset must be readable, never borrow a donor identity
+PASS WarBoard track: two admitted and attempted per rolling minute, twenty names fair and bounded
+PASS WarBoard track: per-name forty-five seconds at admission and actual dispatch survives removal and toggles
+PASS WarBoard track: fresh FBLP suppresses renewal, stale forty-five to three hundred renews only
+PASS WarBoard track: remove cancels queued requests synchronously, quick resume cannot revive
+PASS WarBoard track: remove stops active requests; cancellation respects privacy and safety
+PASS WarBoard track: clear cancels queued requests synchronously, quick resume cannot revive
+PASS WarBoard track: clear stops active requests; cancellation respects privacy and safety
+PASS WarBoard track: track cancels queued requests synchronously, quick resume cannot revive
+PASS WarBoard track: track stops active requests; cancellation respects privacy and safety
+PASS WarBoard track: share cancels queued requests synchronously, quick resume cannot revive
+PASS WarBoard track: share stops active requests; cancellation respects privacy and safety
+PASS WarBoard track: guild cancels queued requests synchronously, quick resume cannot revive
+PASS WarBoard track: guild stops active requests; cancellation respects privacy and safety
+PASS WarBoard track: source cancels queued requests synchronously, quick resume cannot revive
+PASS WarBoard track: source stops active requests; cancellation respects privacy and safety
+PASS WarBoard track: combat cancels queued requests synchronously, quick resume cannot revive
+PASS WarBoard track: combat stops active requests; cancellation respects privacy and safety
+PASS WarBoard track: instance cancels queued requests synchronously, quick resume cannot revive
+PASS WarBoard track: instance stops active requests; cancellation respects privacy and safety
+PASS WarBoard track: logout cancels queued requests synchronously, quick resume cannot revive
+PASS WarBoard track: logout stops active requests; cancellation respects privacy and safety
+PASS WarBoard track: dispatch rechecks name GUID faction ruleset tracking and ignored target
+PASS WarBoard track: saved boolean switch defaults on, status reports it, names never newly saved
+PASS WarBoard track: stand-down stops requests while owed answers still pass
+PASS WarBoard track: queue share leaves owed A first and H works beside tracking
+PASS WarBoard track: shared delay cannot burst two cohorts, queue share and failed attempts still charged
+PASS WarBoard track: positions use existing honest Find path with age, no new guild relay
+PASS WarBoard track: rollback never reopens request allowance
+PASS WarBoard track: share active quick off-on keeps the cancellation obligation
+PASS WarBoard track: guild active quick off-on keeps the cancellation obligation
+PASS WarBoard track: source active quick off-on keeps the cancellation obligation
+PASS WarBoard track: combat active quick off-on keeps the cancellation obligation
+PASS WarBoard track: instance active quick off-on keeps the cancellation obligation
+PASS WarBoard track: queued attempt forty-five-second admission bound survives unsent cancellation
+PASS WarBoard track: cleanup bounded to two per minute and twenty retained obligations
+PASS WarBoard track: missing own identity after enqueue drops request and client refusal spends caps
+PASS WarBoard track: confirmation cannot be revived by H after old A expired
+PASS WarBoard track: dispatch rollback after a later source tick stays silent
+PASS WarBoard track: tagged cancellation preserves another target and an owed answer
+PASS WarBoard track: README tracking send table precedes exact effect and cancellation limitation
+RESULT: 1442 tests passed, 0 failed, 212680 assertions

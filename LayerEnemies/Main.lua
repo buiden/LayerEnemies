@@ -2187,7 +2187,7 @@ function M.setFindNotice(on)
 end
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
-    if not on then N.OwnDeath.cancel(); N.BNet.cancel() end
+    if not on then N.OwnDeath.cancel(); N.BNet.cancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
     -- Off cancels all pending guild relays as well as our sync answers. Queued guild/own embassy lines
     -- are dropped by their still checks. A quick off/on must not revive the cancelled relay timers.
@@ -2221,6 +2221,11 @@ function M.setNet(key,on)
     if N.UI then N.UI.refresh() end
     return true
 end
+function M.warboardTrack(on)
+    LayerEnemiesDB.warboardTrack=on==true
+    N.WarBoardTrack.set(on)
+    M.say("WarBoard tracking: "..(on and "on" or "off").." (saved; /le warboard track on|off)")
+end
 function M.net(command)
     local rest=command:match("^net%s*(.-)%s*$") or ""
     if rest=="" then
@@ -2230,6 +2235,11 @@ function M.net(command)
         local s=M.overlord.stats
         M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused)
         for _,line in ipairs(N.Sources.lines()) do M.say(line) end
+        return
+    end
+    if rest=="warboard" then
+        for _,line in ipairs(N.Sources.lines()) do if line:match("^warboard:") then M.say(line) end end
+        M.say("WarBoard tracking: "..(N.WarBoardTrack.on and "on" or "off").." (saved; requests 2/min, name 45s; /le warboard track on|off)")
         return
     end
     if rest=="guild" or rest=="public" then M.setConsent(rest); return end
@@ -2322,6 +2332,8 @@ function M.start()
     LayerEnemiesDB.share=saved.share~=false
     LayerEnemiesDB.findShare=saved.findShare~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
+    LayerEnemiesDB.warboardTrack=saved.warboardTrack~=false
+    if N.WarBoardTrack then N.WarBoardTrack.set(LayerEnemiesDB.warboardTrack) end
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
     LayerEnemiesDB.call=saved.call~=false
     LayerEnemiesDB.callArt=saved.callArt~=false
@@ -2371,6 +2383,8 @@ function M.start()
         end
         if command=="find share on" or command=="find share off" then guarded(M.setFindShare,command=="find share on"); return end
         if command=="find notice on" or command=="find notice off" then guarded(M.setFindNotice,command=="find notice on"); return end
+        if words=="warboard track on" or words=="warboard track off" then guarded(M.warboardTrack,words=="warboard track on"); return end
+        if words=="warboard track" then M.say("/le warboard track on|off"); return end
         if command=="presence" then M.presenceStatus(); return end
         if command=="find" then M.track(nil); return end
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
@@ -2415,19 +2429,24 @@ local function dispatch(_,event,...)
     end
     if event=="PLAYER_LOGIN" then guarded(M.start); return end
     if not M.started then return end
-    if event=="PLAYER_LOGOUT" then guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
+    if event=="PLAYER_LOGOUT" then
+        if N.WarBoardTrack then N.WarBoardTrack.stop(true) end
+        guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
     elseif event=="CHAT_MSG_ADDON" then guarded(M.message,...)
     elseif event=="BN_CHAT_MSG_ADDON" then
         local prefix,text,channel,id=...
         if not S.secret(prefix) and prefix=="OpenMapLoc" then guarded(M.openmapBn,...)
         elseif not S.secret(channel) then guarded(N.Sources.bnet,prefix,text,id) end
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
-    elseif event=="PLAYER_REGEN_DISABLED" then guarded(M.hopAnyStop,"combat started")
+    elseif event=="PLAYER_REGEN_DISABLED" then
+        if N.WarBoardTrack then N.WarBoardTrack.stop() end
+        guarded(M.hopAnyStop,"combat started")
     elseif event=="PLAYER_DEAD" then N.OwnDeath.dead()
     elseif event=="PLAYER_ALIVE" or event=="PLAYER_UNGHOST" then N.OwnDeath.revived()
     elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then
         if event=="PLAYER_ENTERING_WORLD" then N.OwnDeath.seed(...) end
+        if N.WarBoardTrack and A.inInstance()~=false then N.WarBoardTrack.stop() end
         guarded(M.hopAnyStop,"world changed"); guarded(M.boundary,A.location()); M.queuePoll()
     elseif event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
         guarded(M.hopAnyStop,"zone changed")

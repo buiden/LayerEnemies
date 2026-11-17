@@ -72,7 +72,10 @@ function Src.tick(now)
     now=S.num(now)
     if not now or (last and now-last<1) then return end
     last=now
-    if N.Adapters.inCombat() or N.Adapters.inInstance()~=false then return end
+    if N.Adapters.inCombat() or N.Adapters.inInstance()~=false then
+        if N.WarBoardTrack then N.WarBoardTrack.stop() end
+        return
+    end
     for _,r in ipairs(order) do if Src.enabled(r.name) then call(r,"tick",now) end end
 end
 local function pulse()

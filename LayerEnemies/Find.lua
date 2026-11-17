@@ -89,6 +89,7 @@ function F.remove(st,raw)
         local changed=#st.names>0
         st.names={}; st.locations={}; st.alerts={}; st.places={}; st.presence={}; st.presenceAlerts={}
         if changed then F.rebuild(st) end
+        if N.WarBoardTrack then N.WarBoardTrack.changed(st) end
         return
     end
     local _,key=F.name(raw)
@@ -103,6 +104,7 @@ function F.remove(st,raw)
         end
     end
     if changed then F.rebuild(st) end
+    if N.WarBoardTrack then N.WarBoardTrack.changed(st) end
 end
 function F.hashes(name,home)
     local out={}

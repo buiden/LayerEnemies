@@ -112,24 +112,24 @@ schedule=function()
     timer=ok and result==true
     return timer
 end
-function BN.send(net,id,prefix,text,prio,still)
+function BN.send(net,id,prefix,text,prio,still,tag)
     if S.secret(prio) then return refuse(net) end
     if S.secret(still) or (still~=nil and type(still)~="function") then return refuse(net) end
     prio=prio==nil and "own" or prio
     if not BN.allowed(net,id,prefix,text,prio) or not BN.who(id) or #queue>=60 or not schedule() then return refuse(net) end
     serial=serial+1
-    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,still=still}
+    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,still=still,tag=tag}
     return true
 end
-function BN.cancel(net)
+function BN.cancel(net,tag)
     for i=#queue,1,-1 do
-        if not net or queue[i].net==net then refuse(queue[i].net); table.remove(queue,i) end
+        if (not net or queue[i].net==net) and (not tag or queue[i].tag==tag) then refuse(queue[i].net); table.remove(queue,i) end
     end
 end
 function BN.queued() return #queue end
 
-function BN.who(id)
+function BN.who(id,withGuid)
     if not safe() then return nil end
-    local r=A.bnGame(id)
-    if r then return {name=r.name,realm=r.realm,faction=r.faction} end
+    local r=A.bnGame(id,withGuid)
+    if r then return {name=r.name,realm=r.realm,faction=r.faction,guid=r.guid} end
 end

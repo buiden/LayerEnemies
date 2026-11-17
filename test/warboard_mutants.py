@@ -33,8 +33,8 @@ add('final source predicate honored', 'if q.still and S.call(q.still,now)~=true 
 add('share off silence', 'not N.Main.sharing()', 'false', 'share stops', 'BNet.lua')
 add('public off silence', 'not authorized or not N.Main.sharing() or N.Net.consent()~="public" or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"public")', 'not authorized or not N.Main.sharing() or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"guild")', 'public stops', 'BNet.lua')
 add('stand down own sends', 'standDown="WarBoard"', 'standDown="Uninstalled"', 'stand down')
-add('no FBAK send', 'local text="WBF1|"..cmd', 'local text="WBF1|FBAK"..cmd', 'compatible H')
-add('no forwarding', 'if st.seen[encoded] then return duplicate() end', 'BN.send("warboard",71,"WarBoard","WBF1|D|"..encoded,"own")\n    if st.seen[encoded] then return duplicate() end', 'no FBAK or request')
+add('handshake grammar cannot masquerade as FBAK', 'local text="WBF1|"..cmd', 'local text="WBF1|FBAK"..cmd', 'compatible H')
+add('no forwarding', 'if st.seen[encoded] then return duplicate() end', 'BN.send("warboard",71,"WarBoard","WBF1|D|"..encoded,"own")\n    if st.seen[encoded] then return duplicate() end', 'no unsolicited application response')
 add('no alternative send route', 'return BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'N.Wire.send("WarBoard",text,"GUILD")\n    return BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'compatible H')
 add('confirmed peer required', 'if not peer or peer.rs~=ctx.rs', 'peer=peer or {rs=ctx.rs,key=who.key,faction=who.faction,at=ctx.now}\n    if not peer or peer.rs~=ctx.rs', 'unconfirmed wrong')
 add('peer lifetime bounded', 'ctx.now-peer.at>=1200', 'ctx.now-peer.at>1200', 'unconfirmed wrong')
@@ -125,7 +125,7 @@ review('relayed position wording is not own position',
 review('matching addon subject is not authenticated BN self',
        'if e.t=="FBLP" and not bnetFaction then bridge=true end', 'do end', 'FBLP wording GUILD')
 review('README discloses new-peer publication',
-       'When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position.',
+       'When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user.',
        '', 'README explains', '../README.md')
 
 

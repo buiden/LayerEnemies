@@ -1,16 +1,66 @@
 # LayerEnemies
 
+## Unreleased - WarBoard tracking request
+
+| What LE sends | To whom | Strict limits |
+|---|---|---|
+| `WBF1\|D\|<encoded FBAK>` | Only a uniquely resolved player on **your own Find list**, directly to that player's live Battle.net account after a compatible WarBoard A handshake; client-verified player GUID required | **2 requests per rolling minute overall**, **one per player per 45 seconds**, checked at admission and actual attempt; at most 20 active/closing targets; no Watch-only targets, no relay fan-out |
+| `WBF1\|D\|<encoded FBUN>` | Only the same confirmed target for a tracking request LE actually attempted, when stopping it | **2 cancels per rolling minute**, under the same privacy/safety gates; one best-effort cancellation, no failed-send retry |
+| Existing `H` / owed `A` | Eligible opposite-faction peers, as in the handshake table below | Existing 600-second/account H gate and 6 A/minute unchanged; **A first** in the shared queue |
+| All four kinds | **Only `BN.send`**, prefix `WarBoard`; never guild, group, channel or ordinary whisper | **10 WarBoard attempts/minute**, **30 across all networks/minute**, **one per second**; failures spend budget |
+
+This asks the tracked player's WarBoard client to broadcast its position to WarBoard peers every 15 seconds, as a WarBoard hunter's client does.
+
+Tracking is **on by default**. `/le warboard track on|off` saves only a boolean
+setting, `warboardTrack`; `/le net warboard` shows its state and limits. No new
+names, target GUIDs, subscriptions or peer records are saved (the existing
+player-entered Find configuration is unchanged). Identity fields say
+`LayerEnemies/<our own version>`, alongside our real character name/GUID and
+faction, never the donor's addon identity. WarBoard is not required locally.
+
+A name alone is not enough: missing, secret, malformed or ambiguous live client
+identity is silent. Only your own list authorizes a request; guild Watch names
+remain receive-only. A received location uses the existing Find path: **the
+target's own position via WarBoard**, its age, or an explicitly relayed/approximate
+claim. It gains no Ask/Hop authority, sound, or new guild forwarding.
+
+WarBoard 1.6.3 saves subscribers **without an expiry**. Its wire cancellation is
+**FBUN** (no `targetName` field). It sends a position immediately after FBAK,
+again after two seconds for a new subscriber, then every 15 seconds while alive,
+outdoors and able to supply a position. LE does **not** repeat the donor's five
+six-second startup tries: it sends at most once/player/45 seconds, and only
+renews for a position stale **45–300 seconds**, or no position plus currently
+verified online target identity. Fresh positions do not need renewal. New
+eligible targets take precedence over renewals.
+
+Removing a Find name, turning tracking/share/public/WarBoard off, entering
+combat/an instance, or logout **immediately drops queued tracking requests**.
+Every queued dispatch rechecks the target, confirmation, Find membership,
+identity, switch, clocks and budgets. Loading WarBoard also stops requests.
+When safe and permitted, LE queues FBUN for already-attempted requests; otherwise
+it retains bounded **session-only** cleanup until those gates permit it. Cancel
+messages never bypass Share off, Guild only, source off, combat or instance rules.
+Logout clears state and queues without a forced flush. **A blocked, refused or
+undelivered cancel can leave the target broadcasting indefinitely**, including
+after logout: the donor has no automatic expiry and the wire provides no
+cancellation acknowledgement. LE cannot promise remote cancellation. No pending
+cleanup is restored after reload, and unresolved cleanup occupies one of the 20
+slots rather than allowing an unbounded trail of subscriptions.
+
+Implementation and assertion-migration evidence: [notes/warboard-track.md](notes/warboard-track.md).
+Native checks: **not run (alpha, owner's decision)**.
+
 ## Unreleased - WarBoard
 
 | What LE sends | To whom | Maximum frequency |
 |---|---|---|
 | `WBF1\|H\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | Eligible online opposite-faction WoW game accounts on the same realm and client project | At most 20 accounts selected per scan; scans at most once per 60 seconds; at most one H per account per 600 seconds, checked both when queued and when dispatched |
 | `WBF1\|A\|5\|<own ruleset>\|LayerEnemies/<own version>\|0` | An eligible account that sent a valid protocol-5 H (including a recognized, different ruleset, so it can reject us) | At most 6 A frames per rolling 60 seconds, at both admission and dispatch; A never answers A |
-| **Nothing else** | Nobody | No `FBAK`, subscription, tracking request, data send, packet forwarding, or ordinary-addon/chat send |
+| Tracking request/cancel | See the E2 send table above | FBAK/FBUN only under the tracking rules; still no forwarding or ordinary-addon/chat send |
 
-When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position.
+When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user.
 
-Both H and A use **only the shared Battle.net queue**: together at most 10
+H, A, FBAK and FBUN use **only the shared Battle.net queue**: together at most 10
 WarBoard send attempts/minute and at most **30 attempts/minute across all
 networks**, with at least one second between attempts. They stop with
 `/le share off`, public networks off (**Guild only**), the WarBoard source
@@ -19,8 +69,8 @@ and discovery; only owed A answers remain eligible, still under every privacy
 and rate gate. Queued frames
 recheck consent, current account eligibility, ruleset and their caps at dispatch;
 unknown rulesets are silent. The final `0` is LE's gameplay-rules version (LE
-implements none of WarBoard's scoring rules). Discovery does not request
-any location broadcast. Most players will therefore supply no position.
+implements none of WarBoard's scoring rules). Discovery itself does not request
+a location broadcast; the E2 tracking feature below the same privacy gates does.
 
 The independent WarBoard Forever **1.6.3** protocol reader accepts confirmed
 `WBF1|D|...` Battle.net traffic and bounded fragments, plus `WarBoard` and

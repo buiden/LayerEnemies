@@ -336,7 +336,7 @@ end)
 
 test("README explains the new-peer publication side effect below the send table",function()
     local f=assert(io.open("README.md")); local text=f:read("*a"); f:close()
-    local line="When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position."
+    local line="When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user."
     local at=text:find(line,1,true); yes(at,"owner-approved disclosure retained verbatim")
-    yes(at>assert(text:find("**Nothing else**",1,true))); yes(at<assert(text:find("Both H and A",1,true)))
+    yes(at>assert(text:find("| Tracking request/cancel |",1,true))); yes(at<assert(text:find("H, A, FBAK and FBUN use",1,true)))
 end)
