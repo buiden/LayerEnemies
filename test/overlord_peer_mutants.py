@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LUA = os.environ.get('LAYERENEMIES_LUA') or shutil.which('lua5.1') or shutil.which('lua') or '/opt/data/tools/lua/lua-5.1.5/src/lua'
 # rule, file, unique anchor, replacement, test selector
 MUTANTS = [
+ ('shared NH HA gap','OverlordPeer.lua','P.emit(st,c,"HA",body,route,target,"reply:"..key,150,true)','P.emit(st,c,"HA",body,route,target,"answer:"..key,150,true)','Overlord peer:'),
  ('donor loaded context silence','Main.lua','and ok==true and not A.inCombat()','and true and not A.inCombat()','Overlord peer:'),
  ('donor loaded BNet silence','BNet.lua','net~="overlord" and why=="stand down"','why=="stand down"','Overlord peer:'),
  ('donor loaded Wire silence','Wire.lua','if not ok then return nil, why end','if not ok and not (prefix=="OverlordF" and why=="stand down" and opts.prio=="owed") then return nil, why end','Overlord peer:'),
@@ -40,7 +41,7 @@ MUTANTS = [
  ('only direct replies','OverlordPeer.lua','if p.hops~=0 or p.target~=c.me','if p.target~=c.me','Overlord peer:'),
  ('only addressed replies','OverlordPeer.lua','p.hops~=0 or p.target~=c.me','p.hops~=0','Overlord peer:'),
  ('six owed admissions','OverlordPeer.lua','#st.owed>=6','#st.owed>=7','Overlord peer:'),
- ('150 second reply gap','OverlordPeer.lua','"reply:"..key,150,true','"reply:"..key,149,true','Overlord peer:'),
+ ('150 second reply gap','OverlordPeer.lua','P.emit(st,c,"NH",P.presence(c),route,target,"reply:"..key,150,true)','P.emit(st,c,"NH",P.presence(c),route,target,"reply:"..key,149,true)','Overlord peer:'),
  ('actual gap','OverlordPeer.lua','if not due(st.actual[job.key],c.now,job.gap) then','if false then','Overlord peer:'),
  ('actual owed cap','OverlordPeer.lua','#st.actualOwed>=6','#st.actualOwed>=7','Overlord peer:'),
  ('pool dispatch recheck','OverlordPeer.lua','or c.pool~=job.pool','or false','Overlord peer:'),

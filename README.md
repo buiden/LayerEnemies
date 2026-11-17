@@ -9,7 +9,7 @@
 | Own `NH` (`R2` + `BR`) | Up to five live Battle.net friends plus two rotating unheard friends | One cycle/120 s; once/120 s per account | Any stop below |
 | Owed targeted `NH` | Direct whisper sender addressing us | Once/150 s per peer; six owed answers/minute total | Any stop below |
 | Own targeted `NH` greeting | Read-only Overlord directory members | One/minute, six live partners; same candidate no sooner than 600 s | Any stop below |
-| Empty `HA S ... :0:0` for v8 `HR V`; `HA R` for unsupported page requests | Direct addressed whisper/Battle.net requester only | Once/150 s per peer, sharing the six owed answers/minute | Any stop below |
+| Empty `HA S ... :0:0` for v8 `HR V`; `HA R` for unsupported page requests | Direct addressed whisper/Battle.net requester only | One shared NH/HA 150 s gap per peer, sharing the six owed answers/minute | Any stop below |
 
 **All sends stop** with `/le share off`, Guild only (`/le net guild`),
 `/le net overlord off`, combat, instances, or an unreadable ruleset pool,

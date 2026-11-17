@@ -87,6 +87,24 @@ test("owed cap six per minute and 150 seconds per peer",function()
     for _,o in ipairs(c.out) do eq(o.prio,"owed");eq(o.route,"WHISPER");yes(o.text:find("|NH|LayerEnemies ",1,true)) end
 end)
 
+test("NH and HA share a per-peer gap at admission and dispatch",function()
+    for _,first in ipairs({"NH","HR"}) do
+        local N=setup();local P=N.OverlordPeer;local st=P.new();local c=ctx(N)
+        local jobs={};c.send=function(_,_,_,_,_,job) jobs[#jobs+1]=job;return true end
+        local p={origin="Birch Scout",target=c.me,hops=0,payload="2.5.4"}
+        local function recv(kind)
+            p.kind=kind;p.payload=kind=="NH" and "2.5.4" or "8:V:1699488000:123n4n5f:1:LK:0:0:H"
+            P.receive(st,p,kind=="NH" and "WHISPER" or "BNET",p.origin,71,c)
+        end
+        local other=first=="NH" and "HR" or "NH"
+        recv(first);eq(#jobs,1)
+        c.now=249;recv(other);eq(#jobs,1,"shared admission gap")
+        c.now=250;recv(other);eq(#jobs,2)
+        yes(P.claim(st,jobs[1],c));c.now=251;no(P.claim(st,jobs[2],c),"shared dispatch gap")
+        c.now=400;yes(P.claim(st,jobs[2],c));c.now=399;no(P.claim(st,jobs[1],c),"rollback")
+    end
+end)
+
 test("guild alone 600 group 120 and heard guild 120",function()
     local N=setup();local P=N.OverlordPeer;local st=P.new();local c=ctx(N)
     P.tick(st,c);eq(#c.out,2)

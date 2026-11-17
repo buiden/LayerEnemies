@@ -93,7 +93,7 @@ function P.receive(st,p,route,sender,id,c)
         if op=="F" then return r end
         local body=table.concat({v,empty and "S" or "R",e,nonce,seq},":")
         if empty then body=body..":"..stream..":0:0" end
-        P.emit(st,c,"HA",body,route,target,"answer:"..key,150,true)
+        P.emit(st,c,"HA",body,route,target,"reply:"..key,150,true)
     end
     -- SR: an empty map has zero pages in 2.5.4; no invented empty-map opcode.
     return r
