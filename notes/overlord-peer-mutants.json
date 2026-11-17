@@ -1,56 +1,113 @@
 [
   {
     "failures": [
-      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:261: not equal: expected false, got nil"
+      "FAIL Overlord peer: directory greeting rotates through forty unanswered members: test/harness.lua:8: round robin before any repeat: expected false, got true"
+    ],
+    "killed": true,
+    "rule": "round robin directory"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: refused greeting does not spend candidate or global cooldown: test/src_overlord_peer.lua:181: not equal: expected nil, got 10",
+      "FAIL Overlord peer: queue refusal spends no peer cooldown but client attempts do: test/src_overlord_peer.lua:192: not equal: expected nil, got 100"
+    ],
+    "killed": true,
+    "rule": "refused admission is uncharged"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: refused greeting does not spend candidate or global cooldown: test/src_overlord_peer.lua:182: not equal: expected nil, got 10"
+    ],
+    "killed": true,
+    "rule": "refused greeting global gap"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: refused greeting does not spend candidate or global cooldown: test/src_overlord_peer.lua:181: not equal: expected nil, got 10"
+    ],
+    "killed": true,
+    "rule": "Wire refusal actual gap"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: NH and HA share a per-peer gap at admission and dispatch: test/src_overlord_peer.lua:101: shared admission gap: expected 1, got 2"
+    ],
+    "killed": true,
+    "rule": "shared NH HA gap"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: donor loading cancels queued owed answers and gateway bypass: test/harness.lua:8: no owed exemption in context: expected false, got true"
+    ],
+    "killed": true,
+    "rule": "donor loaded context silence"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: donor loading cancels queued owed answers and gateway bypass: test/harness.lua:8: no owed exemption in queue: expected false, got true"
+    ],
+    "killed": true,
+    "rule": "donor loaded BNet silence"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: donor loading cancels queued owed answers and gateway bypass: test/harness.lua:8: Wire refuses forged context: expected false, got true"
+    ],
+    "killed": true,
+    "rule": "donor loaded Wire silence"
+  },
+  {
+    "failures": [
+      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:351: not equal: expected false, got nil"
     ],
     "killed": true,
     "rule": "24 parts"
   },
   {
     "failures": [
-      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:264: 3601 bytes refused: expected false, got bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:354: 3601 bytes refused: expected false, got bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "killed": true,
     "rule": "3600 bytes"
   },
   {
     "failures": [
-      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:268: 120 seconds total expires even with new parts: expected 1, got 7"
+      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:358: 120 seconds total expires even with new parts: expected 1, got 7"
     ],
     "killed": true,
     "rule": "total assembly lifetime"
   },
   {
     "failures": [
-      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:272: duplicates do not refresh idle: expected 1, got 2"
+      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:362: duplicates do not refresh idle: expected 1, got 2"
     ],
     "killed": true,
     "rule": "idle assembly lifetime"
   },
   {
     "failures": [
-      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:272: duplicates do not refresh idle: expected 1, got 2"
+      "FAIL Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime: test/src_overlord_peer.lua:362: duplicates do not refresh idle: expected 1, got 2"
     ],
     "killed": true,
     "rule": "duplicate idle refresh"
   },
   {
     "failures": [
-      "FAIL Overlord peer: per sender assembly cap and guild reserve: test/src_overlord_peer.lua:278: not equal: expected false, got nil"
+      "FAIL Overlord peer: per sender assembly cap and guild reserve: test/src_overlord_peer.lua:368: not equal: expected false, got nil"
     ],
     "killed": true,
     "rule": "four streams per sender"
   },
   {
     "failures": [
-      "FAIL Overlord peer: global assembly bytes and all 64 slots preserve guild room: test/src_overlord_peer.lua:219: not equal: expected false, got nil"
+      "FAIL Overlord peer: global assembly bytes and all 64 slots preserve guild room: test/src_overlord_peer.lua:309: not equal: expected false, got nil"
     ],
     "killed": true,
     "rule": "64 streams overall"
   },
   {
     "failures": [
-      "FAIL Overlord peer: per sender assembly cap and guild reserve: test/src_overlord_peer.lua:280: not equal: expected 48, got 49"
+      "FAIL Overlord peer: per sender assembly cap and guild reserve: test/src_overlord_peer.lua:370: not equal: expected 48, got 49"
     ],
     "killed": true,
     "rule": "guild stream reserve"
@@ -120,7 +177,7 @@
   },
   {
     "failures": [
-      "FAIL Overlord peer: path target loop and malformed assemblies never learn routes: test/src_overlord_peer.lua:195: not equal: expected nil, got alice vale"
+      "FAIL Overlord peer: path target loop and malformed assemblies never learn routes: test/src_overlord_peer.lua:285: not equal: expected nil, got alice vale"
     ],
     "killed": true,
     "rule": "path loop"
@@ -128,16 +185,16 @@
   {
     "failures": [
       "FAIL Overlord peer: real whisper owes one truthful reply; no forwarding or bypass: test/src_overlord_peer.lua:52: not equal: expected 1, got 0",
-      "FAIL Overlord peer: stand down suppresses own presence but permits owed NH: test/src_overlord_peer.lua:186: not equal: expected 1, got 0",
+      "FAIL Overlord peer: donor loaded blocks every send but retains incoming evidence: test/src_overlord_peer.lua:258: stand-down still receives: expected 1, got 0",
       "FAIL Overlord peer: path target loop and malformed assemblies never learn routes: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL Overlord peer: whisper and R2 battle net receive GW; foreign band silent: test/src_overlord_peer.lua:287: whisper received: expected 1, got 0"
+      "FAIL Overlord peer: whisper and R2 battle net receive GW; foreign band silent: test/src_overlord_peer.lua:377: whisper received: expected 1, got 0"
     ],
     "killed": true,
     "rule": "whisper reception"
   },
   {
     "failures": [
-      "FAIL Overlord peer: whisper and R2 battle net receive GW; foreign band silent: test/src_overlord_peer.lua:290: not equal: expected 0, got 1"
+      "FAIL Overlord peer: whisper and R2 battle net receive GW; foreign band silent: test/src_overlord_peer.lua:380: not equal: expected 0, got 1"
     ],
     "killed": true,
     "rule": "R2 pool isolation"
@@ -155,15 +212,16 @@
     "failures": [
       "FAIL Overlord peer: real whisper owes one truthful reply; no forwarding or bypass: test/src_overlord_peer.lua:52: not equal: expected 1, got 0",
       "FAIL Overlord peer: owed cap six per minute and 150 seconds per peer: test/src_overlord_peer.lua:82: not equal: expected 6, got 13",
-      "FAIL Overlord peer: guild alone 600 group 120 and heard guild 120: test/src_overlord_peer.lua:98: not equal: expected 4, got 5",
-      "FAIL Overlord peer: five live bridges two unheard friends per 120 second cycle: test/src_overlord_peer.lua:109: not equal: expected 7, got 13",
-      "FAIL Overlord peer: whisper greeting once a minute stops at six partners: test/src_overlord_peer.lua:134: not equal: expected 1, got 2",
-      "FAIL Overlord peer: truthful empty V answer busy unsupported request and no invented map: test/src_overlord_peer.lua:142: not equal: expected 1, got 2",
-      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: test/src_overlord_peer.lua:173: owed admissions capped before queue: read=9 refused=9 routes=0 own=Alice Vale wall=720100: expected 6, got 0",
-      "FAIL Overlord peer: stand down suppresses own presence but permits owed NH: test/src_overlord_peer.lua:186: not equal: expected 1, got 0",
+      "FAIL Overlord peer: guild alone 600 group 120 and heard guild 120: test/src_overlord_peer.lua:116: not equal: expected 4, got 5",
+      "FAIL Overlord peer: five live bridges two unheard friends per 120 second cycle: test/src_overlord_peer.lua:127: not equal: expected 7, got 13",
+      "FAIL Overlord peer: whisper greeting once a minute stops at six partners: test/src_overlord_peer.lua:152: not equal: expected 1, got 2",
+      "FAIL Overlord peer: truthful empty V answer busy unsupported request and no invented map: test/src_overlord_peer.lua:201: not equal: expected 1, got 2",
+      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: test/src_overlord_peer.lua:232: owed admissions capped before queue: read=9 refused=9 routes=0 own=Alice Vale wall=720100: expected 6, got 0",
+      "FAIL Overlord peer: donor loaded blocks every send but retains incoming evidence: test/src_overlord_peer.lua:258: stand-down still receives: expected 1, got 0",
+      "FAIL Overlord peer: donor loading cancels queued owed answers and gateway bypass: test/src_overlord_peer.lua:267: not equal: expected 1, got 0",
       "FAIL Overlord peer: path target loop and malformed assemblies never learn routes: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL Overlord peer: whisper and R2 battle net receive GW; foreign band silent: test/src_overlord_peer.lua:287: whisper received: expected 1, got 0",
-      "FAIL Overlord peer: pure peer announces own truthful identity and answers targeted NH: test/src_overlord_peer.lua:300: not equal: expected 3, got 4"
+      "FAIL Overlord peer: whisper and R2 battle net receive GW; foreign band silent: test/src_overlord_peer.lua:377: whisper received: expected 1, got 0",
+      "FAIL Overlord peer: pure peer announces own truthful identity and answers targeted NH: test/src_overlord_peer.lua:390: not equal: expected 3, got 4"
     ],
     "killed": true,
     "rule": "no forwarding"
@@ -177,7 +235,7 @@
   },
   {
     "failures": [
-      "FAIL Overlord peer: whisper greeting once a minute stops at six partners: test/src_overlord_peer.lua:134: not equal: expected 1, got 2"
+      "FAIL Overlord peer: whisper greeting once a minute stops at six partners: test/src_overlord_peer.lua:152: not equal: expected 1, got 2"
     ],
     "killed": true,
     "rule": "only addressed replies"
@@ -185,20 +243,22 @@
   {
     "failures": [
       "FAIL Overlord peer: owed cap six per minute and 150 seconds per peer: test/src_overlord_peer.lua:82: not equal: expected 6, got 7",
-      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: test/src_overlord_peer.lua:173: owed admissions capped before queue: read=9 refused=0 routes=9 own=Alice Vale wall=720100: expected 6, got 7"
+      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: test/src_overlord_peer.lua:232: owed admissions capped before queue: read=9 refused=0 routes=9 own=Alice Vale wall=720100: expected 6, got 7"
     ],
     "killed": true,
     "rule": "six owed admissions"
   },
   {
     "failures": [
-      "FAIL Overlord peer: owed cap six per minute and 150 seconds per peer: test/src_overlord_peer.lua:84: not equal: expected 6, got 7"
+      "FAIL Overlord peer: owed cap six per minute and 150 seconds per peer: test/src_overlord_peer.lua:84: not equal: expected 6, got 7",
+      "FAIL Overlord peer: NH and HA share a per-peer gap at admission and dispatch: test/src_overlord_peer.lua:101: shared admission gap: expected 1, got 2"
     ],
     "killed": true,
     "rule": "150 second reply gap"
   },
   {
     "failures": [
+      "FAIL Overlord peer: NH and HA share a per-peer gap at admission and dispatch: test/harness.lua:8: shared dispatch gap: expected false, got true",
       "FAIL Overlord peer: claim dispatch stamps actual gap cap and changed pool: test/harness.lua:8: not equal: expected false, got true"
     ],
     "killed": true,
@@ -214,63 +274,64 @@
   {
     "failures": [
       "FAIL Overlord peer: claim dispatch stamps actual gap cap and changed pool: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: test/src_overlord_peer.lua:180: pool change cancels at actual dispatch: expected 6, got 7"
+      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: test/src_overlord_peer.lua:239: pool change cancels at actual dispatch: expected 6, got 7"
     ],
     "killed": true,
     "rule": "pool dispatch recheck"
   },
   {
     "failures": [
-      "FAIL Overlord peer: guild alone 600 group 120 and heard guild 120: test/src_overlord_peer.lua:95: not equal: expected 3, got 4"
+      "FAIL Overlord peer: guild alone 600 group 120 and heard guild 120: test/src_overlord_peer.lua:113: not equal: expected 3, got 4"
     ],
     "killed": true,
     "rule": "alone guild interval"
   },
   {
     "failures": [
-      "FAIL Overlord peer: guild alone 600 group 120 and heard guild 120: test/src_overlord_peer.lua:98: not equal: expected 4, got 5"
+      "FAIL Overlord peer: guild alone 600 group 120 and heard guild 120: test/src_overlord_peer.lua:116: not equal: expected 4, got 5"
     ],
     "killed": true,
     "rule": "heard guild interval"
   },
   {
     "failures": [
-      "FAIL Overlord peer: guild alone 600 group 120 and heard guild 120: test/src_overlord_peer.lua:93: not equal: expected 2, got 3"
+      "FAIL Overlord peer: guild alone 600 group 120 and heard guild 120: test/src_overlord_peer.lua:111: not equal: expected 2, got 3"
     ],
     "killed": true,
     "rule": "group interval"
   },
   {
     "failures": [
-      "FAIL Overlord peer: five live bridges two unheard friends per 120 second cycle: test/src_overlord_peer.lua:109: not equal: expected 7, got 8"
+      "FAIL Overlord peer: five live bridges two unheard friends per 120 second cycle: test/src_overlord_peer.lua:127: not equal: expected 7, got 8"
     ],
     "killed": true,
     "rule": "five bridges"
   },
   {
     "failures": [
-      "FAIL Overlord peer: five live bridges two unheard friends per 120 second cycle: test/src_overlord_peer.lua:109: not equal: expected 7, got 8"
+      "FAIL Overlord peer: five live bridges two unheard friends per 120 second cycle: test/src_overlord_peer.lua:127: not equal: expected 7, got 8"
     ],
     "killed": true,
     "rule": "two probes"
   },
   {
     "failures": [
-      "FAIL Overlord peer: club-only accounts and disallowed pure contexts stay silent: test/src_overlord_peer.lua:118: not equal: expected 0, got 1"
+      "FAIL Overlord peer: club-only accounts and disallowed pure contexts stay silent: test/src_overlord_peer.lua:136: not equal: expected 0, got 1"
     ],
     "killed": true,
     "rule": "friends only"
   },
   {
     "failures": [
-      "FAIL Overlord peer: whisper greeting once a minute stops at six partners: test/src_overlord_peer.lua:134: not equal: expected 1, got 2"
+      "FAIL Overlord peer: whisper greeting once a minute stops at six partners: test/src_overlord_peer.lua:152: not equal: expected 1, got 2",
+      "FAIL Overlord peer: directory greeting rotates through forty unanswered members: test/src_overlord_peer.lua:167: minute cap: expected 1, got 2"
     ],
     "killed": true,
     "rule": "greeting cadence"
   },
   {
     "failures": [
-      "FAIL Overlord peer: whisper greeting once a minute stops at six partners: test/src_overlord_peer.lua:136: not equal: expected 6, got 7"
+      "FAIL Overlord peer: whisper greeting once a minute stops at six partners: test/src_overlord_peer.lua:154: not equal: expected 6, got 7"
     ],
     "killed": true,
     "rule": "six partners"
@@ -284,21 +345,21 @@
   },
   {
     "failures": [
-      "FAIL Overlord peer: route ring reserves guild and expires at 300 seconds: test/src_overlord_peer.lua:210: not equal: expected 128, got 129"
+      "FAIL Overlord peer: route ring reserves guild and expires at 300 seconds: test/src_overlord_peer.lua:300: not equal: expected 128, got 129"
     ],
     "killed": true,
     "rule": "route ceiling"
   },
   {
     "failures": [
-      "FAIL Overlord peer: route ring reserves guild and expires at 300 seconds: test/src_overlord_peer.lua:205: not equal: expected 96, got 97"
+      "FAIL Overlord peer: route ring reserves guild and expires at 300 seconds: test/src_overlord_peer.lua:295: not equal: expected 96, got 97"
     ],
     "killed": true,
     "rule": "route guild reserve"
   },
   {
     "failures": [
-      "FAIL Overlord peer: route ring reserves guild and expires at 300 seconds: test/src_overlord_peer.lua:211: not equal: expected nil, got w scout"
+      "FAIL Overlord peer: route ring reserves guild and expires at 300 seconds: test/src_overlord_peer.lua:301: not equal: expected nil, got w scout"
     ],
     "killed": true,
     "rule": "route expiry"
@@ -319,7 +380,7 @@
   },
   {
     "failures": [
-      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: test/src_overlord_peer.lua:180: pool change cancels at actual dispatch: expected 6, got 7"
+      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: test/src_overlord_peer.lua:239: pool change cancels at actual dispatch: expected 6, got 7"
     ],
     "killed": true,
     "rule": "queue guard"

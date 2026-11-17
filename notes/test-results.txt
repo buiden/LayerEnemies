@@ -1412,14 +1412,19 @@ PASS Overlord peer: all sends silent with pool
 PASS Overlord peer: all sends silent with version
 PASS Overlord peer: all sends silent with identity
 PASS Overlord peer: owed cap six per minute and 150 seconds per peer
+PASS Overlord peer: NH and HA share a per-peer gap at admission and dispatch
 PASS Overlord peer: guild alone 600 group 120 and heard guild 120
 PASS Overlord peer: five live bridges two unheard friends per 120 second cycle
 PASS Overlord peer: club-only accounts and disallowed pure contexts stay silent
 PASS Overlord peer: whisper greeting once a minute stops at six partners
+PASS Overlord peer: directory greeting rotates through forty unanswered members
+PASS Overlord peer: refused greeting does not spend candidate or global cooldown
+PASS Overlord peer: queue refusal spends no peer cooldown but client attempts do
 PASS Overlord peer: truthful empty V answer busy unsupported request and no invented map
 PASS Overlord peer: claim dispatch stamps actual gap cap and changed pool
 PASS Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard
-PASS Overlord peer: stand down suppresses own presence but permits owed NH
+PASS Overlord peer: donor loaded blocks every send but retains incoming evidence
+PASS Overlord peer: donor loading cancels queued owed answers and gateway bypass
 PASS Overlord peer: path target loop and malformed assemblies never learn routes
 PASS Overlord peer: route ring reserves guild and expires at 300 seconds
 PASS Overlord peer: global assembly bytes and all 64 slots preserve guild room
@@ -1476,4 +1481,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1478 tests passed, 0 failed, 268621 assertions
+RESULT: 1483 tests passed, 0 failed, 269081 assertions
