@@ -3,28 +3,28 @@
     "rule": "exact protocol",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:262: not equal: expected nil, got table: 0x6171f516da80"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:383: not equal: expected nil, got table: 0x58187d4827d0"
     ]
   },
   {
     "rule": "HELLO only",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:262: not equal: expected nil, got table: 0x5dcddf4ee5c0"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:383: not equal: expected nil, got table: 0x5c07c9caee40"
     ]
   },
   {
     "rule": "six required fields",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:262: not equal: expected nil, got table: 0x56e033b38110"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:383: not equal: expected nil, got table: 0x57d249e795f0"
     ]
   },
   {
     "rule": "no trailing field",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:262: not equal: expected nil, got table: 0x5b09d6f83fb0"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:383: not equal: expected nil, got table: 0x5def4e560b10"
     ]
   },
   {
@@ -38,21 +38,21 @@
     "rule": "255 bytes",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:274: not equal: expected nil, got table: 0x64b5e602b730"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:395: not equal: expected nil, got table: 0x594eceac7790"
     ]
   },
   {
     "rule": "multipart controls ignored",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:270: not equal: expected nil, got table: 0x5ff86b514f20"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:391: not equal: expected nil, got table: 0x5e9a68db9d40"
     ]
   },
   {
     "rule": "no embedded controls",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:270: not equal: expected nil, got table: 0x642875bc2990"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:391: not equal: expected nil, got table: 0x5cc9cbf26c30"
     ]
   },
   {
@@ -60,57 +60,60 @@
     "killed": true,
     "failures": [
       "FAIL ChehulNet: Friendly hints have no Ask and never become hop candidates: test/harness.lua:7: other-layer hint appears: expected true, got false",
-      "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/src_chehulnet.lua:157: attempt to index field 'chehulText' (a nil value)",
+      "FAIL ChehulNet: hints never inflate the Friendly tab count: test/src_chehulnet.lua:161: not equal: expected 140, got 0",
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/harness.lua:7: every host and hint reachable: expected true, got false",
+      "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/src_chehulnet.lua:245: attempt to index field 'chehulText' (a nil value)",
       "FAIL ChehulNet: layer command counts distinct current-map UIDs and names our peers: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:220: not equal: expected other, got nil",
-      "FAIL ChehulNet: display context errors and missing clock cannot assert a relation: test/src_chehulnet.lua:242: not equal: expected other, got nil",
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:248: not equal: expected 100, got nil"
+      "FAIL ChehulNet: layer command caps same-layer names at eight with exact overflow: test/src_chehulnet.lua:302: at most eight peer lines: expected 1, got 0",
+      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:341: not equal: expected other, got nil",
+      "FAIL ChehulNet: display context errors and missing clock cannot assert a relation: test/src_chehulnet.lua:363: not equal: expected other, got nil",
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:369: not equal: expected 100, got nil"
     ]
   },
   {
     "rule": "positive fields",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: comparisons are map scoped confirmed and never server keys: test/src_chehulnet.lua:115: not equal: expected nil, got 0",
+      "FAIL ChehulNet: comparisons require own readings and never use server keys: test/src_chehulnet.lua:115: not equal: expected nil, got 0",
       "FAIL ChehulNet: 5000 deterministic fuzz inputs are bounded and silent: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:251: not equal: expected nil, got 0"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:372: not equal: expected nil, got 0"
     ]
   },
   {
     "rule": "upper numeric limits",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: comparisons are map scoped confirmed and never server keys: test/src_chehulnet.lua:115: not equal: expected nil, got 100000000",
+      "FAIL ChehulNet: comparisons require own readings and never use server keys: test/src_chehulnet.lua:115: not equal: expected nil, got 100000000",
       "FAIL ChehulNet: 5000 deterministic fuzz inputs are bounded and silent: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:251: not equal: expected nil, got 100000000"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:372: not equal: expected nil, got 100000000"
     ]
   },
   {
     "rule": "whole numeric fields",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: comparisons are map scoped confirmed and never server keys: test/src_chehulnet.lua:115: not equal: expected nil, got 1.5"
+      "FAIL ChehulNet: comparisons require own readings and never use server keys: test/src_chehulnet.lua:115: not equal: expected nil, got 1.5"
     ]
   },
   {
     "rule": "decimal grammar",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:255: not equal: expected nil, got 100"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:376: not equal: expected nil, got 100"
     ]
   },
   {
     "rule": "known class or unknown",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:259: not equal: expected nil, got fake"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:380: not equal: expected nil, got fake"
     ]
   },
   {
     "rule": "text secret refusal",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:269: a readable scalar marked secret must be refused by the parser itself: expected nil, got table: 0x584787c1cfc0"
+      "FAIL ChehulNet: exact HELLO grammar and optional layer: test/src_chehulnet.lua:390: a readable scalar marked secret must be refused by the parser itself: expected nil, got table: 0x633219231ff0"
     ]
   },
   {
@@ -155,8 +158,9 @@
     "killed": true,
     "failures": [
       "FAIL ChehulNet: expiry rollback replacement and oldest eviction are bounded: test/src_chehulnet.lua:122: not equal: expected 0, got 1",
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/harness.lua:8: not equal: expected false, got true",
       "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:231: not equal: expected nil, got ChehulNet: layer differs, confirmed (received 400 s ago; time unknown)"
+      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:352: not equal: expected nil, got ChehulNet: other layer (ChehulNet claim) (received 400 s ago; time unknown)"
     ]
   },
   {
@@ -165,8 +169,9 @@
     "failures": [
       "FAIL ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks: test/src_chehulnet.lua:69: not equal: expected 0, got 2",
       "FAIL ChehulNet: expiry rollback replacement and oldest eviction are bounded: test/src_chehulnet.lua:122: not equal: expected 0, got 1",
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/harness.lua:8: not equal: expected false, got true",
       "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:231: not equal: expected nil, got ChehulNet: layer differs, confirmed (received 400 s ago; time unknown)"
+      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:352: not equal: expected nil, got ChehulNet: other layer (ChehulNet claim) (received 400 s ago; time unknown)"
     ]
   },
   {
@@ -195,7 +200,7 @@
     "rule": "same-map comparison",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: comparisons are map scoped confirmed and never server keys: test/src_chehulnet.lua:105: not equal: expected nil, got same",
+      "FAIL ChehulNet: comparisons require own readings and never use server keys: test/src_chehulnet.lua:105: not equal: expected nil, got same",
       "FAIL ChehulNet: Friendly hints have no Ask and never become hop candidates: test/src_chehulnet.lua:141: not equal: expected Cedar Vale, got Away Peer"
     ]
   },
@@ -203,32 +208,32 @@
     "rule": "own UID required",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: comparisons are map scoped confirmed and never server keys: test/src_chehulnet.lua:107: not equal: expected nil, got other",
+      "FAIL ChehulNet: comparisons require own readings and never use server keys: test/src_chehulnet.lua:107: not equal: expected nil, got other",
       "FAIL ChehulNet: Friendly hints have no Ask and never become hop candidates: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:225: do not reuse another zone's own UID: expected nil, got other"
+      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:346: do not reuse another zone's own UID: expected nil, got other"
     ]
   },
   {
     "rule": "ambiguity withholds relation",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: comparisons are map scoped confirmed and never server keys: test/src_chehulnet.lua:107: not equal: expected nil, got other",
+      "FAIL ChehulNet: comparisons require own readings and never use server keys: test/src_chehulnet.lua:107: not equal: expected nil, got other",
       "FAIL ChehulNet: Friendly hints have no Ask and never become hop candidates: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL ChehulNet: display context errors and missing clock cannot assert a relation: test/src_chehulnet.lua:237: not equal: expected nil, got other"
+      "FAIL ChehulNet: display context errors and missing clock cannot assert a relation: test/src_chehulnet.lua:358: not equal: expected nil, got other"
     ]
   },
   {
     "rule": "live-map safety",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:225: do not reuse another zone's own UID: expected nil, got other"
+      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:346: do not reuse another zone's own UID: expected nil, got other"
     ]
   },
   {
     "rule": "clock required for comparison",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: display context errors and missing clock cannot assert a relation: test/src_chehulnet.lua:237: not equal: expected nil, got other"
+      "FAIL ChehulNet: display context errors and missing clock cannot assert a relation: test/src_chehulnet.lua:358: not equal: expected nil, got other"
     ]
   },
   {
@@ -272,10 +277,12 @@
     "failures": [
       "FAIL ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks: test/src_chehulnet.lua:66: not equal: expected 7, got 7086",
       "FAIL ChehulNet: Friendly hints have no Ask and never become hop candidates: test/harness.lua:7: other-layer hint appears: expected true, got false",
-      "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/src_chehulnet.lua:157: attempt to index field 'chehulText' (a nil value)",
+      "FAIL ChehulNet: hints never inflate the Friendly tab count: test/src_chehulnet.lua:161: not equal: expected 140, got 0",
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/harness.lua:7: every host and hint reachable: expected true, got false",
+      "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/src_chehulnet.lua:245: attempt to index field 'chehulText' (a nil value)",
       "FAIL ChehulNet: layer command counts distinct current-map UIDs and names our peers: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:220: not equal: expected other, got same",
-      "FAIL ChehulNet: display context errors and missing clock cannot assert a relation: test/src_chehulnet.lua:242: not equal: expected other, got same"
+      "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: test/src_chehulnet.lua:341: not equal: expected other, got same",
+      "FAIL ChehulNet: display context errors and missing clock cannot assert a relation: test/src_chehulnet.lua:363: not equal: expected other, got same"
     ]
   },
   {
@@ -293,8 +300,10 @@
       "FAIL ChehulNet: unreadable foreign values and live context fail silent: forbidden API reached 1 time(s)",
       "FAIL ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks: test/src_chehulnet.lua:65: not equal: expected 0, got 6",
       "FAIL ChehulNet: Friendly hints have no Ask and never become hop candidates: forbidden API reached 4 time(s)",
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: forbidden API reached 12 time(s)",
       "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: forbidden API reached 1 time(s)",
       "FAIL ChehulNet: layer command counts distinct current-map UIDs and names our peers: forbidden API reached 5 time(s)",
+      "FAIL ChehulNet: layer command caps same-layer names at eight with exact overflow: forbidden API reached 200 time(s)",
       "FAIL ChehulNet: 5000 deterministic fuzz inputs are bounded and silent: forbidden API reached 1666 time(s)",
       "FAIL ChehulNet: live map changes withhold comparison and UI rows expire independently: forbidden API reached 1 time(s)",
       "FAIL ChehulNet: display context errors and missing clock cannot assert a relation: forbidden API reached 1 time(s)"
@@ -329,7 +338,7 @@
     ]
   },
   {
-    "rule": "host annotation",
+    "rule": "HELLO wording is a claim",
     "killed": true,
     "failures": [
       "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/harness.lua:7: not equal: expected true, got false"
@@ -339,14 +348,15 @@
     "rule": "preserve host capabilities",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/src_chehulnet.lua:156: not equal: expected nil, got 8"
+      "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/src_chehulnet.lua:244: not equal: expected nil, got 8"
     ]
   },
   {
     "rule": "no hint Ask",
     "killed": true,
     "failures": [
-      "FAIL ChehulNet: Friendly hints have no Ask and never become hop candidates: test/harness.lua:8: not equal: expected false, got true"
+      "FAIL ChehulNet: Friendly hints have no Ask and never become hop candidates: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/harness.lua:8: not equal: expected false, got true"
     ]
   },
   {
@@ -360,6 +370,7 @@
     "rule": "measure real text height",
     "killed": true,
     "failures": [
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/harness.lua:7: hint and host details measured: expected true, got false",
       "FAIL ChehulNet: existing hosts gain independent measured annotation without capability changes: test/harness.lua:7: new detail measured before paging: expected true, got false"
     ]
   },
@@ -375,6 +386,65 @@
     "killed": true,
     "failures": [
       "FAIL ChehulNet: layer command counts distinct current-map UIDs and names our peers: test/harness.lua:8: 216: expected false, got true"
+    ]
+  },
+  {
+    "rule": "eight same-layer names maximum",
+    "killed": true,
+    "failures": [
+      "FAIL ChehulNet: layer command caps same-layer names at eight with exact overflow: test/src_chehulnet.lua:302: at most eight peer lines: expected 8, got 9"
+    ]
+  },
+  {
+    "rule": "exact overflow count",
+    "killed": true,
+    "failures": [
+      "FAIL ChehulNet: layer command caps same-layer names at eight with exact overflow: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "hints excluded from Friendly count",
+    "killed": true,
+    "failures": [
+      "FAIL ChehulNet: hints never inflate the Friendly tab count: test/src_chehulnet.lua:159: only hosts count: expected Friendly (0), got Friendly (140)",
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/src_chehulnet.lua:234: not equal: expected Friendly (1), got Friendly (2)"
+    ]
+  },
+  {
+    "rule": "hints follow all hosts",
+    "killed": true,
+    "failures": [
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/src_chehulnet.lua:192: hosts first, then sorted hints: expected Hosta, got Allyj"
+    ]
+  },
+  {
+    "rule": "separate hints subsection title",
+    "killed": true,
+    "failures": [
+      "FAIL ChehulNet: Friendly hints have no Ask and never become hop candidates: test/src_chehulnet.lua:143: not equal: expected Guildmates on other layers (hints), got guild on other layers",
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/src_chehulnet.lua:209: not equal: expected Guildmates on other layers (hints), got guild on other layers"
+    ]
+  },
+  {
+    "rule": "subsection heading measured",
+    "killed": true,
+    "failures": [
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/harness.lua:7: heading measured: expected true, got false"
+    ]
+  },
+  {
+    "rule": "heading reserves space before hints",
+    "killed": true,
+    "failures": [
+      "FAIL ChehulNet: hint subsection follows every host with measured paged rows: test/harness.lua:7: hint below complete heading: expected true, got false"
+    ]
+  },
+  {
+    "rule": "explicit evidence writes only",
+    "killed": true,
+    "failures": [
+      "FAIL: test_default_does_not_create_a_report (__main__.ChehulNetMutantRunnerTests.test_default_does_not_create_a_report)",
+      "FAIL: test_default_reruns_preserve_existing_report_bytes_and_mtime (__main__.ChehulNetMutantRunnerTests.test_default_reruns_preserve_existing_report_bytes_and_mtime)"
     ]
   }
 ]

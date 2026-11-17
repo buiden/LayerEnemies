@@ -1269,11 +1269,14 @@ PASS ChehulNet: registry receives guild and group with counters and live switch
 PASS ChehulNet: unreadable foreign values and live context fail silent
 PASS ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks
 PASS ChehulNet: pure store accepts only guild group and whole other identities
-PASS ChehulNet: comparisons are map scoped confirmed and never server keys
+PASS ChehulNet: comparisons require own readings and never use server keys
 PASS ChehulNet: expiry rollback replacement and oldest eviction are bounded
 PASS ChehulNet: Friendly hints have no Ask and never become hop candidates
+PASS ChehulNet: hints never inflate the Friendly tab count
+PASS ChehulNet: hint subsection follows every host with measured paged rows
 PASS ChehulNet: existing hosts gain independent measured annotation without capability changes
 PASS ChehulNet: layer command counts distinct current-map UIDs and names our peers
+PASS ChehulNet: layer command caps same-layer names at eight with exact overflow
 PASS ChehulNet: 5000 deterministic fuzz inputs are bounded and silent
 PASS ChehulNet: live map changes withhold comparison and UI rows expire independently
 PASS ChehulNet: display context errors and missing clock cannot assert a relation
@@ -1307,4 +1310,4 @@ PASS Sources: OpenMap Battle.net keeps its original event path and values
 PASS Sources: guarded callbacks secrets and switches fail silent
 PASS Sources: unavailable optional timer and registration APIs fail silent
 PASS Sources: tick-only source runs at one second cadence and net counters append
-RESULT: 1309 tests passed, 0 failed, 188015 assertions
+RESULT: 1312 tests passed, 0 failed, 189911 assertions
