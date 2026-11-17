@@ -169,7 +169,7 @@ test("QuietAll manual: sixteen distinct targets bounded and duplicate hooks refr
     no(filterLine(filter,text("Manual a"),1)); no(filterLine(filter,text("Manual p"),2))
     typed("legacy","Manual a"); typed("modern","Manual a")
     typed("modern","Manual q")
-    no(filterLine(filter,text("Manual a"),3)); yes(filterLine(filter,text("Manual b"),4))
+    no(filterLine(filter,text("Manual a"),3)); no(filterLine(filter,text("Manual b"),4))
     for i=3,17 do no(filterLine(filter,text("Manual "..T.abc(i)),10+i)) end
 end)
 test("QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode",function()
@@ -278,6 +278,40 @@ for _,failedHook in ipairs({"modern","legacy"}) do
         SlashCmdList.LAYERENEMIES("quiet"); yes(T.log()[#T.log()]:find("all behaves like on",1,true))
     end)
 end
+
+for _,mode in ipairs({"all","on"}) do
+    test("QuietAll review S2: 17 typed whispers fail open in "..mode,function()
+        local N,filter,typed,hooks=setup(); SlashCmdList.LAYERENEMIES("quiet "..mode)
+        yes(send(N,"Our Person"))
+        for i=1,16 do typed("modern","Manual "..T.abc(i)) end
+        T.clock(11); typed("legacy","Manual q")
+        for i=1,17 do no(filterLine(filter,text("Manual "..T.abc(i)),i)) end
+        no(filterLine(filter,text("Our Person"),20),"full ledger protects own receipts too")
+        no(filterLine(filter,text("Unrelated Person"),21))
+        local size
+        for i=1,100 do
+            local name,value=debug.getupvalue(hooks.modern,i)
+            if not name then break end
+            if name=="manualWhispers" then size=#value; break end
+        end
+        eq(size,16,"never expand or evict the bounded ledger")
+        T.clock(20.999); yes(send(N,"Last Person"))
+        no(filterLine(filter,text("Last Person"),22),"overflow target stays protected after tracked entries drain")
+        T.clock(21); yes(filterLine(filter,text("Expired Person"),23)==(mode=="all"))
+    end)
+end
+
+test("QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot",function()
+    local N,filter,typed=setup(); SlashCmdList.LAYERENEMIES("quiet all")
+    for i=1,15 do typed("modern","Manual "..T.abc(i)) end
+    for i=1,20 do typed("legacy","Manual a"); typed("modern","Manual a") end
+    yes(filterLine(filter,text("Other Person"),1),"fifteen distinct keys are not full")
+    typed("modern","Manual p"); no(filterLine(filter,text("Other Person"),2),"sixteen is full")
+    T.clock(19.999); no(filterLine(filter,text("Other Person"),3))
+    T.clock(20); yes(filterLine(filter,text("Other Person"),4))
+    for i=1,17 do typed("modern","Manual "..T.abc(i)) end
+    T.clock(19.999); yes(filterLine(filter,text("Rollback Person"),5))
+end)
 
 -- Exact reviewer targets: no permissive name repair or UTF-8 case folding.
 for _,case in ipairs({

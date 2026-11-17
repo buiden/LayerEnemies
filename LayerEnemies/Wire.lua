@@ -162,7 +162,9 @@ local function observeChatWhisper(_, chatType, _, target)
         for i = #manualWhispers, 1, -1 do
             if manualWhispers[i].key == key then table.remove(manualWhispers, i) end
         end
-        if #manualWhispers >= 16 then table.remove(manualWhispers, 1) end
+        -- Never evict a still-protected target. Overflow has no name slot, so
+        -- protect everything for its full lifetime even after tracked keys drain.
+        if #manualWhispers >= 16 then manualProtectAll = now; return end
         manualWhispers[#manualWhispers + 1] = { key = key, at = now }
     end)
 end
@@ -191,7 +193,7 @@ end
 function Wr.whisperObserverReady() return observerReady, observerMissing end
 local function manualWhisper(key, now)
     pruneManual(now)
-    if manualProtectAll then return true end
+    if manualProtectAll or #manualWhispers >= 16 then return true end
     for _, r in ipairs(manualWhispers) do if r.key == key then return true end end
     return false
 end
