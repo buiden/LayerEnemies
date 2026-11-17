@@ -110,7 +110,7 @@ local function askState(r,name,label)
     if remaining then r.ask:Disable() else r.ask:Enable() end
 end
 function U.select(tab)
-    if tab=="find" and U.tab~="find" then N.Main.presenceScan(true) end
+    if tab=="find" and U.tab~="find" then N.Main.presenceOpen() end
     U.tab=tab; U.offset=0; U.render()
 end
 function U.render()
@@ -416,7 +416,7 @@ function U.create()
     U.netHh:SetPoint("TOPLEFT",80,-462)
     U.footer=font(f,10,colors.muted); U.footer:SetWidth(340)
     U.footer:SetText("Only players seen by you or reported by other players' addons.")
-    f:SetScript("OnShow",function() if U.tab=="find" then M.presenceScan(true) end; U.generation=(U.generation or 0)+1; U.tick(U.generation) end)
+    f:SetScript("OnShow",function() if U.tab=="find" then M.presenceOpen() end; U.generation=(U.generation or 0)+1; U.tick(U.generation) end)
     f:SetScript("OnHide",function() U.generation=(U.generation or 0)+1; U.input:ClearFocus() end)
 end
 function U.toggle()

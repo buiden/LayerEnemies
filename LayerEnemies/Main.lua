@@ -314,13 +314,20 @@ local function presenceSharedSweep(time)
         if time<at or time-at>=600 then M.presenceSharedAlerts.presenceAlerts[hash]=nil end
     end
 end
-local function presenceMember(job,member,route)
-    if route=="community" and member and member.zone then job.stats.zones=job.stats.zones+1 end
+local function presenceMember(job,member,route,source)
+    N.Presence.forget(M.find.presence,source)
+    N.Presence.forget(M.presenceShared,source)
+    if not member then return end
+    local sender=member.name
+    if route=="friend" or route=="community" then sender=N.OpenMap.bnName(member.name,member.realm) end
+    if not sender then return end
+    if route=="community" then
+        job.stats.resolved=job.stats.resolved+1
+        if member.zone then job.stats.zones=job.stats.zones+1 end
+    end
     local record=N.Presence.accept(member,route)
     if not record or N.OpenMap.faction(record.faction,S.call(UnitFactionGroup,"player"))~="opposite" then return end
-    local sender=member.name
-    if route=="friend" then sender=N.OpenMap.bnName(member.name,member.realm) end
-    if not sender then return end
+    if route=="community" then job.stats.opposite=job.stats.opposite+1 end
     local _,me=A.ownIdentity()
     local name=N.OpenMap.match(M.find,sender,me,true)
     local shared
@@ -333,6 +340,7 @@ local function presenceMember(job,member,route)
     end
     local own=S.str(S.call(UnitGUID,"player"),120)
     if own and record.guid==own then return end
+    record.source=source
     local alerts,key=M.find,name
     if shared then
         record.name,record.at=name,now()
@@ -362,7 +370,7 @@ local function presenceStep(job)
             job.member=job.member+1; budget=budget-1
             local member,why=A.clubMember(club.id,id)
             job.stats.members=job.stats.members+1; presenceRefusal(job.stats,why)
-            presenceMember(job,member,"community")
+            presenceMember(job,member,"community","c:"..#tostring(club.id)..":"..club.id..":"..id)
         end
     end
     if job.clubs[job.club] then
@@ -371,7 +379,7 @@ local function presenceStep(job)
     end
     local friends,why=A.bnFriends()
     presenceRefusal(job.stats,why)
-    for _,member in ipairs(friends or {}) do presenceMember(job,member,"friend") end
+    for _,member in ipairs(friends or {}) do presenceMember(job,member,"friend","f:"..member.index) end
     M.presenceJob=nil
     if N.UI then N.UI.refresh() end
 end
@@ -383,17 +391,25 @@ function M.presenceScan(force)
     presenceSharedSweep(time)
     if not force and M.presenceAt and time>=M.presenceAt and time-M.presenceAt<N.Presence.EVERY then return end
     M.presenceAt=time
-    local stats={clubs=0,members=0,zones=0,matches=0,refused=0,secret=false}
+    local stats={clubs=0,members=0,resolved=0,zones=0,opposite=0,matches=0,refused=0,secret=false}
     M.presenceStats=stats
     local clubs,why=A.clubs(); presenceRefusal(stats,why)
     local job={clubs=clubs or {},club=1,stats=stats}
     M.presenceJob=job
-    if not after(.001,function() presenceStep(job) end) then M.presenceJob=nil end
+    if not after(.001,function() presenceStep(job) end) then M.presenceJob=nil; return end
+    return true
+end
+-- Tab changes and window reopens share one allowance, independent of rendering.
+function M.presenceOpen()
+    local time=now()
+    if M.presenceOpenAt and time-M.presenceOpenAt<N.Presence.OPEN then return end
+    if M.presenceScan(true) then M.presenceOpenAt=time end
 end
 function M.presenceStatus()
-    local s=M.presenceStats or {clubs=0,members=0,zones=0,matches=0,refused=0}
-    M.say("LayerEnemies presence: clubs read: "..s.clubs..", members read: "..s.members
-        ..", with a zone: "..s.zones..", matches: "..s.matches..", secret: "..(s.secret and "yes" or "no")
+    local s=M.presenceStats or {clubs=0,members=0,resolved=0,zones=0,opposite=0,matches=0,refused=0}
+    M.say("LayerEnemies presence: clubs read: "..s.clubs..", community members read: "..s.members
+        ..", resolved to a character: "..s.resolved..", with a zone: "..s.zones..", opposite faction: "..s.opposite
+        ..", matches: "..s.matches.." (all sources), secret: "..(s.secret and "yes" or "no")
         ..", refusals: "..s.refused..".")
 end
 -- OpenMap places are private, session-only Find data: no alerts, reports, peers or outgoing work.

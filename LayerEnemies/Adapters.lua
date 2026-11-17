@@ -103,7 +103,7 @@ end
 
 -- Presence readers: build 70938 (Gethe/wow-ui-source bebcb6bf).
 -- Protect both API access and field reads. Second return identifies a secret
--- refusal without retaining the offending value or inspecting account data.
+-- refusal without retaining the offending value or account identity fields.
 local function presenceRead(fn)
     local hidden=false
     local function value(v)
@@ -159,12 +159,25 @@ function A.clubMember(clubId,memberId)
         if not S.tab(api) or type(v(api.GetMemberInfo))~="function" then return nil end
         local r=v(api.GetMemberInfo(clubId,memberId))
         if not S.tab(r) then return nil end
-        local name,zone=S.str(v(r.name),100),S.str(v(r.zone),120)
-        local faction,presence=S.num(v(r.faction)),S.num(v(r.presence))
-        local guid=S.str(v(r.guid),120)
-        -- PvPFaction: Horde=0, Alliance=1. Neutral and unavailable are not evidence.
-        if not name or not zone or not presence or (faction~=0 and faction~=1) then return nil end
-        return {name=name,zone=zone,faction=faction==0 and "Horde" or "Alliance",presence=presence,guid=guid}
+        -- Club names are account display names, never character identities.
+        -- Read only presence and the owner-approved account ID from this member.
+        local presence,accountId=S.num(v(r.presence)),S.num(v(r.bnetAccountId))
+        if not presence or not accountId or accountId<=0 or accountId%1~=0 then return nil end
+        local bn=v(_G.C_BattleNet)
+        if not S.tab(bn) or type(v(bn.GetAccountInfoByID))~="function" then return nil end
+        local account=v(bn.GetAccountInfoByID(accountId))
+        if not S.tab(account) then return nil end
+        local game=v(account.gameAccountInfo)
+        if not S.tab(game) then return nil end
+        local online,client=v(game.isOnline),S.str(v(game.clientProgram),16)
+        if online~=true or client~="WoW" then return nil end
+        local name=S.str(v(game.characterName),100)
+        local realm=S.str(v(game.realmName),60) or S.str(v(game.realmDisplayName),60)
+        local zone,faction=S.str(v(game.areaName),120),S.str(v(game.factionName),16)
+        local guid=S.str(v(game.playerGuid),120)
+        -- Keep safe partial character data for stage counts; Presence.accept
+        -- still requires every display field before any row can be admitted.
+        return {name=name,realm=realm,zone=zone,faction=faction,presence=presence,guid=guid}
     end)
 end
 function A.bnFriends()
@@ -192,7 +205,10 @@ function A.bnFriends()
                 return {name=name,realm=realm,zone=zone,faction=faction,guid=guid}
             end)
             if reason=="secret" then refused=refused+1 end
-            if r then out[#out+1]=r end
+            -- Preserve the visited slot even when offline or unreadable, so its
+            -- previous presence is withdrawn without guessing a character name.
+            r=r or {}; r.index=i
+            out[#out+1]=r
         end
         return out
     end)
