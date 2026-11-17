@@ -1,0 +1,96 @@
+test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) ...
+  test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='ChatFrame_AddMessageEventFilter', filename='Main.lua') ... FAIL
+  test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='ChatFrame_AddMessageEventFilter', filename='Adapters.lua') ... FAIL
+  test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='ChatFrame_AddMessageEventFilter', filename='Sources.lua') ... FAIL
+  test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G.ChatFrame_AddMessageEventFilter', filename='Main.lua') ... FAIL
+  test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G.ChatFrame_AddMessageEventFilter', filename='Adapters.lua') ... FAIL
+  test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G.ChatFrame_AddMessageEventFilter', filename='Sources.lua') ... FAIL
+  test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G["ChatFrame_".."AddMessageEventFilter"]', filename='Main.lua') ... FAIL
+  test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G["ChatFrame_".."AddMessageEventFilter"]', filename='Adapters.lua') ... FAIL
+  test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G["ChatFrame_".."AddMessageEventFilter"]', filename='Sources.lua') ... FAIL
+
+======================================================================
+FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='ChatFrame_AddMessageEventFilter', filename='Main.lua')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-red-final-lx0_ez70/test/api_policy_test.py", line 108, in test_system_filter_owner_is_wire_only
+    with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                                                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='ChatFrame_AddMessageEventFilter', filename='Adapters.lua')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-red-final-lx0_ez70/test/api_policy_test.py", line 108, in test_system_filter_owner_is_wire_only
+    with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                                                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='ChatFrame_AddMessageEventFilter', filename='Sources.lua')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-red-final-lx0_ez70/test/api_policy_test.py", line 108, in test_system_filter_owner_is_wire_only
+    with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                                                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G.ChatFrame_AddMessageEventFilter', filename='Main.lua')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-red-final-lx0_ez70/test/api_policy_test.py", line 108, in test_system_filter_owner_is_wire_only
+    with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                                                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G.ChatFrame_AddMessageEventFilter', filename='Adapters.lua')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-red-final-lx0_ez70/test/api_policy_test.py", line 108, in test_system_filter_owner_is_wire_only
+    with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                                                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G.ChatFrame_AddMessageEventFilter', filename='Sources.lua')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-red-final-lx0_ez70/test/api_policy_test.py", line 108, in test_system_filter_owner_is_wire_only
+    with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                                                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G["ChatFrame_".."AddMessageEventFilter"]', filename='Main.lua')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-red-final-lx0_ez70/test/api_policy_test.py", line 108, in test_system_filter_owner_is_wire_only
+    with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                                                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G["ChatFrame_".."AddMessageEventFilter"]', filename='Adapters.lua')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-red-final-lx0_ez70/test/api_policy_test.py", line 108, in test_system_filter_owner_is_wire_only
+    with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                                                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G["ChatFrame_".."AddMessageEventFilter"]', filename='Sources.lua')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-quiet-red-final-lx0_ez70/test/api_policy_test.py", line 108, in test_system_filter_owner_is_wire_only
+    with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                                                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.003s
+
+FAILED (failures=9)

@@ -1401,6 +1401,31 @@ PASS Sources: offer uses only live guild Watch matches and never adds saved trac
 PASS Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh
 PASS Sources: readable-looking secret scalars cannot be offered
 PASS Sources: malformed secret and throwing offers store nothing and never set runtime error
+PASS Quiet names: spaced home name is recorded and matched without compacting
+PASS Quiet names: foreign suffix is required and distinct namesakes stay ambiguous
+PASS Quiet names: pattern characters in a surname are invalid targets not wildcard matches
+PASS Quiet: own localized failure is hidden by a once-registered filter
+PASS Quiet: lineID hides three chat frames once in either dispatcher order
+PASS Quiet: missing lineID deduplicates only this tick, not a later identical failure
+PASS Quiet: saved boolean switch defaults on and off never disables offline bookkeeping
+PASS Quiet: hidden counter counts lines, not chat frames or observer-only events
+PASS Quiet: unmatched localized notices count once per line, never by chat frame
+PASS Quiet: each pending whisper hides one notice without renewing the offline hold
+PASS Quiet: synchronous offline still leaves one display receipt, not another offline stamp
+PASS Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden
+PASS Quiet: only the localized supported template matches, with literal pattern punctuation
+PASS Quiet: secret unreadable text, clocks and throwing predicates fail open
+PASS Quiet: absent or throwing registration is harmless, one attempt only
+PASS Quiet: 30-second boundary and backward clock invalidate whisper evidence
+PASS Quiet: retained foreign namesakes never let a bare name hide the wrong line
+PASS Quiet: locally blocked, queued-only and missing-API whispers supply no display receipt
+PASS Quiet: rejected or throwing client calls never hide another cause's notice
+PASS Quiet: nothing about notice identities or counts is saved
+PASS Quiet: unmatched diagnostics retain no names, including no-ID deduplication
+PASS Quiet: correlation and message ledgers obey the original capacity and expiry
+PASS Quiet: accepted legacy boolean send also supplies one display receipt
+PASS Quiet: readable-looking secret strings are not compared or hidden
+PASS Quiet: donor presence leaves send stand-down policy unchanged
 PASS Sources: registry routes addon and Battle.net with unchanged arguments
 PASS Sources: every legacy prefix is refused atomically and counted
 PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
@@ -1462,4 +1487,4 @@ PASS Wanted: R2 S4 mixed records evict by admission not observation or expiry
 PASS Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry
 PASS Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs
 PASS Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks
-RESULT: 1464 tests passed, 0 failed, 257834 assertions
+RESULT: 1489 tests passed, 0 failed, 259860 assertions

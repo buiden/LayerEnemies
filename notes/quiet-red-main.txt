@@ -1,0 +1,26 @@
+PASS Quiet names: spaced home name is recorded and matched without compacting
+PASS Quiet names: foreign suffix is required and distinct namesakes stay ambiguous
+PASS Quiet names: pattern characters in a surname are invalid targets not wildcard matches
+FAIL Quiet: own localized failure is hidden by a once-registered filter: test/src_quiet.lua:75: one filter registered at startup: expected 1, got 0
+FAIL Quiet: lineID hides three chat frames once in either dispatcher order: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: missing lineID deduplicates only this tick, not a later identical failure: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/src_quiet.lua:115: not equal: expected true, got nil
+FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/src_quiet.lua:42: /le net counter: expected 1, got 0
+FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: only the localized supported template matches, with literal pattern punctuation: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: secret unreadable text, clocks and throwing predicates fail open: test/harness.lua:7: not equal: expected true, got false
+FAIL Quiet: absent or throwing registration is harmless, one attempt only: test/src_quiet.lua:222: attempt to call field 'registerSystemFilter' (a nil value)
+FAIL Quiet: 30-second boundary and backward clock invalidate whisper evidence: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: retained foreign namesakes never let a bare name hide the wrong line: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: locally blocked, queued-only and missing-API whispers supply no display receipt: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: rejected or throwing client calls never hide another cause's notice: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: nothing about notice identities or counts is saved: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: unmatched diagnostics retain no names, including no-ID deduplication: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: correlation and message ledgers obey the original capacity and expiry: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: accepted legacy boolean send also supplies one display receipt: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: readable-looking secret strings are not compared or hidden: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+FAIL Quiet: donor presence leaves send stand-down policy unchanged: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)
+RESULT: 3 tests passed, 22 failed, 1095 assertions
