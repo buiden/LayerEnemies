@@ -187,6 +187,53 @@ for _,reply in ipairs({"R","S","P","HB"}) do
     end)
 end
 
+test("memory remembered friends do not bypass C2 route ceilings",function()
+    local N=H.load();local P,Q=N.OverlordPeer,N.OverlordFeed
+    local peer=P.new();peer.feed=Q.new()
+    local c={now=100,wall=1800000000,me="Alice Vale",version="1.1.0",pool="global",faction="A",allowed=true,own=true,
+        groups={},guildNames={},friends={},send=function() return true end}
+    local function hear(i)
+        local name="Peer"..H.abc(i).." Scout"
+        P.receive(peer,{origin=name,pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4"},"BNET",name,i,c)
+    end
+    for i=1,201 do c.now=c.now+301;hear(i) end
+    eq(N.Safe.count(peer.feed.heard),200,"bounded session evidence")
+    peer.routes={}
+    for i=1,200 do hear(i) end
+    eq(N.Safe.count(peer.routes),96,"cached metadata cannot bypass the public route ceiling")
+end)
+test("clock exact 300-second client dispatch is refused",function()
+    local N,refresh=fixture();refresh()
+    local P,Q=N.OverlordPeer,N.OverlordFeed
+    local peer,st=N.Main.overlordPeer,N.Main.overlordFeed
+    local c=N.Main.overlordContext();local sent=0
+    P.sent(peer,{kind="NH",route="BNET",id=71,name="Birch Scout",pool=c.pool,me=c.me},c)
+    c.send=function(_,text,route,target,prio,job)
+        if not P.claim(peer,job,c) then return false end
+        sent=sent+1;P.sent(peer,job,c);return true
+    end
+    c.now=c.now+300;Q.tick(st,peer,c);eq(sent,0,"donor retains NH capability at age 300")
+    c.now=c.now+.001;Q.tick(st,peer,c);eq(sent,1,"strictly past 300 is eligible")
+end)
+test("clock once-heard online friend stays selected for 7000 seconds",function()
+    local N,refresh=fixture();refresh()
+    for i=1,7000 do H.advance(1) end
+    eq(#sends("|NH|"),0);eq(#sends("|HR|8:V:"),7)
+    yes(N.Main.overlordFeed.sources["birch scout"])
+end)
+test("M queued request loses eligibility when source joins party",function()
+    local N,refresh=fixture();refresh();N.Main.overlordTick(H.clock())
+    eq(N.BNet.queued(),1)
+    IsInGroup=function() return true end
+    GetNumGroupMembers=function() return 2 end
+    UnitExists=function(u) return u=="player" or u=="party1" end
+    UnitName=function(u) return u=="party1" and "Birch Scout-TestRealm" or "Alice Vale","Test Realm" end
+    H.advance(1);H.advance(1)
+    eq(#sends("|HR|8:V:"),0);eq(next(N.Main.overlordFeed.sources),nil)
+    local party=0;for _,s in ipairs(sends("|NH|")) do if s.kind=="PARTY" then party=party+1 end end
+    eq(party,1,"C2 party presence is not suppressed")
+end)
+
 test("S3 only HR V gets a bounded busy HA",function()
     for _,op in ipairs({"V","F","K","X","T"}) do
         local N=H.load();local P=N.OverlordPeer;local peer=P.new();local out={}
@@ -214,6 +261,8 @@ test("clock ignores unselected account NH and rejects offline or foreign-pool fr
     refresh(nil,"pve");N.Main.overlordTick(H.clock());H.advance(1)
     eq(#sends("|HR|8:V:"),0)
     refresh();online(false)
+    N.Main.overlordTick(H.clock())
+    eq(next(N.Main.overlordFeed.sources),nil,"offline account is not a selected source even before queue dispatch")
     for i=1,400 do H.advance(1) end
     eq(#sends("|HR|8:V:"),0,"cached friend list is not live game-account presence")
 end)

@@ -370,8 +370,11 @@ def main():
         'networks': 'Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches',
         'sends': 'LayerSwap/WHISPER, LEGW1/GUILD (including K1 own-death, share switch, 1/120s and 5/30min), LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and '
                  'HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope); '
-                 'OverlordF NH to non-source peers, busy HA owed answers, and NH-free HR 8:V/8:K feed requests '
-                 '(two sources, one per 200s after more than 300s quiet) plus best-effort HR 8:X stops through Wire or BN.send; '
+                 'OverlordF NH to non-source peers, busy HA only for addressed HR V, and NH-free HR 8:V/8:K feed requests '
+                 '(two isolated live Battle.net friends of either faction; first-hand same-pool evidence once per session; '
+                 'strictly more than 300s after actual NH, no wait if never sent; unanswered gaps 200/400/800/1600/1800s; '
+                 'valid HA/HB resets to 200s) plus one best-effort HR 8:X stop per opened subscription; '
+                 'no feed suppression of guild/party presence; '
                  'no ranking capability claim; '
                  '(WHISPER/GUILD/PARTY/RAID and Battle.net as documented in README; no forwarding or CHANNEL sends)',
         'visual_design': 'Approved B implemented with fourth Find tab; native client appearance unverified',

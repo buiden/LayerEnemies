@@ -112,7 +112,7 @@ local function learn(st,p,route,sender,id,c)
     local old=st.routes[key] or st.feed and st.feed.heard[key]
     if old and old.pool~=(p.pool or c.pool) then old=nil end
     if old and old.hops==0 and p.hops>0 and c.now-old.at<240 then return old end
-    if not old then
+    if not st.routes[key] then
         local n,pub=0,0
         for _,r in pairs(st.routes) do n=n+1;if r.route~="GUILD" then pub=pub+1 end end
         if n>=128 or (route~="GUILD" and pub>=96) then return nil end

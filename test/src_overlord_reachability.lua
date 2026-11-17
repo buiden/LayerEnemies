@@ -125,6 +125,13 @@ test("account aliases and unreadable shared lanes cannot leak NH",function()
     P.tick(peer,c);eq(next(st.sources),nil,"unknown shared audiences exclude friends")
     yes(#c.out>0,"C2 shared lanes remain live")
 end)
+test("source names suppress owed whispers including own-realm aliases",function()
+    local N,P,Q,peer,st,c,d,hear=fixture("BNET");hear(100)
+    P.emit(peer,c,"NH",P.presence(c),"WHISPER","birch scout-TestRealm","alias",150,true)
+    eq(#c.out,0,"canonical selected name cannot be addressed")
+    P.receive(peer,{origin="Birch Scout",pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4"},"WHISPER","Birch Scout",nil,c)
+    eq(#c.out,0,"owed whisper cannot announce to the selected BNet source")
+end)
 local wireSerial=0
 local function countNH(c)
     local n=0;for _,v in ipairs(c.out) do if v.text:find("|NH|",1,true) then n=n+1 end end;return n

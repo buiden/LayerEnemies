@@ -79,13 +79,15 @@ def run(mutants=MUTANTS, report='overlord-peer-mutants.json', write=False):
         root=Path(directory)
         for folder in ('LayerEnemies','test'):
             shutil.copytree(ROOT/folder,root/folder)
+        shutil.copy2(ROOT/'README.md',root/'README.md')
         for rule,file,old,new,selector in mutants:
             path=root/'LayerEnemies'/file
             original=path.read_text()
             if original.count(old)!=1: raise AssertionError((rule,'mutation anchor',original.count(old)))
             path.write_text(original.replace(old,new))
             try:
-                subprocess.run([str(Path(LUA).with_name('luac')),'-p',str(path)],check=True,capture_output=True)
+                if path.suffix=='.lua':
+                    subprocess.run([str(Path(LUA).with_name('luac')),'-p',str(path)],check=True,capture_output=True)
                 proc=subprocess.run([LUA,'test/harness.lua','--only',selector],cwd=root,capture_output=True,text=True,errors='replace',timeout=180)
                 failures=[re.sub(r'0x[0-9a-fA-F]+','0xADDR',s) for s in proc.stdout.splitlines() if s.startswith('FAIL ')]
                 # A nil module/setup exception or crash is not a behavioral kill.
