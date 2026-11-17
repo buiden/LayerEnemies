@@ -52,7 +52,7 @@ end
 function P.sent(st,job,c)
     if not ready(c,job.owed,job.stop) or c.pool~=job.pool or c.me~=job.me then return end
     if job.kind=="NH" then
-        if not st.announced or st.announced.pool~=c.pool or st.announced.me~=c.me then
+        if not st.announced then
             st.announced={pool=c.pool,me=c.me,names={},accounts={}}
         end
         local a=st.announced

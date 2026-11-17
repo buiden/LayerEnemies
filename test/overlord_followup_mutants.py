@@ -3,6 +3,9 @@ import argparse
 from overlord_peer_mutants import run
 
 MUTANTS = [
+    ('n2 NH ledger retained across scope changes', 'OverlordPeer.lua',
+     'if not st.announced then',
+     'if not st.announced or st.announced.pool~=c.pool or st.announced.me~=c.me then', 'Overlord followup: n2'),
     ('n1 preserve paused stops', 'OverlordFeed.lua',
      'if c.stopPaused then row.safeAt=nil',
      'if c.stopPaused then st.stops[key]=nil;row.safeAt=nil', 'Overlord followup: n1'),

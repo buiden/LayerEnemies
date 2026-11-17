@@ -55,6 +55,28 @@ local function sends(op)
 end
 local function advance(n) for _=1,n do H.advance(1) end end
 
+for _,changed in ipairs({"pool","character"}) do
+    test("n2 NH clock survives "..changed.." round trip",function()
+        local N,state,refresh=fixture({two=true})
+        N.Main.overlordTick(H.clock());advance(1)
+        local out=sends("|NH|");yes(#out>0);eq(out[1].target,71)
+        local announced=out[1].at
+        if changed=="pool" then C_GameRules.IsGameRuleActive=function(i) return i==2 end
+        else state.me="Other Hero" end
+        advance(1) -- second queued NH must not acquire the new context
+        -- Send an unrelated presence under the changed context, exercising the
+        -- previous destructive reset in P.sent as well as quiet's scope check.
+        local c=N.Main.overlordContext()
+        N.OverlordPeer.sent(N.Main.overlordPeer,{kind="NH",route="BNET",id=72,name="Cedar Scout",pool=c.pool,me=c.me},c)
+        if changed=="pool" then C_GameRules.IsGameRuleActive=function(i) return i==3 end
+        else state.me="Alice Vale" end
+        refresh();advance(298)
+        eq(#sends("|HR|8:V:"),0,"round trip cannot forget the source's actual NH")
+        advance(4)
+        out=sends("|HR|8:V:");eq(#out,1);yes(out[1].at-announced>300)
+    end)
+end
+
 for _,mode in ipairs({"combat","instance"}) do
     for _,queued in ipairs({false,true}) do
         for _,duration in ipairs({1,90}) do

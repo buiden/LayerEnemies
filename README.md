@@ -32,7 +32,8 @@ once this session in our pool, and the game must show that exact game account
 online in Forever now. Hearing need not repeat within 300 s. Before each request
 or keep, **more than 300 s must have passed since our last NH on any route that
 could reach it** (account, whisper, guild or group). Never sent this session means
-no artificial wait. Any actual NH to that audience restarts the clock, including
+no artificial wait. The per-account NH clock survives pool and own-character
+changes and returns. Any actual NH to that audience restarts the clock, including
 an unexpected send after selection. A source's validated campaign epoch is kept
 for the session, never guessed, and replaced only by new source evidence. The
 session hearing cache is capped at 200 identities; it is not a saved peer list.

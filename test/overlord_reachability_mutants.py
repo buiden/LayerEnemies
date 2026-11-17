@@ -43,7 +43,7 @@ MUTANTS += [
     ('M no lane suppression', 'OverlordFeed.lua', 'if not st or (route~="BNET" and route~="WHISPER") then return false end', 'if st and (route=="GUILD" or route=="PARTY" or route=="RAID") then return true end\n    if not st then return false end', 'Overlord revision: M'),
     ('M actual NH restarts quiet', 'OverlordPeer.lua', 'if job.kind=="NH" then\n        if not st.announced', 'if false then\n        if not st.announced', 'Overlord revision: clock actual'),
     ('clock strictly beyond 300', 'OverlordFeed.lua', 'return c.now-last>300', 'return c.now-last>=300', 'Overlord revision: clock'),
-    ('clock no artificial initial wait', 'OverlordFeed.lua', 'if not a or a.pool~=c.pool or a.me~=c.me then return true end', 'if not a or a.pool~=c.pool or a.me~=c.me then return c.now-source.since>300 end', 'Overlord revision: clock never'),
+    ('clock no artificial initial wait', 'OverlordFeed.lua', 'if not a then return true end', 'if not a then return c.now-source.since>300 end', 'Overlord revision: clock never'),
     ('clock first-hand session retained', 'OverlordFeed.lua', 'c.now>=r.at and supported(r)', 'c.now>=r.at and c.now-r.at<300 and supported(r)', 'Overlord revision: clock once'),
     ('clock live account required', 'OverlordFeed.lua', 'local live=c.online and c.online(r.id)', 'local live=v', 'Overlord revision: clock ignores'),
     ('clock remember source hearing', 'OverlordPeer.lua', 'N.OverlordFeed.remember(st.feed,r,c)', '', 'Overlord revision: clock never'),

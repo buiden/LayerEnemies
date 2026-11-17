@@ -99,7 +99,7 @@ local function quiet(st,key,c)
     local source=st.sources[key]
     if not source then return false end
     local a=st.peer and st.peer.announced
-    if not a or a.pool~=c.pool or a.me~=c.me then return true end
+    if not a then return true end
     local last=math.max(a.names[key] or -math.huge,a.names[source.identity] or -math.huge,
         a.accounts[source.id] or -math.huge,a.unknown or -math.huge)
     return c.now-last>300
