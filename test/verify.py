@@ -242,6 +242,12 @@ def check_route_policy(wire):
         'WEFF1': {'GUILD', 'PARTY', 'RAID', 'WHISPER'}, 'HeadHunter': {'WHISPER'},
         'FLHNET2': {'GUILD', 'PARTY', 'RAID', 'WHISPER'},
     }
+    checks = {
+        'FLHNET2': 'flhText', 'LayerSwap': 'layerswapText', 'LEGW1': 'legw1Text',
+        'LFSw': 'function(text) return text == Wr.LFSW_TEXT and "q" or nil end',
+        'WEFF1': 'weText', 'HeadHunter': 'hhText',
+    }
+    nets = {'WEFF1': 'we', 'HeadHunter': 'hh'}
     tokens = lua_tokens(wire)
     declaration = lua_tokens('local ROUTES = {')
     starts = [i for i in range(len(tokens)) if tokens[i:i + len(declaration)] == declaration]
@@ -276,36 +282,43 @@ def check_route_policy(wire):
         take('}')
         assert kinds == allowed[prefix], 'missing addon route'
         actual[prefix] = kinds
-        # The remaining entry contains the check/net fields, never another kinds
-        # table. Balance nested expressions without executing the Lua source.
-        depth = 1
-        while at < len(tokens) and depth:
-            token = tokens[at]
-            if token == ('symbol', '{'):
-                depth += 1
-            elif token == ('symbol', '}'):
-                depth -= 1
-            at += 1
-        assert depth == 0, 'unterminated route entry'
-        take(',')
+        # Consume every field, not just kinds. In particular, a computed key
+        # could replace kinds without spelling that identifier anywhere.
+        take(', check = ' + checks[prefix])
+        if prefix in nets:
+            take(', net = "' + nets[prefix] + '"')
+        take('},')
     take('}')
     assert actual == allowed, 'missing addon route prefix'
 
-    # Freeze the two reads of the private table plus its public copy/boolean
-    # lookup. Any later assignment, alias, rawset or dynamic access fails closed.
+    # Freeze all references to the table, its local route aliases, and the
+    # check function that returns those aliases. This intentionally rejects
+    # new readers until reviewed: a loop over route can write an aliased kinds
+    # table without mentioning ROUTES/kinds. No additional binding/escape or
+    # assignment (including a computed replacement table) may be overlooked.
     for read in (
         'Wr.ROUTES = {}',
         'for prefix, r in pairs(ROUTES) do Wr.ROUTES[prefix] = {}; '
         'for k in pairs(r.kinds) do Wr.ROUTES[prefix][k] = true end end',
         'local route = type(prefix) == "string" and ROUTES[prefix]',
         'if not (route and type(kind) == "string" and route.kinds[kind]) then return nil, "blocked route" end',
+        'local function check(prefix, text, kind, target, opts)',
+        'local tag = route.check(text, kind)',
+        'return route,tag,target,opts,kind=="WHISPER"',
+        'if route.net and not withdraw then',
+        'if opts.net ~= route.net then return nil, "network off" end',
+        'local ok, why = N.Net.allowed(route.net, public and "public" or "guild")',
+        'return route, tag, target, opts, public',
+        'local route, tag, public',
+        'route, tag, target, opts, public = check(prefix, text, kind, target, opts)',
+        'if not route then return false, tag end',
     ):
         expected = lua_tokens(read)
         sites = [i for i in range(len(tokens)) if tokens[i:i + len(expected)] == expected]
         assert len(sites) == 1, 'route access must remain read-only'
         covered.update(range(sites[0], sites[0] + len(expected)))
     for i, word in lua_references(tokens):
-        assert word not in ('ROUTES', 'kinds') or i in covered, 'route table mutation or escape'
+        assert word not in ('ROUTES', 'kinds', 'route', 'check') or i in covered, 'route table mutation or escape'
 
 
 def main():
