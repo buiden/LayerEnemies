@@ -1,0 +1,101 @@
+[
+  {
+    "mutant": "rebuild-every-report",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 26: report has zero list hashes and at most 10 plus 20 index reads: test/find20.lua:44: reports must not hash the tracked list: expected 0, got 180",
+      "FAIL Find20 lookup rebuilds only on a list change or first readable home: test/find20.lua:68: not equal: expected 6, got 12"
+    ]
+  },
+  {
+    "mutant": "cap-back-to-five",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 26: load builds at most 180 hash candidates once: test/find20.lua:25: not equal: expected 20, got 5",
+      "FAIL Find20 26: report has zero list hashes and at most 10 plus 20 index reads: test/find20.lua:48: attempt to index field '?' (a nil value)",
+      "FAIL Find20 26: own sighting uses at most two name index reads: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Find20 27: twenty adds fit, twenty-first refuses, duplicates remain idempotent: test/harness.lua:7: all twenty slots available: expected true, got false",
+      "FAIL Find20 27: saved input is validated and deduplicated within its first twenty entries: test/find20.lua:104: invalid and folded duplicate entries dropped; no scan past slot twenty: expected 9, got 2",
+      "FAIL Find20 matching preserves legacy aliases, realm checks, collisions and precedence: test/find20.lua:135: \u00c9lodie-Foreign: expected true, got false",
+      "FAIL Find20 28: adding a name prints only its row, including a retained sighting: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Find20 UI sorts located first, newest first, with compact missing status and paging: test/harness.lua:7: track at most 20 names; clear one first.: expected true, got false"
+    ]
+  },
+  {
+    "mutant": "saved-list-no-dedupe",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 27: saved input is validated and deduplicated within its first twenty entries: test/find20.lua:104: invalid and folded duplicate entries dropped; no scan past slot twenty: expected 9, got 18"
+    ]
+  },
+  {
+    "mutant": "track-prints-all-rows",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 28: adding a name prints only its row, including a retained sighting: test/find20.lua:169: not equal: expected 1, got 20"
+    ]
+  },
+  {
+    "mutant": "no-sound-cooldown",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 28: five names in one second give three details, one summary and one sound: test/find20.lua:186: not equal: expected 1, got 5",
+      "FAIL Find20 sound cooldown is rolling and quiet alerts do not consume it: test/find20.lua:204: new line window must not reset sound cooldown: expected 1, got 2"
+    ]
+  },
+  {
+    "mutant": "no-detail-line-limit",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 28: five names in one second give three details, one summary and one sound: test/find20.lua:186: only three detail lines during the window: expected 3, got 5"
+    ]
+  },
+  {
+    "mutant": "overflow-not-counted",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 28: five names in one second give three details, one summary and one sound: test/find20.lua:188: not equal: expected 4, got 3"
+    ]
+  },
+  {
+    "mutant": "no-realmless-name-alias",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 matching preserves legacy aliases, realm checks, collisions and precedence: test/find20.lua:135: Alice-TestRealm: expected true, got false",
+      "FAIL Find20 aliases preserve trailing-hyphen validation and full-name own guards: test/harness.lua:7: legacy report short alias includes a trailing hyphen: expected true, got false"
+    ]
+  },
+  {
+    "mutant": "located-oldest-first",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 UI sorts located first, newest first, with compact missing status and paging: test/find20.lua:215: not equal: expected Seeker s, got Seeker a",
+      "FAIL Find20 UI counts shared positions as located without changing their alert or layer meaning: test/find20.lua:237: not equal: expected Cedar, got Alpha"
+    ]
+  },
+  {
+    "mutant": "missing-status-stays-tall",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 UI sorts located first, newest first, with compact missing status and paging: test/find20.lua:219: not equal: expected 14, got 44"
+    ]
+  },
+  {
+    "mutant": "no-home-poll-rebuild",
+    "returncode": 1,
+    "killed": true,
+    "tests": [
+      "FAIL Find20 home becomes known on the normal poll without waiting for a report: test/harness.lua:8: first readable home builds the lookup even without reports: expected false, got true"
+    ]
+  }
+]

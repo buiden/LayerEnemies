@@ -1,0 +1,271 @@
+[
+  {
+    "mutant": "relay-old-D",
+    "failed": 2,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills 12b: fresh whisper relays; old catch-up stays local with origin age: test/kills.lua:186: only fresh D is offered: expected 0, got 1",
+      "Kills relay: recheck freshness at dispatch and encoding: test/kills.lua:197: not equal: expected nil, got R|1|hh|kill|42697263682053636f7574|D:719801|100|500|250||u||300|43656461722056616c65:MAGE:40"
+    ]
+  },
+  {
+    "mutant": "D-behind-hhMesh",
+    "failed": 40,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills 11: D creates a timed killer claim in stand-down: test/harness.lua:7: D must reach Known before tracking: expected true, got false",
+      "Kills 11: author must be the victim under whole-name identity: test/harness.lua:7: not equal: expected true, got false",
+      "Kills 12: inferred label, victim attribution and relay provenance without Reported rows: test/harness.lua:7: not equal: expected true, got false",
+      "Kills 12: assists and helpers never create entries or counts: test/kills.lua:89: not equal: expected 1, got 0",
+      "Kills age: catch-up retains real age, hour boundary expires without fresh alerts: test/harness.lua:7: not equal: expected true, got false",
+      "Kills Find: claims cannot borrow the victim layer or replace first-hand evidence: test/harness.lua:7: not equal: expected true, got false",
+      "Kills counters: session receive totals in stand-down: test/kills.lua:137: not equal: expected 1, got 0",
+      "Kills 12a: whispered D reaches Find and guild in stand-down: test/harness.lua:7: not equal: expected true, got false",
+      "Kills 12b: fresh whisper relays; old catch-up stays local with origin age: test/kills.lua:186: only fresh D is offered: expected 1, got 0",
+      "Kills relay: non-whisper fresh and catch-up records stay local: test/harness.lua:7: not equal: expected true, got false",
+      "Kills relay: guild copy during wait cancels our send: test/kills.lua:248: not equal: expected 1, got 0",
+      "Kills relay budget: fifth within rolling minute is dropped, not queued: test/kills.lua:260: not equal: expected 4, got 0",
+      "Kills relay budget: same whole killer name once per 60 seconds: test/kills.lua:266: not equal: expected 1, got 0",
+      "Kills relay budget: realms stay distinct and backwards time never reopens allowance: test/kills.lua:277: not equal: expected 2, got 0",
+      "Kills relay priority: full Wire bucket drops without queue or successful counter: test/harness.lua:7: not equal: expected true, got false",
+      "Kills R1 S1: HeadHunter rejects ourselves and killer equals victim: test/harness.lua:7: not equal: expected true, got false",
+      "Kills R1 M1: one D id across carriers for its lifetime skew=0: test/kills_round1.lua:69: not equal: expected 1, got 0",
+      "Kills R1 M1: one D id across carriers for its lifetime skew=-300: test/kills_round1.lua:69: not equal: expected 1, got 0",
+      "Kills R1 M1: guild and whisper carriers share identity and stand-down: test/harness.lua:7: not equal: expected true, got false",
+      "Kills R1 M1: kill id survives legacy relay history eviction: test/kills_round1.lua:109: not equal: expected 1, got 0",
+      "Kills R1 M2: mixed relay burst leaves two own tokens: test/kills_round1.lua:127: prefix burst 5 minus own reserve 2: expected 3, got 0",
+      "Kills R1 M2: real own sighting survives mixed burst combat=false: test/kills_round1.lua:138: one combat own line reserved without suppressing all relays: expected 3, got 0",
+      "Kills R1 M2: real own sighting survives mixed burst combat=true: test/kills_round1.lua:138: one combat own line reserved without suppressing all relays: expected 1, got 0",
+      "Kills R1 M2: legacy relay burst leaves two own tokens: test/kills_round1.lua:127: prefix burst 5 minus own reserve 2: expected 3, got 0",
+      "Kills R1 M2: real own sighting survives legacy burst combat=false: test/kills_round1.lua:138: one combat own line reserved without suppressing all relays: expected 3, got 0",
+      "Kills R1 M2: real own sighting survives legacy burst combat=true: test/kills_round1.lua:138: one combat own line reserved without suppressing all relays: expected 1, got 0",
+      "Kills R1 M2: earlier own traffic also counts against the prefix reserve: test/kills_round1.lua:149: own traffic must reduce the relay allowance too: expected 2, got 0",
+      "Kills R1 share: off before receipt sends nothing on LEGW1: test/harness.lua:7: sharing off does not stop reading: expected true, got false",
+      "Kills R1 share: off while pending sends nothing on LEGW1: test/harness.lua:7: exercise a live pending timer: expected true, got false",
+      "Kills R1 share: off then on while pending sends nothing on LEGW1: test/harness.lua:7: exercise a live pending timer: expected true, got false",
+      "Kills R1 share: off at dispatch sends nothing on LEGW1: test/harness.lua:7: exercise a live pending timer: expected true, got false",
+      "Kills R1 bounds: live event ledger evicts overflow and expires without renewal: test/kills_round1.lua:181: not equal: expected 256, got 0",
+      "Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear and rollback: test/kills_round1.lua:198: not equal: expected 3, got 0",
+      "Kills R2 reserve: full combat bucket sends a kill relay and leaves one own line: test/kills_round2.lua:45: combat must not suppress every kill relay: expected 1, got 0",
+      "Kills R2 reserve: active combat relays keep all five own O slots every=1: test/harness.lua:7: a zero-relay result is not an own-priority pass: expected true, got false",
+      "Kills R2 reserve: active combat relays keep all five own O slots every=4: test/harness.lua:7: a zero-relay result is not an own-priority pass: expected true, got false",
+      "Kills R2 reserve: kill dispatch uses the shared spend gate: test/kills_round2.lua:102: kill must consult the same Relay.spend path as Spy/HH/WE: expected 1, got 0",
+      "Kills R2 reserve: kill relays leave the guild-minute own slots: test/harness.lua:7: not equal: expected true, got false",
+      "Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute: test/harness.lua:7: a full kill ledger must not darken the next new kill: expected true, got false",
+      "Kills R2 ledger: new kill stays visible after 300 guild kills at one per second: test/harness.lua:7: a full kill ledger must not darken the next new kill: expected true, got false"
+    ]
+  },
+  {
+    "mutant": "match-incomplete-killer",
+    "failed": 2,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills 11: incomplete killer never matches by partial name, class or level: test/kills.lua:33: not equal: expected nil, got cedar",
+      "Kills decode: envelope validation, other faction, malformed names and future skew: test/kills.lua:113: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "mutant": "show-D-layer",
+    "failed": 3,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills 11: D creates a timed killer claim in LE-only: test/harness.lua:8: 77: expected false, got true",
+      "Kills 11: D creates a timed killer claim in stand-down: test/harness.lua:8: 77: expected false, got true",
+      "Kills decode: envelope validation, other faction, malformed names and future skew: test/kills.lua:115: not equal: expected nil, got 12345"
+    ]
+  },
+  {
+    "mutant": "ask-relayed-kill",
+    "failed": 3,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills 12: inferred label, victim attribution and relay provenance without Reported rows: test/harness.lua:8: not equal: expected false, got true",
+      "Kills Find: claims cannot borrow the victim layer or replace first-hand evidence: test/harness.lua:8: not equal: expected false, got true",
+      "Kills relay: guild claims never reach Reported, Ask, Hop, or re-forward: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "mutant": "accept-sim",
+    "failed": 3,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills 12: simulated and unknown confidence create no finding: test/kills.lua:33: not equal: expected nil, got cedar vale",
+      "Kills counters: session receive totals in LE-only: test/kills.lua:138: not equal: expected 2, got 3",
+      "Kills counters: session receive totals in stand-down: test/kills.lua:138: not equal: expected 2, got 3"
+    ]
+  },
+  {
+    "mutant": "ignore-author-victim",
+    "failed": 1,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills 11: author must be the victim under whole-name identity: test/kills.lua:33: not equal: expected nil, got cedar vale"
+    ]
+  },
+  {
+    "mutant": "no-kill-rate-cap",
+    "failed": 1,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills relay budget: fifth within rolling minute is dropped, not queued: test/kills.lua:260: not equal: expected 4, got 5"
+    ]
+  },
+  {
+    "mutant": "relay-non-whisper-catchup",
+    "failed": 1,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills relay: non-whisper fresh and catch-up records stay local: test/kills.lua:205: not equal: expected nil, got hh:birch scout:D:720100"
+    ]
+  },
+  {
+    "mutant": "repeat-kill-id",
+    "failed": 3,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 M1: one D id across carriers for its lifetime skew=0: test/kills_round1.lua:74: same event must never re-forward: expected 1, got 3",
+      "Kills R1 M1: one D id across carriers for its lifetime skew=-300: test/kills_round1.lua:74: same event must never re-forward: expected 1, got 3",
+      "Kills R1 M1: kill id survives legacy relay history eviction: test/kills_round1.lua:109: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "mutant": "short-kill-memory",
+    "failed": 9,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 M1: one D id across carriers for its lifetime skew=0: test/kills_round1.lua:74: same event must never re-forward: expected 1, got 3",
+      "Kills R1 M1: one D id across carriers for its lifetime skew=-300: test/kills_round1.lua:74: same event must never re-forward: expected 1, got 3",
+      "Kills R1 S2: identical guild kill preserves age at 240 seconds: test/kills_round1.lua:85: not equal: expected 11, got 251",
+      "Kills R1 S2: identical guild killi preserves age at 240 seconds: test/kills_round1.lua:85: not equal: expected 11, got 251",
+      "Kills R1 M1: guild and whisper carriers share identity and stand-down: test/kills_round1.lua:99: not equal: expected 11, got 252.1",
+      "Kills R1 M1: kill id survives legacy relay history eviction: test/kills_round1.lua:109: not equal: expected 1, got 2",
+      "Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute: test/kills_round2.lua:140: ledger remains bounded: expected 256, got 10",
+      "Kills R2 ledger: new kill stays visible after 300 guild kills at one per second: test/kills_round2.lua:140: ledger remains bounded: expected 256, got 120",
+      "Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first: test/kills_round2.lua:165: not equal: expected 256, got 120"
+    ]
+  },
+  {
+    "mutant": "refresh-guild-kill-age",
+    "failed": 5,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 M1: one D id across carriers for its lifetime skew=-300: test/kills_round1.lua:75: replay cannot refresh evidence, even during future skew: expected 11, got 310",
+      "Kills R1 S2: identical guild kill preserves age at 240 seconds: test/kills_round1.lua:85: not equal: expected 11, got 251",
+      "Kills R1 S2: identical guild killi preserves age at 240 seconds: test/kills_round1.lua:85: not equal: expected 11, got 251",
+      "Kills R1 M1: guild and whisper carriers share identity and stand-down: test/kills_round1.lua:99: not equal: expected 11, got 252.1",
+      "Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first: test/harness.lua:8: retained ids are still once-only: expected false, got true"
+    ]
+  },
+  {
+    "mutant": "kill-self",
+    "failed": 2,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 S1: HeadHunter rejects ourselves and killer equals victim: test/kills_round1.lua:42: not equal: expected nil, got me",
+      "Kills R1 S1: guild rejects ourselves and killer equals victim: test/kills_round1.lua:42: not equal: expected nil, got me"
+    ]
+  },
+  {
+    "mutant": "kill-victim",
+    "failed": 2,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 S1: HeadHunter rejects ourselves and killer equals victim: test/kills_round1.lua:42: not equal: expected nil, got birch scout",
+      "Kills R1 S1: guild rejects ourselves and killer equals victim: test/kills_round1.lua:42: not equal: expected nil, got birch scout"
+    ]
+  },
+  {
+    "mutant": "spend-own-reserve",
+    "failed": 11,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 M2: mixed relay burst leaves two own tokens: test/kills_round1.lua:127: prefix burst 5 minus own reserve 2: expected 3, got 5",
+      "Kills R1 M2: real own sighting survives mixed burst combat=false: test/kills_round1.lua:137: own sighting must leave at its settle slot: expected 1, got 0",
+      "Kills R1 M2: real own sighting survives mixed burst combat=true: test/kills_round1.lua:137: own sighting must leave at its settle slot: expected 1, got 0",
+      "Kills R1 M2: legacy relay burst leaves two own tokens: test/kills_round1.lua:127: prefix burst 5 minus own reserve 2: expected 3, got 5",
+      "Kills R1 M2: real own sighting survives legacy burst combat=false: test/kills_round1.lua:137: own sighting must leave at its settle slot: expected 1, got 0",
+      "Kills R1 M2: real own sighting survives legacy burst combat=true: test/kills_round1.lua:137: own sighting must leave at its settle slot: expected 1, got 0",
+      "Kills R1 M2: earlier own traffic also counts against the prefix reserve: test/kills_round1.lua:149: own traffic must reduce the relay allowance too: expected 2, got 4",
+      "Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear and rollback: test/kills_round1.lua:198: not equal: expected 3, got 5",
+      "Kills R2 reserve: active combat relays keep all five own O slots every=1: test/kills_round2.lua:74: all five own minute slots reach Wire: expected 5, got 0",
+      "Kills R2 reserve: kill dispatch uses the shared spend gate: test/kills_round2.lua:102: kill must consult the same Relay.spend path as Spy/HH/WE: expected 1, got 0",
+      "Kills R2 reserve: kill relays leave the guild-minute own slots: test/kills_round2.lua:118: kill uses the same three-slot minute reserve as every other relay: expected 0, got 1"
+    ]
+  },
+  {
+    "mutant": "forget-own-prefix-traffic",
+    "failed": 1,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 M2: earlier own traffic also counts against the prefix reserve: test/kills_round1.lua:149: own traffic must reduce the relay allowance too: expected 2, got 3"
+    ]
+  },
+  {
+    "mutant": "share-off-relays",
+    "failed": 4,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 share: off before receipt sends nothing on LEGW1: test/kills_round1.lua:170: nothing at all on LEGW1, watch-list T lines included: expected 0, got 3",
+      "Kills R1 share: off while pending sends nothing on LEGW1: test/kills_round1.lua:170: nothing at all on LEGW1, watch-list T lines included: expected 0, got 3",
+      "Kills R1 share: off then on while pending sends nothing on LEGW1: test/kills_round1.lua:170: nothing at all on LEGW1, watch-list T lines included: expected 0, got 3",
+      "Kills R1 share: off at dispatch sends nothing on LEGW1: test/kills_round1.lua:170: nothing at all on LEGW1, watch-list T lines included: expected 0, got 3"
+    ]
+  },
+  {
+    "mutant": "kills-bypass-shared-reserve",
+    "failed": 7,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 M2: mixed relay burst leaves two own tokens: test/kills_round1.lua:127: prefix burst 5 minus own reserve 2: expected 3, got 5",
+      "Kills R1 M2: real own sighting survives mixed burst combat=false: test/kills_round1.lua:137: own sighting must leave at its settle slot: expected 1, got 0",
+      "Kills R1 M2: real own sighting survives mixed burst combat=true: test/kills_round1.lua:137: own sighting must leave at its settle slot: expected 1, got 0",
+      "Kills R1 M2: earlier own traffic also counts against the prefix reserve: test/kills_round1.lua:149: own traffic must reduce the relay allowance too: expected 2, got 4",
+      "Kills R2 reserve: active combat relays keep all five own O slots every=1: test/kills_round2.lua:75: not equal: expected 0, got 2",
+      "Kills R2 reserve: kill dispatch uses the shared spend gate: test/kills_round2.lua:102: kill must consult the same Relay.spend path as Spy/HH/WE: expected 1, got 0",
+      "Kills R2 reserve: kill relays leave the guild-minute own slots: test/kills_round2.lua:118: kill uses the same three-slot minute reserve as every other relay: expected 0, got 1"
+    ]
+  },
+  {
+    "mutant": "combat-reserve-suppresses-kills",
+    "failed": 5,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 M2: real own sighting survives mixed burst combat=true: test/kills_round1.lua:138: one combat own line reserved without suppressing all relays: expected 1, got 0",
+      "Kills R1 M2: real own sighting survives legacy burst combat=true: test/kills_round1.lua:138: one combat own line reserved without suppressing all relays: expected 1, got 0",
+      "Kills R2 reserve: full combat bucket sends a kill relay and leaves one own line: test/kills_round2.lua:45: combat must not suppress every kill relay: expected 1, got 0",
+      "Kills R2 reserve: active combat relays keep all five own O slots every=1: test/harness.lua:7: a zero-relay result is not an own-priority pass: expected true, got false",
+      "Kills R2 reserve: active combat relays keep all five own O slots every=4: test/harness.lua:7: a zero-relay result is not an own-priority pass: expected true, got false"
+    ]
+  },
+  {
+    "mutant": "full-kill-ledger-drops-new-id",
+    "failed": 4,
+    "rc": 1,
+    "expected_case_failed": true,
+    "caught_by": [
+      "Kills R1 bounds: live event ledger evicts overflow and expires without renewal: test/harness.lua:7: overflow must remain visible: expected true, got false",
+      "Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute: test/harness.lua:7: a full kill ledger must not darken the next new kill: expected true, got false",
+      "Kills R2 ledger: new kill stays visible after 300 guild kills at one per second: test/harness.lua:7: a full kill ledger must not darken the next new kill: expected true, got false",
+      "Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first: test/harness.lua:7: overflow must admit the new id: expected true, got false"
+    ]
+  }
+]

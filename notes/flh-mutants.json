@@ -445,7 +445,7 @@
     },
     {
       "caught_by": [
-        "FLH: wire ingestion cannot persist names or silently refresh malformed hosts: test/flh.lua:250: not equal: expected {autoHop=true,call=true,callArt=true,findNotice=true,findShare=true,guildHost=false,nets={chehulnet=true,hh=true,wanted=true,we=true},options={},share=true,tracked={}}, got {autoHop=true,call=true,callArt=true,findNotice=true,findShare=true,flh={cedar vale={at=1800000000,key=8,map=100,name=Cedar Vale}},guildHost=false,nets={chehulnet=true,hh=true,wanted=true,we=true},options={},share=true,tracked={}}"
+        "FLH: wire ingestion cannot persist names or silently refresh malformed hosts: test/flh.lua:250: not equal: expected {autoHop=true,call=true,callArt=true,findNotice=true,findShare=true,guildHost=false,nets={chehulnet=true,hh=true,wanted=true,warboard=true,we=true},options={},share=true,tracked={},warboardOwed={}}, got {autoHop=true,call=true,callArt=true,findNotice=true,findShare=true,flh={cedar vale={at=1800000000,key=8,map=100,name=Cedar Vale}},guildHost=false,nets={chehulnet=true,hh=true,wanted=true,warboard=true,we=true},options={},share=true,tracked={},warboardOwed={}}"
       ],
       "failed": 1,
       "killed": true,

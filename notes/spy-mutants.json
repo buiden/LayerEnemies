@@ -1,0 +1,84 @@
+[
+  {
+    "passed": 21,
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Spy relay 7: GUILD never offered, even when a group copy would be eligible: test/spy_relay.lua:56: not equal: expected nil, got spy:birch scout:E1G"
+    ],
+    "mutant": "relay-spy-from-guild",
+    "killed": true
+  },
+  {
+    "passed": 20,
+    "failed": 2,
+    "rc": 1,
+    "caught_by": [
+      "Spy relay cap: seventh in rolling minute dropped and a new sighting allowed at 60 seconds: test/spy_relay.lua:124: seventh dropped despite refilled Wire tokens: expected 6, got 7",
+      "Spy relay cap: pending burst rechecks the cap at dispatch: test/spy_relay.lua:136: cap includes attempts refused by the own reserve: expected 6, got 7"
+    ],
+    "mutant": "no-spy-rate-cap",
+    "killed": true
+  },
+  {
+    "passed": 20,
+    "failed": 2,
+    "rc": 1,
+    "caught_by": [
+      "Spy relay cap: same full enemy name once per 60 seconds across origins, routes and family: test/spy_relay.lua:146: not equal: expected 1, got 2",
+      "Spy relay cap: pending names coalesce at dispatch and bounded limits survive clears and clock rollback: test/spy_relay.lua:222: not equal: expected 1, got 2"
+    ],
+    "mutant": "no-per-name-limit",
+    "killed": true
+  },
+  {
+    "passed": 12,
+    "failed": 10,
+    "rc": 1,
+    "caught_by": [
+      "Spy relay 7: [Spy] PARTY becomes one named guild claim after the wait: test/spy_relay.lua:43: not equal: expected Birch Scout-7103, got Me",
+      "Spy relay 7: [Spy] RAID becomes one named guild claim after the wait: test/spy_relay.lua:43: not equal: expected Birch Scout-7103, got Me",
+      "Spy relay 7: ForeverSpy1 PARTY becomes one named guild claim after the wait: test/spy_relay.lua:43: not equal: expected Birch Scout-7103, got Me",
+      "Spy relay 7: ForeverSpy1 RAID becomes one named guild claim after the wait: test/spy_relay.lua:43: not equal: expected Birch Scout-7103, got Me",
+      "Spy relay 7: FSENT03 PARTY becomes one named guild claim after the wait: test/spy_relay.lua:43: not equal: expected Birch Scout-7103, got Me",
+      "Spy relay 7: FSENT03 RAID becomes one named guild claim after the wait: test/spy_relay.lua:43: not equal: expected Birch Scout-7103, got Me",
+      "Spy relay 8: a guildmate copy cancels the pending relay and never echoes: test/spy_relay.lua:70: not equal: expected nil, got table: 0x60fff5c12b90",
+      "Spy relay codec: no layer even on a poisoned input, exactly one full name or no line: test/spy_relay.lua:108: never truncate the sole name into an empty line: expected nil, got R|1|spy|seen|4d65|abc|100|||1|u||0|616161616161616161616161616161616161616161616161616161616161616161616161206262626262626262626262626262626262626262626262626262626262626262626262622d6363636363636363636363636363636363636363:MAGE:40",
+      "Spy relay 8: stand-down also matches normalized Forever Spy and Sentinel sources: test/spy_relay.lua:205: not equal: expected nil, got spy:birch scout:E1G",
+      "Spy relay zone: another-zone sighting still goes to the guild and Find: test/spy_relay.lua:215: not equal: expected 200, got nil"
+    ],
+    "mutant": "origin-is-us",
+    "killed": true
+  },
+  {
+    "passed": 21,
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Spy relay codec: no layer even on a poisoned input, exactly one full name or no line: test/harness.lua:7: not equal: expected true, got false"
+    ],
+    "mutant": "spy-layer-included",
+    "killed": true
+  },
+  {
+    "passed": 21,
+    "failed": 1,
+    "rc": 1,
+    "caught_by": [
+      "Spy relay 10: accepted into Known as relayed claim, never an ask or hop target: test/harness.lua:8: not equal: expected false, got true"
+    ],
+    "mutant": "relayed-spy-origin-askable",
+    "killed": true
+  },
+  {
+    "passed": 20,
+    "failed": 2,
+    "rc": 1,
+    "caught_by": [
+      "Spy relay 8: a guildmate copy cancels the pending relay and never echoes: test/spy_relay.lua:70: not equal: expected nil, got table: 0x5649dd01b2d0",
+      "Spy relay 8: stand-down also matches normalized Forever Spy and Sentinel sources: test/spy_relay.lua:205: not equal: expected nil, got spy:birch scout:E1G"
+    ],
+    "mutant": "spy-stand-down-ignored",
+    "killed": true
+  }
+]

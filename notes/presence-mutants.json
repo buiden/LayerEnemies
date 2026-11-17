@@ -33,11 +33,11 @@
       "failures": [
         "FAIL Presence: club character comes from account not member display name: test/harness.lua:7: BattleTag member resolves to tracked character: expected true, got false",
         "FAIL Presence: only online community members resolve Battle.net accounts: test/harness.lua:7: online members still contribute: expected true, got false",
-        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: characterName nil: expected nil, got table: 0x6082fa434db0",
+        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: characterName nil: expected nil, got table: <address>",
         "FAIL Presence: untracked offline mobile unknown and blank rows store nothing: test/presence.lua:163: not equal: expected nil, got Cedar Vale",
         "FAIL Presence: secret fields refuse exactly one row and diagnostic has no names: test/presence.lua:171: not equal: expected nil, got Cedar Vale",
-        "FAIL Presence: missing erroring and secret APIs or tables are silent: test/presence.lua:202: not equal: expected nil, got table: 0x6082fa37aed0",
-        "FAIL Presence: reread offline or non WoW drops personal and shared evidence immediately: test/presence.lua:222: community missingCharacter clears before TTL: expected nil, got table: 0x6082fa47c060",
+        "FAIL Presence: missing erroring and secret APIs or tables are silent: test/presence.lua:202: not equal: expected nil, got table: <address>",
+        "FAIL Presence: reread offline or non WoW drops personal and shared evidence immediately: test/presence.lua:222: community missingCharacter clears before TTL: expected nil, got table: <address>",
         "FAIL Presence: diagnostic separates unresolved zoneless same faction and unmatched members: test/harness.lua:7: unmatched match count: expected true, got false",
         "FAIL Presence: qualified realm stays exact and bare name matches any realm: test/harness.lua:7: not equal: expected true, got false",
         "FAIL Presence: per name 600 second silent alert uses shared burst throttle: test/presence.lua:323: existing three-line burst limit: expected 3, got 0",
@@ -49,7 +49,7 @@
       "caught": true,
       "target": "account resolution unavailable secret incomplete and non WoW fail silent",
       "failures": [
-        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: clientProgram nil: expected nil, got table: 0x5fa5b057b450"
+        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: clientProgram nil: expected nil, got table: <address>"
       ]
     },
     {
@@ -57,8 +57,8 @@
       "caught": true,
       "target": "reread offline or non WoW drops personal and shared evidence immediately",
       "failures": [
-        "FAIL Presence: only online community members resolve Battle.net accounts: test/presence.lua:106: offline reread still withdraws previous evidence: expected nil, got table: 0x59c59c24c010",
-        "FAIL Presence: reread offline or non WoW drops personal and shared evidence immediately: test/presence.lua:222: community offline clears before TTL: expected nil, got table: 0x59c59c0ee760"
+        "FAIL Presence: only online community members resolve Battle.net accounts: test/presence.lua:106: offline reread still withdraws previous evidence: expected nil, got table: <address>",
+        "FAIL Presence: reread offline or non WoW drops personal and shared evidence immediately: test/presence.lua:222: community offline clears before TTL: expected nil, got table: <address>"
       ]
     },
     {
@@ -92,10 +92,10 @@
       "target": "untracked offline mobile unknown and blank rows store nothing",
       "failures": [
         "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:136: online WoW opposite character required: expected nil, got Cedar Vale",
-        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: 0x64e157ca23f0",
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: <address>",
         "FAIL Presence: untracked offline mobile unknown and blank rows store nothing: test/presence.lua:163: not equal: expected nil, got Cedar Vale",
         "FAIL Presence: diagnostic separates unresolved zoneless same faction and unmatched members: test/harness.lua:7: sameFaction faction count: expected true, got false",
-        "FAIL Presence: absent namespaces counts project and own faction fail closed: test/presence.lua:465: not equal: expected nil, got table: 0x64e157c53140"
+        "FAIL Presence: absent namespaces counts project and own faction fail closed: test/presence.lua:465: not equal: expected nil, got table: <address>"
       ]
     },
     {
@@ -120,7 +120,7 @@
       "caught": true,
       "target": "untracked offline mobile unknown and blank rows store nothing",
       "failures": [
-        "FAIL Presence: untracked offline mobile unknown and blank rows store nothing: test/presence.lua:160: pure presence admission independently refuses non-online members: expected nil, got table: 0x5b294b0296a0"
+        "FAIL Presence: untracked offline mobile unknown and blank rows store nothing: test/presence.lua:160: pure presence admission independently refuses non-online members: expected nil, got table: <address>"
       ]
     },
     {
@@ -128,7 +128,7 @@
       "caught": true,
       "target": "secret fields refuse exactly one row and diagnostic has no names",
       "failures": [
-        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: 0x5f4c27365910",
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: <address>",
         "FAIL Presence: secret fields refuse exactly one row and diagnostic has no names: test/presence.lua:172: not equal: expected 1, got 0"
       ]
     },
@@ -137,8 +137,8 @@
       "caught": true,
       "target": "expiry boundary future clocks and remove clear session state",
       "failures": [
-        "FAIL Presence: unread members keep TTL and another source keeps its own evidence: test/presence.lua:236: unread still expires at 660: expected nil, got table: 0x588881341b80",
-        "FAIL Presence: expiry boundary future clocks and remove clear session state: test/presence.lua:269: not equal: expected nil, got table: 0x58888147a750"
+        "FAIL Presence: unread members keep TTL and another source keeps its own evidence: test/presence.lua:236: unread still expires at 660: expected nil, got table: <address>",
+        "FAIL Presence: expiry boundary future clocks and remove clear session state: test/presence.lua:269: not equal: expected nil, got table: <address>"
       ]
     },
     {
@@ -195,7 +195,7 @@
       "caught": true,
       "target": "friends use only online characters in this project and cap 200",
       "failures": [
-        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: 0x62d94058abf0"
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: <address>"
       ]
     },
     {
@@ -203,7 +203,7 @@
       "caught": true,
       "target": "friends use only online characters in this project and cap 200",
       "failures": [
-        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: 0x603638438680"
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: <address>"
       ]
     },
     {
@@ -211,8 +211,8 @@
       "caught": true,
       "target": "missing erroring and secret APIs or tables are silent",
       "failures": [
-        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: factionName nil: expected nil, got table: 0x6262ac8479c0",
-        "FAIL Presence: missing erroring and secret APIs or tables are silent: test/presence.lua:202: not equal: expected nil, got table: 0x6262ac552840"
+        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: factionName nil: expected nil, got table: <address>",
+        "FAIL Presence: missing erroring and secret APIs or tables are silent: test/presence.lua:202: not equal: expected nil, got table: <address>"
       ]
     },
     {
@@ -231,7 +231,7 @@
       "target": "no roster adapters with empty Find combat instance or unknown safety",
       "failures": [
         "FAIL Presence: no roster adapters with empty Find combat instance or unknown safety: test/presence.lua:291: instance: expected 0, got 4",
-        "FAIL Presence: automatic 300s cadence and Find opening refresh without overlap: test/presence.lua:353: cancel instance: expected nil, got table: 0x5d7ba799d8f0"
+        "FAIL Presence: automatic 300s cadence and Find opening refresh without overlap: test/presence.lua:353: cancel instance: expected nil, got table: <address>"
       ]
     },
     {
@@ -249,7 +249,7 @@
       "caught": true,
       "target": "expiry boundary future clocks and remove clear session state",
       "failures": [
-        "FAIL Presence: expiry boundary future clocks and remove clear session state: test/presence.lua:270: not equal: expected nil, got table: 0x59edbd2b0780"
+        "FAIL Presence: expiry boundary future clocks and remove clear session state: test/presence.lua:270: not equal: expected nil, got table: <address>"
       ]
     },
     {
@@ -273,8 +273,8 @@
       "caught": true,
       "target": "invalid friend realm never falls back to a bare character",
       "failures": [
-        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: realmName nil: expected nil, got table: 0x5e55cced86d0",
-        "FAIL Presence: invalid friend realm never falls back to a bare character: test/presence.lua:405: contradictory realm refused: expected nil, got table: 0x5e55cc993fe0"
+        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: realmName nil: expected nil, got table: <address>",
+        "FAIL Presence: invalid friend realm never falls back to a bare character: test/presence.lua:405: contradictory realm refused: expected nil, got table: <address>"
       ]
     },
     {
@@ -329,7 +329,7 @@
       "caught": true,
       "target": "tracked community tracer has zone and no action or send",
       "failures": [
-        "FAIL Presence: tracked community tracer has zone and no action or send: test/presence.lua:482: session only: expected {autoHop=boolean:true,call=boolean:true,callArt=boolean:true,findNotice=boolean:true,findShare=boolean:false,guildHost=boolean:false,nets={chehulnet=boolean:true,hh=boolean:true,wanted=boolean:true,we=boolean:true},options={},share=boolean:false,tracked={1=string:Cedar Vale}}, got {autoHop=boolean:true,call=boolean:true,callArt=boolean:true,findNotice=boolean:true,findShare=boolean:false,guildHost=boolean:false,nets={chehulnet=boolean:true,hh=boolean:true,wanted=boolean:true,we=boolean:true},options={},presence={Cedar Vale={at=number:100.001,faction=string:Horde,guid=string:Player-1-cedar,route=string:community,source=string:c:3:504:1,zone=string:Stranglethorn Vale}},share=boolean:false,tracked={1=string:Cedar Vale}}"
+        "FAIL Presence: tracked community tracer has zone and no action or send: test/presence.lua:482: session only: expected {autoHop=boolean:true,call=boolean:true,callArt=boolean:true,findNotice=boolean:true,findShare=boolean:false,guildHost=boolean:false,nets={chehulnet=boolean:true,hh=boolean:true,wanted=boolean:true,warboard=boolean:true,we=boolean:true},options={},share=boolean:false,tracked={1=string:Cedar Vale},warboardOwed={}}, got {autoHop=boolean:true,call=boolean:true,callArt=boolean:true,findNotice=boolean:true,findShare=boolean:false,guildHost=boolean:false,nets={chehulnet=boolean:true,hh=boolean:true,wanted=boolean:true,warboard=boolean:true,we=boolean:true},options={},presence={Cedar Vale={at=number:100.001,faction=string:Horde,guid=string:Player-1-cedar,route=string:community,source=string:c:3:504:1,zone=string:Stranglethorn Vale}},share=boolean:false,tracked={1=string:Cedar Vale},warboardOwed={}}"
       ]
     },
     {
@@ -359,7 +359,7 @@
       "caught": true,
       "target": "pure bounds and adapter field allowlists",
       "failures": [
-        "FAIL Presence: pure bounds and adapter field allowlists: test/presence.lua:445: not equal: expected nil, got table: 0x60b60f70e8c0"
+        "FAIL Presence: pure bounds and adapter field allowlists: test/presence.lua:445: not equal: expected nil, got table: <address>"
       ]
     },
     {
@@ -367,7 +367,7 @@
       "caught": true,
       "target": "pure bounds and adapter field allowlists",
       "failures": [
-        "FAIL Presence: pure bounds and adapter field allowlists: test/presence.lua:444: not equal: expected nil, got table: 0x609f087c3cb0"
+        "FAIL Presence: pure bounds and adapter field allowlists: test/presence.lua:444: not equal: expected nil, got table: <address>"
       ]
     }
   ],
