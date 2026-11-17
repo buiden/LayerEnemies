@@ -1,0 +1,15 @@
+FAIL QuietAll review M1: unvalidatable typed target Bob2: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target B: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target Bob.: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target Bobby_x: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target Anna Maria Lee: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target Bob-: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target 12345: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target Bob Smith : test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target élodie: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target 12345: test/harness.lua:8: typed failure must be shown: expected false, got true
+FAIL QuietAll review M1: unvalidatable typed target Bob-Éire: test/harness.lua:8: all names must be protected: expected false, got true
+FAIL QuietAll review M1: unreadable targets and validator failures protect everything: test/harness.lua:8: not equal: expected false, got true
+FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:8: not equal: expected false, got true
+RESULT: 0 tests passed, 14 failed, 631 assertions

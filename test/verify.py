@@ -84,6 +84,7 @@ def lua_references(tokens):
 LUA_TOKENS = re.compile(r'''(?P<space>\s+)|(?P<comment>--(?:\[(?P<ceq>=*)\[.*?\](?P=ceq)\]|[^\n]*))|(?P<long>\[(?P<eq>=*)\[.*?\](?P=eq)\])|(?P<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?P<name>[A-Za-z_][A-Za-z_0-9]*)|(?P<concat>\.\.)|(?P<symbol>.)''', re.S)
 API_OWNERS = {word: 'Adapters.lua' for word in ('C_FriendList', 'SendWho', 'GetNumWhoResults', 'GetWhoInfo', 'SetWhoToUi', 'FriendsFrame', 'LFGWhoListFrame', 'WhoFrame')}
 API_OWNERS.update({word: 'Wire.lua' for word in ('C_PartyInfo', 'InviteUnit', 'AcceptGroup', 'LeaveParty')})
+API_OWNERS['ChatFrame_AddMessageEventFilter'] = 'Wire.lua'
 
 
 def lua_tokens(source):
@@ -204,6 +205,53 @@ def check_chat_namespace(tokens, filename):
 
 def check_send_policy(source, filename):
     tokens = lua_tokens(source)
+    # Reserve both hook guards in EVERY addon file, before exempting any spans.
+    # Bare calls cannot be Lua bindings; hooksecurefunc also has the existing
+    # _G call, protected-call argument and S.clean inspection forms. Everything
+    # else (declarations, parameters, loop/multiple assignments, folded keys,
+    # member aliases) fails closed instead of trying to infer lexical scope.
+    for at, word in lua_references(tokens):
+        if word not in ('pcall', 'hooksecurefunc'):
+            continue
+        following = tokens[at + 1:at + 2]
+        allowed = (tokens[at] == ('name', word) and following == [('symbol', '(')] and
+                   tokens[at - 1:at] not in ([('name', 'function')], [('symbol', '.')], [('symbol', ':')]))
+        if (word == 'hooksecurefunc' and tokens[at - 2:at] == [('name', '_G'), ('symbol', '.')] and
+                tokens[at - 3:at - 2] not in ([('name', 'function')], [('symbol', '.')], [('symbol', ':')])):
+            allowed = (following == [('symbol', '(')] or
+                       (tokens[at - 4:at - 2] == [('name', 'pcall'), ('symbol', '(')] and
+                        following == [('symbol', ',')]) or
+                       (tokens[at - 6:at - 2] == [('name', 'S'), ('symbol', '.'), ('name', 'clean'), ('symbol', '(')] and
+                        following == [('symbol', ')')]))
+        assert allowed, word + ' must remain an unbound hook guard in ' + filename
+    # Only these two protected post-hook registrations may expose a chat namespace.
+    # Each must appear exactly once; extra copies are not additional permissions.
+    for registration in ('pcall(_G.hooksecurefunc, C_ChatInfo, "SendChatMessage", observeChatWhisper)',
+                         'pcall(_G.hooksecurefunc, "SendChatMessage", observeChatWhisper)'):
+        hook = lua_tokens(registration)
+        sites = [i for i in range(len(tokens) - len(hook) + 1) if tokens[i:i + len(hook)] == hook]
+        if filename == 'Wire.lua':
+            assert len(sites) == 1, 'chat post-hook must appear exactly once in Wire.lua: ' + registration
+        for i in reversed(sites):
+            assert filename == 'Wire.lua', 'chat post-hook outside Wire.lua: ' + filename
+            del tokens[i:i + len(hook)]
+    # Exempt only the complete reviewed statements, once each, like the hooks.
+    # A nil-comparison substring is unsafe: '..'/'+' can first hand the send
+    # function to a metamethod. Every other send-name reference stays forbidden.
+    for statement in (
+            'local modernAbsent = not S.tab(C_ChatInfo) or S.call(function() return C_ChatInfo.SendChatMessage == nil end) == true',
+            'local legacyAbsent = S.call(function() return _G.SendChatMessage == nil end) == true'):
+        probe = lua_tokens(statement)
+        # A matching prefix of a longer RHS is not the reviewed full statement.
+        continuations = {'and', 'or', '..', '+', '-', '*', '/', '%', '^', '<', '>', '~', '=', ','}
+        sites = [i for i in range(len(tokens) - len(probe) + 1)
+                 if tokens[i:i + len(probe)] == probe and
+                 (i + len(probe) == len(tokens) or tokens[i + len(probe)][1] not in continuations)]
+        if filename == 'Wire.lua':
+            assert len(sites) == 1, 'chat presence statement must appear exactly once in Wire.lua: ' + statement
+        for i in reversed(sites):
+            assert filename == 'Wire.lua', 'chat presence statement outside Wire.lua: ' + filename
+            del tokens[i:i + len(probe)]
     send_sites = []
     for at, word in lua_references(tokens):
         forbidden = (word == 'SendGameData' and filename != 'BNet.lua') or word == 'SendChatMessage' or re.fullmatch(r'BN\w*Send\w*', word)

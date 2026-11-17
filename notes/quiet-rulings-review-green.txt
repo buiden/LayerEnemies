@@ -1,0 +1,23 @@
+PASS QuietAll review S1: failed existing modern hook disables all
+PASS QuietAll review S1: failed existing legacy hook disables all
+PASS QuietAll review S2: 17 typed whispers fail open in all
+PASS QuietAll review S2: 17 typed whispers fail open in on
+PASS QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot
+PASS QuietAll review M1: unvalidatable typed target string "Bob2"
+PASS QuietAll review M1: unvalidatable typed target string "B"
+PASS QuietAll review M1: unvalidatable typed target string "Bob."
+PASS QuietAll review M1: unvalidatable typed target string "Bobby_x"
+PASS QuietAll review M1: unvalidatable typed target string "Anna Maria Lee"
+PASS QuietAll review M1: unvalidatable typed target string "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+PASS QuietAll review M1: unvalidatable typed target string "Bob-"
+PASS QuietAll review M1: unvalidatable typed target string "12345"
+PASS QuietAll review M1: unvalidatable typed target string "Bob Smith "
+PASS QuietAll review M1: unvalidatable typed target string "élodie"
+PASS QuietAll review M1: unvalidatable typed target number "12345"
+PASS QuietAll review M1: unvalidatable typed target string "Bob-Éire"
+PASS QuietAll review M1: unreadable targets and validator failures protect everything
+PASS QuietAll review M1: marker refresh, rollback and reload retain no invalid target
+PASS QuietAll review Note: on-mode typed protection Shared Person
+PASS QuietAll review Note: on-mode typed protection Invalid.Name
+PASS QuietAll review Note: on-mode typed protection élodie
+RESULT: 22 tests passed, 0 failed, 1741 assertions

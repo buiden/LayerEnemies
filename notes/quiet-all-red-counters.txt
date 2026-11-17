@@ -1,0 +1,16 @@
+PASS QuietAll modes: booleans migrate, strings survive, invalid values default on
+PASS QuietAll modes: slash accepts all, persists it and reports current scope
+PASS QuietAll hook: both secure post-hooks install at startup without sends or replacements
+PASS QuietAll filter: any localized not-found is hidden, only typed targets are excepted
+PASS QuietAll hook: each available API works alone and failed installs fall back to on
+FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0
+FAIL QuietAll counters: observer-only hides are not counted and reload resets totals: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0
+PASS QuietAll manual: only WHISPER is recorded, with existing full name normalization
+PASS QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices
+PASS QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot
+PASS QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode
+FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 1; shown (your own whisper or mode): 0: expected 1, got 0
+FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 1; shown (your own whisper or mode): 0: expected 1, got 0
+PASS QuietAll safety: exact localized pattern only and protected callbacks never escape
+FAIL QuietAll status: no-hook query explains fallback instead of claiming blanket hiding: test/harness.lua:7: not equal: expected true, got false
+RESULT: 10 tests passed, 5 failed, 1985 assertions

@@ -1,0 +1,46 @@
+{
+  "baseline": "8bb8e133232f311f8664d3dd41dca9f664b78b6a",
+  "implementation_head": "c640864121bdbd26fba01fa93c6cdc08b7d11fe8",
+  "baseline_changed_files": [
+    "test/test_verify.py"
+  ],
+  "identical_augmented_tests": true,
+  "red_methods": 31,
+  "red_failed_subcases": 423,
+  "red_errors": 0,
+  "red_failures_by_method": {
+    "test_folded_guard_keys_and_multiple_assignments_are_rejected": 90,
+    "test_guard_assignments_are_rejected_in_every_addon_file": 261,
+    "test_guard_declarations_parameters_and_loop_bindings_are_rejected": 45,
+    "test_chat_presence_predicate_prefixes_are_rejected": 5,
+    "test_chat_presence_statements_are_required_exactly_once": 20,
+    "test_extra_presence_predicates_are_rejected": 2
+  },
+  "green_output": "...............................\n----------------------------------------------------------------------\nRan 31 tests in 155.955s\n\nOK",
+  "addon_lua_files": 44,
+  "runtime_and_readme_changes": [],
+  "verify_command": "python3 -B test/verify.py",
+  "verify_exit_code": 0,
+  "verify_foreground_timeout_seconds": 1800,
+  "verify_result": "RESULT: 1528 tests passed, 0 failed, 263936 assertions",
+  "archive_sha256": "eb470c13452166a59691ce271d82d5885a0a3d46a832d62d27ddefd4468d2402",
+  "gate_diff_numstat": "36\t17\ttest/verify.py",
+  "gate_diff": "diff --git a/test/verify.py b/test/verify.py\nindex faca302..56d4d28 100644\n--- a/test/verify.py\n+++ b/test/verify.py\n@@ -205,15 +205,25 @@ def check_chat_namespace(tokens, filename):\n \n def check_send_policy(source, filename):\n     tokens = lua_tokens(source)\n-    # Reserve pcall for bare invocations in Wire: no declarations, parameters,\n-    # loop bindings, assignments or member aliases can replace the hook guard.\n-    if filename == 'Wire.lua':\n-        for at, word in lua_references(tokens):\n-            if word == 'pcall':\n-                assert (tokens[at] == ('name', 'pcall') and\n-                        tokens[at + 1:at + 2] == [('symbol', '(')] and\n-                        tokens[at - 1:at] not in ([('name', 'function')], [('symbol', '.')], [('symbol', ':')])), \\\n-                    'pcall must be an unbound bare invocation in Wire.lua'\n+    # Reserve both hook guards in EVERY addon file, before exempting any spans.\n+    # Bare calls cannot be Lua bindings; hooksecurefunc also has the existing\n+    # _G call, protected-call argument and S.clean inspection forms. Everything\n+    # else (declarations, parameters, loop/multiple assignments, folded keys,\n+    # member aliases) fails closed instead of trying to infer lexical scope.\n+    for at, word in lua_references(tokens):\n+        if word not in ('pcall', 'hooksecurefunc'):\n+            continue\n+        following = tokens[at + 1:at + 2]\n+        allowed = (tokens[at] == ('name', word) and following == [('symbol', '(')] and\n+                   tokens[at - 1:at] not in ([('name', 'function')], [('symbol', '.')], [('symbol', ':')]))\n+        if (word == 'hooksecurefunc' and tokens[at - 2:at] == [('name', '_G'), ('symbol', '.')] and\n+                tokens[at - 3:at - 2] not in ([('name', 'function')], [('symbol', '.')], [('symbol', ':')])):\n+            allowed = (following == [('symbol', '(')] or\n+                       (tokens[at - 4:at - 2] == [('name', 'pcall'), ('symbol', '(')] and\n+                        following == [('symbol', ',')]) or\n+                       (tokens[at - 6:at - 2] == [('name', 'S'), ('symbol', '.'), ('name', 'clean'), ('symbol', '(')] and\n+                        following == [('symbol', ')')]))\n+        assert allowed, word + ' must remain an unbound hook guard in ' + filename\n     # Only these two protected post-hook registrations may expose a chat namespace.\n     # Each must appear exactly once; extra copies are not additional permissions.\n     for registration in ('pcall(_G.hooksecurefunc, C_ChatInfo, \"SendChatMessage\", observeChatWhisper)',\n@@ -225,14 +235,23 @@ def check_send_policy(source, filename):\n         for i in reversed(sites):\n             assert filename == 'Wire.lua', 'chat post-hook outside Wire.lua: ' + filename\n             del tokens[i:i + len(hook)]\n-    # Primitive nil comparisons reveal existence only, never a callable reference.\n-    # No type()/helper exemption: a shadowed helper could invoke its argument.\n-    for predicate in ('C_ChatInfo.SendChatMessage == nil', '_G.SendChatMessage == nil'):\n-        probe = lua_tokens(predicate)\n-        for i in range(len(tokens) - len(probe), -1, -1):\n-            if tokens[i:i + len(probe)] == probe:\n-                assert filename == 'Wire.lua', 'chat presence probe outside Wire.lua: ' + filename\n-                tokens[i:i + len(probe)] = [('name', 'false')]\n+    # Exempt only the complete reviewed statements, once each, like the hooks.\n+    # A nil-comparison substring is unsafe: '..'/'+' can first hand the send\n+    # function to a metamethod. Every other send-name reference stays forbidden.\n+    for statement in (\n+            'local modernAbsent = not S.tab(C_ChatInfo) or S.call(function() return C_ChatInfo.SendChatMessage == nil end) == true',\n+            'local legacyAbsent = S.call(function() return _G.SendChatMessage == nil end) == true'):\n+        probe = lua_tokens(statement)\n+        # A matching prefix of a longer RHS is not the reviewed full statement.\n+        continuations = {'and', 'or', '..', '+', '-', '*', '/', '%', '^', '<', '>', '~', '=', ','}\n+        sites = [i for i in range(len(tokens) - len(probe) + 1)\n+                 if tokens[i:i + len(probe)] == probe and\n+                 (i + len(probe) == len(tokens) or tokens[i + len(probe)][1] not in continuations)]\n+        if filename == 'Wire.lua':\n+            assert len(sites) == 1, 'chat presence statement must appear exactly once in Wire.lua: ' + statement\n+        for i in reversed(sites):\n+            assert filename == 'Wire.lua', 'chat presence statement outside Wire.lua: ' + filename\n+            del tokens[i:i + len(probe)]\n     send_sites = []\n     for at, word in lua_references(tokens):\n         forbidden = (word == 'SendGameData' and filename != 'BNet.lua') or word == 'SendChatMessage' or re.fullmatch(r'BN\\w*Send\\w*', word)\n",
+  "mutants": {
+    "quiet-all-mutants.json": {
+      "caught": 43,
+      "total": 43
+    },
+    "quiet-mutants.json": {
+      "caught": 38,
+      "total": 38
+    }
+  },
+  "scratch_logs": {
+    "/opt/data/cache/scratch/le-notfound-gate-red.txt": "9866000186ebd4797795cf16588d1c77471dcfb5e4c53a9e2bffc91677bf39e3",
+    "/opt/data/cache/scratch/le-notfound-gate-green.txt": "c0cb0df87d87fcbd91491d17c7e0ef38dd3342f5e1b7828c02ab8b7a6ea1693e",
+    "/opt/data/cache/scratch/le-notfound-gate-verify.txt": "5396942a74c0760030182b59c45c9d6c218c78d1b5ae62505657b1b9592427aa",
+    "/opt/data/cache/scratch/le-notfound-gate-all-mutants.txt": "59a132788dbb031aa3ad956db2f62bdb3cdc0703fd6615f0845dd7eb5194d03f",
+    "/opt/data/cache/scratch/le-notfound-gate-own-mutants.txt": "4158cee817129b457d72f3e8d8d78db2f3a276d48805f0801a6403603363f5f7"
+  }
+}

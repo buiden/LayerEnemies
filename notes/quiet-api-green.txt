@@ -1,0 +1,18 @@
+test_bnet_send_has_one_owner_and_one_local_delivery_site (__main__.ApiPolicyTests.test_bnet_send_has_one_owner_and_one_local_delivery_site) ... ok
+test_chehulnet_has_no_send_join_save_or_enemy_projection_access (__main__.ApiPolicyTests.test_chehulnet_has_no_send_join_save_or_enemy_projection_access) ... ok
+test_codec_has_only_local_protocol_exports_and_no_send_api (__main__.ApiPolicyTests.test_codec_has_only_local_protocol_exports_and_no_send_api) ... ok
+test_comments_and_plain_data_are_not_api_references (__main__.ApiPolicyTests.test_comments_and_plain_data_are_not_api_references) ... ok
+test_dormant_accept_aliases (__main__.ApiPolicyTests.test_dormant_accept_aliases) ... ok
+test_dormant_who_aliases (__main__.ApiPolicyTests.test_dormant_who_aliases) ... ok
+test_global_alias_and_dynamic_keys_fail_closed (__main__.ApiPolicyTests.test_global_alias_and_dynamic_keys_fail_closed) ... ok
+test_permitted_owners (__main__.ApiPolicyTests.test_permitted_owners) ... ok
+test_presence_data_module_has_no_client_access (__main__.ApiPolicyTests.test_presence_data_module_has_no_client_access) ... ok
+test_presence_owners_and_no_subscription (__main__.ApiPolicyTests.test_presence_owners_and_no_subscription) ... ok
+test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) ... ok
+test_wanted_is_receive_only_and_reuses_shared_codecs (__main__.ApiPolicyTests.test_wanted_is_receive_only_and_reuses_shared_codecs) ... ok
+test_who_ui_ownership_stays_in_adapter (__main__.ApiPolicyTests.test_who_ui_ownership_stays_in_adapter) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.169s
+
+OK

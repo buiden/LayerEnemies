@@ -1,0 +1,3 @@
+FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:8: one successful hook cannot cover both entrypoints: expected false, got true
+FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:8: one successful hook cannot cover both entrypoints: expected false, got true
+RESULT: 0 tests passed, 2 failed, 88 assertions

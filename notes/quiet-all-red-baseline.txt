@@ -1,0 +1,18 @@
+FAIL QuietAll modes: booleans migrate, strings survive, invalid values default on: test/src_quiet_all.lua:62: not equal: expected on, got true
+FAIL QuietAll modes: slash accepts all, persists it and reports current scope: test/src_quiet_all.lua:70: not equal: expected all, got true
+FAIL QuietAll hook: both secure post-hooks install at startup without sends or replacements: test/src_quiet_all.lua:81: not equal: expected function, got nil
+FAIL QuietAll filter: any localized not-found is hidden, only typed targets are excepted: test/harness.lua:7: not equal: expected true, got false
+FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/src_quiet_all.lua:103: not equal: expected function, got nil
+FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0
+FAIL QuietAll counters: observer-only hides are not counted and reload resets totals: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0
+FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:7: not equal: expected true, got false
+FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:158: not equal: expected true, got false
+FAIL QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot: test/harness.lua:7: not equal: expected true, got false
+FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/src_quiet_all.lua:183: not equal: expected false, got true
+FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false
+FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:7: not equal: expected true, got false
+FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: attempt to call a nil value: expected true, got false
+FAIL QuietAll status: no-hook query explains fallback instead of claiming blanket hiding: test/harness.lua:7: not equal: expected true, got false
+FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:7: not equal: expected true, got false
+FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false
+RESULT: 0 tests passed, 17 failed, 1040 assertions

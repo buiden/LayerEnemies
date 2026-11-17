@@ -1,0 +1,3 @@
+FAIL QuietAll modes: booleans migrate, strings survive, invalid values default on: test/src_quiet_all.lua:12: not equal: expected on, got true
+FAIL QuietAll modes: slash accepts all, persists it and reports current scope: test/src_quiet_all.lua:20: not equal: expected all, got true
+RESULT: 0 tests passed, 2 failed, 84 assertions

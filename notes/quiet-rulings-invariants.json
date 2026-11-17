@@ -1,0 +1,20 @@
+{
+  "source_head": "39547c984be0183435ce3b190764c35e89826ce0",
+  "red_base": "b054fae86e7deacd40aaea656e6d43006386dff7",
+  "green_coverage": {
+    "M1": 14,
+    "Note": 3,
+    "S1": 2,
+    "S2": 3
+  },
+  "unchanged": {
+    "own_correlation_and_offline_bookkeeping": true,
+    "event_evidence_consumption": true,
+    "delivery_budgets_and_send_tail": true,
+    "literal_whisper_send_sites": true
+  },
+  "literal_whisper_send_sites_count": 10,
+  "added_line_security_matches": [],
+  "review": "self-review; no independent reviewer tool in builder session",
+  "archive_sha256": "eb470c13452166a59691ce271d82d5885a0a3d46a832d62d27ddefd4468d2402"
+}
