@@ -5,7 +5,7 @@
     "selector": "WarBoard: compatible H",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:88: not equal: expected 1, got 2"
+      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:101: not equal: expected 1, got 2"
     ]
   },
   {
@@ -14,7 +14,7 @@
     "selector": "WarBoard: wrong ruleset",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: wrong ruleset H gets own A but no peer; wrong protocol gets nothing: test/src_warboard.lua:96: not equal: expected 1, got 2"
+      "FAIL WarBoard: wrong ruleset H gets own A but no peer; wrong protocol gets nothing: test/src_warboard.lua:109: not equal: expected 1, got 2"
     ]
   },
   {
@@ -32,7 +32,7 @@
     "selector": "WarBoard: wrong ruleset",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: wrong ruleset H gets own A but no peer; wrong protocol gets nothing: test/src_warboard.lua:99: not equal: expected 1, got 2"
+      "FAIL WarBoard: wrong ruleset H gets own A but no peer; wrong protocol gets nothing: test/src_warboard.lua:112: not equal: expected 1, got 2"
     ]
   },
   {
@@ -41,7 +41,7 @@
     "selector": "WarBoard: compatible H",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:87: not equal: expected WBF1|A|5|pvp|LayerEnemies/1.1.0|0, got WBF1|A|5|pvp|WarBoard/1.6.3|0"
+      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:100: not equal: expected WBF1|A|5|pvp|LayerEnemies/1.1.0|0, got WBF1|A|5|pvp|WarBoard/1.6.3|0"
     ]
   },
   {
@@ -50,7 +50,7 @@
     "selector": "WarBoard: discovery selects",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred: test/src_warboard.lua:327: selection cap independent of queue admission: expected 20, got 21"
+      "FAIL WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred: test/src_warboard.lua:340: selection cap independent of queue admission: expected 20, got 21"
     ]
   },
   {
@@ -59,7 +59,7 @@
     "selector": "WarBoard: discovery selects",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred: test/src_warboard.lua:329: not equal: expected 1, got 2"
+      "FAIL WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred: test/src_warboard.lua:342: not equal: expected 1, got 2"
     ]
   },
   {
@@ -68,7 +68,7 @@
     "selector": "WarBoard: H delayed dispatch",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: H delayed dispatch never repeats an account before six hundred actual seconds: test/src_warboard.lua:749: queued early does not permit an early actual hello: expected 1, got 2"
+      "FAIL WarBoard: H delayed dispatch never repeats an account before six hundred actual seconds: test/src_warboard.lua:771: queued early does not permit an early actual hello: expected 1, got 2"
     ]
   },
   {
@@ -77,7 +77,7 @@
     "selector": "WarBoard: H admission",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: H admission gap is six hundred even before dispatch: test/src_warboard.lua:806: not equal: expected 0, got 1"
+      "FAIL WarBoard: H admission gap is six hundred even before dispatch: test/src_warboard.lua:828: not equal: expected 0, got 1"
     ]
   },
   {
@@ -86,7 +86,7 @@
     "selector": "WarBoard: A six per rolling",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: A six per rolling minute including delayed queue; WarBoard ten shared thirty: test/src_warboard.lua:345: answer admission cap independent of dispatch cap: expected 6, got 7"
+      "FAIL WarBoard: A six per rolling minute including delayed queue; WarBoard ten shared thirty: test/src_warboard.lua:358: answer admission cap independent of dispatch cap: expected 6, got 7"
     ]
   },
   {
@@ -95,7 +95,7 @@
     "selector": "WarBoard: A dispatch cap",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:659: second delayed cohort dropped, not burst: expected 6, got 7"
+      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:681: second delayed cohort dropped, not burst: expected 6, got 7"
     ]
   },
   {
@@ -104,7 +104,7 @@
     "selector": "WarBoard: discovery selects",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred: test/src_warboard.lua:328: the shared queue admits only WarBoard's ten slots: expected 10, got 11"
+      "FAIL WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred: test/src_warboard.lua:341: the shared queue admits only WarBoard's ten slots: expected 10, got 11"
     ]
   },
   {
@@ -113,7 +113,7 @@
     "selector": "WarBoard: A dispatch cap",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:655: shared cap holds answers: expected 0, got 1"
+      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:677: shared cap holds answers: expected 0, got 1"
     ]
   },
   {
@@ -122,7 +122,7 @@
     "selector": "WarBoard: live account identity",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: live account identity and ruleset rechecked at dispatch: test/src_warboard.lua:392: not equal: expected 0, got 1"
+      "FAIL WarBoard: live account identity and ruleset rechecked at dispatch: test/src_warboard.lua:414: not equal: expected 0, got 1"
     ]
   },
   {
@@ -131,7 +131,7 @@
     "selector": "WarBoard: share stops",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: share stops new sends and cancels queued answers: test/src_warboard.lua:364: not equal: expected 0, got 1"
+      "FAIL WarBoard: share stops new sends and cancels queued answers: test/src_warboard.lua:377: not equal: expected 0, got 1"
     ]
   },
   {
@@ -140,7 +140,7 @@
     "selector": "WarBoard: public stops",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: public stops new sends and cancels queued answers: test/src_warboard.lua:364: not equal: expected 0, got 1"
+      "FAIL WarBoard: public stops new sends and cancels queued answers: test/src_warboard.lua:377: not equal: expected 0, got 1"
     ]
   },
   {
@@ -149,7 +149,7 @@
     "selector": "WarBoard: stand down",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: stand down H and A over thirty minutes of incoming H traffic: test/src_warboard.lua:457: stand down leaves discovery stopped: expected 0, got 30"
+      "FAIL WarBoard: stand down H and A over thirty minutes of incoming H traffic: test/src_warboard.lua:479: stand down leaves discovery stopped: expected 0, got 30"
     ]
   },
   {
@@ -158,25 +158,25 @@
     "selector": "WarBoard: stand down cancels queued H and A",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: stand down cancels queued H and A when the real addon loads: test/src_warboard.lua:380: loading the donor cancels both queued kinds: expected 0, got 1"
+      "FAIL WarBoard: stand down cancels queued H and A when the real addon loads: test/harness.lua:8: source final guard honors donor load: expected false, got true"
     ]
   },
   {
-    "rule": "no FBAK send",
+    "rule": "handshake grammar cannot masquerade as FBAK",
     "file": "WarBoard.lua",
     "selector": "WarBoard: compatible H",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:87: not equal: expected 1, got 0"
+      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:100: not equal: expected 1, got 0"
     ]
   },
   {
     "rule": "no forwarding",
     "file": "WarBoard.lua",
-    "selector": "WarBoard: no FBAK or request",
+    "selector": "WarBoard: no unsolicited application response",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: no FBAK or request answer or forwarding for any application type: test/src_warboard.lua:678: not equal: expected 0, got 5"
+      "FAIL WarBoard: no unsolicited application response or forwarding; FBAK requires verified Find target: test/src_warboard.lua:700: not equal: expected 0, got 5"
     ]
   },
   {
@@ -185,7 +185,7 @@
     "selector": "WarBoard: compatible H",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:7: no forbidden attempt, even if protected callbacks swallowed it: expected 0, got 1"
+      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:20: no forbidden attempt, even if protected callbacks swallowed it: expected 0, got 1"
     ]
   },
   {
@@ -248,7 +248,7 @@
     "selector": "WarBoard: fragment limits",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: fragment limits sixty four parts sixteen streams ninety seconds and sender isolation: test/src_warboard.lua:593: not equal: expected 16, got 17"
+      "FAIL WarBoard: fragment limits sixty four parts sixteen streams ninety seconds and sender isolation: test/src_warboard.lua:615: not equal: expected 16, got 17"
     ]
   },
   {
@@ -293,7 +293,7 @@
     "selector": "WarBoard: inbound rolling",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:635: not equal: expected 200, got 201"
+      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:657: not equal: expected 200, got 201"
     ]
   },
   {
@@ -302,7 +302,7 @@
     "selector": "WarBoard: inbound rolling",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:637: peer bound independent of input buckets: expected 200, got 201"
+      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:659: peer bound independent of input buckets: expected 200, got 201"
     ]
   },
   {
@@ -311,7 +311,7 @@
     "selector": "WarBoard: dedupe FBLP",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: dedupe FBLP retains observed and received clocks across differently routed copies: test/src_warboard.lua:822: not equal: expected 10, got 71"
+      "FAIL WarBoard: dedupe FBLP retains observed and received clocks across differently routed copies: test/src_warboard.lua:844: not equal: expected 10, got 71"
     ]
   },
   {
@@ -320,7 +320,7 @@
     "selector": "WarBoard: dedupe ring",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: dedupe ring bounded at five hundred twelve and one MiB with fresh evidence admitted: test/src_warboard.lua:648: not equal: expected 512, got 513"
+      "FAIL WarBoard: dedupe ring bounded at five hundred twelve and one MiB with fresh evidence admitted: test/src_warboard.lua:670: not equal: expected 512, got 513"
     ]
   },
   {
@@ -365,7 +365,7 @@
     "selector": "WarBoard: addon routes",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: addon routes use honest relayed labels, read under stand-down, never whisper or send: test/src_warboard.lua:531: GUILDWarBoard: expected relayed, got self"
+      "FAIL WarBoard: addon routes use honest relayed labels, read under stand-down, never whisper or send: test/src_warboard.lua:553: GUILDWarBoard: expected relayed, got self"
     ]
   },
   {
@@ -374,7 +374,7 @@
     "selector": "WarBoard: untracked FBLP",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: untracked FBLP and FREC never reach Known or save names: test/src_warboard.lua:841: not equal: expected nil, got enemy player-123"
+      "FAIL WarBoard: untracked FBLP and FREC never reach Known or save names: test/src_warboard.lua:863: not equal: expected nil, got enemy player-123"
     ]
   },
   {
@@ -392,7 +392,7 @@
     "selector": "WarBoard: SHRD own zone",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: SHRD own zone and shard through registry, with sequence not seconds; clear and expiry: test/src_warboard.lua:465: not equal: expected warboard, got nil"
+      "FAIL WarBoard: SHRD own zone and shard through registry, with sequence not seconds; clear and expiry: test/src_warboard.lua:487: not equal: expected warboard, got nil"
     ]
   },
   {
@@ -410,7 +410,7 @@
     "selector": "WarBoard: SHRD ordering",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: SHRD ordering rejects different bytes with equal or older sequences: test/src_warboard.lua:853: not equal: expected 123, got 124"
+      "FAIL WarBoard: SHRD ordering rejects different bytes with equal or older sequences: test/src_warboard.lua:875: not equal: expected 123, got 124"
     ]
   },
   {
@@ -455,7 +455,7 @@
     "selector": "WarBoard: source clear",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:688: not equal: expected probe, got nil"
+      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:710: not equal: expected probe, got nil"
     ]
   },
   {
@@ -464,7 +464,7 @@
     "selector": "WarBoard: source clear",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:685: not equal: expected FBLP, got nil"
+      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:707: not equal: expected FBLP, got nil"
     ]
   },
   {
@@ -491,7 +491,7 @@
     "selector": "WarBoard: relayed FBLP",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: relayed FBLP still carries target coordinates and different current zone labels: test/src_warboard.lua:720: not equal: expected enemy, got observer"
+      "FAIL WarBoard: relayed FBLP still carries target coordinates and different current zone labels: test/src_warboard.lua:742: not equal: expected enemy, got observer"
     ]
   },
   {
@@ -500,7 +500,7 @@
     "selector": "WarBoard: FBLP world",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: FBLP world coordinates convert only via client with axis order; labels survive no conversion: test/src_warboard.lua:485: not equal: expected 0.2, got nil"
+      "FAIL WarBoard: FBLP world coordinates convert only via client with axis order; labels survive no conversion: test/src_warboard.lua:507: not equal: expected 0.2, got nil"
     ]
   },
   {
@@ -509,7 +509,7 @@
     "selector": "WarBoard: client child-map",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: client child-map conversion must be converted again to the displayed zone: test/src_warboard.lua:733: not equal: expected 2, got 1"
+      "FAIL WarBoard: client child-map conversion must be converted again to the displayed zone: test/src_warboard.lua:755: not equal: expected 2, got 1"
     ]
   },
   {
@@ -527,7 +527,7 @@
     "selector": "WarBoard: FREC names",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: FREC names killer not victim, self witness relay and cached retain original age: test/src_warboard.lua:502: not equal: expected cached, got relayed"
+      "FAIL WarBoard: FREC names killer not victim, self witness relay and cached retain original age: test/src_warboard.lua:524: not equal: expected cached, got relayed"
     ]
   },
   {
@@ -536,7 +536,7 @@
     "selector": "WarBoard: rollback refusal",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: rollback refusal drops an H before queuing an answer: test/src_warboard.lua:861: rollback must not create new send authority: expected 0, got 1"
+      "FAIL WarBoard: rollback refusal drops an H before queuing an answer: test/src_warboard.lua:883: rollback must not create new send authority: expected 0, got 1"
     ]
   },
   {
@@ -891,7 +891,25 @@
     "selector": "WarBoard R2: portable mutant runner",
     "killed": true,
     "failures": [
-      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"test/warboard_mutants_portability_test.py\", line 59, in <module> |     main() |     ~~~~^^ |   File \"test/warboard_mutants_portability_test.py\", line 41, in main |     runner.main() |     ~~~~~~~~~~~^^ |   File \"test/warboard_mutants.py\", line 227, in main | AssertionError | : expected true, got false"
+      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 68, in <module> |     main() |     ~~~~^^ |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 43, in main |     runner.main() |     ~~~~~~~~~~~^^ |   File \"<checkout>/test/warboard_mutants.py\", line 239, in main | AssertionError | : expected true, got false"
+    ]
+  },
+  {
+    "rule": "identical mutant evidence is not rewritten",
+    "file": "../test/warboard_mutants.py",
+    "selector": "WarBoard R2: portable mutant runner",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 68, in <module> |     main() |     ~~~~^^ |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 52, in main |     assert (report.read_bytes(), report.stat().st_mtime_ns) == before, 'evidence bytes/mtime changed on rerun' |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: evidence bytes/mtime changed on rerun | : expected true, got false"
+    ]
+  },
+  {
+    "rule": "random traceback paths and addresses normalized",
+    "file": "../test/warboard_mutants.py",
+    "selector": "WarBoard R2: portable mutant runner",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 68, in <module> |     main() |     ~~~~^^ |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 31, in main |     assert runner.diagnostic('File \"<checkout>/test/case.py\" got <object>') == runner.diagnostic( |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |         'File \"<checkout>/test/case.py\" got <object>'), 'diagnostics retain random paths/addresses' |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: diagnostics retain random paths/addresses | : expected true, got false"
     ]
   },
   {
@@ -913,7 +931,7 @@
     "selector": "WarBoard: H cannot consume owed reserve",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: H cannot consume owed reserve while six real A answers use it: test/src_warboard.lua:771: real H cannot take any owed-only slot: expected 52, got 53"
+      "FAIL WarBoard: H cannot consume owed reserve while six real A answers use it: test/src_warboard.lua:793: real H cannot take any owed-only slot: expected 52, got 53"
     ]
   },
   {
@@ -922,10 +940,10 @@
     "selector": "respects shared queue age",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: H respects shared queue age at 60.001 seconds: test/src_warboard.lua:795: sixty seconds is live; older H and A expire: expected 0, got 1",
-      "FAIL WarBoard: H respects shared queue age at 61 seconds: test/src_warboard.lua:795: sixty seconds is live; older H and A expire: expected 0, got 1",
-      "FAIL WarBoard: A respects shared queue age at 60.001 seconds: test/src_warboard.lua:795: sixty seconds is live; older H and A expire: expected 0, got 1",
-      "FAIL WarBoard: A respects shared queue age at 61 seconds: test/src_warboard.lua:795: sixty seconds is live; older H and A expire: expected 0, got 1"
+      "FAIL WarBoard: H respects shared queue age at 60.001 seconds: test/src_warboard.lua:817: sixty seconds is live; older H and A expire: expected 0, got 1",
+      "FAIL WarBoard: H respects shared queue age at 61 seconds: test/src_warboard.lua:817: sixty seconds is live; older H and A expire: expected 0, got 1",
+      "FAIL WarBoard: A respects shared queue age at 60.001 seconds: test/src_warboard.lua:817: sixty seconds is live; older H and A expire: expected 0, got 1",
+      "FAIL WarBoard: A respects shared queue age at 61 seconds: test/src_warboard.lua:817: sixty seconds is live; older H and A expire: expected 0, got 1"
     ]
   },
   {
@@ -934,7 +952,7 @@
     "selector": "WarBoard: queue refusal",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: queue refusal does not spend H admission cooldown: test/src_warboard.lua:112: queue refusal must not spend a 600-second cooldown: expected nil, got table: <address>"
+      "FAIL WarBoard: queue refusal does not spend H admission cooldown: test/src_warboard.lua:125: queue refusal must not spend a 600-second cooldown: expected nil, got <object>"
     ]
   },
   {
@@ -943,7 +961,7 @@
     "selector": "WarBoard: round robin",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: round robin starts after the last admitted account in stable ID order: test/src_warboard.lua:138: not equal: expected 40, got 30"
+      "FAIL WarBoard: round robin starts after the last admitted account in stable ID order: test/src_warboard.lua:151: not equal: expected 40, got 30"
     ]
   },
   {
@@ -952,7 +970,7 @@
     "selector": "WarBoard: round robin",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: round robin starts after the last admitted account in stable ID order: test/src_warboard.lua:139: resume after last accepted, not last refused: expected 81, got 110"
+      "FAIL WarBoard: round robin starts after the last admitted account in stable ID order: test/src_warboard.lua:152: resume after last accepted, not last refused: expected 81, got 110"
     ]
   },
   {
@@ -961,7 +979,7 @@
     "selector": "WarBoard: round robin",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: round robin starts after the last admitted account in stable ID order: test/src_warboard.lua:139: resume after last accepted, not last refused: expected 81, got 91"
+      "FAIL WarBoard: round robin starts after the last admitted account in stable ID order: test/src_warboard.lua:152: resume after last accepted, not last refused: expected 81, got 91"
     ]
   },
   {
@@ -970,10 +988,10 @@
     "selector": "WarBoard: unreadable hello",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: unreadable hello cursor skips missing names without spending the selection budget: test/src_warboard.lua:253: unreadable accounts do not consume readable selections: expected 20, got 10",
-      "FAIL WarBoard: unreadable hello cursor skips secret names without spending the selection budget: test/src_warboard.lua:253: unreadable accounts do not consume readable selections: expected 20, got 10",
-      "FAIL WarBoard: unreadable hello cursor skips throwing names without spending the selection budget: test/src_warboard.lua:253: unreadable accounts do not consume readable selections: expected 20, got 10",
-      "FAIL WarBoard: unreadable hello reach over sixty minutes with 22 unreadable of 45 accounts: test/src_warboard.lua:311: all readable accounts greeted within sixty minutes: expected 23, got 10"
+      "FAIL WarBoard: unreadable hello cursor skips missing names without spending the selection budget: test/src_warboard.lua:266: unreadable accounts do not consume readable selections: expected 20, got 10",
+      "FAIL WarBoard: unreadable hello cursor skips secret names without spending the selection budget: test/src_warboard.lua:266: unreadable accounts do not consume readable selections: expected 20, got 10",
+      "FAIL WarBoard: unreadable hello cursor skips throwing names without spending the selection budget: test/src_warboard.lua:266: unreadable accounts do not consume readable selections: expected 20, got 10",
+      "FAIL WarBoard: unreadable hello reach over sixty minutes with 22 unreadable of 45 accounts: test/src_warboard.lua:324: all readable accounts greeted within sixty minutes: expected 23, got 10"
     ]
   },
   {
@@ -991,7 +1009,7 @@
     "selector": "WarBoard review: README explains",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: README explains the new-peer publication side effect below the send table: test/harness.lua:7: handshake explanation includes: This part never sends the tracking request (see the tracking-request section when it is added).: expected true, got false"
+      "FAIL WarBoard review: README explains the new-peer publication side effect below the send table: test/harness.lua:7: handshake explanation includes: This handshake does not request a position broadcast; the tracking-request section above does.: expected true, got false"
     ]
   },
   {
@@ -1000,7 +1018,7 @@
     "selector": "Stack: source mutant evidence",
     "killed": true,
     "failures": [
-      "FAIL Stack: source mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_source_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_source_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"test/mutant_evidence_test.py\", line 62, in test_source_rerun_is_byte_and_mtime_stable |     self.check_rerun('source', 'peer online', 3) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"test/mutant_evidence_test.py\", line 51, in check_rerun |     self.assertTrue(second == first, 'actual mutant evidence must be byte-stable') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : actual mutant evidence must be byte-stable | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
+      "FAIL Stack: source mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_source_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_source_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"<checkout>/test/mutant_evidence_test.py\", line 62, in test_source_rerun_is_byte_and_mtime_stable |     self.check_rerun('source', 'peer online', 3) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"<checkout>/test/mutant_evidence_test.py\", line 51, in check_rerun |     self.assertTrue(second == first, 'actual mutant evidence must be byte-stable') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : actual mutant evidence must be byte-stable | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
     ]
   },
   {
@@ -1009,7 +1027,7 @@
     "selector": "Stack: source mutant evidence",
     "killed": true,
     "failures": [
-      "FAIL Stack: source mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_source_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_source_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"test/mutant_evidence_test.py\", line 62, in test_source_rerun_is_byte_and_mtime_stable |     self.check_rerun('source', 'peer online', 3) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"test/mutant_evidence_test.py\", line 52, in check_rerun |     self.assertTrue(later == stamp, 'unchanged evidence must not be rewritten') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : unchanged evidence must not be rewritten | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
+      "FAIL Stack: source mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_source_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_source_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"<checkout>/test/mutant_evidence_test.py\", line 62, in test_source_rerun_is_byte_and_mtime_stable |     self.check_rerun('source', 'peer online', 3) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"<checkout>/test/mutant_evidence_test.py\", line 52, in check_rerun |     self.assertTrue(later == stamp, 'unchanged evidence must not be rewritten') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : unchanged evidence must not be rewritten | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
     ]
   },
   {
@@ -1018,7 +1036,7 @@
     "selector": "Stack: presence mutant evidence",
     "killed": true,
     "failures": [
-      "FAIL Stack: presence mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_presence_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_presence_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"test/mutant_evidence_test.py\", line 65, in test_presence_rerun_is_byte_and_mtime_stable |     self.check_rerun('presence', 'R1 accept non WoW game account', 1) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"test/mutant_evidence_test.py\", line 51, in check_rerun |     self.assertTrue(second == first, 'actual mutant evidence must be byte-stable') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : actual mutant evidence must be byte-stable | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
+      "FAIL Stack: presence mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_presence_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_presence_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"<checkout>/test/mutant_evidence_test.py\", line 65, in test_presence_rerun_is_byte_and_mtime_stable |     self.check_rerun('presence', 'R1 accept non WoW game account', 1) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"<checkout>/test/mutant_evidence_test.py\", line 51, in check_rerun |     self.assertTrue(second == first, 'actual mutant evidence must be byte-stable') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : actual mutant evidence must be byte-stable | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
     ]
   },
   {
@@ -1027,7 +1045,7 @@
     "selector": "Stack: presence mutant evidence",
     "killed": true,
     "failures": [
-      "FAIL Stack: presence mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_presence_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_presence_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"test/mutant_evidence_test.py\", line 65, in test_presence_rerun_is_byte_and_mtime_stable |     self.check_rerun('presence', 'R1 accept non WoW game account', 1) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"test/mutant_evidence_test.py\", line 52, in check_rerun |     self.assertTrue(later == stamp, 'unchanged evidence must not be rewritten') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : unchanged evidence must not be rewritten | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
+      "FAIL Stack: presence mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_presence_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_presence_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"<checkout>/test/mutant_evidence_test.py\", line 65, in test_presence_rerun_is_byte_and_mtime_stable |     self.check_rerun('presence', 'R1 accept non WoW game account', 1) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"<checkout>/test/mutant_evidence_test.py\", line 52, in check_rerun |     self.assertTrue(later == stamp, 'unchanged evidence must not be rewritten') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : unchanged evidence must not be rewritten | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
     ]
   }
 ]

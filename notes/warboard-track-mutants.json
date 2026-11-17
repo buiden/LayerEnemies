@@ -84,7 +84,7 @@
     "selector": "WarBoard track: same GUID debt",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: same GUID debt cannot be redirected by a received forged position: test/src_warboard_track.lua:372: not equal: expected 1, got 0"
+      "FAIL WarBoard track: same GUID debt cannot be redirected by a received forged position: test/src_warboard_track.lua:379: not equal: expected 1, got 0"
     ]
   },
   {
@@ -100,7 +100,7 @@
     "selector": "WarBoard track: H cannot revive",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: H cannot revive an expired A confirmation: test/src_warboard_track.lua:411: not equal: expected 0, got 1"
+      "FAIL WarBoard track: H cannot revive an expired A confirmation: test/src_warboard_track.lua:418: not equal: expected 0, got 1"
     ]
   },
   {
@@ -132,7 +132,7 @@
     "selector": "WarBoard track: twenty active",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: twenty active targets even when corrupted Find holds twenty one: test/src_warboard_track.lua:424: not equal: expected 20, got 21"
+      "FAIL WarBoard track: twenty active targets even when corrupted Find holds twenty one: test/src_warboard_track.lua:431: not equal: expected 20, got 21"
     ]
   },
   {
@@ -156,7 +156,7 @@
     "selector": "WarBoard track: six forty-five",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:398: not equal: expected 0, got 1"
+      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:405: not equal: expected 0, got 1"
     ]
   },
   {
@@ -180,7 +180,7 @@
     "selector": "WarBoard track: six FBAK",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: six FBAK per rolling minute admission and dispatch max twenty targets: test/src_warboard_track.lua:272: not equal: expected 6, got 20"
+      "FAIL WarBoard track: six FBAK per rolling minute admission and dispatch max twenty targets: test/src_warboard_track.lua:272: not equal: expected 6, got 10"
     ]
   },
   {
@@ -196,7 +196,7 @@
     "selector": "WarBoard track: six forty-five",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:401: not equal: expected 0, got 1"
+      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:408: not equal: expected 0, got 1"
     ]
   },
   {
@@ -204,7 +204,7 @@
     "selector": "WarBoard track: renewal exact",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: renewal exact forty-five second per target boundary: test/src_warboard_track.lua:416: not equal: expected 0, got 1"
+      "FAIL WarBoard track: renewal exact forty-five second per target boundary: test/src_warboard_track.lua:423: not equal: expected 0, got 1"
     ]
   },
   {
@@ -244,7 +244,7 @@
     "selector": "WarBoard track: handshake before",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause: test/src_warboard_track.lua:432: not equal: expected 1, got 4"
+      "FAIL WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause: test/src_warboard_track.lua:439: not equal: expected 1, got 4"
     ]
   },
   {
@@ -260,7 +260,7 @@
     "selector": "WarBoard track: six forty-five",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:406: not equal: expected 0, got 1"
+      "FAIL WarBoard track: six forty-five and sixty second exact admission boundaries: test/src_warboard_track.lua:413: not equal: expected 0, got 1"
     ]
   },
   {
@@ -308,7 +308,7 @@
     "selector": "WarBoard track: restored forty",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: restored forty debt bound oldest out on the next attempted request: test/src_warboard_track.lua:382: not equal: expected 40, got 41"
+      "FAIL WarBoard track: restored forty debt bound oldest out on the next attempted request: test/src_warboard_track.lua:389: not equal: expected 40, got 41"
     ]
   },
   {
@@ -348,7 +348,7 @@
     "selector": "WarBoard track: remove quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: remove quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
+      "FAIL WarBoard track: remove quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
     ]
   },
   {
@@ -356,7 +356,7 @@
     "selector": "WarBoard track: clear quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: clear quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
+      "FAIL WarBoard track: clear quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
     ]
   },
   {
@@ -364,7 +364,7 @@
     "selector": "WarBoard track: track quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: track quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
+      "FAIL WarBoard track: track quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
     ]
   },
   {
@@ -372,7 +372,7 @@
     "selector": "WarBoard track: share quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: share quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
+      "FAIL WarBoard track: share quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
     ]
   },
   {
@@ -380,7 +380,7 @@
     "selector": "WarBoard track: guild quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: guild quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
+      "FAIL WarBoard track: guild quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
     ]
   },
   {
@@ -388,7 +388,7 @@
     "selector": "WarBoard track: source quick",
     "killed": true,
     "failures": [
-      "FAIL WarBoard track: source quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:393: not equal: expected 1, got 3"
+      "FAIL WarBoard track: source quick stop resume cannot erase withdrawal obligation: test/src_warboard_track.lua:400: not equal: expected 1, got 3"
     ]
   },
   {
