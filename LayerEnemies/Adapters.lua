@@ -424,6 +424,12 @@ function A.warboardContext()
         return {now=now,wall=wall,rs=rs,faction=faction,version=version}
     end)
 end
+function A.warboardTime()
+    return presenceRead(function(v)
+        local at=S.num(v(S.call(_G.GetServerTime)))
+        return at and at>0 and at<=4000000000 and at%1==0 and at or nil
+    end)
+end
 function A.warboardSelf()
     return presenceRead(function(v)
         local fn=v(_G.UnitNameUnmodified) or v(_G.UnitName)

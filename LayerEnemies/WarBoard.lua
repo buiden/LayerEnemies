@@ -480,8 +480,8 @@ function W.addon(st,prefix,text,dist,sender,ctx)
     return encoded and payload(st,encoded,ctx,sender,prefix=="WarBoardBN",nil,nil,dist=="CHANNEL") or false
 end
 function W.tick(st,ctx)
-    if N.WarBoardTrack and N.WarBoardTrack.closed then return end
     if N.WarBoardTrack then N.WarBoardTrack.tick(st,ctx) end
+    if N.WarBoardTrack and N.WarBoardTrack.closed then return end
     if not ctx or (st.high and ctx.now<st.high) then return end
     if recent(st.scan,ctx.now,60) then return end
     if not Src.enabled("warboard") or not N.Main.sharing() or not N.Net.allowed("warboard","public") then return end

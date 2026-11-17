@@ -2,52 +2,49 @@
 
 ## Unreleased - WarBoard tracking request
 
-| What LE sends | To whom | Strict limits |
+| What LE sends | To whom | How often and when it stops |
 |---|---|---|
-| `WBF1\|D\|<encoded FBAK>` | Only a uniquely resolved player on **your own Find list**, directly to that player's live Battle.net account after a compatible WarBoard A handshake; client-verified player GUID required | **2 requests per rolling minute overall**, **one per player per 45 seconds**, checked at admission and actual attempt; at most 20 active/closing targets; no Watch-only targets, no relay fan-out |
-| `WBF1\|D\|<encoded FBUN>` | Only the same confirmed target for a tracking request LE actually attempted, when stopping it | **2 cancels per rolling minute**, under the same privacy/safety gates; one best-effort cancellation, no failed-send retry |
-| Existing `H` / owed `A` | Eligible opposite-faction peers, as in the handshake table below | Existing 600-second/account H gate and 6 A/minute unchanged; **A first** in the shared queue |
-| All four kinds | **Only `BN.send`**, prefix `WarBoard`; never guild, group, channel or ordinary whisper | **10 WarBoard attempts/minute**, **30 across all networks/minute**, **one per second**; failures spend budget |
+| `WBF1\|D\|<encoded FBAK>` first ask | Only a uniquely resolved character on **your own Find list**, directly to that one live game account after a compatible WarBoard A handshake; target GUID/name from the client API only | **3 tries, at least 6 seconds apart**, then FBUN and **300 seconds idle** if no position arrives; never Watch-only or untracked names; at most 20 active targets |
+| `FBAK` renewal | That same confirmed account only | Only while its newest position is **45–300 seconds old**, at most once per **45 seconds** per target. Past 300 seconds: FBUN, idle, retry after 300 seconds or a new handshake. Dead/in-instance silence does not accelerate requests |
+| `WBF1\|D\|<encoded FBUN>` | The same target GUID with an outstanding request, including a restored debt, through a currently confirmed account | **Once per stop**; failed attempts at most **3, at least 60 seconds apart**. Stops: Find removal/clear, tracking off, share off, Guild only, WarBoard source off, stand-down, give-up, best effort logout. Also retires requests on local combat/instance entry. Cleanup survives those switches and waits until out of combat/instance |
+| All kinds, including existing H/A | **Only `BN.send`**, prefix `WarBoard`; never guild/group/channel/chat forwarding | **6 FBAK/rolling minute**, within **10 WarBoard attempts/minute**, **30 shared/minute**, **one/second**. Owed A answers first, FBUN before own traffic. Budgets may delay attempts; failures spend them |
 
 This asks the tracked player's WarBoard client to broadcast its position to WarBoard peers every 15 seconds, as a WarBoard hunter's client does.
 
-Tracking is **on by default**. `/le warboard track on|off` saves only a boolean
-setting, `warboardTrack`; `/le net warboard` shows its state and limits. No new
-names, target GUIDs, subscriptions or peer records are saved (the existing
-player-entered Find configuration is unchanged). Identity fields say
-`LayerEnemies/<our own version>`, alongside our real character name/GUID and
-faction, never the donor's addon identity. WarBoard is not required locally.
+Those broadcasts go to the whole WarBoard network and carry a hunter list with your character's name; anyone running WarBoard, including the tracked player, can see that you are tracking them.
 
-A name alone is not enough: missing, secret, malformed or ambiguous live client
-identity is silent. Only your own list authorizes a request; guild Watch names
-remain receive-only. A received location uses the existing Find path: **the
-target's own position via WarBoard**, its age, or an explicitly relayed/approximate
-claim. It gains no Ask/Hop authority, sound, or new guild forwarding.
+Tracking is **on by default at login**. `/le warboard track on|off` changes it
+for this session; `/le net warboard` shows the switch and caps. The existing
+saved source/share/consent switches also stop requests. Identity fields say
+`LayerEnemies/<our own version>` and carry our real character name/GUID and
+faction. `sentAt` is an integer from **GetServerTime**, never a local-clock
+fallback; unreadable identity, ruleset or server time means no send.
 
-WarBoard 1.6.3 saves subscribers **without an expiry**. Its wire cancellation is
-**FBUN** (no `targetName` field). It sends a position immediately after FBAK,
-again after two seconds for a new subscriber, then every 15 seconds while alive,
-outdoors and able to supply a position. LE does **not** repeat the donor's five
-six-second startup tries: it sends at most once/player/45 seconds, and only
-renews for a position stale **45–300 seconds**, or no position plus currently
-verified online target identity. Fresh positions do not need renewal. New
-eligible targets take precedence over renewals.
+WarBoard never expires a subscriber. Its **FBUN** has no `targetName` and removes
+only our own `hunterGuid`. The only new saved field is
+`LayerEnemiesDB.warboardOwed = { "Player-...", ... }`: a dense, deduplicated,
+oldest-first list of **at most 40 target GUID strings**, oldest out. No names,
+accounts, zones, timestamps, locations or hunter roster are saved there. This
+per-character debt list is written before an attempted request so a crash or
+logout cannot silently forget cleanup. Only an **accepted client FBUN send**
+settles a debt (apart from the explicit 40-entry bound/sanitization), not queue
+admission. At next login, debts are withdrawn when the matching character's
+account is a confirmed peer again, even if tracking/source/share is off or the
+name is no longer on Find. Still-tracked debts are settled before new asks too.
+After three failed cleanup attempts the debt stays saved for another login.
 
-Removing a Find name, turning tracking/share/public/WarBoard off, entering
-combat/an instance, or logout **immediately drops queued tracking requests**.
-Every queued dispatch rechecks the target, confirmation, Find membership,
-identity, switch, clocks and budgets. Loading WarBoard also stops requests.
-When safe and permitted, LE queues FBUN for already-attempted requests; otherwise
-it retains bounded **session-only** cleanup until those gates permit it. Cancel
-messages never bypass Share off, Guild only, source off, combat or instance rules.
-Logout clears state and queues without a forced flush. **A blocked, refused or
-undelivered cancel can leave the target broadcasting indefinitely**, including
-after logout: the donor has no automatic expiry and the wire provides no
-cancellation acknowledgement. LE cannot promise remote cancellation. No pending
-cleanup is restored after reload, and unresolved cleanup occupies one of the 20
-slots rather than allowing an unbounded trail of subscriptions.
+Combat/instance entry stops pending asks; an owed withdrawal is held, never
+sent in combat or an instance. Queued FBUN is refreshed with current server
+time when dispatch becomes safe. The exception to share/Guild-only/source-off
+send gates is **only a concrete outstanding FBUN**, never a generic owed frame.
+No cancellation delivery acknowledgement exists: an accepted API call is not
+proof of remote delivery. Non-friend account visibility, remote community-roster
+acceptance and logout delivery remain unverified and fail silent.
 
-Implementation and assertion-migration evidence: [notes/warboard-track.md](notes/warboard-track.md).
+Positions use the existing Find path whether or not we asked: own-client,
+relayed, cached and approximate wording remain honest, with no Ask/Hop authority,
+new sound or guild relay. No donor code was copied or run. See
+[implementation and assertion migrations](notes/warboard-track.md).
 Native checks: **not run (alpha, owner's decision)**.
 
 ## Unreleased - WarBoard
@@ -62,15 +59,15 @@ When LayerEnemies completes the handshake, a real WarBoard client treats it as a
 
 H, A, FBAK and FBUN use **only the shared Battle.net queue**: together at most 10
 WarBoard send attempts/minute and at most **30 attempts/minute across all
-networks**, with at least one second between attempts. They stop with
+networks**, with at least one second between attempts. H/A and FBAK stop with
 `/le share off`, public networks off (**Guild only**), the WarBoard source
 switch off, or combat/instances. Loading the real WarBoard addon stops H
-and discovery; only owed A answers remain eligible, still under every privacy
-and rate gate. Queued frames
+and discovery; owed A answers remain eligible under privacy and rate gates.
+FBUN alone has the cleanup exception explained above. Queued frames
 recheck consent, current account eligibility, ruleset and their caps at dispatch;
 unknown rulesets are silent. The final `0` is LE's gameplay-rules version (LE
 implements none of WarBoard's scoring rules). Discovery itself does not request
-a location broadcast; the E2 tracking feature below the same privacy gates does.
+a location broadcast; the E2 tracking feature above does.
 
 The independent WarBoard Forever **1.6.3** protocol reader accepts confirmed
 `WBF1|D|...` Battle.net traffic and bounded fragments, plus `WarBoard` and

@@ -2222,9 +2222,8 @@ function M.setNet(key,on)
     return true
 end
 function M.warboardTrack(on)
-    LayerEnemiesDB.warboardTrack=on==true
     N.WarBoardTrack.set(on)
-    M.say("WarBoard tracking: "..(on and "on" or "off").." (saved; /le warboard track on|off)")
+    M.say("WarBoard tracking: "..(on and "on" or "off").." (this session; /le warboard track on|off)")
 end
 function M.net(command)
     local rest=command:match("^net%s*(.-)%s*$") or ""
@@ -2239,7 +2238,7 @@ function M.net(command)
     end
     if rest=="warboard" then
         for _,line in ipairs(N.Sources.lines()) do if line:match("^warboard:") then M.say(line) end end
-        M.say("WarBoard tracking: "..(N.WarBoardTrack.on and "on" or "off").." (saved; requests 2/min, name 45s; /le warboard track on|off)")
+        M.say("WarBoard tracking: "..(N.WarBoardTrack.on and "on" or "off").." (6/min; 3 tries 6s apart, renew 45s; /le warboard track on|off)")
         return
     end
     if rest=="guild" or rest=="public" then M.setConsent(rest); return end
@@ -2319,7 +2318,7 @@ function M.start()
     M.host=N.GuildHost.new()   -- guild-only hosting; the wish (want) is saved as LayerEnemiesDB.guildHost
     M.layerSource="unknown"; M.store.zone=A.location(); M.zoneSeen=M.store.zone
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
-    -- Configuration only. Sightings and source identities never enter SavedVariables.
+    -- Configuration plus GUID-only owed withdrawals; never sightings or peer records.
     local saved=LayerEnemiesDB
     M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new()
     M.presenceShared={}; M.presenceSharedAlerts={presenceAlerts={}}
@@ -2332,8 +2331,7 @@ function M.start()
     LayerEnemiesDB.share=saved.share~=false
     LayerEnemiesDB.findShare=saved.findShare~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
-    LayerEnemiesDB.warboardTrack=saved.warboardTrack~=false
-    if N.WarBoardTrack then N.WarBoardTrack.set(LayerEnemiesDB.warboardTrack) end
+    if N.WarBoardTrack then LayerEnemiesDB.warboardOwed=N.WarBoardTrack.load(saved.warboardOwed) end
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
     LayerEnemiesDB.call=saved.call~=false
     LayerEnemiesDB.callArt=saved.callArt~=false

@@ -137,7 +137,7 @@ test("accepted FBUN clears debt only after the client accepts not queue admissio
     local old=C_BattleNet.SendGameData; local count=0
     C_BattleNet.SendGameData=function(id,prefix,text)
         if text:sub(1,7)=="WBF1|D|" then count=count+1; if count==1 then return false end end
-        return old(id,prefix,text)
+        return true
     end
     advance(59); eq(debt(a[71].playerGuid),1); eq(count,1)
     advance(5); eq(count,2); eq(debt(a[71].playerGuid),0)
