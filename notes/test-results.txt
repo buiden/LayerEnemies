@@ -1272,4 +1272,4 @@ PASS FLH: presence layout WP keeps its positional fields
 PASS FLH: presence layout WR keeps its positional fields
 PASS FLH: presence layout CQ keeps its positional fields
 PASS FLH: presence layout CA keeps its positional fields
-RESULT: 1274 tests passed, 0 failed, 158418 assertions
+RESULT: 1274 tests passed, 0 failed, 158419 assertions

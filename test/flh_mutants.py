@@ -48,7 +48,7 @@ MUTANTS = [
     ('flh-evicts-known-layer-host', 'Invite.lua', 'if af~=bf then return not af end', '-- mutant: FLH claims may evict layer rows'),
     ('persist-host-names', 'Main.lua', 'N.Hosts.flh(M.heard,sender,claim,wall)', 'N.Hosts.flh(M.heard,sender,claim,wall)\n    LayerEnemiesDB.flh=M.heard.flhHosts'),
     ('no-honest-flh-label', 'Main.lua', 'local claim="FLH key "..key.." (claim, "..ago(c.flhAge).." ago)"', 'local claim="layer "..key'),
-    ('clipped-provenance', 'UI.lua', '(friendly and e.flhKey) and 60', '(friendly and e.flhKey) and 24'),
+    ('clipped-provenance', 'UI.lua', '(U.tab=="friendly" and e.flhKey) and 60', '(U.tab=="friendly" and e.flhKey) and 24'),
 ]
 
 

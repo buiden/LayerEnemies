@@ -4,7 +4,7 @@
   "syntax_status": "PASS",
   "tests_passed": 1274,
   "tests_failed": 0,
-  "assertions": 158418,
+  "assertions": 158419,
   "fuzz_inputs": 5000,
   "toc_and_static_checks": "PASS",
   "archive_integrity_and_source_parity": "PASS",
