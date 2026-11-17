@@ -1220,6 +1220,7 @@ PASS UI layout: presence follows measured sighting and OpenMap lines and shrinks
 PASS UI layout: FLH and LayerSwap provenance is measured before Friendly paging
 PASS UI layout: Overlord guild claims measure complete text and never inherit report actions
 PASS Presence: club character comes from account not member display name
+PASS Presence: only online community members resolve Battle.net accounts
 PASS Presence: account resolution unavailable secret incomplete and non WoW fail silent
 PASS Presence: friends use only online characters in this project and cap 200
 PASS Presence: untracked offline mobile unknown and blank rows store nothing
@@ -1237,6 +1238,7 @@ PASS Presence: per name 600 second silent alert uses shared burst throttle
 PASS Presence: Find switches and window opens share one force per 60 seconds
 PASS Presence: automatic 300s cadence and Find opening refresh without overlap
 PASS Presence: UI and slash text show zone age and hide stale pooled line
+PASS Presence: measured presence cards keep several per page without overlap
 PASS Presence: invalid friend realm never falls back to a bare character
 PASS Presence: guild watch hash matches are session-only possible rows and withdraw
 PASS Presence: shared lists alone do not trigger an empty personal Find scan
@@ -1300,6 +1302,8 @@ PASS Overlord: GD claim time is not assumed to be kill time or renewed on arriva
 PASS Overlord: bad origin id or sender cannot poison a later valid packet
 PASS Overlord: secrets malformed and throwing APIs are silent
 PASS Overlord: combat and instance unreadable gates do no map scans
+PASS Overlord: net diagnostic shows the currently detected pool on the Overlord line
+PASS Overlord: net diagnostic explains unknown pool receives nothing and updates on recovery
 PASS Overlord: session counters diagnostics and no added SavedVariables
 PASS Overlord: malformed frame fuzz bounded state and zero sends
 PASS Overlord: map lookup failures cannot consume packet identity and secret names refuse
@@ -1420,9 +1424,24 @@ PASS Wanted: summary validation caps senders entries and finite counts
 PASS Wanted: passive channel join preserves player ownership and two free slots
 PASS Wanted: inbound budgets are per canonical sender and bounded globally
 PASS Wanted: receive tick and every ignored tag never attempt any send
-PASS Wanted: four unfinished messages per sender cover all addon routes
+PASS Wanted: two unfinished messages per sender cover all addon routes
 PASS Wanted: numbered framing supports reorder and bounds every unfinished stream
 PASS Wanted: fragmented S and E on guild and channel retain no untracked names
 PASS Wanted: route version array faction and secret guards fail silent
 PASS Wanted: audit sighting vector reaches measured Find as witness near observer
-RESULT: 1427 tests passed, 0 failed, 247701 assertions
+PASS Wanted: R1 S1 300 channel users cannot suppress 75 guild sightings
+PASS Wanted: R1 S1 128 junk senders cannot suppress 20 guild sightings
+PASS Wanted: R1 S1 invalid tags and shapes take no sender entries
+PASS Wanted: R1 S1 valid channel whisper and BNet floods leave guild capacity
+PASS Wanted: R1 S2 sightings show only map-derived zone never free text
+PASS Wanted: R1 S2 records cannot contradict map zone or inject bidi
+PASS Wanted: R1 S2 absent invalid and unresolved maps have no zone fallback
+PASS Wanted: R1 S3 two assemblies per canonical sender across routes
+PASS Wanted: R1 S3 BNet dispatch shares one assembly owner across message IDs
+PASS Wanted: R1 S3 reserved assemblies survive a full public pool
+PASS Wanted: R1 S3 renewed channel holds cannot suppress 20 five-frame guild messages
+PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
+PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
+PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
+PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
+RESULT: 1446 tests passed, 0 failed, 252783 assertions

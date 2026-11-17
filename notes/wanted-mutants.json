@@ -3,71 +3,78 @@
     "rule": "encoded-byte ceiling",
     "killed": true,
     "failures": [
-      "FAIL Wanted: independent zlib record hash and decoder ceilings: test/src_wanted.lua:32: encoded bytes ceiling: expected nil, got table: 0x57ab15ae8120"
+      "FAIL Wanted: independent zlib record hash and decoder ceilings: test/src_wanted.lua:32: encoded bytes ceiling: expected nil, got table: <address>"
     ]
   },
   {
     "rule": "inflate ceiling",
     "killed": true,
     "failures": [
-      "FAIL Wanted: independent zlib record hash and decoder ceilings: test/src_wanted.lua:28: 64 KiB expansion ceiling: expected nil, got table: 0x63ea7dad31b0"
+      "FAIL Wanted: independent zlib record hash and decoder ceilings: test/src_wanted.lua:28: 64 KiB expansion ceiling: expected nil, got table: <address>"
     ]
   },
   {
     "rule": "WNTD twelve parts",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:350: not equal: expected 0, got 1"
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:350: not equal: expected 0, got 1",
+      "FAIL Wanted: R1 S1 invalid tags and shapes take no sender entries: test/src_wanted_round1.lua:76: basic validation precedes sender admission: expected 0, got 3"
     ]
   },
   {
     "rule": "WNTDP eight parts",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:253: not equal: expected 0, got 1"
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:252: not equal: expected 0, got 1"
     ]
   },
   {
     "rule": "WNTD part size",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:348: S:a:1/1:aaaaaaaaaaaaaaaaa: expected nil, got aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:348: S:a:1/1:aaaaaaaaaaaaaaaaa: expected nil, got aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "FAIL Wanted: R1 S1 invalid tags and shapes take no sender entries: test/src_wanted_round1.lua:76: basic validation precedes sender admission: expected 0, got 3"
     ]
   },
   {
     "rule": "WNTDP part size",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:255: not equal: expected nil, got aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:254: not equal: expected nil, got aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     ]
   },
   {
     "rule": "per-sender assemblies across routes",
     "killed": true,
     "failures": [
-      "FAIL Wanted: four unfinished messages per sender cover all addon routes: test/src_wanted.lua:336: a sender cannot multiply capacity by route: expected 4, got 5"
+      "FAIL Wanted: two unfinished messages per sender cover all addon routes: test/src_wanted.lua:336: a sender cannot multiply capacity by route: expected 2, got 5",
+      "FAIL Wanted: R1 S3 two assemblies per canonical sender across routes: test/src_wanted_round1.lua:169: not equal: expected 2, got 3"
     ]
   },
   {
-    "rule": "four addon assemblies per sender",
+    "rule": "two addon assemblies per sender",
     "killed": true,
     "failures": [
-      "FAIL Wanted: four unfinished messages per sender cover all addon routes: test/src_wanted.lua:336: a sender cannot multiply capacity by route: expected 4, got 5",
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:353: not equal: expected 4, got 5"
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:250: not equal: expected 2, got 3",
+      "FAIL Wanted: two unfinished messages per sender cover all addon routes: test/src_wanted.lua:336: a sender cannot multiply capacity by route: expected 2, got 3",
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:353: not equal: expected 2, got 3",
+      "FAIL Wanted: R1 S3 two assemblies per canonical sender across routes: test/src_wanted_round1.lua:169: not equal: expected 2, got 3",
+      "FAIL Wanted: R1 S3 BNet dispatch shares one assembly owner across message IDs: test/src_wanted_round1.lua:177: not equal: expected 2, got 3"
     ]
   },
   {
     "rule": "two BNet assemblies per sender",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:251: not equal: expected 2, got 3"
+      "FAIL Wanted: R1 S3 BNet dispatch shares one assembly owner across message IDs: test/src_wanted_round1.lua:177: not equal: expected 2, got 3"
     ]
   },
   {
     "rule": "sixteen global assemblies",
     "killed": true,
     "failures": [
-      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:355: not equal: expected 16, got 17"
+      "FAIL Wanted: numbered framing supports reorder and bounds every unfinished stream: test/src_wanted.lua:355: not equal: expected 16, got 17",
+      "FAIL Wanted: R1 S3 reserved assemblies survive a full public pool: test/src_wanted_round1.lua:192: not equal: expected 16, got 17"
     ]
   },
   {
@@ -110,14 +117,16 @@
     "killed": true,
     "failures": [
       "FAIL Wanted: fragmented S and E on guild and channel retain no untracked names: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
-      "FAIL Wanted: route version array faction and secret guards fail silent: test/src_wanted.lua:21: not equal: expected nil, got enemy one"
+      "FAIL Wanted: route version array faction and secret guards fail silent: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
+      "FAIL Wanted: R1 N6 accepts any 1.29 patch and no other version family: test/harness.lua:8: 1.28.0: expected false, got true"
     ]
   },
   {
     "rule": "E/S not whisper",
     "killed": true,
     "failures": [
-      "FAIL Wanted: route version array faction and secret guards fail silent: test/src_wanted.lua:21: not equal: expected nil, got enemy one"
+      "FAIL Wanted: route version array faction and secret guards fail silent: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
+      "FAIL Wanted: R1 S1 invalid tags and shapes take no sender entries: test/src_wanted_round1.lua:76: basic validation precedes sender admission: expected 0, got 1"
     ]
   },
   {
@@ -256,43 +265,45 @@
     "killed": true,
     "failures": [
       "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:171: not equal: expected relayed, got witness",
-      "FAIL Wanted: spotted resolves only an already tracked exact GUID without a name cache: test/src_wanted.lua:219: not equal: expected relayed, got witness"
+      "FAIL Wanted: spotted resolves only an already tracked exact GUID without a name cache: test/src_wanted.lua:218: not equal: expected relayed, got witness"
     ]
   },
   {
     "rule": "relayed R honest provenance",
     "killed": true,
     "failures": [
-      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:207: not equal: expected relayed, got witness"
+      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:206: not equal: expected relayed, got witness"
     ]
   },
   {
     "rule": "record replay id",
     "killed": true,
     "failures": [
-      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:209: not equal: expected 7, got 32"
+      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:208: not equal: expected 7, got 32"
     ]
   },
   {
     "rule": "packet replay age",
     "killed": true,
     "failures": [
-      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:209: not equal: expected 7, got 32",
-      "FAIL Wanted: fragmented S and E on guild and channel retain no untracked names: test/src_wanted.lua:374: same packet cannot refresh receipt time: expected 10, got 15"
+      "FAIL Wanted: relayed records cannot promote provenance or renew original time: test/src_wanted.lua:208: not equal: expected 7, got 32",
+      "FAIL Wanted: fragmented S and E on guild and channel retain no untracked names: test/src_wanted.lua:374: same packet cannot refresh receipt time: expected 10, got 15",
+      "FAIL Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate: test/src_wanted_round1.lua:231: flood never evicts someone else's replay identity: expected 34, got 35"
     ]
   },
   {
     "rule": "bounded dedupe ledger",
     "killed": true,
     "failures": [
-      "FAIL Wanted: immutable dedupe ceilings do not store or save new names: test/src_wanted.lua:21: not equal: expected nil, got enemy one"
+      "FAIL Wanted: immutable dedupe ceilings do not store or save new names: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
+      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/src_wanted_round1.lua:268: not equal: expected 512, got 513"
     ]
   },
   {
     "rule": "location field namespaces",
     "killed": true,
     "failures": [
-      "FAIL Wanted: record and sighting location fields do not alias each other: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL Wanted: record and sighting location fields do not alias each other: test/src_wanted.lua:79: not equal: expected 100, got 200"
     ]
   },
   {
@@ -300,7 +311,16 @@
     "killed": true,
     "failures": [
       "FAIL Wanted: R and F records use record time participants and honest provenance: test/src_wanted.lua:174: not equal: expected 0.5, got 0.25",
-      "FAIL Wanted: audit sighting vector reaches measured Find as witness near observer: test/src_wanted.lua:408: not equal: expected 0.5, got 0.25"
+      "FAIL Wanted: audit sighting vector reaches measured Find as witness near observer: test/src_wanted.lua:408: not equal: expected 0.5, got 0.25",
+      "FAIL Wanted: R1 S1 300 channel users cannot suppress 75 guild sightings: test/src_wanted_round1.lua:49: not equal: expected 75, got 0",
+      "FAIL Wanted: R1 S1 128 junk senders cannot suppress 20 guild sightings: test/src_wanted_round1.lua:66: not equal: expected 20, got 0",
+      "FAIL Wanted: R1 S1 invalid tags and shapes take no sender entries: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R1 S1 valid channel whisper and BNet floods leave guild capacity: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R1 S3 renewed channel holds cannot suppress 20 five-frame guild messages: test/src_wanted_round1.lua:214: not equal: expected 20, got 0",
+      "FAIL Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Wanted: R1 N6 accepts any 1.29 patch and no other version family: test/harness.lua:7: 1.29.0: expected true, got false"
     ]
   },
   {
@@ -317,6 +337,7 @@
       "FAIL Wanted: echo realm identity and source switch cannot admit forged claims: test/src_wanted.lua:21: not equal: expected nil, got enemy one-testrealm",
       "FAIL Wanted: forged origin hash malformed envelope and stale records store nothing: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
       "FAIL Wanted: passive channel join preserves player ownership and two free slots: test/src_wanted.lua:21: not equal: expected nil, got enemy one",
+      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:292: not equal: expected 60, got 32",
       "FAIL Wanted: fragmented S and E on guild and channel retain no untracked names: test/src_wanted.lua:21: not equal: expected nil, got enemy one"
     ]
   },
@@ -346,14 +367,14 @@
     "rule": "BNet faction eligibility",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:247: not equal: expected 0, got 1"
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:246: not equal: expected 0, got 1"
     ]
   },
   {
     "rule": "BNet realm eligibility",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:247: not equal: expected 0, got 1"
+      "FAIL Wanted: Battle.net eligibility and numbered parts are verified before ingestion: test/src_wanted.lua:246: not equal: expected 0, got 1"
     ]
   },
   {
@@ -367,28 +388,28 @@
     "rule": "summary twelve entries",
     "killed": true,
     "failures": [
-      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:266: not equal: expected 1, got 13"
+      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:265: not equal: expected 1, got 13"
     ]
   },
   {
     "rule": "summary twenty carriers",
     "killed": true,
     "failures": [
-      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:262: not equal: expected 20, got 21"
+      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:261: not equal: expected 20, got 21"
     ]
   },
   {
     "rule": "summary ten minute expiry",
     "killed": true,
     "failures": [
-      "FAIL Wanted: Battle.net summaries are anonymous diagnostics never named evidence: test/src_wanted.lua:234: L expires at 600 seconds: expected 0, got 2"
+      "FAIL Wanted: Battle.net summaries are anonymous diagnostics never named evidence: test/src_wanted.lua:233: L expires at 600 seconds: expected 0, got 2"
     ]
   },
   {
     "rule": "summary count clamp",
     "killed": true,
     "failures": [
-      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:268: not equal: expected 200, got 999"
+      "FAIL Wanted: summary validation caps senders entries and finite counts: test/src_wanted.lua:267: not equal: expected 200, got 999"
     ]
   },
   {
@@ -409,14 +430,15 @@
     "rule": "rate identity ceiling",
     "killed": true,
     "failures": [
-      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:301: not equal: expected 128, got 129"
+      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:301: not equal: expected 128, got 129",
+      "FAIL Wanted: R1 S1 valid channel whisper and BNet floods leave guild capacity: test/src_wanted_round1.lua:87: independent capped CHANNEL table: expected 128, got 129"
     ]
   },
   {
     "rule": "no Wanted roster scan",
     "killed": true,
     "failures": [
-      "FAIL Wanted: passive channel join preserves player ownership and two free slots: test/src_wanted.lua:276: D1 joins for receipt, not roster discovery: expected 0, got 1"
+      "FAIL Wanted: passive channel join preserves player ownership and two free slots: test/src_wanted.lua:275: D1 joins for receipt, not roster discovery: expected 0, got 1"
     ]
   },
   {
@@ -434,6 +456,74 @@
     ]
   },
   {
+    "rule": "basic shape before sender admission",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 S1 invalid tags and shapes take no sender entries: test/src_wanted_round1.lua:76: basic validation precedes sender admission: expected 0, got 24"
+    ]
+  },
+  {
+    "rule": "independent sender tables per route",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: inbound budgets are per canonical sender and bounded globally: test/src_wanted.lua:301: not equal: expected 128, got 0",
+      "FAIL Wanted: R1 S1 valid channel whisper and BNet floods leave guild capacity: test/src_wanted_round1.lua:93: guild has its own full cap: expected 128, got 0"
+    ]
+  },
+  {
+    "rule": "no free sighting zone text",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: record and sighting location fields do not alias each other: test/src_wanted.lua:81: not equal: expected nil, got 100",
+      "FAIL Wanted: R1 S2 sightings show only map-derived zone never free text: test/harness.lua:8: sender free text absent: expected false, got true",
+      "FAIL Wanted: R1 S2 absent invalid and unresolved maps have no zone fallback: test/harness.lua:8: 62: expected false, got true"
+    ]
+  },
+  {
+    "rule": "no free record zone text",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 S2 records cannot contradict map zone or inject bidi: test/harness.lua:8: 83: expected false, got true",
+      "FAIL Wanted: R1 S2 absent invalid and unresolved maps have no zone fallback: test/harness.lua:8: 56: expected false, got true"
+    ]
+  },
+  {
+    "rule": "guild reserved assemblies",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 S3 reserved assemblies survive a full public pool: test/src_wanted_round1.lua:185: only eight public slots: expected 8, got 16"
+    ]
+  },
+  {
+    "rule": "per-carrier replay quota",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate: test/src_wanted_round1.lua:227: 32 flood IDs plus protected guild ID: expected 33, got 34",
+      "FAIL Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins: test/harness.lua:7: sender quota covers packet and record IDs: expected true, got false"
+    ]
+  },
+  {
+    "rule": "record quota owned by carrier not claimed origin",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins: test/harness.lua:7: sender quota covers packet and record IDs: expected true, got false"
+    ]
+  },
+  {
+    "rule": "guild reserved replay entries",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 S3 replay reserves 256 guild entries within global 512: test/src_wanted_round1.lua:261: not equal: expected 256, got 257"
+    ]
+  },
+  {
+    "rule": "later 1.29 patches accepted",
+    "killed": true,
+    "failures": [
+      "FAIL Wanted: R1 N6 accepts any 1.29 patch and no other version family: test/harness.lua:7: 1.29.3: expected true, got false"
+    ]
+  },
+  {
     "rule": "no receive sends",
     "killed": true,
     "failures": [
@@ -445,7 +535,7 @@
     "rule": "no saved evidence",
     "killed": true,
     "failures": [
-      "FAIL Wanted: immutable dedupe ceilings do not store or save new names: test/src_wanted.lua:127: no evidence or name writes to saved state: expected \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy OnerautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`BnetsF\"hh`bwanted`\ufffdchehulnet`\"we`roptions\u0006, got \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy One\ufffdwantedName\ufffdWitness PlayerrautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`BnetsF\"hh`bwanted`\ufffdchehulnet`\"we`roptions\u0006"
+      "FAIL Wanted: immutable dedupe ceilings do not store or save new names: test/src_wanted.lua:127: no evidence or name writes to saved state: expected \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy OnerautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006, got \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy One\ufffdwantedName\ufffdWitness PlayerrautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006"
     ]
   }
 ]

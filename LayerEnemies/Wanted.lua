@@ -7,7 +7,7 @@ W.stats={}
 local function plain(t) return S.tab(t) and getmetatable(t)==nil end
 local function integer(v,lo,hi) return S.num(v) and v%1==0 and v>=lo and v<=hi end
 local function guid(v) return S.str(v,64) and v:match("^Player%-%d+%-%x+$") and v end
-local function version(v) return S.str(v,32) and v:match("^1%.29%.[012]$") end
+local function version(v) return S.str(v,32) and v:match("^1%.29%.%d+$") end
 function W.decode(bytes)
     if S.secret(bytes) or type(bytes)~="string" or #bytes>30272 then return nil end
     local raw=Cd.addonDecode(bytes)
@@ -23,12 +23,9 @@ local function context()
     return now,faction
 end
 local function place(d,mapKey,layer)
-    local zone
-    if mapKey=="m" then zone=d.z else zone=d.zone end
-    if zone~=nil and not S.str(zone,64) then return nil end
+    -- Never project sender-authored zone text. Sources derives a zone from map.
     local map=d[mapKey]
-    if map~=nil and not integer(map,1,999999) then return nil end
-    if not zone and not map then return nil end
+    if not integer(map,1,999999) then map=nil end
     local x,y=S.num(d.x),S.num(d.y)
     if d.x~=nil or d.y~=nil then
         if not x or not y or x<0 or x>100 or y<0 or y>100 then return nil end
@@ -36,7 +33,7 @@ local function place(d,mapKey,layer)
     end
     local shard=layer and d.l or nil
     if shard~=nil and (not S.str(shard,32) or not shard:match("^%d+%-%d+%-%d+$")) then return nil end
-    return {zone=zone,map=map,x=x,y=y,shard=shard}
+    return {map=map,x=x,y=y,shard=shard}
 end
 local function array(t,cap)
     if not plain(t) then return nil end
@@ -46,52 +43,76 @@ local function array(t,cap)
     return n
 end
 -- These are numbered Wanted fragments, NOT AceComm control bytes. Audit §3.
-function W.join(st,key,text,bnet,now,owner)
-    if not plain(st) or not S.str(key,180) or not S.num(now) or S.secret(text) or type(text)~="string"
-        or #text>(bnet and 3800 or 255) then return nil end
-    owner=owner or key
-    if not S.str(owner,180) then return nil end
-    if st.time and now<st.time then return nil end
-    st.time=now; st.streams=st.streams or {}
-    for k,v in pairs(st.streams) do if now-v.at>=30 then st.streams[k]=nil end end
+-- Inspect tag/shape before any sender entry or assembly is admitted.
+local function frame(text,bnet)
+    if S.secret(text) or type(text)~="string" or #text>(bnet and 3800 or 255) then return nil end
     local tag,id,p,n,b
     if bnet then id,p,n,b=text:match("^(%d+):(%d+)/(%d+):(.+)$"); tag="BN"
     else tag,id,p,n,b=text:match("^([ESRF]):([0-9a-z]+):(%d+)/(%d+):(.+)$") end
     if not id or #id>(bnet and 5 or 3) or not integer(tonumber(id,bnet and 10 or 36),1,46655) then return nil end
     p,n=tonumber(p),tonumber(n)
     if not integer(n,1,bnet and 8 or 12) or not integer(p,1,n) or #b>(bnet and 3784 or 240) then return nil end
+    return tag,id,p,n,b
+end
+function W.join(st,key,text,bnet,now,owner,guild)
+    if not plain(st) or not S.str(key,180) or not S.num(now) then return nil end
+    owner=owner or key
+    if not S.str(owner,180) then return nil end
+    if st.time and now<st.time then return nil end
+    st.time=now; st.streams=st.streams or {}
+    for k,v in pairs(st.streams) do if now-v.at>=30 then st.streams[k]=nil end end
+    local tag,id,p,n,b=frame(text,bnet)
+    if not tag then return nil end
     local k=key..":"..id; local r=st.streams[k]
     if r and (r.tag~=tag or r.total~=n or (r.parts[p] and r.parts[p]~=b)) then st.streams[k]=nil; return nil end
     if n==1 then return b,tag,id end
     if not r then
-        local total,own=0,0
-        for _,v in pairs(st.streams) do total=total+1; if v.owner==owner then own=own+1 end end
-        if total>=16 or own>=(bnet and 2 or 4) then return nil end
-        r={owner=owner,tag=tag,total=n,parts={},count=0,at=now}; st.streams[k]=r
+        local total,own,public=0,0,0
+        for _,v in pairs(st.streams) do
+            total=total+1
+            if v.owner==owner then own=own+1 end
+            if not v.guild then public=public+1 end
+        end
+        -- A peer owns at most two across routes; half the global pool is guild-only.
+        if total>=16 or own>=2 or (not guild and public>=8) then return nil end
+        r={owner=owner,guild=guild==true,tag=tag,total=n,parts={},count=0,at=now}; st.streams[k]=r
     end
     if not r.parts[p] then r.parts[p]=b; r.count=r.count+1 end
     if r.count~=n then return nil end
     st.streams[k]=nil
     return table.concat(r.parts),tag,id
 end
-local state={streams={},seen={},far={},rates={}}
+local state={streams={},seen={},far={},rates={guild={},whisper={},channel={},bnet={}}}
 W.state=state
-local function budget(key,now,cap)
+local function budget(route,key,now,cap)
     if state.last and now<state.last then return false end
     state.last=now
-    for k,r in pairs(state.rates) do if now-r.at>=120 then state.rates[k]=nil end end
-    local r=state.rates[key]; local bucket=math.floor(now/60)
+    local rates=state.rates[route]
+    for k,r in pairs(rates) do if now-r.at>=120 then rates[k]=nil end end
+    local r=rates[key]; local bucket=math.floor(now/60)
     if not r then
-        if S.count(state.rates)>=128 then return false end
-        r={at=now,bucket=bucket,n=0}; state.rates[key]=r
+        if S.count(rates)>=128 then return false end
+        r={at=now,bucket=bucket,n=0}; rates[key]=r
     end
     if r.bucket~=bucket then r.bucket,r.n=bucket,0 end
     if r.n>=cap then return false end
     r.n=r.n+1; r.at=now; return true
 end
-local function freshKey(key,now)
-    for k,v in pairs(state.seen) do if now>=v then state.seen[k]=nil end end
-    return not state.seen[key] and S.count(state.seen)<512
+local function freshKey(key,now,owner,guild)
+    local total,own,public=0,0,0
+    for k,v in pairs(state.seen) do
+        if now>=v.expires then state.seen[k]=nil
+        else
+            total=total+1
+            if v.owner==owner then own=own+1 end
+            if not v.guild then public=public+1 end
+        end
+    end
+    -- Never evict a live ID, even at the sender quota: replays must not refresh age.
+    return not state.seen[key] and total<512 and own<32 and (guild or public<256)
+end
+local function remember(key,expires,owner,guild)
+    state.seen[key]={expires=expires,owner=owner,guild=guild==true}
 end
 local function sameFaction(g,now,faction)
     local r=N.Main.store.localSeen[g]
@@ -174,13 +195,13 @@ local function offerRecord(r,tag,dist,sender,key,now,faction,wall)
     local loc=place(d,"mapId",r.kind~="bounty" and r.kind~="claim")
     if not loc then return false end
     local identity="record:"..r.id
-    if not freshKey(identity,now) then return false end
+    if not freshKey(identity,now,key,dist=="GUILD") then return false end
     local kind=r.kind=="bounty" and "cached" or (tag=="F" or origin~=key) and "relayed" or "witness"
     local accepted=false
     local function participant(name,g,f)
         if not N.Invite.name(name) or (g~=nil and not guid(g)) or (f~=nil and f~="Alliance" and f~="Horde")
             or f==faction or (g and sameFaction(g,now,faction)) then return end
-        local e={name=name,guid=g,faction=f,zone=loc.zone,map=loc.map,x=loc.x,y=loc.y,shard=loc.shard,
+        local e={name=name,guid=g,faction=f,map=loc.map,x=loc.x,y=loc.y,shard=loc.shard,
             at=at,got=now,kind=kind,net="wanted",via=sender}
         if Src.offer(e) then accepted=true end
     end
@@ -190,7 +211,7 @@ local function offerRecord(r,tag,dist,sender,key,now,faction,wall)
         participant(d.killerName,d.killer,d.killerFaction)
         participant(d.victimName,d.victim,d.victimFaction)
     end
-    if accepted then state.seen[identity]=at+N.Known.TTL end
+    if accepted then remember(identity,at+N.Known.TTL,key,dist=="GUILD") end
     return accepted
 end
 local function addon(prefix,text,dist,sender)
@@ -198,14 +219,16 @@ local function addon(prefix,text,dist,sender)
     if not now or prefix~="WNTD" or (dist~="GUILD" and dist~="CHANNEL" and dist~="WHISPER") then return end
     local name,key=N.Invite.name(sender); sender=name
     if not sender or N.Main.isMe(sender) or N.Adapters.ignored(sender) then return end
-    if not budget("addon:"..key,now,60) then Src.count("wanted","refused"); return end
-    local b,tag,id=W.join(state,"addon:"..dist..":"..key,text,false,now,"addon:"..key)
+    local tag=frame(text,false)
+    if not tag or (dist=="WHISPER" and (tag=="E" or tag=="S")) then return end
+    local route=dist=="GUILD" and "guild" or dist=="CHANNEL" and "channel" or "whisper"
+    if not budget(route,"addon:"..key,now,60) then Src.count("wanted","refused"); return end
+    local b,tag,id=W.join(state,"addon:"..dist..":"..key,text,false,now,"addon:"..key,dist=="GUILD")
     if not b then return end
     local identity="packet:"..key..":"..tag..":"..id
-    if not freshKey(identity,now) then return end
+    if not freshKey(identity,now,key,dist=="GUILD") then return end
     local t=W.decode(b)
     if not plain(t) or not version(t.v) then Src.count("wanted","refused"); return end
-    if dist=="WHISPER" and (tag=="E" or tag=="S") then return end
     local accepted=false
     if tag=="E" then accepted=sighting(t,sender,now,faction)
     elseif tag=="S" then
@@ -218,14 +241,16 @@ local function addon(prefix,text,dist,sender)
         if not n or not wall then return end
         for i=1,n do offerRecord(t.r[i],tag,dist,sender,key,now,faction,wall) end
     end
-    if accepted then state.seen[identity]=now+N.Known.TTL end
+    if accepted then remember(identity,now+N.Known.TTL,key,dist=="GUILD") end
 end
 local function sweep(now)
     if not S.num(now) then return end
     for k,r in pairs(state.far) do if now<r.at or now-r.at>=600 then state.far[k]=nil end end
     for k,r in pairs(state.streams) do if now<r.at or now-r.at>=30 then state.streams[k]=nil end end
-    for k,t in pairs(state.seen) do if now>=t then state.seen[k]=nil end end
-    for k,r in pairs(state.rates) do if now-r.at>=120 then state.rates[k]=nil end end
+    for k,r in pairs(state.seen) do if now>=r.expires then state.seen[k]=nil end end
+    for _,rates in pairs(state.rates) do
+        for k,r in pairs(rates) do if now-r.at>=120 then rates[k]=nil end end
+    end
 end
 local function realm(v)
     v=S.str(v,100)
@@ -234,12 +259,13 @@ end
 local function bnet(prefix,text,id)
     local now,faction=context()
     if not now or (prefix~="WNTDB" and prefix~="WNTDP") or not integer(id,1,2147483647) then return end
-    if not budget("bn:"..id,now,30) then Src.count("wanted","refused"); return end
+    if S.secret(text) or type(text)~="string" or #text==0 or #text>3800 then return end
+    if prefix=="WNTDP" and not frame(text,true) then return end
+    if not budget("bnet","bn:"..id,now,30) then Src.count("wanted","refused"); return end
     local peer=N.BNet.who(id)
     if not plain(peer) or not N.Invite.name(peer.name) or not S.str(peer.faction,16)
         or peer.faction==faction or (peer.faction~="Alliance" and peer.faction~="Horde")
         or not realm(peer.realm) or realm(peer.realm)~=realm(N.Main.homeRealm()) then return end
-    if S.secret(text) or type(text)~="string" or #text>3800 then return end
     local b=text
     if prefix=="WNTDP" then b=W.join(state,"bn:"..id,text,true,now) end
     if not b then return end

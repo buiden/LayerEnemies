@@ -150,8 +150,10 @@ function A.clubMember(clubId,memberId)
         if not S.tab(r) then return nil end
         -- Club names are account display names, never character identities.
         -- Read only presence and the owner-approved account ID from this member.
-        local presence,accountId=S.num(v(r.presence)),S.num(v(r.bnetAccountId))
-        if not presence or not accountId or accountId<=0 or accountId%1~=0 then return nil end
+        local presence=S.num(v(r.presence))
+        if presence~=1 and presence~=4 and presence~=5 then return nil end
+        local accountId=S.num(v(r.bnetAccountId))
+        if not accountId or accountId<=0 or accountId%1~=0 then return nil end
         local bn=v(_G.C_BattleNet)
         if not S.tab(bn) or type(v(bn.GetAccountInfoByID))~="function" then return nil end
         local account=v(bn.GetAccountInfoByID(accountId))

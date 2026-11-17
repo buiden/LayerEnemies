@@ -2,8 +2,9 @@
 
 ## Unreleased - Wanted (receive only)
 
-Reads Wanted v1.29.2 without Wanted installed; **no greetings, replies, requests,
-relays, invites, addon-message sends, Battle.net sends or outgoing version claim**.
+Reads Wanted 1.29.x (protocol audited at v1.29.2) without Wanted installed;
+**no greetings, replies, requests, relays, invites, addon-message sends,
+Battle.net sends or outgoing version claim**.
 No new SavedVariables fields, record ledger, signing keys or saved player names.
 The existing `/le net wanted on|off` switch defaults on. If Wanted itself is
 loaded, passive membership stands down but incoming data still work.
@@ -21,6 +22,9 @@ loaded, passive membership stands down but incoming data still work.
   cached, aged from `seenAt`; claims use `killT`, other records use record `t`.
   `spotted` has only a GUID and is used only if existing tracked Find evidence
   already binds it to one name. No new GUID-to-name cache is created.
+- Sender-supplied zone text is **never displayed**. Only a zone resolved from the
+  map ID is shown; absent, invalid or unresolved maps show no zone, with no text
+  fallback. Coordinates without a valid map ID are discarded.
 - `WNTDB` whole / `WNTDP` numbered **L** summaries: anonymous opposite-faction
   counts, only from a live same-realm game account resolved through BNet. View
   map/layer counts with `/le net wanted`; overlapping carriers use max, not sum.
@@ -42,18 +46,27 @@ retained by the shared registry in session Known; they do not add saved Find
 names or new rows of their own. This is the existing registry projection.
 
 Limits (deliberately stricter than the donor where needed): WNTD 255 bytes/frame,
-240-byte chunks, 12 parts, four unfinished/sender; WNTDP 3800 bytes/frame,
-3784-byte chunks, eight parts, two unfinished/sender; **16 assemblies globally**,
-30 seconds total lifetime. Encoded payload at most 30272 bytes, inflation at most
-65536 bytes; shared codec depth 8 / 4096 logical values. Batches: 15 sightings,
+240-byte chunks, 12 parts; WNTDP 3800 bytes/frame, 3784-byte chunks, eight parts.
+**Two unfinished messages per canonical sender across addon routes** (or BNet
+game ID), **16 assemblies globally, eight reserved for guild traffic**; channel,
+whisper and BNet together may occupy at most eight. Thirty seconds total lifetime.
+Encoded payload at most 30272 bytes, inflation at most 65536 bytes; shared codec depth 8 / 4096 logical values. Batches: 15 sightings,
 10 R records, eight F records. Records: 64 scalar data fields, 512 bytes/string,
 live sequence 1000001–2147483647, valid ID/hash; no nested data. WNTD versions
-1.29.0–1.29.2 only (receive policy, never advertised); a newer unknown format is
-ignored. No timestamped location at least one hour old or ahead of server time
-is accepted. No-time sightings expire one hour after first receipt. Session
-replay ledger: 512, full means refuse new evidence until expiry, never evict live
-IDs to refresh replays. Rate ledger: 128 identities, 120-second idle expiry;
-60 addon / 30 Battle.net datagrams per sender per fixed minute. L: 20 carriers ×
+1.29.x with any numeric patch (including 1.29.0 and later patches; version text
+at most 32 bytes). Other majors/minors and version suffixes are refused; this
+receive policy is never advertised. No timestamped location at least one hour
+old or ahead of server time is accepted. No-time sightings expire one hour after first receipt. Session
+replay ledger: **512 identities, at most 32 per canonical carrier across addon
+routes and packet/record kinds; 256 reserved for guild**. Claimed record origins
+do not get their own carrier quota. A full sender/public/global quota refuses
+new evidence until expiry; no live ID is evicted or refreshed. A very busy sender
+can therefore stop contributing new evidence for up to an hour, but cannot
+consume another sender's quota. Rate ledgers: **128 identities each for guild,
+whisper, channel and Battle.net**, with 120-second idle expiry; 60 addon datagrams
+per sender per route / 30 Battle.net datagrams per game ID per fixed minute.
+WNTD tag/route and basic fragment shape validate before taking a sender entry;
+malformed numbered Battle.net fragments also take no entry. L: 20 carriers ×
 12 rows, counts clamped at 200, expiry at 600 seconds. Decoder/record/offer/budget
 and protected-call failures contribute refusals; ignored tags and pending
 fragments need not. Every store is session-only and bounded.
@@ -61,9 +74,10 @@ fragments need not. Every store is session-only and bounded.
 Protocol difference from the plan shorthand: Wanted uses its own **numbered
 fragments, not AceComm**. The shared `addonDecode`, `inflate`, `lsRead` are used;
 AceComm control bytes are rejected, not mistaken for Wanted framing. The audit's
-E/S producer is guild/channel only. Coordinates without a usable map retain
-only zone information; missing bounty `seenAt`, unresolved spotted GUIDs and
-unreadable faction/identity/time fail silent.
+E/S producer is guild/channel only; PARTY/RAID remain unsupported. The guild
+reserves do not add new group routes. Mapless evidence stays place-unknown;
+missing bounty `seenAt`, unresolved spotted GUIDs and unreadable
+faction/identity/time fail silent.
 
 Registry addition: optional `status() -> {string,...}` on `Sources.register` and
 `Sources.lines(name)` support opt-in diagnostics (240 lines, 160 bytes/line,
@@ -72,7 +86,11 @@ new generic command branch dispatches `/le net <registered source>`. The existin
 addon/BNet event wiring, heartbeat and UI measuring/rendering code are unchanged.
 
 Reproduce: `lua test/harness.lua --only Wanted:`, `python3 test/wanted_vectors.py`,
-`python3 test/wanted_mutants.py`, `python3 test/verify.py`. Fixtures are constructed
+`python3 test/wanted_mutants.py`, `python3 -B test/wanted_mutants_test.py`,
+`python3 test/verify.py`. Mutation evidence normalizes Lua object addresses and
+is not rewritten when unchanged. Round-1 regressions reproduce the 300-user
+channel flood (75/75 guild sightings), 128 junk senders (20/20), and renewed
+assembly holds (20/20 five-frame guild messages). Fixtures are constructed
 from the audit, Python zlib and an independent serializer, not live captures.
 **Native checks not run (alpha, owner's decision)**. This is D1 only, not D2.
 
@@ -316,7 +334,9 @@ checklist is at the end.
 
 Find now reads the Battle.net communities you already belong to and your
 Battle.net friends. It adds `online (community)` or `online (friend)`, a zone,
-and the age of our read. It joins nothing and sends nothing: no new addon
+and the age of our read. Presence text uses its measured height, so a one-line
+presence-only card is as compact as a normal one-line card and wrapped zones
+still fit without overlapping. It joins nothing and sends nothing: no new addon
 messages, chat, Battle.net data, presence subscriptions, or `/who` by name.
 There is no per-community Watch button. No donor addon or donor code is used.
 
@@ -333,7 +353,8 @@ There is no per-community Watch button. No donor addon or donor code is used.
   accounts whose `wowProjectID` equals this client's `WOW_PROJECT_ID`.
 - A readable character name, realm, zone, and opposite faction are required.
   A community member's `bnetAccountId` is used only for
-  `C_BattleNet.GetAccountInfoByID`; its `gameAccountInfo` supplies the character,
+  `C_BattleNet.GetAccountInfoByID`; offline, mobile, unknown and unreadable member
+  presence are skipped before any account lookup. Its `gameAccountInfo` supplies the character,
   realm (`realmName` or `realmDisplayName`), zone and faction. It must be online
   in `WoW`, and community presence must be Online, Away, or Busy. A club member's
   display name is never a character match. Account IDs are not saved or printed;
@@ -425,8 +446,10 @@ send gate are unchanged. Reception works with or without Overlord installed.
   clamped to receipt time, never displayed as a negative age.
 - Nothing is decoded/scanned in combat or instances. Unreadable gates, secret
   values, malformed fields, controls, oversized or stale lines fail silently.
-  `/le net` adds **Overlord session: lines / taken / refused** counters. These
-  count eligible transport lines, accepted payloads and refusals; waiting
+  `/le net` adds **Overlord session: lines / taken / refused** counters and
+  the currently detected pool tag, or **pool unknown (receiving nothing)** when
+  detection is unavailable. These counters count eligible transport lines,
+  accepted payloads and refusals; waiting
   fragments and duplicate packets do not count as taken or refused.
 
 Offline coverage: `test/overlord.lua`, `test/overlord_mutants.py`, and the
