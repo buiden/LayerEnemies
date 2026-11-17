@@ -1,0 +1,191 @@
+diff --git a/LayerEnemies/BNet.lua b/LayerEnemies/BNet.lua
+index bf58206..d0371b8 100644
+--- a/LayerEnemies/BNet.lua
++++ b/LayerEnemies/BNet.lua
+@@ -54,16 +54,13 @@ function BN.allowed(net,id,prefix,text,prio)
+     if not S.str(net,32) or not S.str(prefix,16) or not S.num(id) or id<1 or id%1~=0
+         or S.secret(text) or type(text)~="string" or #text<1 or #text>4096
+         or not S.str(prio,16) or (prio~="owed" and prio~="own") then return false end
+-<<<<<<< HEAD
+     if net=="overlord" and prefix=="OverlordF" and prio=="owed"
+         and N.Main.overlordStopping(text,"BNET",id) then return true end
+-=======
+     if net=="warboard" and prefix=="WarBoard" and text:match("^WBF1|[HA]|") then
+         if A.loaded("WarBoard") then return false end
+         if N.WarBoard and N.WarBoard.handshake(id,text) then return safe() end
+     end
+     if withdrawal(net,id,prefix,text,prio) then return safe() end
+->>>>>>> fix/c2
+     -- C2 extends the built Overlord receiver in place; its tick-only registration
+     -- may use its legacy prefix without seizing Main's receive ownership.
+     local authorized=N.Sources.authorized(net,prefix)
+@@ -129,15 +126,9 @@ function BN.pump(now)
+                 lastSend=now; times[#times+1]={at=now,net=q.net} -- spend before the client, including failures
+                 local valid,allowed=true,true
+                 if q.guard then valid,allowed=pcall(q.guard) end
+-<<<<<<< HEAD
+-                if valid and allowed and deliver(q) then
+-                    N.Sources.count(q.net,"sent");if q.sent then pcall(q.sent) end
+-                else refuse(q.net) end
+-=======
+                 local ok=valid and allowed and deliver(q) or false
+                 if ok then N.Sources.count(q.net,"sent") else refuse(q.net) end
+                 complete(q,ok)
+->>>>>>> fix/c2
+                 break -- never catch up several frames after a long pause
+             end
+         end
+@@ -155,13 +146,8 @@ schedule=function()
+     timer=ok and result==true
+     return timer
+ end
+-<<<<<<< HEAD
+-function BN.send(net,id,prefix,text,prio,guard,sent)
+-=======
+ function BN.send(net,id,prefix,text,prio,still,tag,done,guard)
+->>>>>>> fix/c2
+     if S.secret(guard) or (guard~=nil and type(guard)~="function") then return refuse(net) end
+-    if S.secret(sent) or (sent~=nil and type(sent)~="function") then return refuse(net) end
+     if S.secret(prio) then return refuse(net) end
+     if S.secret(still) or (still~=nil and type(still)~="function") then return refuse(net) end
+     if S.secret(done) or (done~=nil and type(done)~="function") then return refuse(net) end
+@@ -176,28 +162,18 @@ function BN.send(net,id,prefix,text,prio,still,tag,done,guard)
+     local now=S.num(S.call(GetTime))
+     if not now or count>=share(net) or (prio~="owed" and normal>=52) or not schedule() then return refuse(net) end
+     serial=serial+1
+-<<<<<<< HEAD
+-    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,guard=guard,sent=sent}
+-    return true
+-end
+-function BN.cancel(net,keepStops)
+-    for i=#queue,1,-1 do
+-        local q=queue[i]
+-        local stop=keepStops and q.net=="overlord" and q.prefix=="OverlordF" and q.prio=="owed"
+-            and N.Main.overlordStopping(q.text,"BNET",q.id)
+-        if (not net or q.net==net) and not stop then refuse(q.net); table.remove(queue,i) end
+-=======
+     queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,still=still,tag=tag,done=done,guard=guard,
+         cleanup=withdrawal(net,id,prefix,text,prio)==true}
+     return true
+ end
+-function BN.cancel(net,tag)
++function BN.cancel(net,tag,keepStops)
+     for i=#queue,1,-1 do
+         local q=queue[i]
+-        if not q.cleanup and (not net or q.net==net) and (not tag or q.tag==tag) then
++        local stop=keepStops and q.net=="overlord" and q.prefix=="OverlordF" and q.prio=="owed"
++            and N.Main.overlordStopping(q.text,"BNET",q.id)
++        if not q.cleanup and not stop and (not net or q.net==net) and (not tag or q.tag==tag) then
+             refuse(q.net); table.remove(queue,i); complete(q,false)
+         end
+->>>>>>> fix/c2
+     end
+ end
+ function BN.queued() return #queue end
+diff --git a/LayerEnemies/LayerEnemies.toc b/LayerEnemies/LayerEnemies.toc
+index e4bd3a7..c717d58 100644
+--- a/LayerEnemies/LayerEnemies.toc
++++ b/LayerEnemies/LayerEnemies.toc
+@@ -47,12 +47,9 @@ OwnDeath.lua
+ CallUI.lua
+ Wanted.lua
+ OverlordPeer.lua
+-<<<<<<< HEAD
+ OverlordFeed.lua
+-=======
+ WarBoard.lua
+ WarBoardTrack.lua
+->>>>>>> fix/c2
+ ChehulNet.lua
+ UI.lua
+ Main.lua
+diff --git a/LayerEnemies/Main.lua b/LayerEnemies/Main.lua
+index da65afe..b43ed80 100644
+--- a/LayerEnemies/Main.lua
++++ b/LayerEnemies/Main.lua
+@@ -501,7 +501,6 @@ function M.overlordStopping(text,route,target)
+ end
+ overlordSend=function(c,text,route,target,prio,job)
+     local P=N.OverlordPeer
+-<<<<<<< HEAD
+     local function guard()
+         if route=="BNET" and job.name then
+             local who=N.BNet.who(target)
+@@ -516,11 +515,7 @@ overlordSend=function(c,text,route,target,prio,job)
+         if job.kind=="HR" and route=="BNET" then live.friends=N.BNet.peers(live.now) end
+         P.sent(M.overlordPeer,job,live)
+     end
+-    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,guard,sent) end
+-=======
+-    local function guard() return P.claim(M.overlordPeer,job,M.overlordContext()) end
+-    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,nil,nil,nil,guard) end
+->>>>>>> fix/c2
++    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,nil,nil,function(ok) if ok then sent() end end,guard) end
+     local live=M.overlordContext()
+     if not P.claim(M.overlordPeer,job,live,true) then return false end
+     local ok,_,attempted=N.Wire.send("OverlordF",text,route,target,{net="overlord",prio=prio=="owed" and "owed" or "mesh"})
+@@ -2352,11 +2347,7 @@ function M.setFindNotice(on)
+ end
+ function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
+ function M.setShare(on)
+-<<<<<<< HEAD
+-    if not on then N.OwnDeath.cancel(); N.BNet.cancel(nil,true); M.overlordCancel() end
+-=======
+-    if not on then N.OwnDeath.cancel(); N.BNet.cancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
+->>>>>>> fix/c2
++    if not on then N.OwnDeath.cancel(); N.BNet.cancel(nil,nil,true); M.overlordCancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
+     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
+     -- Off cancels all pending guild relays as well as our sync answers. Queued guild/own embassy lines
+     -- are dropped by their still checks. A quick off/on must not revive the cancelled relay timers.
+@@ -2619,13 +2610,9 @@ local function dispatch(_,event,...)
+     end
+     if event=="PLAYER_LOGIN" then guarded(M.start); return end
+     if not M.started then return end
+-<<<<<<< HEAD
+-    if event=="PLAYER_LOGOUT" then M.overlordClosing=true;guarded(M.overlordCancel);N.BNet.pump(now());guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
+-=======
+-    if event=="PLAYER_LOGOUT" then
++    if event=="PLAYER_LOGOUT" then M.overlordClosing=true;guarded(M.overlordCancel);
+         if N.WarBoardTrack then N.WarBoardTrack.stop(true) end
+-        guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
+->>>>>>> fix/c2
++        N.BNet.pump(now());guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
+     elseif event=="CHAT_MSG_ADDON" then guarded(M.message,...)
+     elseif event=="BN_CHAT_MSG_ADDON" then
+         local prefix,text,channel,id=...
+diff --git a/LayerEnemies/Net.lua b/LayerEnemies/Net.lua
+index 892d7c1..4809c02 100644
+--- a/LayerEnemies/Net.lua
++++ b/LayerEnemies/Net.lua
+@@ -52,12 +52,8 @@ function Net.why(key)
+ end
+ function Net.setConsent(level)
+     if not Net.CONSENT[level] then return false end
+-<<<<<<< HEAD
+-    if level~="public" and N.BNet then N.BNet.cancel(nil,true) end
++    if level~="public" and N.BNet then N.BNet.cancel(nil,nil,true); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
+     if level~="public" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end
+-=======
+-    if level~="public" and N.BNet then N.BNet.cancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
+->>>>>>> fix/c2
+     state.consent = level; save()
+     if N.Directory then N.Directory.sync() end
+     return true
+@@ -65,15 +61,11 @@ end
+ function Net.switch(key) return state.switches[key] ~= false end
+ function Net.setSwitch(key, on)
+     if not Net.LIST[key] then return false end
+-<<<<<<< HEAD
+-    if on~=true and N.BNet then N.BNet.cancel(key,true) end
+-    if on~=true and key=="overlord" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end
+-=======
+     if on~=true and N.BNet then
+-        N.BNet.cancel(key)
++        N.BNet.cancel(key,nil,true)
+         if key=="warboard" and N.WarBoardTrack then N.WarBoardTrack.stop() end
+     end
+->>>>>>> fix/c2
++    if on~=true and key=="overlord" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end
+     state.switches[key] = on == true; save()
+     if N.Directory then N.Directory.sync() end
+     return true

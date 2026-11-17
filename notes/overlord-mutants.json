@@ -114,10 +114,10 @@
       "FAIL Overlord revision: S2 any valid reply resets backoff S: test/harness.lua:7: not equal: expected true, got false",
       "FAIL Overlord revision: S2 any valid reply resets backoff P: test/harness.lua:7: not equal: expected true, got false",
       "FAIL Overlord revision: S2 any valid reply resets backoff HB: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL Overlord revision: clock exact 300-second client dispatch is refused: test/src_overlord_revision.lua:216: strictly past 300 is eligible: expected 1, got 0",
-      "FAIL Overlord revision: clock once-heard online friend stays selected for 7000 seconds: test/src_overlord_revision.lua:221: not equal: expected 0, got 59",
-      "FAIL Overlord revision: M same-faction Battle.net friend is an eligible NH-free source: test/src_overlord_revision.lua:280: same-faction direct K is sufficient first-hand evidence: expected 1, got 0",
-      "FAIL Overlord revision: clock ignores unselected account NH and rejects offline or foreign-pool friends: test/src_overlord_revision.lua:289: not equal: expected 0, got 1"
+      "FAIL Overlord revision: clock exact 300-second client dispatch is refused: test/src_overlord_revision.lua:221: strictly past 300 is eligible: expected 1, got 0",
+      "FAIL Overlord revision: clock once-heard online friend stays selected for 7000 seconds: test/src_overlord_revision.lua:226: not equal: expected 0, got 59",
+      "FAIL Overlord revision: M same-faction Battle.net friend is an eligible NH-free source: test/src_overlord_revision.lua:285: same-faction direct K is sufficient first-hand evidence: expected 1, got 0",
+      "FAIL Overlord revision: clock ignores unselected account NH and rejects offline or foreign-pool friends: test/src_overlord_revision.lua:294: not equal: expected 0, got 1"
     ],
     "killed": true,
     "rule": "ruleset-pool"
