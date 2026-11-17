@@ -3,14 +3,14 @@
     "rule": "encoded-byte ceiling",
     "killed": true,
     "failures": [
-      "FAIL Wanted: independent zlib record hash and decoder ceilings: test/src_wanted.lua:32: encoded bytes ceiling: expected nil, got table: 0x60b4c3903d60"
+      "FAIL Wanted: independent zlib record hash and decoder ceilings: test/src_wanted.lua:32: encoded bytes ceiling: expected nil, got table: 0x57ab15ae8120"
     ]
   },
   {
     "rule": "inflate ceiling",
     "killed": true,
     "failures": [
-      "FAIL Wanted: independent zlib record hash and decoder ceilings: test/src_wanted.lua:28: 64 KiB expansion ceiling: expected nil, got table: 0x616c4e4affb0"
+      "FAIL Wanted: independent zlib record hash and decoder ceilings: test/src_wanted.lua:28: 64 KiB expansion ceiling: expected nil, got table: 0x63ea7dad31b0"
     ]
   },
   {
@@ -445,7 +445,7 @@
     "rule": "no saved evidence",
     "killed": true,
     "failures": [
-      "FAIL Wanted: immutable dedupe ceilings do not store or save new names: test/src_wanted.lua:127: no evidence or name writes to saved state: expected \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy OnerautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006, got \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy One\ufffdwantedName\ufffdWitness PlayerrautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`Bnets6\"hh`bwanted`\"we`roptions\u0006"
+      "FAIL Wanted: immutable dedupe ceilings do not store or save new names: test/src_wanted.lua:127: no evidence or name writes to saved state: expected \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy OnerautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`BnetsF\"hh`bwanted`\ufffdchehulnet`\"we`roptions\u0006, got \u0001\ufffdRshare`rtracked\u0016\u0003\ufffdEnemy One\ufffdwantedName\ufffdWitness PlayerrautoHop`\ufffdfindShare`\ufffdfindNotice`Bcall`\ufffdguildHosthrcallArt`BnetsF\"hh`bwanted`\ufffdchehulnet`\"we`roptions\u0006"
     ]
   }
 ]

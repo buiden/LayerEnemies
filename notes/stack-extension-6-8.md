@@ -32,3 +32,32 @@ Source: `108fb6f0cb1c8f46e3c61dd392ed1b6522f7c51a` (built on the earlier registr
 - Archive SHA256: `20eccf445b80bcb2fb955d782383c24b2fa333ffbe94d423e461651e131aadc9`.
 
 Ruling: update queue fixtures to the actual composed registration state, not the production fairness policy. Cost if wrong: exact cap, excess-admission, overflow/expiry and behavioral mutation assertions fail; the suite no longer relies on an empty shipping registry.
+
+## Level 8: ChehulNet HELLO
+
+Source: `6c037737671066acba3f70f3a39ab627de6a59bc`.
+
+- Conflicts: `LayerEnemies/LayerEnemies.toc`, `README.md`, `THIRD_PARTY.md`, `test/harness.lua`, `notes/test-results.txt`, `notes/verification.json`.
+- Union both source modules before UI/Main in the TOC. Retain all Wanted and ChehulNet README/provenance sections. Choose ChehulNet's stronger callback-owner heartbeat test: retain exact Main 5/2/5-second expectations and additionally assert the independent Sources one-second timer. Regenerate both verification notes.
+- Production Main/UI changes auto-merged, retaining the current measured presence/FLH/Overlord layout. No additional production correction or test failure at this level. ChehulNet 13/0/12870; composed queue 29/0/2329 without further fixture edits.
+- `python3 test/verify.py`: **rc 0; RESULT: 1427 tests passed, 0 failed, 247701 assertions**. All static/API, syntax, TOC and deterministic archive/source parity gates pass.
+- Archive SHA256: `1020f1c26ef94f6e68f6b7ccf6d4252444b50f01888f6993326788f9e2c27796`.
+
+## Final mutation and regression checks
+
+All runs below executed on the final level-8 composition, in isolated scratch copies for mutants. Every command exited 0.
+
+| Suite | Result |
+|---|---|
+| `python3 test/source_mutants.py` | 41/41 killed |
+| `python3 test/wanted_mutants.py` | 62/62 killed |
+| `python3 test/chehulnet_mutants.py` | 49/49 killed |
+| Lua `--hop-any-only` quick regression | 184 passed, 0 failed, 13199 assertions |
+| Lua `--flh-only` quick regression | 28 passed, 0 failed, 19690 assertions |
+| Lua `--overlord-only` quick regression | 34 passed, 0 failed, 17044 assertions |
+| Lua `--presence-only` quick regression | 26 passed, 0 failed, 11002 assertions |
+| Lua `--stack-only` composition | 3 passed, 0 failed, 251 assertions |
+
+**152/152 new-feature mutants killed**, no survivors. No assertion was added merely to kill a surviving mutant during this integration. The four legacy lanes above are focused regression runs, not newly rerun legacy mutation suites.
+
+Final audit: self-review (no subagent tool). Programmatic inventory comparison retains every prior test at each level, with 77 registry additions, 25 Wanted additions and 13 ChehulNet additions; only the four documented queue case labels change. Verification counts match the generated result file, and archive SHA matches its real bytes. Every prior README/provenance heading survives. Codec/BNet match the reviewed registry tip, Wanted and ChehulNet match their feature tips, and presence/WHO adapter bodies plus Presence/FLH/Overlord/Invite/Hosts/HopAny match updated stack/5. Added-line security scan and conflict-marker/diff checks pass. All five frozen refs remain exact; origin push URL remains DISABLED. No deferred integration finding. Preserve the clone and full successful/failed evidence for parent review.

@@ -2410,6 +2410,7 @@ function M.start()
         if command=="find share on" or command=="find share off" then guarded(M.setFindShare,command=="find share on"); return end
         if command=="find notice on" or command=="find notice off" then guarded(M.setFindNotice,command=="find notice on"); return end
         if command=="presence" then M.presenceStatus(); return end
+        if command=="layer" then guarded(N.ChehulNet.layer); return end
         if command=="find" then M.track(nil); return end
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
         if command=="hop stop" then guarded(M.hopAnyStop); return end

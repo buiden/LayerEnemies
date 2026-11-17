@@ -52,6 +52,18 @@ class ApiPolicyTests(unittest.TestCase):
     def check_source(self, source, name='Main.lua'):
         VERIFY['check_api_policy'](source, name)
 
+    def test_chehulnet_has_no_send_join_save_or_enemy_projection_access(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/ChehulNet.lua').read_text()
+        self.check_source(source, 'ChehulNet.lua')
+        VERIFY['check_send_policy'](source, 'ChehulNet.lua')
+        refs = {word for _, word in VERIFY['lua_references'](VERIFY['lua_tokens'](source))}
+        self.assertFalse(refs & {'Wire', 'BNet', 'Directory', 'JoinChannelByName', 'LeaveChannelByName',
+                                 'LayerEnemiesDB', 'Find', 'Presence', 'Store', 'Reports', 'Hosts',
+                                 'LibStub', 'loadstring', 'dofile', 'offer', 'SetText', 'PlaySound'})
+        self.assertIn('register', refs)
+        toc = (Path(__file__).resolve().parents[1] / 'LayerEnemies/LayerEnemies.toc').read_text().splitlines()
+        self.assertEqual(toc[toc.index('ChehulNet.lua') + 1], 'UI.lua')
+
     def test_dormant_who_aliases(self):
         for access in ('C_FriendList.SendWho', 'C_FriendList["Send".."Who"]',
                        '_G.C_FriendList["Send" .. ("Who")]',
