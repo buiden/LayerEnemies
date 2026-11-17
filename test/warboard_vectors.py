@@ -26,3 +26,13 @@ assert len(plain) == 262006 and len(escaped) == 603
 path = path.with_name('warboard-review-bomb.bin')
 path.write_bytes(raw)  # receive-path tests use the actual addon encoder
 print(path.name, len(raw), hashlib.sha256(raw).hexdigest())
+
+# Round-2 nt0: 558-byte WBF1 D frame; no type before the large literal.
+plain = b'^1^T^Sv^N5^Sd^T^t^Sp^S' + b'a' * 262000 + b'0^t^^'
+compressor = zlib.compressobj(7, zlib.DEFLATED, -15)
+raw = compressor.compress(plain) + compressor.flush()
+escaped = raw.replace(b'\x01', b'\x01\x03').replace(b'\x00', b'\x01\x02')
+assert len(plain) == 262027 and len(escaped) + 7 == 558
+path = path.with_name('warboard-round2-bomb.bin')
+path.write_bytes(raw)
+print(path.name, len(raw), hashlib.sha256(raw).hexdigest())

@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -89,7 +90,7 @@ review('unknown type bounded before classification', 'math.min(98304,allowance o
        'math.min(262144,allowance or 262144)', 'SHRD inflate ceiling')
 review('streaming type limit lowers actual inflation', 'maxOut=math.min(maxOut,limit)',
        'maxOut=maxOut', 'SHRD inflate ceiling', 'Codec.lua')
-review('sixteen decode attempts per sender', '#r.times>=16', '#r.times>=17', 'decode attempt cap')
+review('sixteen expensive decode attempts per sender', 'rate.attempts>=16', 'rate.attempts>=17', 'decode attempt cap')
 review('rolling ten-second decode window', 'now-r.times[i].at>=10', 'now-r.times[i].at>=9', 'decode attempt cap')
 review('sender inflated-byte allowance reaches inflater',
        'local allowance=math.min(131072-rate.bytes,acct and (131072-acct.bytes) or 131072)',
@@ -100,8 +101,8 @@ review('account decode bucket survives character change', 'account and decodeRat
        'account and decodeRate(st.decodeAccounts,carrier,ctx.now)', 'BN decode quota')
 review('failed payload hash avoids repeated inflation', 'if st.frames[hash] then return duplicate() end',
        'if false then return duplicate() end', 'reviewer 130 BN bombs')
-review('every decoded payload is hashed, not only failures', 'rememberFrame(st,hash,ctx.now)',
-       'if not e then rememberFrame(st,hash,ctx.now) end', 'decoded untracked frames')
+review('decoded non-tracking refusals are hashed, not only failures', 'rememberFrame(st,hash,ctx.now)',
+       'if not e then rememberFrame(st,hash,ctx.now) end', 'every decoded frame')
 review('sixty-second frame memory', 'now-st.frames[key].at<60', 'now-st.frames[key].at<59', 'failed hashes last')
 review('duplicates do not refresh hash lifetime', 'if st.frames[hash] then return duplicate() end',
        'if st.frames[hash] then st.frames[hash].at=ctx.now; return duplicate() end', 'failed hashes last')
@@ -109,8 +110,8 @@ review('five hundred twelve frame hashes', '#st.frameOrder>=512', '#st.frameOrde
 review('two hundred decode sender buckets', 'slots(rates,now,10)>=200', 'slots(rates,now,10)>=201',
        'decode sender bucket cap')
 review('refused decode counted',
-       'or (e.scope~=nil and e.scope~="FACTION") or not S.tab(e.d) then return refuse() end',
-       'or (e.scope~=nil and e.scope~="FACTION") or not S.tab(e.d) then return false end', 'reviewer 130 BN bombs')
+       'or (e.scope~=nil and e.scope~="FACTION") or not S.tab(e.d) then return decodedRefuse() end',
+       'or (e.scope~=nil and e.scope~="FACTION") or not S.tab(e.d) then remember(); return false end', 'reviewer 130 BN bombs')
 review('dedupe hits counted', 'Src.count("warboard","deduped")', 'do end', 'accepted payload duplicates')
 review('two unfinished BN assemblies per account', 'if owned>=2 then return nil end',
        'if owned>=16 then return nil end', 'one account holding unfinished')
@@ -128,9 +129,40 @@ review('README discloses new-peer publication',
        '', 'README explains', '../README.md')
 
 
+# Round-2 rulings: isolate aggregate work, reserve, cheap path and tracking policy.
+def round2(rule, old, new, selector, file='WarBoard.lua'):
+    add(rule, old, new, selector, file, suite='WarBoard R2: ')
+
+round2('overall unauthenticated decode ceiling', 'byteRoom(st.decodeTotal,ctx.now,196608)',
+       'byteRoom(st.decodeTotal,ctx.now,393216)', 'overall ceiling')
+round2('aggregate bytes charged across senders and routes', 'spendBytes(st.decodeTotal,ctx.now,cost)',
+       'do end', 'all addon routes')
+round2('channel cannot spend the guild reserve', 'byteRoom(st.decodeChannel,ctx.now,131072)',
+       'byteRoom(st.decodeChannel,ctx.now,196608)', 'channel flood')
+round2('channel byte charges retained', 'spendBytes(st.decodeChannel,ctx.now,cost)',
+       'do end', 'channel flood')
+round2('aggregate budget uses a rolling ten-second window', 'if now-entry.at<10 then break end',
+       'if now-entry.at<9 then break end', 'overall window')
+round2('confirmed BN has separate aggregate room',
+       'if not account then\n        allowance=math.min(allowance,byteRoom',
+       'if true then\n        allowance=math.min(allowance,byteRoom', 'all addon routes')
+round2('channel strangers cannot fill sender slots', 'or (channel and channelSlots(st.rates)>=100)',
+       'or false', 'channel sender slots')
+round2('small honest bursts not clipped at sixteen frames', 'if allowance<=0 then return refuse() end',
+       'if allowance<=0 or #rate.times>=16 then return refuse() end', 'cheap honest burst')
+round2('cheap frames do not consume expensive attempts', 'charge.expensive=cost>2048',
+       'charge.expensive=true', 'cheap reports leave')
+round2('cheap probe remains available after expensive attempts', 'then allowance=math.min(allowance,2048) end',
+       'then return refuse() end', 'expensive attempts stay')
+round2('untracked refusals are not remembered', 'if not untracked then remember() end',
+       'remember()', 'untracked ')
+round2('mutant runner does not require owner scratch path', 'def main():\n    scratch = Path(tempfile.gettempdir())',
+       "def main():\n    scratch = Path(os.environ.get('TMPDIR', '/opt/data/cache/scratch'))\n    assert str(scratch).startswith('/opt/data/cache/scratch')",
+       'portable mutant runner', '../test/warboard_mutants.py')
+
+
 def main():
-    scratch = Path(os.environ.get('TMPDIR', '/opt/data/cache/scratch'))
-    assert str(scratch).startswith('/opt/data/cache/scratch')
+    scratch = Path(tempfile.gettempdir())
     results = []
     with tempfile.TemporaryDirectory(prefix='le-warboard-mutants-', dir=scratch) as tmp:
         root = Path(tmp)
@@ -145,6 +177,8 @@ def main():
             try:
                 if path.suffix == '.lua':
                     subprocess.run([str(Path(LUA).with_name('luac')), '-p', str(path)], check=True, capture_output=True)
+                elif path.suffix == '.py':
+                    subprocess.run([sys.executable, '-m', 'py_compile', str(path)], check=True, capture_output=True)
                 run = subprocess.run([LUA, 'test/harness.lua', '--only', selector], cwd=root,
                                      capture_output=True, text=True, errors='replace', timeout=90)
                 failures = [s for s in run.stdout.splitlines() if s.startswith('FAIL ')]

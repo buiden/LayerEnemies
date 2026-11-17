@@ -27,12 +27,24 @@ The independent WarBoard Forever **1.6.3** protocol reader accepts confirmed
 `WarBoardBN` guild/group/channel traffic. Only your Find names and guild Watch
 names are admitted through the source registry. No name or peer is saved.
 
-Receive work is capped at **16 decode attempts and 128 KiB per sender per rolling
-10 seconds**, shared across Battle.net and guild/group/channel routes, with an
-additional Battle.net account budget. Per-type inflation ceilings range from
-2 KiB to 96 KiB. A 512-entry, 60-second hash memory suppresses repeated decoded
-**and** failed payloads; `/le net` counts these as both refused and deduped.
-Unfinished assemblies are limited to two per account/sender as well as 16 globally.
+All unauthenticated guild/group/channel routes together share **192 KiB of charged
+inflate work per rolling 10 seconds**. Channel traffic can spend at most 128 KiB,
+reserving **64 KiB for guild/party/raid**. Confirmed Battle.net peers have separate
+account budgets, outside that aggregate pool. Channel-only senders may occupy
+only 100 of the 200 input-name slots, so strangers cannot fill the guild's room.
+
+Each normalized sender still has a **128 KiB/10-second** byte limit across routes;
+Battle.net also retains its account limit. Only decodes charged **over 2 KiB**
+spend the **16 expensive attempts/10 seconds**. After those attempts, decoding
+still permits up to 2 KiB per frame, within every byte limit: a burst of 119 small
+SHRD reports from one confirmed account is accepted. The separate 120 incoming
+frames/sender/rolling minute limit and 2–96 KiB per-type inflate ceilings remain.
+
+A 512-entry, 60-second hash memory suppresses repeated decode failures and decoded
+outcomes, **except untracked-name refusals**: adding that name to Find allows the
+same previously refused frame immediately. Accepted copies retain replay protection;
+`/le net` counts duplicates as both refused and deduped. Unfinished assemblies
+remain limited to two per account/sender as well as 16 globally.
 
 - **SHRD:** the sender's own zone and shard. Same-faction
   records are ignored. Its millisecond-like sequence is used for ordering and

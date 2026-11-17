@@ -16,9 +16,30 @@ local function slots(t,now,ttl)
     end
     return n
 end
+local function byteWindow() return {times={},head=1,tail=0,bytes=0} end
+local function byteRoom(r,now,cap)
+    while r.head<=r.tail do
+        local entry=r.times[r.head]
+        if now-entry.at<10 then break end
+        r.bytes=r.bytes-entry.bytes; r.times[r.head]=nil; r.head=r.head+1
+    end
+    if r.head>r.tail then r.times={}; r.head=1; r.tail=0 end
+    return cap-r.bytes
+end
+local function spendBytes(r,now,cost)
+    local last=r.times[r.tail]
+    if last and last.at==now then last.bytes=last.bytes+cost
+    else r.tail=r.tail+1; r.times[r.tail]={at=now,bytes=cost} end
+    r.bytes=r.bytes+cost
+end
+local function channelSlots(rates)
+    local n=0
+    for _,r in pairs(rates) do if r.channel then n=n+1 end end
+    return n
+end
 function W.new()
     return {peers={},rates={},hellos={},answers={},answerSent={},helloSent={},parts={},seen={},seenOrder={},seenBytes=0,shards={},
-        decodeRates={},decodeAccounts={},frames={},frameOrder={}}
+        decodeRates={},decodeAccounts={},decodeTotal=byteWindow(),decodeChannel=byteWindow(),frames={},frameOrder={}}
 end
 W.state=W.new()
 local function context() return N.Adapters.warboardContext() end
@@ -30,14 +51,15 @@ local function identity(id,ctx)
     if not name then return nil end
     return {name=name,key=N.Invite.key(name),faction=who.faction}
 end
-local function input(st,key,ctx)
+local function input(st,key,ctx,channel)
     if st.high and ctx.now<st.high then return false end
     st.high=ctx.now
     local r=st.rates[key]
     if not r then
-        if slots(st.rates,ctx.now,60)>=200 then return false end
-        r={at=ctx.now,times={}}; st.rates[key]=r
+        if slots(st.rates,ctx.now,60)>=200 or (channel and channelSlots(st.rates)>=100) then return false end
+        r={at=ctx.now,times={},channel=channel}; st.rates[key]=r
     end
+    if not channel then r.channel=nil end -- group/BN identities keep the reserved half
     pruneTimes(r.times,ctx.now)
     if #r.times>=120 then return false end
     r.at=ctx.now; r.times[#r.times+1]=ctx.now
@@ -156,12 +178,15 @@ local function decodeRate(rates,key,now)
     local r=rates[key]
     if not r then
         if slots(rates,now,10)>=200 then return nil end
-        r={at=now,times={},bytes=0}; rates[key]=r
+        r={at=now,times={},bytes=0,attempts=0}; rates[key]=r
     end
     for i=#r.times,1,-1 do
-        if now-r.times[i].at>=10 then r.bytes=r.bytes-r.times[i].bytes; table.remove(r.times,i) end
+        if now-r.times[i].at>=10 then
+            local old=table.remove(r.times,i)
+            r.bytes=r.bytes-old.bytes; r.attempts=r.attempts-(old.expensive and 1 or 0)
+        end
     end
-    if #r.times>=16 or r.bytes>=131072 then return nil end
+    if r.bytes>=131072 then return nil end
     return r
 end
 local function frameHash(encoded)
@@ -253,7 +278,7 @@ local function location(st,t,d,e,ctx,carrier,bridge,cached)
             or S.secret(d.isGroupLeader) or (d.isGroupLeader~=nil and type(d.isGroupLeader)~="boolean") then return false end
         ev=event(first.." "..last,d.guid,d.faction,ctx,carrier,"self",bridge)
         if not ev then return false end
-        if not knownName(ev.name,ctx) then return false end
+        if not knownName(ev.name,ctx) then return false,"untracked" end
         -- SHRD realm is a surname. Its wire identity stays the same when a
         -- different carrier adds/omits the transport realm suffix. Keep one
         -- sequence and one admitted cache spelling, including after a clear.
@@ -289,7 +314,7 @@ local function location(st,t,d,e,ctx,carrier,bridge,cached)
         ev.pos="enemy"
         ev.note=(ev.kind=="self" and "own position; " or "reported position; ")..d.zone..(d.subZone and d.subZone~="" and ("; "..d.subZone) or "")
             ..(d.approximate and "; approximate coordinates; zone labels are current" or "")
-        if not knownName(ev.name,ctx) then return false end
+        if not knownName(ev.name,ctx) then return false,"untracked" end
         local pos=N.Adapters.worldMapPos(x,y,d.instanceID)
         if pos then ev.zone,ev.map,ev.x,ev.y=pos.map,pos.map,pos.x,pos.y end
     elseif t=="FREC" then
@@ -336,10 +361,11 @@ local function location(st,t,d,e,ctx,carrier,bridge,cached)
         ev.at=at; ev.zone=d.zone; ev.note="cached zone"
     else return false end
     ev.tag=t
-    return Src.offer(ev) or nil
+    local accepted=Src.offer(ev)
+    return accepted or nil,not accepted and not knownName(ev.name,ctx) and "untracked" or nil
 end
 local types={SHRD=true,FBLP=true,FREC=true,FBLC=true,FCBD=true}
-local function payload(st,encoded,ctx,carrier,bridge,bnetFaction,account)
+local function payload(st,encoded,ctx,carrier,bridge,bnetFaction,account,channel)
     if st.seen[encoded] then return duplicate() end
     local hash=frameKey(st,encoded,ctx.now)
     if st.frames[hash] then return duplicate() end
@@ -349,42 +375,65 @@ local function payload(st,encoded,ctx,carrier,bridge,bnetFaction,account)
     local acct=account and decodeRate(st.decodeAccounts,account,ctx.now) or nil
     if not rate or (account and not acct) then return refuse() end
     local allowance=math.min(131072-rate.bytes,acct and (131072-acct.bytes) or 131072)
+    -- All non-handshaken routes share 192 KiB/rolling 10 s. Channel traffic
+    -- can spend only 128 KiB of it, leaving 64 KiB for guild/party/raid.
+    if not account then
+        allowance=math.min(allowance,byteRoom(st.decodeTotal,ctx.now,196608))
+        if channel then allowance=math.min(allowance,byteRoom(st.decodeChannel,ctx.now,131072)) end
+    end
+    if allowance<=0 then return refuse() end
+    -- A small successful parse never spends an expensive attempt. Once those
+    -- attempts run out, still try up to 2 KiB (charged to every byte budget),
+    -- rather than clipping small SHRD bursts behind a sixteenth large frame.
+    if rate.attempts>=16 or (acct and acct.attempts>=16) then allowance=math.min(allowance,2048) end
     local charge={at=ctx.now,bytes=0}
     rate.at=ctx.now; rate.times[#rate.times+1]=charge
     if acct then acct.at=ctx.now; acct.times[#acct.times+1]=charge end
     local e,cost=W.decode(encoded,allowance)
-    charge.bytes=cost; rate.bytes=rate.bytes+cost
-    if acct then acct.bytes=acct.bytes+cost end
-    -- Every attempted payload, whether decoded, rejected or admitted, gets a
-    -- short-lived hash. No decoded tables or untracked player names are kept.
-    rememberFrame(st,hash,ctx.now)
+    charge.bytes=cost; charge.expensive=cost>2048
+    rate.bytes=rate.bytes+cost
+    if charge.expensive then rate.attempts=rate.attempts+1 end
+    if acct then
+        acct.bytes=acct.bytes+cost
+        if charge.expensive then acct.attempts=acct.attempts+1 end
+    end
+    if not account then
+        spendBytes(st.decodeTotal,ctx.now,cost)
+        if channel then spendBytes(st.decodeChannel,ctx.now,cost) end
+    end
+    -- Cache decode failures and completed outcomes, but not a refusal caused
+    -- by the local Find/Watch set: tracking a name must reopen that same frame.
+    local function remember() rememberFrame(st,hash,ctx.now) end
+    local function decodedRefuse() remember(); return refuse() end
     if not S.tab(e) or not types[S.str(e.t,16)] or not S.num(e.v) or e.v>5
-        or (e.scope~=nil and e.scope~="FACTION") or not S.tab(e.d) then return refuse() end
-    if e.rs~=ctx.rs then return refuse() end
+        or (e.scope~=nil and e.scope~="FACTION") or not S.tab(e.d) then return decodedRefuse() end
+    if e.rs~=ctx.rs then return decodedRefuse() end
     local fac=e.faction~=nil and e.faction or e.d.faction
-    if not faction(fac) or (bnetFaction and fac~=bnetFaction) then return refuse() end
-    local accepted,invalid=false,false
+    if not faction(fac) or (bnetFaction and fac~=bnetFaction) then return decodedRefuse() end
+    local accepted,invalid,untracked=false,false,false
     if e.t=="FCBD" then
         local d=e.d; local n=array(d.entries,40)
         if not n or not S.str(d.requestId,160) or not S.str(d.relayGuid,80) or not N.Invite.name(d.relayName)
-            or not integer(d.page,1,100000) or not S.num(d.rulesVersion) then return refuse() end
+            or not integer(d.page,1,100000) or not S.num(d.rulesVersion) then return decodedRefuse() end
         local inner=d.kind=="bounty_locations" and "FBLC" or (d.kind=="activity" or d.kind=="witnessed_kills") and "FREC"
         if inner then for i=1,n do
-            local result=location(st,inner,d.entries[i],e,ctx,carrier,true,true)
+            local result,why=location(st,inner,d.entries[i],e,ctx,carrier,true,true)
             if result then accepted=true elseif result==false then invalid=true end
+            if why=="untracked" then untracked=true end
         end end
     else
         -- Only a matching subject on authenticated BN may claim "own position".
         if e.t=="FBLP" and not bnetFaction then bridge=true end
-        accepted=location(st,e.t,e.d,e,ctx,carrier,bridge,false)
-        invalid=accepted==false
+        local why
+        accepted,why=location(st,e.t,e.d,e,ctx,carrier,bridge,false)
+        invalid=accepted==false; untracked=why=="untracked"
     end
-    -- All outcomes were hashed above. The sixty-second window also suppresses
-    -- untracked/context-refused copies; changing local state does not reopen it.
     if not accepted then
+        if not untracked then remember() end
         if invalid then return refuse() end
         return false
     end
+    remember()
     while #st.seenOrder>=512 or st.seenBytes+#encoded>1048576 do
         local old=table.remove(st.seenOrder,1); st.seen[old]=nil; st.seenBytes=st.seenBytes-#old
     end
@@ -420,10 +469,10 @@ function W.addon(st,prefix,text,dist,sender,ctx)
     sender=N.Invite.name(sender)
     if not sender or N.Main.isMe(sender) then return false end
     local key=prefix..":"..dist..":"..N.Invite.key(sender)
-    if not input(st,"addon:"..N.Invite.key(sender),ctx) then return refuse() end
+    if not input(st,"addon:"..N.Invite.key(sender),ctx,dist=="CHANNEL") then return refuse() end
     st.comm=st.comm or {}; st.comm.now=ctx.now
     local encoded=Cd.aceCommJoin(st.comm,key,text,N.Invite.key(sender))
-    return encoded and payload(st,encoded,ctx,sender,prefix=="WarBoardBN") or false
+    return encoded and payload(st,encoded,ctx,sender,prefix=="WarBoardBN",nil,nil,dist=="CHANNEL") or false
 end
 function W.tick(st,ctx)
     if not ctx or (st.high and ctx.now<st.high) then return end

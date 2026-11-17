@@ -100,18 +100,23 @@ end)
 
 test("decode attempt cap spans both prefixes and every route for one identity",function()
     local N,meter=setup(); confirm()
-    local routes={"BN","GUILD","PARTY","RAID","CHANNEL"}
-    for i=1,40 do
-        local e=encode(N,"^1^T^St^SSH RD"..i.."^t^^")
-        local route=routes[(i-1)%#routes+1]
-        if route=="BN" then bn("WBF1|D|"..e)
-        else addon(N,e,"Enemy Player-123",route,i%2==0 and "WarBoardBN" or "WarBoard") end
+    local function large(i)
+        return encode(N,"^1^T^St^SFREC^Sv^N5^Srs^Spvp^Sd^T^Sjunk^S"..string.rep("a",2500)..i.."^t^t^^")
     end
-    eq(meter.calls,16,"one sender gets sixteen attempts per rolling ten seconds, not per route")
+    -- R2: attempts charge work above 2 KiB, not tiny parses. Reach that
+    -- boundary through BN before probing addon aliases (no frame-cap masking).
+    for i=1,16 do bn("WBF1|D|"..large(i)) end
+    eq(meter.calls,16)
+    for i,route in ipairs({"GUILD","PARTY","RAID","CHANNEL"}) do
+        addon(N,large(16+i),"Enemy Player-123",route,i%2==0 and "WarBoardBN" or "WarBoard")
+        yes(meter.caps[#meter.caps]<=2048,"no route reopens expensive attempts")
+    end
     local e=encode(N,envelope(N,"SHRD",shrd()))
-    h.clock(h.clock()+9.99); addon(N,e); eq(meter.calls,16)
-    h.clock(h.clock()+.01); addon(N,e); eq(meter.calls,17); yes(row(N).reported)
-    h.clock(h.clock()-1); addon(N,encode(N,"rollback")); eq(meter.calls,17)
+    addon(N,e); yes(row(N).reported,"small reports are still permitted")
+    h.clock(h.clock()+9.99); bn("WBF1|D|"..large(21)); eq(meter.caps[#meter.caps],2048)
+    h.clock(h.clock()+.01); bn("WBF1|D|"..large(22)); yes(meter.caps[#meter.caps]>2048)
+    local count=meter.calls
+    h.clock(h.clock()-1); addon(N,encode(N,"rollback")); eq(meter.calls,count)
 end)
 
 test("decode bytes budget stops distinct large frames before attempt cap",function()
@@ -193,12 +198,16 @@ end)
 
 test("BN decode quota belongs to account as well as current character",function()
     local N,meter=setup(); confirm()
-    for i=1,16 do bn("WBF1|D|"..encode(N,"^1^T^St^SNO"..i.."^t^^")) end
+    local function large(i)
+        return encode(N,"^1^T^St^SFREC^Sv^N5^Srs^Spvp^Sd^T^Sjunk^S"..string.rep("a",2500)..i.."^t^t^^")
+    end
+    for i=1,16 do bn("WBF1|D|"..large(i)) end
     eq(meter.calls,16)
     local old=C_BattleNet.GetGameAccountInfoByID
     C_BattleNet.GetGameAccountInfoByID=function(id) local r=old(id); r.characterName="Other Carrier"; return r end
-    confirm(); bn("WBF1|D|"..encode(N,envelope(N,"SHRD",shrd())))
-    eq(meter.calls,16,"new character and handshake cannot reset account's decode quota")
+    confirm(); bn("WBF1|D|"..large(17))
+    eq(meter.caps[#meter.caps],2048,"new character and handshake cannot reset account's expensive quota")
+    bn("WBF1|D|"..encode(N,envelope(N,"SHRD",shrd()))); yes(row(N).reported)
 end)
 
 test("every decoded frame is hashed even when record or context is refused",function()
@@ -215,13 +224,14 @@ test("every decoded frame is hashed even when record or context is refused",func
     eq(meter.calls,3); yes(row(N).reported,"eligible again after the bounded sixty-second memory")
 end)
 
-test("decoded untracked frames are deduped until sixty-second expiry",function()
+test("decoded untracked frames reopen on tracking without waiting sixty seconds",function()
     local N,meter=setup(); confirm(); N.Find.remove(N.Main.find,"Enemy Player")
     local encoded=encode(N,envelope(N,"SHRD",shrd()))
     bn("WBF1|D|"..encoded); yes(N.Find.add(N.Main.find,"Enemy Player"))
-    bn("WBF1|D|"..encoded); no(row(N).reported); eq(meter.calls,1); eq(counter(N,"deduped"),1)
-    h.clock(h.clock()+60); h.wall(h.wall()+60)
-    bn("WBF1|D|"..encoded); yes(row(N).reported); eq(meter.calls,2)
+    bn("WBF1|D|"..encoded); yes(row(N).reported); eq(meter.calls,2); eq(counter(N,"deduped"),0)
+    local got=row(N).got
+    h.clock(h.clock()+30); h.wall(h.wall()+30)
+    bn("WBF1|D|"..encoded); eq(row(N).got,got); eq(meter.calls,2); eq(counter(N,"deduped"),1)
 end)
 
 test("accepted payload duplicates count hash hits and preserve first receipt",function()
