@@ -872,5 +872,40 @@
     "failures": [
       "FAIL WarBoard rulings: N1 README states revised confirmation and retry rules: test/harness.lua:7: A genuine confirmation under **20 minutes** old can authorize a new FBAK: expected true, got false"
     ]
+  },
+  {
+    "rule": "Delta cleanup-only provenance survives a live final fragment",
+    "selector": "WarBoard rulings: delta cleanup-only",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: delta cleanup-only partial starts in combat and finishes safe: test/harness.lua:8: queued partial never becomes delayed Find evidence: expected false, got true",
+      "FAIL WarBoard rulings: delta cleanup-only partial starts in instance and finishes safe: test/harness.lua:8: queued partial never becomes delayed Find evidence: expected false, got true"
+    ]
+  },
+  {
+    "rule": "Delta fragments cannot cross character identity",
+    "selector": "WarBoard rulings: delta identity",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: delta identity change characterName discards queued partial before completion: test/src_warboard_rulings.lua:328: old character chunks must never complete under new identity: expected 0, got 1",
+      "FAIL WarBoard rulings: delta identity change realmName discards queued partial before completion: test/src_warboard_rulings.lua:328: old character chunks must never complete under new identity: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "Delta validated stale roster is not lost cleanup input",
+    "selector": "WarBoard rulings: delta stale",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: delta stale direct roster preserves accepted withdrawal: test/src_warboard_rulings.lua:348: old roster cannot erase newer accepted FBUN: expected 16, got nil",
+      "FAIL WarBoard rulings: delta stale multipart roster preserves accepted withdrawal: test/src_warboard_rulings.lua:348: old roster cannot erase newer accepted FBUN: expected 16, got nil"
+    ]
+  },
+  {
+    "rule": "Delta incomplete cleanup expires without silently settling",
+    "selector": "WarBoard rulings: delta incomplete",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard rulings: delta incomplete cleanup keeps acceptance until original assembly expiry: test/harness.lua:8: expired incomplete roster retains uncertainty: expected false, got true"
+    ]
   }
 ]

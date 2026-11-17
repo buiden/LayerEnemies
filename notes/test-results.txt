@@ -1514,6 +1514,13 @@ PASS WarBoard rulings: N2 deferred inbox byte bound vetoes lost input silence
 PASS WarBoard rulings: N2 deferred inbox remains held during clock rollback
 PASS WarBoard rulings: N2 deferred roster cannot settle after current GUID changes
 PASS WarBoard rulings: N1 genuine recent confirmation permits FBAK when sharing resumes
+PASS WarBoard rulings: delta cleanup-only partial starts in combat and finishes safe
+PASS WarBoard rulings: delta cleanup-only partial starts in instance and finishes safe
+PASS WarBoard rulings: delta identity change characterName discards queued partial before completion
+PASS WarBoard rulings: delta identity change realmName discards queued partial before completion
+PASS WarBoard rulings: delta stale direct roster preserves accepted withdrawal
+PASS WarBoard rulings: delta stale multipart roster preserves accepted withdrawal
+PASS WarBoard rulings: delta incomplete cleanup keeps acceptance until original assembly expiry
 PASS WarBoard rulings: N1 README states revised confirmation and retry rules
 PASS WarBoard track: exact FBAK and FBUN audit fields and codec round trip
 PASS WarBoard track: remove sends exactly one owed FBUN through stop gates
@@ -1573,4 +1580,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 1537 tests passed, 0 failed, 220351 assertions
+RESULT: 1544 tests passed, 0 failed, 220706 assertions
