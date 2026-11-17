@@ -1282,6 +1282,10 @@ PASS Overlord: packet identity exact seven fields broadcast and allowed kinds
 PASS Overlord: packet path one to four no repeats and last sender
 PASS Overlord: packet age accepts 120 not 121 and skew 30 not 31
 PASS Overlord: origin id ring takes once and caps at 256
+PASS Overlord: foreign packet pools are refused before evidence or dedupe
+PASS Overlord: unknown own pool accepts no wrapped direct or partial traffic and recovers without reload
+PASS Overlord: pool detection maps readable rules and explicit realm fallback without a PvP guess
+PASS Overlord: GD foreign payload pool is refused on both direct and wrapped routes
 PASS Overlord: GD tracked killer claim reaches Find for one hour with no Ask
 PASS Overlord: EK tracked killer claim reaches Find for one hour with no Ask
 PASS Overlord: untracked killers never enter Known even before later tracking
@@ -1301,8 +1305,9 @@ PASS Overlord: malformed frame fuzz bounded state and zero sends
 PASS Overlord: map lookup failures cannot consume packet identity and secret names refuse
 PASS Overlord: slash Reported shows guild claim but no hop record
 PASS Overlord: secret map objects or map types skip the entire claim
+PASS Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap
 PASS Overlord: single guild rampage reaches Reported without a hop
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
-RESULT: 1307 tests passed, 0 failed, 173729 assertions
+RESULT: 1312 tests passed, 0 failed, 175821 assertions

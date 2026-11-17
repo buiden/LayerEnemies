@@ -42,6 +42,28 @@ local function zone(ref)
     end
     return nil -- valid donor-only location, not a guess at a map
 end
+-- Campaign tags from Overlord 2.5.1 RealmPools.lua; no donor calls or PvP default.
+function Ov.pool(realm,hc,rp,pvp)
+    local named
+    realm=S.str(realm,100)
+    if realm then
+        local text=" "..realm:lower().." "
+        local role=text:find("roleplay",1,true) or text:find("[%s%-]rp[%s%-%d]") or text:find("rppvp",1,true)
+        local versus=text:find("pvp",1,true)
+        if text:find("hardcore",1,true) then named="hc"
+        elseif role then named=versus and "rpv" or "rpg"
+        elseif versus then named="global"
+        elseif text:find("pve",1,true) or text:find("normal",1,true) then named="pve" end
+    end
+    hc,rp,pvp=S.clean(hc),S.clean(rp),S.clean(pvp)
+    if hc==true then return "hc" end
+    if hc~=false or type(rp)~="boolean" or type(pvp)~="boolean" then return named end
+    local pool=rp and (pvp and "rpv" or "rpg") or (pvp and "global" or "pve")
+    -- Explicit realm labels resolve startup all-false and RP/PvP partial detection.
+    if pool=="pve" and named then return named end
+    if named=="rpv" and (pool=="rpg" or pool=="global") then return named end
+    return pool
+end
 function Ov.new() return {pending={},serial=0,guilds={},seen={},ring={},cursor=0,stats={lines=0,taken=0,refused=0}} end
 function Ov.sweep(st,now)
     for key,a in pairs(st.pending) do
@@ -105,7 +127,7 @@ function Ov.packet(wire,id,sender,serverNow)
     local origin=path[1]
     local _,key=identity(path[#path]); local _,last=identity(sender)
     if key~=last then return nil end
-    return {kind=f[6],payload=f[7],origin=origin,at=at}
+    return {pool=f[1],kind=f[6],payload=f[7],origin=origin,at=at}
 end
 function Ov.direct(text)
     text=bytes(text,255)
@@ -129,7 +151,7 @@ function Ov.gd(payload)
     local victim=identity(f[8])
     local d=killer(f[4],f[5],f[6],f[3],f[7])
     if not victim or not d or F.fold(victim)==F.fold(d.killer) then return nil end
-    d.victim=victim
+    d.victim,d.pool=victim,f[2]
     return d
 end
 function Ov.ek(payload)

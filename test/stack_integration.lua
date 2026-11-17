@@ -40,6 +40,8 @@ for _,presenceFirst in ipairs({true,false}) do
     test("Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst="..tostring(presenceFirst),function()
         _G.C_Club=nil; _G.BNGetNumFriends=nil
         local N=H.load({tracked={"Cedar Vale"},share=false,findShare=false,consent="guild"})
+        Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
+        C_GameRules={IsGameRuleActive=function(rule) return rule==3 end}
         -- Finish the empty login scan before installing this case's roster.
         H.advance(.01); no(N.Main.presenceJob,"login scan finished")
         local M=N.Main; local saved=snapshot(LayerEnemiesDB); local attempted=0

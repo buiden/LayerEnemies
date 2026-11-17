@@ -12,6 +12,11 @@ MAIN = "LayerEnemies/Main.lua"
 # Each mutation targets one admission, lifetime, provenance or side-effect rule.
 MUTANTS = [
     ("last-sender", "packet path", OV, "if key~=last then", "if false then"),
+    ("rampage-normal-height", "32 rampages", "LayerEnemies/UI.lua", 'local function minimumHeight(e)', 'local function minimumHeight(e)\n        if U.tab=="reported" and e.guild then return 184 end'),
+    ("foreign-pool", "foreign packet pools", MAIN, 'if p and p.pool~=pool then return refuse() end', '-- mutant: foreign envelope pool accepted'),
+    ("unknown-pool", "unknown own pool", MAIN, 'if not pool then return refuse() end', '-- mutant: unknown local pool accepted'),
+    ("ruleset-pool", "pool detection", OV, 'pvp and "global" or "pve"', 'pvp and "pve" or "global"'),
+    ("GD-payload-pool", "GD foreign payload pool", MAIN, 'if d and p.kind=="GD" and d.pool~=pool then return refuse() end', '-- mutant: foreign GD payload pool accepted'),
     ("assembly-sender", "two parts", OV, 'local key=who..":"..id', 'local key="shared:"..id'),
     ("envelope-id", "packet identity", OV, ' or f[2]~=id', ''),
     ("three-parts", "fragment frame bounds", OV, ' or count>2', ' or count>3'),

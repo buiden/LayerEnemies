@@ -2,8 +2,14 @@
 local H=...
 local eq,yes,no=H.eq,H.yes,H.no
 local active,attempts
+local function rules(hc,rp,pvp)
+    Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
+    local values={[1]=hc,[2]=rp,[3]=pvp}
+    C_GameRules={IsGameRuleActive=function(rule) return values[rule] end}
+end
 local function setup()
     active=H.load()
+    rules(false,false,true) -- known PvP pool; never rely on an unknown-pool default
     -- A receiving test must not hide a send behind the gateway's own refusal.
     active.Wire.send=function() attempts=attempts+1; error("Overlord attempted a send") end
     return active
@@ -23,7 +29,7 @@ local function gw(o)
 end
 local function packet(o)
     o=o or {}
-    return table.concat({o.pool or "any-pool",o.id or "pkt-1",o.at or GetServerTime(),o.target or "*",
+    return table.concat({o.pool or "global",o.id or "pkt-1",o.at or GetServerTime(),o.target or "*",
         o.path or "Birch Scout",o.kind or "GW",o.payload or gw()},"|")
 end
 local function bf(wire,id,part,count) return "BF:"..(id or "pkt-1")..":"..(part or 1)..":"..(count or 1)..":"..wire end
@@ -132,7 +138,7 @@ end)
 
 local function gd(o)
     o=o or {}
-    return table.concat({o.faction or "A",o.pool or "any-pool",o.ts or GetServerTime(),o.killer or "Cedar Vale",
+    return table.concat({o.faction or "A",o.pool or "global",o.ts or GetServerTime(),o.killer or "Cedar Vale",
         o.class or "MAGE",o.zone or "#1434",o.epoch or 0,o.victim or "Birch Scout"},":")
 end
 local function ek(o)
@@ -140,6 +146,69 @@ local function ek(o)
     return table.concat({o.killer or "Cedar Vale",o.class or "MAGE",o.faction or "Horde",o.ts or GetServerTime(),
         o.zone or "#1434",o.epoch or 0},":")
 end
+test("foreign packet pools are refused before evidence or dedupe",function()
+    for _,kind in ipairs({"GW","GD"}) do for _,route in ipairs({"GUILD","PARTY","RAID"}) do
+        local N=setup(); N.Main.track("Cedar Vale"); local logged=#H.log()
+        for _,pool in ipairs({"pve","rpg","rpv","hc","unrelated-pool","","GLOBAL"}) do
+            hear(bf(packet({pool=pool,kind=kind,payload=kind=="GW" and gw() or gd()})),route)
+            eq(N.Main.overlord.stats.taken,0,"foreign pool "..pool)
+            eq(#N.Main.reportedRows(),0); eq(next(N.Main.find.known.entries),nil)
+            eq(next(N.Main.overlord.seen),nil,"refusal cannot poison a later matching packet")
+        end
+        eq(#H.log(),logged,"pool refusal is silent")
+        hear(bf(packet({kind=kind,payload=kind=="GW" and gw() or gd()})),route)
+        eq(N.Main.overlord.stats.taken,1,"matching packet accepted with the same identity")
+    end end
+end)
+
+test("unknown own pool accepts no wrapped direct or partial traffic and recovers without reload",function()
+    for _,mode in ipairs({"missing","nil","secret","throw","partial","enum","lookup"}) do
+        local N=setup(); N.Main.track("Cedar Vale"); local logged=#H.log()
+        GetRealmName=function() return "7102" end -- numeric realm is not a ruleset
+        if mode=="missing" then C_GameRules=nil
+        elseif mode=="nil" then C_GameRules.IsGameRuleActive=function() return nil end
+        elseif mode=="secret" then C_GameRules.IsGameRuleActive=function() return H.secret end
+        elseif mode=="throw" then C_GameRules.IsGameRuleActive=function() error("unreadable rules") end
+        elseif mode=="partial" then rules(nil,false,true)
+        elseif mode=="enum" then Enum.GameRule=H.secret
+        else C_GameRules=setmetatable({}, {__index=function() error("unreadable API") end}) end
+        hear(bf(packet())); hear(bf(packet({kind="GD",payload=gd()})))
+        for _,route in ipairs({"PARTY","RAID"}) do
+            hear("GW:"..gw(),route); hear("GD:"..gd(),route); hear("EK:"..ek(),route)
+        end
+        hear("BF:partial:1:2:global|")
+        eq(N.Main.overlord.stats.taken,0,mode); eq(#N.Main.reportedRows(),0)
+        eq(next(N.Main.find.known.entries),nil); eq(next(N.Main.overlord.pending),nil)
+        eq(next(N.Main.overlord.seen),nil); eq(#H.log(),logged); no(N.Main.error)
+        rules(false,false,true); hear(bf(packet())); eq(N.Main.overlord.stats.taken,1)
+    end
+end)
+
+test("pool detection maps readable rules and explicit realm fallback without a PvP guess",function()
+    for _,v in ipairs({{false,false,true,"global"},{false,false,false,"pve"},
+        {false,true,false,"rpg"},{false,true,true,"rpv"},{true,true,true,"hc"}}) do
+        local N=setup(); rules(v[1],v[2],v[3]); hear(bf(packet({pool=v[4]})))
+        eq(N.Main.overlord.stats.taken,1,v[4])
+        hear(bf(packet({id="wrong",pool=v[4]=="global" and "pve" or "global"}),"wrong"))
+        eq(N.Main.overlord.stats.taken,1,"another campaign refused")
+    end
+    for _,v in ipairs({{"Classic PvP","global"},{"Classic PvE 2","pve"},{"Classic RP","rpg"},
+        {"Classic Roleplay PvP","rpv"},{"Classic RPPvP","rpv"},{"Classic Hardcore","hc"}}) do
+        local N=setup(); C_GameRules=nil; GetRealmName=function() return v[1] end
+        hear(bf(packet({pool=v[2]}))); eq(N.Main.overlord.stats.taken,1,v[1])
+    end
+    local N=setup(); rules(false,false,false); GetRealmName=function() return "Classic PvP" end
+    hear(bf(packet())); eq(N.Main.overlord.stats.taken,1,"explicit realm corrects startup all-false rules")
+end)
+
+test("GD foreign payload pool is refused on both direct and wrapped routes",function()
+    local N=setup(); N.Main.track("Cedar Vale")
+    hear("GD:"..gd({pool="pve"}),"PARTY")
+    hear(bf(packet({kind="GD",payload=gd({pool="pve"})})))
+    eq(N.Main.overlord.stats.taken,0); eq(next(N.Main.find.known.entries),nil)
+    hear(bf(packet({kind="GD",payload=gd()}))); eq(N.Main.overlord.stats.taken,1)
+end)
+
 for _,kind in ipairs({"GD","EK"}) do
     test(kind.." tracked killer claim reaches Find for one hour with no Ask",function()
         local N=setup(); maps(); N.Main.track("Cedar Vale")
@@ -376,6 +445,35 @@ test("secret map objects or map types skip the entire claim",function()
         N.Main.track("Cedar Vale"); hear("EK:"..ek(),"PARTY")
         eq(next(N.Main.find.known.entries),nil,mode)
     end
+end)
+
+test("32 rampages use normal measured Reported rows with several per page and no overlap",function()
+    local N=setup(); maps()
+    for i=1,32 do
+        local id="page"..i
+        hear(bf(packet({id=id,payload=gw({guild="Guild "..H.abc(i)})}),id))
+    end
+    eq(#N.Main.reportedRows(),32)
+    local U=N.UI; U.toggle(); U.select("reported")
+    local seen={}
+    local function page()
+        local count,bottom=0,0
+        for _,r in ipairs(U.pool) do if r:IsShown() then
+            count=count+1; seen[r.title:GetText()]=true
+            local top=-r.point[5]
+            local measured=math.max(24,math.ceil(r.sub:GetStringHeight()))
+            eq(r.sub.height,measured,"no oversized rampage-only text minimum")
+            eq(r.height,math.max(80,26+measured+32+4)-4,"normal measured Reported card height")
+            yes(top>=bottom,"cards must not overlap"); bottom=top+r.height
+            yes(bottom<=U.body.height,"each complete row stays on its page")
+            yes(26+r.sub.height<=r.height,"the full detail stays inside its card")
+            no(r.ask:IsShown()); eq(r.hopRecord,false)
+        end end
+        return count
+    end
+    yes(page()>=3,"32 normal rampages must show several rows per page")
+    for _=1,32 do U.body.scripts.OnMouseWheel(nil,-1); page() end
+    eq(N.Safe.count(seen),32,"every rampage is reachable")
 end)
 
 test("single guild rampage reaches Reported without a hop",function()

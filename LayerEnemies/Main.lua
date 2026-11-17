@@ -441,6 +441,21 @@ local function overlordZone(map)
     if refused then return false end
     if zone and label then return zone,label end
 end
+function M.overlordPool()
+    return S.call(function()
+        local G,E=_G.C_GameRules,_G.Enum
+        local hc,rp,pvp
+        if S.tab(G) and S.tab(E) and S.tab(E.GameRule) then
+            local function read(rule)
+                if S.secret(rule) or rule==nil then return nil end
+                local value=S.call(G.IsGameRuleActive,rule)
+                if type(value)=="boolean" then return value end
+            end
+            hc=read(E.GameRule.HardcoreRuleset); rp=read(E.GameRule.RPRuleset); pvp=read(E.GameRule.PvPRuleset)
+        end
+        return N.Overlord.pool(S.call(GetRealmName),hc,rp,pvp)
+    end)
+end
 local function overlordReceive(text,kind,sender)
     local Ov=N.Overlord
     if not M.overlord or S.secret(kind) or S.secret(text) or S.secret(sender) then return end
@@ -448,6 +463,8 @@ local function overlordReceive(text,kind,sender)
     local stats=M.overlord.stats; stats.lines=stats.lines+1
     local function refuse() stats.refused=stats.refused+1 end
     if A.inCombat() or A.inInstance()~=false then return refuse() end
+    local pool=M.overlordPool()
+    if not pool then return refuse() end
     local name,_,canonical=I.name(sender)
     if not name or M.isMe(name) or A.ignored(name) then return refuse() end
     local wall=S.num(S.call(GetServerTime)); local time=S.num(S.call(GetTime))
@@ -460,6 +477,7 @@ local function overlordReceive(text,kind,sender)
         if wire==nil then return end
         if wire==false then return refuse() end
         p=Ov.packet(wire,id,canonical,wall)
+        if p and p.pool~=pool then return refuse() end
     elseif kind=="PARTY" or kind=="RAID" then
         p=Ov.direct(text)
         if p then p.origin=canonical end
@@ -475,6 +493,7 @@ local function overlordReceive(text,kind,sender)
         Ov.rampage(M.overlord,g,time,wall)
     else
         local d=p.kind=="GD" and Ov.gd(p.payload) or p.kind=="EK" and Ov.ek(p.payload)
+        if d and p.kind=="GD" and d.pool~=pool then return refuse() end
         if not d or M.isMe(d.killer) then return refuse() end
         -- GD carries the General's claim time, not a death timestamp. Keep that
         -- conservative age; the relay envelope is independently limited to 120 s.

@@ -166,8 +166,13 @@ send gate are unchanged. Reception works with or without Overlord installed.
 - Packets have exactly seven pipe-separated fields, matching envelope ID,
   broadcast target `*`, 1–4 distinct path nodes ending in the transport sender,
   and at most 3,600 bytes (our two-part receive limit is tighter). Age 120 seconds
-  is accepted; 121 is refused; future skew is limited to 30 seconds. Pool names
-  are not compared. An origin/ID ring remembers the last 256 packets.
+  is accepted; 121 is refused; future skew is limited to 30 seconds. The packet
+  pool must exactly match our readable ruleset pool: PvP `global`, PvE `pve`,
+  RP `rpg`, RP-PvP `rpv`, or Hardcore `hc`. Game rules and explicit realm-name
+  labels determine it; an unknown pool is never guessed as PvP. While our pool
+  is unknown, all Overlord receipt (including direct group lines and partial
+  fragments) is silently refused. `GD`'s payload pool must also match. An
+  origin/ID ring remembers the last 256 accepted packets.
 - `GW` payloads are capped at 200 bytes, guild names at 24, kills 50–9,999,
   members 5–999, layer 0–99,999,999, and zone references at 40 bytes. Its source
   timestamp may be 300 seconds old. We conservatively cap future skew at 30

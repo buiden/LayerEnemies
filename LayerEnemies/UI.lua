@@ -187,7 +187,6 @@ function U.render()
         return height(e.current)+height(e.seen)+height(e.otherSeen)+height(e.reported)
     end
     local function minimumHeight(e)
-        if U.tab=="reported" and e.guild then return 184 end
         if U.tab=="find" then
             local extra=e.presence and 56 or 0
             if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0)+extra end
@@ -214,7 +213,6 @@ function U.render()
             if e.probably and detailHeight==0 then text=text.." · probably your layer (key ambiguous)" end
         end
         local minimum=U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or (U.tab=="friendly" and e.flhKey) and 60 or 24
-        if U.tab=="reported" and e.guild then minimum=140 end
         U.measure:SetWidth(U.tab=="friendly" and 200 or 294); U.measure:SetText(text)
         local layout={text=text,subHeight=fitText(U.measure,minimum)}
         local bottom=26+layout.subHeight

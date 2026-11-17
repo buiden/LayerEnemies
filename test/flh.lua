@@ -288,7 +288,8 @@ test("FLH: friendly text gets space for its separate provenance and age",functio
     local N=H.load(); H.establish(N)
     N.Main.heard.heard["Cedar Vale"]={layer="7102-55",zone=100,at=H.wall()-30,host=true}
     receive(hostLines[1]); N.UI.create(); N.UI.tab="friendly"; N.UI.frame:Show(); N.UI.render()
-    local r=N.UI.pool[1]; yes(r); yes(r.sub.height>=r.sub:GetStringHeight(),"new provenance must fit")
+    local r=N.UI.pool[1]; yes(r); yes(r.sub.height>=60,"retain the FLH detail minimum after measured-layout composition")
+    yes(r.sub.height>=r.sub:GetStringHeight(),"new provenance must fit")
     yes(r.height>=26+r.sub.height,"row must contain the detail")
     local key=string.rep("9",100)
     receive("HI|100|"..key.."|1|0.1.3|1234"); N.UI.render()

@@ -289,6 +289,7 @@ local function loadAddon(savedCallTest)
         if tbl==C_FriendList and key=="SendWho" then whoHooks[#whoHooks+1]=fn else error("unexpected hook") end
     end
     _G.WHO_TAG_ZONE="z-"; _G.Enum={SocialWhoOrigin={Social=1}}
+    _G.C_GameRules=nil
     _G.C_FriendList={IsIgnored=function() return clientIgnored end,
         SendWho=function(term,origin)
             local caller=firstLuaCaller()
