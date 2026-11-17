@@ -1353,11 +1353,14 @@ PASS ChehulNet: registry receives guild and group with counters and live switch
 PASS ChehulNet: unreadable foreign values and live context fail silent
 PASS ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks
 PASS ChehulNet: pure store accepts only guild group and whole other identities
-PASS ChehulNet: comparisons are map scoped confirmed and never server keys
+PASS ChehulNet: comparisons require own readings and never use server keys
 PASS ChehulNet: expiry rollback replacement and oldest eviction are bounded
 PASS ChehulNet: Friendly hints have no Ask and never become hop candidates
+PASS ChehulNet: hints never inflate the Friendly tab count
+PASS ChehulNet: hint subsection follows every host with measured paged rows
 PASS ChehulNet: existing hosts gain independent measured annotation without capability changes
 PASS ChehulNet: layer command counts distinct current-map UIDs and names our peers
+PASS ChehulNet: layer command caps same-layer names at eight with exact overflow
 PASS ChehulNet: 5000 deterministic fuzz inputs are bounded and silent
 PASS ChehulNet: live map changes withhold comparison and UI rows expire independently
 PASS ChehulNet: display context errors and missing clock cannot assert a relation
@@ -1445,4 +1448,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1447 tests passed, 0 failed, 253197 assertions
+RESULT: 1450 tests passed, 0 failed, 255093 assertions

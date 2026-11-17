@@ -93,7 +93,7 @@ test("ChehulNet: pure store accepts only guild group and whole other identities"
     no(C.note(st,"New Peer",C.parse(hello),"GUILD",H.secret)); eq(N.Safe.count(st.entries),3)
 end)
 
-test("ChehulNet: comparisons are map scoped confirmed and never server keys",function()
+test("ChehulNet: comparisons require own readings and never use server keys",function()
     local C=H.load().ChehulNet; local st=C.new("Me")
     for _,v in ipairs({{"Same",100,7},{"Other",100,7086},{"Away",200,7},{"Unknown",nil,nil}}) do
         yes(C.note(st,v[1],{class="MAGE",map=v[2],zone=v[3]},"GUILD",1000))
@@ -138,13 +138,101 @@ test("ChehulNet: Friendly hints have no Ask and never become hop candidates",fun
     eq(#N.Main.candidates(),0); eq(#N.Main.candidates(true),0)
     N.UI.tab="friendly"; N.UI.frame:Show(); N.UI.render()
     local r=N.UI.pool[1]; yes(r and r:IsShown(),"other-layer hint appears")
-    eq(r.title:GetText(),"Cedar Vale"); yes(r.sub:GetText():find("guild on other layers",1,true))
+    eq(r.title:GetText(),"Cedar Vale")
+    yes(N.UI.chehulTitle and N.UI.chehulTitle:IsShown(),"separate hint subsection title")
+    eq(N.UI.chehulTitle:GetText(),"Guildmates on other layers (hints)")
     yes(r.sub:GetText():find("another layer of your zone",1,true)); no(r.ask:IsShown()); no(r.spotter); no(r.hostRow); no(r.hopRecord)
+    no(r.sub:GetText():lower():find("confirmed",1,true))
     eq(r.age:GetText(),"0 s")
     if N.UI.pool[2] then no(N.UI.pool[2]:IsShown()) end
     N.Main.npcs.ambigAt=H.clock(); N.UI.render(); no(r:IsShown())
     N.Main.npcs.ambigAt=nil; N.Main.store.zoneUID=nil; N.UI.render(); no(r:IsShown())
     eq(#H.sent(),0)
+end)
+
+test("ChehulNet: hints never inflate the Friendly tab count",function()
+    for _,case in ipairs({{0,140},{3,10},{3,0}}) do
+        local N=H.load(); H.establish(N)
+        for i=1,case[1] do N.Hosts.flh(N.Main.heard,"Host"..H.abc(i),{map=100,key="8"},H.wall()) end
+        for i=1,case[2] do receive("CHN1|H|gos|MAGE|60||100:8","GUILD","Ally"..H.abc(i)) end
+        N.UI.tab="friendly"; N.UI.frame:Show(); N.UI.render()
+        eq(N.UI.tabs.friendly.label:GetText(),"Friendly ("..case[1]..")","only hosts count")
+        local hosts,hints=N.ChehulNet.friendly(N.Main.candidates())
+        eq(#hosts,case[1]); yes(hints,"separate hint projection"); eq(#hints,case[2])
+        eq(#N.Main.candidates(),case[1]); eq(#N.Main.candidates(true),0,"FLH hints do not enter the Bulo/LayerSwap-only list")
+        for _,hint in ipairs(hints) do yes(hint.chehulHint); no(hint.host); eq(hint.layer,nil) end
+        eq(#H.sent(),0); no(N.Main.error)
+    end
+end)
+
+test("ChehulNet: hint subsection follows every host with measured paged rows",function()
+    local N=H.load(); H.establish(N); local U=N.UI
+    for i=1,3 do N.Hosts.flh(N.Main.heard,"Host"..H.abc(i),{map=100,key="8"},H.wall()) end
+    -- An annotated host remains above the hints, even when its card is taller.
+    receive("CHN1|H|gos|MAGE|60||100:8","GUILD","Hosta")
+    local expected={}
+    for _,r in ipairs(N.Main.candidates()) do expected[#expected+1]=r.name end
+    for i=1,10 do
+        local name="Ally"..H.abc(i); expected[#expected+1]=name
+        receive("CHN1|H|gos|MAGE|60||100:8","GUILD",name)
+    end
+    U.tab="friendly"; U.frame:Show(); U.render()
+    yes(U.chehulTitle,"hints have their own subsection heading")
+    local function top(frame) return -frame.point[5] end
+    local compact
+    for _,size in ipairs({10,24,10}) do
+        U.chehulTitle:SetFont("Fonts\\FRIZQT__.TTF",size,"")
+        local visited={}
+        for offset=0,#expected do
+            U.offset=offset; U.render()
+            local firstHint,lastHost,previous,visible=nil,nil,nil,0
+            for _,r in ipairs(U.pool) do if r:IsShown() then
+                visible=visible+1
+                local index=U.offset+visible
+                eq(r.title:GetText(),expected[index],"hosts first, then sorted hints")
+                visited[index]=true
+                yes(r.sub:GetHeight()>=r.sub:GetStringHeight(),"hint and host details measured")
+                yes(top(r)+r:GetHeight()<=U.body:GetHeight(),"complete card inside page")
+                if previous then yes(top(r)>=top(previous)+previous:GetHeight()+4,"rows do not overlap") end
+                previous=r
+                if index<=3 then lastHost=r; eq(r.spotter,expected[index],"existing FLH action preserved"); yes(r.ask:IsShown())
+                else
+                    firstHint=firstHint or r
+                    no(r.ask:IsShown()); no(r.hostRow); no(r.hopRecord); no(r.spotter)
+                    yes(r.sub:GetText():find("Hint only",1,true))
+                    no(r.sub:GetText():find("Guildmates on other layers (hints)",1,true),"heading is not duplicated in each card")
+                end
+            end end
+            yes(visible>0,"no orphan heading page")
+            eq(U.chehulTitle:IsShown(),firstHint~=nil,"heading appears only with visible hints")
+            if firstHint then
+                eq(U.chehulTitle:GetText(),"Guildmates on other layers (hints)")
+                yes(U.chehulTitle:GetHeight()>=U.chehulTitle:GetStringHeight(),"heading measured")
+                yes(top(firstHint)>=top(U.chehulTitle)+U.chehulTitle:GetHeight()+4,"hint below complete heading")
+                if lastHost then yes(top(U.chehulTitle)>=top(lastHost)+lastHost:GetHeight()+4,"section after last visible host") end
+            end
+        end
+        for i=1,#expected do yes(visited[i],"every host and hint reachable") end
+        if not compact then compact=U.chehulTitle:GetHeight()
+        elseif size==24 then yes(U.chehulTitle:GetHeight()>compact,"wraps at larger font")
+        else eq(U.chehulTitle:GetHeight(),compact,"heading shrinks on reuse") end
+    end
+    U.select("local"); no(U.chehulTitle:IsShown())
+    U.select("friendly"); H.wall(H.wall()+400); U.render()
+    no(U.chehulTitle:IsShown()); eq(U.offset,0); eq(U.tabs.friendly.label:GetText(),"Friendly (0)")
+    for _,r in ipairs(U.pool) do no(r:IsShown()) end
+    -- A compact LayerSwap host and one hint share a page: exercise the actual
+    -- boundary, not just the repeated heading on hint-only pages.
+    LayerSwapDB={book={Hostz={layer="7102",zone="100",host=true,at=H.wall()}}}
+    receive("CHN1|H|gos|MAGE|60||100:8","GUILD","Allyz"); U.render()
+    local host,hint=U.pool[1],U.pool[2]
+    yes(host:IsShown()); yes(hint and hint:IsShown(),"mixed host/hint page")
+    eq(host.title:GetText(),"Hostz"); yes(host.hostRow); yes(host.ask:IsShown())
+    eq(hint.title:GetText(),"Allyz"); no(hint.hostRow); no(hint.ask:IsShown())
+    yes(top(U.chehulTitle)>=top(host)+host:GetHeight()+4,"section after host on mixed page")
+    yes(top(hint)>=top(U.chehulTitle)+U.chehulTitle:GetHeight()+4,"hint follows mixed-page heading")
+    eq(U.tabs.friendly.label:GetText(),"Friendly (1)")
+    eq(#H.sent(),0); no(N.Main.error)
 end)
 
 test("ChehulNet: existing hosts gain independent measured annotation without capability changes",function()
@@ -154,7 +242,8 @@ test("ChehulNet: existing hosts gain independent measured annotation without cap
     local before=N.Main.candidates()[1]; local raw=N.Main.heard.flhHosts["cedar vale"]
     local out=N.ChehulNet.friendly(N.Main.candidates()); eq(#out,1)
     eq(out[1].layer,before.layer); eq(out[1].flhKey,before.flhKey); eq(out[1].host,before.host); eq(out[1].age,before.age)
-    yes(out[1].chehulText:find("layer differs, confirmed",1,true)); no(out[1].chehulHint)
+    yes(out[1].chehulText:find("other layer (ChehulNet claim)",1,true)); no(out[1].chehulHint)
+    no(out[1].chehulText:lower():find("confirmed",1,true),"HELLO is a claim, not verification")
     eq(raw.key,before.flhKey); eq(N.Main.candidates()[1].chehulText,nil)
     -- The same identity merges from any already known host source; no new
     -- host flags or server-layer fields are inferred from a HELLO.
@@ -165,7 +254,8 @@ test("ChehulNet: existing hosts gain independent measured annotation without cap
         eq(N.Safe.count(view[1].hosts),1)
     end
     N.UI.tab="friendly"; N.UI.frame:Show(); N.UI.render()
-    local r=N.UI.pool[1]; yes(r.sub:GetText():find("layer differs, confirmed",1,true)); yes(r.ask:IsShown())
+    local r=N.UI.pool[1]; yes(r.sub:GetText():find("other layer (ChehulNet claim)",1,true)); yes(r.ask:IsShown())
+    no(r.sub:GetText():lower():find("confirmed",1,true))
     yes(r.sub:GetHeight()>=r.sub:GetStringHeight(),"new detail measured before paging")
     yes(r:GetHeight()>=26+r.sub:GetHeight()+32,"text does not overlap button")
     H.wall(H.wall()+400); N.UI.render(); no(r:IsShown()); eq(#N.Main.candidates(),0)
@@ -179,12 +269,43 @@ test("ChehulNet: layer command counts distinct current-map UIDs and names our pe
     receive("CHN1|H|gos|MAGE|60||0:0","GUILD","Unknown Peer")
     SlashCmdList.LAYERENEMIES("layer")
     local lines=table.concat(H.log(),"\n")
+    no(lines:lower():find("confirmed",1,true))
     yes(lines:find("2 distinct layers",1,true)); yes(lines:find("same layer as you: Cedar Vale",1,true))
     yes(lines:find("same layer as you: Same Peer",1,true)); no(lines:find("Away Peer",1,true)); no(lines:find("Other Peer",1,true))
     N.Main.npcs.ambigAt=H.clock(); local at=#H.log(); SlashCmdList.LAYERENEMIES("layer")
     local more={}; for i=at+1,#H.log() do more[#more+1]=H.log()[i] end
     local text=table.concat(more,"\n"); no(text:find("same layer as you:",1,true)); yes(text:find("comparison unavailable",1,true))
     eq(#H.sent(),0); no(N.Main.error)
+end)
+
+test("ChehulNet: layer command caps same-layer names at eight with exact overflow",function()
+    for _,count in ipairs({0,1,8,9,60,200}) do
+        local N=H.load(); H.establish(N)
+        -- Other-map and other-layer claims must not consume the name budget
+        -- or inflate the overflow. At the store cap, populate only same peers.
+        if count<200 then
+            receive("CHN1|H|gos|MAGE|60||100:8","GUILD","A Different")
+            receive("CHN1|H|gos|MAGE|60||200:7","GUILD","A Distant")
+        end
+        local names={}
+        for i=1,count do
+            names[i]="Peer"..H.abc(i); receive(hello,"PARTY",names[i])
+        end
+        table.sort(names)
+        local at=#H.log(); SlashCmdList.LAYERENEMIES("layer")
+        local peers,more,lines={},{},{}
+        for i=at+1,#H.log() do
+            local line=H.log()[i]; lines[#lines+1]=line
+            if line:find("same layer as you:",1,true) then peers[#peers+1]=line end
+            if line:find("and %d+ more") then more[#more+1]=line end
+        end
+        eq(#peers,math.min(8,count),"at most eight peer lines")
+        eq(#more,count>8 and 1 or 0,"one overflow line only when needed")
+        if count>8 then yes(more[1]:find("and "..(count-8).." more",1,true)); eq(lines[#lines],more[1]) end
+        for i,line in ipairs(peers) do yes(line:find("same layer as you: "..names[i].." (",1,true)) end
+        eq(#lines,count==0 and 2 or 1+math.min(8,count)+(count>8 and 1 or 0))
+        eq(#H.sent(),0); no(N.Main.error)
+    end
 end)
 
 test("ChehulNet: 5000 deterministic fuzz inputs are bounded and silent",function()

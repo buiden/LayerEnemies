@@ -123,3 +123,53 @@ nonoverlapping, measured exactly, with complete claim text and no Ask action.
 Level 8 second forward merge: combined both history sections of this note and
 regenerated the two verification files. Code auto-merged. Full verify:
 **1447 passed, 0 failed, 253197 assertions**, including the mixed-card test.
+
+## Level 8: ChehulNet round-1 and final gates
+
+Merged exact `a147b3988f792b33c9b3b7007269a4c84440e6ca` (including
+`f0c0cf0` behavior changes). Code/README auto-merged; conflicts were generated
+ChehulNet mutation evidence and the two verification notes. Retained incoming
+round-1 mutation evidence, then regenerated it on the completed stack.
+ChehulNet module and its Lua tests equal the source revision exactly. Wanted
+module and its source tests also remain exact. The UI is the union of ChehulNet's
+separate measured hint section and the stack's measured Find changes.
+
+- ChehulNet focused: **16 / 0 / 14766**; evidence-runner Python tests: **3 pass**.
+- Mixed Find geometry on the final level 8: **4 / 0 / 665**, unchanged test from 7.
+- Full verify, repeated after integration: **1450 passed, 0 failed, 255093 assertions**.
+  1450 = original 1427 + presence 2 + pool 2 + Wanted 15 + ChehulNet 3 + mixed 1.
+  Static, syntax, TOC, API/send policy, deterministic archive/source parity pass.
+  Final archive SHA256: `9e7686d7f9934cc5bc6d854487df647d3a4e95d15696d13c8f8510228373cb1d`.
+- Final mutants: **presence 41/41, Overlord 54/54, Wanted 71/71,
+  ChehulNet 57/57, source 41/41: 264/264 killed**.
+- Final quick regressions: **hop 184/0/13199; FLH 28/0/19690;
+  UI layout 9/0/1253; stack 4/0/665**.
+
+### Runner issues resolved without production or assertion weakening
+
+The composed adapter contains two friend caps. Presence's legacy bare-text
+mutation anchor was no longer unique. Scoped it to the presence reader's
+`local r,reason=presenceRead` loop, preserving the exact 200-to-201 boundary and
+its target test; all 41 mutants then completed. The initial anchor error log is
+retained and is not counted as a killed mutant.
+
+The first parallel Wanted run hit the terminal tool's 420-second wrapper limit,
+not a mutant failure. Confirmed that process had exited, retained its partial
+log, reran the unchanged suite as a tracked job, and waited for exit 0: 71/71.
+All full `verify.py` gates ran foreground, never detached.
+
+The new portability probe originally reran the entire mutation suite and passed
+at level 3, but exceeded its unchanged 180-second wrapper limit on the larger
+stack under concurrent host tests. Separated runner portability from rule
+coverage: the relocated/unrelated-cwd/relative-TMPDIR test invokes the real CLI
+entrypoint with one real mutant, baseline/final harness runs and cleanup checks.
+Retained every assertion and the timeout, added exact one-mutant inventory, and
+kept the complete 41-mutant gate separate. Restoring the original owner-scratch
+restriction in a private copy still fails this exact probe; corrected probe
+passes in 13.355s. No production/test contract was relaxed to hide a failure.
+
+Final review: author self-review (no subagent tool); parent review remains
+independent. Added-line security patterns clean. Only Adapters, Main, UI, Wanted
+and ChehulNet production files changed from the original level 8. Verifier,
+inherited harness, Codec/BNet/Wire/Sources/Find/Known/Overlord/Presence are
+unchanged. No native checks (alpha, owner's decision), push or GitHub write.

@@ -103,20 +103,23 @@ source: the game's sender identifies the player; the line carries class,
 level and an optional map / zoneUID, never coordinates or an enemy name.
 
 - **Friendly (the hop window):** allies reporting another layer of your
-  current zone appear in the `guild on other layers (guild/group)` group as
-  hints with their name and receipt age, **no Ask or Hop button**. Whisper them
-  yourself; a GuildOS user is not necessarily an LE-compatible host. If an
-  already listed host has the same whole identity, its existing row instead
-  gains **layer differs, confirmed**, with the independent HELLO receipt age.
-  Existing host capabilities, server key, source and freshness are unchanged.
-  The added text is measured before card sizing and paging.
+  current zone appear **after all host rows** in their own subsection titled
+  **Guildmates on other layers (hints)**. These guild/group hints show their
+  name and receipt age, have **no Ask or Hop button**, and **do not count in
+  the Friendly tab total**. Whisper them yourself; a GuildOS user is not
+  necessarily an LE-compatible host. If an already listed host has the same
+  whole identity, its existing row instead gains **other layer (ChehulNet
+  claim)**, with the independent HELLO receipt age. Existing host capabilities,
+  server key, source and freshness are unchanged. Both the heading and complete
+  card text are measured before paging; the heading stays with the first
+  visible hint, including when scrolling within the subsection.
 - `/le layer` prints the number of distinct zoneUIDs reported for your current
-  zone and names the allies reporting **same layer as you**. Comparisons require
-  the exact same map and your own confirmed zoneUID. An unknown own reading,
+  zone and names **at most eight** allies reporting **same layer as you**,
+  followed by one **and N more** line if others remain. Comparisons require
+  the exact same map and your own zoneUID reading. An unknown own reading,
   ambiguous layer, stale map context or unreadable clock permits no relation.
   A HELLO is a claim from that player's client, not independently verified
-  location. `confirmed` here means the reported UID differs from your reading;
-  it is not a guarantee that an invitation will move you.
+  location or a guarantee that an invitation will move you.
 - **Never an LE layer key:** ChehulNet sends creature-GUID field 5 (zoneUID),
   not the field-3 server key used by LE. No comparison across maps and no
   assignment to your own layer. These rows never enter Find, Reported,
@@ -146,7 +149,10 @@ member-list channel is not implemented. Warmth camp announcements are ignored.
 The existing Wire route allowlist and all other sources stay unchanged.
 
 Offline tests: `test/src_chehulnet.lua` (including 5,000 deterministic fuzz
-inputs), `test/chehulnet_mutants.py`, and `python3 test/verify.py`.
+inputs), `python3 -B test/chehulnet_mutants_test.py`,
+`python3 test/chehulnet_mutants.py`, and `python3 test/verify.py`.
+The mutant runner is read-only by default; pass `--write` only to replace
+`notes/chehulnet-mutants.json` with new review evidence.
 [Provenance](THIRD_PARTY.md) and [build evidence](notes/chehulnet-hello.md) pin
 the source. Target: Forever Interface 16001; package version remains 1.1.0
 until the 1.2.0 release PR. **Native checks not run (alpha, owner's decision)**:

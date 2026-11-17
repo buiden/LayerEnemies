@@ -122,28 +122,28 @@
     "rule": "peer online",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isOnline: expected nil, got table: 0x56b7e01e2620"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isOnline: expected nil, got table: 0x55fd5fad7c00"
     ]
   },
   {
     "rule": "peer project",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: wowProjectID: expected nil, got table: 0x61af7ab4ecb0"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: wowProjectID: expected nil, got table: 0x61505c975d40"
     ]
   },
   {
     "rule": "peer client",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: clientProgram: expected nil, got table: 0x6217402bbd30"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: clientProgram: expected nil, got table: 0x558635b649d0"
     ]
   },
   {
     "rule": "peer region",
     "killed": true,
     "failures": [
-      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isInCurrentRegion: expected nil, got table: 0x5c826f16ff70"
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:54: isInCurrentRegion: expected nil, got table: 0x5747254c0f30"
     ]
   },
   {
