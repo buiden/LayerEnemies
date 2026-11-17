@@ -2263,7 +2263,8 @@ function M.net(command)
         netLines(M.say)
         M.say(N.HeadHunter.summary(M.hh.stats))
         local s=M.overlord.stats
-        M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused)
+        local pool=M.overlordPool() or "unknown (receiving nothing)"
+        M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused.." · pool "..pool)
         return
     end
     if rest=="guild" or rest=="public" then M.setConsent(rest); return end

@@ -188,9 +188,8 @@ function U.render()
     end
     local function minimumHeight(e)
         if U.tab=="find" then
-            local extra=e.presence and 56 or 0
-            if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0)+extra end
-            return (e.place and 146 or e.at and 106 or 76)+extra
+            if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0) end
+            return e.place and 146 or e.at and 106 or 76
         end
         return U.tab=="local" and 48 or U.tab=="friendly" and (e.flhKey and 104 or 68) or 80
     end
@@ -224,7 +223,7 @@ function U.render()
         end
         if U.tab=="find" and e.presence then
             layout.presence=M.presenceText(e.presence); U.measure:SetText(layout.presence)
-            layout.presenceHeight=fitText(U.measure,56)
+            layout.presenceHeight=fitText(U.measure)
             layout.presenceTop=(e.place or text~="") and bottom+3 or 26
             bottom=layout.presenceTop+layout.presenceHeight
         end
