@@ -8,7 +8,7 @@ One explicit click issues one localized zone WHO query. Only the first 49 raw ro
 
 A click owns at most 45 rounds, one second apart, at most eight attempts per round. A fresh dedicated Wire bucket sends eight immediately and replenishes one per second: the 49-target success fixture finishes 41 seconds after its first send. A throttled initial target remains at the queue head. There is no Wire-queued hop work that can survive cancellation. At most one initial request is accepted per target; the explicit unknown-layer fallback is the sole re-ask exception.
 
-Ten seconds must pass after the first accepted whisper (or click if no whisper was accepted), and an existing ask must first finish or be stopped. Hosting replies do not stop fan-out. Any readable, not-known-failed inviter does, without gaining auto-accept authority. Stop/slash stop, group events, world/zone transitions and existing live guards cancel unsent work. Auto-accept still needs an actually asked whole-name identity; named Hop, Hop via name, Ask guild and accept/leave timing are unchanged. Failed-hop history uses the whole realm-qualified key, not the display label.
+Ten seconds must pass after the first accepted whisper (or click if no whisper was accepted), and an existing ask must first finish or be stopped. Hosting replies do not stop fan-out. Any readable, not-known-failed inviter does, without gaining auto-accept authority. Stop/slash stop, joining a group, real world/zone transitions and existing live guards cancel unsent work. Same-zone/subzone events and ungrouped roster updates do not cancel (round-1 correction below). Auto-accept still needs an actually asked whole-name identity; named Hop, Hop via name, Ask guild and accept/leave timing are unchanged. Failed-hop history uses the whole realm-qualified key, not the display label.
 
 Nonresponders remain session-only for six hours, with the existing 300-name cap. Known book peers bypass that suppression unless offline; their offline cooldown is 600 seconds. Other Wire offline checks stay one hour. Same-zone unknown-layer `h` responders get one unconstrained fallback attempt at the post-queue +3/+10 checks, never another WHO query; a known alternative-layer answer delays the fallback until +10. Fallback refusals are spent, not retried. Reply/invite lifetime is 120 seconds from the first accepted initial whisper.
 
@@ -32,20 +32,20 @@ Nonresponders remain session-only for six hours, with the existing 300-name cap.
 | Wire `HOP_ONE` | absent | 4 attempts/target/rolling minute |
 | Wire `HOP_PAUSE` | absent; shared `PAUSE=30` | 1 second for this hop lane |
 
-**No existing Wire budget constant changed.** `PREFIX_CAP=5`, `PREFIX_REFILL=2`, `ALL_CAP=8`, `ALL_REFILL=1.5`, `ALL_MINUTE=40`, `GUILD_MINUTE=20`, `PUBLIC_MINUTE=20`, `PUBLIC_ONE=4`, `QUEUE_MAX=40`, `PAUSE=30`, `OFFLINE=3600` stay unchanged, as do reserves, catch-up, accept/invite/leave and other message-kind budgets. There was no separate combined 10-second window to enlarge. The new budget is admitted only for `LayerSwap` / `WHISPER`, `prio="click"`, `hopAny=true`, and a validated request/fallback. Named hops, replies, sightings, relays, War Effort and HeadHunter never use it. Ordinary budgets neither fund nor are consumed by the new lane. Throttle results 3/8 share the hop-only one-second pause; unrelated traffic retains the 30-second pause. The known-peer 600-second offline override is optional and confined to this lane.
+**No existing Wire budget constant changed.** `PREFIX_CAP=5`, `PREFIX_REFILL=2`, `ALL_CAP=8`, `ALL_REFILL=1.5`, `ALL_MINUTE=40`, `GUILD_MINUTE=20`, `PUBLIC_MINUTE=20`, `PUBLIC_ONE=4`, `QUEUE_MAX=40`, `PAUSE=30`, `OFFLINE=3600` stay unchanged, as do reserves, catch-up, accept/invite/leave and other message-kind budgets. There was no separate combined 10-second window to enlarge. The new budget is admitted only for `LayerSwap` / `WHISPER`, `prio="click"`, `hopAny=true`, and a validated request/fallback. Named hops, replies, sightings, relays, War Effort and HeadHunter never use it. Ordinary budgets neither fund nor are consumed by the new lane. A hop client throttle (3/8) keeps its one-second retry pause and also pauses ordinary LayerSwap whispers for 30 seconds. A named-hop/reply client throttle stops the fan-out click; ordinary budget refusals and other prefixes do not (round-1 correction). The known-peer 600-second offline override is optional and confined to this lane.
 
 ## Who UI ownership and restoration
 
-- `LayerEnemies/Adapters.lua:4–100`: temporary session lease. Optional methods/frames are protected with `pcall`; missing timer or secure-hook/restoration support does not acquire unsafe UI state.
-- `Adapters.lua:13–17,99,113–123`: request `C_FriendList.SetWhoToUi(true)` before our `SendWho`. `FriendsFrame`, `LFGWhoListFrame`, and `WhoFrame` are inspected without hiding any window.
-- `Adapters.lua:81–97`: only a previously registered frame with the required restore methods is detached from `WHO_LIST_UPDATE`; its prior OnEvent script is retained. A guard protects against arbitrary frame-dispatch order.
-- `Adapters.lua:19–58`: registrations return on result/timeout/stop. A result releases scripts/routing on the next frame, so frames after our dispatcher cannot display the same event. Stop/timeout leave only the bounded late-result guard; the first late event or 30-second deadline releases it. Prior unregistered/visible state is preserved, and a script replaced by another addon is not overwritten.
-- `Adapters.lua:65–80`: a secure post-hook observes a player's `SendWho`, releases our lease and cancels our pending work. It never replaces the API. Manual queries during pending/late states and after completion are tested.
-- `Main.lua:1042–1058,1071–1093,1319–1324,2157–2178`: timer/error, Stop, WHO, invite, group, world/zone and reload/logout paths release the lease. Query errors release it in `Adapters.lua:121–122`; guarded dispatcher errors clean up at `Main.lua:6–13`.
+- `Adapters.whoHush`: request `C_FriendList.SetWhoToUi(true)` before `SendWho`; only hidden, previously registered `FriendsFrame`, `LFGWhoListFrame`, and `WhoFrame` instances with readable visibility and restoration methods are detached. Visible windows are not unregistered. No frame scripts are read or replaced.
+- `Adapters.whoEnd` / `whoRelease`: result registrations return on the next frame so later dispatchers cannot display our event. Timeout/Stop/cancel retains the registration-only late-result guard until the first result or the original 30-second deadline; error/logout also releases it. Prior unregistered/visible state is preserved. All optional frame/API calls are `pcall`-guarded.
+- A secure post-hook on the player's `SendWho` immediately restores registrations and cancels pending work; it never replaces the API. Missing timer/hook/restoration support falls back without unsafe UI ownership.
+- Main's result, no-rows, timeout, slash/direct stop, combat, zone, subzone, world, group, invite, guild-only and logout paths are exercised. Subzone is now a non-cancelling path: its later result still restores the lease. Query/dispatcher errors are covered separately.
 
 Optional missing APIs retain the prior behavior rather than promising suppression. Native event/taint behavior cannot be certified by these mocks.
 
-## Tests and honest RED → GREEN
+## Initial implementation tests and honest RED → GREEN
+
+These figures describe the original `9cf65827` review candidate; round-1 fixes are recorded below.
 
 Commands use `/opt/data/tools/lua/lua-5.1.5/src/lua` and run from the repository root.
 
@@ -67,3 +67,17 @@ Commands use `/opt/data/tools/lua/lua-5.1.5/src/lua` and run from the repository
 Production: `LayerEnemies/Adapters.lua`, `HopAny.lua`, `Main.lua`, `Wire.lua`. Documentation: `README.md`, plan/review/assertion notes. Tests: `test/harness.lua`, new `test/hop_fanout.lua`, new `test/hop_fanout_mutants.py`, `test/verify.py`, `test/test_verify.py`, `test/api_policy_test.py`. Regenerated evidence is committed separately: `notes/test-results.txt`, `notes/verification.json`, `notes/hop-fanout-mutants.json`.
 
 Not run (alpha, owner's decision): live Forever UI event order/taint and manual `/who`, whether SetWhoToUi alone suffices, real server throttling/delivery at approximately one whisper/second, visibility to clients without an addon, account spam/silence enforcement and successful layer transfers. API acceptance is not proof of delivery. No push or GitHub write was performed.
+
+## Round-1 owner fixes (on `9cf65827`)
+
+All three rulings were **ACTUALLY RED on the frozen reviewed commit**, independently reproduced before fixes. Adapters really did replace OnEvent with SetScript; that code is removed, including for visible windows.
+
+- **R1 RED → GREEN:** `unchanged <event> preserves <who|send> and autoaccept` (10 tests: ZONE_CHANGED, ZONE_CHANGED_NEW_AREA, GROUP_ROSTER_UPDATE, PLAYER_ENTERING_WORLD, SHARD_TRANSFER). Base guards restored; real map/instance/group changes still cancel immediately, including out-and-back cases.
+- **R2 RED → GREEN:** `<named|reply> client throttle <3|8> cancels <before|who|send> click` (12); `hop client throttle <3|8> pauses named and reply for thirty seconds` (2); `non-hop throttle cannot be missed by a delayed pump` (1). Hop retries retain their head/one-second cadence; the non-hop cancellation boundary survives pause expiry. Other-prefix and local-budget regression guards were already green.
+- **R3 RED → GREEN:** `WHO suppression never replaces OnEvent`, `WHO suppression needs no script accessors`, and `visible <FriendsFrame|LFGWhoListFrame|WhoFrame> is never unregistered`. All 12 reviewed paths retained, plus direct stop and API error. Hidden frames stay detached through result dispatch or the bounded late-result guard; manual SendWho restores immediately. Subzone now continues to its result instead of cancelling.
+
+Final frozen base: **36 passed / 55 failed / 5030 assertions**. All 44 prior focused identities retained; 47 added (45 red, 2 already green). Candidate: **91 focused / 0 failed / 7720 assertions**, or **181 hop-any / 0 / 13031** with inherited tests.
+
+Mutants: **62/62 caught** (54 existing slots re-anchored as needed; obsolete script restoration becomes deferred event restoration; 8 added). Tool timeouts required three disjoint runner batches (27/27/8); merged JSON validates every ordered rule and equal clean baselines. Required reviewer probes: **96 / 0 / 8556**, including zero fan-out calls in pause_a and named/reply both paused in pause_b. The optional all-probe `bare` case trips its forbidden direct-call policy trap, as on the reviewer's head; it is not the suite. Raw logs: `/opt/data/cache/scratch/le-hop-round1-evidence/`.
+
+Foreground `python3 test/verify.py`, exit **0**: **RESULT: 1210 tests passed, 0 failed, 126413 assertions**. `test/verify.py` byte-identical to `9cf65827`; HopAny.lua and all limits unchanged. Regenerated evidence is in a separate commit. Archive SHA-256: `59e7dda69341a0023f15b79502eae1385c2a76e9fa785514a1d2a73d06989bef`. Native testing not run (alpha, owner's decision). Local commits only.
