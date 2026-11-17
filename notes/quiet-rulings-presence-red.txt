@@ -1,0 +1,26 @@
+F
+======================================================================
+FAIL: test_read_only_presence_predicates_do_not_expose_functions (__main__.WhisperHookPolicyTests.test_read_only_presence_predicates_do_not_expose_functions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-notfound/test/test_verify.py", line 243, in test_read_only_presence_predicates_do_not_expose_functions
+    self.check(self.MODERN + '; ' + self.LEGACY + '''
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        local absentModern = C_ChatInfo.SendChatMessage == nil
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        local absentLegacy = _G.SendChatMessage == nil
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ''')
+    ^^^^
+  File "/opt/data/cache/scratch/le-notfound/test/test_verify.py", line 221, in check
+    verify.check_send_policy(source, filename)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/opt/data/cache/scratch/le-notfound/test/verify.py", line 222, in check_send_policy
+    assert not forbidden, 'Unexpected outgoing/forbidden API: ' + word + ' in ' + filename
+           ^^^^^^^^^^^^^
+AssertionError: Unexpected outgoing/forbidden API: SendChatMessage in Wire.lua
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=1)

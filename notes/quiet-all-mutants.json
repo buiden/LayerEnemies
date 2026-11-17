@@ -8,14 +8,27 @@
       "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected true, got false",
       "FAIL QuietAll counters: observer-only hides are not counted and reload resets totals: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0",
       "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:158: not equal: expected true, got false",
-      "FAIL QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/src_quiet_all.lua:183: not equal: expected false, got true",
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
       "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: fifteen distinct keys are not full: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
@@ -26,13 +39,29 @@
       "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:8: not equal: expected false, got true",
       "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected false, got true",
       "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:158: not equal: expected false, got true",
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected false, got true",
       "FAIL QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/src_quiet_all.lua:183: not equal: expected false, got true",
+      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/harness.lua:8: not equal: expected false, got true",
       "FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:8: not equal: expected false, got true",
       "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:8: not equal: expected false, got true",
       "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:8: same ID and fingerprint, different text: expected false, got true",
-      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:8: not equal: expected false, got true"
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:8: sixteen is full: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unreadable targets and validator failures protect everything: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:8: not equal: expected false, got true"
     ]
   },
   {
@@ -45,14 +74,34 @@
       "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected true, got false",
       "FAIL QuietAll counters: observer-only hides are not counted and reload resets totals: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0",
       "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:158: not equal: expected true, got false",
-      "FAIL QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/src_quiet_all.lua:183: not equal: expected false, got true",
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
+      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/harness.lua:8: not equal: expected false, got true",
       "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: attempt to call a nil value: expected true, got false",
       "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:8: working hook still protects own receipts: expected false, got true",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:8: working hook still protects own receipts: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:8: full ledger protects own receipts too: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in on: test/harness.lua:8: full ledger protects own receipts too: expected false, got true",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: fifteen distinct keys are not full: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review Note: on-mode typed protection Shared Person: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/harness.lua:8: not equal: expected false, got true"
     ]
   },
   {
@@ -60,17 +109,38 @@
     "caught": true,
     "failures": [
       "FAIL QuietAll hook: both secure post-hooks install at startup without sends or replacements: test/src_quiet_all.lua:81: not equal: expected function, got nil",
-      "FAIL QuietAll filter: any localized not-found is hidden, only typed targets are excepted: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll filter: any localized not-found is hidden, only typed targets are excepted: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/src_quiet_all.lua:103: not equal: expected function, got nil",
-      "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected false, got true",
-      "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:158: not equal: expected false, got true",
-      "FAIL QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/src_quiet_all.lua:183: not equal: expected false, got true",
-      "FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected true, got false",
+      "FAIL QuietAll counters: observer-only hides are not counted and reload resets totals: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0",
+      "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
+      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: attempt to call a nil value: expected true, got false",
-      "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:8: same ID and fingerprint, different text: expected false, got true",
-      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:8: not equal: expected false, got true"
+      "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:8: working hook still protects own receipts: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:8: full ledger protects own receipts too: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in on: test/harness.lua:8: full ledger protects own receipts too: expected false, got true",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: fifteen distinct keys are not full: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review Note: on-mode typed protection Shared Person: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/harness.lua:8: not equal: expected false, got true"
     ]
   },
   {
@@ -78,20 +148,71 @@
     "caught": true,
     "failures": [
       "FAIL QuietAll hook: both secure post-hooks install at startup without sends or replacements: test/src_quiet_all.lua:81: not equal: expected function, got nil",
-      "FAIL QuietAll filter: any localized not-found is hidden, only typed targets are excepted: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll filter: any localized not-found is hidden, only typed targets are excepted: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/src_quiet_all.lua:103: not equal: expected function, got nil",
-      "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/harness.lua:8: not equal: expected false, got true",
-      "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: attempt to call a nil value: expected true, got false"
+      "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected true, got false",
+      "FAIL QuietAll counters: observer-only hides are not counted and reload resets totals: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0",
+      "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
+      "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: attempt to call a nil value: expected true, got false",
+      "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:8: working hook still protects own receipts: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:8: overflow target stays protected after tracked entries drain: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in on: test/harness.lua:8: overflow target stays protected after tracked entries drain: expected false, got true",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: fifteen distinct keys are not full: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review Note: on-mode typed protection Shared Person: test/src_quiet_all.lua:374: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/src_quiet_all.lua:374: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/src_quiet_all.lua:374: not equal: expected false, got true"
     ]
   },
   {
     "rule": "modern-registration-protected",
     "caught": true,
     "failures": [
-      "FAIL QuietAll modes: booleans migrate, strings survive, invalid values default on: test/harness.lua:8: startup error: expected false, got true",
-      "FAIL QuietAll modes: slash accepts all, persists it and reports current scope: test/harness.lua:8: startup error: expected false, got true",
-      "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL QuietAll filter: any localized not-found is hidden, only typed targets are excepted: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected true, got false",
+      "FAIL QuietAll counters: observer-only hides are not counted and reload resets totals: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0",
+      "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
+      "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:8: startup error: expected false, got true",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: fifteen distinct keys are not full: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
@@ -100,7 +221,34 @@
     "failures": [
       "FAIL QuietAll modes: booleans migrate, strings survive, invalid values default on: test/harness.lua:8: startup error: expected false, got true",
       "FAIL QuietAll modes: slash accepts all, persists it and reports current scope: test/harness.lua:8: startup error: expected false, got true",
-      "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:8: startup error: expected false, got true"
+      "FAIL QuietAll filter: any localized not-found is hidden, only typed targets are excepted: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected true, got false",
+      "FAIL QuietAll counters: observer-only hides are not counted and reload resets totals: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0",
+      "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
+      "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:8: startup error: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: fifteen distinct keys are not full: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
@@ -111,7 +259,7 @@
     ]
   },
   {
-    "rule": "either-hook-is-sufficient",
+    "rule": "available-hook-is-sufficient",
     "caught": true,
     "failures": [
       "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:7: not equal: expected true, got false"
@@ -121,7 +269,9 @@
     "rule": "no-hook-fallback",
     "caught": true,
     "failures": [
-      "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:8: not equal: expected false, got true"
+      "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:8: not equal: expected false, got true"
     ]
   },
   {
@@ -135,44 +285,78 @@
     "rule": "existing-name-rule",
     "caught": true,
     "failures": [
-      "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:8: not equal: expected false, got true"
+      "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unreadable targets and validator failures protect everything: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/harness.lua:8: not equal: expected false, got true"
     ]
   },
   {
     "rule": "ten-second-lifetime",
     "caught": true,
     "failures": [
-      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:158: not equal: expected true, got false",
-      "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
+      "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review Note: on-mode typed protection Shared Person: test/src_quiet_all.lua:374: not equal: expected true, got false"
     ]
   },
   {
     "rule": "manual-rollback",
     "caught": true,
     "failures": [
-      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:158: not equal: expected true, got false"
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
     "rule": "sixteen-target-limit",
     "caught": true,
     "failures": [
-      "FAIL QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/src_quiet_all.lua:297: never expand or evict the bounded ledger: expected 16, got 17",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in on: test/src_quiet_all.lua:297: never expand or evict the bounded ledger: expected 16, got 17"
     ]
   },
   {
     "rule": "refresh-distinct-target",
     "caught": true,
     "failures": [
-      "FAIL QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot: test/harness.lua:8: not equal: expected false, got true"
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: fifteen distinct keys are not full: expected true, got false"
     ]
   },
   {
     "rule": "prune-before-manual-match",
     "caught": true,
     "failures": [
-      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:158: not equal: expected true, got false",
-      "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
+      "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review Note: on-mode typed protection Shared Person: test/src_quiet_all.lua:374: not equal: expected true, got false",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/src_quiet_all.lua:374: not equal: expected true, got false",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/src_quiet_all.lua:374: not equal: expected true, got false"
     ]
   },
   {
@@ -186,15 +370,30 @@
       "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected true, got false",
       "FAIL QuietAll counters: observer-only hides are not counted and reload resets totals: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 0: expected 1, got 0",
       "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:158: not equal: expected true, got false",
-      "FAIL QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/src_quiet_all.lua:183: not equal: expected false, got true",
+      "FAIL QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices: test/src_quiet_all.lua:159: not equal: expected true, got false",
       "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll privacy: no target, message or counter is saved and reload forgets manual names: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll status: no-hook query explains fallback instead of claiming blanket hiding: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:7: fifteen distinct keys are not full: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
@@ -211,7 +410,7 @@
       "FAIL QuietAll modes: booleans migrate, strings survive, invalid values default on: test/src_quiet_all.lua:62: not equal: expected on, got all",
       "FAIL QuietAll modes: slash accepts all, persists it and reports current scope: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:122: not equal: expected false, got true",
-      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/src_quiet_all.lua:183: not equal: expected true, got false"
+      "FAIL QuietAll review S2: 17 typed whispers fail open in on: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
@@ -237,7 +436,10 @@
     "rule": "shown-mode-counter",
     "caught": true,
     "failures": [
-      "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 1; hidden (other addons): 1; shown (your own whisper or mode): 3: expected 1, got 0"
+      "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 1; hidden (other addons): 1; shown (your own whisper or mode): 3: expected 1, got 0",
+      "FAIL QuietAll review Note: on-mode typed protection Shared Person: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 1: expected 1, got 0",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 1: expected 1, got 0",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 1: expected 1, got 0"
     ]
   },
   {
@@ -247,7 +449,10 @@
       "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 1; hidden (other addons): 1; shown (your own whisper or mode): 1: expected 1, got 0",
       "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 2; shown (your own whisper or mode): 1: expected 1, got 0",
       "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 1; shown (your own whisper or mode): 1: expected 1, got 0",
-      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 1; shown (your own whisper or mode): 1: expected 1, got 0"
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 1; shown (your own whisper or mode): 1: expected 1, got 0",
+      "FAIL QuietAll review Note: on-mode typed protection Shared Person: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 1: expected 1, got 0",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 1: expected 1, got 0",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 0; shown (your own whisper or mode): 1: expected 1, got 0"
     ]
   },
   {
@@ -276,10 +481,13 @@
     "caught": true,
     "failures": [
       "FAIL QuietAll counters: own, other and shown decisions are separate and per event: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 1; hidden (other addons): 1; shown (your own whisper or mode): 1: expected 1, got 0",
-      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/src_quiet_all.lua:185: not equal: expected 3613, got nil",
+      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/src_quiet_all.lua:186: not equal: expected 3613, got nil",
       "FAIL QuietAll decisions: repeated frames freeze both outcomes across mode and time changes: test/harness.lua:7: not equal: expected true, got false",
       "FAIL QuietAll decisions: a numeric fingerprint collision can never hide a manual failure: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 1; shown (your own whisper or mode): 1: expected 1, got 0",
-      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 1; shown (your own whisper or mode): 1: expected 1, got 0"
+      "FAIL QuietAll coexistence: all mode works with donors loaded without starting their sends: test/src_quiet_all.lua:56: exact /le net counters: hidden (LayerEnemies whispers): 0; hidden (other addons): 1; shown (your own whisper or mode): 1: expected 1, got 0",
+      "FAIL QuietAll review Note: on-mode typed protection Shared Person: test/src_quiet_all.lua:367: not equal: expected 3610, got nil",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/src_quiet_all.lua:367: not equal: expected 3610, got nil",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/src_quiet_all.lua:367: not equal: expected 3610, got nil"
     ]
   },
   {
@@ -300,14 +508,16 @@
     "rule": "callback-protected",
     "caught": true,
     "failures": [
-      "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: test/src_quiet_all.lua:222: unreadable target: expected true, got false"
+      "FAIL QuietAll safety: exact localized pattern only and protected callbacks never escape: test/harness.lua:7: test/src_quiet_all.lua:227: unreadable chat type: expected true, got false"
     ]
   },
   {
     "rule": "net-fallback-disclosure",
     "caught": true,
     "failures": [
-      "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
@@ -315,7 +525,9 @@
     "caught": true,
     "failures": [
       "FAIL QuietAll modes: slash accepts all, persists it and reports current scope: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL QuietAll status: no-hook query explains fallback instead of claiming blanket hiding: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL QuietAll status: no-hook query explains fallback instead of claiming blanket hiding: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
@@ -328,7 +540,9 @@
       "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='C_ChatInfo[\"Send\"..\"ChatMessage\"](...)')",
       "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='_G[\"SendChatMessage\"](...)')",
       "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='local fn=C_ChatInfo.SendChatMessage; fn(...)')",
-      "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='pcall(SendChatMessage,...)')"
+      "FAIL: test_posthook_exemption_never_allows_a_chat_send (__main__.WhisperHookPolicyTests.test_posthook_exemption_never_allows_a_chat_send) (source='pcall(SendChatMessage,...)')",
+      "FAIL: test_read_only_presence_predicates_do_not_expose_functions (__main__.WhisperHookPolicyTests.test_read_only_presence_predicates_do_not_expose_functions) (source='C_ChatInfo.SendChatMessage == nil')",
+      "FAIL: test_read_only_presence_predicates_do_not_expose_functions (__main__.WhisperHookPolicyTests.test_read_only_presence_predicates_do_not_expose_functions) (source='_G.SendChatMessage == nil')"
     ]
   },
   {
@@ -352,6 +566,102 @@
       "FAIL: test_namespace_escape_is_not_a_general_hook_permission (__main__.WhisperHookPolicyTests.test_namespace_escape_is_not_a_general_hook_permission) (source='pcall(_G.hooksecurefunc, C_ChatInfo, key, observeChatWhisper)')",
       "FAIL: test_namespace_escape_is_not_a_general_hook_permission (__main__.WhisperHookPolicyTests.test_namespace_escape_is_not_a_general_hook_permission) (source='use(C_ChatInfo)')",
       "FAIL: test_namespace_escape_is_not_a_general_hook_permission (__main__.WhisperHookPolicyTests.test_namespace_escape_is_not_a_general_hook_permission) (source='local c=C_ChatInfo; use(c)')"
+    ]
+  },
+  {
+    "rule": "review-M1-protect-everything",
+    "caught": true,
+    "failures": [
+      "FAIL QuietAll manual: only WHISPER is recorded, with existing full name normalization: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob2\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"B\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob.\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bobby_x\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Anna Maria Lee\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"12345\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob Smith \": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target number \"12345\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unreadable targets and validator failures protect everything: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "review-M1-non-ASCII",
+    "caught": true,
+    "failures": [
+      "FAIL QuietAll review M1: unvalidatable typed target string \"\u00e9lodie\": test/harness.lua:8: typed failure must be shown: expected false, got true",
+      "FAIL QuietAll review M1: unvalidatable typed target string \"Bob-\u00c9ire\": test/harness.lua:8: all names must be protected: expected false, got true",
+      "FAIL QuietAll review M1: marker refresh, rollback and reload retain no invalid target: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "review-Note-on-mode",
+    "caught": true,
+    "failures": [
+      "FAIL QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:8: working hook still protects own receipts: expected false, got true",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:8: working hook still protects own receipts: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in on: test/harness.lua:8: full ledger protects own receipts too: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection Shared Person: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection Invalid.Name: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL QuietAll review Note: on-mode typed protection \u00e9lodie: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "review-S1-every-existing-hook",
+    "caught": true,
+    "failures": [
+      "FAIL QuietAll review S1: failed existing modern hook disables all: test/harness.lua:8: one successful hook cannot cover both entrypoints: expected false, got true",
+      "FAIL QuietAll review S1: failed existing legacy hook disables all: test/harness.lua:8: one successful hook cannot cover both entrypoints: expected false, got true"
+    ]
+  },
+  {
+    "rule": "review-S2-overflow-lifetime",
+    "caught": true,
+    "failures": [
+      "FAIL QuietAll review S2: 17 typed whispers fail open in all: test/harness.lua:8: overflow target stays protected after tracked entries drain: expected false, got true",
+      "FAIL QuietAll review S2: 17 typed whispers fail open in on: test/harness.lua:8: overflow target stays protected after tracked entries drain: expected false, got true"
+    ]
+  },
+  {
+    "rule": "review-S2-full-ledger",
+    "caught": true,
+    "failures": [
+      "FAIL QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot: test/harness.lua:8: sixteen is full: expected false, got true"
+    ]
+  },
+  {
+    "rule": "review-S3-exact-once",
+    "caught": true,
+    "failures": [
+      "FAIL: test_fourth_registration_is_rejected (__main__.WhisperHookPolicyTests.test_fourth_registration_is_rejected)",
+      "FAIL: test_third_registration_is_rejected (__main__.WhisperHookPolicyTests.test_third_registration_is_rejected) (extra='pcall(_G.hooksecurefunc, C_ChatInfo, \"SendChatMessage\", observeChatWhisper)')",
+      "FAIL: test_third_registration_is_rejected (__main__.WhisperHookPolicyTests.test_third_registration_is_rejected) (extra='pcall(_G.hooksecurefunc, \"SendChatMessage\", observeChatWhisper)')"
+    ]
+  },
+  {
+    "rule": "review-S3-no-pcall-binding",
+    "caught": true,
+    "failures": [
+      "FAIL: test_global_pcall_assignment_is_rejected (__main__.WhisperHookPolicyTests.test_global_pcall_assignment_is_rejected) (lhs='pcall')",
+      "FAIL: test_global_pcall_assignment_is_rejected (__main__.WhisperHookPolicyTests.test_global_pcall_assignment_is_rejected) (lhs='_G.pcall')",
+      "FAIL: test_global_pcall_assignment_is_rejected (__main__.WhisperHookPolicyTests.test_global_pcall_assignment_is_rejected) (lhs='_G[\"p\"..\"call\"]')",
+      "FAIL: test_local_function_pcall_is_rejected (__main__.WhisperHookPolicyTests.test_local_function_pcall_is_rejected)",
+      "FAIL: test_local_pcall_shadow_is_rejected (__main__.WhisperHookPolicyTests.test_local_pcall_shadow_is_rejected)",
+      "FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='local a, pcall; ')",
+      "FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='function pcall(...) end; ')",
+      "FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='local function f(pcall) end; ')",
+      "FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='local f = function(pcall) end; ')",
+      "FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='for pcall in pairs({}) do end; ')",
+      "FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='for pcall = 1,2 do end; ')",
+      "FAIL: test_other_pcall_bindings_are_rejected (__main__.WhisperHookPolicyTests.test_other_pcall_bindings_are_rejected) (binding='pcall, other = f, g; ')"
     ]
   }
 ]

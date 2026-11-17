@@ -1,5 +1,7 @@
 # Own offline-whisper notices: diagnosis and local verification
 
+> Historical evidence for the own-only implementation. Current typed-whisper protection and alpha verification limits are recorded in [review rulings](quiet-rulings-review.md).
+
 ## Scope and result
 
 - Baseline: `2675e03d9363d4299a02d6d60815e0d65298967c` (`main`). Branch: `fix/hide-own-not-found`.

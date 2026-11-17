@@ -1443,6 +1443,28 @@ PASS QuietAll safety: exact localized pattern only and protected callbacks never
 PASS QuietAll status: no-hook query explains fallback instead of claiming blanket hiding
 PASS QuietAll decisions: a numeric fingerprint collision can never hide a manual failure
 PASS QuietAll coexistence: all mode works with donors loaded without starting their sends
+PASS QuietAll review S1: failed existing modern hook disables all
+PASS QuietAll review S1: failed existing legacy hook disables all
+PASS QuietAll review S2: 17 typed whispers fail open in all
+PASS QuietAll review S2: 17 typed whispers fail open in on
+PASS QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot
+PASS QuietAll review M1: unvalidatable typed target string "Bob2"
+PASS QuietAll review M1: unvalidatable typed target string "B"
+PASS QuietAll review M1: unvalidatable typed target string "Bob."
+PASS QuietAll review M1: unvalidatable typed target string "Bobby_x"
+PASS QuietAll review M1: unvalidatable typed target string "Anna Maria Lee"
+PASS QuietAll review M1: unvalidatable typed target string "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+PASS QuietAll review M1: unvalidatable typed target string "Bob-"
+PASS QuietAll review M1: unvalidatable typed target string "12345"
+PASS QuietAll review M1: unvalidatable typed target string "Bob Smith "
+PASS QuietAll review M1: unvalidatable typed target string "élodie"
+PASS QuietAll review M1: unvalidatable typed target number "12345"
+PASS QuietAll review M1: unvalidatable typed target string "Bob-Éire"
+PASS QuietAll review M1: unreadable targets and validator failures protect everything
+PASS QuietAll review M1: marker refresh, rollback and reload retain no invalid target
+PASS QuietAll review Note: on-mode typed protection Shared Person
+PASS QuietAll review Note: on-mode typed protection Invalid.Name
+PASS QuietAll review Note: on-mode typed protection élodie
 PASS Sources: registry routes addon and Battle.net with unchanged arguments
 PASS Sources: every legacy prefix is refused atomically and counted
 PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
@@ -1504,4 +1526,4 @@ PASS Wanted: R2 S4 mixed records evict by admission not observation or expiry
 PASS Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry
 PASS Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs
 PASS Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks
-RESULT: 1506 tests passed, 0 failed, 262193 assertions
+RESULT: 1528 tests passed, 0 failed, 263936 assertions

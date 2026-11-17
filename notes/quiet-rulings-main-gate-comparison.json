@@ -1,0 +1,32 @@
+[
+  {
+    "revision": "2675e03d",
+    "plant": "reviewer pcall exploit",
+    "result": "chat namespace escapes: Wire.lua"
+  },
+  {
+    "revision": "2675e03d",
+    "plant": "chat namespace escapes",
+    "result": "chat namespace escapes: Wire.lua"
+  },
+  {
+    "revision": "b054fae8",
+    "plant": "reviewer pcall exploit",
+    "result": "ACCEPTED"
+  },
+  {
+    "revision": "b054fae8",
+    "plant": "chat namespace escapes",
+    "result": "chat namespace escapes: Wire.lua"
+  },
+  {
+    "revision": "candidate",
+    "plant": "reviewer pcall exploit",
+    "result": "pcall must be an unbound bare invocation in Wire.lua"
+  },
+  {
+    "revision": "candidate",
+    "plant": "chat namespace escapes",
+    "result": "chat namespace escapes: Wire.lua"
+  }
+]

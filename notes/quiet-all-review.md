@@ -1,5 +1,7 @@
 # Quiet all: implementation and verification
 
+> Historical evidence for the original implementation. The subsequent [review rulings](quiet-rulings-review.md) supersede its readiness, invalid-target, capacity and mode-on rules.
+
 ## Result and scope
 
 - Base: `f901fb79` on `fix/hide-own-not-found` (the own-only filter reviewed in `quiet-whispers-review.md`).

@@ -1,0 +1,11 @@
+{
+  "command": "python3 test/verify.py",
+  "timeout_seconds": 1800,
+  "foreground": true,
+  "exit": 0,
+  "elapsed_seconds": 231.39,
+  "source_head": "39547c984be0183435ce3b190764c35e89826ce0",
+  "result_lines": [
+    "RESULT: 1528 tests passed, 0 failed, 263936 assertions"
+  ]
+}
