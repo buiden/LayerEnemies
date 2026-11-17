@@ -1,0 +1,277 @@
+[
+  {
+    "rule": "registry addon routing",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: registry routes addon and Battle.net with unchanged arguments: test/src_registry.lua:13: not equal: expected ProbeSrc,A|B,PARTY,Other Peer, got ",
+      "FAIL Sources: registration is once and callbacks cannot be replaced by mutating a descriptor: test/src_registry.lua:40: not equal: expected 1, got 0",
+      "FAIL Sources: guarded callbacks secrets and switches fail silent: test/src_registry.lua:54: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "legacy prefix refusal",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: every legacy prefix is refused atomically and counted: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "duplicate prefix refusal",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: every legacy prefix is refused atomically and counted: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "OpenMap event exception",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: OpenMap Battle.net keeps its original event path and values: test/src_registry.lua:47: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "BNet event routing",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: registry routes addon and Battle.net with unchanged arguments: test/src_registry.lua:15: not equal: expected ProbeSrc, got nil",
+      "FAIL Sources: OpenMap Battle.net keeps its original event path and values: test/src_registry.lua:48: not equal: expected 1, got 0",
+      "FAIL Sources: guarded callbacks secrets and switches fail silent: test/src_registry.lua:60: not equal: expected 2, got 1"
+    ]
+  },
+  {
+    "rule": "one-time registration",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: registration is once and callbacks cannot be replaced by mutating a descriptor: test/src_registry.lua:38: not equal: expected 1, got 3",
+      "FAIL Sources: unavailable optional timer and registration APIs fail silent: test/src_registry.lua:69: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "registry tick cadence",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: tick-only source runs at one second cadence and net counters append: test/src_registry.lua:75: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "live source switch",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: guarded callbacks secrets and switches fail silent: test/src_registry.lua:59: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "tracked gate",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: offer drops untracked and contradictory realms before Known stores anything: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Sources: offer uses only live guild Watch matches and never adds saved tracked names: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "live Watch gate",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: offer uses only live guild Watch matches and never adds saved tracked names: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "realm rule",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: offer drops untracked and contradictory realms before Known stores anything: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "claim kind",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: offer admits tracked evidence through Find without Ask layer or sound: test/src_offer.lua:18: not equal: expected claim, got seen",
+      "FAIL Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "unknown observed time",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "source age",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "secret offer",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: readable-looking secret scalars cannot be offered: test/harness.lua:8: name: expected false, got true"
+    ]
+  },
+  {
+    "rule": "silent claim on next poll",
+    "killed": true,
+    "failures": [
+      "FAIL Sources: offer admits tracked evidence through Find without Ask layer or sound: test/src_offer.lua:25: source claims never sound on a later poll: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "peer online",
+    "killed": true,
+    "failures": [
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:45: isOnline: expected nil, got table: 0x5c43769cae20"
+    ]
+  },
+  {
+    "rule": "peer project",
+    "killed": true,
+    "failures": [
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:45: wowProjectID: expected nil, got table: 0x652e521db1e0"
+    ]
+  },
+  {
+    "rule": "peer client",
+    "killed": true,
+    "failures": [
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:45: clientProgram: expected nil, got table: 0x61fd9aea55d0"
+    ]
+  },
+  {
+    "rule": "peer region",
+    "killed": true,
+    "failures": [
+      "FAIL BNet: live identity rejects offline wrong client project region and conflicting realms: test/src_bnet_peers.lua:45: isInCurrentRegion: expected nil, got table: 0x5bf3a70c4db0"
+    ]
+  },
+  {
+    "rule": "peer cache TTL",
+    "killed": true,
+    "failures": [
+      "FAIL BNet: peers are friends first deduplicated and cached thirty seconds: test/src_bnet_peers.lua:37: not equal: expected 4, got 2"
+    ]
+  },
+  {
+    "rule": "club reader cap",
+    "killed": true,
+    "failures": [
+      "FAIL BNet: thousand member club bounded and friend game enumeration capped: test/src_bnet_peers.lua:73: not equal: expected 1000, got 1001"
+    ]
+  },
+  {
+    "rule": "friend game cap",
+    "killed": true,
+    "failures": [
+      "FAIL BNet: thousand member club bounded and friend game enumeration capped: test/src_bnet_peers.lua:78: not equal: expected 2000, got 2200"
+    ]
+  },
+  {
+    "rule": "shared minute budget",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: single shared thirty per minute cap and one second pace: test/src_bnet_queue.lua:29: rolling minute is shared across nets: expected 30, got 31"
+    ]
+  },
+  {
+    "rule": "one second pace",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: single shared thirty per minute cap and one second pace: test/src_bnet_queue.lua:26: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "owed first",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: owed answers precede own work FIFO within a priority: test/src_bnet_queue.lua:40: not equal: expected owed-b, got own-a"
+    ]
+  },
+  {
+    "rule": "registered source authorization",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: unregistered source wrong prefix and dormant PR never send: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "share off",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: share off refuses and drops pending work before dispatch: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "public off",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: public off refuses and drops pending work before dispatch: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "dispatch privacy recheck",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: per-network shares stand-down owed exception and live peer validation: test/src_bnet_queue.lua:108: not equal: expected 5, got 6"
+    ]
+  },
+  {
+    "rule": "cancel off-on share",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: share off refuses and drops pending work before dispatch: test/src_bnet_queue.lua:72: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "per-network share",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: per-network shares stand-down owed exception and live peer validation: test/src_bnet_queue.lua:103: not equal: expected 4, got 5"
+    ]
+  },
+  {
+    "rule": "failed send dropped",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: failed client send is spent counted and never retried: test/src_bnet_queue.lua:94: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "Wire caller frame",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: single shared thirty per minute cap and one second pace: forbidden API reached 32 time(s)",
+      "FAIL BNet queue: owed answers precede own work FIFO within a priority: forbidden API reached 3 time(s)",
+      "FAIL BNet queue: share off refuses and drops pending work before dispatch: forbidden API reached 1 time(s)",
+      "FAIL BNet queue: public off refuses and drops pending work before dispatch: forbidden API reached 1 time(s)",
+      "FAIL BNet queue: switch off refuses and drops pending work before dispatch: forbidden API reached 1 time(s)",
+      "FAIL BNet queue: combat off refuses and drops pending work before dispatch: forbidden API reached 1 time(s)",
+      "FAIL BNet queue: instance off refuses and drops pending work before dispatch: forbidden API reached 1 time(s)",
+      "FAIL BNet queue: Wire cannot dispatch outside the queue's private delivery: forbidden API reached 1 time(s)",
+      "FAIL BNet queue: per-network shares stand-down owed exception and live peer validation: forbidden API reached 5 time(s)"
+    ]
+  },
+  {
+    "rule": "Wire private dispatch",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: Wire cannot dispatch outside the queue's private delivery: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "queue bound",
+    "killed": true,
+    "failures": [
+      "FAIL BNet queue: bounds secrets rollback and timer absence fail closed: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "generic harness filter",
+    "killed": true
+  },
+  {
+    "rule": "automatic source suites",
+    "killed": true
+  }
+]

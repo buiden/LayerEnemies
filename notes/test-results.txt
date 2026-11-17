@@ -1248,4 +1248,50 @@ PASS Overlord: single guild rampage reaches Reported without a hop
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
-RESULT: 1250 tests passed, 0 failed, 163546 assertions
+PASS BNet: independent peer readers need no presence zone and read no account names
+PASS BNet: peers are friends first deduplicated and cached thirty seconds
+PASS BNet: live identity rejects offline wrong client project region and conflicting realms
+PASS BNet: nil secret and unavailable readers fail closed without scans in combat instance
+PASS BNet: thousand member club bounded and friend game enumeration capped
+PASS BNet queue: single shared thirty per minute cap and one second pace
+PASS BNet queue: owed answers precede own work FIFO within a priority
+PASS BNet queue: unregistered source wrong prefix and dormant PR never send
+PASS BNet queue: share off refuses and drops pending work before dispatch
+PASS BNet queue: public off refuses and drops pending work before dispatch
+PASS BNet queue: switch off refuses and drops pending work before dispatch
+PASS BNet queue: combat off refuses and drops pending work before dispatch
+PASS BNet queue: instance off refuses and drops pending work before dispatch
+PASS BNet queue: Wire cannot dispatch outside the queue's private delivery
+PASS BNet queue: failed client send is spent counted and never retried
+PASS BNet queue: per-network shares stand-down owed exception and live peer validation
+PASS BNet queue: bounds secrets rollback and timer absence fail closed
+PASS Codec: addon escaping exact bytes and roundtrip
+PASS Codec: addon malformed escapes and byte ceilings
+PASS Codec: inflate zlib known answers and stored writer
+PASS Codec: inflate malformed blocks, distance and work budget
+PASS Codec: AceSerializer hand answers and full-byte strings
+PASS Codec: AceSerializer strict malformed and resource rejection
+PASS Codec: LibSerialize hand answers and table/string references
+PASS Codec: LibSerialize every scalar and explicit count family
+PASS Codec: LibSerialize malformed, truncated, cycles and bounds
+PASS Codec: AceComm split/join all controls and boundaries
+PASS Codec: AceComm sender isolation, restart, orphan and exact TTL
+PASS Codec: AceComm stream, bytes, fragment, key and frame ceilings
+PASS Codec: independent Python serializer vectors and audit network payloads
+PASS Codec: logical references cannot evade string, depth or table bounds
+PASS Codec: RFC bit-level malformed trees and degenerate valid alphabets
+PASS Codec: AceComm invalid reserved frames abandon only their sender stream
+PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
+PASS Sources: offer drops untracked and contradictory realms before Known stores anything
+PASS Sources: offer uses only live guild Watch matches and never adds saved tracked names
+PASS Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh
+PASS Sources: readable-looking secret scalars cannot be offered
+PASS Sources: malformed secret and throwing offers store nothing and never set runtime error
+PASS Sources: registry routes addon and Battle.net with unchanged arguments
+PASS Sources: every legacy prefix is refused atomically and counted
+PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
+PASS Sources: OpenMap Battle.net keeps its original event path and values
+PASS Sources: guarded callbacks secrets and switches fail silent
+PASS Sources: unavailable optional timer and registration APIs fail silent
+PASS Sources: tick-only source runs at one second cadence and net counters append
+RESULT: 1296 tests passed, 0 failed, 175119 assertions
