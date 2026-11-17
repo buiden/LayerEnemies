@@ -882,7 +882,7 @@
     "selector": "WarBoard R2: portable mutant runner",
     "killed": true,
     "failures": [
-      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"/opt/data/cache/scratch/le-warboard-mutants-4eq9a297/test/warboard_mutants_portability_test.py\", line 59, in <module> |     main() |     ~~~~^^ |   File \"/opt/data/cache/scratch/le-warboard-mutants-4eq9a297/test/warboard_mutants_portability_test.py\", line 41, in main |     runner.main() |     ~~~~~~~~~~~^^ |   File \"/opt/data/cache/scratch/warboard-portable-742gksds/different checkout/test/warboard_mutants.py\", line 166, in main | AssertionError | : expected true, got false"
+      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"/opt/data/cache/scratch/le-warboard-mutants-mtco82b9/test/warboard_mutants_portability_test.py\", line 59, in <module> |     main() |     ~~~~^^ |   File \"/opt/data/cache/scratch/le-warboard-mutants-mtco82b9/test/warboard_mutants_portability_test.py\", line 41, in main |     runner.main() |     ~~~~~~~~~~~^^ |   File \"/opt/data/cache/scratch/warboard-portable-kjuuavgc/different checkout/test/warboard_mutants.py\", line 166, in main | AssertionError | : expected true, got false"
     ]
   }
 ]

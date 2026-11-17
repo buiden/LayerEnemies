@@ -1410,49 +1410,62 @@ PASS WarBoard R2: untracked FBLC reopens immediately when the name is added
 PASS WarBoard R2: untracked FCBD reopens immediately when the name is added
 PASS WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch
 PASS WarBoard R2: overall window is rolling with exact expiry and rollback refusal
-PASS WarBoard track: exact FBAK envelope targets a confirmed Find player's live GUID
-PASS WarBoard track: only own Find names, never Watch-only or untracked targets
-PASS WarBoard track: confirmed A only, not unconfirmed or hello-only, expired, mismatched peer
-PASS WarBoard track: missing secret malformed GUID and ambiguous account matches fail silent
-PASS WarBoard track: own identity and ruleset must be readable, never borrow a donor identity
-PASS WarBoard track: two admitted and attempted per rolling minute, twenty names fair and bounded
-PASS WarBoard track: per-name forty-five seconds at admission and actual dispatch survives removal and toggles
-PASS WarBoard track: fresh FBLP suppresses renewal, stale forty-five to three hundred renews only
-PASS WarBoard track: remove cancels queued requests synchronously, quick resume cannot revive
-PASS WarBoard track: remove stops active requests; cancellation respects privacy and safety
-PASS WarBoard track: clear cancels queued requests synchronously, quick resume cannot revive
-PASS WarBoard track: clear stops active requests; cancellation respects privacy and safety
-PASS WarBoard track: track cancels queued requests synchronously, quick resume cannot revive
-PASS WarBoard track: track stops active requests; cancellation respects privacy and safety
-PASS WarBoard track: share cancels queued requests synchronously, quick resume cannot revive
-PASS WarBoard track: share stops active requests; cancellation respects privacy and safety
-PASS WarBoard track: guild cancels queued requests synchronously, quick resume cannot revive
-PASS WarBoard track: guild stops active requests; cancellation respects privacy and safety
-PASS WarBoard track: source cancels queued requests synchronously, quick resume cannot revive
-PASS WarBoard track: source stops active requests; cancellation respects privacy and safety
-PASS WarBoard track: combat cancels queued requests synchronously, quick resume cannot revive
-PASS WarBoard track: combat stops active requests; cancellation respects privacy and safety
-PASS WarBoard track: instance cancels queued requests synchronously, quick resume cannot revive
-PASS WarBoard track: instance stops active requests; cancellation respects privacy and safety
-PASS WarBoard track: logout cancels queued requests synchronously, quick resume cannot revive
-PASS WarBoard track: logout stops active requests; cancellation respects privacy and safety
-PASS WarBoard track: dispatch rechecks name GUID faction ruleset tracking and ignored target
-PASS WarBoard track: saved boolean switch defaults on, status reports it, names never newly saved
-PASS WarBoard track: stand-down stops requests while owed answers still pass
-PASS WarBoard track: queue share leaves owed A first and H works beside tracking
-PASS WarBoard track: shared delay cannot burst two cohorts, queue share and failed attempts still charged
-PASS WarBoard track: positions use existing honest Find path with age, no new guild relay
-PASS WarBoard track: rollback never reopens request allowance
-PASS WarBoard track: share active quick off-on keeps the cancellation obligation
-PASS WarBoard track: guild active quick off-on keeps the cancellation obligation
-PASS WarBoard track: source active quick off-on keeps the cancellation obligation
-PASS WarBoard track: combat active quick off-on keeps the cancellation obligation
-PASS WarBoard track: instance active quick off-on keeps the cancellation obligation
-PASS WarBoard track: queued attempt forty-five-second admission bound survives unsent cancellation
-PASS WarBoard track: cleanup bounded to two per minute and twenty retained obligations
-PASS WarBoard track: missing own identity after enqueue drops request and client refusal spends caps
-PASS WarBoard track: confirmation cannot be revived by H after old A expired
-PASS WarBoard track: dispatch rollback after a later source tick stays silent
-PASS WarBoard track: tagged cancellation preserves another target and an owed answer
-PASS WarBoard track: README tracking send table precedes exact effect and cancellation limitation
-RESULT: 1442 tests passed, 0 failed, 212680 assertions
+PASS WarBoard track: exact FBAK and FBUN audit fields and codec round trip
+PASS WarBoard track: remove sends exactly one owed FBUN through stop gates
+PASS WarBoard track: remove cancels an unsent ask without creating debt
+PASS WarBoard track: clear sends exactly one owed FBUN through stop gates
+PASS WarBoard track: clear cancels an unsent ask without creating debt
+PASS WarBoard track: track sends exactly one owed FBUN through stop gates
+PASS WarBoard track: track cancels an unsent ask without creating debt
+PASS WarBoard track: share sends exactly one owed FBUN through stop gates
+PASS WarBoard track: share cancels an unsent ask without creating debt
+PASS WarBoard track: guild sends exactly one owed FBUN through stop gates
+PASS WarBoard track: guild cancels an unsent ask without creating debt
+PASS WarBoard track: source sends exactly one owed FBUN through stop gates
+PASS WarBoard track: source cancels an unsent ask without creating debt
+PASS WarBoard track: standdown sends exactly one owed FBUN through stop gates
+PASS WarBoard track: standdown cancels an unsent ask without creating debt
+PASS WarBoard track: logout sends exactly one owed FBUN through stop gates
+PASS WarBoard track: logout cancels an unsent ask without creating debt
+PASS WarBoard track: combat holds cleanup until safe including an already queued FBUN
+PASS WarBoard track: instance holds cleanup until safe including an already queued FBUN
+PASS WarBoard track: FBUN refused and throwing client retries three times sixty seconds apart
+PASS WarBoard track: accepted FBUN clears debt only after the client accepts not queue admission
+PASS WarBoard track: crash login settles GUID only with confirmed client account even source off
+PASS WarBoard track: logout in combat retains owed list and login while tracked cleans before asking
+PASS WarBoard track: only new saved field is bounded dense target GUID list oldest out
+PASS WarBoard track: switch defaults on is session only and status states limits
+PASS WarBoard track: only own Find names never shared Watch or untracked
+PASS WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed
+PASS WarBoard track: GUID only from live client never a received frame
+PASS WarBoard track: dispatch rechecks live GUID own identity scope and rules
+PASS WarBoard track: server time integer mandatory and not local wall clock
+PASS WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle
+PASS WarBoard track: fresh positions then renewal 45 to 300 seconds only and 45 apart
+PASS WarBoard track: newest position controls renewal and old out of order data cannot refresh
+PASS WarBoard track: past 300 seconds sends FBUN idle until 300 pause or new handshake
+PASS WarBoard track: six FBAK per rolling minute admission and dispatch max twenty targets
+PASS WarBoard track: owed A before FBUN before FBAK within ten frame WarBoard share
+PASS WarBoard track: positions remain honest Find evidence and never new guild relay
+PASS WarBoard track: rollback stays silent and tagged cancellation preserves other targets and A
+PASS WarBoard track: README send table first exact consequences and persistent debt
+PASS WarBoard track: active request and received evidence save only target GUID no other metadata
+PASS WarBoard track: no generic owed bypass for H FBAK foreign net or invented FBUN
+PASS WarBoard track: server clock unreadable at dispatch does not send or forget cleanup
+PASS WarBoard track: missing own name GUID faction version or rules never asks
+PASS WarBoard track: failed FBAK spends three attempts and still owes FBUN
+PASS WarBoard track: all actual request attempts respect six after shared queue delay
+PASS WarBoard track: same GUID debt cannot be redirected by a received forged position
+PASS WarBoard track: restored forty debt bound oldest out on the next attempted request
+PASS WarBoard track: remove quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: clear quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: track quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: share quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: guild quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: source quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: six forty-five and sixty second exact admission boundaries
+PASS WarBoard track: H cannot revive an expired A confirmation
+PASS WarBoard track: renewal exact forty-five second per target boundary
+PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
+PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
+RESULT: 1455 tests passed, 0 failed, 214806 assertions
