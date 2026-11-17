@@ -1,0 +1,5 @@
+FAIL FLH batch: ordinary whisper then offer at half a second accepts: test/src_flh_batch.lua:55: one shared token must remain for LR: expected 6, got 7
+FAIL FLH batch: unsent queries pace without spending the reserved token: test/src_flh_batch.lua:64: not equal: expected 5, got 6
+FAIL FLH batch: ordinary and owed traffic cannot steal the reserved LR: test/src_flh_batch.lua:78: not equal: expected 6, got 7
+PASS FLH batch: reserve expires at the original window without a tick
+RESULT: 1 tests passed, 3 failed, 233 assertions

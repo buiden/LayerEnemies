@@ -1,0 +1,34 @@
+FAIL FLH batch: ordinary whisper then offer at half a second accepts: test/src_flh_batch.lua:55: one shared token must remain for LR: expected 6, got 7
+FAIL FLH batch: unsent queries pace without spending the reserved token: test/src_flh_batch.lua:64: not equal: expected 5, got 6
+FAIL FLH batch: ordinary and owed traffic cannot steal the reserved LR: test/src_flh_batch.lua:78: not equal: expected 6, got 7
+PASS FLH batch: reserve expires at the original window without a tick
+FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:120: not equal: expected 2, got 1
+FAIL FLH batch: successful retry never extends invite authority at 89: test/src_flh_batch.lua:130: not equal: expected 1, got 0
+FAIL FLH batch: successful retry never extends invite authority at 90: test/src_flh_batch.lua:130: not equal: expected 1, got 0
+FAIL FLH batch: third LR refusal ends the click with one exact chat line and row note: test/src_flh_batch.lua:140: not equal: expected 2, got 1
+FAIL FLH batch: pending LR at expiry prints once and never sends after ninety seconds: test/src_flh_batch.lua:153: not equal: expected 1, got 0
+FAIL FLH batch: a full burst paces all queries within the original click window: test/harness.lua:7: not equal: expected true, got false
+FAIL FLH batch: the last rolling-minute slot belongs to LR: test/src_flh_batch.lua:179: only five of six remaining minute slots are queryable: expected 5, got 6
+PASS FLH batch: LR success and explicit stop release shared capacity immediately
+FAIL FLH batch: a refused selection cannot be redirected by another queried host: test/src_flh_batch.lua:207: not equal: expected 1, got 0
+PASS FLH batch: retry and paced query cancellation on stop
+PASS FLH batch: retry and paced query cancellation on share
+PASS FLH batch: retry and paced query cancellation on consent
+PASS FLH batch: retry and paced query cancellation on network
+PASS FLH batch: retry and paced query cancellation on combat
+PASS FLH batch: retry and paced query cancellation on instance
+PASS FLH batch: retry and paced query cancellation on zone
+PASS FLH batch: retry and paced query cancellation on donor
+PASS FLH batch: retry and paced query cancellation on rollback
+PASS FLH batch: an offline head cannot block the paced batch
+PASS FLH batch: paced discovery still caps the whole click at seven queries
+FLH_REPLAY strangers delay=0.2 accepted=0/12
+FAIL FLH batch replay: twelve WP plus CQ clicks with offer at 0.2: test/src_flh_batch.lua:286: not equal: expected 12, got 0
+FLH_REPLAY strangers delay=1 accepted=0/12
+FAIL FLH batch replay: twelve WP plus CQ clicks with offer at 1: test/src_flh_batch.lua:286: not equal: expected 12, got 0
+FLH_REPLAY offset-sweep strangers=true accepted=96/120
+FAIL FLH batch replay: 120 offset clicks with strangers: test/src_flh_batch.lua:296: not equal: expected 0, got 24
+FLH_REPLAY offset-sweep strangers=false accepted=120/120
+PASS FLH batch replay: 120 offset clicks own probes control
+PASS FLH member: explicit FLH batch leaves a selection slot inside the unchanged hop cap
+RESULT: 15 tests passed, 14 failed, 39319 assertions

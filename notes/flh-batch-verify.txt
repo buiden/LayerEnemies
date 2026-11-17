@@ -1,0 +1,18 @@
+Command: python3 -B test/verify.py
+Exit: 0
+Implementation head: 2c4f96c31eab14178bb61cb0aa2fbce02b6efd0b
+Ran 11 tests in 132.600s
+OK
+Ran 22 tests in 0.601s
+OK
+Ran 4 tests in 23.007s
+OK
+Ran 4 tests in 0.374s
+OK
+Ran 11 tests in 0.616s
+OK
+FLH_REPLAY strangers delay=0.2 accepted=12/12
+FLH_REPLAY strangers delay=1 accepted=12/12
+FLH_REPLAY offset-sweep strangers=true accepted=120/120
+FLH_REPLAY offset-sweep strangers=false accepted=120/120
+RESULT: 1570 tests passed, 0 failed, 316473 assertions

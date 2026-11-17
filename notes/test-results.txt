@@ -1396,6 +1396,38 @@ PASS Codec: independent Python serializer vectors and audit network payloads
 PASS Codec: logical references cannot evade string, depth or table bounds
 PASS Codec: RFC bit-level malformed trees and degenerate valid alphabets
 PASS Codec: AceComm invalid reserved frames abandon only their sender stream
+PASS FLH batch: ordinary whisper then offer at half a second accepts
+PASS FLH batch: unsent queries pace without spending the reserved token
+PASS FLH batch: ordinary and owed traffic cannot steal the reserved LR
+PASS FLH batch: reserve expires at the original window without a tick
+PASS FLH batch: refused LR keeps selection and waits for actual budget room
+PASS FLH batch: successful retry never extends invite authority at 89
+PASS FLH batch: successful retry never extends invite authority at 90
+PASS FLH batch: third LR refusal ends the click with one exact chat line and row note
+PASS FLH batch: pending LR at expiry prints once and never sends after ninety seconds
+PASS FLH batch: a full burst paces all queries within the original click window
+PASS FLH batch: the last rolling-minute slot belongs to LR
+PASS FLH batch: LR success and explicit stop release shared capacity immediately
+PASS FLH batch: a refused selection cannot be redirected by another queried host
+PASS FLH batch: retry and paced query cancellation on stop
+PASS FLH batch: retry and paced query cancellation on share
+PASS FLH batch: retry and paced query cancellation on consent
+PASS FLH batch: retry and paced query cancellation on network
+PASS FLH batch: retry and paced query cancellation on combat
+PASS FLH batch: retry and paced query cancellation on instance
+PASS FLH batch: retry and paced query cancellation on zone
+PASS FLH batch: retry and paced query cancellation on donor
+PASS FLH batch: retry and paced query cancellation on rollback
+PASS FLH batch: an offline head cannot block the paced batch
+PASS FLH batch: paced discovery still caps the whole click at seven queries
+FLH_REPLAY strangers delay=0.2 accepted=12/12
+PASS FLH batch replay: twelve WP plus CQ clicks with offer at 0.2
+FLH_REPLAY strangers delay=1 accepted=12/12
+PASS FLH batch replay: twelve WP plus CQ clicks with offer at 1
+FLH_REPLAY offset-sweep strangers=true accepted=120/120
+PASS FLH batch replay: 120 offset clicks with strangers
+FLH_REPLAY offset-sweep strangers=false accepted=120/120
+PASS FLH batch replay: 120 offset clicks own probes control
 PASS FLH member: builders carry our identity and only our fingerprint
 PASS FLH member: owed replies share six per minute and one per sender per sixty seconds
 PASS FLH member: unsolicited wrong-route self and peer-exchange traffic owes nothing
@@ -1430,7 +1462,7 @@ PASS FLH member: pending guest is revoked by zone
 PASS FLH member: pending guest is revoked by fingerprint
 PASS FLH member: pending guest is revoked by stop
 PASS FLH member: stale previews and unknown fingerprints never redirect a click
-PASS FLH member: an LR client refusal spends selection without arming or retry
+PASS FLH member: an LR client throttle waits for the pause then retries the same selection
 PASS FLH member: session switch and all received names never enter SavedVariables
 PASS FLH member: unreadable live APIs nil are silent
 PASS FLH member: unreadable live APIs secret are silent
@@ -1540,4 +1572,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1542 tests passed, 0 failed, 276851 assertions
+RESULT: 1570 tests passed, 0 failed, 316473 assertions

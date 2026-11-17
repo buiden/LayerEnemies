@@ -1,0 +1,20 @@
+reserve-query-token: KILLED
+reserve-ordinary-token: KILLED
+reserve-minute-slot: KILLED
+pace-unsent-queries: KILLED
+release-after-LR: KILLED
+release-at-expiry: KILLED
+retry-unspent-selection: KILLED
+two-retries-only: KILLED
+retry-only-with-room: KILLED
+original-LR-window: KILLED
+original-paced-window: KILLED
+failure-chat-line: KILLED
+failure-row-note: KILLED
+pending-host-binding: KILLED
+offline-query-head: KILLED
+route-loop-over-alias: KILLED
+route-computed-new-prefix: KILLED
+route-computed-channel: KILLED
+gate-alias-freeze: KILLED
+Mutants: 19/19 killed
