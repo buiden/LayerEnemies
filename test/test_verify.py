@@ -132,6 +132,68 @@ class SendGateTests(unittest.TestCase):
                 with self.subTest(file=filename, source=source):
                     self.assertIsNotNone(self.gate_error('if false then ' + source + ' end', filename))
 
+    def test_chat_presence_predicate_prefixes_are_rejected(self):
+        # Exact reviewer forms: '..' and '+' deliver the function to a metamethod
+        # before the nil comparison. Even non-working/dead variants stay forbidden.
+        metatable = ('setmetatable({}, {__concat=function(_, f) return f("x","WHISPER",nil,"Bob") end, '
+                     '__lt=function(_, f) return f("x","WHISPER",nil,"Bob") end, '
+                     '__add=function(_, f) return f("x","WHISPER",nil,"Bob") end, '
+                     '__eq=function() return true end, '
+                     '__index=function(_, k) return function(f) return f end end})')
+        cases = (
+            ('concat metamethod', 'local r = o .. C_ChatInfo.SendChatMessage == nil'),
+            ('lt metamethod', 'local r = o < C_ChatInfo.SendChatMessage == nil'),
+            ('add metamethod', 'local r = o + C_ChatInfo.SendChatMessage == nil'),
+            ('legacy concat', 'local r = o .. _G.SendChatMessage == nil'),
+            ('method call prefix', 'local f = o.C_ChatInfo.SendChatMessage == nil'),
+        )
+        for label, expression in cases:
+            with self.subTest(case=label):
+                error = self.gate_error('if false then local o=' + metatable + '; ' + expression + ' end', 'Wire.lua')
+                self.assertIsNotNone(error, 'source gate accepted ' + label)
+                self.assertIn('Unexpected outgoing/forbidden API: SendChatMessage', error or '')
+
+    def test_chat_presence_statements_are_required_exactly_once(self):
+        statements = (
+            'local modernAbsent = not S.tab(C_ChatInfo) or S.call(function() return C_ChatInfo.SendChatMessage == nil end) == true',
+            'local legacyAbsent = S.call(function() return _G.SendChatMessage == nil end) == true',
+        )
+        self.assertIsNone(self.gate_error('', 'Wire.lua'))
+        for statement in statements:
+            with self.subTest(statement=statement, mutation='third copy'):
+                error = self.gate_error(statement, 'Wire.lua')
+                self.assertIsNotNone(error, 'source gate accepted an extra exact presence statement')
+                self.assertIn('chat presence statement must appear exactly once', error or '')
+            with self.subTest(statement=statement, mutation='missing'):
+                error = self.gate_error('', 'Wire.lua', replace=statement)
+                self.assertIsNotNone(error, 'source gate accepted a missing presence statement')
+                self.assertIn('chat presence statement must appear exactly once', error or '')
+            for prefix in ('o .. ', 'o + ', 'o.'):
+                altered = statement.replace('return ', 'return ' + prefix)
+                with self.subTest(statement=statement, mutation=prefix):
+                    error = self.gate_error(altered, 'Wire.lua', replace=statement)
+                    self.assertIsNotNone(error, 'source gate accepted an altered presence statement')
+                    self.assertIn('chat presence statement must appear exactly once', error or '')
+            with self.subTest(statement=statement, mutation='outside owner'):
+                self.assertIsNotNone(self.gate_error(statement, 'Main.lua'))
+
+    def test_predicate_metamethod_fixture_reaches_the_function(self):
+        # Execute only a fake-client sentinel, never a planted real send API.
+        source = '''
+            local calls = 0
+            C_ChatInfo = {SendChatMessage = function() calls = calls + 1 end}
+            local o = setmetatable({}, {
+                __concat = function(_, f) return f() end,
+                __add = function(_, f) return f() end,
+            })
+            local concat = o .. C_ChatInfo.SendChatMessage == nil
+            local add = o + C_ChatInfo.SendChatMessage == nil
+            assert(concat and add and calls == 2)
+            print("METAMETHOD_CALLS=" .. calls)
+        '''
+        result = subprocess.run([str(verify.LUA), '-'], input=source, capture_output=True, text=True, check=True)
+        self.assertEqual(result.stdout.strip(), 'METAMETHOD_CALLS=2')
+
     def test_wire_send_access_belongs_to_deliver(self):
         wire = (self.root / 'LayerEnemies/Wire.lua').read_text()
         # Same single API reference, but moved to a second file-local function.
@@ -217,7 +279,10 @@ class WhisperHookPolicyTests(unittest.TestCase):
 
     def check(self, source, filename='Wire.lua'):
         if filename == 'Wire.lua':
-            source = 'local function deliver() return C_ChatInfo.SendAddonMessage end\n' + source
+            # Keep these hook-focused fixtures valid under the exact presence contract.
+            source = ('local function deliver() return C_ChatInfo.SendAddonMessage end\n'
+                      'local modernAbsent = not S.tab(C_ChatInfo) or S.call(function() return C_ChatInfo.SendChatMessage == nil end) == true\n'
+                      'local legacyAbsent = S.call(function() return _G.SendChatMessage == nil end) == true\n' + source)
         verify.check_send_policy(source, filename)
 
     def test_exact_posthook_registrations_are_allowed_only_in_wire(self):
@@ -278,15 +343,13 @@ class WhisperHookPolicyTests(unittest.TestCase):
                 with self.assertRaises(AssertionError):
                     self.check(self.MODERN + '; ' + self.LEGACY + '; ' + source)
 
-    def test_read_only_presence_predicates_do_not_expose_functions(self):
-        self.check(self.MODERN + '; ' + self.LEGACY + '''
-            local absentModern = C_ChatInfo.SendChatMessage == nil
-            local absentLegacy = _G.SendChatMessage == nil
-        ''')
+    def test_extra_presence_predicates_are_rejected(self):
         for source in ('C_ChatInfo.SendChatMessage == nil', '_G.SendChatMessage == nil'):
             with self.subTest(source=source):
                 with self.assertRaises(AssertionError):
                     self.check('local absent = ' + source, 'Main.lua')
+                with self.assertRaisesRegex(AssertionError, 'Unexpected outgoing/forbidden API: SendChatMessage'):
+                    self.check(self.MODERN + '; ' + self.LEGACY + '; local absent = ' + source)
                 with self.assertRaises(AssertionError):
                     self.check(self.MODERN + '; ' + self.LEGACY + '; local absent = ' + source + '; SendChatMessage(...)')
 

@@ -225,14 +225,19 @@ def check_send_policy(source, filename):
         for i in reversed(sites):
             assert filename == 'Wire.lua', 'chat post-hook outside Wire.lua: ' + filename
             del tokens[i:i + len(hook)]
-    # Primitive nil comparisons reveal existence only, never a callable reference.
-    # No type()/helper exemption: a shadowed helper could invoke its argument.
-    for predicate in ('C_ChatInfo.SendChatMessage == nil', '_G.SendChatMessage == nil'):
-        probe = lua_tokens(predicate)
-        for i in range(len(tokens) - len(probe), -1, -1):
-            if tokens[i:i + len(probe)] == probe:
-                assert filename == 'Wire.lua', 'chat presence probe outside Wire.lua: ' + filename
-                tokens[i:i + len(probe)] = [('name', 'false')]
+    # Exempt only the complete reviewed statements, once each, like the hooks.
+    # A nil-comparison substring is unsafe: '..'/'+' can first hand the send
+    # function to a metamethod. Every other send-name reference stays forbidden.
+    for statement in (
+            'local modernAbsent = not S.tab(C_ChatInfo) or S.call(function() return C_ChatInfo.SendChatMessage == nil end) == true',
+            'local legacyAbsent = S.call(function() return _G.SendChatMessage == nil end) == true'):
+        probe = lua_tokens(statement)
+        sites = [i for i in range(len(tokens) - len(probe) + 1) if tokens[i:i + len(probe)] == probe]
+        if filename == 'Wire.lua':
+            assert len(sites) == 1, 'chat presence statement must appear exactly once in Wire.lua: ' + statement
+        for i in reversed(sites):
+            assert filename == 'Wire.lua', 'chat presence statement outside Wire.lua: ' + filename
+            del tokens[i:i + len(probe)]
     send_sites = []
     for at, word in lua_references(tokens):
         forbidden = (word == 'SendGameData' and filename != 'BNet.lua') or word == 'SendChatMessage' or re.fullmatch(r'BN\w*Send\w*', word)
