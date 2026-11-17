@@ -173,3 +173,28 @@ test("S2 donor still remembering an established exchange withdraws promptly",fun
     eq(count("FBUN",before),1); no(r.sub); eq(r.rejected,0)
     eq(count("H",before),0); eq(count("A",before),0)
 end)
+
+for _,mode in ipairs({"share","source","guild"}) do
+    test("S3 "..mode.." six attempts reopen once per login and M1 then closes",function()
+        local N,r,hello,count,pos=start(); stop(N,mode); r.failD=true
+        for login=1,2 do
+            for t=1,1800 do if t%300==0 then hello() end; advance(1) end
+            eq(count("FBUN"),6,"each login permits six actual attempts")
+            eq(LayerEnemiesDB.warboardOwed.attempts[G],6); eq(debt(),1)
+            local _,out=count("FBUN")
+            for i=2,#out do yes(out[i].at-out[i-1].at>=60) end
+            yes(out[4].at-out[1].at>=600,"no fourth attempt in first window")
+            N.WarBoardTrack.set(true); N.WarBoardTrack.set(false)
+            local before=#h.sent()
+            for t=1,7200 do if t%60==0 then hello() end; advance(1) end
+            if login==2 then eq(count(nil,before),0,"exhaustion closes exception for two hours on next login") end
+            eq(debt(),1); yes(r.sub)
+            h.deliver("PLAYER_LOGOUT"); local saved=LayerEnemiesDB
+            N,r,hello,count,pos=setup(saved,r); stop(N,mode)
+            eq(LayerEnemiesDB.warboardOwed.attempts[G],0,"login resets bounded per-character attempts")
+        end
+        r.failD=false; hello(); advance(5)
+        eq(count("FBUN"),1,"working client withdraws after next login")
+        no(r.sub); eq(debt(),1); advance(901); eq(debt(),0)
+    end)
+end

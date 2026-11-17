@@ -29,8 +29,8 @@ local function settled(g)
     if owed.attempts then owed.attempts[g]=nil end
     records[g]=nil
 end
--- Main owns the per-character GUID array. Optional attempts[guid] counts
--- enforce the lifetime cap across reloads; no names, accounts, clocks or evidence.
+-- Main owns the per-character GUID array and bounded attempts[guid] counts.
+-- A login reopens six attempts; no names, accounts, clocks or evidence persist.
 function T.load(raw)
     owed={}; records={}; waits={}; admitted={}; attempted={}; high=nil; T.closed=nil; T.on=true
     if S.tab(raw) then
@@ -43,12 +43,10 @@ function T.load(raw)
         for _,k in ipairs(keys) do local g=guid(raw[k]); if g then remember(g) end end
     end
     for _,g in ipairs(owed) do
-        local n=S.tab(raw) and S.tab(raw.attempts) and S.num(raw.attempts[g])
-        if n then
-            n=math.min(6,math.max(0,math.floor(n)))
-            owed.attempts=owed.attempts or {}; owed.attempts[g]=n
+        if S.tab(raw) and S.tab(raw.attempts) then
+            owed.attempts=owed.attempts or {}; owed.attempts[g]=0
         end
-        records[g]={guid=g,closing=true,sent=true,tries=0,total=n or 0}
+        records[g]={guid=g,closing=true,sent=true,tries=0,total=0}
     end
     return owed
 end
