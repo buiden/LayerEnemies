@@ -458,10 +458,40 @@ function M.overlordPool()
         return N.Overlord.pool(S.call(GetRealmName),hc,rp,pvp)
     end)
 end
-local function overlordReceive(text,kind,sender)
+function M.overlordContext(time)
+    local ok,why=N.Net.allowed("overlord","public")
+    local me=A.ownIdentity()
+    local version=S.call(function() return C_AddOns.GetAddOnMetadata("LayerEnemies","Version") end)
+    local faction=S.str(S.call(UnitFactionGroup,"player"),16)
+    return {now=time or S.num(S.call(GetTime)),wall=S.num(S.call(GetServerTime)),pool=M.overlordPool(),
+        me=me,version=S.str(version,32),faction=faction and faction:sub(1,1),
+        allowed=M.sharing() and N.Net.consent()=="public" and N.Net.switch("overlord")
+            and (ok or why=="stand down") and not A.inCombat() and A.inInstance()==false,
+        own=ok==true}
+end
+local function overlordSend(c,text,route,target,prio,job)
+    local P=N.OverlordPeer
+    local function guard() return P.claim(M.overlordPeer,job,M.overlordContext()) end
+    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,guard) end
+    if not guard() then return false end
+    local ok=N.Wire.send("OverlordF",text,route,target,{net="overlord",prio=prio=="owed" and "owed" or "mesh"})
+    N.Sources.count("overlord",ok and "sent" or "refused")
+    return ok
+end
+function M.overlordTick(time)
+    if not M.overlordPeer then return end
+    local c=M.overlordContext(time);c.send=overlordSend
+    if not c.allowed or not c.pool then N.BNet.cancel("overlord");return end
+    c.guild=S.call(IsInGuild)==true
+    c.group=S.call(IsInRaid)==true and "RAID" or S.call(IsInGroup)==true and "PARTY" or nil
+    if c.own then c.friends=N.BNet.peers(time);c.directory=N.Directory.members("overlord") end
+    N.OverlordPeer.tick(M.overlordPeer,c)
+end
+local function overlordReceive(text,kind,sender,account)
     local Ov=N.Overlord
     if not M.overlord or S.secret(kind) or S.secret(text) or S.secret(sender) then return end
-    if kind~="GUILD" and kind~="PARTY" and kind~="RAID" then return end
+    if kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" and kind~="BNET" then return end
+    if not N.Net.switch("overlord") then return end
     local stats=M.overlord.stats; stats.lines=stats.lines+1
     local function refuse() stats.refused=stats.refused+1 end
     if A.inCombat() or A.inInstance()~=false then return refuse() end
@@ -471,20 +501,38 @@ local function overlordReceive(text,kind,sender)
     if not name or M.isMe(name) or A.ignored(name) then return refuse() end
     local wall=S.num(S.call(GetServerTime)); local time=S.num(S.call(GetTime))
     if not wall or not time then return refuse() end
-    if type(text)~="string" or #text>255 then return refuse() end
+    if type(text)~="string" or #text>(kind=="BNET" and 4096 or 255) then return refuse() end
+    if not Ov.admit(M.overlord,canonical,time,#text,kind,account) then return refuse() end
+    N.Sources.count("overlord","heard")
+    local me=A.ownIdentity()
+    if not me then return refuse() end
     local p,id
     if text:sub(1,3)=="BF:" then
         local wire
-        wire,id=Ov.fragment(M.overlord,text,canonical,time)
+        wire,id=Ov.fragment(M.overlord,text,canonical,time,kind)
         if wire==nil then return end
         if wire==false then return refuse() end
-        p=Ov.packet(wire,id,canonical,wall)
+        p=Ov.packet(wire,id,canonical,wall,me)
+        if p and p.pool~=pool then return refuse() end
+    elseif kind=="BNET" and text:sub(1,3)=="BR:" then
+        local wire=text:sub(4);id=wire:match("^[^|]*|([^|]*)|")
+        p=Ov.packet(wire,id,canonical,wall,me)
         if p and p.pool~=pool then return refuse() end
     elseif kind=="PARTY" or kind=="RAID" then
         p=Ov.direct(text)
         if p then p.origin=canonical end
     end
     if not p then return refuse() end
+    if id then
+        local c=M.overlordContext(time);c.send=overlordSend
+        if p.kind~="GW" and p.kind~="GD" then
+            if Ov.seen(M.overlord,p.origin,id) then return end
+            N.OverlordPeer.receive(M.overlordPeer,p,kind,canonical,account,c)
+            return
+        end
+        -- Evidence validation below owns dedupe; invalid map reads remain retryable.
+        N.OverlordPeer.receive(M.overlordPeer,p,kind,canonical,account,c)
+    end
     if p.kind=="GW" then
         local g=Ov.gw(p.payload,wall)
         local own=S.str(S.call(UnitFactionGroup,"player"),20)
@@ -516,6 +564,18 @@ function M.overlordIn(text,kind,sender)
     -- Optional map/ignore/identity APIs can throw on access as well as on call.
     -- Unlike the general event guard, a refused foreign line never changes runtime status.
     local ok=pcall(overlordReceive,text,kind,sender)
+    if not ok and M.overlord then M.overlord.stats.refused=M.overlord.stats.refused+1 end
+end
+function M.overlordBn(prefix,text,channel,id)
+    local ok=pcall(function()
+        if not S.str(prefix,16) or prefix~="OverlordF" or S.secret(text) or type(text)~="string" or #text>4096
+            or not S.num(id) or id<1 or id%1~=0 or S.secret(channel) then return end
+        local pool,side,body=text:match("^R2:Forever_([a-z]+)_([AH]):(.*)$")
+        if not pool or pool~=M.overlordPool() then return end
+        local who=N.BNet.who(id)
+        if not who or who.faction:sub(1,1)~=side then return end
+        overlordReceive(body,"BNET",who.name,id)
+    end)
     if not ok and M.overlord then M.overlord.stats.refused=M.overlord.stats.refused+1 end
 end
 function M.overlordText(g)
@@ -2340,6 +2400,7 @@ function M.start()
     M.started=true
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new(); M.hh=N.HeadHunter.new()
     M.overlord=N.Overlord.new()
+    M.overlordPeer=N.OverlordPeer.new()
     M.hopAnyState=N.HopAny.new()
     M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
@@ -2460,6 +2521,7 @@ local function dispatch(_,event,...)
     elseif event=="BN_CHAT_MSG_ADDON" then
         local prefix,text,channel,id=...
         if not S.secret(prefix) and prefix=="OpenMapLoc" then guarded(M.openmapBn,...)
+        elseif not S.secret(prefix) and prefix=="OverlordF" then guarded(M.overlordBn,...)
         elseif not S.secret(channel) then guarded(N.Sources.bnet,prefix,text,id) end
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
     elseif event=="PLAYER_REGEN_DISABLED" then guarded(M.hopAnyStop,"combat started")

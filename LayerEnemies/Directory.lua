@@ -38,6 +38,11 @@ function D.rulesetTag(realm)
 end
 -- channel(key) -> the channel name for that network, or nil while it cannot be known
 function D.channel(key)
+    if key=="overlord" then
+        local pool=N.Main and N.Main.overlordPool()
+        local suffix={global="",pve="E",rpg="RP",rpv="RPP",hc="HC"}
+        return pool and suffix[pool] and ("OverlordF"..suffix[pool]) or nil
+    end
     if key == "hh" then return "HeadHunterSync" end
     if key == "wanted" then
         local faction = S.str(S.call(UnitFactionGroup,"player"),16)
@@ -142,13 +147,15 @@ function D.sync()
     table.sort(keys)
     for _, key in ipairs(keys) do
         local want = N.Net.allowed(key, "public")
+        if key=="overlord" then want=want and N.Main and N.Main.sharing() and N.Main.overlordPool()~=nil end
         if want and not joined[key] then
             local name = D.channel(key)
             if name and calm() and listReady() then
                 -- already in that channel (the player joined it): read it, never join or leave it
                 local result, called = false, false
-                local slots = key=="wanted" and S.num(S.call(GetNumDisplayChannels)) or nil
-                if not index(name) and not handLeft[key] and (key~="wanted" or (slots and slots>=1 and slots<=7)) then
+                local limited=key=="wanted" or key=="overlord"
+                local slots = limited and S.num(S.call(GetNumDisplayChannels)) or nil
+                if not index(name) and not handLeft[key] and (not limited or (slots and slots>=1 and slots<=7)) then
                     called = true
                     local now = S.num(S.call(GetTime))
                     asked[key] = now and { name = name, at = now } or nil

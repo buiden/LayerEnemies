@@ -133,5 +133,18 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertEqual((root / 'LayerEnemies.toc').read_text().count('Wanted.lua'), 1)
 
 
+    def test_overlord_peer_is_pure_and_uses_owned_transport(self):
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        source = (root / 'OverlordPeer.lua').read_text()
+        self.check_source(source, 'OverlordPeer.lua')
+        VERIFY['check_send_policy'](source, 'OverlordPeer.lua')
+        refs = {v for k, v in VERIFY['lua_tokens'](source) if k == 'name'}
+        self.assertFalse(refs & {'_G', 'C_Timer', 'GetTime', 'SendGameData', 'SendAddonMessage',
+                                 'LayerEnemiesDB', 'LibStub', 'SetText', 'JoinChannelByName'})
+        wire = (root / 'Wire.lua').read_text()
+        self.assertIn('N.OverlordPeer.dispatching(text,kind,target)', wire)
+        self.assertEqual((root / 'LayerEnemies.toc').read_text().count('OverlordPeer.lua'), 1)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

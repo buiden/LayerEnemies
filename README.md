@@ -1,5 +1,63 @@
 # LayerEnemies
 
+## Unreleased - Overlord direct peer
+
+| What LE sends | To whom | Maximum rate | Stops when |
+|---|---|---|---|
+| Own `NH` (one `BF`) | Guild | Once/120 s with a heard listener; once/600 s alone | Any stop below |
+| Own `NH` (one `BF`) | Current party or raid | On joining, then once/120 s, shared group gap | Any stop below |
+| Own `NH` (`R2` + `BR`) | Up to five live Battle.net friends plus two rotating unheard friends | One cycle/120 s; once/120 s per account | Any stop below |
+| Owed targeted `NH` | Direct whisper sender addressing us | Once/150 s per peer; six owed answers/minute total | Any stop below, except donor stand-down |
+| Own targeted `NH` greeting | Read-only Overlord directory members | One/minute, six live partners; same candidate no sooner than 600 s | Any stop below |
+| Empty `HA S ... :0:0` for v8 `HR V`; `HA R` for unsupported page requests | Direct addressed whisper/Battle.net requester only | Once/150 s per peer, sharing the six owed answers/minute | Any stop below, except donor stand-down |
+
+**All sends stop** with `/le share off`, Guild only (`/le net guild`),
+`/le net overlord off`, combat, instances, or an unreadable ruleset pool,
+local character or own addon version. No off-switch withdrawal is sent.
+Overlord installed: own announcements stop, but these capped owed answers remain
+eligible. Battle.net uses `BN.send`: **eight frames/minute**, inside the shared
+30/minute and one/second queue. Addon messages use Wire; stranger whispers share
+its **20/minute**, four/minute/target budget. Own Overlord announcements use the
+low-priority reserve so ordinary LE guild traffic keeps priority within the
+shared **20 guild frames/minute**. Owed responses are attempted immediately;
+there is no retry or addon backlog. Queue guards recheck pool, identity, privacy
+and actual per-target gaps at dispatch. A successful send is not proof of delivery.
+
+LE identifies itself as **`LayerEnemies <its installed TOC version>`**, never as
+Overlord. C2 advertises no capability, rank, map digest or helper flag. It does
+not forward packets, keep a leaderboard, host, invite, or save discovered names.
+The existing network switch map is reused; no new SavedVariables or schema.
+The map protocol has **no truthful empty answer**: an empty store produces zero
+`ZA` pages in 2.5.4 (`Sync.lua:6058`). LE therefore sends no map answer rather than
+inventing zones or an unsupported acknowledgement. This narrows the plan's
+“always answer map requests” sentence; leaderboard emptiness is representable.
+
+Receive adds **WHISPER BF and Battle.net R2 BR/BF**, including opposite-faction
+friends; legacy unbanded Battle.net traffic is not accepted. Own/foreign/unknown
+pool isolation is checked before retaining partials (inner pool at assembly).
+`GW` remains a guild alert in Reported; `GD` remains a tracked-name killer claim
+in Find; direct `EK` remains party/raid only. No new evidence gets a layer or Ask/
+Hop authority. Other packet kinds can establish a route, not a location. Read-only
+channel discovery uses `OverlordF` / `OverlordFE` / `OverlordFRP` /
+`OverlordFRPP` / `OverlordFHC`, never CHANNEL sends, and joins only when two slots
+remain free afterward. Only LE-owned joins are left; manual leaves are respected.
+
+Memory/work limits: **24 parts, 3,600 assembled bytes, four streams/sender,
+64 streams total (16 reserved for guild), 65,536 held bytes (16,384 reserved for
+guild), 120 s total / 30 s idle**; repeated parts do not extend idle time.
+Before parsing: per sender 120 frames and 14,400 bytes/10 s across addon routes;
+Battle.net also has an account bucket. Overall 640 frames / 128,000 bytes/10 s,
+public ceiling 512 / 96,000, 128 sender buckets with 32 guild-reserved. Route table
+128/96 public, 300 s; dedupe ring 2,000 origin+ID entries. All state is session-only.
+
+Protocol-only, no donor code or library copied or executed: **Overlord 2.5.4**,
+`c821808586ab50bb4ccb5d54b146e0d7c2671734`, All Rights Reserved.
+Tests: `lua test/harness.lua --only 'Overlord peer:'`,
+`python3 test/overlord_peer_mutants.py [--write]`, `python3 test/verify.py`.
+Mutation reports are byte-stable, read-only unless `--write`, and run in isolated
+scratch copies. Native checks **not run (alpha, owner's decision)**.
+This section supersedes the historical receive-only send/fragment limits below.
+
 ## Unreleased - Wanted (receive only)
 
 Reads Wanted 1.29.x (protocol audited at v1.29.2) without Wanted installed;

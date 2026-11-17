@@ -15,7 +15,7 @@ local function sent()
     local out={}; for _,s in ipairs(h.sent()) do if s.kind=="BN" then out[#out+1]=s end end; return out
 end
 
-for _,row in ipairs({{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WBQueue",10}}) do
+for _,row in ipairs({{"wanted","WNTDB",4},{"overlord","OverlordF",8},{"warboard","WBQueue",10}}) do
     test("BNet queue: S1 configured admission cap "..row[1],function()
         local N=setup(); local c=register(N,row[1],row[2])
         for i=1,row[3] do yes(N.BNet.send(row[1],71,row[2],"own-"..i,"own")) end

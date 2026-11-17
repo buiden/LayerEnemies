@@ -1,5 +1,19 @@
 # Third-party provenance
 
+## Overlord direct peer (C2)
+
+| Donor | Version / pin | License | Use |
+|---|---|---|---|
+| [Overlord Forever — leliondoc](https://github.com/leliondoc/overlord-forever-addon/tree/c821808586ab50bb4ccb5d54b146e0d7c2671734) | **2.5.4**, `c821808586ab50bb4ccb5d54b146e0d7c2671734` | All Rights Reserved | Protocol facts only: independently written BF/BR/R2 reader, NH presence, direct routes, truthful empty HA answers and directory names. **No donor code, assets or libraries copied or executed.** |
+
+This pin supersedes the historical C1 2.5.1 pin below. Evidence:
+`audit-overlord-peer.md` sections 1–4, 6.7 and 7, and read-only inspection of
+`Sync.lua`, `SyncRelay.lua`, `SyncDirectory.lua`, `SyncLeaderboardPages.lua`,
+`GeneralSync.lua`, `GuildKillAlert.lua`, `CombatTracker.lua` and `RealmPools.lua`.
+Identity fields use LayerEnemies' name and installed version, not the donor's.
+`git ls-remote` rechecked upstream HEAD and tag 2.5.4 at this pin during this build.
+Native interoperability was not run (alpha, owner's decision).
+
 ## Wanted receive-only protocol (D1)
 
 | Donor | Version / immutable pin | License | Use |
