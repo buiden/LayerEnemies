@@ -1484,6 +1484,13 @@ REACH 40 alone: 40/40
 PASS WarBoard: hello reach over sixty minutes for 40 accounts
 REACH 40 mixed: 40/40
 PASS WarBoard: hello reach over sixty minutes for 40 accounts with owed and shared traffic
+PASS WarBoard: unreadable hello cursor skips missing names without spending the selection budget
+PASS WarBoard: unreadable hello cursor skips secret names without spending the selection budget
+PASS WarBoard: unreadable hello cursor skips throwing names without spending the selection budget
+UNREADABLE REACH none: 45/45; after block 13/13
+PASS WarBoard: unreadable hello reach over sixty minutes with all readable of 45 accounts
+UNREADABLE REACH 22 missing: 23/23; after block 13/13
+PASS WarBoard: unreadable hello reach over sixty minutes with 22 unreadable of 45 accounts
 PASS WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred
 PASS WarBoard: A six per rolling minute including delayed queue; WarBoard ten shared thirty
 PASS WarBoard: share stops new sends and cancels queued answers
@@ -1616,4 +1623,4 @@ PASS Stack: WarBoard position subject survives Wanted observer wording on GUILD
 PASS Stack: WarBoard position subject survives Wanted observer wording on PARTY
 PASS Stack: WarBoard position subject survives Wanted observer wording on RAID
 PASS Stack: WarBoard position subject survives Wanted observer wording on CHANNEL
-RESULT: 1593 tests passed, 0 failed, 403987 assertions
+RESULT: 1598 tests passed, 0 failed, 424268 assertions
