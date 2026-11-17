@@ -2261,7 +2261,7 @@ end
 function M.quiet(command)
     local state=command:match("^quiet%s+(%a+)$")
     if state~="on" and state~="off" then M.say("LayerEnemies: /le quiet on|off"); return end
-    if S.tab(LayerEnemiesDB) then LayerEnemiesDB.quiet=state=="on" end
+    if S.tab(LayerEnemiesDB) then LayerEnemiesDB.quietWhispers=state=="on" end
     M.say("LayerEnemies: quiet "..state..(state=="on" and " - hide only our correlated offline whisper notices."
         or " - offline whisper notices stay visible."))
 end
@@ -2367,7 +2367,7 @@ function M.start()
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- sharing our own sightings (O, War Effort C+E) and deaths (K): only a saved false turns it off
     LayerEnemiesDB.share=saved.share~=false
-    LayerEnemiesDB.quiet=saved.quiet~=false
+    LayerEnemiesDB.quietWhispers=saved.quietWhispers~=false
     LayerEnemiesDB.findShare=saved.findShare~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)

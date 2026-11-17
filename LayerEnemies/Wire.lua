@@ -243,7 +243,7 @@ function Wr.system(text, lineID)
         notice.owned = match.display
     end
     if not notice.owned then unmatchedNotices = unmatchedNotices + 1 end
-    notice.hide = notice.owned == true and (not S.tab(LayerEnemiesDB) or LayerEnemiesDB.quiet ~= false)
+    notice.hide = notice.owned == true and (not S.tab(LayerEnemiesDB) or LayerEnemiesDB.quietWhispers ~= false)
     if not notice.owned then notice.text, notice.fingerprint, notice.bytes = nil, fingerprint, #text end
     if #notices >= Wr.RECENT_MAX then table.remove(notices, 1) end
     notices[#notices + 1] = notice

@@ -426,7 +426,7 @@ test("session counters diagnostics and no added SavedVariables",function()
     SlashCmdList.LAYERENEMIES("net")
     yes(table.concat(H.log(),"\n"):find("Overlord session: lines=3 taken=1 refused=1",1,true))
     local allowed={options=true,tracked=true,position=true,guildHost=true,consent=true,nets=true,share=true,call=true,callArt=true,
-        netNotice=true,autoHop=true,weReportId=true,findShare=true,findNotice=true,quiet=true}
+        netNotice=true,autoHop=true,weReportId=true,findShare=true,findNotice=true,quietWhispers=true}
     for k in pairs(LayerEnemiesDB) do yes(allowed[k],"no new save field "..k) end
     local function walk(v)
         if type(v)~="table" then return end
