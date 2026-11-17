@@ -72,3 +72,16 @@ loop; no diagnostic was dropped. Generated notes regenerated. Full verify:
 Only generated verification notes conflicted; regenerated both. Full verify of
 this intermediate composition: **1418 passed, 0 failed, 237085 assertions**,
 all static/syntax/package/source parity checks green.
+
+### Wanted round-1 merge
+
+Merged exact source `8da62639d5220f474da3cb45c6ef17d4902da642` (including
+`fac5151` behavior changes). Only the generated verification notes conflicted;
+regenerated both, no code/test resolution necessary. Source fixes add isolated
+rate lanes, guild-reserved/per-carrier bounded assembly and replay, map-only
+zone projection, numeric 1.29.x patches and stable mutant evidence.
+
+Focused Wanted: **40 passed, 0 failed, 23469 assertions**; Python evidence
+regression: **1 passed**. Full verify: **1433 passed, 0 failed, 239897 assertions**,
+all static/syntax/package checks pass. Source's own RED evidence remains in
+`notes/wanted-receive.md`; no additional production fix was needed in the stack.

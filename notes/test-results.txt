@@ -1411,9 +1411,24 @@ PASS Wanted: summary validation caps senders entries and finite counts
 PASS Wanted: passive channel join preserves player ownership and two free slots
 PASS Wanted: inbound budgets are per canonical sender and bounded globally
 PASS Wanted: receive tick and every ignored tag never attempt any send
-PASS Wanted: four unfinished messages per sender cover all addon routes
+PASS Wanted: two unfinished messages per sender cover all addon routes
 PASS Wanted: numbered framing supports reorder and bounds every unfinished stream
 PASS Wanted: fragmented S and E on guild and channel retain no untracked names
 PASS Wanted: route version array faction and secret guards fail silent
 PASS Wanted: audit sighting vector reaches measured Find as witness near observer
-RESULT: 1418 tests passed, 0 failed, 237085 assertions
+PASS Wanted: R1 S1 300 channel users cannot suppress 75 guild sightings
+PASS Wanted: R1 S1 128 junk senders cannot suppress 20 guild sightings
+PASS Wanted: R1 S1 invalid tags and shapes take no sender entries
+PASS Wanted: R1 S1 valid channel whisper and BNet floods leave guild capacity
+PASS Wanted: R1 S2 sightings show only map-derived zone never free text
+PASS Wanted: R1 S2 records cannot contradict map zone or inject bidi
+PASS Wanted: R1 S2 absent invalid and unresolved maps have no zone fallback
+PASS Wanted: R1 S3 two assemblies per canonical sender across routes
+PASS Wanted: R1 S3 BNet dispatch shares one assembly owner across message IDs
+PASS Wanted: R1 S3 reserved assemblies survive a full public pool
+PASS Wanted: R1 S3 renewed channel holds cannot suppress 20 five-frame guild messages
+PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
+PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
+PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
+PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
+RESULT: 1433 tests passed, 0 failed, 239897 assertions
