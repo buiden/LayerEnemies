@@ -693,11 +693,11 @@
       "file": "Main.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: unchanged ZONE_CHANGED preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x631c5ce38d30, got nil",
-        "FAIL Hop fanout: unchanged ZONE_CHANGED preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x631c5d04ecf0, got nil",
-        "FAIL Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x631c5d34def0, got nil",
-        "FAIL Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x631c5d2f27a0, got nil",
-        "FAIL Hop fanout: WHO restores registrations on subzone and leaves manual search usable: test/hop_fanout.lua:403: not equal: expected table: 0x631c5ce95d80, got nil"
+        "FAIL Hop fanout: unchanged ZONE_CHANGED preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x60ea5e65dd30, got nil",
+        "FAIL Hop fanout: unchanged ZONE_CHANGED preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x60ea5e50b0c0, got nil",
+        "FAIL Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x60ea5e851a80, got nil",
+        "FAIL Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x60ea5e8d4d00, got nil",
+        "FAIL Hop fanout: WHO restores registrations on subzone and leaves manual search usable: test/hop_fanout.lua:403: not equal: expected table: 0x60ea5e50e020, got nil"
       ]
     },
     {
@@ -705,8 +705,8 @@
       "file": "Main.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5f3ea2a5dcf0, got nil",
-        "FAIL Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5f3ea2bd64e0, got nil"
+        "FAIL Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5acb5de30cf0, got nil",
+        "FAIL Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5acb5da83f70, got nil"
       ]
     },
     {
@@ -714,10 +714,10 @@
       "file": "Main.lua",
       "caught": true,
       "failed_tests": [
-        "FAIL Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5f21a811ee30, got nil",
-        "FAIL Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5f21a7f15d50, got nil",
-        "FAIL Hop fanout: unchanged SHARD_TRANSFER preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5f21a811e8a0, got nil",
-        "FAIL Hop fanout: unchanged SHARD_TRANSFER preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5f21a7e1f210, got nil"
+        "FAIL Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5d19d82f5e30, got nil",
+        "FAIL Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5d19d80ecd50, got nil",
+        "FAIL Hop fanout: unchanged SHARD_TRANSFER preserves who and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5d19d7f225b0, got nil",
+        "FAIL Hop fanout: unchanged SHARD_TRANSFER preserves send and autoaccept: test/hop_fanout.lua:201: unchanged event must not cancel the click: expected table: 0x5d19d843ad70, got nil"
       ]
     },
     {
@@ -775,35 +775,35 @@
       "caught": true,
       "failed_tests": [
         "FAIL Hop fanout: WHO suppression never replaces OnEvent: test/hop_fanout.lua:358: not equal: expected 0, got 1",
-        "FAIL Hop fanout: visible FriendsFrame is never unregistered: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b098ea0, got function: 0x5fd82b50eb90",
-        "FAIL Hop fanout: visible LFGWhoListFrame is never unregistered: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b072cd0, got function: 0x5fd82afd6e00",
-        "FAIL Hop fanout: visible WhoFrame is never unregistered: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b622d40, got function: 0x5fd82b03fad0",
+        "FAIL Hop fanout: visible FriendsFrame is never unregistered: test/hop_fanout.lua:354: not equal: expected function: 0x598eb752cea0, got function: 0x598eb79a2b90",
+        "FAIL Hop fanout: visible LFGWhoListFrame is never unregistered: test/hop_fanout.lua:354: not equal: expected function: 0x598eb740ce70, got function: 0x598eb7ab0000",
+        "FAIL Hop fanout: visible WhoFrame is never unregistered: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7ab6cd0, got function: 0x598eb74d3a80",
         "FAIL Hop fanout: WHO suppression needs no script accessors: test/hop_fanout.lua:350: not equal: expected false, got true",
-        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b133de0, got function: 0x5fd82afacc30",
-        "FAIL Hop fanout: WHO restores registrations on result and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b107cb0, got function: 0x5fd82b5bae50",
-        "FAIL Hop fanout: WHO restores registrations on no rows and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82adbf410, got function: 0x5fd82aeedde0",
-        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82af7a210, got function: 0x5fd82af92240",
-        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b653f00, got function: 0x5fd82b4647b0",
-        "FAIL Hop fanout: WHO restores registrations on slash stop and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b5ce020, got function: 0x5fd82b56f180",
-        "FAIL Hop fanout: WHO restores registrations on combat and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82aef0ee0, got function: 0x5fd82b33c370",
-        "FAIL Hop fanout: WHO restores registrations on zone and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b1f3410, got function: 0x5fd82b5eb920",
-        "FAIL Hop fanout: WHO restores registrations on subzone and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b122010, got function: 0x5fd82b459000",
-        "FAIL Hop fanout: WHO restores registrations on world and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82ae90e80, got function: 0x5fd82b5fd300",
-        "FAIL Hop fanout: WHO restores registrations on group and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b296870, got function: 0x5fd82b03c0d0",
-        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b628e70, got function: 0x5fd82b693160",
-        "FAIL Hop fanout: WHO restores registrations on guild-only and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82af68ca0, got function: 0x5fd82b247210",
-        "FAIL Hop fanout: WHO restores registrations on error and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b6a0d70, got function: 0x5fd82b6a2c10",
-        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b65e110, got function: 0x5fd82b001500",
-        "FAIL Hop fanout: late WHO after timeout is not active even after clock rollback: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b182740, got function: 0x5fd82b2a4ed0",
-        "FAIL Hop fanout: late WHO after stop is not active even after clock rollback: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82adc92c0, got function: 0x5fd82b6654d0",
-        "FAIL Hop fanout: late WHO after invite is not active even after clock rollback: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b5b5380, got function: 0x5fd82b317d40",
-        "FAIL Hop fanout: WHO unregister errors do not strand the remaining frames: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b7210c0, got function: 0x5fd82b4c3590",
+        "FAIL Hop fanout: WHO hush before query and restoration after result in either event order: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7542c10, got function: 0x598eb7679ac0",
+        "FAIL Hop fanout: WHO restores registrations on result and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb79bb9f0, got function: 0x598eb7618ed0",
+        "FAIL Hop fanout: WHO restores registrations on no rows and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb74e9250, got function: 0x598eb76137e0",
+        "FAIL Hop fanout: WHO restores registrations on timeout and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7bccff0, got function: 0x598eb796da10",
+        "FAIL Hop fanout: WHO restores registrations on stop and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb73c8200, got function: 0x598eb77c3b10",
+        "FAIL Hop fanout: WHO restores registrations on slash stop and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb773f0b0, got function: 0x598eb7a02070",
+        "FAIL Hop fanout: WHO restores registrations on combat and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb74b0f60, got function: 0x598eb78f27e0",
+        "FAIL Hop fanout: WHO restores registrations on zone and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7535270, got function: 0x598eb73f49f0",
+        "FAIL Hop fanout: WHO restores registrations on subzone and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb79956b0, got function: 0x598eb7893740",
+        "FAIL Hop fanout: WHO restores registrations on world and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7a73cd0, got function: 0x598eb7489460",
+        "FAIL Hop fanout: WHO restores registrations on group and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb722ab30, got function: 0x598eb73005e0",
+        "FAIL Hop fanout: WHO restores registrations on invite and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb75bf220, got function: 0x598eb7896d70",
+        "FAIL Hop fanout: WHO restores registrations on guild-only and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7a58550, got function: 0x598eb798dfa0",
+        "FAIL Hop fanout: WHO restores registrations on error and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7b06710, got function: 0x598eb7b085b0",
+        "FAIL Hop fanout: WHO restores registrations on reload and leaves manual search usable: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7c54510, got function: 0x598eb745dfa0",
+        "FAIL Hop fanout: late WHO after timeout is not active even after clock rollback: test/hop_fanout.lua:354: not equal: expected function: 0x598eb75cb320, got function: 0x598eb78cba10",
+        "FAIL Hop fanout: late WHO after stop is not active even after clock rollback: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7708870, got function: 0x598eb7b0e0e0",
+        "FAIL Hop fanout: late WHO after invite is not active even after clock rollback: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7737480, got function: 0x598eb75d6d80",
+        "FAIL Hop fanout: WHO unregister errors do not strand the remaining frames: test/hop_fanout.lua:354: not equal: expected function: 0x598eb747acc0, got function: 0x598eb7a091e0",
         "FAIL Hop fanout: WHO registration errors do not prevent other frames restoring: test/hop_fanout.lua:445: not equal: expected 0, got 1",
-        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b004bd0, got function: 0x5fd82b76f860",
-        "FAIL Hop fanout: player WHO during pending or late lease wins at 1 seconds: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b0c31a0, got function: 0x5fd82b462020",
-        "FAIL Hop fanout: player WHO during pending or late lease wins at 6 seconds: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b309b60, got function: 0x5fd82b51f650",
-        "FAIL Hop fanout: optional WHO APIs and throwing frames never strand other frames: test/hop_fanout.lua:470: missingSet: expected function: 0x5fd82afce2b0, got function: 0x5fd82b4572a0",
-        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:354: not equal: expected function: 0x5fd82b08bc70, got function: 0x5fd82b667660"
+        "FAIL Hop fanout: no WHO result releases late guard at thirty seconds: test/hop_fanout.lua:354: not equal: expected function: 0x598eb796cf10, got function: 0x598eb73bd9f0",
+        "FAIL Hop fanout: player WHO during pending or late lease wins at 1 seconds: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7b0d180, got function: 0x598eb7bee7e0",
+        "FAIL Hop fanout: player WHO during pending or late lease wins at 6 seconds: test/hop_fanout.lua:354: not equal: expected function: 0x598eb77a0500, got function: 0x598eb766c6c0",
+        "FAIL Hop fanout: optional WHO APIs and throwing frames never strand other frames: test/hop_fanout.lua:470: missingSet: expected function: 0x598eb7468aa0, got function: 0x598eb75af840",
+        "FAIL Hop fanout: result-handler error restores UI without displaying our result: test/hop_fanout.lua:354: not equal: expected function: 0x598eb7598e80, got function: 0x598eb78b3290"
       ]
     },
     {

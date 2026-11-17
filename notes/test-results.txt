@@ -1310,4 +1310,4 @@ PASS Overlord: single guild rampage reaches Reported without a hop
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
-RESULT: 1312 tests passed, 0 failed, 175821 assertions
+RESULT: 1312 tests passed, 0 failed, 175822 assertions

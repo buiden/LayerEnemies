@@ -7,7 +7,7 @@
       "killed": true,
       "failed": 2,
       "caught_by": [
-        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout: expected nil, got table: 0x5c0a20dba690",
+        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout: expected nil, got table: 0x58a5fa663690",
         "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:348: not equal: expected 0, got 1"
       ]
     },
@@ -83,7 +83,7 @@
       "killed": true,
       "failed": 2,
       "caught_by": [
-        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x565d31e00c50",
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x59785cd71c50",
         "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:348: not equal: expected 0, got 1"
       ]
     },
@@ -183,7 +183,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:101: not equal: expected nil, got table: 0x557aaff87650"
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:101: not equal: expected nil, got table: 0x5cc27208a650"
       ]
     },
     {
@@ -191,7 +191,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x62ed4ec93360"
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x592c6cad9360"
       ]
     },
     {
@@ -199,7 +199,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Aa One,Bb Two,Cc Three,Dd Four,Birch Scout: expected nil, got table: 0x5f0a6f48bd70"
+        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Aa One,Bb Two,Cc Three,Dd Four,Birch Scout: expected nil, got table: 0x55a8ebd45d70"
       ]
     },
     {
@@ -207,7 +207,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout,Birch Scout,OTHER SCOUT,Birch Scout: expected nil, got table: 0x60f2e12c76e0"
+        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout,Birch Scout,OTHER SCOUT,Birch Scout: expected nil, got table: 0x5639de0936e0"
       ]
     },
     {
@@ -215,7 +215,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720100.5: expected nil, got table: 0x58c599f63180"
+        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720100.5: expected nil, got table: 0x5f298d8e4180"
       ]
     },
     {
@@ -223,8 +223,8 @@
       "killed": true,
       "failed": 2,
       "caught_by": [
-        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720131: expected nil, got table: 0x5db53e5ac280",
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 720131: expected nil, got table: 0x5db53e2272f0"
+        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720131: expected nil, got table: 0x610b45a07280",
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 720131: expected nil, got table: 0x610b456c5bb0"
       ]
     },
     {
@@ -232,7 +232,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x59e377b7f200"
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x5979a6c53200"
       ]
     },
     {
@@ -282,7 +282,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 10000: expected nil, got table: 0x63c2d64d48b0"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 10000: expected nil, got table: 0x5b73e72a98b0"
       ]
     },
     {
@@ -290,7 +290,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 1000: expected nil, got table: 0x5e23798b0320"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 1000: expected nil, got table: 0x62af3e7af320"
       ]
     },
     {
@@ -298,7 +298,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 100000000: expected nil, got table: 0x5a8766aa7840"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 100000000: expected nil, got table: 0x5d933b54b840"
       ]
     },
     {
@@ -306,7 +306,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 719799: expected nil, got table: 0x5d87d4f57e00"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 719799: expected nil, got table: 0x57548bd8ce00"
       ]
     },
     {
@@ -314,7 +314,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x62e2c9bfe370"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x56c4dbe4a370"
       ]
     },
     {
@@ -322,7 +322,7 @@
       "killed": true,
       "failed": 1,
       "caught_by": [
-        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x615fb7746340"
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x617e435c9340"
       ]
     },
     {
@@ -408,9 +408,9 @@
       "killed": true,
       "failed": 3,
       "caught_by": [
-        "FAIL Overlord: GD tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x57581a5a05d0",
-        "FAIL Overlord: EK tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x57581aa96810",
-        "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/overlord.lua:337: not equal: expected nil, got table: 0x57581a729200"
+        "FAIL Overlord: GD tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x63eb37fa85d0",
+        "FAIL Overlord: EK tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x63eb3849e810",
+        "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/overlord.lua:337: not equal: expected nil, got table: 0x63eb3832d8e0"
       ]
     },
     {

@@ -11,10 +11,10 @@
       "failed": 6,
       "rc": 1,
       "caught_by": [
-        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x62a8699af0a0",
-        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x62a869dc34c0",
-        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x62a869a61dd0",
-        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x62a869cec040",
+        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x5d1f85bec0a0",
+        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x5d1f860004c0",
+        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x5d1f85c9edd0",
+        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:100: not equal: expected nil, got table: 0x5d1f85a91760",
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/flh.lua:189: not equal: expected nil, got 8",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/harness.lua:8: not equal: expected false, got true"
       ],
@@ -26,7 +26,7 @@
       "failed": 1,
       "rc": 1,
       "caught_by": [
-        "FLH: the wire limit accepts 255 bytes and refuses 256: test/flh.lua:69: not equal: expected nil, got table: 0x5924f1c10560"
+        "FLH: the wire limit accepts 255 bytes and refuses 256: test/flh.lua:69: not equal: expected nil, got table: 0x6280e98c0560"
       ],
       "mutant": "no-length-cap",
       "killed": true
@@ -100,10 +100,10 @@
       "rc": 1,
       "caught_by": [
         "FLH: its host cache is separate bounded and expires at 180 seconds: test/flh.lua:86: not equal: expected 63, got 64",
-        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57f08bc26820",
-        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57f08c2dbe20",
-        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57f08bc80310",
-        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57f08bdab9d0",
+        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57bf1fc98820",
+        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57bf2034de20",
+        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57bf1ff087c0",
+        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:102: not equal: expected nil, got table: 0x57bf2036bc40",
         "FLH: same identity merges independent provenance without changing LayerSwap fields: test/flh.lua:189: not equal: expected nil, got 8",
         "FLH: claim never promotes a listed nonhost or changes hop-any priority: test/harness.lua:8: not equal: expected false, got true"
       ],
@@ -115,7 +115,7 @@
       "failed": 2,
       "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x5eab3a237c10",
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x58b49aee0c10",
         "FLH: seeded byte and structured fuzz is bounded silent and never sends: test/harness.lua:8: fuzz receive threw: expected false, got true"
       ],
       "mutant": "non-numeric-id",
@@ -126,7 +126,7 @@
       "failed": 2,
       "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x61bcc272c7f0",
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x5799137e67f0",
         "FLH: seeded byte and structured fuzz is bounded silent and never sends: test/harness.lua:7: not equal: expected true, got false"
       ],
       "mutant": "unknown-is-presence",
@@ -152,11 +152,11 @@
       "rc": 1,
       "caught_by": [
         "FLH: separators metadata and unknown places preserve positions: test/harness.lua:7: not equal: expected true, got false",
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x5fa4833993f0",
-        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x5fa483433520",
-        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x5fa483458da0",
-        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x5fa482ff6de0",
-        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x5fa4832806f0"
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x61d38307d3f0",
+        "FLH: passive GUILD presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x61d382d06d20",
+        "FLH: passive PARTY presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x61d383232880",
+        "FLH: passive RAID presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x61d382ee62f0",
+        "FLH: passive WHISPER presence admits only explicit hosts: test/flh.lua:103: not equal: expected nil, got table: 0x61d383278680"
       ],
       "mutant": "drop-empty-fields",
       "killed": true
@@ -166,7 +166,7 @@
       "failed": 2,
       "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x559590c79790",
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x62338fc7a790",
         "FLH: readable-looking secret strings are refused before any use: test/harness.lua:8: not equal: expected false, got true"
       ],
       "mutant": "zero-fingerprint",
@@ -189,7 +189,7 @@
       "failed": 2,
       "rc": 1,
       "caught_by": [
-        "FLH: readable-looking secret strings are refused before any use: test/flh.lua:275: not equal: expected nil, got table: 0x5c7c5c942c10",
+        "FLH: readable-looking secret strings are refused before any use: test/flh.lua:275: not equal: expected nil, got table: 0x6090e6dcac10",
         "FLH: friendly text gets space for its separate provenance and age: test/harness.lua:7: retain the FLH detail minimum after measured-layout composition: expected true, got false"
       ],
       "mutant": "no-secret-check",
@@ -200,7 +200,7 @@
       "failed": 1,
       "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x56a61a048540"
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x5a5fa37ce540"
       ],
       "mutant": "no-control-check",
       "killed": true
@@ -210,7 +210,7 @@
       "failed": 1,
       "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x5db430c0e980"
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x570d1c119980"
       ],
       "mutant": "no-metadata-validation",
       "killed": true
@@ -220,7 +220,7 @@
       "failed": 1,
       "rc": 1,
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x5876cfd91890"
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: 0x61209ef0f890"
       ],
       "mutant": "no-csv-validation",
       "killed": true
@@ -307,7 +307,7 @@
       "failed": 1,
       "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:137: not equal: expected nil, got table: 0x57049a292b20"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:137: not equal: expected nil, got table: 0x5e5ef88f4b20"
       ],
       "mutant": "ignored-host",
       "killed": true
@@ -317,7 +317,7 @@
       "failed": 1,
       "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:141: not equal: expected nil, got table: 0x61bd1b575f10"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:141: not equal: expected nil, got table: 0x5e47efb18f10"
       ],
       "mutant": "unreadable-own-identity",
       "killed": true
@@ -327,7 +327,7 @@
       "failed": 1,
       "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:143: not equal: expected nil, got table: 0x5836e850fca0"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:143: not equal: expected nil, got table: 0x5bc8dabceca0"
       ],
       "mutant": "combat-ingress",
       "killed": true
@@ -337,7 +337,7 @@
       "failed": 1,
       "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:143: not equal: expected nil, got table: 0x5f5f0f6402f0"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:143: not equal: expected nil, got table: 0x60186ee202f0"
       ],
       "mutant": "instance-ingress",
       "killed": true
@@ -347,7 +347,7 @@
       "failed": 1,
       "rc": 1,
       "caught_by": [
-        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:146: not equal: expected nil, got table: 0x5d1cc6f86a30"
+        "FLH: route identity ignore and unreadable context fail closed: test/flh.lua:146: not equal: expected nil, got table: 0x5c24bcbeba30"
       ],
       "mutant": "guildless-ingress",
       "killed": true
