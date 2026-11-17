@@ -229,13 +229,17 @@ function A.clubPeer(clubId,memberId)
         return gameId(v(r.bnetAccountId))
     end)
 end
-function A.bnGame(id)
+function A.bnGame(id,withGuid)
     return presenceRead(function(v)
         id=gameId(v(id)); if not id then return nil end
         local api=v(_G.C_BattleNet)
         if not S.tab(api) or type(v(api.GetGameAccountInfoByID))~="function" then return nil end
-        local r=peerGame(v(api.GetGameAccountInfoByID(id)),v)
-        if r and r.id==id then return r end
+        local game=v(api.GetGameAccountInfoByID(id))
+        local r=peerGame(game,v)
+        if r and r.id==id then
+            if withGuid then r.guid=S.str(v(game.playerGuid),80) end
+            return r
+        end
     end)
 end
 function A.bnAccount(id)
@@ -413,9 +417,9 @@ end
 function A.wall() return S.num(S.call(_G.time)) end
 -- WarBoard's pure protocol driver consumes only this guarded client snapshot.
 -- Ruleset spellings are protocol facts; unknown/numeric realm tags stay unknown.
-function A.warboardContext()
+function A.warboardContext(receiveOnly)
     return presenceRead(function(v)
-        if A.inCombat() or A.inInstance()~=false then return nil end
+        if not receiveOnly and (A.inCombat() or A.inInstance()~=false) then return nil end
         local now,wall=S.num(v(S.call(GetTime))),S.num(v(A.wall()))
         local realm=S.str(v(S.call(GetRealmName)),60)
         local faction=S.str(v(S.call(UnitFactionGroup,"player")),16)
@@ -425,6 +429,24 @@ function A.warboardContext()
         local api=v(_G.C_AddOns)
         local version=S.tab(api) and S.str(v(S.call(v(api.GetAddOnMetadata),"LayerEnemies","Version")),40) or nil
         return {now=now,wall=wall,rs=rs,faction=faction,version=version}
+    end)
+end
+function A.warboardTime()
+    return presenceRead(function(v)
+        local at=S.num(v(S.call(_G.GetServerTime)))
+        return at and at>0 and at<=4000000000 and at%1==0 and at or nil
+    end)
+end
+function A.warboardSelf()
+    return presenceRead(function(v)
+        local fn=v(_G.UnitNameUnmodified) or v(_G.UnitName)
+        local first,last=S.call(fn,"player")
+        first,last=S.str(v(first),36),v(last)
+        if not first or (last~=nil and last~="" and not S.str(last,36)) then return nil end
+        local name=first..(last and last~="" and (" "..last) or "")
+        local guid=S.str(v(S.call(UnitGUID,"player")),80)
+        if not guid or not guid:match("^Player%-%d+%-%x+$") or not N.Find.name(name) then return nil end
+        return {name=name,guid=guid}
     end)
 end
 -- HBD wire worldX/worldY correspond to Blizzard vector Y/X, respectively.

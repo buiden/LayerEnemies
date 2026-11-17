@@ -28,6 +28,8 @@ def main():
         runner = module_from_spec(spec)
         spec.loader.exec_module(runner)
         assert runner.ROOT == clone
+        assert runner.diagnostic('File "/random/tmp-a/test/case.py" got table: 0x123') == runner.diagnostic(
+            'File "/elsewhere/tmp-b/test/case.py" got table: 0x456'), 'diagnostics retain random paths/addresses'
         # A real rule kill, not a stubbed subprocess or empty mutant inventory.
         setattr(runner, 'MUTANTS', runner.MUTANTS[:1])
         cwd, old_tmpdir, old_cache = Path.cwd(), os.environ.get('TMPDIR'), tempfile.tempdir
@@ -41,6 +43,13 @@ def main():
                     runner.main()
                 except SystemExit as result:
                     assert result.code == 0, output.getvalue()
+                report = clone / 'notes/warboard-mutants.json'
+                before = report.read_bytes(), report.stat().st_mtime_ns
+                try:
+                    runner.main()
+                except SystemExit as result:
+                    assert result.code == 0, output.getvalue()
+                assert (report.read_bytes(), report.stat().st_mtime_ns) == before, 'evidence bytes/mtime changed on rerun'
         finally:
             os.chdir(cwd)
             if old_tmpdir is None:

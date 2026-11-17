@@ -65,15 +65,24 @@ end
 function Src.bnet(prefix,text,id)
     if not Src.owns(prefix) or S.secret(text) or not S.num(id) or id<1 or id%1~=0 then return false end
     local r=owners[prefix]
-    if not Src.enabled(r.name) or type(text)~="string" or #text>4096 then return false end
+    if type(text)~="string" or #text>4096 then return false end
+    local cleanup=r.name=="warboard" and N.WarBoardTrack and N.WarBoardTrack.hasOwed()
+        and (text:match("^WBF1|[HA]|") or N.WarBoardTrack.owedAccount(id)
+            or (N.WarBoard and N.WarBoard.state.peers[id]))
+    if not Src.enabled(r.name) and not cleanup then return false end
     Src.count(r.name,"heard"); return call(r,"onBNet",prefix,text,id)
 end
 function Src.tick(now)
     now=S.num(now)
     if not now or (last and now-last<1) then return end
     last=now
-    if N.Adapters.inCombat() or N.Adapters.inInstance()~=false then return end
-    for _,r in ipairs(order) do if Src.enabled(r.name) then call(r,"tick",now) end end
+    if N.Adapters.inCombat() or N.Adapters.inInstance()~=false then
+        if N.WarBoardTrack then N.WarBoardTrack.stop() end
+        return
+    end
+    for _,r in ipairs(order) do
+        if Src.enabled(r.name) or (r.name=="warboard" and N.WarBoardTrack and N.WarBoardTrack.hasOwed()) then call(r,"tick",now) end
+    end
 end
 local function pulse()
     timer=false

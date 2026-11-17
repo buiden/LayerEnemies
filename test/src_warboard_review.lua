@@ -336,17 +336,17 @@ end)
 
 test("README explains the new-peer publication side effect below the send table",function()
     local f=assert(io.open("README.md")); local text=f:read("*a"); f:close()
-    local line="When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position."
+    local line="When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user."
     local at=text:find(line,1,true); yes(at,"owner-approved disclosure retained verbatim")
-    yes(at>assert(text:find("**Nothing else**",1,true))); yes(at<assert(text:find("Both H and A",1,true)))
+    yes(at>assert(text:find("| Tracking request/cancel |",1,true))); yes(at<assert(text:find("H, A, FBAK and FBUN use",1,true)))
     local why=text:find("**Why the handshake is needed**",1,true)
-    yes(why and why>text:find("**Nothing else**",1,true) and why<at,"reason directly follows send table")
-    local section=text:sub(why,assert(text:find("Both H and A",why,true))-1)
+    yes(why and why>text:find("| Tracking request/cancel |",1,true) and why<at,"reason directly follows send table")
+    local section=text:sub(why,assert(text:find("H, A, FBAK and FBUN use",why,true))-1)
     for _,required in ipairs({"a player's zone and shard, positions, and kill records",
         "peers that have completed its hello/answer exchange", "never answers a hello receives nothing at all",
         "reading WarBoard is impossible without it", "under its own name and version",
         "every eligible opposite-faction Battle.net friend or community member account that is online in WoW",
-        "This part never sends the tracking request (see the tracking-request section when it is added)."}) do
+        "This handshake does not request a position broadcast; the tracking-request section above does."}) do
         yes(section:find(required,1,true),"handshake explanation includes: "..required)
     end
     eq(select(2,text:gsub("When LayerEnemies completes the handshake", "")),1,"no duplicate side-effect disclosure")
