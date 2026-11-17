@@ -36,7 +36,7 @@ add('public off silence', 'not authorized or not N.Main.sharing() or N.Net.conse
 add('stand down own sends', 'standDown="WarBoard"', 'standDown="Uninstalled"', 'stand down')
 add('no FBAK send', 'local text="WBF1|"..cmd', 'local text="WBF1|FBAK"..cmd', 'compatible H')
 add('no forwarding', 'if st.seen[encoded] then return duplicate() end', 'BN.send("warboard",71,"WarBoard","WBF1|D|"..encoded,"own")\n    if st.seen[encoded] then return duplicate() end', 'no FBAK or request')
-add('no alternative send route', 'return BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'N.Wire.send("WarBoard",text,"GUILD")\n    return BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'compatible H')
+add('no alternative send route', 'local accepted=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'N.Wire.send("WarBoard",text,"GUILD")\n    local accepted=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'compatible H')
 add('confirmed peer required', 'if not peer or peer.rs~=ctx.rs', 'peer=peer or {rs=ctx.rs,key=who.key,faction=who.faction,at=ctx.now}\n    if not peer or peer.rs~=ctx.rs', 'unconfirmed wrong')
 add('peer lifetime bounded', 'ctx.now-peer.at>=1200', 'ctx.now-peer.at>1200', 'unconfirmed wrong')
 add('identity rechecked', 'peer.key~=who.key', 'false', 'unconfirmed wrong')
@@ -168,6 +168,36 @@ add('real H leaves eight owed-only queue slots', 'normal>=52', 'normal>=60',
     'H cannot consume owed reserve', 'BNet.lua')
 add('real H and A expire after sixty seconds', 'now-q.at>60', 'now-q.at>61',
     'respects shared queue age', 'BNet.lua', suite='')
+
+
+# Stack-9 review: refusal accounting, fair discovery, disclosure and evidence.
+add('S1 refused H does not spend admission cooldown', 'if accepted and cmd=="H" then st.hellos[id]={at=ctx.now} end',
+    'if cmd=="H" then st.hellos[id]={at=ctx.now} end', 'queue refusal')
+add('S1 discovery resumes after last greeted account', 'if st.lastHello then',
+    'if false then', 'round robin')
+add('S1 discovery order is stable across roster changes', 'table.sort(ids)',
+    'do end', 'round robin')
+add('S1 refused accounts do not advance the greeting cursor',
+    'if identity(id,ctx) and send(st,id,"H",ctx) then st.lastHello=id end',
+    'if identity(id,ctx) then send(st,id,"H",ctx); st.lastHello=id end', 'round robin')
+review('N1 hello recipients are not restricted to known WarBoard users',
+       'every eligible opposite-faction Battle.net friend or community member account that is online in WoW',
+       "WarBoard users among the player's Battle.net friends and community members of the opposite faction",
+       'README explains', '../README.md')
+review('N2 tracking-request statement is scoped to this part',
+       'This part never sends the tracking request (see the tracking-request section when it is added).',
+       'LayerEnemies never sends the tracking request.', 'README explains', '../README.md')
+for name, old, new in (
+    ('source', "[stable_failure(line) for line in run.stdout.splitlines() if line.startswith('FAIL ')]",
+     "[line for line in run.stdout.splitlines() if line.startswith('FAIL ')]"),
+    ('presence', '[stable_failure(s) for s in output.splitlines() if s.startswith("FAIL Presence:")]',
+     '[s for s in output.splitlines() if s.startswith("FAIL Presence:")]'),
+):
+    add('N3 ' + name + ' failure identities normalized', old, new,
+        name + ' mutant evidence', '../test/' + name + '_mutants.py', suite='Stack: ')
+    add('N3 ' + name + ' identical evidence not rewritten',
+        'if not output.exists() or output.read_text() != evidence:', 'if True:',
+        name + ' mutant evidence', '../test/' + name + '_mutants.py', suite='Stack: ')
 
 
 def stable_failure(line):

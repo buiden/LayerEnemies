@@ -99,6 +99,129 @@ test("wrong ruleset H gets own A but no peer; wrong protocol gets nothing",funct
     inbound(hello()); advance(1); eq(#sends(),1)
 end)
 
+test("queue refusal does not spend H admission cooldown",function()
+    local N=setup(); local attempts=0; local queued=N.BNet.send
+    N.BNet.send=function(...) attempts=attempts+1; return queued(...) end
+    N.BNet.peers=function()
+        local rows={}
+        for i=1,12 do rows[i]={id=70+i,faction="Horde"} end
+        return rows
+    end
+    advance(1); eq(attempts,12); eq(N.BNet.queued(),10)
+    yes(N.WarBoard.state.hellos[71],"an admitted H spends the cooldown before dispatch")
+    eq(N.WarBoard.state.hellos[81],nil,"queue refusal must not spend a 600-second cooldown")
+    eq(N.WarBoard.state.hellos[82],nil,"each refused account remains eligible")
+    advance(59); eq(attempts,12,"no immediate retry between scans"); eq(#sends("H"),10)
+    advance(1); eq(attempts,14,"next scan can admit the two refused accounts")
+    advance(2); eq(#sends("H"),12)
+    eq(sends("H")[11].target,81); eq(sends("H")[12].target,82)
+end)
+
+test("round robin starts after the last admitted account in stable ID order",function()
+    local N=setup(); local order={}; local scans=0; local queued=N.BNet.send
+    N.BNet.send=function(net,id,...)
+        order[#order+1]=id
+        return queued(net,id,...)
+    end
+    N.BNet.peers=function()
+        scans=scans+1; local rows={{id=1,faction="Alliance"}}
+        -- Enumeration order changes; the last greeted account leaves before scan 3.
+        for i=1,40 do
+            local id=scans==1 and 70+i or 111-i
+            if scans<3 or id~=90 then rows[#rows+1]={id=id,faction="Horde"} end
+        end
+        rows[#rows+1]={id=71,faction="Horde"} -- friend/community duplicate
+        return rows
+    end
+    advance(1); eq(#order,20); eq(N.BNet.queued(),10)
+    for i=1,20 do eq(order[i],70+i) end
+    advance(60); eq(scans,2); eq(#order,40)
+    for i=1,20 do eq(order[20+i],80+i,"resume after last accepted, not last refused") end
+    advance(60); eq(scans,3); eq(#order,60)
+    for i=1,20 do eq(order[40+i],90+i,"removed cursor and reordered roster keep their place") end
+    advance(60); eq(scans,4); eq(#order,70)
+    for i=1,10 do eq(order[60+i],100+i,"wrap skips accounts still on cooldown") end
+    advance(10); eq(#sends("H"),40)
+end)
+
+for _,count in ipairs({12,20,25,40}) do
+    for _,mixed in ipairs({false,true}) do
+        test("hello reach over sixty minutes for "..count.." accounts"..(mixed and " with owed and shared traffic" or ""),function()
+            local N=setup(); local scans,attempts,lastScan=0,0,nil
+            local queued=N.BNet.send
+            N.BNet.send=function(net,id,prefix,text,prio,still)
+                if net=="warboard" and text:sub(6,6)=="H" then
+                    attempts=attempts+1; yes(attempts<=20,"at most twenty selections per scan")
+                end
+                return queued(net,id,prefix,text,prio,still)
+            end
+            N.BNet.peers=function()
+                if lastScan then yes(h.clock()-lastScan>=60,"scan cadence remains sixty seconds") end
+                lastScan=h.clock(); scans=scans+1; attempts=0
+                local rows={}
+                for i=1,count do rows[i]={id=70+i,faction="Horde"} end
+                return rows
+            end
+            local traffic={}
+            if mixed then
+                local fixture=assert(loadfile("test/bnet_queue_fixture.lua"))(h)
+                traffic={{"wanted","WNTDB",4},{"overlord","OLQueue",8}}
+                for _,r in ipairs(traffic) do fixture.register(N,r[1],r[2]) end
+                -- Enough distinct registered sources to exercise the shared 30/min cap.
+                for i=1,8 do
+                    local name,prefix="reach"..h.abc(i),"Reach"..i
+                    fixture.register(N,name,prefix); traffic[#traffic+1]={name,prefix,1}
+                end
+            end
+            for minute=1,60 do
+                if mixed then
+                    for _,r in ipairs(traffic) do
+                        for _=1,r[3] do yes(N.BNet.send(r[1],71,r[2],"load","own")) end
+                    end
+                    for i=1,6 do inbound(hello(),70+i) end
+                    eq(N.BNet.queued(),26,"six owed answers alongside twenty normal frames")
+                end
+                advance(60)
+            end
+            eq(scans,60)
+            local greeted,last,all,wb,answers={},{},{},{},{}
+            for _,s in ipairs(h.sent()) do if s.kind=="BN" then
+                all[#all+1]=s
+                if s.prefix=="WarBoard" then
+                    wb[#wb+1]=s
+                    if s.text:sub(6,6)=="H" then
+                        yes(s.target>=71 and s.target<=70+count)
+                        if last[s.target] then yes(s.at-last[s.target]>=600,"per-account H dispatch cooldown") end
+                        last[s.target]=s.at; greeted[s.target]=true
+                    else answers[#answers+1]=s end
+                end
+            end end
+            local reached=N.Safe.count(greeted)
+            print("REACH "..count..(mixed and " mixed" or " alone")..": "..reached.."/"..count)
+            eq(reached,count,"every continuously eligible account receives a hello")
+            for _,entry in ipairs({{all,30},{wb,10},{answers,6}}) do
+                local first=1
+                for i,s in ipairs(entry[1]) do
+                    while s.at-entry[1][first].at>=60 do first=first+1 end
+                    yes(i-first+1<=entry[2],"rolling shared/source/answer budget")
+                end
+            end
+            for i=2,#all do yes(all[i].at-all[i-1].at>=1,"shared one-second pace") end
+            if mixed then
+                eq(#answers,360,"owed answers keep their full six-per-minute allowance")
+                for i=1,6 do eq(all[i].text:sub(1,6),"WBF1|A","owed answers precede older normal work and discovery") end
+                local high=0; local first=1
+                for i,s in ipairs(all) do
+                    while s.at-all[first].at>=60 do first=first+1 end
+                    high=math.max(high,i-first+1)
+                end
+                eq(high,30,"exercise, not merely stay below, the shared cap")
+            end
+            no(N.Main.error)
+        end)
+    end
+end
+
 test("discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred",function()
     local N=setup(); local scans=0
     local attempts=0; local queued=N.BNet.send
@@ -112,12 +235,12 @@ test("discovery selects twenty opposite accounts at sixty seconds and greets onc
     eq(N.BNet.queued(),10,"the shared queue admits only WarBoard's ten slots")
     advance(59); eq(scans,1); eq(#sends("H"),10)
     advance(1); eq(scans,2)
-    advance(59); eq(#sends("H"),10); eq(attempts,20,"queue-refused hellos are not retried")
-    advance(480); eq(#sends("H"),10)
-    advance(120); eq(#sends("H"),20); eq(attempts,40)
+    advance(59); eq(#sends("H"),20); eq(attempts,35,"next scan reconsiders refusals and rotates")
+    advance(480); eq(#sends("H"),25,"all twenty-five accounts reached before any repeat")
+    advance(120); eq(#sends("H"),45); eq(attempts,60,"only the first two cohorts are eligible again")
     local last={}
     for _,s in ipairs(sends("H")) do
-        yes(s.target>=71 and s.target<=90)
+        yes(s.target>=71 and s.target<=95)
         if last[s.target] then yes(s.at-last[s.target]>=600,"per-account actual send gap") end
         last[s.target]=s.at
     end

@@ -77,14 +77,14 @@ local function send(st,id,cmd,ctx)
         local r=st.hellos[id]
         if r and recent(r.at,ctx.now,600) then return false end
         if not r and slots(st.hellos,ctx.now,600)>=200 then return refuse() end
-        st.hellos[id]={at=ctx.now} -- charge attempts, including queue refusal; no retry
+        -- Admission refusal leaves this account eligible for the next scan.
     else
         pruneTimes(st.answers,ctx.now)
         if #st.answers>=6 then return refuse() end
         st.answers[#st.answers+1]=ctx.now
     end
     local rs,faction=ctx.rs,ctx.faction
-    return BN.send("warboard",id,"WarBoard",text,prio,function(now)
+    local accepted=BN.send("warboard",id,"WarBoard",text,prio,function(now)
         local live=context()
         if not live or live.rs~=rs or live.faction~=faction or not identity(id,live) or now<ctx.now or now-ctx.now>=120 then return false end
         -- Actual-attempt caps as well as enqueue caps: a delayed cohort must not
@@ -101,6 +101,8 @@ local function send(st,id,cmd,ctx)
         end
         return true
     end)
+    if accepted and cmd=="H" then st.hellos[id]={at=ctx.now} end
+    return accepted
 end
 local Cd=N.Codec
 local function integer(v,lo,hi)
@@ -479,14 +481,25 @@ function W.tick(st,ctx)
     if recent(st.scan,ctx.now,60) then return end
     if not Src.enabled("warboard") or not N.Main.sharing() or not N.Net.allowed("warboard","public") then return end
     st.scan=ctx.now
-    local selected,seen=0,{}
+    -- Peer enumeration can change order or lose the previous account. Numeric
+    -- IDs give a stable ring; resume strictly after the last admitted hello.
+    local ids,seen={},{}
     for _,r in ipairs(BN.peers(ctx.now)) do
         if S.tab(r) and S.num(r.id) and r.id>0 and r.id%1==0 and not seen[r.id]
             and (r.faction=="Horde" or r.faction=="Alliance") and r.faction~=ctx.faction then
-            seen[r.id]=true; selected=selected+1
-            if selected>20 then break end
-            if identity(r.id,ctx) then send(st,r.id,"H",ctx) end
+            seen[r.id]=true; ids[#ids+1]=r.id
         end
+    end
+    table.sort(ids)
+    local start,selected=1,0
+    if st.lastHello then
+        for i,id in ipairs(ids) do if id>st.lastHello then start=i; break end end
+    end
+    for step=0,#ids-1 do
+        local id=ids[(start+step-1)%#ids+1]
+        selected=selected+1
+        if selected>20 then break end
+        if identity(id,ctx) and send(st,id,"H",ctx) then st.lastHello=id end
     end
 end
 Src.register{name="warboard",prefixes={"WarBoard","WarBoardBN"},counters={},

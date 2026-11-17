@@ -179,14 +179,18 @@ text rendering remain unverified. If no HELLO arrives, nothing new appears.
 
 **Why the handshake is needed**
 
-WarBoard only sends its data—a player's zone and shard, positions, and kill records—over Battle.net to peers that have completed its hello/answer exchange. A client that never answers a hello receives nothing at all, so reading WarBoard is impossible without it. LayerEnemies sends only that hello and answer, under its own name and version, to WarBoard users among the player's Battle.net friends and community members of the opposite faction. When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position. LayerEnemies never sends the tracking request.
+WarBoard only sends its data—a player's zone and shard, positions, and kill records—over Battle.net to peers that have completed its hello/answer exchange. A client that never answers a hello receives nothing at all, so reading WarBoard is impossible without it. LayerEnemies sends only that hello and answer, under its own name and version, to every eligible opposite-faction Battle.net friend or community member account that is online in WoW. When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position. This part never sends the tracking request (see the tracking-request section when it is added).
 
 Both H and A use **only the shared Battle.net queue**: together at most 10
 WarBoard send attempts/minute and at most **30 attempts/minute across all
 networks**, with at least one second between attempts.
 WarBoard may hold at most **10 queued H/A frames**; eight of the shared queue's
 60 slots are owed-only, and frames older than 60 seconds are dropped. Selection
-of 20 accounts does not promise 20 sends: queue refusals are not retried.
+of 20 accounts does not promise 20 sends. Scans rotate in stable account-ID order,
+starting after the last accepted hello. A queue refusal does not spend the
+600-second hello cooldown: the account can be reconsidered on a later scan,
+without an immediate retry. Accepted frames still keep their cooldown even if
+later dropped or refused at dispatch. Owed answers go before new hellos.
 They stop with
 `/le share off`, public networks off (**Guild only**), the WarBoard source
 switch off, or combat/instances. Loading the real WarBoard addon stops H

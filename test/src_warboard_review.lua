@@ -345,8 +345,8 @@ test("README explains the new-peer publication side effect below the send table"
     for _,required in ipairs({"a player's zone and shard, positions, and kill records",
         "peers that have completed its hello/answer exchange", "never answers a hello receives nothing at all",
         "reading WarBoard is impossible without it", "under its own name and version",
-        "Battle.net friends and community members of the opposite faction",
-        "LayerEnemies never sends the tracking request"}) do
+        "every eligible opposite-faction Battle.net friend or community member account that is online in WoW",
+        "This part never sends the tracking request (see the tracking-request section when it is added)."}) do
         yes(section:find(required,1,true),"handshake explanation includes: "..required)
     end
     eq(select(2,text:gsub("When LayerEnemies completes the handshake", "")),1,"no duplicate side-effect disclosure")

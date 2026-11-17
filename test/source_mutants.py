@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -55,6 +56,13 @@ MUTANTS = [
 ]
 
 
+def stable_failure(line):
+    # Keep the test filename, line, assertion and traceback; only the random
+    # checkout root and Lua object address are nondeterministic identities.
+    line = re.sub(r'File "[^"\n]*/(test/[^"/]+\.py)"', r'File "\1"', line)
+    return re.sub(r'\b(table|function|thread|userdata): 0x[0-9a-fA-F]+\b', r'\1: <address>', line)
+
+
 def main():
     results = []
     with tempfile.TemporaryDirectory(prefix='le-src-mutants-') as tmp:
@@ -70,7 +78,7 @@ def main():
                 subprocess.run([str(Path(LUA).with_name('luac')), '-p', str(path)], check=True, capture_output=True)
                 run = subprocess.run([LUA, 'test/harness.lua', '--only', selector], cwd=root,
                                      capture_output=True, text=True, timeout=180)
-                failures = [line for line in run.stdout.splitlines() if line.startswith('FAIL ')]
+                failures = [stable_failure(line) for line in run.stdout.splitlines() if line.startswith('FAIL ')]
                 killed = run.returncode != 0 and bool(failures) and 'RESULT:' in run.stdout
                 results.append({'rule': name, 'killed': killed, 'failures': failures})
                 print(('KILLED ' if killed else 'SURVIVED ') + name)
@@ -93,7 +101,9 @@ def main():
             finally:
                 path.write_text(original)
     output = ROOT / 'notes/source-mutants.json'
-    output.write_text(json.dumps(results, indent=2) + '\n')
+    evidence = json.dumps(results, indent=2) + '\n'
+    if not output.exists() or output.read_text() != evidence:
+        output.write_text(evidence)
     killed = sum(r['killed'] for r in results)
     print(f'RESULT: {killed}/{len(results)} source mutants killed')
     if killed != len(results):
