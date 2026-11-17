@@ -80,6 +80,32 @@ test("Presence: club character comes from account not member display name",funct
     scan(N); yes(row(N).presence,"display realm fallback is normalized")
 end)
 
+test("Presence: only online community members resolve Battle.net accounts",function()
+    local N,data,calls=ready(); data.ids={}
+    for i=1,1000 do data.ids[i]=i end
+    data.member=function(_,id) return {presence=id%10==0 and 1 or 3,bnetAccountId=42} end
+    N.Main.presenceScan(true); H.advance(.001)
+    eq(calls.members,50,"member work budget unchanged")
+    eq(calls.accounts,5,"only five online members resolve in the first tick")
+    for _=1,30 do if not N.Main.presenceJob then break end; H.advance(.001) end
+    eq(N.Main.presenceJob,nil); eq(calls.members,1000)
+    eq(calls.accounts,100,"900 offline members never look up an account")
+    yes(row(N).presence,"online members still contribute")
+    for _,presence in ipairs({0,2,3,6,false,H.secret,"Online"}) do
+        N,data,calls=ready(); data.member.presence=presence; scan(N)
+        eq(calls.accounts,0,"non-online or unreadable member skips account resolution")
+        eq(row(N).presence,nil)
+    end
+    for _,presence in ipairs({1,4,5}) do
+        N,data,calls=ready(); data.member.presence=presence; scan(N)
+        eq(calls.accounts,1,"Online Away and Busy still resolve"); yes(row(N).presence)
+    end
+    N,data,calls=ready(); scan(N); yes(row(N).presence)
+    data.member.presence=3; H.time(101); scan(N)
+    eq(calls.accounts,1,"offline reread does not repeat account lookup")
+    eq(row(N).presence,nil,"offline reread still withdraws previous evidence")
+end)
+
 test("Presence: account resolution unavailable secret incomplete and non WoW fail silent",function()
     for _,mode in ipairs({"missing","throw","secret","index","gameMissing"}) do
         local N,data=ready()
@@ -129,6 +155,10 @@ test("Presence: untracked offline mobile unknown and blank rows store nothing",f
     for _,change in ipairs({{characterName="Other Enemy"},{presence=0},{presence=2},{presence=3},{areaName=""},{factionName="Alliance"},{factionName="Neutral"}}) do
         local N,data,calls=ready(); for k,v in pairs(change) do
             if k=="presence" then data.member[k]=v else data.game[k]=v end
+        end
+        if change.presence then
+            eq(N.Presence.accept({name="Cedar Vale",zone="Ashenvale",faction="Horde",presence=change.presence},"community"),nil,
+                "pure presence admission independently refuses non-online members")
         end
         scan(N); eq(next(N.Main.find.presence),nil); eq(next(N.Main.presenceShared),nil); eq(calls.forbidden,0)
     end
@@ -332,6 +362,41 @@ test("Presence: UI and slash text show zone age and hide stale pooled line",func
     local bottom= -card.presence.point[5]+card.presence.height
     yes(bottom<=card.height-24,"presence line fits above buttons")
     data.game.areaName=""; H.time(800); N.UI.render(); no(card.presence:IsShown(),"pooled stale line hidden")
+end)
+
+test("Presence: measured presence cards keep several per page without overlap",function()
+    local N=ready(); local U=N.UI
+    local rows={{name="Cedar Vale"},{name="Birch Moss"},{name="Elm Grove"},
+        {name="Ash Reed"},{name="Oak Brook"},{name="Pine Wood"}}
+    N.Main.findRows=function() return rows end
+    U.frame:Show(); U.select("find")
+    local normalHeight=U.pool[1]:GetHeight()
+    for _,zone in ipairs({"Ashenvale","The Very Long Region around the Ruins of an Ancient Kingdom"}) do
+        for i,r in ipairs(rows) do r.presence={route=i%2==0 and "friend" or "community",zone=zone,age=3} end
+        U.offset=0; U.render()
+        local reached={}
+        for page=1,#rows do
+            local visible,bottom=0,0
+            for _,card in ipairs(U.pool) do if card:IsShown() then
+                visible=visible+1; reached[card.tracked]=true
+                local top=-card.point[5]
+                yes(top>=bottom,"presence cards never overlap")
+                bottom=top+card:GetHeight()
+                yes(bottom<=U.body:GetHeight(),"presence card fits inside page")
+                yes(card.presence:IsShown()); eq(card.sub:GetText(),"")
+                eq(card.presence:GetHeight(),math.ceil(card.presence:GetStringHeight()),"presence box is its measured height")
+                yes(card:GetHeight()<=normalHeight+card.presence:GetHeight()-12,"no fixed presence-only height surcharge")
+                yes(-card.presence.point[5]+card.presence:GetHeight()<=card:GetHeight()-24,"presence stays above Clear")
+                no(card.ask:IsShown(),"presence cannot create an action")
+            end end
+            yes(visible>=2,"several presence cards on every full page")
+            if zone=="Ashenvale" then eq(visible,3,"one-line presence cards page like normal cards") end
+            U.body.scripts.OnMouseWheel(nil,-1)
+        end
+        for _,r in ipairs(rows) do yes(reached[r.name],"all presence cards reachable") end
+    end
+    for _,r in ipairs(rows) do r.presence=nil end
+    U.render(); eq(U.pool[1]:GetHeight(),normalHeight); no(U.pool[1].presence:IsShown())
 end)
 
 test("Presence: invalid friend realm never falls back to a bare character",function()

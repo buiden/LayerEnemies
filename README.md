@@ -75,7 +75,9 @@ checklist is at the end.
 
 Find now reads the Battle.net communities you already belong to and your
 Battle.net friends. It adds `online (community)` or `online (friend)`, a zone,
-and the age of our read. It joins nothing and sends nothing: no new addon
+and the age of our read. Presence text uses its measured height, so a one-line
+presence-only card is as compact as a normal one-line card and wrapped zones
+still fit without overlapping. It joins nothing and sends nothing: no new addon
 messages, chat, Battle.net data, presence subscriptions, or `/who` by name.
 There is no per-community Watch button. No donor addon or donor code is used.
 
@@ -92,7 +94,8 @@ There is no per-community Watch button. No donor addon or donor code is used.
   accounts whose `wowProjectID` equals this client's `WOW_PROJECT_ID`.
 - A readable character name, realm, zone, and opposite faction are required.
   A community member's `bnetAccountId` is used only for
-  `C_BattleNet.GetAccountInfoByID`; its `gameAccountInfo` supplies the character,
+  `C_BattleNet.GetAccountInfoByID`; offline, mobile, unknown and unreadable member
+  presence are skipped before any account lookup. Its `gameAccountInfo` supplies the character,
   realm (`realmName` or `realmDisplayName`), zone and faction. It must be online
   in `WoW`, and community presence must be Online, Away, or Busy. A club member's
   display name is never a character match. Account IDs are not saved or printed;
