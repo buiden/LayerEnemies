@@ -1,0 +1,79 @@
+diff --git a/LayerEnemies/BNet.lua b/LayerEnemies/BNet.lua
+index 401033d..e6be13c 100644
+--- a/LayerEnemies/BNet.lua
++++ b/LayerEnemies/BNet.lua
+@@ -121,15 +121,11 @@ function BN.pump(now)
+                 end
+                 if valid~=true then refuse(q.net); complete(q,false); break end
+                 lastSend=now; times[#times+1]={at=now,net=q.net} -- spend before the client, including failures
+-<<<<<<< HEAD
+                 local valid,allowed=true,true
+                 if q.guard then valid,allowed=pcall(q.guard) end
+-                if valid and allowed and deliver(q) then N.Sources.count(q.net,"sent") else refuse(q.net) end
+-=======
+-                local ok=deliver(q)
++                local ok=valid and allowed and deliver(q) or false
+                 if ok then N.Sources.count(q.net,"sent") else refuse(q.net) end
+                 complete(q,ok)
+->>>>>>> 5b8545532d82fdbfd716eb5267616c5efdf4e9bc
+                 break -- never catch up several frames after a long pause
+             end
+         end
+@@ -147,12 +143,8 @@ schedule=function()
+     timer=ok and result==true
+     return timer
+ end
+-<<<<<<< HEAD
+-function BN.send(net,id,prefix,text,prio,guard)
++function BN.send(net,id,prefix,text,prio,still,tag,done,guard)
+     if S.secret(guard) or (guard~=nil and type(guard)~="function") then return refuse(net) end
+-=======
+-function BN.send(net,id,prefix,text,prio,still,tag,done)
+->>>>>>> 5b8545532d82fdbfd716eb5267616c5efdf4e9bc
+     if S.secret(prio) then return refuse(net) end
+     if S.secret(still) or (still~=nil and type(still)~="function") then return refuse(net) end
+     if S.secret(done) or (done~=nil and type(done)~="function") then return refuse(net) end
+@@ -167,12 +159,8 @@ function BN.send(net,id,prefix,text,prio,still,tag,done)
+     local now=S.num(S.call(GetTime))
+     if not now or count>=share(net) or (prio~="owed" and normal>=52) or not schedule() then return refuse(net) end
+     serial=serial+1
+-<<<<<<< HEAD
+-    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,guard=guard}
+-=======
+-    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,still=still,tag=tag,done=done,
++    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,still=still,tag=tag,done=done,guard=guard,
+         cleanup=withdrawal(net,id,prefix,text,prio)==true}
+->>>>>>> 5b8545532d82fdbfd716eb5267616c5efdf4e9bc
+     return true
+ end
+ function BN.cancel(net,tag)
+diff --git a/LayerEnemies/LayerEnemies.toc b/LayerEnemies/LayerEnemies.toc
+index 1e92f62..b2b81a3 100644
+--- a/LayerEnemies/LayerEnemies.toc
++++ b/LayerEnemies/LayerEnemies.toc
+@@ -46,12 +46,9 @@ Call.lua
+ OwnDeath.lua
+ CallUI.lua
+ Wanted.lua
+-<<<<<<< HEAD
+ OverlordPeer.lua
+-=======
+ WarBoard.lua
+ WarBoardTrack.lua
+->>>>>>> 5b8545532d82fdbfd716eb5267616c5efdf4e9bc
+ ChehulNet.lua
+ UI.lua
+ Main.lua
+diff --git a/LayerEnemies/Main.lua b/LayerEnemies/Main.lua
+index 932a83e..7b4cdbf 100644
+--- a/LayerEnemies/Main.lua
++++ b/LayerEnemies/Main.lua
+@@ -472,7 +472,7 @@ end
+ local function overlordSend(c,text,route,target,prio,job)
+     local P=N.OverlordPeer
+     local function guard() return P.claim(M.overlordPeer,job,M.overlordContext()) end
+-    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,guard) end
++    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,nil,nil,nil,guard) end
+     local live=M.overlordContext()
+     if not P.claim(M.overlordPeer,job,live,true) then return false end
+     local ok,_,attempted=N.Wire.send("OverlordF",text,route,target,{net="overlord",prio=prio=="owed" and "owed" or "mesh"})
