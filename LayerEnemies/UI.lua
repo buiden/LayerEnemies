@@ -121,7 +121,7 @@ function U.render()
     local liveSeen=#seen
     for _,e in ipairs(T.previous(M.store,time)) do seen[#seen+1]=e end
     local reports=M.reportedRows()
-    local friends=M.candidates()
+    local friends=N.ChehulNet.friendly(M.candidates())
     local eligible={}; for _,c in ipairs(friends) do eligible[c.short]=true end
     local tracked=M.findRows()
     local function locatedAt(row) return math.max(row.at or -math.huge,row.place and row.place.at or -math.huge) end
@@ -208,7 +208,8 @@ function U.render()
         elseif U.tab=="reported" then
             text="reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or "")
         elseif U.tab=="friendly" then
-            text=table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.flhKey and M.hostPlace(e) or (e.layer and "layer "..e.layer or "layer not known"))
+            text=e.chehulHint and e.chehulText or table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.flhKey and M.hostPlace(e) or (e.layer and "layer "..e.layer or "layer not known"))
+            if e.chehulText and not e.chehulHint then text=text.."\n"..e.chehulText end
         else
             text=M.findDetails(e) or (e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or ((e.place or e.presence) and "" or "Not located"))
             if e.probably and detailHeight==0 then text=text.." · probably your layer (key ambiguous)" end
@@ -282,8 +283,9 @@ function U.render()
             r.title:SetText("Unknown "..className(e.class))
             hopState(r,e.record)
         elseif U.tab=="friendly" then
-            local p=not e.unknownOwn and M.hostPreview(e)
-            if e.unknownOwn then unknownState(r)
+            local p=not e.chehulHint and not e.unknownOwn and M.hostPreview(e)
+            if e.chehulHint then askState(r,nil)
+            elseif e.unknownOwn then unknownState(r)
             elseif p then hostState(r,e,p)
             else askState(r,e.name,"Ask for invite") end
         else
