@@ -1,7 +1,9 @@
 # PR E1 — WarBoard handshake and receive
 
-Review baseline: `8fcbb39200a78a16408f384403205a5e5529fef0`.
-Review-ruling implementation: `aabfdad53b46dd9a087b5ac01a0c03bdf1091687`.
+Round-2 review baseline: `04fdf7a83f8fde65ef3834b6e40a49adf49cee3d`.
+Round-2 implementation: `98ba5668361b92e21ea3f3f904e1d4cdcb8e55a7`.
+Prior round-1 baseline: `8fcbb39200a78a16408f384403205a5e5529fef0`;
+implementation: `aabfdad53b46dd9a087b5ac01a0c03bdf1091687`.
 Original feature: `856a46f3a573f5548c7ab8ca64968df3575ceb5b`, on registry/codecs
 base `67953cfe6ef436c2df20b536f6cca5f0114ec773`.
 Local branch `feat/warboard`, clone `/opt/data/cache/scratch/le-warboard`.
@@ -36,7 +38,7 @@ When LayerEnemies completes the handshake, a real WarBoard client treats it as a
 This discloses the remote new-peer publication side effect without inventing an
 LE data send or a request to begin location tracking.
 
-## S1 — bounded decode work and all-frame memory
+## S1 — bounded decode work and replay memory
 
 ### Per-type inflation ceilings
 
@@ -81,9 +83,14 @@ without a policy keep the prior codec limits and first-return contract.
 
 ### Sender/account budget
 
-- At most **16 actual decode attempts** and **131,072 charged bytes per rolling
+- At most **16 expensive decode attempts** and **131,072 charged bytes per rolling
   10 seconds** per normalized character identity, shared across Battle.net,
-  both addon prefixes and GUILD/PARTY/RAID/CHANNEL.
+  both addon prefixes and GUILD/PARTY/RAID/CHANNEL. Round 2 counts only decodes
+  charged over 2,048 bytes as expensive. At the attempt limit, a frame still gets
+  a maximum 2,048-byte decode allowance, reduced by every remaining byte budget.
+  Thus small parsed frames do not spend expensive attempts, and small reports
+  remain eligible after sixteen large frames. Calls can exceed sixteen; their
+  actual and conservatively charged output remains byte-bounded.
 - Battle.net also charges a game-account-ID bucket. Changing character or
   renewing a handshake cannot reset that account's allowance.
 - Remaining byte allowance is passed into inflation, not checked only after a
@@ -93,22 +100,27 @@ without a policy keep the prior codec limits and first-return contract.
 - Each decode-bucket table has at most 200 entries, with expired entries reclaimed.
   The existing input limit of 120 frames/sender/rolling minute remains separate.
 
-### Remember every attempted payload
+### Replay memory excludes untracked-name refusals
 
 The new FIFO holds at most **512 payload fingerprints for 60 seconds**. A
 fingerprint is encoded length plus two rolling residues, not stored payload,
 decoded table or untracked player identity. It is refusal/dedupe memory, not
-proof of authenticity. Entries are added after every actual decode attempt:
-accepted, decoded-but-untracked, malformed, wrong-context and inflate failure.
-The cache is shared across carriers and transports, so a relay flood cannot
-repeat the same decompression. Hits do not refresh the first-receipt timestamp.
+proof of authenticity. Entries remember admitted, malformed, wrong-context and
+inflate-failed frames, but round 2 leaves **untracked-name refusals uncached**.
+Adding the name to Find therefore permits the exact same previously refused
+SHRD/FBLP/FREC/FBLC or wholly untracked FCBD immediately. Successfully admitted
+batches retain whole-payload replay protection. No decoded tables or untracked
+names are retained. The cache is shared across carriers and transports. Hits do
+not refresh the first-receipt timestamp; untracked retries still spend all byte
+budgets and the separate input-frame limit.
 
 A hit increments both `refused` and the new `deduped` counter exposed by
 `Sources.lines()` / `/le net`. Decode failures and exhausted budgets increment
 `refused`. The original accepted-payload replay cache remains independently
 bounded to 512 packets / 1 MiB; it prevents refreshing admitted evidence even
-after short-lived hash expiry. Local tracking/context changes do not reopen an
-untracked/context-refused payload before its 60-second hash expires.
+after short-lived hash expiry. Context refusals remain cached for 60 seconds;
+local tracking refusals do not. Later copies of a newly admitted frame cannot
+refresh its receipt time.
 
 ### The actual reviewer bomb, not a fabricated failure
 
@@ -123,13 +135,79 @@ meter and deliver the flood through real receive paths.
   dedupe hits**; the remaining frames fail the existing frame budget.
 - Twenty addon senders, 40 copies each: **1 inflate, 1,892 actual output bytes**,
   **800 refusals and 799 dedupe hits**. Each encoded copy uses real AceComm parts.
-- Distinct large frames test the 131,072-byte allowance without hash-cache help;
-  distinct small frames isolate the sixteen-attempt cap across all routes.
+- Distinct large frames test the 131,072-byte allowance without hash-cache help.
+  Round 2 migrates the attempt-cap fixtures to work above 2 KiB, tests the small
+  allowance after the cap, and preserves all cross-route/account/expiry checks.
 - The fixture generator reproduces the exact bytes with Python stdlib zlib.
   Raw fixture SHA256:
   `0d2af7304b78ac751c1663e50e976c860209574226ce1ac86f499429157ece52`.
 
 These are measured inflate-byte bounds, not wall-time claims about a live client.
+
+## S4 / N7 / N8 / N9 — round-2 owner rulings
+
+### Aggregate work and reserved capacity
+
+All unauthenticated routes share **196,608 charged inflate bytes (192 KiB) per
+rolling 10 seconds**. CHANNEL has an additional **131,072-byte (128 KiB)** ceiling,
+leaving **65,536 bytes (64 KiB)** that channel strangers cannot consume. GUILD,
+PARTY and RAID use the same total, across both prefixes. Confirmed Battle.net
+peers retain their sender/account budgets outside this aggregate pool; a renewed
+handshake or character change does not reset the account budget.
+
+The aggregate limit is two full 98,304-byte no-type bomb allowances. At the
+reviewer's approximately 21 ms per such bomb this is **about 42 ms of equivalent
+inflate work per 10 seconds**, well below the requested approximately 100 ms.
+This is a cap-sizing estimate, **not a measured client-time guarantee**. Tests
+assert output and charged bytes, never wall time. Remaining aggregate allowance
+reaches the real inflater before expansion. Charges expire individually at
+10 seconds; a FIFO with explicit head/tail indices avoids scans of every prior
+sender and Lua's undefined length for tables with holes. Equal-time charges are
+coalesced, without turning the rolling window into a fixed window.
+
+At most **100 channel-only identities** may occupy the existing **200-entry
+input table**, leaving 100 slots for group/BN input. A real group/BN input
+promotes its row out of the channel-only count. The existing canonical per-name
+rate checks remain shared across addon prefixes/routes; this input reservation
+also prevents channel-only names from filling the 200-name decode table. The
+input table expires idle rows at 60 seconds, decode tables at 10 seconds.
+
+### Reproductions and honest controls
+
+`test/fixtures/warboard-round2-bomb.bin` is byte-identical to reviewer `nt0.bin`:
+298 raw bytes, 551 addon-encoded bytes, **558 bytes with WBF1 D header**; it
+inflates to 262,027 bytes and parses under the former 262,144 ceiling. The stdlib
+zlib generator reproduces it; SHA256:
+`b1d57045e351985c7575f7a737eb342a3bc4737f4c5ccd30b93d434e439dd8d6`.
+Two empty nonfinal RFC1951 stored blocks vary only ignored padding, yielding
+1,024 distinct compressed streams of the same output. Every attack variant
+still takes three real AceComm frames. The 800-payload test proves uniqueness,
+so replay caching cannot hide aggregate-budget defects.
+
+| Receive-path workload | Actual inflate calls | Actual committed output | Charged output |
+|---|---:|---:|---:|
+| 20 GUILD senders × 40 distinct bombs | 3 | 195,891 bytes | 196,608 bytes |
+| 230 CHANNEL senders × one distinct bomb | 2 | 130,594 bytes | 131,072 bytes |
+| 119 valid SHRD from one confirmed account in one second | 119 | 21,896 bytes | 21,896 bytes |
+
+After the channel flood, a fresh guildmate's valid SHRD and a confirmed BN
+account's valid SHRD are both admitted immediately. Orphan continuation floods
+isolate sender-table pressure without inflation and still admit fresh GUILD,
+PARTY, RAID and BN senders. A separate mixed-route test exhausts the aggregate
+pool then proves confirmed BN still has room. Guild/group attackers can exhaust
+their own aggregate pool; the reserved share protects against **channel** abuse,
+not against arbitrary abuse from every group route.
+
+The 119-report control accepts **all 119**, not just sixteen. Separate controls
+prove that twenty cheap reports leave all sixteen expensive attempts available,
+small reports remain eligible after expensive attempts, and sustained sub-2-KiB
+frames still exhaust the unchanged 128-KiB byte limit. The independent
+120-incoming-frames/rolling-minute gate remains (the handshake uses one slot).
+
+Only three inherited regression bodies changed their assertions/fixtures:
+expensive attempt identity/expiry, BN character-switch accounting, and the
+owner-reversed untracked-frame caching policy. Other inherited assertions and
+production modules are unchanged; neither Codec.lua nor Sources.lua changed.
 
 ## S2 — assembly ownership
 
@@ -180,35 +258,53 @@ accounts are not guaranteed selection among the first 20.
 
 ## RED → GREEN, mutants and full verification
 
-- Final reviewer regression file on the untouched `8fcbb392` baseline:
-  **`RESULT: 2 tests passed, 26 failed, 1215 assertions`**, exit 1. The two
-  controls are BN-self wording and fitting normal producer payloads.
-- Same regressions after implementation: all 28 pass. Combined WarBoard suite:
-  **`RESULT: 86 tests passed, 0 failed, 32068 assertions`**, exit 0.
-- `python3 test/warboard_mutants.py`, exit 0:
-  **`RESULT: 86/86 WarBoard mutants killed`** (60 existing plus 26 added).
-  Each independently changed rule has an assertion-killed mutant. The report
-  [warboard-mutants.json](warboard-mutants.json) records selectors and failures;
-  syntax errors, runner errors and timeouts do not count as kills.
-- `python3 test/verify.py`, foreground, exit 0:
-  **`RESULT: 1382 tests passed, 0 failed, 207212 assertions`**.
-  Lua 5.1.5; 78 syntax files; API/send/static policy, harness selection, media,
+- Final `test/src_warboard_round2.lua` and its fixture/portable-runner helper on
+  an untouched detached `04fdf7a8` worktree:
+  **`RESULT: 0 tests passed, 15 failed, 1536 assertions`**, exit 1.
+  The production files and old mutant runner in that worktree were not changed.
+  The first aggregate, sender-slot, honest-burst, untracked and portability
+  regressions were also observed RED before implementing their guards.
+- Candidate combined WarBoard suites:
+  **`RESULT: 101 tests passed, 0 failed, 33829 assertions`**, exit 0.
+  All fifteen round-2 regressions pass, alongside the original and round-1 tests.
+- `python3 -B test/warboard_mutants.py`, exit 0:
+  **`RESULT: 98/98 WarBoard mutants killed`** (86 retained/migrated plus 12 new).
+  [warboard-mutants.json](warboard-mutants.json) records the exact rule, selector
+  and assertion failure for each. Lua and Python mutations are syntax checked;
+  timeout, syntax failure and outer-runner exceptions are not kills.
+- Initial mutant run classified the portable-runner case as survived (97/98),
+  although the Lua assertion did fail: its multiline Python diagnostic placed
+  `expected ...` on a different line. Making that test's diagnostic single-line
+  exposed the existing assertion to the unchanged classifier; all 98 then passed.
+  No behavioral assertion was weakened and no production guard changed for it.
+- The portability regression executes a real mutation from a relocated checkout
+  containing spaces, an unrelated working directory and a relative TMPDIR. It
+  checks the relocated report and scratch cleanup. The actual runner now uses
+  `tempfile.gettempdir()` without the owner-scratch assertion.
+- `python3 test/verify.py`, **foreground**, exit 0:
+  **`RESULT: 1397 tests passed, 0 failed, 208973 assertions`**.
+  Lua 5.1.5; 79 syntax files; API/send/static policy, harness selection, media,
   TOC and deterministic archive/source-parity checks all pass.
-- Archive: `dist/LayerEnemies-1.1.0.zip`, 54 members, 246,601 bytes; SHA256
-  `b40a76219a4c4ea7d34e00b5e9105ee5d24b98a9d6e94acf36890eb476e508cd`.
+- Archive: `dist/LayerEnemies-1.1.0.zip`, 54 members, 247,633 bytes; SHA256
+  `baaf3c3b66218a1a8719b96e91dbbb642387f9608fffad4aec0887948b66e316`.
   Foundation version remains 1.1.0 until the release PR. Generated
   verification.json retains inherited legacy descriptive strings; this report
   and README specify the WarBoard behavior.
-- Raw evidence: `/opt/data/cache/scratch/le-warboard-review-red-final.log`,
-  `le-warboard-review-focused.log`, `le-warboard-review-mutants.log`,
-  `le-warboard-review-verify.log` (all in that same scratch directory).
+- Logs under `/opt/data/cache/scratch/`: `le-warboard-r2-red-final.log`,
+  `le-warboard-r2-focused.log`, `le-warboard-r2-mutants.log` (first run),
+  `le-warboard-r2-mutants-final.log`, `le-warboard-r2-verify.log`.
 
-Changed implementation/test files: `LayerEnemies/{WarBoard,Codec,Sources}.lua`,
-`README.md`, `test/{src_warboard.lua,src_warboard_review.lua,warboard_mutants.py,warboard_vectors.py}`,
-and `test/fixtures/warboard-review-bomb.bin`. Regenerated test, verification and
-mutant notes plus this report are a separate notes-only commit.
+Round-2 implementation/test changes are limited to `LayerEnemies/WarBoard.lua`,
+the README WarBoard section, `test/src_warboard_review.lua`,
+`test/src_warboard_round2.lua`, `test/warboard_mutants.py`,
+`test/warboard_mutants_portability_test.py`, `test/warboard_vectors.py`, and
+`test/fixtures/warboard-round2-bomb.bin`. Regenerated test, verification and mutant
+notes plus this report are committed separately. Local commits only; no push.
 
-Self-review and a staged added-line secret/shell/eval/pickle scan found no issues.
-The parent independent review is separate. No live client, remote account,
-real SendGameData, fonts or native coordinate conversion was exercised:
+Self-review and an added-line credential/shell/eval/pickle scan found no issues;
+there are zero added outbound call lines. The parent independent review remains
+separate. The multi-owner 16-slot assembly saturation noted in N6 and the direct
+literal-heavy decoder performance noted in N10 were outside these owner rulings
+and are unchanged. No live client, remote account, real SendGameData, fonts or
+native coordinate conversion was exercised:
 **native checks not run (alpha, owner's decision)**.

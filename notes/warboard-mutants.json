@@ -603,12 +603,12 @@
     ]
   },
   {
-    "rule": "sixteen decode attempts per sender",
+    "rule": "sixteen expensive decode attempts per sender",
     "file": "WarBoard.lua",
     "selector": "WarBoard review: decode attempt cap",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: decode attempt cap spans both prefixes and every route for one identity: test/src_warboard_review.lua:110: one sender gets sixteen attempts per rolling ten seconds, not per route: expected 16, got 17"
+      "FAIL WarBoard review: decode attempt cap spans both prefixes and every route for one identity: test/harness.lua:7: no route reopens expensive attempts: expected true, got false"
     ]
   },
   {
@@ -617,7 +617,7 @@
     "selector": "WarBoard review: decode attempt cap",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: decode attempt cap spans both prefixes and every route for one identity: test/src_warboard_review.lua:112: not equal: expected 16, got 17"
+      "FAIL WarBoard review: decode attempt cap spans both prefixes and every route for one identity: test/src_warboard_review.lua:116: not equal: expected 2048, got 98304"
     ]
   },
   {
@@ -635,7 +635,7 @@
     "selector": "WarBoard review: decode attempt cap",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: decode attempt cap spans both prefixes and every route for one identity: test/src_warboard_review.lua:110: one sender gets sixteen attempts per rolling ten seconds, not per route: expected 16, got 24"
+      "FAIL WarBoard review: decode attempt cap spans both prefixes and every route for one identity: test/harness.lua:7: no route reopens expensive attempts: expected true, got false"
     ]
   },
   {
@@ -644,7 +644,7 @@
     "selector": "WarBoard review: BN decode quota",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: BN decode quota belongs to account as well as current character: test/src_warboard_review.lua:201: new character and handshake cannot reset account's decode quota: expected 16, got 17"
+      "FAIL WarBoard review: BN decode quota belongs to account as well as current character: test/src_warboard_review.lua:209: new character and handshake cannot reset account's expensive quota: expected 2048, got 98304"
     ]
   },
   {
@@ -657,12 +657,12 @@
     ]
   },
   {
-    "rule": "every decoded payload is hashed, not only failures",
+    "rule": "decoded non-tracking refusals are hashed, not only failures",
     "file": "WarBoard.lua",
-    "selector": "WarBoard review: decoded untracked frames",
+    "selector": "WarBoard review: every decoded frame",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: decoded untracked frames are deduped until sixty-second expiry: test/harness.lua:8: not equal: expected false, got true"
+      "FAIL WarBoard review: every decoded frame is hashed even when record or context is refused: test/src_warboard_review.lua:217: not equal: expected 1, got 2"
     ]
   },
   {
@@ -671,7 +671,7 @@
     "selector": "WarBoard review: failed hashes last",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: failed hashes last sixty seconds without repeat refresh or retained payloads: test/src_warboard_review.lua:140: shared transport failure memory: expected 1, got 2"
+      "FAIL WarBoard review: failed hashes last sixty seconds without repeat refresh or retained payloads: test/src_warboard_review.lua:145: shared transport failure memory: expected 1, got 2"
     ]
   },
   {
@@ -680,7 +680,7 @@
     "selector": "WarBoard review: failed hashes last",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: failed hashes last sixty seconds without repeat refresh or retained payloads: test/src_warboard_review.lua:141: exact failure expiry; repeats never refresh it: expected 2, got 1"
+      "FAIL WarBoard review: failed hashes last sixty seconds without repeat refresh or retained payloads: test/src_warboard_review.lua:146: exact failure expiry; repeats never refresh it: expected 2, got 1"
     ]
   },
   {
@@ -689,7 +689,7 @@
     "selector": "WarBoard review: failed hash cap",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: failed hash cap evicts oldest and does not retain more than 512: test/src_warboard_review.lua:190: not equal: expected 512, got 513"
+      "FAIL WarBoard review: failed hash cap evicts oldest and does not retain more than 512: test/src_warboard_review.lua:195: not equal: expected 512, got 513"
     ]
   },
   {
@@ -698,7 +698,7 @@
     "selector": "WarBoard review: decode sender bucket cap",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: decode sender bucket cap is independent of the input-frame bucket cap: test/src_warboard_review.lua:175: neither the sixteen/account nor input-frame cap may hide the sender-table bound: expected 200, got 201"
+      "FAIL WarBoard review: decode sender bucket cap is independent of the input-frame bucket cap: test/src_warboard_review.lua:180: neither the sixteen/account nor input-frame cap may hide the sender-table bound: expected 200, got 201"
     ]
   },
   {
@@ -716,7 +716,7 @@
     "selector": "WarBoard review: accepted payload duplicates",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: accepted payload duplicates count hash hits and preserve first receipt: test/src_warboard_review.lua:231: not equal: expected 1, got 0"
+      "FAIL WarBoard review: accepted payload duplicates count hash hits and preserve first receipt: test/src_warboard_review.lua:241: not equal: expected 1, got 0"
     ]
   },
   {
@@ -725,7 +725,7 @@
     "selector": "WarBoard review: one account holding unfinished",
     "killed": true,
     "failures": [
-      "FAIL WarBoard review: one account holding unfinished parts cannot starve another for ten minutes: test/src_warboard_review.lua:249: all fresh two-part SHRD from the other account stored: expected 20, got 0"
+      "FAIL WarBoard review: one account holding unfinished parts cannot starve another for ten minutes: test/src_warboard_review.lua:259: all fresh two-part SHRD from the other account stored: expected 20, got 0"
     ]
   },
   {
@@ -771,6 +771,118 @@
     "killed": true,
     "failures": [
       "FAIL WarBoard review: README explains the new-peer publication side effect below the send table: test/harness.lua:7: owner-approved disclosure retained verbatim: expected true, got false"
+    ]
+  },
+  {
+    "rule": "overall unauthenticated decode ceiling",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: overall ceiling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: overall ceiling bounds twenty senders times forty distinct bombs: test/harness.lua:7: all unauthenticated senders share 192 KiB per ten seconds: expected true, got false"
+    ]
+  },
+  {
+    "rule": "aggregate bytes charged across senders and routes",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: all addon routes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: all addon routes share one ceiling while confirmed BN is separate: test/src_warboard_round2.lua:115: not one global budget per route or prefix: expected 196608, got 393216"
+    ]
+  },
+  {
+    "rule": "channel cannot spend the guild reserve",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: channel flood",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: channel flood leaves a guild reserve and confirmed BN room: test/harness.lua:7: channel strangers cannot consume the 64 KiB group reserve: expected true, got false"
+    ]
+  },
+  {
+    "rule": "channel byte charges retained",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: channel flood",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: channel flood leaves a guild reserve and confirmed BN room: test/harness.lua:7: channel strangers cannot consume the 64 KiB group reserve: expected true, got false"
+    ]
+  },
+  {
+    "rule": "aggregate budget uses a rolling ten-second window",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: overall window",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: overall window is rolling with exact expiry and rollback refusal: test/src_warboard_round2.lua:217: not equal: expected 196608, got 294912"
+    ]
+  },
+  {
+    "rule": "confirmed BN has separate aggregate room",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: all addon routes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: all addon routes share one ceiling while confirmed BN is separate: test/src_warboard_round2.lua:118: not equal: expected 3, got 2"
+    ]
+  },
+  {
+    "rule": "channel strangers cannot fill sender slots",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: channel sender slots",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: channel sender slots cannot evict fresh guild party raid or BN senders: test/harness.lua:7: GUILD retains sender-table room after 230 strangers: expected true, got false"
+    ]
+  },
+  {
+    "rule": "small honest bursts not clipped at sixteen frames",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: cheap honest burst",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: cheap honest burst accepts all 119 SHRD from one confirmed account: test/src_warboard_round2.lua:127: small honest reports do not spend expensive attempts: expected 119, got 16"
+    ]
+  },
+  {
+    "rule": "cheap frames do not consume expensive attempts",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: cheap reports leave",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: cheap reports leave all sixteen expensive attempts available: test/src_warboard_round2.lua:141: cheap frames cannot consume expensive attempts: expected 21, got 20"
+    ]
+  },
+  {
+    "rule": "cheap probe remains available after expensive attempts",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: expensive attempts stay",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: expensive attempts stay capped but leave the cheap path open: test/harness.lua:7: route aliases cannot recover expensive allowance: expected true, got false"
+    ]
+  },
+  {
+    "rule": "untracked refusals are not remembered",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: untracked ",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: untracked SHRD reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1",
+      "FAIL WarBoard R2: untracked FBLP reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1",
+      "FAIL WarBoard R2: untracked FREC reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1",
+      "FAIL WarBoard R2: untracked FBLC reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1",
+      "FAIL WarBoard R2: untracked FCBD reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "mutant runner does not require owner scratch path",
+    "file": "../test/warboard_mutants.py",
+    "selector": "WarBoard R2: portable mutant runner",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"/opt/data/cache/scratch/le-warboard-mutants-5lyf8h1a/test/warboard_mutants_portability_test.py\", line 59, in <module> |     main() |     ~~~~^^ |   File \"/opt/data/cache/scratch/le-warboard-mutants-5lyf8h1a/test/warboard_mutants_portability_test.py\", line 41, in main |     runner.main() |     ~~~~~~~~~~~^^ |   File \"/opt/data/cache/scratch/warboard-portable-0m7ksbpz/different checkout/test/warboard_mutants.py\", line 166, in main | AssertionError | : expected true, got false"
     ]
   }
 ]

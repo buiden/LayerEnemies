@@ -1369,7 +1369,7 @@ PASS WarBoard review: decode sender bucket cap is independent of the input-frame
 PASS WarBoard review: failed hash cap evicts oldest and does not retain more than 512
 PASS WarBoard review: BN decode quota belongs to account as well as current character
 PASS WarBoard review: every decoded frame is hashed even when record or context is refused
-PASS WarBoard review: decoded untracked frames are deduped until sixty-second expiry
+PASS WarBoard review: decoded untracked frames reopen on tracking without waiting sixty seconds
 PASS WarBoard review: accepted payload duplicates count hash hits and preserve first receipt
 PASS WarBoard review: one account holding unfinished parts cannot starve another for ten minutes
 PASS WarBoard review: two assembly slots per account release on completion conflict and expiry
@@ -1392,4 +1392,22 @@ SIZE FCBD: 63572 / 98304
 SIZE FCBD: 63572 / 98304
 PASS WarBoard review: largest normal location payloads survive either envelope key order
 PASS WarBoard review: README explains the new-peer publication side effect below the send table
-RESULT: 1382 tests passed, 0 failed, 207212 assertions
+WORK R2 guild800: 3 calls, 195891 actual, 196608 charged
+PASS WarBoard R2: overall ceiling bounds twenty senders times forty distinct bombs
+WORK R2 channel230: 2 calls, 130594 actual, 131072 charged
+PASS WarBoard R2: channel flood leaves a guild reserve and confirmed BN room
+PASS WarBoard R2: channel sender slots cannot evict fresh guild party raid or BN senders
+PASS WarBoard R2: all addon routes share one ceiling while confirmed BN is separate
+WORK R2 honest119: 21896 actual, 21896 charged; all accepted
+PASS WarBoard R2: cheap honest burst accepts all 119 SHRD from one confirmed account
+PASS WarBoard R2: cheap reports leave all sixteen expensive attempts available
+PASS WarBoard R2: cheap frames still exhaust the byte budget
+PASS WarBoard R2: expensive attempts stay capped but leave the cheap path open
+PASS WarBoard R2: untracked SHRD reopens immediately when the name is added
+PASS WarBoard R2: untracked FBLP reopens immediately when the name is added
+PASS WarBoard R2: untracked FREC reopens immediately when the name is added
+PASS WarBoard R2: untracked FBLC reopens immediately when the name is added
+PASS WarBoard R2: untracked FCBD reopens immediately when the name is added
+PASS WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch
+PASS WarBoard R2: overall window is rolling with exact expiry and rollback refusal
+RESULT: 1397 tests passed, 0 failed, 208973 assertions
