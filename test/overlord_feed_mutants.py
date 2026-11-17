@@ -3,7 +3,7 @@ import argparse
 from overlord_peer_mutants import run
 
 RULES = [
- ('fail closed unavailable feed','Q.available=false','Q.available=true'),
+ ('reachable unknown feed','Q.available=true','Q.available=false'),
  ('receipt uses live context','if not valid(live) then return end','if not valid() then return end'),
  ('race strings not integers','(#f==9 and not raceWire(f[9]))','(#f==9 and not uint(f[9],255,1))'),
  ('race strings validated','(#f==9 and not raceWire(f[9]))','false'),
@@ -12,17 +12,17 @@ RULES = [
  ('K refuses garbage twelfth field','if f and #f==13 and F.fold(f[1])','if f and #f==12 then table.remove(f);table.insert(f,10,"Orc");table.insert(f,11,"2") end; if f and #f==13 and F.fold(f[1])'),
  ('K race must be valid','and raceNames[f[10]]','and true'),
  ('K sex must be valid','and f[11]:match("^[023]$")','and true'),
- ('two sources','S.count(st.sessions)<2','S.count(st.sessions)<3'),
+ ('two sources','S.count(st.sources)<2','S.count(st.sources)<3'),
  ('200s admission','c.now-s.attempt>=200','c.now-s.attempt>=199'),
  ('200s dispatch','"feed:"..key,200,false','"feed:"..key,199,false'),
- ('current peer release','and supported(r) and friend(r,c)','and friend(r,c)'),
- ('epoch required','for key,r in pairs(peer.routes) do','for key,r in pairs(peer.routes) do\n        if not r.epoch then r.epoch=c.wall-100;r.epochAt=c.now end'),
+ ('current peer release','and supported(r) and (r.route','and (r.route'),
+ ('epoch required','if current(r,c) and quiet(st,key,c) then','if not r.epoch then r.epoch=c.wall-100;r.epochAt=c.now end; if current(r,c) and quiet(st,key,c) then'),
  ('no future epoch','if e and e<=c.wall then','if e then'),
  ('owner epoch only','and F.fold(f[1])==F.fold(p.origin)','and true'),
- ('epoch conflict cancels','if r.epoch~=e then st.sessions[F.fold(r.name)]=nil end','if false then st.sessions[F.fold(r.name)]=nil end'),
+ ('epoch conflict cancels','if r.epoch~=e then Q.stop(st,peer,c,F.fold(r.name)) end','if false then Q.stop(st,peer,c,F.fold(r.name)) end'),
  ('fresh route','c.now-r.at<300','c.now-r.at<301'),
  ('fresh epoch','c.now-r.epochAt<600','c.now-r.epochAt<601'),
- ('successful announcement','and announced(peer,r,c)','and true'),
+ ('quiet prerequisite','source and c.now-source.since>300','true'),
  ('queued peer recheck','and latest.id==s.id','and true'),
  ('receipt friend check','or not friend(r,c)','or false'),
  ('direct feed only','if not ready(c) or not r or p.hops~=0 or p.target~=c.me','if not ready(c) or not r or p.target~=c.me'),
@@ -63,7 +63,7 @@ RULES = [
 ]
 MUTANTS=[(rule,'OverlordFeed.lua',old,new,'Overlord feed:') for rule,old,new in RULES]
 MUTANTS += [
- ('no false equal response','OverlordPeer.lua','and tonumber(count)==0 and tonumber(hash)==0','and true','Overlord feed:'),
+ ('no false equal response','OverlordPeer.lua','local body=table.concat({v,"R",e,nonce,seq},":")','local body=table.concat({v,"S",e,nonce,seq,"LK",0,0},":")','Overlord feed:'),
  ('share cancels lease','Main.lua','N.BNet.cancel(); M.overlordCancel()','N.BNet.cancel()','Overlord feed:'),
  ('guild cancels lease','Net.lua','if level~="public" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end','if false then N.Main.overlordCancel() end','Overlord feed:'),
  ('switch cancels lease','Net.lua','if on~=true and key=="overlord" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end','if false then N.Main.overlordCancel() end','Overlord feed:'),

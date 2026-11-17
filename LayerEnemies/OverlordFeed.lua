@@ -34,7 +34,7 @@ local function supported(r)
     return major and (tonumber(major)>2 or tonumber(major)==2 and tonumber(minor)>=5)
 end
 local function friend(r,c)
-    if r.route~="BNET" then return true end
+    if r.route~="BNET" then return c.groups and c.groups[F.fold(r.name)]==c.faction end
     for _,v in ipairs(c.friends or {}) do
         if v.friend and v.id==r.id and F.fold(v.name)==F.fold(r.name) then return true end
     end
@@ -52,6 +52,7 @@ end
 -- selected player can hear, for strictly >300 s (the donor retains age ==300).
 function Q.prepare(st,peer,c)
     peer.feed=st
+    Q.pruneStops(st,c)
     if not Q.available or not ready(c) then return end
     for key,source in pairs(st.sources) do
         local r=peer.routes[key]
@@ -103,6 +104,13 @@ end
 function Q.cancel(st,peer,c)
     for key in pairs(st.sessions) do Q.stop(st,peer,c,key) end
     st.sources={}
+    Q.pruneStops(st,c)
+end
+function Q.pruneStops(st,c)
+    if not c or not S.num(c.now) then return end
+    for key,row in pairs(st.stops) do
+        if c.now<row.at or c.now-row.at>60 then st.stops[key]=nil end
+    end
 end
 function Q.observe(st,peer,p,r,c)
     if not ready(c) or not r or p.hops~=0 then return end

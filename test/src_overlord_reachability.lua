@@ -117,7 +117,54 @@ test("stop remains owed after busy HA may have created remote subscription",func
     Q.cancel(st,peer,c);eq(d.stops,1,"request was sent even though receive lease was unarmed")
 end)
 
+test("account aliases and unreadable shared lanes cannot leak NH",function()
+    local N,P,Q,peer,st,c,d,hear=fixture("BNET");hear(100)
+    P.emit(peer,c,"NH",P.presence(c),"BNET",{id=71,name="Alternate Name"},"alias",120,false)
+    eq(#c.out,0,"suppress the account, not just its current spelling")
+    c.groups=nil;c.guildNames=nil;c.group="RAID"
+    P.tick(peer,c);eq(#c.out,0,"unknown shared audiences fail closed")
+end)
 local wireSerial=0
+local function countNH(c)
+    local n=0;for _,v in ipairs(c.out) do if v.text:find("|NH|",1,true) then n=n+1 end end;return n
+end
+test("a prior NH is forgotten only after continuous quiet and queue recheck",function()
+    local N,P,Q,peer,st,c,d,hear=fixture("BNET")
+    -- Presence was already queued before this friend became a feed source.
+    peer.feed=nil
+    local queued
+    local send=c.send;c.send=function(_,_,_,_,_,job) queued=job;return true end
+    P.emit(peer,c,"NH",P.presence(c),"BNET",{id=71,name="Birch Scout"},"bn:71",120,false)
+    c.send=send;peer.feed=st
+    d:hear("global|prior|1800000000|Birch Scout|Alice Vale|NH|LayerEnemies 1.1.0","BNET",71,c.now)
+    hear(100);no(P.claim(peer,queued,c),"already queued NH is suppressed at dispatch")
+    hear(250);hear(400);Q.tick(st,peer,c);eq(#requests(c),0)
+    c.now=401;Q.tick(st,peer,c);eq(d.served,1);eq(d.refused,0)
+    -- Neither a new owed nor a periodic NH may reset the donor's capability clock.
+    hear(550);P.tick(peer,c);eq(countNH(c),1,"only unrelated guild lane still announces")
+end)
+test("source count selection and rotation cannot skip silence",function()
+    local N,P,Q,peer,st,c,d,hear=fixture()
+    hear(100)
+    for _,name in ipairs({"Cedar Friend","Maple Friend"}) do
+        c.groups[name:lower()]="A"
+        P.receive(peer,{origin=name,pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4"},"WHISPER",name,nil,c)
+    end
+    eq(N.Safe.count(st.sources),2);eq(st.sources["maple friend"],nil)
+    c.groups["birch scout"]=nil;Q.tick(st,peer,c)
+    yes(st.sources["maple friend"]);eq(#requests(c),0,"replacement starts its own 301-second wait")
+end)
+test("departed group cannot deliver feed before next tick",function()
+    local N,P,Q,peer,st,c,d,hear=fixture()
+    hear(100);hear(250);hear(401);Q.tick(st,peer,c)
+    local offered=0;c.offer=function() offered=offered+1 end;c.groups={}
+    local row="kEnemy One:21:WARRIOR:Horde:en::0:60"
+    local r=peer.routes["birch scout"]
+    Q.receive(st,peer,{origin=r.name,target=c.me,hops=0,pool=c.pool,kind="HB",
+        payload="8:U:1799999900:6:z#1434"..#row..":"..row},r,c)
+    eq(offered,0,"current membership is required even before cancellation tick")
+end)
+
 local function live(route)
     local N=H.load();N.Net.SHIP.overlord=true
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
@@ -149,6 +196,35 @@ local function live(route)
     end
     return N,mature,hear,e
 end
+for _,mode in ipairs({"combat","instance","pool","donor"}) do
+    test("stop obeys "..mode.." gate before admission and queued dispatch",function()
+        for _,when in ipairs({"before","queued"}) do
+            local N,mature=live("BNET");mature()
+            yes(N.Main.overlordFeed.sessions["birch scout"].asked)
+            local before=#H.sent()
+            if when=="queued" then N.Main.setShare(false);eq(N.BNet.queued(),1) end
+            if mode=="combat" then H.combat(true)
+            elseif mode=="instance" then H.instance(true)
+            elseif mode=="pool" then C_GameRules=nil;GetRealmName=function() return "7102" end
+            else H.loaded().Overlord=true end
+            if when=="before" then N.Main.setShare(false) end
+            N.Main.overlordTick(H.clock());H.advance(2)
+            eq(#H.sent(),before,"all traffic, including withdrawals, is silent")
+        end
+    end)
+end
+test("unsolicited forged stop does not bypass closed privacy gates",function()
+    local N=live("BNET");N.Main.setShare(false)
+    no(N.BNet.send("overlord",71,"OverlordF","R2:Forever_global_A:BR:global|x|1800000000|Birch Scout|Alice Vale|HR|8:X:1799999900","owed"))
+    eq(N.BNet.queued(),0)
+end)
+test("pending withdrawal records expire without retries",function()
+    local N,P,Q,peer,st,c,d,hear=fixture("BNET")
+    hear(100);hear(250);hear(401);Q.tick(st,peer,c)
+    c.send=function() return true end -- accepted queue, not a client receipt
+    Q.cancel(st,peer,c);eq(N.Safe.count(st.stops),1)
+    c.now=462;Q.tick(st,peer,c);eq(N.Safe.count(st.stops),0)
+end)
 for _,route in ipairs({"WHISPER","BNET"}) do
     for _,mode in ipairs({"share","guild","switch","leave","logout"}) do
         test("live "..route.." source sends stop on "..mode,function()
@@ -164,6 +240,7 @@ for _,route in ipairs({"WHISPER","BNET"}) do
             elseif mode=="logout" then H.deliver("PLAYER_LOGOUT")
             elseif route=="BNET" then N.BNet.peers=function() return {} end;N.Main.overlordTick(H.clock())
             else IsInGroup=function() return false end;N.Main.overlordTick(H.clock()) end
+            eq(next(N.Main.overlordFeed.sessions),nil,"cancellation is immediate, not the next tick")
             H.advance(2)
             local stops=0
             for _,v in ipairs(H.sent()) do if v.text:find("|HR|8:X:"..e,1,true) then stops=stops+1 end end

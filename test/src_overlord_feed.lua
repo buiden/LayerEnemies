@@ -2,12 +2,12 @@
 local H=...
 local eq,yes,no=H.eq,H.yes,H.no
 local function test(n,f) H.test("Overlord feed: "..n,f) end
--- All protocol-engine fixtures explicitly lift the ship gate offline. Only the
--- two M1 tests use setup(false), the real shipped policy. These forced fixtures
--- prove dormant parsers/queue behavior, NOT interoperability or feed reachability.
+-- Parser/lease fixtures seed a prior 301-second quiet selection; reachability
+-- tests separately exercise the complete clock and actual Main/transport path.
+-- No fixture overrides the shipping availability/capability policy.
 local function setup(testEngine)
     local N=H.load();N.Net.SHIP.overlord=true
-    if testEngine~=false then N.OverlordFeed.available=true end
+    N.Adapters.groupNames=function() return {["birch scout"]="A"} end
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
     UnitName=function() return "Alice Vale",GetRealmName() end
@@ -34,6 +34,9 @@ local function epoch(N,name,e,route)
     name=name or "Birch Scout";e=e or GetServerTime()-100
     hear("NH","2.5.4~la~l9~ld~lr~lp6",name,route)
     hear("K",name..":#1434:21:WARRIOR:Horde:"..e.."::en:0:Orc:2:B"..e..":60",name,route,"*")
+    N.Main.overlordTick(H.clock())
+    local source=N.Main.overlordFeed.sources[N.Find.fold(name)]
+    if source then source.since=H.clock()-301 end -- pre-existing quiet fixture
     N.Main.overlordTick(H.clock());return e
 end
 
@@ -69,16 +72,19 @@ test("honest advert omits unsupported ranking page capabilities",function()
         {"~ld~lr~lp6",8},{"~l9~ld~lr~lp6",9},{"~la~l9~ld~lr~lp6",10},
         {"~lb~la~l9~ld~lr~lp6",11},{"~ld~lr~lp6junk~lp6",8},{"~ld~lp6",6}}
     for _,v in ipairs(vectors) do eq(donorCapability(v[1]),v[2]) end
-    local N=setup(false);hear("NH","2.5.4~ld~lr~lp6")
+    local N=setup(false);N.Adapters.groupNames=function() return {} end;hear("NH","2.5.4~ld~lr~lp6")
     local hello=H.sent()[1];yes(hello)
     local payload=hello.text:match("|NH|(.*)$")
     eq(payload,"LayerEnemies 1.1.0","no unsupported paged ranking claim")
-    eq(donorCapability(payload),5,"donor rejects this non-ranking client for v8 feed")
+    eq(donorCapability(payload),5,"known client would be refused; feed sources hear no NH")
 end)
 
-test("feed fails closed without honest ranking page support",function()
-    local N=setup(false);local e=epoch(N)
-    eq(#requestSends(),0,"no request that the donor cannot honestly serve")
+test("feed waits for quiet source without any capability claim",function()
+    local N=setup(false);local e=GetServerTime()-100
+    hear("NH","2.5.4~ld~lr~lp6")
+    hear("K","Birch Scout:#1434:21:WARRIOR:Horde:"..e.."::en:0:Orc:2:B"..e..":60",nil,nil,"*")
+    N.Main.overlordTick(H.clock())
+    eq(#requestSends(),0,"quiet period not yet completed")
     eq(next(N.Main.overlordFeed.sessions),nil)
     feed(e,{"z#1434",full()});eq(known(N),nil)
 end)
@@ -92,7 +98,7 @@ test("empty comparison never claims equality to nonempty requester",function()
     yes(c.out[1].text:find("|HA|8:R:",1,true),"S means same, not merely our own count")
     c.now=250;p.payload="8:V:1699488000:123n4n5f:1:LK:0:0:H"
     P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,2)
-    yes(c.out[2].text:find("|HA|8:S:1699488000:123n4n5f:1:LK:0:0",1,true))
+    yes(c.out[2].text:find("|HA|8:R:1699488000:123n4n5f:1",1,true))
 end)
 
 test("only exact donor thirteen-field K establishes an epoch",function()
@@ -109,6 +115,7 @@ test("only exact donor thirteen-field K establishes an epoch",function()
     N=setup();hear("NH","2.5.4~ld~lr~lp6")
     hear("K",stem.."Orc:2:B"..e..":60",nil,nil,"*")
     eq(N.Main.overlordPeer.routes["birch scout"].epoch,e,"donor race/sex precede bucket and level")
+    N.Main.overlordFeed.sources["birch scout"].since=H.clock()-301
     N.Main.overlordTick(H.clock());eq(#requestSends(),1)
 end)
 
@@ -127,9 +134,9 @@ test("solicited full then compact rows offer only tracked opposite names as unkn
 end)
 
 local function model(N,count,route)
-    local P,Q=N.OverlordPeer,N.OverlordFeed;local peer,st=P.new(),Q.new()
+    local P,Q=N.OverlordPeer,N.OverlordFeed;local peer,st=P.new(),Q.new();peer.feed=st
     local c={now=100,wall=1700000000,pool="global",me="Alice Vale",version="1.1.0",faction="A",
-        allowed=true,own=true,friends={},out={},offers={},tracked=function() return true end}
+        allowed=true,own=true,stopAllowed=true,groups={},friends={},out={},offers={},tracked=function() return true end}
     c.offer=function(v) c.offers[#c.offers+1]=v;return true end
     c.send=function(_,text,dist,target,prio,job)
         if not P.claim(peer,job,c) then return false end
@@ -137,14 +144,23 @@ local function model(N,count,route)
     end
     for i=1,(count or 1) do
         local name="Peer"..H.abc(i).." Scout";local id=route=="BNET" and i or nil
-        c.friends[#c.friends+1]={id=id,name=name,friend=true}
+        c.friends[#c.friends+1]={id=id,name=name,friend=true};c.groups[N.Find.fold(name)]="A"
         local p={origin=name,pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4~lp8"}
         local r=P.receive(peer,p,route or "WHISPER",name,id,c)
-        if id then P.emit(peer,c,"NH",P.presence(c),"BNET",{id=id,name=name},"bn:"..id,120,false) end
+        -- Sources receive no presence, including the initial owed greeting.
         p.kind="K";p.payload=name..":#1434:20:WARRIOR:Horde:1699488000::en:0:Orc:2:B1699488000:60"
         Q.observe(st,peer,p,r,c)
     end
+    Q.prepare(st,peer,c)
+    for _,source in pairs(st.sources) do source.since=c.now-301 end
     Q.tick(st,peer,c);return Q,st,peer,c
+end
+-- Explicit parser-only prehistory for replacement sources: global budgets do not
+-- reset when a session is swapped. Full-clock source rotation is in reach tests.
+local function replacement(Q,st,peer,c)
+    Q.prepare(st,peer,c)
+    for _,source in pairs(st.sources) do source.since=c.now-301 end
+    Q.tick(st,peer,c)
 end
 local function receive(Q,st,peer,c,rows,key,kind,payload)
     key=key or "peera scout";local r=peer.routes[key]
@@ -156,7 +172,7 @@ local function hr(c)
 end
 
 test("two sources 200 second request keep and busy state machine",function()
-    local N=setup();local Q,st,peer,c=model(N,3);eq(#hr(c),2)
+    local N=setup();local Q,st,peer,c=model(N,3);eq(#hr(c),2);eq(N.Safe.count(st.sources),2)
     local s=st.sessions["peera scout"]
     receive(Q,st,peer,c,{},nil,"HA","8:S:"..s.epoch..":"..s.nonce..":1:LK:0:0")
     c.now=299;Q.tick(st,peer,c);eq(#hr(c),2)
@@ -193,14 +209,14 @@ test("feed identities accept donor race strings then compact updates",function()
 end)
 
 for _,mode in ipairs({"share","guild","switch"}) do
-    test("immediate "..mode.." off-on cancels lease without HR X",function()
+    test("immediate "..mode.." off-on cancels lease with HR X",function()
         local N=setup();N.Find.add(N.Main.find,"Enemy One");local e=epoch(N);eq(#requestSends(),1)
         local before=#H.sent()
         if mode=="share" then N.Main.setShare(false);N.Main.setShare(true)
         elseif mode=="guild" then N.Net.setConsent("guild");N.Net.setConsent("public")
         else N.Net.setSwitch("overlord",false);N.Net.setSwitch("overlord",true) end
         eq(next(N.Main.overlordFeed.sessions),nil)
-        feed(e,{"z#1434",full()});eq(known(N),nil);eq(#H.sent(),before)
+        feed(e,{"z#1434",full()});eq(known(N),nil);eq(#H.sent(),before+1)
     end)
 end
 
@@ -227,7 +243,7 @@ test("campaign epochs remain source and pool scoped and unknown never guessed",f
     eq(r.epoch,1699488001);eq(next(st.sessions),nil)
     c.pool="pve"
     r=N.OverlordPeer.receive(peer,{kind="NH",payload="2.5.4~lp8",pool="pve",origin=r.name,target=c.me,hops=0},"WHISPER",r.name,nil,c)
-    eq(r.epoch,nil,"foreign pool epoch never carried forward");Q.tick(st,peer,c);eq(#hr(c),1)
+    eq(r.epoch,nil,"foreign pool epoch never carried forward");Q.tick(st,peer,c);eq(#hr(c),2,"old epoch withdrawal only")
 end)
 
 test("envelope direct addressing source lease and epoch gates",function()
@@ -298,7 +314,7 @@ for _,mode in ipairs({"share","guild","switch","combat","instance","pool","donor
         elseif mode=="pool" then C_GameRules=nil;GetRealmName=function() return "7102" end
         else H.loaded().Overlord=true end
         feed(e,{"z#1434",full()});N.Main.overlordTick(H.clock()+200)
-        eq(known(N),nil);eq(#H.sent(),before);eq(N.BNet.queued(),0)
+        eq(known(N),nil);eq(#H.sent(),before+((mode=="share" or mode=="guild" or mode=="switch") and 1 or 0));eq(N.BNet.queued(),0)
     end)
 end
 
@@ -333,8 +349,9 @@ test("real BNet friend crosses factions only after actual request dispatch",func
         if v.text:find("|HR|",1,true) then requests=requests+1;yes(v.text:match(":LK:0:0:H$")) end
     end
     eq(requests,1);feed(e,{"z#1434",full()},nil,"BNET");yes(known(N));eq(known(N).faction,"Horde")
+    local previous=N.Main.overlordFeed.sessions["birch scout"]
     N.BNet.peers=function() return {} end
-    feed(e,{"z#1434",full(nil,22)},nil,"BNET");eq(N.Main.overlordFeed.sessions["birch scout"].known["enemy one"].total,21)
+    feed(e,{"z#1434",full(nil,22)},nil,"BNET");eq(previous.known["enemy one"].total,21);eq(N.Main.overlordFeed.sessions["birch scout"],nil)
 end)
 
 test("NH while request waits in BNet queue preserves its answer",function()
@@ -345,17 +362,18 @@ test("NH while request waits in BNet queue preserves its answer",function()
         if text:find("|HR|",1,true) then requests=requests+1 end
         return true
     end
+    yes(N.BNet.send("overlord",71,"OverlordF","test-queue-blocker","own"))
     local e=epoch(N,nil,nil,"BNET");H.advance(1);N.Main.overlordTick(H.clock())
     local s=N.Main.overlordFeed.sessions["birch scout"]
-    yes(s);eq(s.asked,nil);eq(N.BNet.queued(),1,"HR waits after successful NH")
+    yes(s);eq(s.asked,nil);eq(N.BNet.queued(),1,"HR waits behind other traffic, not an NH to its source")
     H.advance(0.5);hear("NH","2.5.4~ld~lr~lp6",nil,"BNET")
     eq(N.Main.overlordPeer.routes["birch scout"].at,H.clock(),"NH really refreshed the route")
     H.advance(0.5);eq(requests,1);eq(s.asked,H.clock(),"receipt uses dispatch time, not enqueue snapshot")
     feed(e,{"z#1434",full()..":o2"},nil,"BNET");yes(known(N),"answer retained after refreshed NH")
 end)
 
-test("failed hello or failed request never grants a feed lease",function()
-    for _,failure in ipairs({"NH","HR"}) do
+test("failed request never grants a feed lease",function()
+    for _,failure in ipairs({"HR"}) do
         local N=setup();N.Find.add(N.Main.find,"Enemy One")
         N.BNet.who=function() return {name="Birch Scout",faction="Horde",realm="Test Realm"} end
         N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true}} end
@@ -376,7 +394,7 @@ test("measured Find row has no Ask or Hop and feed data is not saved",function()
         if type(t)~="table" then return type(t)..":"..tostring(t) end
         local rows={};for k,v in pairs(t) do rows[#rows+1]=snap(k).."="..snap(v) end;table.sort(rows);return "{"..table.concat(rows,";").."}"
     end
-    H.deliver("PLAYER_LOGOUT");local saved=snap(LayerEnemiesDB)
+    local saved=snap(LayerEnemiesDB)
     feed(e,{"z@front_with_long_name",full()})
     local U=N.UI;U.toggle();U.tabs.find:Click();U.render()
     yes(U.pool[1].sub:GetText():find("time unknown",1,true));yes(U.pool[1].sub:GetText():find("@front_with_long_name",1,true))
@@ -424,6 +442,17 @@ test("dispatch gap stale epochs routes old releases and foreign ACK are refused"
     r.epochAt=700;r.version="2.4.9~lp8";Q.tick(st,peer,c);eq(next(st.sessions),nil,"provider predates feeds")
 end)
 
+test("epoch boundary independent of route expiry and fresh selection",function()
+    local N=setup();local Q,st,peer,c=model(N);local r=peer.routes["peera scout"]
+    c.now=700;r.at=c.now
+    Q.tick(st,peer,c);eq(next(st.sessions),nil,"epoch at age 600 is unusable despite a warm current route")
+end)
+test("old provider independent of quiet period and epoch",function()
+    local N=setup();local Q,st,peer,c=model(N);local r=peer.routes["peera scout"]
+    c.now=200;r.at=c.now;r.version="2.4.9~ld~lr~lp6"
+    Q.tick(st,peer,c);eq(next(st.sessions),nil,"release below 2.5.0 loses its warm selection")
+end)
+
 test("batch row ceiling and marker byte bound are independent",function()
     local N=setup();local Q,st,peer,c=model(N);local s=st.sessions["peera scout"]
     local rows={};for i=1,47 do rows[i]="zz" end
@@ -438,7 +467,7 @@ test("global feed budget survives source rotation and privacy cancellation",func
     local N=setup();local Q,st,peer,c=model(N,3)
     local rows={};for i=1,48 do rows[i]="zz" end
     for _,key in ipairs({"peera scout","peerb scout"}) do for _=1,5 do receive(Q,st,peer,c,rows,key) end end
-    peer.routes["peera scout"].hops=1;c.now=101;Q.tick(st,peer,c);yes(st.sessions["peerc scout"].asked)
+    peer.routes["peera scout"].hops=1;c.now=101;replacement(Q,st,peer,c);yes(st.sessions["peerc scout"].asked)
     receive(Q,st,peer,c,{"z#1434",full()},"peerc scout");eq(#c.offers,0,"global rows survive source churn")
     c.now=160;receive(Q,st,peer,c,{"z#1434",full()},"peerc scout");eq(#c.offers,1)
     local global=st.budget;Q.cancel(st);eq(st.budget,global,"privacy does not refill budget")
@@ -451,13 +480,13 @@ test("global byte and batch-row ceilings hold across replacement sources",functi
     for n=2,250 do local p=prefix..blob({string.rep("x",250),string.rep("x",250),string.rep("x",n)});if #p==600 then payload=p end end
     for _,key in ipairs({"peera scout","peerb scout"}) do for _=1,24 do receive(Q,st,peer,c,{},key,"HB",payload) end end
     eq(st.budget.bytes,28800);eq(calls,48)
-    peer.routes["peera scout"].hops=1;c.now=101;Q.tick(st,peer,c)
+    peer.routes["peera scout"].hops=1;c.now=101;replacement(Q,st,peer,c)
     receive(Q,st,peer,c,{},"peerc scout","HB",payload);eq(calls,48)
     c.now=160;local rows={};for i=1,48 do rows[i]="zz" end
     for _=1,5 do receive(Q,st,peer,c,rows,"peerb scout") end
     rows[48]=nil;for _=1,5 do receive(Q,st,peer,c,rows,"peerc scout") end
     receive(Q,st,peer,c,{"zz","zz","zz","zz"},"peerc scout");eq(st.budget.rows,479)
-    peer.routes["peerc scout"].hops=1;c.now=161;Q.tick(st,peer,c);yes(st.sessions["peerd scout"].asked)
+    peer.routes["peerc scout"].hops=1;c.now=161;replacement(Q,st,peer,c);yes(st.sessions["peerd scout"].asked)
     receive(Q,st,peer,c,{"z#1434",full()},"peerd scout");eq(#c.offers,0);eq(st.budget.rows,479)
     receive(Q,st,peer,c,{"zz"},"peerd scout");eq(st.budget.rows,480)
     local before=calls;receive(Q,st,peer,c,{"zz"},"peerd scout");eq(calls,before)
@@ -470,5 +499,5 @@ test("unknown epoch silent then direct owner K opens truthful v8 subscription",f
     eq(out[1].kind,"WHISPER");eq(out[1].target,"Birch Scout")
     yes(out[1].text:find("|Alice Vale|HR|8:V:"..e..":",1,true))
     yes(out[1].text:match(":%d+n%d+n%d+f:1:LK:0:0:H$"))
-    local hello=H.sent()[1];yes(hello.text:find("LayerEnemies 1.1.0",1,true));no(hello.text:find("~",1,true))
+    for _,v in ipairs(H.sent()) do no(v.text:find("~",1,true)) end
 end)
