@@ -69,6 +69,7 @@ end
 -- WarBoard's identity or gameplay implementation. LE has no gameplay rules: 0.
 local function send(st,id,cmd,ctx)
     if cmd~="H" and cmd~="A" then return refuse() end
+    if N.Adapters.loaded("WarBoard") then return refuse() end
     if not ctx.version then return refuse() end
     local text="WBF1|"..cmd.."|5|"..ctx.rs.."|LayerEnemies/"..ctx.version.."|0"
     local prio=cmd=="A" and "owed" or "own"
@@ -85,6 +86,7 @@ local function send(st,id,cmd,ctx)
     end
     local rs,faction=ctx.rs,ctx.faction
     local accepted=BN.send("warboard",id,"WarBoard",text,prio,function(now)
+        if N.Adapters.loaded("WarBoard") then return false end
         local live=context()
         if not live or live.rs~=rs or live.faction~=faction or not identity(id,live) or now<ctx.now or now-ctx.now>=120 then return false end
         -- Actual-attempt caps as well as enqueue caps: a delayed cohort must not

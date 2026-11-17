@@ -193,9 +193,7 @@ without an immediate retry. Accepted frames still keep their cooldown even if
 later dropped or refused at dispatch. Owed answers go before new hellos.
 They stop with
 `/le share off`, public networks off (**Guild only**), the WarBoard source
-switch off, or combat/instances. Loading the real WarBoard addon stops H
-and discovery; only owed A answers remain eligible, still under every privacy
-and rate gate. Queued frames
+switch off, or combat/instances. Loading the real WarBoard addon stops all H and A sends, including queued frames; receiving and reading continue. Queued frames
 recheck consent, current account eligibility, ruleset and their caps at dispatch;
 unknown rulesets are silent. The final `0` is LE's gameplay-rules version (LE
 implements none of WarBoard's scoring rules). Discovery does not request

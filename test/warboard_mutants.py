@@ -34,6 +34,8 @@ add('final source predicate honored', 'if q.still and S.call(q.still,now)~=true 
 add('share off silence', 'not N.Main.sharing()', 'false', 'share stops', 'BNet.lua')
 add('public off silence', 'not authorized or not N.Main.sharing() or N.Net.consent()~="public" or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"public")', 'not authorized or not N.Main.sharing() or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"guild")', 'public stops', 'BNet.lua')
 add('stand down own sends', 'standDown="WarBoard"', 'standDown="Uninstalled"', 'stand down')
+add('stand down cancels queued answers', 'if N.Adapters.loaded("WarBoard") then return false end',
+    'do end', 'stand down cancels queued H and A')
 add('no FBAK send', 'local text="WBF1|"..cmd', 'local text="WBF1|FBAK"..cmd', 'compatible H')
 add('no forwarding', 'if st.seen[encoded] then return duplicate() end', 'BN.send("warboard",71,"WarBoard","WBF1|D|"..encoded,"own")\n    if st.seen[encoded] then return duplicate() end', 'no FBAK or request')
 add('no alternative send route', 'local accepted=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'N.Wire.send("WarBoard",text,"GUILD")\n    local accepted=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'compatible H')

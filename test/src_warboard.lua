@@ -277,11 +277,20 @@ for _,mode in ipairs({"share","public","switch","combat","instance"}) do
     end)
 end
 
-test("stand down blocks own hellos but preserves owed answers",function()
-    local N=setup(); h.loaded().WarBoard=true
+test("stand down cancels queued H and A when the real addon loads",function()
+    local N=setup()
     N.BNet.peers=function() return {{id=71,faction="Horde"}} end
-    advance(2); eq(#sends(),0)
-    inbound(hello()); advance(1); eq(#sends("A"),1)
+    advance(1); eq(N.BNet.queued(),1,"hello queued before donor loads")
+    inbound(hello()); eq(N.BNet.queued(),2,"answer queued before donor loads")
+    eq(#sends(),0,"neither frame has reached the client")
+    h.loaded().WarBoard=true
+    advance(2); eq(#sends(),0,"loading the donor cancels both queued kinds")
+    eq(N.BNet.queued(),0)
+    inbound(hello()); inbound(hello("H","normal"),72)
+    advance(2); eq(#sends(),0,"neither same- nor other-ruleset H is answered")
+    h.loaded().WarBoard=false
+    advance(60); eq(#sends(),0,"cancelled work never revives")
+    inbound(hello()); advance(1); eq(#sends("A"),1,"fresh traffic works without the donor")
 end)
 
 test("live account identity and ruleset rechecked at dispatch",function()
@@ -322,6 +331,39 @@ local function localData(N,t,d,dist,sender,prefix,extra)
     for _,part in ipairs(N.Codec.aceCommSplit(wire(N,t,d,extra))) do
         h.deliver("CHAT_MSG_ADDON",prefix or "WarBoard",part,dist or "GUILD",sender or "Enemy Player-123")
     end
+end
+
+for _,loaded in ipairs({true,false}) do
+    test((loaded and "stand down" or "donor absent").." H and A over thirty minutes of incoming H traffic",function()
+        local N=setup("Enemy Player"); h.loaded().WarBoard=loaded
+        eq(C_AddOns.IsAddOnLoaded("WarBoard"),loaded,"use addon-loaded state, not donor saved tables")
+        local scans,attempts,received=0,0,0
+        N.BNet.peers=function() scans=scans+1; return {{id=71,faction="Horde"}} end
+        local queued=N.BNet.send
+        N.BNet.send=function(net,...)
+            if net=="warboard" then attempts=attempts+1 end
+            return queued(net,...)
+        end
+        for _=1,30 do
+            for i=1,6 do inbound(hello("H",i<=4 and "pvp" or "normal"),70+i) end
+            yes(N.WarBoard.state.peers[71],"matching H is still read")
+            eq(N.WarBoard.state.peers[75],nil,"other-ruleset H is not a peer")
+            inbound(hello("A"),77); yes(N.WarBoard.state.peers[77],"A is still read, never answered")
+            data(N,"SHRD",shrd())
+            local r=row(N)
+            eq(r.source,"warboard"); eq(r.shard,"123"); eq(r.got,h.clock(),"fresh BN payload still reaches Find")
+            eq(r.evidenceKind,"self"); no(r.canAsk); received=received+1
+            advance(60)
+        end
+        local hellos,answers=#sends("H"),#sends("A")
+        print("STANDDOWN loaded="..tostring(loaded).." minutes=30 H="..hellos.." A="..answers.." scans="..scans.." BN_SHRD="..received)
+        eq(hellos,loaded and 0 or 3,"thirty-minute H count")
+        eq(answers,loaded and 0 or 180,"thirty-minute A count")
+        eq(#sends(),hellos+answers,"no other WarBoard message kind")
+        eq(attempts,loaded and 0 or 183,"stand down never even submits to the send queue")
+        eq(scans,loaded and 0 or 30,"stand down leaves discovery stopped")
+        eq(N.BNet.queued(),0); no(N.Main.error)
+    end)
 end
 
 test("SHRD own zone and shard through registry, with sequence not seconds; clear and expiry",function()
