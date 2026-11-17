@@ -64,7 +64,7 @@ test("FLH batch: unsent queries pace without spending the reserved token",functi
     SlashCmdList.LAYERENEMIES("hop flh"); eq(#lines("LQ"),5)
     H.advance(1); eq(#lines("LQ"),5)
     H.advance(1); eq(#lines("LQ"),6)
-    H.advance(1); eq(#lines("LQ"),7)
+    H.advance(1.01); eq(#lines("LQ"),7) -- just beyond the fractional refill boundary
     offer(N,lines("LQ")[7]); eq(#lines("LR"),1)
     H.deliver("PARTY_INVITE_REQUEST",lines("LQ")[7].target); eq(H.accepts(),1)
     ceilings(); no(N.Main.error)

@@ -56,6 +56,12 @@ local function sameKey(a,b)
     return a and b and a:gsub("^0+","")==b:gsub("^0+","")
 end
 function F.pending() return guest~=nil end
+-- One real shared token/minute slot belongs to this click until LR or expiry.
+-- This read is side-effect free: Wire can ask it without recursive guest checks.
+function F.reserved(now)
+    local r=guest
+    return r and not r.selected and now>=r.at and now-r.at<F.WAIT and 1 or 0
+end
 function F.detail(c) local r=notes[c.short]; return r and r.text end
 function F.stop(reason)
     if not guest then return false end
@@ -102,6 +108,20 @@ function F.preview(row)
         candidate={name=row.name,short=row.short,source="FLH",key=row.flhKey},
         detail="FLH guest request to "..row.name.."; fingerprint claim only"}
 end
+local function queries(r)
+    while guest==r and not r.offer and r.next<=#r.targets and F.checkGuest() do
+        local v=r.targets[r.next]; local now=S.num(S.call(GetTime))
+        if not N.Wire.flhClickReady("LQ",v.name,now) then break end
+        r.sending=v
+        local sent,why,attempted=dispatch(FL.lq(r.id,F.context(),v.key),"WHISPER",v.name,"click")
+        if guest~=r then return end
+        r.sending=nil
+        if not sent and not attempted and (why=="throttled" or why=="paused") then break end
+        r.next=r.next+1
+        if sent or attempted then N.Main.invite.asked[v.short]=now end
+        if sent then r.first=r.at; r.asked[v.short]=v end
+    end
+end
 function F.hop(row,shown)
     local M=N.Main; local c=F.context(); local now=S.num(S.call(GetTime))
     if not c or not now or not F.allowed("WHISPER","LQ") or A.grouped() or M.asking() or M.auto.group or not N.Layer.key(M.store.bulo) then return false end
@@ -123,17 +143,9 @@ function F.hop(row,shown)
     local ok=I.reserve(M.invite,targets[1],now)
     if not ok then return false end
     sequence=sequence%2147483646+1
-    local r={id=sequence,at=now,map=c.map,own=c.key,from=N.Layer.key(M.store.bulo),targets=targets,asked={}}
+    local r={id=sequence,at=now,map=c.map,own=c.key,from=N.Layer.key(M.store.bulo),targets=targets,asked={},next=1}
     guest=r
-    for _,v in ipairs(targets) do
-        if guest~=r or not F.checkGuest() then break end
-        M.invite.asked[v.short]=now
-        r.sending=v
-        local sent=dispatch(FL.lq(r.id,c,v.key),"WHISPER",v.name,"click")
-        if guest~=r then return false end
-        r.sending=nil
-        if sent then r.first=r.first or now; r.asked[v.short]=v end
-    end
+    queries(r)
     if guest~=r then return false end
     if not r.first then note(r,"FLH request refused"); F.stop(); return false end
     note(r,"FLH: waiting for offer (90 s)")
@@ -216,7 +228,7 @@ function F.received(m,kind,sender)
 end
 function F.tick(now)
     if not S.num(now) then return end
-    F.checkGuest()
+    if F.checkGuest() then queries(guest) end
     for k,v in pairs(notes) do if now<v.at or now-v.at>=600 then notes[k]=nil end end
     local c=F.context(); if not c then return end
     local text=FL.hi(c)

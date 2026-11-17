@@ -236,15 +236,19 @@ function Wr.guildMinute(now)
 end
 -- room(prefix, kind, target, public, now, cost, low, catchup) -> ok: every budget has room for one send; low: a line
 -- that may not spend the reserve; catchup: a pull's frame (its own allowance instead of the per-player cap)
+local function flhReserve(now)
+    return N.FLHMember and N.FLHMember.reserved(now) or 0
+end
 local function room(prefix, kind, target, public, now, cost, low, catchup)
     local b = buckets[prefix] or { tokens = PREFIX_CAP, at = nil }
     buckets[prefix] = b
     refill(b, PREFIX_CAP, PREFIX_REFILL, now); refill(all, ALL_CAP, ALL_REFILL, now)
-    if b.tokens < cost or all.tokens < cost + (low and Wr.RESERVE_TOKENS or 0) then return false end
+    local reserve = flhReserve(now)
+    if b.tokens < cost or all.tokens < cost + math.max(low and Wr.RESERVE_TOKENS or 0, reserve) then return false end
     -- in combat (cost 2) every minute cap is halved
     local function cap(n) return math.floor(n / cost) end
     allTimes = recent(allTimes, now)
-    if #allTimes >= cap(ALL_MINUTE) - (low and cap(Wr.RESERVE_MINUTE) or 0) then return false end
+    if #allTimes >= cap(ALL_MINUTE) - math.max(low and cap(Wr.RESERVE_MINUTE) or 0, reserve) then return false end
     if kind == "GUILD" then
         guildTimes = recent(guildTimes, now)
         if #guildTimes >= cap(GUILD_MINUTE) - (low and cap(Wr.RESERVE_GUILD) or 0) then return false end
@@ -290,11 +294,12 @@ function Wr.flhProbeReady(target,now)
     return #recent(flhProbes,now)<Wr.FLH_PROBES and #recent(publicTimes,now)<PUBLIC_MINUTE-Wr.FLH_REPLIES
         and not (last and now-last.at<Wr.FLH_NAME)
 end
-local function flhBudget(tag,kind,key,now)
+local function flhBudget(tag,kind,key,now,checkOnly)
     -- Membership shares the ordinary global ceilings, not an extra allowance.
     -- Probes yield first: keep six shared tokens/minute slots for owed answers.
     refill(all,ALL_CAP,ALL_REFILL,now); allTimes=recent(allTimes,now)
     local reserve=tag=="WP" and Wr.FLH_REPLIES or 0
+    reserve=math.max(reserve,tag~="LR" and flhReserve(now) or 0)
     if all.tokens<1+reserve or #allTimes>=ALL_MINUTE-reserve then return false end
     flhReplies=recent(flhReplies,now); flhProbes=recent(flhProbes,now)
     for k,v in pairs(flhNames) do if now-v.at>=v.keep then flhNames[k]=nil end end
@@ -323,6 +328,7 @@ local function flhBudget(tag,kind,key,now)
         hopTimes=recent(hopTimes,now)
         for k,v in pairs(hopTo) do v=recent(v,now); hopTo[k]=v[1] and v or nil end
         if hopBucket.tokens<1 or #hopTimes>=Wr.HOP_MINUTE or #(hopTo[key] or {})>=Wr.HOP_ONE then return false end
+        if checkOnly then return true end -- click preflight never charges a ledger
         hopBucket.tokens=hopBucket.tokens-1; hopTimes[#hopTimes+1]=now
         local list=hopTo[key] or {}; list[#list+1]=now; hopTo[key]=list
     end
@@ -333,6 +339,14 @@ local function flhBudget(tag,kind,key,now)
     all.tokens=all.tokens-1; allTimes[#allTimes+1]=now
     if kind=="GUILD" then guildTimes[#guildTimes+1]=now end
     return true
+end
+-- Readiness is not send authority. The private flight and live context are
+-- still checked by send; waiting LQ/LR work never enters the general queue.
+function Wr.flhClickReady(tag,target,now)
+    local key=who(target)
+    if not S.num(now) or not key or (tag~="LQ" and tag~="LR") then return false end
+    if (paused.FLHNET2 and now<paused.FLHNET2) or Wr.offlineUntil(target,now) then return false end
+    return flhBudget(tag,"WHISPER",key,now,true)
 end
 local enqueue
 -- check(prefix, text, kind, target, opts) -> route, extras | nil, why: everything but budgets and the client
