@@ -2112,9 +2112,9 @@ function M.hhHelloPump()
         end,"public") then M.hhHelloTimer=nil end
     end
 end
--- Observe only; system errors remain visible in every chat frame.
-function M.whisperSystem(text)
-    if N.Wire.system(text) and M.hhNet then
+-- The observer shares correlation with Wire's chat filter; either may run first.
+function M.whisperSystem(text,...)
+    if N.Wire.system(text,select(10,...)) and M.hhNet then
         N.HhNet.suppress(M.hhNet,N.Wire.offlineUntil,now())
         if not N.HhNet.owed(M.hhNet) then M.hhHelloTimer=nil end
     end
@@ -2258,10 +2258,18 @@ function M.setNet(key,on)
     if N.UI then N.UI.refresh() end
     return true
 end
+function M.quiet(command)
+    local state=command:match("^quiet%s+(%a+)$")
+    if state~="on" and state~="off" then M.say("LayerEnemies: /le quiet on|off"); return end
+    if S.tab(LayerEnemiesDB) then LayerEnemiesDB.quiet=state=="on" end
+    M.say("LayerEnemies: quiet "..state..(state=="on" and " - hide only our correlated offline whisper notices."
+        or " - offline whisper notices stay visible."))
+end
 function M.net(command)
     local rest=command:match("^net%s*(.-)%s*$") or ""
     if rest=="" then
         M.say("Networks: "..(N.Net.consent()=="public" and "public" or "guild only"))
+        M.say("offline whisper notices hidden: "..N.Wire.hiddenNotices().."; from other addons or you: "..N.Wire.unmatchedNotices())
         netLines(M.say)
         M.say(N.HeadHunter.summary(M.hh.stats))
         local s=M.overlord.stats
@@ -2359,6 +2367,7 @@ function M.start()
     LayerEnemiesDB.consent,LayerEnemiesDB.nets=N.Net.load(saved)
     -- sharing our own sightings (O, War Effort C+E) and deaths (K): only a saved false turns it off
     LayerEnemiesDB.share=saved.share~=false
+    LayerEnemiesDB.quiet=saved.quiet~=false
     LayerEnemiesDB.findShare=saved.findShare~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
@@ -2396,6 +2405,7 @@ function M.start()
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OverlordF") -- receive only
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OpenMapLoc") -- receive only, including hellos
     end
+    N.Wire.registerSystemFilter()
     N.Sources.start()
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"
@@ -2418,6 +2428,7 @@ function M.start()
         if command=="hop any" then guarded(M.hopAny); return end
         if command=="hop auto on" then guarded(M.setAutoHop,true); return end
         if command=="net" or command:match("^net%s") then guarded(M.net,command); return end
+        if command=="quiet" or command:match("^quiet%s") then guarded(M.quiet,command); return end
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
         if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
         if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
@@ -2465,7 +2476,7 @@ local function dispatch(_,event,...)
     elseif event=="PLAYER_REGEN_DISABLED" then guarded(M.hopAnyStop,"combat started")
     elseif event=="PLAYER_DEAD" then N.OwnDeath.dead()
     elseif event=="PLAYER_ALIVE" or event=="PLAYER_UNGHOST" then N.OwnDeath.revived()
-    elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
+    elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,...)
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then
         if event=="PLAYER_ENTERING_WORLD" then N.OwnDeath.seed(...) end
         guarded(M.hopAnySafe); guarded(M.boundary,A.location()); M.queuePoll()

@@ -1,5 +1,41 @@
 # LayerEnemies
 
+## Unreleased - hide "No player named" lines caused by LayerEnemies' own whispers
+
+`/le quiet on|off` controls a narrow system-chat filter, **on by default**, saved
+as one per-character boolean. It hides only the client's localized player-not-found
+line correlated with a LayerEnemies addon whisper to that exact player in the
+last **30 seconds** (at most 64 recent attempts). One whisper accounts for at most
+one notice. Spaced Forever names are preserved; foreign realm suffixes remain
+part of the identity. A bare name shared by recent targets on different realms
+is ambiguous and stays visible, even after one namesake was marked offline.
+
+Other system messages, uncorrelated not-found lines, expired attempts, secret or
+unreadable text, unsupported/missing localization, locally blocked/queued-only
+sends, and client failures other than TargetOffline are **not hidden**. The
+filter does not send anything or change the existing offline hold. Turning quiet
+off leaves all notices visible while offline bookkeeping and counting continue.
+Unavailable/throwing filter APIs fail open. Multiple chat frames reuse one
+message decision: a positive line ID when available, otherwise identical text
+in the same `GetTime()` tick. A later identical line is a new notice.
+
+`/le net` adds **offline whisper notices hidden: N; from other addons or you: M**.
+Both counters reset on reload. M counts localized notices without an eligible,
+unconsumed LayerEnemies whisper, **not proven attribution to another addon**;
+late/ambiguous/duplicate notices also count there. No names or counters are saved;
+unmatched diagnostics retain only bounded numeric deduplication fingerprints,
+not names or message text. With no line ID, two identical notices in the same
+tick cannot be distinguished (and a fingerprint collision can undercount only).
+If another addon or you whisper the same target during our 30-second window,
+the game's identical failure text cannot prove which send caused it.
+
+With the real **HeadHunter** or **WarEffortScout** loaded, LayerEnemies already
+stands down its respective network sends. Guild hosting already stands down
+beside **LayerSwap** or **BuloLayerForever**. Explicit LayerEnemies hop requests
+still send with those addons loaded. These policies are unchanged; this is not
+a global suppression of the other addons' whisper errors. Native behavior on
+Forever build 70938 is not tested (alpha, owner's decision).
+
 ## Unreleased - Wanted (receive only)
 
 Reads Wanted 1.29.x (protocol audited at v1.29.2) without Wanted installed;

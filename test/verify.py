@@ -84,6 +84,7 @@ def lua_references(tokens):
 LUA_TOKENS = re.compile(r'''(?P<space>\s+)|(?P<comment>--(?:\[(?P<ceq>=*)\[.*?\](?P=ceq)\]|[^\n]*))|(?P<long>\[(?P<eq>=*)\[.*?\](?P=eq)\])|(?P<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?P<name>[A-Za-z_][A-Za-z_0-9]*)|(?P<concat>\.\.)|(?P<symbol>.)''', re.S)
 API_OWNERS = {word: 'Adapters.lua' for word in ('C_FriendList', 'SendWho', 'GetNumWhoResults', 'GetWhoInfo', 'SetWhoToUi', 'FriendsFrame', 'LFGWhoListFrame', 'WhoFrame')}
 API_OWNERS.update({word: 'Wire.lua' for word in ('C_PartyInfo', 'InviteUnit', 'AcceptGroup', 'LeaveParty')})
+API_OWNERS['ChatFrame_AddMessageEventFilter'] = 'Wire.lua'
 
 
 def lua_tokens(source):

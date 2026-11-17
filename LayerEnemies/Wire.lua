@@ -136,11 +136,11 @@ local function pruneWhispers(now)
     end
     whispers = keep
 end
-local function rememberWhisper(target, key, now)
+local function rememberWhisper(target, key, now, display)
     if not key then return end
     pruneWhispers(now)
     if #whispers >= Wr.RECENT_MAX then table.remove(whispers, 1) end
-    whispers[#whispers + 1] = { target = target, key = key, at = now }
+    whispers[#whispers + 1] = { target = target, key = key, at = now, display = display == true }
 end
 local OFFLINE_MAX = 256
 -- Shared by the synchronous TargetOffline result and correlated asynchronous system failures.
@@ -155,8 +155,8 @@ function Wr.markOffline(target, now)
     end
     if not offline[key] and n >= OFFLINE_MAX then offline[okey] = nil end
     offline[key] = now
-    -- Consume once, but keep identities until their original expiry/cap for bare-name ambiguity checks.
-    -- Duplicate errors cannot renew suppression or make a recent namesake look unambiguous.
+    -- Consume offline evidence for this identity once, retaining the original expiry/cap for ambiguity.
+    -- Display receipts are separate: each actual whisper can still account for at most one notice.
     for _, r in ipairs(whispers) do if r.key == key then r.consumed = true end end
     return key
 end
@@ -170,7 +170,7 @@ function Wr.offlineUntil(target, now, hopSeconds)
     return at + Wr.OFFLINE
 end
 -- Compile only a single %s (or %1$s) with literal text. Escape every Lua pattern character, interpret %% literally,
--- and fail closed on missing/unsupported formats. No English fallback, chat filter, or broad chat capture.
+-- and fail closed on missing/unsupported formats. No English fallback or broad chat capture.
 local template, failurePattern
 local function localizedPattern()
     local raw = S.str(_G.ERR_CHAT_PLAYER_NOT_FOUND_S, 512)
@@ -194,24 +194,77 @@ local function localizedPattern()
     if captures == 1 and literals > 0 then failurePattern = "^" .. table.concat(parts) .. "$" end
     return failurePattern
 end
-function Wr.system(text)
+-- Shared by the event observer and every chat frame, regardless of dispatch order.
+-- Positive line IDs identify one event; without one, reuse only text in this GetTime tick.
+-- Never persist text/names. Both this ledger and the whisper ledger are bounded to 64 / 30 s.
+local notices, hiddenNotices, unmatchedNotices = {}, 0, 0
+function Wr.hiddenNotices() return hiddenNotices end
+function Wr.unmatchedNotices() return unmatchedNotices end
+-- Unmatched diagnostics keep no name/text: this fingerprint is for counting only.
+-- A collision can undercount a notice, never grant a hide (owned decisions compare exact text).
+local function noticeFingerprint(text)
+    local h = 5381
+    for i = 1, #text do h = (h * 33 + text:byte(i)) % 4294967296 end
+    return h
+end
+function Wr.system(text, lineID)
     text = S.str(text, 512)
     local now = S.num(S.call(GetTime))
     if not text or not now then return nil end
     pruneWhispers(now)
     local pattern = localizedPattern()
     local name = pattern and text:match(pattern)
-    local key = name and who(name)
-    if not key then return nil end
-    local match
+    if not name then return nil end
+    local key = who(name)
+    local fingerprint = noticeFingerprint(text)
+    lineID = S.num(lineID)
+    if not lineID or lineID <= 0 or lineID % 1 ~= 0 then lineID = nil end
+    local keep, cached = {}, nil
+    for _, r in ipairs(notices) do
+        if now >= r.at and now - r.at < Wr.RECENT_WINDOW and (r.id or now == r.at) then
+            keep[#keep + 1] = r
+            if r.id == lineID and (r.text == text or (not r.text and r.fingerprint == fingerprint and r.bytes == #text)) then cached = r end
+        end
+    end
+    notices = keep
+    if cached then return cached.key, cached end
+    local match, ambiguous
     for _, r in ipairs(whispers) do
         -- A bare error cannot distinguish namesakes on different realms. Never guess a foreign realm from it,
         -- even if there is only one such attempt; surnames are never compacted here.
         if not name:find("-", 1, true) and (r.target:match("^([^%-]+)") or r.target):lower() == name:lower()
-            and r.key ~= key then return nil end
-        if r.key == key and not r.consumed then match = r end
+            and r.key ~= key then ambiguous = true end
+        if r.key == key and not r.noticed and not match then match = r end
     end
-    if match then return Wr.markOffline(match.target, now) end
+    local notice = { text = text, id = lineID, at = now }
+    if match and not ambiguous then
+        match.noticed = true
+        notice.key = match.consumed and match.key or Wr.markOffline(match.target, now)
+        notice.owned = match.display
+    end
+    if not notice.owned then unmatchedNotices = unmatchedNotices + 1 end
+    notice.hide = notice.owned == true and (not S.tab(LayerEnemiesDB) or LayerEnemiesDB.quiet ~= false)
+    if not notice.owned then notice.text, notice.fingerprint, notice.bytes = nil, fingerprint, #text end
+    if #notices >= Wr.RECENT_MAX then table.remove(notices, 1) end
+    notices[#notices + 1] = notice
+    return notice.key, notice
+end
+local filterAttempted = false
+local function systemFilter(_, event, text, ...)
+    local lineID = select(10, ...)
+    local ok, hide = pcall(function()
+        if S.str(event, 50) ~= "CHAT_MSG_SYSTEM" then return nil end
+        local _, notice = Wr.system(text, lineID)
+        if not notice or not notice.hide then return false end
+        if not notice.counted then hiddenNotices = hiddenNotices + 1; notice.counted = true end
+        return true
+    end)
+    return ok and hide == true or false
+end
+function Wr.registerSystemFilter()
+    if filterAttempted then return end
+    filterAttempted = true
+    S.call(_G.ChatFrame_AddMessageEventFilter, "CHAT_MSG_SYSTEM", systemFilter)
 end
 local function inCombat()
     local a, b = S.call(InCombatLockdown), S.call(UnitAffectingCombat, "player")
@@ -313,7 +366,10 @@ local function deliver(prefix, text, kind, target, now, key, hop)
     local okFn, fn = pcall(function() return CI.SendAddonMessage end)
     if not okFn or type(fn) ~= "function" then return false, "error" end
     local ok, result = pcall(fn, prefix, text, kind, target)
-    if kind == "WHISPER" then rememberWhisper(target, key, now) end
+    if kind == "WHISPER" then
+        -- Keep existing offline-attempt evidence, but only accepted/TargetOffline calls may hide a notice.
+        rememberWhisper(target, key, now, ok and not S.secret(result) and (result == 0 or result == true or result == 12))
+    end
     if not ok then return false, "error", true end
     if S.secret(result) then return false, "refused", true end
     if result == 0 or result == true then return true, "sent", true end   -- (true: older clients return a boolean)
