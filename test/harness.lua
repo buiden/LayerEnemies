@@ -11,6 +11,7 @@ local function test(name,fn)
     if arg and arg[1]=="--ui-layout-only" and not name:find("UI layout:",1,true) then return end
     if arg and arg[1]=="--hop-fanout-only" and not name:find("Hop fanout:",1,true) then return end
     if arg and arg[1]=="--hop-any-only" and not name:find("hop-any",1,true) and not name:find("Hop fanout:",1,true) then return end
+    if arg and arg[1]=="--presence-only" and not name:find("Presence:",1,true) then return end
     if arg and arg[1]=="--spy-relay-only" and not name:find("Spy relay",1,true) then return end
     if arg and arg[1]=="--relay-policy-only" and not name:find("Guild relay policy:",1,true) then return end
     if arg and arg[1]=="--kills-only" and not name:find("Kills",1,true) then return end
@@ -7869,6 +7870,11 @@ assert(loadfile("test/kills_round2.lua"))({test=test,eq=eq,yes=yes,no=no,load=lo
 
 assert(loadfile("test/ui_layout.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,
     clock=function() return clock end,establish=establish,sent=function() return sent end})
+assert(loadfile("test/presence.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,secret=secret,
+    advance=advance,time=function(v) if v then clock=v end; return clock end,deliver=deliver,drain=drain,
+    sent=function() return sent end,log=function() return log end,timers=function() return timers end,
+    combat=function(v) combat=v end,instance=function(v) inInstance=v end,snapshot=snapshot})
+
 
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

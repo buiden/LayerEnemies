@@ -1,0 +1,376 @@
+{
+  "baseline": "RESULT: 28 tests passed, 0 failed, 13145 assertions",
+  "final": "RESULT: 28 tests passed, 0 failed, 13145 assertions",
+  "mutants": [
+    {
+      "mutant": "R2 restore 56px presence text floor",
+      "caught": true,
+      "target": "measured presence cards keep several per page without overlap",
+      "failures": [
+        "FAIL Presence: measured presence cards keep several per page without overlap: test/presence.lua:387: presence box is its measured height: expected 12, got 56"
+      ]
+    },
+    {
+      "mutant": "R2 restore fixed presence card surcharge",
+      "caught": true,
+      "target": "measured presence cards keep several per page without overlap",
+      "failures": [
+        "FAIL Presence: measured presence cards keep several per page without overlap: test/harness.lua:7: no fixed presence-only height surcharge: expected true, got false"
+      ]
+    },
+    {
+      "mutant": "R2 resolve offline member accounts",
+      "caught": true,
+      "target": "only online community members resolve Battle.net accounts",
+      "failures": [
+        "FAIL Presence: only online community members resolve Battle.net accounts: test/presence.lua:89: only five online members resolve in the first tick: expected 5, got 50"
+      ]
+    },
+    {
+      "mutant": "R1 match club display name instead of resolved character",
+      "caught": true,
+      "target": "club character comes from account not member display name",
+      "failures": [
+        "FAIL Presence: club character comes from account not member display name: test/harness.lua:7: BattleTag member resolves to tracked character: expected true, got false",
+        "FAIL Presence: only online community members resolve Battle.net accounts: test/harness.lua:7: online members still contribute: expected true, got false",
+        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: characterName nil: expected nil, got table: 0x6045e48c11b0",
+        "FAIL Presence: untracked offline mobile unknown and blank rows store nothing: test/presence.lua:163: not equal: expected nil, got Cedar Vale",
+        "FAIL Presence: secret fields refuse exactly one row and diagnostic has no names: test/presence.lua:171: not equal: expected nil, got Cedar Vale",
+        "FAIL Presence: missing erroring and secret APIs or tables are silent: test/presence.lua:202: not equal: expected nil, got table: 0x6045e4a39530",
+        "FAIL Presence: reread offline or non WoW drops personal and shared evidence immediately: test/presence.lua:222: community missingCharacter clears before TTL: expected nil, got table: 0x6045e472f5d0",
+        "FAIL Presence: diagnostic separates unresolved zoneless same faction and unmatched members: test/harness.lua:7: unmatched match count: expected true, got false",
+        "FAIL Presence: qualified realm stays exact and bare name matches any realm: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Presence: per name 600 second silent alert uses shared burst throttle: test/presence.lua:323: existing three-line burst limit: expected 3, got 0",
+        "FAIL Presence: malformed names and throwing pure row fields fail silently: test/presence.lua:432: not equal: expected nil, got Cedar Vale"
+      ]
+    },
+    {
+      "mutant": "R1 accept non WoW game account",
+      "caught": true,
+      "target": "account resolution unavailable secret incomplete and non WoW fail silent",
+      "failures": [
+        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: clientProgram nil: expected nil, got table: 0x5b31d105a150"
+      ]
+    },
+    {
+      "mutant": "R2 keep reread offline evidence until TTL",
+      "caught": true,
+      "target": "reread offline or non WoW drops personal and shared evidence immediately",
+      "failures": [
+        "FAIL Presence: only online community members resolve Battle.net accounts: test/presence.lua:106: offline reread still withdraws previous evidence: expected nil, got table: 0x5eb3803c4ad0",
+        "FAIL Presence: reread offline or non WoW drops personal and shared evidence immediately: test/presence.lua:222: community offline clears before TTL: expected nil, got table: 0x5eb3806b6710"
+      ]
+    },
+    {
+      "mutant": "R3 omit resolved character count",
+      "caught": true,
+      "target": "diagnostic separates unresolved zoneless same faction and unmatched members",
+      "failures": [
+        "FAIL Presence: diagnostic separates unresolved zoneless same faction and unmatched members: test/harness.lua:7: zoneless resolution count: expected true, got false"
+      ]
+    },
+    {
+      "mutant": "R3 omit opposite faction count",
+      "caught": true,
+      "target": "diagnostic separates unresolved zoneless same faction and unmatched members",
+      "failures": [
+        "FAIL Presence: diagnostic separates unresolved zoneless same faction and unmatched members: test/harness.lua:7: unmatched faction count: expected true, got false"
+      ]
+    },
+    {
+      "mutant": "R4 allow unlimited Find opening refreshes",
+      "caught": true,
+      "target": "Find switches and window opens share one force per 60 seconds",
+      "failures": [
+        "FAIL Presence: Find switches and window opens share one force per 60 seconds: test/presence.lua:334: tab and window spam cannot bypass 60s: expected 1, got 21",
+        "FAIL Presence: automatic 300s cadence and Find opening refresh without overlap: test/presence.lua:349: Find reopen is rate limited: expected 3, got 4"
+      ]
+    },
+    {
+      "mutant": "owner deviation accept same faction namesake",
+      "caught": true,
+      "target": "untracked offline mobile unknown and blank rows store nothing",
+      "failures": [
+        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:136: online WoW opposite character required: expected nil, got Cedar Vale",
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: 0x64f25b39eae0",
+        "FAIL Presence: untracked offline mobile unknown and blank rows store nothing: test/presence.lua:163: not equal: expected nil, got Cedar Vale",
+        "FAIL Presence: diagnostic separates unresolved zoneless same faction and unmatched members: test/harness.lua:7: sameFaction faction count: expected true, got false",
+        "FAIL Presence: absent namespaces counts project and own faction fail closed: test/presence.lua:465: not equal: expected nil, got table: 0x64f25ad6dc20"
+      ]
+    },
+    {
+      "mutant": "withdrawal resets shared cooldown",
+      "caught": true,
+      "target": "guild watch hash matches are session-only possible rows and withdraw",
+      "failures": [
+        "FAIL Presence: guild watch hash matches are session-only possible rows and withdraw: test/presence.lua:421: withdrawal cannot reset presence alert cooldown: expected 1, got 2"
+      ]
+    },
+    {
+      "mutant": "drop tracked-name filter",
+      "caught": true,
+      "target": "untracked offline mobile unknown and blank rows store nothing",
+      "failures": [
+        "FAIL Presence: untracked offline mobile unknown and blank rows store nothing: test/presence.lua:163: not equal: expected nil, got 71mwJ3",
+        "FAIL Presence: diagnostic separates unresolved zoneless same faction and unmatched members: test/harness.lua:7: unmatched match count: expected true, got false"
+      ]
+    },
+    {
+      "mutant": "accept Offline",
+      "caught": true,
+      "target": "untracked offline mobile unknown and blank rows store nothing",
+      "failures": [
+        "FAIL Presence: untracked offline mobile unknown and blank rows store nothing: test/presence.lua:160: pure presence admission independently refuses non-online members: expected nil, got table: 0x63b554164380"
+      ]
+    },
+    {
+      "mutant": "drop secret refusal",
+      "caught": true,
+      "target": "secret fields refuse exactly one row and diagnostic has no names",
+      "failures": [
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: 0x628110178c00",
+        "FAIL Presence: secret fields refuse exactly one row and diagnostic has no names: test/presence.lua:172: not equal: expected 1, got 0"
+      ]
+    },
+    {
+      "mutant": "TTL inclusive boundary",
+      "caught": true,
+      "target": "expiry boundary future clocks and remove clear session state",
+      "failures": [
+        "FAIL Presence: unread members keep TTL and another source keeps its own evidence: test/presence.lua:236: unread still expires at 660: expected nil, got table: 0x5d271f2bd980",
+        "FAIL Presence: expiry boundary future clocks and remove clear session state: test/presence.lua:269: not equal: expected nil, got table: 0x5d271f77aa60"
+      ]
+    },
+    {
+      "mutant": "drop member cap",
+      "caught": true,
+      "target": "fifty per tick thousand per club twenty clubs and guild exclusion",
+      "failures": [
+        "FAIL Presence: fifty per tick thousand per club twenty clubs and guild exclusion: test/presence.lua:300: 1000 member cap: expected 1050, got 1051"
+      ]
+    },
+    {
+      "mutant": "allow Ask on presence-only",
+      "caught": true,
+      "target": "tracked community tracer has zone and no action or send",
+      "failures": [
+        "FAIL Presence: tracked community tracer has zone and no action or send: test/presence.lua:480: not equal: expected false, got true"
+      ]
+    },
+    {
+      "mutant": "drop club cap",
+      "caught": true,
+      "target": "fifty per tick thousand per club twenty clubs and guild exclusion",
+      "failures": [
+        "FAIL Presence: fifty per tick thousand per club twenty clubs and guild exclusion: test/presence.lua:302: club cap: expected 20, got 21"
+      ]
+    },
+    {
+      "mutant": "read guild and character clubs",
+      "caught": true,
+      "target": "fifty per tick thousand per club twenty clubs and guild exclusion",
+      "failures": [
+        "FAIL Presence: fifty per tick thousand per club twenty clubs and guild exclusion: test/presence.lua:304: not equal: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "double per-frame work",
+      "caught": true,
+      "target": "fifty per tick thousand per club twenty clubs and guild exclusion",
+      "failures": [
+        "FAIL Presence: only online community members resolve Battle.net accounts: test/presence.lua:88: member work budget unchanged: expected 50, got 100",
+        "FAIL Presence: fifty per tick thousand per club twenty clubs and guild exclusion: test/presence.lua:298: per tick: expected 50, got 100"
+      ]
+    },
+    {
+      "mutant": "drop friend cap",
+      "caught": true,
+      "target": "friends use only online characters in this project and cap 200",
+      "failures": [
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:151: friend cap: expected 200, got 201"
+      ]
+    },
+    {
+      "mutant": "accept offline friend",
+      "caught": true,
+      "target": "friends use only online characters in this project and cap 200",
+      "failures": [
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: 0x5bd2e7fe05a0"
+      ]
+    },
+    {
+      "mutant": "accept other project",
+      "caught": true,
+      "target": "friends use only online characters in this project and cap 200",
+      "failures": [
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:148: invalid friend: expected nil, got table: 0x582996642d70"
+      ]
+    },
+    {
+      "mutant": "missing faction guessed Horde",
+      "caught": true,
+      "target": "missing erroring and secret APIs or tables are silent",
+      "failures": [
+        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: factionName nil: expected nil, got table: 0x62e5ecef58b0",
+        "FAIL Presence: missing erroring and secret APIs or tables are silent: test/presence.lua:202: not equal: expected nil, got table: 0x62e5ecf8d920"
+      ]
+    },
+    {
+      "mutant": "scan in combat",
+      "caught": true,
+      "target": "no roster adapters with empty Find combat instance or unknown safety",
+      "failures": [
+        "FAIL Presence: no roster adapters with empty Find combat instance or unknown safety: test/presence.lua:291: combat: expected 0, got 4",
+        "FAIL Presence: fifty per tick thousand per club twenty clubs and guild exclusion: test/presence.lua:299: cancel mid scan: expected 50, got 100",
+        "FAIL Presence: Find switches and window opens share one force per 60 seconds: test/presence.lua:340: unsafe open does no work: expected 2, got 3"
+      ]
+    },
+    {
+      "mutant": "scan in instances",
+      "caught": true,
+      "target": "no roster adapters with empty Find combat instance or unknown safety",
+      "failures": [
+        "FAIL Presence: no roster adapters with empty Find combat instance or unknown safety: test/presence.lua:291: instance: expected 0, got 4",
+        "FAIL Presence: automatic 300s cadence and Find opening refresh without overlap: test/presence.lua:353: cancel instance: expected nil, got table: 0x55ad6c83bc30"
+      ]
+    },
+    {
+      "mutant": "scan empty Find",
+      "caught": true,
+      "target": "no roster adapters with empty Find combat instance or unknown safety",
+      "failures": [
+        "FAIL Presence: no roster adapters with empty Find combat instance or unknown safety: test/presence.lua:291: empty: expected 0, got 4",
+        "FAIL Presence: shared lists alone do not trigger an empty personal Find scan: test/presence.lua:427: not equal: expected 0, got 3",
+        "FAIL Presence: cancel stale queued work on empty list and restart: test/presence.lua:471: not equal: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "keep future record",
+      "caught": true,
+      "target": "expiry boundary future clocks and remove clear session state",
+      "failures": [
+        "FAIL Presence: expiry boundary future clocks and remove clear session state: test/presence.lua:270: not equal: expected nil, got table: 0x5c1d65471500"
+      ]
+    },
+    {
+      "mutant": "repeat before 600 seconds",
+      "caught": true,
+      "target": "per name 600 second silent alert uses shared burst throttle",
+      "failures": [
+        "FAIL Presence: per name 600 second silent alert uses shared burst throttle: test/presence.lua:317: zone change cannot bypass 600s: expected 1, got 2"
+      ]
+    },
+    {
+      "mutant": "lose bare-name matching",
+      "caught": true,
+      "target": "qualified realm stays exact and bare name matches any realm",
+      "failures": [
+        "FAIL Presence: qualified realm stays exact and bare name matches any realm: test/harness.lua:7: bare tracker accepts foreign realm: expected true, got false"
+      ]
+    },
+    {
+      "mutant": "friend falls back after realm conflict",
+      "caught": true,
+      "target": "invalid friend realm never falls back to a bare character",
+      "failures": [
+        "FAIL Presence: account resolution unavailable secret incomplete and non WoW fail silent: test/presence.lua:125: realmName nil: expected nil, got table: 0x573f8d95b680",
+        "FAIL Presence: invalid friend realm never falls back to a bare character: test/presence.lua:405: contradictory realm refused: expected nil, got table: 0x573f8d4d26b0"
+      ]
+    },
+    {
+      "mutant": "presence overrides sighting",
+      "caught": true,
+      "target": "real sighting and OpenMap retain their status and Ask target",
+      "failures": [
+        "FAIL Presence: real sighting and OpenMap retain their status and Ask target: test/presence.lua:279: not equal: expected possible match, seen by Birch Scout, got online (community)"
+      ]
+    },
+    {
+      "mutant": "scan every poll",
+      "caught": true,
+      "target": "automatic 300s cadence and Find opening refresh without overlap",
+      "failures": [
+        "FAIL Presence: Find switches and window opens share one force per 60 seconds: test/presence.lua:336: before exact boundary: expected 1, got 2",
+        "FAIL Presence: automatic 300s cadence and Find opening refresh without overlap: test/presence.lua:347: not equal: expected 1, got 2"
+      ]
+    },
+    {
+      "mutant": "skip Find tab scan",
+      "caught": true,
+      "target": "automatic 300s cadence and Find opening refresh without overlap",
+      "failures": [
+        "FAIL Presence: Find switches and window opens share one force per 60 seconds: test/presence.lua:329: first Find open forces a scan: expected 1, got 0",
+        "FAIL Presence: automatic 300s cadence and Find opening refresh without overlap: test/presence.lua:348: Find tab opens: expected 3, got 2"
+      ]
+    },
+    {
+      "mutant": "ignore measured presence height at render",
+      "caught": true,
+      "target": "UI and slash text show zone age and hide stale pooled line",
+      "failures": [
+        "FAIL Presence: UI and slash text show zone age and hide stale pooled line: test/harness.lua:7: presence line fits above buttons: expected true, got false",
+        "FAIL Presence: measured presence cards keep several per page without overlap: test/presence.lua:387: presence box is its measured height: expected 12, got 212"
+      ]
+    },
+    {
+      "mutant": "presence send attempt",
+      "caught": true,
+      "target": "tracked community tracer has zone and no action or send",
+      "failures": [
+        "FAIL Presence: club character comes from account not member display name: test/presence.lua:75: not equal: expected 0, got 1",
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:142: not equal: expected 0, got 1",
+        "FAIL Presence: per name 600 second silent alert uses shared burst throttle: test/presence.lua:318: no sound: expected 0, got 3",
+        "FAIL Presence: cancel stale queued work on empty list and restart: test/presence.lua:473: not equal: expected 0, got 1",
+        "FAIL Presence: tracked community tracer has zone and no action or send: test/presence.lua:481: not equal: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "save presence names",
+      "caught": true,
+      "target": "tracked community tracer has zone and no action or send",
+      "failures": [
+        "FAIL Presence: tracked community tracer has zone and no action or send: test/presence.lua:482: session only: expected {autoHop=boolean:true,call=boolean:true,callArt=boolean:true,findNotice=boolean:true,findShare=boolean:false,guildHost=boolean:false,nets={hh=boolean:true,we=boolean:true},options={},share=boolean:false,tracked={1=string:Cedar Vale}}, got {autoHop=boolean:true,call=boolean:true,callArt=boolean:true,findNotice=boolean:true,findShare=boolean:false,guildHost=boolean:false,nets={hh=boolean:true,we=boolean:true},options={},presence={Cedar Vale={at=number:100.001,faction=string:Horde,guid=string:Player-1-cedar,route=string:community,source=string:c:3:504:1,zone=string:Stranglethorn Vale}},share=boolean:false,tracked={1=string:Cedar Vale}}"
+      ]
+    },
+    {
+      "mutant": "presence plays sound",
+      "caught": true,
+      "target": "tracked community tracer has zone and no action or send",
+      "failures": [
+        "FAIL Presence: club character comes from account not member display name: test/presence.lua:75: not equal: expected 0, got 1",
+        "FAIL Presence: friends use only online characters in this project and cap 200: test/presence.lua:142: not equal: expected 0, got 1",
+        "FAIL Presence: per name 600 second silent alert uses shared burst throttle: test/presence.lua:318: no sound: expected 0, got 2",
+        "FAIL Presence: guild watch hash matches are session-only possible rows and withdraw: test/presence.lua:416: not equal: expected 0, got 1",
+        "FAIL Presence: cancel stale queued work on empty list and restart: test/presence.lua:473: not equal: expected 0, got 1",
+        "FAIL Presence: tracked community tracer has zone and no action or send: test/presence.lua:481: not equal: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "omit guild watch matches",
+      "caught": true,
+      "target": "guild watch hash matches are session-only possible rows and withdraw",
+      "failures": [
+        "FAIL Presence: reread offline or non WoW drops personal and shared evidence immediately: test/harness.lua:7: seed shared presence: expected true, got false",
+        "FAIL Presence: guild watch hash matches are session-only possible rows and withdraw: test/harness.lua:7: guild tracked presence shown: expected true, got false"
+      ]
+    },
+    {
+      "mutant": "zone length cap lost",
+      "caught": true,
+      "target": "pure bounds and adapter field allowlists",
+      "failures": [
+        "FAIL Presence: pure bounds and adapter field allowlists: test/presence.lua:445: not equal: expected nil, got table: 0x5c3e3790e710"
+      ]
+    },
+    {
+      "mutant": "name length cap lost",
+      "caught": true,
+      "target": "pure bounds and adapter field allowlists",
+      "failures": [
+        "FAIL Presence: pure bounds and adapter field allowlists: test/presence.lua:444: not equal: expected nil, got table: 0x638ad9ef0e50"
+      ]
+    }
+  ],
+  "caught": 41,
+  "total": 41
+}

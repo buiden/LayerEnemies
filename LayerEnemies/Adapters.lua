@@ -1,6 +1,7 @@
 local _, N = ...
 local A,S = {},N.Safe
 N.Adapters=A
+
 -- WHO UI ownership is temporary and session-only. No hiding windows or replacing SendWho.
 -- Hidden, registered frames are detached during our query and its late-result guard (max 30 s).
 -- A player's SendWho wins ownership. Open windows and all frame scripts are left untouched.
@@ -88,6 +89,123 @@ local function whoHush(cancel)
     whoRoute(true)
 end
 -- Source: pinned Forever FriendList API; UI suppression reverses the former no-manipulation rule.
+
+-- Presence readers: build 70938 (Gethe/wow-ui-source bebcb6bf).
+-- Protect both API access and field reads. Second return identifies a secret
+-- refusal without retaining the offending value or account identity fields.
+local function presenceRead(fn)
+    local hidden=false
+    local function value(v)
+        if S.secret(v) then hidden=true; return nil end
+        return v
+    end
+    local ok,result=pcall(fn,value)
+    if hidden then return nil,"secret" end
+    if ok then return result end
+end
+local function presenceId(v)
+    return S.str(v,100) or (S.num(v) and v>=0 and v%1==0 and v or nil)
+end
+function A.clubs()
+    return presenceRead(function(v)
+        local api=v(_G.C_Club)
+        if not S.tab(api) or type(v(api.GetSubscribedClubs))~="function" then return nil end
+        local clubs=v(api.GetSubscribedClubs())
+        if not S.tab(clubs) then return nil end
+        local out={}
+        for i=1,20 do
+            local club=v(clubs[i]); if club==nil then break end
+            if not S.tab(club) then return nil end
+            local id,kind=presenceId(v(club.clubId)),S.num(v(club.clubType))
+            if not id or not kind then return nil end
+            -- ClubType.BattleNet=0; Character/Guild/Other are not Battle.net communities.
+            if kind==0 then out[#out+1]={id=id,type=kind} end
+        end
+        return out
+    end)
+end
+function A.clubMemberIds(clubId)
+    return presenceRead(function(v)
+        clubId=presenceId(v(clubId)); if not clubId then return nil end
+        local api=v(_G.C_Club)
+        if not S.tab(api) or type(v(api.GetClubMembers))~="function" then return nil end
+        local ids=v(api.GetClubMembers(clubId))
+        if not S.tab(ids) then return nil end
+        local out={}
+        for i=1,1000 do
+            local id=v(ids[i]); if id==nil then break end
+            id=presenceId(id); if not id then return nil end
+            out[#out+1]=id
+        end
+        return out
+    end)
+end
+function A.clubMember(clubId,memberId)
+    return presenceRead(function(v)
+        clubId,memberId=presenceId(v(clubId)),presenceId(v(memberId))
+        if not clubId or not memberId then return nil end
+        local api=v(_G.C_Club)
+        if not S.tab(api) or type(v(api.GetMemberInfo))~="function" then return nil end
+        local r=v(api.GetMemberInfo(clubId,memberId))
+        if not S.tab(r) then return nil end
+        -- Club names are account display names, never character identities.
+        -- Read only presence and the owner-approved account ID from this member.
+        local presence=S.num(v(r.presence))
+        if presence~=1 and presence~=4 and presence~=5 then return nil end
+        local accountId=S.num(v(r.bnetAccountId))
+        if not accountId or accountId<=0 or accountId%1~=0 then return nil end
+        local bn=v(_G.C_BattleNet)
+        if not S.tab(bn) or type(v(bn.GetAccountInfoByID))~="function" then return nil end
+        local account=v(bn.GetAccountInfoByID(accountId))
+        if not S.tab(account) then return nil end
+        local game=v(account.gameAccountInfo)
+        if not S.tab(game) then return nil end
+        local online,client=v(game.isOnline),S.str(v(game.clientProgram),16)
+        if online~=true or client~="WoW" then return nil end
+        local name=S.str(v(game.characterName),100)
+        local realm=S.str(v(game.realmName),60) or S.str(v(game.realmDisplayName),60)
+        local zone,faction=S.str(v(game.areaName),120),S.str(v(game.factionName),16)
+        local guid=S.str(v(game.playerGuid),120)
+        -- Keep safe partial character data for stage counts; Presence.accept
+        -- still requires every display field before any row can be admitted.
+        return {name=name,realm=realm,zone=zone,faction=faction,presence=presence,guid=guid}
+    end)
+end
+function A.bnFriends()
+    local refused=0
+    local rows,why=presenceRead(function(v)
+        local api=v(_G.C_BattleNet)
+        local count=v(_G.BNGetNumFriends)
+        local project=S.num(v(_G.WOW_PROJECT_ID))
+        if not S.tab(api) or type(count)~="function" or type(v(api.GetFriendAccountInfo))~="function" or not project then return nil end
+        local n=S.num(v(count()))
+        if not n or n<0 or n%1~=0 then return nil end
+        local out={}
+        for i=1,math.min(n,200) do
+            local r,reason=presenceRead(function(read)
+                local account=read(api.GetFriendAccountInfo(i))
+                if not S.tab(account) then return nil end
+                local game=read(account.gameAccountInfo)
+                if not S.tab(game) then return nil end
+                local online,pid=read(game.isOnline),S.num(read(game.wowProjectID))
+                if online~=true or pid~=project then return nil end
+                local name,realm=S.str(read(game.characterName),100),S.str(read(game.realmName),60)
+                local zone,faction=S.str(read(game.areaName),120),S.str(read(game.factionName),16)
+                local guid=S.str(read(game.playerGuid),120)
+                if not name or not realm or not zone or (faction~="Horde" and faction~="Alliance") then return nil end
+                return {name=name,realm=realm,zone=zone,faction=faction,guid=guid}
+            end)
+            if reason=="secret" then refused=refused+1 end
+            -- Preserve the visited slot even when offline or unreadable, so its
+            -- previous presence is withdrawn without guessing a character name.
+            r=r or {}; r.index=i
+            out[#out+1]=r
+        end
+        return out
+    end)
+    return rows,why or refused
+end
+-- Source: pinned Forever FriendList API; temporary WHO UI ownership is managed above.
 function A.whoTerm(zoneName)
     local f,e=_G.C_FriendList,_G.Enum
     local tag=S.str(_G.WHO_TAG_ZONE,32)

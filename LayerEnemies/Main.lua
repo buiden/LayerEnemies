@@ -122,6 +122,7 @@ function M.poll()
     N.Directory.sync()
     N.Find.home(M.find,M.homeRealm())
     N.Known.prune(M.find.known,time)
+    M.presenceScan()
     M.findAlerts()
     N.CallUI.check()
     if N.UI then N.UI.refresh() end
@@ -292,6 +293,124 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
         M.findAlerts()
         if N.UI then N.UI.refresh() end
     end
+end
+-- Presence is never a sighting, reporter, host or outgoing work item.
+local function presenceSafe()
+    return M.find and #M.find.names>0 and not A.inCombat() and A.inInstance()==false
+end
+local function presenceRefusal(stats,reason)
+    if reason=="secret" then stats.refused=stats.refused+1; stats.secret=true
+    elseif type(reason)=="number" and reason>0 then stats.refused=stats.refused+reason; stats.secret=true end
+end
+local function presenceSharedSweep(time)
+    for hash,r in pairs(M.presenceShared) do
+        local _,_,_,senders=N.Watch.match(M.watch,r.name,time)
+        if time-r.at>=N.Presence.TTL or time<r.at or #senders==0 then
+            M.presenceShared[hash]=nil
+        end
+    end
+    -- Withdrawal removes names immediately, but cannot re-arm a hash's notice.
+    for hash,at in pairs(M.presenceSharedAlerts.presenceAlerts) do
+        if time<at or time-at>=600 then M.presenceSharedAlerts.presenceAlerts[hash]=nil end
+    end
+end
+local function presenceMember(job,member,route,source)
+    N.Presence.forget(M.find.presence,source)
+    N.Presence.forget(M.presenceShared,source)
+    if not member then return end
+    local sender=member.name
+    if route=="friend" or route=="community" then sender=N.OpenMap.bnName(member.name,member.realm) end
+    if not sender then return end
+    if route=="community" then
+        job.stats.resolved=job.stats.resolved+1
+        if member.zone then job.stats.zones=job.stats.zones+1 end
+    end
+    local record=N.Presence.accept(member,route)
+    if not record or N.OpenMap.faction(record.faction,S.call(UnitFactionGroup,"player"))~="opposite" then return end
+    if route=="community" then job.stats.opposite=job.stats.opposite+1 end
+    local _,me=A.ownIdentity()
+    local name=N.OpenMap.match(M.find,sender,me,true)
+    local shared
+    if not name then
+        -- Guild lists carry base-name hashes, not full identities: label these
+        -- possible matches, and never promote them into the saved personal list.
+        local _,_,hash,senders=N.Watch.match(M.watch,sender,now())
+        if not senders or #senders==0 or not N.OpenMap.match({names={sender}},sender,me) then return end
+        name,shared=sender,hash
+    end
+    local own=S.str(S.call(UnitGUID,"player"),120)
+    if own and record.guid==own then return end
+    record.source=source
+    local alerts,key=M.find,name
+    if shared then
+        record.name,record.at=name,now()
+        M.presenceShared[shared]=record -- one current character per shared hash
+        alerts,key=M.presenceSharedAlerts,shared
+    else N.Presence.note(M.find,name,record,now()) end
+    job.stats.matches=job.stats.matches+1
+    if N.Find.alert(alerts,{name=key},now(),true) then
+        M.findNotice(name.." — "..M.presenceText({zone=record.zone,route=route,age=0,guildTracked=shared~=nil}))
+    end
+end
+local function presenceStep(job)
+    if M.presenceJob~=job then return end
+    if not presenceSafe() then M.presenceJob=nil; return end
+    local budget=N.Presence.STEP
+    while budget>0 and job.clubs[job.club] do
+        local club=job.clubs[job.club]
+        if not job.ids then
+            local ids,why=A.clubMemberIds(club.id)
+            presenceRefusal(job.stats,why)
+            job.ids=ids or {}; job.member=1
+            if ids then job.stats.clubs=job.stats.clubs+1 end
+        end
+        local id=job.ids[job.member]
+        if id==nil then job.ids=nil; job.club=job.club+1
+        else
+            job.member=job.member+1; budget=budget-1
+            local member,why=A.clubMember(club.id,id)
+            job.stats.members=job.stats.members+1; presenceRefusal(job.stats,why)
+            presenceMember(job,member,"community","c:"..#tostring(club.id)..":"..club.id..":"..id)
+        end
+    end
+    if job.clubs[job.club] then
+        if not after(.001,function() presenceStep(job) end) then M.presenceJob=nil end
+        return
+    end
+    local friends,why=A.bnFriends()
+    presenceRefusal(job.stats,why)
+    for _,member in ipairs(friends or {}) do presenceMember(job,member,"friend","f:"..member.index) end
+    M.presenceJob=nil
+    if N.UI then N.UI.refresh() end
+end
+function M.presenceScan(force)
+    if not presenceSafe() then M.presenceJob=nil; return end
+    if M.presenceJob then return end
+    local time=now()
+    N.Presence.sweep(M.find,time)
+    presenceSharedSweep(time)
+    if not force and M.presenceAt and time>=M.presenceAt and time-M.presenceAt<N.Presence.EVERY then return end
+    M.presenceAt=time
+    local stats={clubs=0,members=0,resolved=0,zones=0,opposite=0,matches=0,refused=0,secret=false}
+    M.presenceStats=stats
+    local clubs,why=A.clubs(); presenceRefusal(stats,why)
+    local job={clubs=clubs or {},club=1,stats=stats}
+    M.presenceJob=job
+    if not after(.001,function() presenceStep(job) end) then M.presenceJob=nil; return end
+    return true
+end
+-- Tab changes and window reopens share one allowance, independent of rendering.
+function M.presenceOpen()
+    local time=now()
+    if M.presenceOpenAt and time-M.presenceOpenAt<N.Presence.OPEN then return end
+    if M.presenceScan(true) then M.presenceOpenAt=time end
+end
+function M.presenceStatus()
+    local s=M.presenceStats or {clubs=0,members=0,resolved=0,zones=0,opposite=0,matches=0,refused=0}
+    M.say("LayerEnemies presence: clubs read: "..s.clubs..", community members read: "..s.members
+        ..", resolved to a character: "..s.resolved..", with a zone: "..s.zones..", opposite faction: "..s.opposite
+        ..", matches: "..s.matches.." (all sources), secret: "..(s.secret and "yes" or "no")
+        ..", refusals: "..s.refused..".")
 end
 -- OpenMap places are private, session-only Find data: no alerts, reports, peers or outgoing work.
 local function openmapPlace(text,kind,sender,faction)
@@ -754,10 +873,22 @@ function M.zoneName(zone)
 end
 function M.findRows()
     local lists=A.friendLists(M.guildLines,M.heardBook())
-    return N.Find.rows(M.find,now(),M.store.zone,function(name,zone)
+    local rows=N.Find.rows(M.find,now(),M.store.zone,function(name,zone)
         return zone==M.store.zone and I.sameSpotter(name,{zone=zone,wall=A.wall(),ownKey=L.key(M.store.bulo),
             ambiguous=M.store.ambiguous(now()),bulo=lists.bulo,book=lists.book})
     end)
+    presenceSharedSweep(now())
+    local _,me=A.ownIdentity()
+    for _,r in pairs(M.presenceShared) do
+        if not N.OpenMap.match(M.find,r.name,me,true) then
+            rows[#rows+1]={name=r.name,status="online ("..r.route..")",canAsk=false,guildTracked=true,
+                presence={zone=r.zone,route=r.route,age=now()-r.at,guildTracked=true}}
+        end
+    end
+    return rows
+end
+function M.presenceText(presence)
+    return (presence.guildTracked and "possible guild watch match · " or "").."online ("..presence.route.."): "..presence.zone.." · "..math.floor(presence.age).." s ago"
 end
 function M.placeText(place)
     return "last shared position (OpenMap): "..M.zoneName(place.map).." "..math.floor(place.x*100+.5)..","..math.floor(place.y*100+.5)
@@ -803,7 +934,10 @@ function M.findText(row,sightingOnly)
     local details=M.findDetails(row)
     local text=row.name.." — "..(details or currentLine(row))
     if row.place and not sightingOnly then
-        return (row.at and (text.."\n") or (row.name.." — "))..M.placeText(row.place)
+        text=(row.at and (text.."\n") or (row.name.." — "))..M.placeText(row.place)
+    end
+    if row.presence and not sightingOnly then
+        text=((row.at or row.place) and (text.."\n") or (row.name.." — "))..M.presenceText(row.presence)
     end
     return text
 end
@@ -876,6 +1010,21 @@ local function findSummary(st,window)
     end
     st.alertWindow=nil
 end
+-- Shared three-lines / ten-seconds chat throttle; presence never plays a sound.
+function M.findNotice(text)
+    local st,time=M.find,now()
+    local window=st.alertWindow
+    if window and time-window.at>=10 then findSummary(st,window); window=nil end
+    if not window then window={at=time,lines=0,more=0}; st.alertWindow=window end
+    if window.lines<3 then
+        M.say("LayerEnemies: "..text); window.lines=window.lines+1
+    else
+        window.more=window.more+1
+        if not window.pending then
+            window.pending=after(math.max(0,10-(time-window.at)),function() findSummary(st,window) end)
+        end
+    end
+end
 function M.findAlerts(quiet,printed)
     local st,time=M.find,now()
     if not st then return end
@@ -885,15 +1034,7 @@ function M.findAlerts(quiet,printed)
     for _,row in ipairs(M.findRows()) do
         if N.Find.alert(st,row,time) then
             if row.name~=printed then
-                if not window then window={at=time,lines=0,more=0}; st.alertWindow=window end
-                if window.lines<3 then
-                    M.say("LayerEnemies: "..M.findText(row,true)); window.lines=window.lines+1
-                else
-                    window.more=window.more+1
-                    if not window.pending then
-                        window.pending=after(math.max(0,10-(time-window.at)),function() findSummary(st,window) end)
-                    end
-                end
+                M.findNotice(M.findText(row,true))
             end
             if not quiet and (not st.soundAt or time-st.soundAt>=10) then
                 st.soundAt=time; M.alertSound()
@@ -2058,6 +2199,7 @@ function M.start()
     -- Configuration only. Sightings and source identities never enter SavedVariables.
     local saved=LayerEnemiesDB
     M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new()
+    M.presenceShared={}; M.presenceSharedAlerts={presenceAlerts={}}
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
     M.host.want=LayerEnemiesDB.guildHost
@@ -2113,6 +2255,7 @@ function M.start()
         end
         if command=="find share on" or command=="find share off" then guarded(M.setFindShare,command=="find share on"); return end
         if command=="find notice on" or command=="find notice off" then guarded(M.setFindNotice,command=="find notice on"); return end
+        if command=="presence" then M.presenceStatus(); return end
         if command=="find" then M.track(nil); return end
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
         if command=="hop stop" then guarded(M.hopAnyStop); return end

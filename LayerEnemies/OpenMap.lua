@@ -28,12 +28,14 @@ function O.faction(theirs,ours)
     return theirs==ours and "same" or "opposite"
 end
 -- Exact full identity only; Invite strips the home realm, never a foreign realm or a surname.
-function O.match(st,sender,me)
+function O.match(st,sender,me,unqualified)
     local full,key=I.name(sender)
     if not key or not me or F.fold(key)==F.fold(me) then return nil end
     key,full=F.fold(key),F.fold(full)
     for _,name in ipairs(st.names) do
         local want=F.fold(name)
         if want==key or want==full then return name end
+        -- Presence follows Find's explicit bare-name wildcard; OpenMap stays exact.
+        if unqualified and not want:find("-",1,true) and want==full:match("^([^%-]+)%-") then return name end
     end
 end

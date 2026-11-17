@@ -53,6 +53,7 @@ local function rowFrame()
     r.title=font(r,12); r.title:SetPoint("TOPLEFT",r,"TOPLEFT",42,-8); r.title:SetWidth(225); r.title:SetWordWrap(false)
     r.sub=font(r,10,colors.muted); r.sub:SetPoint("TOPLEFT",r,"TOPLEFT",42,-26); r.sub:SetWidth(294); r.sub:SetHeight(31); r.sub:SetJustifyV("TOP")
     r.place=font(r,10,colors.muted); r.place:SetWidth(294); r.place:SetHeight(40); r.place:SetJustifyV("TOP"); r.place:Hide()
+    r.presence=font(r,10,colors.muted); r.presence:SetWidth(294); r.presence:SetHeight(56); r.presence:SetJustifyV("TOP"); r.presence:Hide()
     r.age=font(r,10,colors.muted); r.age:SetPoint("TOPRIGHT",r,"TOPRIGHT",-8,-8); r.age:SetJustifyH("RIGHT"); r.age:SetWidth(64); r.age:SetWordWrap(false)
     r.ask=button(r,220,20,"Ask for invite",function()
         if r.hostRow then N.Main.hopHostTo(r.hostRow,r.hostShown); U.render()
@@ -109,6 +110,7 @@ local function askState(r,name,label)
     if remaining then r.ask:Disable() else r.ask:Enable() end
 end
 function U.select(tab)
+    if tab=="find" and U.tab~="find" then N.Main.presenceOpen() end
     U.tab=tab; U.offset=0; U.render()
 end
 function U.render()
@@ -124,7 +126,7 @@ function U.render()
     local tracked=M.findRows()
     local function locatedAt(row) return math.max(row.at or -math.huge,row.place and row.place.at or -math.huge) end
     local located=0
-    for _,row in ipairs(tracked) do if row.at or row.place then located=located+1 end end
+    for _,row in ipairs(tracked) do if row.at or row.place or row.presence then located=located+1 end end
     table.sort(tracked,function(a,b)
         local aa,bb=locatedAt(a),locatedAt(b)
         if aa~=bb then return aa>bb end
@@ -204,7 +206,7 @@ function U.render()
         elseif U.tab=="friendly" then
             text=table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.layer and "layer "..e.layer or "layer not known")
         else
-            text=M.findDetails(e) or (e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or (e.place and "" or "Not located"))
+            text=M.findDetails(e) or (e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or ((e.place or e.presence) and "" or "Not located"))
             if e.probably and detailHeight==0 then text=text.." · probably your layer (key ambiguous)" end
         end
         local minimum=U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or 24
@@ -216,6 +218,12 @@ function U.render()
             layout.placeHeight=fitText(U.measure,40)
             layout.placeTop=math.max(detailHeight>0 and 29+detailHeight or e.at and 73 or 26,text~="" and bottom+3 or 26)
             bottom=layout.placeTop+layout.placeHeight
+        end
+        if U.tab=="find" and e.presence then
+            layout.presence=M.presenceText(e.presence); U.measure:SetText(layout.presence)
+            layout.presenceHeight=fitText(U.measure)
+            layout.presenceTop=(e.place or text~="") and bottom+3 or 26
+            bottom=layout.presenceTop+layout.presenceHeight
         end
         layout.height=math.max(minimumHeight(e),bottom+(U.tab=="local" and 4 or 32)+4)
         layouts[e]=layout
@@ -245,7 +253,7 @@ function U.render()
         if not r then r=rowFrame(); U.pool[index]=r end
         r:ClearAllPoints(); r:SetPoint("TOPLEFT",U.body,"TOPLEFT",0,-y)
         y=y+height
-        r:SetHeight(height-4); r:Show(); r.clear:Hide(); r.place:Hide()
+        r:SetHeight(height-4); r:Show(); r.clear:Hide(); r.place:Hide(); r.presence:Hide()
         local c=U.tab=="friendly" and colors.green or classColor(e.class)
         r.stripe:SetColorTexture(unpack(c)); r.title:SetTextColor(unpack(c))
         local friendly=U.tab=="friendly"
@@ -271,11 +279,15 @@ function U.render()
             elseif p then hostState(r,e,p)
             else askState(r,e.name,"Ask for invite") end
         else
-            r.tracked=e.name; r.clear:Show()
+            r.tracked=e.name; r.clear:SetShown(not e.guildTracked)
             askState(r,e.canAsk and e.spotter or nil,e.spotter and ("Ask "..e.spotter.." for invite") or "")
             if e.place then
                 r.place:ClearAllPoints(); r.place:SetPoint("TOPLEFT",r,"TOPLEFT",42,-layout.placeTop)
                 r.place:SetHeight(layout.placeHeight); r.place:SetText(layout.place); r.place:Show()
+            end
+            if e.presence then
+                r.presence:ClearAllPoints(); r.presence:SetPoint("TOPLEFT",r,"TOPLEFT",42,-layout.presenceTop)
+                r.presence:SetHeight(layout.presenceHeight); r.presence:SetText(layout.presence); r.presence:Show()
             end
         end
     end
@@ -403,7 +415,7 @@ function U.create()
     U.netHh:SetPoint("TOPLEFT",80,-462)
     U.footer=font(f,10,colors.muted); U.footer:SetWidth(340)
     U.footer:SetText("Only players seen by you or reported by other players' addons.")
-    f:SetScript("OnShow",function() U.generation=(U.generation or 0)+1; U.tick(U.generation) end)
+    f:SetScript("OnShow",function() if U.tab=="find" then M.presenceOpen() end; U.generation=(U.generation or 0)+1; U.tick(U.generation) end)
     f:SetScript("OnHide",function() U.generation=(U.generation or 0)+1; U.input:ClearFocus() end)
 end
 function U.toggle()
