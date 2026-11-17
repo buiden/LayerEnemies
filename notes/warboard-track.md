@@ -5,7 +5,33 @@ Authority: `/opt/data/handoffs/2026-11-17-le-1.2.0/PLAN.md` sections 1, 3 and 8.
 Clone: `/opt/data/cache/scratch/le-warboard-track`, branch `feat/warboard-track`.
 Local commits only: no push, GitHub write, donor execution or donor code copied.
 
-## Exact sends, recipients, caps and stop rules
+## Review correction checkpoint (a4dfbc40 baseline)
+
+Owner M1/M2/S1/S2/S3/N1/N2 supersede the earlier acceptance rules below.
+Frozen baseline `/opt/data/cache/scratch/le-e2-r2-base`: all four unchanged
+`src_zzmani*.lua` probes reproduced M1 expired/disabled handshakes, M2 target
+reload rejection, and S1 terminal retry exhaustion. They print observations,
+not assertion verdicts; their unconditional PASS labels are not evidence.
+New `test/src_warboard_debt.lua`: **1 passed, 25 failed, 1398 assertions** on
+untouched a4dfbc40. S3 already passed; all new protocol failures are assertion
+failures. Logs: `/opt/data/cache/scratch/le-e2-r2-{red,reviewer-red}.log`.
+
+Ruling: a true lifetime six-attempt cap requires durable attempt accounting.
+Keep the existing per-character GUID array and add an optional bounded
+`warboardOwed.attempts[guid] = count` map inside that same field (no other saved
+field). Legacy GUID-only saves load with zero attempts. This narrowly supersedes
+the old GUID-only-content rule; without it, relog would silently reset the cap.
+No names, accounts, positions, rosters or clocks are persisted. At the bound keep
+the debt, stop sends, and accept only later excluding-roster proof (or an already
+uncontradicted accepted send's 15-minute silence). The cap is conservative: failed
+client calls consume attempts too. Crash-before-save limitations also apply to
+attempt counts.
+
+Work sequence: tests/baseline, handshake and verification, retry/persistence,
+documentation/legacy assertion migrations, mutants, full verify, separate evidence
+commit. Local commits only; no donor execution/copy or publication.
+
+## Exact sends, recipients, caps and stop rules (historical E2 first round)
 
 Both new types are `WBF1|D|` followed by `addonEncode(deflateStored(aceWrite(envelope)))`.
 Envelope: `{t="FBAK"|"FBUN", v=5, rs=<our ruleset>, av="LayerEnemies/"..<our version>, senderName=<our character>, d=<payload>}`.
