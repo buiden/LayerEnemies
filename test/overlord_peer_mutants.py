@@ -12,6 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 LUA = os.environ.get('LAYERENEMIES_LUA') or shutil.which('lua5.1') or shutil.which('lua') or '/opt/data/tools/lua/lua-5.1.5/src/lua'
 # rule, file, unique anchor, replacement, test selector
 MUTANTS = [
+ ('no self addressed admission','OverlordPeer.lua','if selfTarget(c,route,dest) then return false end','if false then return false end','Overlord peer: self'),
+ ('no self queued dispatch','OverlordPeer.lua','if selfTarget(c,job.route,job.name) then return false end','if false then return false end','Overlord peer: self'),
+ ('self Unicode and realm identity','OverlordPeer.lua','return F.fold(target or name)','return name:lower()','Overlord peer: self'),
  ('round robin directory','OverlordPeer.lua','((st.greeter or 0)+step-1)%#members+1','step','Overlord peer:'),
  ('refused admission is uncharged','OverlordPeer.lua','local charged=ok and (result==true or attempted==true)','local charged=true','Overlord peer:'),
  ('refused greeting global gap','OverlordPeer.lua','if charged then st.greeting=c.now;st.greeter=index;break end','st.greeting=c.now;st.greeter=index;break','Overlord peer:'),

@@ -97,7 +97,9 @@ spends no candidate or minute cooldown: the same tick skips that member and scan
 on, at most one directory pass and one charged greeting. An actual client attempt,
 including a refused send, does consume the cooldown. Names use the shared canonical
 rule (only our own realm suffix is stripped), so equivalent spellings share a
-candidate cooldown. Queue guards recheck pool, identity, privacy and actual
+candidate cooldown. LE never greets or addresses an Overlord whisper or Battle.net
+message to its own character, including Unicode case and own-realm variants.
+Queue guards recheck pool, identity, privacy and actual
 per-target gaps at dispatch. A successful send is not proof of delivery.
 
 LE identifies itself as **`LayerEnemies <its installed TOC version>`**, never as

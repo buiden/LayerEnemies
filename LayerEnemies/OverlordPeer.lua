@@ -3,6 +3,16 @@ local _,N=...
 local P,S,F={},N.Safe,N.Find
 N.OverlordPeer=P
 local flight
+-- One source/recipient identity: shared Unicode fold, own realm stripped by
+-- Invite. Raw fallback is only for already parsed wire names / rate keys.
+function P.key(name)
+    name=S.str(name,100);if not name then return nil end
+    local _,_,target=N.Invite.name(name)
+    return F.fold(target or name)
+end
+local function selfTarget(c,route,name)
+    return (route=="WHISPER" or route=="BNET") and P.key(name)==P.key(c.me)
+end
 function P.new() return {routes={},gaps={},actual={},owed={},actualOwed={},serial=0,probe=0} end
 local function ready(c,owed,stop)
     return (stop and c.stopAllowed==true or not stop and c.allowed==true) and (owed or c.own==true) and S.str(c.pool,16)
@@ -27,6 +37,7 @@ end
 -- Queued Battle.net frames cannot burst across a new admission window.
 function P.claim(st,job,c,checkOnly)
     if not ready(c,job.owed,job.stop) or c.pool~=job.pool or c.me~=job.me then return false end
+    if selfTarget(c,job.route,job.name) then return false end
     if job.kind=="NH" and N.OverlordFeed and N.OverlordFeed.suppressed(st,c,job.route,job.name,job.id) then return false end
     if job.valid and not job.valid(c) then return false end
     if not due(st.actual[job.key],c.now,job.gap) then return false end
@@ -61,6 +72,7 @@ function P.emit(st,c,kind,payload,route,target,key,gap,owed,callbacks)
     st.serial=st.serial+1
     local id=tostring(math.floor(c.wall)).."-"..st.serial
     local dest=(route=="BNET" and target.name) or (route=="WHISPER" and target) or "*"
+    if selfTarget(c,route,dest) then return false end
     local packet=table.concat({c.pool,id,math.floor(c.wall),dest,c.me,kind,payload},"|")
     local text
     if route=="BNET" then text="R2:Forever_"..c.pool.."_"..c.faction..":BR:"..packet
@@ -83,7 +95,7 @@ function P.emit(st,c,kind,payload,route,target,key,gap,owed,callbacks)
 end
 local function learn(st,p,route,sender,id,c)
     P.sweep(st,c.now)
-    local key=F.fold(p.origin)
+    local key=P.key(p.origin)
     local old=st.routes[key]
     if old and old.pool~=(p.pool or c.pool) then old=nil end
     if old and old.hops==0 and p.hops>0 and c.now-old.at<240 then return old end
@@ -107,7 +119,7 @@ function P.receive(st,p,route,sender,id,c)
     -- Owed answers only to direct addressed peers, never to overheard/relayed requests.
     if p.hops~=0 or p.target~=c.me or (route~="WHISPER" and route~="BNET") then return r end
     local target=route=="BNET" and {id=id,name=p.origin} or sender
-    local key=F.fold(p.origin)
+    local key=P.key(p.origin)
     if p.kind=="NH" and route=="WHISPER" then
         P.emit(st,c,"NH",P.presence(c),route,target,"reply:"..key,150,true)
     elseif p.kind=="HR" then
@@ -137,7 +149,7 @@ function P.tick(st,c)
         local live,unheard={},{}
         for _,f in ipairs(c.friends or {}) do
             if f.friend and #live+#unheard<200 then
-                local r=st.routes[F.fold(f.name)]
+                local r=st.routes[P.key(f.name)]
                 if r and r.hops==0 and r.route=="BNET" and r.id==f.id then live[#live+1]=f
                 else unheard[#unheard+1]=f end
             end
@@ -158,7 +170,8 @@ function P.tick(st,c)
         local members=c.directory or {}
         for step=1,#members do
             local index=((st.greeter or 0)+step-1)%#members+1
-            local _,key,name=N.Invite.name(members[index])
+            local _,_,name=N.Invite.name(members[index])
+            local key=P.key(name)
             if name and not st.routes[key] and due(st.gaps["hello:"..key],c.now,600) then
                 local _,charged=P.emit(st,c,"NH",P.presence(c),"WHISPER",name,"hello:"..key,600,false)
                 if charged then st.greeting=c.now;st.greeter=index;break end
