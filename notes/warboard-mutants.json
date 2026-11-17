@@ -1,0 +1,1051 @@
+[
+  {
+    "rule": "H answered; no A loop",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: compatible H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:101: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "protocol exactly five",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: wrong ruleset",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: wrong ruleset H gets own A but no peer; wrong protocol gets nothing: test/src_warboard.lua:109: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "wrong ruleset removes peer",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: wrong ruleset",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: wrong ruleset H gets own A but no peer; wrong protocol gets nothing: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "unknown ruleset silent",
+    "file": "Adapters.lua",
+    "selector": "WarBoard: wrong ruleset",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: wrong ruleset H gets own A but no peer; wrong protocol gets nothing: test/src_warboard.lua:112: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "own identity never donor",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: compatible H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:100: not equal: expected WBF1|A|5|pvp|LayerEnemies/1.1.0|0, got WBF1|A|5|pvp|WarBoard/1.6.3|0"
+    ]
+  },
+  {
+    "rule": "twenty selected accounts",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: discovery selects",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred: test/src_warboard.lua:340: selection cap independent of queue admission: expected 20, got 21"
+    ]
+  },
+  {
+    "rule": "sixty second scan",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: discovery selects",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred: test/src_warboard.lua:342: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "six hundred second H dispatch",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: H delayed dispatch",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: H delayed dispatch never repeats an account before six hundred actual seconds: test/src_warboard.lua:771: queued early does not permit an early actual hello: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "six hundred second H admission",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: H admission",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: H admission gap is six hundred even before dispatch: test/src_warboard.lua:828: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "six answers admitted per minute",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: A six per rolling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: A six per rolling minute including delayed queue; WarBoard ten shared thirty: test/src_warboard.lua:358: answer admission cap independent of dispatch cap: expected 6, got 7"
+    ]
+  },
+  {
+    "rule": "six answers actually attempted per minute",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: A dispatch cap",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:681: second delayed cohort dropped, not burst: expected 6, got 7"
+    ]
+  },
+  {
+    "rule": "ten shared WarBoard sends per minute",
+    "file": "BNet.lua",
+    "selector": "WarBoard: discovery selects",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred: test/src_warboard.lua:341: the shared queue admits only WarBoard's ten slots: expected 10, got 11"
+    ]
+  },
+  {
+    "rule": "thirty shared network sends per minute",
+    "file": "BNet.lua",
+    "selector": "WarBoard: A dispatch cap",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:677: shared cap holds answers: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "final source predicate honored",
+    "file": "BNet.lua",
+    "selector": "WarBoard: live account identity",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: live account identity and ruleset rechecked at dispatch: test/src_warboard.lua:414: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "share off silence",
+    "file": "BNet.lua",
+    "selector": "WarBoard: share stops",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: share stops new sends and cancels queued answers: test/src_warboard.lua:377: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "public off silence",
+    "file": "BNet.lua",
+    "selector": "WarBoard: public stops",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: public stops new sends and cancels queued answers: test/src_warboard.lua:377: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "stand down own sends",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: stand down",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: stand down H and A over thirty minutes of incoming H traffic: test/src_warboard.lua:479: stand down leaves discovery stopped: expected 0, got 30"
+    ]
+  },
+  {
+    "rule": "stand down cancels queued answers",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: stand down cancels queued H and A",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: stand down cancels queued H and A when the real addon loads: test/harness.lua:8: source final guard honors donor load: expected false, got true"
+    ]
+  },
+  {
+    "rule": "handshake grammar cannot masquerade as FBAK",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: compatible H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:100: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "no forwarding",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: no unsolicited application response",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: no unsolicited application response or forwarding; FBAK requires verified Find target: test/src_warboard.lua:700: not equal: expected 0, got 5"
+    ]
+  },
+  {
+    "rule": "no alternative send route",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: compatible H",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: compatible H answers once through shared queue; A never answered: test/src_warboard.lua:20: no forbidden attempt, even if protected callbacks swallowed it: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "confirmed peer required",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: unconfirmed wrong",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: unconfirmed wrong faction expired peer and reused account identity cannot inject data: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "peer lifetime bounded",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: unconfirmed wrong",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: unconfirmed wrong faction expired peer and reused account identity cannot inject data: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "identity rechecked",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: unconfirmed wrong",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: unconfirmed wrong faction expired peer and reused account identity cannot inject data: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "carrier faction matches envelope",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: invalid SHRD faction",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: invalid SHRD faction fails silent: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "four thousand byte frame",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: frame four thousand",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: frame four thousand bytes and assembled/inflated limits reject valid oversized data: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "sixty four fragments",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: fragment limits",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: fragment limits sixty four parts sixteen streams ninety seconds and sender isolation: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "sixteen assemblies",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: fragment limits",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: fragment limits sixty four parts sixteen streams ninety seconds and sender isolation: test/src_warboard.lua:615: not equal: expected 16, got 17"
+    ]
+  },
+  {
+    "rule": "ninety second assembly expiry",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: fragment limits",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: fragment limits sixty four parts sixteen streams ninety seconds and sender isolation: test/harness.lua:8: exact expiry: expected false, got true"
+    ]
+  },
+  {
+    "rule": "assembly sender isolation",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: confirmed fragment sender isolation",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: confirmed fragment sender isolation does not confuse identical character accounts: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "assembly count mismatch",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: fragment conflict",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: fragment conflict and first duplicate keep age and contents: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "hundred twenty inbound frames",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: inbound rolling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/harness.lua:8: 121st frame rejected: expected false, got true"
+    ]
+  },
+  {
+    "rule": "two hundred sender buckets",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: inbound rolling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:657: not equal: expected 200, got 201"
+    ]
+  },
+  {
+    "rule": "two hundred peers",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: inbound rolling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:659: peer bound independent of input buckets: expected 200, got 201"
+    ]
+  },
+  {
+    "rule": "dedupe retains receipt time",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: dedupe FBLP",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: dedupe FBLP retains observed and received clocks across differently routed copies: test/src_warboard.lua:844: not equal: expected 10, got 71"
+    ]
+  },
+  {
+    "rule": "five hundred twelve dedupe entries",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: dedupe ring",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: dedupe ring bounded at five hundred twelve and one MiB with fresh evidence admitted: test/src_warboard.lua:670: not equal: expected 512, got 513"
+    ]
+  },
+  {
+    "rule": "one MiB encoded memory",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: dedupe byte bound",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: dedupe byte bound evicts older accepted encoded packets: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "version upper bound",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: invalid SHRD v ",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: invalid SHRD v fails silent: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "payload ruleset match",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: invalid SHRD rs",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: invalid SHRD rs fails silent: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "no whisper route",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: addon routes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: addon routes use honest relayed labels, read under stand-down, never whisper or send: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "honest relayed kind",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: addon routes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: addon routes use honest relayed labels, read under stand-down, never whisper or send: test/src_warboard.lua:553: GUILDWarBoard: expected relayed, got self"
+    ]
+  },
+  {
+    "rule": "tracked admission",
+    "file": "Sources.lua",
+    "selector": "WarBoard: untracked FBLP",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: untracked FBLP and FREC never reach Known or save names: test/src_warboard.lua:863: not equal: expected nil, got enemy player-123"
+    ]
+  },
+  {
+    "rule": "source silence on later poll",
+    "file": "Find.lua",
+    "selector": "WarBoard: silent claim poll",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: silent claim poll never alerts or sounds after a source receive: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "SHRD millisecond timestamp",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: SHRD own zone",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: SHRD own zone and shard through registry, with sequence not seconds; clear and expiry: test/src_warboard.lua:487: not equal: expected warboard, got nil"
+    ]
+  },
+  {
+    "rule": "SHRD stale sequence",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: invalid SHRD sentAt",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: invalid SHRD sentAt fails silent: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "SHRD sequence ordering",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: SHRD ordering",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: SHRD ordering rejects different bytes with equal or older sequences: test/src_warboard.lua:875: not equal: expected 123, got 124"
+    ]
+  },
+  {
+    "rule": "SHRD sequence independent of carrier spelling",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: SHRD clear and sequence",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: SHRD clear and sequence follow the player across direct and relayed identity spellings: test/harness.lua:8: clear crosses carrier spelling: expected false, got true"
+    ]
+  },
+  {
+    "rule": "SHRD clear uses admitted spelling",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: SHRD clear and sequence",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: SHRD clear and sequence follow the player across direct and relayed identity spellings: test/harness.lua:8: clear crosses carrier spelling: expected false, got true"
+    ]
+  },
+  {
+    "rule": "only enemy faction admitted",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: same faction addon",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: same faction addon records never become tracked enemy evidence: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "SHRD expires after one eighty",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: SHRD own zone",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: SHRD own zone and shard through registry, with sequence not seconds; clear and expiry: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "clear respects source",
+    "file": "Known.lua",
+    "selector": "WarBoard: source clear",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:710: not equal: expected probe, got nil"
+    ]
+  },
+  {
+    "rule": "clear respects type",
+    "file": "Known.lua",
+    "selector": "WarBoard: source clear",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:707: not equal: expected FBLP, got nil"
+    ]
+  },
+  {
+    "rule": "position age bound",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: safe fields",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: safe fields clocks and conversions fail closed, source input cannot change saved fields: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "position future bound",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: safe fields",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: safe fields clocks and conversions fail closed, source input cannot change saved fields: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "coordinate provenance",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: relayed FBLP",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: relayed FBLP still carries target coordinates and different current zone labels: test/src_warboard.lua:742: not equal: expected enemy, got observer"
+    ]
+  },
+  {
+    "rule": "coordinate axis order",
+    "file": "Adapters.lua",
+    "selector": "WarBoard: FBLP world",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: FBLP world coordinates convert only via client with axis order; labels survive no conversion: test/src_warboard.lua:507: not equal: expected 0.2, got nil"
+    ]
+  },
+  {
+    "rule": "child map conversion",
+    "file": "Adapters.lua",
+    "selector": "WarBoard: client child-map",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: client child-map conversion must be converted again to the displayed zone: test/src_warboard.lua:755: not equal: expected 2, got 1"
+    ]
+  },
+  {
+    "rule": "FREC structural option fields",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: FREC optional",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: FREC optional structural corruption rejected without importing reward logic: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "cached batch remains cached",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: FREC names",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: FREC names killer not victim, self witness relay and cached retain original age: test/src_warboard.lua:524: not equal: expected cached, got relayed"
+    ]
+  },
+  {
+    "rule": "rollback refusal",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: rollback refusal",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: rollback refusal drops an H before queuing an answer: test/src_warboard.lua:883: rollback must not create new send authority: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "secret value boundary",
+    "file": "Safe.lua",
+    "selector": "WarBoard: safe fields",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: safe fields clocks and conversions fail closed, source input cannot change saved fields: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "SHRD per-type inflate ceiling",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: SHRD inflate ceiling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: SHRD inflate ceiling is applied before bomb expansion: test/harness.lua:8: 2104: expected false, got true"
+    ]
+  },
+  {
+    "rule": "FBLP per-type inflate ceiling",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: FBLP inflate ceiling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: FBLP inflate ceiling is applied before bomb expansion: test/harness.lua:8: 41016: expected false, got true"
+    ]
+  },
+  {
+    "rule": "FREC per-type inflate ceiling",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: FREC inflate ceiling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: FREC inflate ceiling is applied before bomb expansion: test/harness.lua:8: 73784: expected false, got true"
+    ]
+  },
+  {
+    "rule": "FBLC per-type inflate ceiling",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: FBLC inflate ceiling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: FBLC inflate ceiling is applied before bomb expansion: test/harness.lua:8: 2104: expected false, got true"
+    ]
+  },
+  {
+    "rule": "FCBD per-type inflate ceiling",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: largest normal location",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: largest normal location payloads survive either envelope key order: test/harness.lua:7: FCBD survives max fields and either key order: expected true, got false"
+    ]
+  },
+  {
+    "rule": "unknown type bounded before classification",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: SHRD inflate ceiling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: SHRD inflate ceiling is applied before bomb expansion: test/harness.lua:7: unknown type never gets the shared 256 KiB limit: expected true, got false"
+    ]
+  },
+  {
+    "rule": "streaming type limit lowers actual inflation",
+    "file": "Codec.lua",
+    "selector": "WarBoard review: SHRD inflate ceiling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: SHRD inflate ceiling is applied before bomb expansion: test/harness.lua:7: per-type inflate work ceiling: expected true, got false"
+    ]
+  },
+  {
+    "rule": "sixteen expensive decode attempts per sender",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: decode attempt cap",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: decode attempt cap spans both prefixes and every route for one identity: test/harness.lua:7: no route reopens expensive attempts: expected true, got false"
+    ]
+  },
+  {
+    "rule": "rolling ten-second decode window",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: decode attempt cap",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: decode attempt cap spans both prefixes and every route for one identity: test/src_warboard_review.lua:116: not equal: expected 2048, got 98304"
+    ]
+  },
+  {
+    "rule": "sender inflated-byte allowance reaches inflater",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: decode bytes budget",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: decode bytes budget stops distinct large frames before attempt cap: test/harness.lua:7: sender may inflate at most 128 KiB per rolling ten seconds: expected true, got false"
+    ]
+  },
+  {
+    "rule": "one decode owner across BN and addon paths",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: decode attempt cap",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: decode attempt cap spans both prefixes and every route for one identity: test/harness.lua:7: no route reopens expensive attempts: expected true, got false"
+    ]
+  },
+  {
+    "rule": "account decode bucket survives character change",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: BN decode quota",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: BN decode quota belongs to account as well as current character: test/src_warboard_review.lua:209: new character and handshake cannot reset account's expensive quota: expected 2048, got 98304"
+    ]
+  },
+  {
+    "rule": "failed payload hash avoids repeated inflation",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: reviewer 130 BN bombs",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: reviewer 130 BN bombs have bounded inflated bytes and refusal accounting: test/harness.lua:7: 130 repeated SHRD bombs must not inflate 119 times: expected true, got false"
+    ]
+  },
+  {
+    "rule": "decoded non-tracking refusals are hashed, not only failures",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: every decoded frame",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: every decoded frame is hashed even when record or context is refused: test/src_warboard_review.lua:217: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "sixty-second frame memory",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: failed hashes last",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: failed hashes last sixty seconds without repeat refresh or retained payloads: test/src_warboard_review.lua:145: shared transport failure memory: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "duplicates do not refresh hash lifetime",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: failed hashes last",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: failed hashes last sixty seconds without repeat refresh or retained payloads: test/src_warboard_review.lua:146: exact failure expiry; repeats never refresh it: expected 2, got 1"
+    ]
+  },
+  {
+    "rule": "five hundred twelve frame hashes",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: failed hash cap",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: failed hash cap evicts oldest and does not retain more than 512: test/src_warboard_review.lua:195: not equal: expected 512, got 513"
+    ]
+  },
+  {
+    "rule": "two hundred decode sender buckets",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: decode sender bucket cap",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: decode sender bucket cap is independent of the input-frame bucket cap: test/src_warboard_review.lua:180: neither the sixteen/account nor input-frame cap may hide the sender-table bound: expected 200, got 201"
+    ]
+  },
+  {
+    "rule": "refused decode counted",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: reviewer 130 BN bombs",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: reviewer 130 BN bombs have bounded inflated bytes and refusal accounting: test/src_warboard_review.lua:83: all failed or rate-refused frames counted: expected 130, got 129"
+    ]
+  },
+  {
+    "rule": "dedupe hits counted",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: accepted payload duplicates",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: accepted payload duplicates count hash hits and preserve first receipt: test/src_warboard_review.lua:241: not equal: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "two unfinished BN assemblies per account",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: one account holding unfinished",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: one account holding unfinished parts cannot starve another for ten minutes: test/src_warboard_review.lua:259: all fresh two-part SHRD from the other account stored: expected 20, got 0"
+    ]
+  },
+  {
+    "rule": "two unfinished addon assemblies per sender",
+    "file": "Codec.lua",
+    "selector": "WarBoard review: addon assembly quota",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: addon assembly quota aggregates all prefixes and routes for a sender: test/harness.lua:8: third route cannot allocate a third stream: expected false, got true"
+    ]
+  },
+  {
+    "rule": "addon assembly owner independent of route key",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: addon assembly quota",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: addon assembly quota aggregates all prefixes and routes for a sender: test/harness.lua:8: third route cannot allocate a third stream: expected false, got true"
+    ]
+  },
+  {
+    "rule": "relayed position wording is not own position",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: FBLP wording BN third",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: FBLP wording BN third: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "matching addon subject is not authenticated BN self",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard review: FBLP wording GUILD",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: FBLP wording GUILD: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "README discloses new-peer publication",
+    "file": "../README.md",
+    "selector": "WarBoard review: README explains",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: README explains the new-peer publication side effect below the send table: test/harness.lua:7: owner-approved disclosure retained verbatim: expected true, got false"
+    ]
+  },
+  {
+    "rule": "overall unauthenticated decode ceiling",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: overall ceiling",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: overall ceiling bounds twenty senders times forty distinct bombs: test/harness.lua:7: all unauthenticated senders share 192 KiB per ten seconds: expected true, got false"
+    ]
+  },
+  {
+    "rule": "aggregate bytes charged across senders and routes",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: all addon routes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: all addon routes share one ceiling while confirmed BN is separate: test/src_warboard_round2.lua:115: not one global budget per route or prefix: expected 196608, got 393216"
+    ]
+  },
+  {
+    "rule": "channel cannot spend the guild reserve",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: channel flood",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: channel flood leaves a guild reserve and confirmed BN room: test/harness.lua:7: channel strangers cannot consume the 64 KiB group reserve: expected true, got false"
+    ]
+  },
+  {
+    "rule": "channel byte charges retained",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: channel flood",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: channel flood leaves a guild reserve and confirmed BN room: test/harness.lua:7: channel strangers cannot consume the 64 KiB group reserve: expected true, got false"
+    ]
+  },
+  {
+    "rule": "aggregate budget uses a rolling ten-second window",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: overall window",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: overall window is rolling with exact expiry and rollback refusal: test/src_warboard_round2.lua:217: not equal: expected 196608, got 294912"
+    ]
+  },
+  {
+    "rule": "confirmed BN has separate aggregate room",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: all addon routes",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: all addon routes share one ceiling while confirmed BN is separate: test/src_warboard_round2.lua:118: not equal: expected 3, got 2"
+    ]
+  },
+  {
+    "rule": "channel strangers cannot fill sender slots",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: channel sender slots",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: channel sender slots cannot evict fresh guild party raid or BN senders: test/harness.lua:7: GUILD retains sender-table room after 230 strangers: expected true, got false"
+    ]
+  },
+  {
+    "rule": "small honest bursts not clipped at sixteen frames",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: cheap honest burst",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: cheap honest burst accepts all 119 SHRD from one confirmed account: test/src_warboard_round2.lua:127: small honest reports do not spend expensive attempts: expected 119, got 16"
+    ]
+  },
+  {
+    "rule": "cheap frames do not consume expensive attempts",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: cheap reports leave",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: cheap reports leave all sixteen expensive attempts available: test/src_warboard_round2.lua:141: cheap frames cannot consume expensive attempts: expected 21, got 20"
+    ]
+  },
+  {
+    "rule": "cheap probe remains available after expensive attempts",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: expensive attempts stay",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: expensive attempts stay capped but leave the cheap path open: test/harness.lua:7: route aliases cannot recover expensive allowance: expected true, got false"
+    ]
+  },
+  {
+    "rule": "untracked refusals are not remembered",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard R2: untracked ",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: untracked SHRD reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1",
+      "FAIL WarBoard R2: untracked FBLP reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1",
+      "FAIL WarBoard R2: untracked FREC reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1",
+      "FAIL WarBoard R2: untracked FBLC reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1",
+      "FAIL WarBoard R2: untracked FCBD reopens immediately when the name is added: test/src_warboard_round2.lua:195: untracked refusal is not a cached decode outcome: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "mutant runner does not require owner scratch path",
+    "file": "../test/warboard_mutants.py",
+    "selector": "WarBoard R2: portable mutant runner",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 68, in <module> |     main() |     ~~~~^^ |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 43, in main |     runner.main() |     ~~~~~~~~~~~^^ |   File \"<checkout>/test/warboard_mutants.py\", line 239, in main | AssertionError | : expected true, got false"
+    ]
+  },
+  {
+    "rule": "identical mutant evidence is not rewritten",
+    "file": "../test/warboard_mutants.py",
+    "selector": "WarBoard R2: portable mutant runner",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 68, in <module> |     main() |     ~~~~^^ |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 52, in main |     assert (report.read_bytes(), report.stat().st_mtime_ns) == before, 'evidence bytes/mtime changed on rerun' |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: evidence bytes/mtime changed on rerun | : expected true, got false"
+    ]
+  },
+  {
+    "rule": "random traceback paths and addresses normalized",
+    "file": "../test/warboard_mutants.py",
+    "selector": "WarBoard R2: portable mutant runner",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 68, in <module> |     main() |     ~~~~^^ |   File \"<checkout>/test/warboard_mutants_portability_test.py\", line 31, in main |     assert runner.diagnostic('File \"<checkout>/test/case.py\" got <object>') == runner.diagnostic( |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |         'File \"<checkout>/test/case.py\" got <object>'), 'diagnostics retain random paths/addresses' |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: diagnostics retain random paths/addresses | : expected true, got false"
+    ]
+  },
+  {
+    "rule": "enemy position survives observer-label composition",
+    "file": "Sources.lua",
+    "selector": "Stack: WarBoard position subject",
+    "killed": true,
+    "failures": [
+      "FAIL Stack: WarBoard position subject survives Wanted observer wording on BN third: test/harness.lua:8: enemy coordinates never become the relay's position: expected false, got true",
+      "FAIL Stack: WarBoard position subject survives Wanted observer wording on GUILD: test/harness.lua:8: enemy coordinates never become the relay's position: expected false, got true",
+      "FAIL Stack: WarBoard position subject survives Wanted observer wording on PARTY: test/harness.lua:8: enemy coordinates never become the relay's position: expected false, got true",
+      "FAIL Stack: WarBoard position subject survives Wanted observer wording on RAID: test/harness.lua:8: enemy coordinates never become the relay's position: expected false, got true",
+      "FAIL Stack: WarBoard position subject survives Wanted observer wording on CHANNEL: test/harness.lua:8: enemy coordinates never become the relay's position: expected false, got true"
+    ]
+  },
+  {
+    "rule": "real H leaves eight owed-only queue slots",
+    "file": "BNet.lua",
+    "selector": "WarBoard: H cannot consume owed reserve",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: H cannot consume owed reserve while six real A answers use it: test/src_warboard.lua:793: real H cannot take any owed-only slot: expected 52, got 53"
+    ]
+  },
+  {
+    "rule": "real H and A expire after sixty seconds",
+    "file": "BNet.lua",
+    "selector": "respects shared queue age",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: H respects shared queue age at 60.001 seconds: test/src_warboard.lua:817: sixty seconds is live; older H and A expire: expected 0, got 1",
+      "FAIL WarBoard: H respects shared queue age at 61 seconds: test/src_warboard.lua:817: sixty seconds is live; older H and A expire: expected 0, got 1",
+      "FAIL WarBoard: A respects shared queue age at 60.001 seconds: test/src_warboard.lua:817: sixty seconds is live; older H and A expire: expected 0, got 1",
+      "FAIL WarBoard: A respects shared queue age at 61 seconds: test/src_warboard.lua:817: sixty seconds is live; older H and A expire: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "S1 refused H does not spend admission cooldown",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: queue refusal",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: queue refusal does not spend H admission cooldown: test/src_warboard.lua:125: queue refusal must not spend a 600-second cooldown: expected nil, got <object>"
+    ]
+  },
+  {
+    "rule": "S1 discovery resumes after last greeted account",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: round robin",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: round robin starts after the last admitted account in stable ID order: test/src_warboard.lua:151: not equal: expected 40, got 30"
+    ]
+  },
+  {
+    "rule": "S1 discovery order is stable across roster changes",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: round robin",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: round robin starts after the last admitted account in stable ID order: test/src_warboard.lua:152: resume after last accepted, not last refused: expected 81, got 110"
+    ]
+  },
+  {
+    "rule": "S1 refused accounts do not advance the greeting cursor",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: round robin",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: round robin starts after the last admitted account in stable ID order: test/src_warboard.lua:152: resume after last accepted, not last refused: expected 81, got 91"
+    ]
+  },
+  {
+    "rule": "unreadable names neither consume selection nor block rotation",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: unreadable hello",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: unreadable hello cursor skips missing names without spending the selection budget: test/src_warboard.lua:266: unreadable accounts do not consume readable selections: expected 20, got 10",
+      "FAIL WarBoard: unreadable hello cursor skips secret names without spending the selection budget: test/src_warboard.lua:266: unreadable accounts do not consume readable selections: expected 20, got 10",
+      "FAIL WarBoard: unreadable hello cursor skips throwing names without spending the selection budget: test/src_warboard.lua:266: unreadable accounts do not consume readable selections: expected 20, got 10",
+      "FAIL WarBoard: unreadable hello reach over sixty minutes with 22 unreadable of 45 accounts: test/src_warboard.lua:324: all readable accounts greeted within sixty minutes: expected 23, got 10"
+    ]
+  },
+  {
+    "rule": "N1 hello recipients are not restricted to known WarBoard users",
+    "file": "../README.md",
+    "selector": "WarBoard review: README explains",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: README explains the new-peer publication side effect below the send table: test/harness.lua:7: handshake explanation includes: every eligible opposite-faction Battle.net friend or community member account that is online in WoW: expected true, got false"
+    ]
+  },
+  {
+    "rule": "N2 tracking-request statement is scoped to this part",
+    "file": "../README.md",
+    "selector": "WarBoard review: README explains",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard review: README explains the new-peer publication side effect below the send table: test/harness.lua:7: handshake explanation includes: This handshake does not request a position broadcast; the tracking-request section above does.: expected true, got false"
+    ]
+  },
+  {
+    "rule": "N3 source failure identities normalized",
+    "file": "../test/source_mutants.py",
+    "selector": "Stack: source mutant evidence",
+    "killed": true,
+    "failures": [
+      "FAIL Stack: source mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_source_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_source_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"<checkout>/test/mutant_evidence_test.py\", line 62, in test_source_rerun_is_byte_and_mtime_stable |     self.check_rerun('source', 'peer online', 3) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"<checkout>/test/mutant_evidence_test.py\", line 51, in check_rerun |     self.assertTrue(second == first, 'actual mutant evidence must be byte-stable') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : actual mutant evidence must be byte-stable | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
+    ]
+  },
+  {
+    "rule": "N3 source identical evidence not rewritten",
+    "file": "../test/source_mutants.py",
+    "selector": "Stack: source mutant evidence",
+    "killed": true,
+    "failures": [
+      "FAIL Stack: source mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_source_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_source_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"<checkout>/test/mutant_evidence_test.py\", line 62, in test_source_rerun_is_byte_and_mtime_stable |     self.check_rerun('source', 'peer online', 3) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"<checkout>/test/mutant_evidence_test.py\", line 52, in check_rerun |     self.assertTrue(later == stamp, 'unchanged evidence must not be rewritten') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : unchanged evidence must not be rewritten | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
+    ]
+  },
+  {
+    "rule": "N3 presence failure identities normalized",
+    "file": "../test/presence_mutants.py",
+    "selector": "Stack: presence mutant evidence",
+    "killed": true,
+    "failures": [
+      "FAIL Stack: presence mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_presence_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_presence_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"<checkout>/test/mutant_evidence_test.py\", line 65, in test_presence_rerun_is_byte_and_mtime_stable |     self.check_rerun('presence', 'R1 accept non WoW game account', 1) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"<checkout>/test/mutant_evidence_test.py\", line 51, in check_rerun |     self.assertTrue(second == first, 'actual mutant evidence must be byte-stable') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : actual mutant evidence must be byte-stable | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
+    ]
+  },
+  {
+    "rule": "N3 presence identical evidence not rewritten",
+    "file": "../test/presence_mutants.py",
+    "selector": "Stack: presence mutant evidence",
+    "killed": true,
+    "failures": [
+      "FAIL Stack: presence mutant evidence rerun is byte and mtime stable: test/harness.lua:7: F | ====================================================================== | FAIL: test_presence_rerun_is_byte_and_mtime_stable (__main__.StableEvidenceTest.test_presence_rerun_is_byte_and_mtime_stable) | ---------------------------------------------------------------------- | Traceback (most recent call last): |   File \"<checkout>/test/mutant_evidence_test.py\", line 65, in test_presence_rerun_is_byte_and_mtime_stable |     self.check_rerun('presence', 'R1 accept non WoW game account', 1) |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ |   File \"<checkout>/test/mutant_evidence_test.py\", line 52, in check_rerun |     self.assertTrue(later == stamp, 'unchanged evidence must not be rewritten') |     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | AssertionError: False is not true : unchanged evidence must not be rewritten | ---------------------------------------------------------------------- | Ran 1 test | FAILED (failures=1) | RUNNER_RC=1 | : expected true, got false"
+    ]
+  }
+]

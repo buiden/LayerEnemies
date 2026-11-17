@@ -39,6 +39,32 @@ single-part bytes versus control-prefixed multipart frames (LibChehulMesh
 414–434). GuildOS's latest release was rechecked and remained v1.28.0 on
 2026-11-17. The tests use independently constructed wire strings.
 
+## WarBoard Forever protocol source (PR E1/E2)
+
+| Donor | Pin | Rights / reuse |
+|---|---|---|
+| [WarBoard Forever](https://www.curseforge.com/wow/addons/warboard/files/9639808), 1.6.3 | `WarBoard-Forever1.6.3.zip`, SHA-256 `627a1822e00ffa28d9e073bdaa66b65fdf9ddff43caa512a0805ae0d444ed9d6` | **No application-code licence found. Protocol only, no copied code.** |
+
+`LayerEnemies/WarBoard.lua` and `LayerEnemies/WarBoardTrack.lua` are independent implementations from the pinned
+wire audit: H/A handshake, bounded WBF1 transport, SHRD, FBLP and killer-zone
+envelopes. No donor implementation, assets, resolver, libraries or licence text
+are copied, translated, bundled or executed. The resolver's explicit no-reuse
+notice is respected; there is no resolver or leaderboard import. Identity
+fields say LayerEnemies and its own version, never WarBoard. The shared codec
+credits below apply to byte formats, not code reuse.
+
+Protocol references in that archive: `Services/WarBoard_ForeverComm.lua`
+(H/A/D/F, peer rules, envelopes and routes),
+`UI/Shards/WarBoard_ShardMatcher.lua` (SHRD),
+`Services/WarBoard_ForeverBountyTracker.lua` (FBLP; E2 adds FBAK/FBUN, fields at 210–233, subscriber persistence at 72–94, renewal at 429–444),
+`Services/WarBoard_ForeverLedger.lua`, `Services/WarBoard_ForeverKillTracker.lua`
+and `Services/WarBoard_ForeverBounties.lua` (FREC/FBLC/FCBD and killer-zone fields).
+Section 11 audit vectors are existing
+protocol test data; the new decompression-limit fixture is generated with
+Python's stdlib zlib, not a donor library. `GetMapPosFromWorldPos` is referenced
+from Blizzard's build 70938 API declarations, pinned below; no HereBeDragons
+implementation or map database is used.
+
 ## Source registry and Battle.net seams (PR 0b)
 
 | Reference | Pin | Use |
