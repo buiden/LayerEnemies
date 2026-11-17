@@ -418,7 +418,7 @@ function M.presenceStatus()
         ..", matches: "..s.matches.." (all sources), secret: "..(s.secret and "yes" or "no")
         ..", refusals: "..s.refused..".")
 end
--- Overlord is receive-only, including when the donor is installed. Never enter relay/host paths.
+-- Overlord evidence never enters relay/host paths; C2/C3 own sends are gated below.
 local function overlordZone(map)
     if not map then return nil end
     if S.secret(C_Map) then return false end
@@ -467,27 +467,45 @@ function M.overlordContext(time)
         me=me,version=S.str(version,32),faction=faction and faction:sub(1,1),
         allowed=M.sharing() and N.Net.consent()=="public" and N.Net.switch("overlord")
             and ok==true and not A.inCombat() and A.inInstance()==false,
-        own=ok==true}
+        own=ok==true,offer=N.Sources.offer,tracked=function(name)
+            local _,_,_,watchers=N.Watch.match(M.watch,name,now())
+            return N.Find.tracked(M.find,name) or #(watchers or {})>0
+        end}
 end
 local function overlordSend(c,text,route,target,prio,job)
     local P=N.OverlordPeer
-    local function guard() return P.claim(M.overlordPeer,job,M.overlordContext()) end
-    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,guard) end
+    local function guard()
+        if route=="BNET" and job.name then
+            local who=N.BNet.who(target)
+            if not who or N.Find.fold(who.name)~=N.Find.fold(job.name) then return false end
+        end
+        local live=M.overlordContext()
+        if job.kind=="HR" and route=="BNET" then live.friends=N.BNet.peers(live.now) end
+        return P.claim(M.overlordPeer,job,live)
+    end
+    local function sent() P.sent(M.overlordPeer,job,M.overlordContext()) end
+    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,guard,sent) end
     local live=M.overlordContext()
     if not P.claim(M.overlordPeer,job,live,true) then return false end
     local ok,_,attempted=N.Wire.send("OverlordF",text,route,target,{net="overlord",prio=prio=="owed" and "owed" or "mesh"})
     if attempted then P.claim(M.overlordPeer,job,live) end
     N.Sources.count("overlord",ok and "sent" or "refused")
+    if ok then sent() end
     return ok,attempted
+end
+function M.overlordCancel()
+    if M.overlordFeed then N.OverlordFeed.cancel(M.overlordFeed) end
 end
 function M.overlordTick(time)
     if not M.overlordPeer then return end
     local c=M.overlordContext(time);c.send=overlordSend
-    if not c.allowed or not c.pool then N.BNet.cancel("overlord");return end
+    if not M.overlordFeed then M.overlordFeed=N.OverlordFeed.new() end
+    if not c.allowed or not c.pool then N.BNet.cancel("overlord");N.OverlordFeed.cancel(M.overlordFeed);return end
     c.guild=S.call(IsInGuild)==true
     c.group=S.call(IsInRaid)==true and "RAID" or S.call(IsInGroup)==true and "PARTY" or nil
     if c.own then c.friends=N.BNet.peers(time);c.directory=N.Directory.members("overlord") end
     N.OverlordPeer.tick(M.overlordPeer,c)
+    N.OverlordFeed.tick(M.overlordFeed,M.overlordPeer,c)
 end
 local function overlordReceive(text,kind,sender,account)
     local Ov=N.Overlord
@@ -529,7 +547,13 @@ local function overlordReceive(text,kind,sender,account)
         local c=M.overlordContext(time);c.send=overlordSend
         if p.kind~="GW" and p.kind~="GD" then
             if Ov.seen(M.overlord,p.origin,id) then return end
-            N.OverlordPeer.receive(M.overlordPeer,p,kind,canonical,account,c)
+            local r=N.OverlordPeer.receive(M.overlordPeer,p,kind,canonical,account,c)
+            if not M.overlordFeed then M.overlordFeed=N.OverlordFeed.new() end
+            N.OverlordFeed.observe(M.overlordFeed,M.overlordPeer,p,r,c)
+            if p.kind=="HB" or p.kind=="HA" then
+                c.friends=N.BNet.peers(time)
+                N.OverlordFeed.receive(M.overlordFeed,M.overlordPeer,p,r,c)
+            end
             return
         end
         -- Evidence validation below owns dedupe; invalid map reads remain retryable.
@@ -2286,7 +2310,7 @@ function M.setFindNotice(on)
 end
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
-    if not on then N.OwnDeath.cancel(); N.BNet.cancel() end
+    if not on then N.OwnDeath.cancel(); N.BNet.cancel(); M.overlordCancel() end
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
     -- Off cancels all pending guild relays as well as our sync answers. Queued guild/own embassy lines
     -- are dropped by their still checks. A quick off/on must not revive the cancelled relay timers.

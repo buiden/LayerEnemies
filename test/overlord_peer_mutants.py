@@ -48,7 +48,7 @@ MUTANTS = [
  ('150 second reply gap','OverlordPeer.lua','P.emit(st,c,"NH",P.presence(c),route,target,"reply:"..key,150,true)','P.emit(st,c,"NH",P.presence(c),route,target,"reply:"..key,149,true)','Overlord peer:'),
  ('actual gap','OverlordPeer.lua','if not due(st.actual[job.key],c.now,job.gap) then','if false then','Overlord peer:'),
  ('actual owed cap','OverlordPeer.lua','#st.actualOwed>=6','#st.actualOwed>=7','Overlord peer:'),
- ('pool dispatch recheck','OverlordPeer.lua','or c.pool~=job.pool','or false','Overlord peer:'),
+ ('pool dispatch recheck','OverlordPeer.lua','function P.claim(st,job,c)\n    if not ready(c,job.owed) or c.pool~=job.pool','function P.claim(st,job,c)\n    if not ready(c,job.owed) or false','Overlord peer:'),
  ('alone guild interval','OverlordPeer.lua','and 120 or 600','and 120 or 599','Overlord peer:'),
  ('heard guild interval','OverlordPeer.lua','and 120 or 600','and 119 or 600','Overlord peer:'),
  ('group interval','OverlordPeer.lua','"group",120,false','"group",119,false','Overlord peer:'),

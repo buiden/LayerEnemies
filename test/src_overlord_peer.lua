@@ -388,5 +388,5 @@ test("pure peer announces own truthful identity and answers targeted NH",functio
     P.tick(s,c);eq(#c.out,2);yes(c.out[1].text:find("LayerEnemies 1.1.0",1,true))
     P.receive(s,{origin="Birch Scout",target=c.me,hops=0,kind="NH",payload="2.5.4"},"WHISPER","Birch Scout",nil,c)
     eq(#c.out,3);eq(c.out[3].route,"WHISPER");eq(c.out[3].target,"Birch Scout");eq(c.out[3].prio,"owed")
-    no(c.out[3].text:find("2.5.4",1,true));no(c.out[3].text:find("~",1,true))
+    no(c.out[3].text:find("2.5.4",1,true));eq(c.out[3].text:match("~.*$"),"~lp8")
 end)

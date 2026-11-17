@@ -1,0 +1,65 @@
+"""C3 syntax-valid behavioral mutants; reuse the portable isolated C2 runner."""
+import argparse
+from overlord_peer_mutants import run
+
+RULES = [
+ ('two sources','S.count(st.sessions)<2','S.count(st.sessions)<3'),
+ ('200s admission','c.now-s.attempt>=200','c.now-s.attempt>=199'),
+ ('200s dispatch','"feed:"..key,200,false','"feed:"..key,199,false'),
+ ('current peer release','and supported(r) and friend(r,c)','and friend(r,c)'),
+ ('epoch required','for key,r in pairs(peer.routes) do','for key,r in pairs(peer.routes) do\n        if not r.epoch then r.epoch=c.wall-100;r.epochAt=c.now end'),
+ ('no future epoch','if e and e<=c.wall then','if e then'),
+ ('owner epoch only','and F.fold(f[1])==F.fold(p.origin)','and true'),
+ ('epoch conflict cancels','if r.epoch~=e then st.sessions[F.fold(r.name)]=nil end','if false then st.sessions[F.fold(r.name)]=nil end'),
+ ('fresh route','c.now-r.at<300','c.now-r.at<301'),
+ ('fresh epoch','c.now-r.epochAt<600','c.now-r.epochAt<601'),
+ ('successful announcement','and announced(peer,r,c)','and true'),
+ ('queued peer recheck','and latest.id==s.id','and true'),
+ ('receipt friend check','or not friend(r,c)','or false'),
+ ('direct feed only','if not ready(c) or not r or p.hops~=0 or p.target~=c.me','if not ready(c) or not r or p.target~=c.me'),
+ ('addressed feed only','if not ready(c) or not r or p.hops~=0 or p.target~=c.me','if not ready(c) or not r or p.hops~=0'),
+ ('pool feed only','or p.pool~=c.pool','or false'),
+ ('600s first source lease','c.now-s.asked<600','c.now-s.asked<601'),
+ ('420s live lease','or (s.live and c.now>=s.live and c.now-s.live<420)','or (s.live and c.now>=s.live and c.now-s.live<421)'),
+ ('HA request nonce','or f[4]~=s.nonce','or false'),
+ ('HA busy unarms feed','s.asked,s.live,s.nonce=nil,nil,nil','s.live=nil'),
+ ('600 byte parse cap','S.str(payload,600)','S.str(payload,601)'),
+ ('48 row parse cap','#rows>=48','#rows>=49'),
+ ('250 row byte cap','uint(digits,250,2)','uint(digits,251,2)'),
+ ('three digit prefix','#digits<=3','#digits<=4'),
+ ('complete parse before commit','if not size or stop+size>#body then return nil end','if not size or stop+size>#body then return e,rows end'),
+ ('source byte budget','b.bytes+#p.payload>14400','false'),
+ ('global byte budget','g.bytes+#p.payload>28800','false'),
+ ('global before-decode row budget','g.rows>=480','g.rows>480'),
+ ('global batch row budget','g.rows+#rows>480','g.rows+#rows>481'),
+ ('source row budget','b.rows>=240','b.rows>240'),
+ ('batch row budget','b.rows+#rows>240','b.rows+#rows>241'),
+ ('budget rollback','if b and c.now<b.at then return end','if false then return end'),
+ ('feed epoch','if e~=s.epoch or not rows','if not rows'),
+ ('zone marker length','#ref<=24','#ref<=25'),
+ ('positive kill total','if zone and value.total>0 then','if zone then'),
+ ('tracked identities only','value and c.tracked(value.name)','value'),
+ ('opposite faction only','and value.faction:sub(1,1)~=c.faction','and true'),
+ ('64 identities/source','S.count(s.known)<64','S.count(s.known)<65'),
+ ('positive delta','value.total>old.total','value.total>=old.total'),
+ ('compact identity prerequisite','if prior and total then','if total then prior=prior or {name=name,faction="Horde"};'),
+ ('no layer','kind="relayed",got=c.now','kind="relayed",got=c.now,shard="42"'),
+ ('time unknown','kind="relayed",got=c.now','kind="relayed",got=c.now,at=c.now'),
+ ('claim provenance','kind="relayed",got=c.now','kind="self",got=c.now'),
+ ('empty count/hash',':1:LK:0:0:',':1:LK:1:1:'),
+ ('v8 capability','Q.capability="~lp8"','Q.capability="~lp7"'),
+ ('positive identities only','uint(f[2],15000)','uint(f[2],15001)'),
+ ('untrack prune','not c.tracked(value.name) or c.now<value.at','c.now<value.at'),
+ ('no active resubscribe','or c.now<s.created then','or c.now<s.created or c.now-s.created>=900 then'),
+]
+MUTANTS=[(rule,'OverlordFeed.lua',old,new,'Overlord feed:') for rule,old,new in RULES]
+MUTANTS += [
+ ('share cancels lease','Main.lua','N.BNet.cancel(); M.overlordCancel()','N.BNet.cancel()','Overlord feed:'),
+ ('guild cancels lease','Net.lua','if level~="public" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end','if false then N.Main.overlordCancel() end','Overlord feed:'),
+ ('switch cancels lease','Net.lua','if on~=true and key=="overlord" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end','if false then N.Main.overlordCancel() end','Overlord feed:'),
+ ('pool-scoped epoch','OverlordPeer.lua','if old and old.pool~=(p.pool or c.pool) then old=nil end','if false then old=nil end','Overlord feed:'),
+ ('success-only receipt','BNet.lua','if valid and allowed and deliver(q) then','if valid and allowed and (deliver(q) or true) then','Overlord feed:'),
+]
+if __name__=='__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('--write',action='store_true')
+    raise SystemExit(0 if run(MUTANTS,'overlord-feed-mutants.json',parser.parse_args().write) else 1)

@@ -13,7 +13,7 @@ local function recent(list,now)
     local out={};for _,t in ipairs(list) do if now-t<60 then out[#out+1]=t end end;return out
 end
 local function due(last,now,gap) return not last or (now>=last and now-last>=gap) end
-function P.presence(c) return "LayerEnemies "..c.version end
+function P.presence(c) return "LayerEnemies "..c.version..(N.OverlordFeed and N.OverlordFeed.capability or "") end
 function P.sweep(st,now)
     for k,r in pairs(st.routes) do if now<r.at or now-r.at>=300 then st.routes[k]=nil end end
     for k,t in pairs(st.gaps) do if now>=t and now-t>=3600 then st.gaps[k]=nil end end
@@ -27,6 +27,7 @@ end
 -- Queued Battle.net frames cannot burst across a new admission window.
 function P.claim(st,job,c,checkOnly)
     if not ready(c,job.owed) or c.pool~=job.pool or c.me~=job.me then return false end
+    if job.valid and not job.valid(c) then return false end
     if not due(st.actual[job.key],c.now,job.gap) then return false end
     st.actualOwed=recent(st.actualOwed,c.now)
     if job.owed and #st.actualOwed>=6 then return false end
@@ -35,7 +36,20 @@ function P.claim(st,job,c,checkOnly)
     if job.owed then st.actualOwed[#st.actualOwed+1]=c.now end
     return true
 end
-function P.emit(st,c,kind,payload,route,target,key,gap,owed)
+function P.sent(st,job,c)
+    if not ready(c,job.owed) or c.pool~=job.pool or c.me~=job.me then return end
+    if job.kind=="NH" then
+        local r=job.name and st.routes[F.fold(job.name)]
+        if r then r.announced,r.announcePool,r.announceMe=c.now,c.pool,c.me end
+        if not st.announced or st.announced.pool~=c.pool or st.announced.me~=c.me then
+            st.announced={pool=c.pool,me=c.me}
+        end
+        if job.route=="GUILD" then st.announced.guild=c.now
+        elseif job.route=="PARTY" or job.route=="RAID" then st.announced.group=c.now end
+    end
+    if job.sent then job.sent(c.now) end
+end
+function P.emit(st,c,kind,payload,route,target,key,gap,owed,callbacks)
     if not ready(c,owed) or not due(st.gaps[key],c.now,gap) then return false end
     if route~="GUILD" and route~="PARTY" and route~="RAID" and route~="WHISPER" and route~="BNET" then return false end
     if kind~="NH" and kind~="HA" and kind~="HR" then return false end
@@ -51,7 +65,8 @@ function P.emit(st,c,kind,payload,route,target,key,gap,owed)
     if route=="BNET" then text="R2:Forever_"..c.pool.."_"..c.faction..":BR:"..packet
     else text="BF:"..id..":1:1:"..packet;if #packet>230 or #text>255 then return false end end
     local address=route=="BNET" and target.id or target
-    local job={key=key,gap=gap,owed=owed==true,pool=c.pool,me=c.me}
+    local job={key=key,gap=gap,owed=owed==true,pool=c.pool,me=c.me,kind=kind,route=route,
+        name=dest~="*" and dest or nil,valid=callbacks and callbacks.valid,sent=callbacks and callbacks.sent}
     flight={text=text,route=route,target=address}
     local ok,result,attempted=pcall(c.send,c,text,route,address,owed and "owed" or "own",job)
     flight=nil
@@ -66,14 +81,16 @@ local function learn(st,p,route,sender,id,c)
     P.sweep(st,c.now)
     local key=F.fold(p.origin)
     local old=st.routes[key]
+    if old and old.pool~=(p.pool or c.pool) then old=nil end
     if old and old.hops==0 and p.hops>0 and c.now-old.at<240 then return old end
     if not old then
         local n,pub=0,0
         for _,r in pairs(st.routes) do n=n+1;if r.route~="GUILD" then pub=pub+1 end end
         if n>=128 or (route~="GUILD" and pub>=96) then return nil end
     end
-    local r={name=p.origin,via=sender,route=route,id=id,hops=p.hops,at=c.now,
-        nh=old and old.nh,version=old and old.version}
+    local r={name=p.origin,via=sender,route=route,id=id,hops=p.hops,at=c.now,pool=p.pool or c.pool,
+        nh=old and old.nh,version=old and old.version,epoch=old and old.epoch,epochAt=old and old.epochAt,
+        announced=old and old.announced,announcePool=old and old.announcePool,announceMe=old and old.announceMe}
     st.routes[key]=r
     return r
 end

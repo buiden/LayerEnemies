@@ -1,5 +1,17 @@
 # Third-party provenance
 
+## Overlord kill feed (C3)
+
+Same **2.5.4** immutable pin and **All Rights Reserved / protocol only** boundary
+as C2 below. `OverlordFeed.lua` independently implements the minimal v8 empty
+comparison client and solicited `HB 8:U` named-zone reader. No donor code,
+campaign/reset table, location table, library or asset copied or executed.
+Source references: `SyncRelay.lua:2843–2851` (`~lp8` capability),
+`SyncLeaderboardPages.lua:2297–2358,2941–3109` (row grammar and subscription),
+`SyncAux.lua:2005–2021` (owner K epoch). Campaign E is learned per direct peer
+from validated wire data, never guessed. See README's C3 send table and
+`notes/overlord-peer-build.md` for limits and verification.
+
 ## Overlord direct peer (C2)
 
 | Donor | Version / pin | License | Use |

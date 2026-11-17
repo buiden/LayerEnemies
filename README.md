@@ -1,5 +1,78 @@
 # LayerEnemies
 
+## Unreleased - Overlord kill feed
+
+| What LE sends | To whom | Maximum rate | Stops when |
+|---|---|---|---|
+| Fresh `HR 8:V:E:<flagged nonce>:1:LK:0:0:<enemy faction>` | At most **two** live, announced direct Overlord peers; whisper or **Battle.net friends only** | Initial request and every retry/keep share **one frame/200 s/source**, checked again at actual dispatch | Any C2 stop below; donor installed; unknown/stale peer epoch; route/friend/identity lost |
+| `HR 8:K:E` keep-alive | The same sources after a matching HA answer or accepted HB feed | The same **one/200 s/source** slot, not an extra allowance | Same stops, or no feed/answer within 420 s |
+| C2 `NH` now appends **`~lp8`** | Exactly C2's existing recipients | Exactly C2's existing rates, no extra announcement lane | C2 stops below |
+
+**Share off / Guild only / network off send nothing, not even `HR X`.** They
+cancel the local lease immediately, including off/on before the next timer. The
+provider expires its own lease. Combat and instances also stop all sends and
+new evidence; no extra stop packet, retry burst, forwarding or hosting is added.
+Battle.net still has **eight frames/minute** within the shared **30/minute**, one/
+second queue. Whisper remains within Wire's **20/minute**, four/target/minute.
+Failed API calls, queued-but-unsent requests and failed announcements do not
+establish a feed lease. A source must have received an actual successful LE NH
+send attempt first (API success is not a delivery receipt).
+
+**Campaign epoch settled:** LE learns `E` *per direct peer*, from a well-formed
+owner `K` (subject equals origin and `B<E>` agrees), or that peer's addressed v8
+`HR V LK` request. Both arrive through the already validated pool/path/time
+reader. `E` must be positive and not in the future. It is that peer's advertised
+campaign, **not a globally authenticated date**; LE uses it only to ask that
+same peer. No hardcoded reset calendar, current-time guess or donor global/API.
+Knowledge expires after **600 s** without new evidence; accepted same-epoch
+feeds refresh it. Pool or epoch changes invalidate the lease. **If E is unknown,
+no feed request is sent.** A donor that only says NH will therefore remain silent
+until campaign-bearing traffic is heard.
+
+**Capability settled:** `SyncRelay.lua:2843–2851` recognizes trailing `~lp8`
+directly; `SyncLeaderboardPages.lua:2962–2969` accepts v8 from capability 8. This
+is the smallest token needed for our implemented **empty V comparison and feed
+client**, not a claim to full ranking synchronization. No `~l9`, `~la`, `~lb`,
+rank proof, map fingerprint, helper flag or Overlord-branded release. The NH
+identity remains **LayerEnemies + its actual installed TOC version**.
+
+**What reaches Find:** solicited `HB 8:U` length-prefixed `z`, `k`, `s` rows.
+A `z#map` marker resolves via the existing client map reader; `z@front` is shown
+as a literal front hint, not guessed into a map. Markers last only for that
+payload. Full `k` supplies an opposite-faction identity; `s` is accepted only
+after a full identity from the **same subscription**. Only tracked/watched names
+are retained, only increasing positive totals with a zone are offered through
+`Src.offer`, as **relayed claims, time unknown, no layer, no Ask/Hop**. The
+existing measured Find row draws the text; no new UI widget or unmeasured line.
+The feed gives no end-to-end observation time. Receipt time controls expiry,
+not a fabricated sighting time; donor per-hop 180 s zone memory is not proof of
+original freshness. No SavedVariables/schema additions or saved feed names.
+
+Limits after C2's guild-reserved framing/work gate: **two sessions**, **600 bytes/
+payload**, **48 rows**, **2–250 bytes/row**, at most three length-prefix digits;
+**240 rows and 14,400 bytes/minute/source**, plus a separate **480-row / 28,800-byte
+global minute budget** that survives source rotation and privacy cancellation.
+Markers count against LE's row budget, slightly
+stricter than the donor. **64 tracked identities/source**, pruned when untracked
+or 900 s old. Malformed payloads commit no partial rows. Initial feed eligibility
+is 600 s after actual request; a live source lasts 420 s since its last accepted
+word. Nonmatching nonce/epoch/target, multihop, unsolicited and unknown compact
+rows are ignored; no unsolicited stop/forward is emitted.
+
+HA S/P acknowledges the minimal comparison; HA R unarms reception until a later
+capped fresh request. HB D comparison fingerprints, LC capture history, LB,
+fights and other aggregates are **not locations** and not imported. LE does not
+pull a ranking snapshot: a compact row whose full identity was missed is lost
+until a later full `k`. Provider feed service also requires **the provider's own
+custom-channel-down fallback**, not just LE's refusal to send CHANNEL traffic.
+Cross-faction coverage requires an opposite-faction Overlord friend. A silent
+provider or an unknown epoch adds no Find result.
+
+Tests: `lua test/harness.lua --only 'Overlord feed:'`,
+`python3 test/overlord_feed_mutants.py [--write]`, `python3 test/verify.py`.
+Independent fixtures, no donor execution. Native checks **not run (alpha,
+owner's decision)**. C2's send table and shared limits follow.
+
 ## Unreleased - Overlord direct peer
 
 | What LE sends | To whom | Maximum rate | Stops when |

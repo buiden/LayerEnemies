@@ -369,7 +369,9 @@ def main():
         'guild_host': 'Off until turned on, then saved (guildHost boolean, ON line at login); guild members only, guild name readable and unchanged; at most one InviteUnit per request, 10 s apart, 6 per 600 s; never in combat; refused beside LayerSwap or Bulo',
         'networks': 'Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches',
         'sends': 'LayerSwap/WHISPER, LEGW1/GUILD (including K1 own-death, share switch, 1/120s and 5/30min), LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and '
-                 'HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope)',
+                 'HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope); '
+                 'OverlordF NH presence, HA owed answers and HR feed request/keep through Wire or BN.send '
+                 '(WHISPER/GUILD/PARTY/RAID and Battle.net as documented in README; no forwarding or CHANNEL sends)',
         'visual_design': 'Approved B implemented with fourth Find tab; native client appearance unverified',
     }
     (notes / 'verification.json').write_text(json.dumps(result, indent=2) + '\n')

@@ -100,7 +100,9 @@ function BN.pump(now)
                 lastSend=now; times[#times+1]={at=now,net=q.net} -- spend before the client, including failures
                 local valid,allowed=true,true
                 if q.guard then valid,allowed=pcall(q.guard) end
-                if valid and allowed and deliver(q) then N.Sources.count(q.net,"sent") else refuse(q.net) end
+                if valid and allowed and deliver(q) then
+                    N.Sources.count(q.net,"sent");if q.sent then pcall(q.sent) end
+                else refuse(q.net) end
                 break -- never catch up several frames after a long pause
             end
         end
@@ -118,8 +120,9 @@ schedule=function()
     timer=ok and result==true
     return timer
 end
-function BN.send(net,id,prefix,text,prio,guard)
+function BN.send(net,id,prefix,text,prio,guard,sent)
     if S.secret(guard) or (guard~=nil and type(guard)~="function") then return refuse(net) end
+    if S.secret(sent) or (sent~=nil and type(sent)~="function") then return refuse(net) end
     if S.secret(prio) then return refuse(net) end
     prio=prio==nil and "own" or prio
     if not BN.allowed(net,id,prefix,text,prio) or not BN.who(id) or #queue>=60 then return refuse(net) end
@@ -132,7 +135,7 @@ function BN.send(net,id,prefix,text,prio,guard)
     local now=S.num(S.call(GetTime))
     if not now or count>=share(net) or (prio~="owed" and normal>=52) or not schedule() then return refuse(net) end
     serial=serial+1
-    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,guard=guard}
+    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,guard=guard,sent=sent}
     return true
 end
 function BN.cancel(net)
