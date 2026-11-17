@@ -1434,6 +1434,12 @@ PASS Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime
 PASS Overlord peer: per sender assembly cap and guild reserve
 PASS Overlord peer: whisper and R2 battle net receive GW; foreign band silent
 PASS Overlord peer: pure peer announces own truthful identity and answers targeted NH
+PROBE rotation marked: accepted=60 attempted=60 refused=0 distinct=39 seconds=3600
+PASS Overlord peer: rotation skips a member marked offline for one hour
+PROBE rotation natural: accepted=177 attempted=180 refused=3 distinct=39 seconds=10800
+PASS Overlord peer: rotation survives member five going offline for three hours
+PROBE rotation qualified: accepted=60 attempted=60 refused=0 distinct=40 seconds=3600
+PASS Overlord peer: rotation canonicalizes a home-realm-qualified member
 PASS Sources: registry routes addon and Battle.net with unchanged arguments
 PASS Sources: every legacy prefix is refused atomically and counted
 PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
@@ -1481,4 +1487,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1483 tests passed, 0 failed, 269081 assertions
+RESULT: 1486 tests passed, 0 failed, 270182 assertions
