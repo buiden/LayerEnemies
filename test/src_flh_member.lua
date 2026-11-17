@@ -242,12 +242,15 @@ test("FLH member: stale previews and unknown fingerprints never redirect a click
     no(N.Main.hostPreview(row).enabled); no(N.Main.hopHostTo(row)); eq(#lines(),0)
 end)
 
-test("FLH member: an LR client refusal spends selection without arming or retry",function()
+test("FLH member: an LR client throttle waits for the pause then retries the same selection",function()
     local N=member(); local row=host(N); yes(N.Main.hopHostTo(row))
     local id=N.FLH.decode(countCmd(N,"LQ")[1].text).id
-    H.result(3); offer(N,id); H.result(0); H.clock(H.clock()+31); offer(N,id)
+    H.result(3); offer(N,id); H.result(0); offer(N,id)
     eq(#countCmd(N,"LR"),1); no(N.Main.invite.pending)
     H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),0)
+    H.clock(H.clock()+31); N.FLHMember.tick(H.clock()); offer(N,id)
+    eq(#countCmd(N,"LR"),2); yes(N.Main.invite.pending)
+    H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),1)
 end)
 
 local function snapshot(t)
@@ -364,7 +367,8 @@ test("FLH member: other public traffic leaves six owed slots before probes stop"
     N.FLHMember.tick(H.clock()); eq(#countCmd(N,"WP"),0)
     for i=1,7 do receive(wp,"WHISPER","Owed "..H.abc(i)) end
     eq(#countCmd(N,"WR"),6)
-    local row=host(N); no(N.Main.hopHostTo(row)); eq(#countCmd(N,"LQ"),0,"shared twenty-whisper ceiling")
+    local row=host(N); yes(N.Main.hopHostTo(row)); eq(#countCmd(N,"LQ"),0,"shared twenty-whisper ceiling")
+    yes(N.FLHMember.pending(),"budget refusal now paces the unspent query")
 end)
 
 test("FLH member: client refusal spends reply and probe budgets without queue or retry",function()

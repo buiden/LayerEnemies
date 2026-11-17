@@ -52,6 +52,7 @@ dispatch=function(text,kind,target,prio)
 end
 local guest,notes=nil,{}
 F.WAIT=90
+local LR_RETRIES=2
 local function sameKey(a,b)
     return a and b and a:gsub("^0+","")==b:gsub("^0+","")
 end
@@ -81,12 +82,19 @@ local function note(r,text)
         notes[v.short]={at=now,text=text}
     end
 end
+local function failedRequest(r)
+    note(r,"FLH invite request refused (send limit)")
+    F.stop() -- revoke before chat/UI callbacks, so failure is reported once
+    N.Main.say("LayerEnemies: hop request to "..r.offer.name.." could not be sent (send limit); click again")
+    if N.UI then N.UI.refresh() end
+end
 function F.checkGuest()
     local r=guest
     if not r then return false end
     local now=S.num(S.call(GetTime)); local c=F.context(); local M=N.Main
     if not now or now<r.at or now-(r.first or r.at)>=F.WAIT then
-        note(r,"FLH request timed out (90 s)"); F.stop(); return false
+        if r.retry then failedRequest(r) else note(r,"FLH request timed out (90 s)"); F.stop() end
+        return false
     end
     if not c or not F.allowed("WHISPER","LQ") or A.grouped() or c.map~=r.map or not sameKey(c.key,r.own)
         or (M.hopAnyState and M.hopAnyState.round) then F.stop(); return false end
@@ -147,10 +155,30 @@ function F.hop(row,shown)
     guest=r
     queries(r)
     if guest~=r then return false end
-    if not r.first then note(r,"FLH request refused"); F.stop(); return false end
+    if not r.first and r.next>#r.targets then note(r,"FLH request refused"); F.stop(); return false end
     note(r,"FLH: waiting for offer (90 s)")
     if N.UI then N.UI.refresh() end
     return true
+end
+local function request(r)
+    if guest~=r or r.requesting or r.selected or not F.checkGuest() then return end
+    local asked=r.offer; local key=asked.short
+    r.requesting=true; r.attempts=(r.attempts or 0)+1
+    local sent,why=dispatch(FL.lr(r.id,F.context(),asked.key),"WHISPER",asked.name,"click")
+    r.requesting=nil
+    if guest~=r then return end
+    if sent then
+        -- Reuse the existing any-layer auto-leave rule, never treat an FLH key
+        -- as the server-layer target. Only this selected, actually asked host.
+        r.selected=key; r.retry=nil -- only a successful LR spends the selection
+        N.Main.invite.pending={flh=true,auto=true,any=true,at=r.first,from=r.from,zone=r.map,
+            asked={[key]={name=asked.name,at=r.first}}}
+        note(r,"FLH: waiting for selected host's invite")
+    elseif (why=="throttled" or why=="paused") and r.attempts<=LR_RETRIES then
+        r.retry=true
+        note(r,"FLH: waiting for invite send limit (90 s)")
+    else failedRequest(r); return end
+    if N.UI then N.UI.refresh() end
 end
 local function offer(m,sender)
     if not F.checkGuest() then return end
@@ -176,21 +204,10 @@ local function offer(m,sender)
         end
         return -- preserve r.first and p.at: hand-off never renews the window
     end
-    if m.cmd~="LO" or r.selected or m.map~=r.map or not FL.key(m.key)
+    if m.cmd~="LO" or r.selected or r.offer or m.map~=r.map or not FL.key(m.key)
         or sameKey(m.key,r.own) or not sameKey(m.key,asked.key) then return end
-    r.selected=key -- spend selection before the call, including refusal/reentry
-    r.offer=asked
-    local c=F.context()
-    local sent=dispatch(FL.lr(r.id,c,m.key),"WHISPER",asked.name,"click")
-    if guest~=r then return end
-    if sent then
-        -- Reuse the existing any-layer auto-leave rule, never treat an FLH key
-        -- as the server-layer target. Only this selected, actually asked host.
-        N.Main.invite.pending={flh=true,auto=true,any=true,at=r.first,from=r.from,zone=r.map,
-            asked={[key]={name=asked.name,at=r.first}}}
-        note(r,"FLH: waiting for selected host's invite")
-    else note(r,"FLH invite request refused") end
-    if N.UI then N.UI.refresh() end
+    r.offer=asked -- hold this exact offer across refusal, duplicates and reentry
+    request(r)
 end
 
 -- Wire checks the private synchronous dispatch, exact grammar and live context.
@@ -228,7 +245,11 @@ function F.received(m,kind,sender)
 end
 function F.tick(now)
     if not S.num(now) then return end
-    if F.checkGuest() then queries(guest) end
+    if F.checkGuest() then
+        local r=guest
+        if r.retry and N.Wire.flhClickReady("LR",r.offer.name,now) then request(r)
+        else queries(r) end
+    end
     for k,v in pairs(notes) do if now<v.at or now-v.at>=600 then notes[k]=nil end end
     local c=F.context(); if not c then return end
     local text=FL.hi(c)

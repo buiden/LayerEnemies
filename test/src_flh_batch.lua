@@ -91,3 +91,76 @@ test("FLH batch: reserve expires at the original window without a tick",function
     offer(N,lines("LQ")[1]); eq(#lines("LR"),0)
     ceilings()
 end)
+
+local function limitHost(N,name)
+    for _=1,3 do yes(N.Wire.send("HeadHunter","1AH:own","WHISPER",name,{net="hh",prio="own"})) end
+end
+local function namedQuery(N)
+    local row=N.Main.candidates()[1]
+    yes(N.Main.hopHostTo(row)); return lines("LQ")[1]
+end
+local function failureLines()
+    local out={}
+    for _,line in ipairs(H.log()) do if line:find("could not be sent (send limit); click again",1,true) then out[#out+1]=line end end
+    return out
+end
+
+test("FLH batch: refused LR keeps selection and waits for actual budget room",function()
+    local N=member(); hosts(N); limitHost(N,"Host a")
+    local at=H.clock(); local q=namedQuery(N); local send=N.Wire.send; local attempts=0
+    N.Wire.send=function(prefix,text,...)
+        if text:match("^LR|") then attempts=attempts+1 end
+        return send(prefix,text,...)
+    end
+    offer(N,q); eq(attempts,1); eq(#lines("LR"),0); yes(N.FLHMember.pending()); no(N.Main.invite.pending)
+    for _=1,59 do H.advance(1); offer(N,q) end
+    eq(attempts,1,"polls and duplicate offers must not spend retries")
+    eq(#failureLines(),0); H.deliver("PARTY_INVITE_REQUEST",q.target); eq(H.accepts(),0)
+    H.clock(at+60); N.FLHMember.tick(H.clock())
+    eq(attempts,2); eq(#lines("LR"),1); eq(lines("LR")[1].target,q.target)
+    eq(N.Main.invite.pending.at,at,"retry retains the original armed deadline")
+    H.deliver("PARTY_INVITE_REQUEST",q.target); eq(H.accepts(),1)
+    ceilings(); no(N.Main.error)
+end)
+
+for _,elapsed in ipairs({89,90}) do
+    test("FLH batch: successful retry never extends invite authority at "..elapsed,function()
+        local N=member(); hosts(N); limitHost(N,"Host a")
+        local at=H.clock(); local q=namedQuery(N); offer(N,q)
+        H.clock(at+89); N.FLHMember.tick(H.clock()); eq(#lines("LR"),1)
+        H.clock(at+elapsed); H.deliver("PARTY_INVITE_REQUEST",q.target)
+        eq(H.accepts(),elapsed<90 and 1 or 0); ceilings()
+    end)
+end
+
+test("FLH batch: third LR refusal ends the click with one exact chat line and row note",function()
+    local N=member(); hosts(N); local at=H.clock(); local q=namedQuery(N)
+    H.result(3); offer(N,q); eq(#lines("LR"),1); yes(N.FLHMember.pending())
+    eq(#failureLines(),0); no(N.Main.invite.pending)
+    for i=1,2 do H.clock(at+i*30); N.FLHMember.tick(H.clock()); eq(#lines("LR"),i+1) end
+    no(N.FLHMember.pending()); no(N.Main.invite.pending); eq(#failureLines(),1)
+    eq(failureLines()[1],"LayerEnemies: hop request to "..q.target.." could not be sent (send limit); click again")
+    yes(N.FLHMember.detail(N.Main.candidates()[1]):find("send limit",1,true))
+    H.result(0); offer(N,q); H.advance(120); offer(N,q)
+    eq(#lines("LR"),3); eq(#failureLines(),1)
+    H.deliver("PARTY_INVITE_REQUEST",q.target); eq(H.accepts(),0); ceilings()
+end)
+
+test("FLH batch: pending LR at expiry prints once and never sends after ninety seconds",function()
+    local N=member(); hosts(N); local at=H.clock(); local q=namedQuery(N)
+    H.clock(at+89); H.result(3); offer(N,q); H.result(0)
+    eq(#lines("LR"),1); yes(N.FLHMember.pending())
+    H.clock(at+90); N.FLHMember.tick(H.clock()); eq(#failureLines(),1)
+    no(N.FLHMember.pending()); H.clock(at+120); N.FLHMember.tick(H.clock()); offer(N,q)
+    eq(#lines("LR"),1); eq(#failureLines(),1); ceilings()
+end)
+
+test("FLH batch: a full burst paces all queries within the original click window",function()
+    local N=member(); hosts(N); ordinary(N,5)
+    for i=1,3 do yes(N.Wire.send("LayerSwap","inv layer <LS 100 want 7102-8 50.0,50.0>","WHISPER","Normal "..H.abc(i),{prio="click"})) end
+    local at=H.clock(); yes(N.FLHMember.hop()); eq(#lines("LQ"),0)
+    H.clock(at+4); N.FLHMember.tick(H.clock()); eq(#lines("LQ"),1)
+    offer(N,lines("LQ")[1]); eq(#lines("LR"),1); eq(N.Main.invite.pending.at,at)
+    H.clock(at+90); H.deliver("PARTY_INVITE_REQUEST",lines("LQ")[1].target); eq(H.accepts(),0)
+    ceilings(); no(N.Main.error)
+end)

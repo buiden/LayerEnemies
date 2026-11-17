@@ -92,7 +92,8 @@ for _,cmd in ipairs({"HI","WR","CA","WP","LQ","LR"}) do
         elseif cmd=="LQ" then query(N)
         else offer(query(N)) end
         eq(#lines(cmd),1,"real authorized send reached the client")
-        eq(ordinaryBurst(N,11),8-#lines()); eq(#H.sent(),8)
+        local reserve=cmd=="LQ" and 1 or 0
+        eq(ordinaryBurst(N,11),8-#lines()-reserve); eq(#H.sent(),8-reserve)
     end)
 end
 
