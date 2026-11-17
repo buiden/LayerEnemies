@@ -159,8 +159,8 @@ debt('M2 roster must be newer than withdrawal', '(r.unlast and ev.at<=r.unlast)'
      'false', 'M2 stale relayed')
 debt('S1 retry window reopens after ten minutes', 'now-r.window>=600',
      'now-r.window>=1200', 'S1 failed sends')
-debt('M2 six attempts per login', 'if r.accepted or (r.total or 0)>=6 then',
-     'if r.accepted then', 'M2 login six')
+MUTANTS.append(('M2 six attempts per login', [('LayerEnemies/WarBoardTrack.lua',
+    'if r.accepted or (r.total or 0)>=6 then', 'if r.accepted then')], 'WarBoard rulings: S3 live proof'))
 debt('S3 attempts reopen across reload', 'tries=0,total=0}', 'tries=0,total=6}', 'M2 login six')
 debt('M2 persisted count resets safely at login', 'owed.attempts[g]=0',
      'owed.attempts[g]=99', 'M2 saved attempts')

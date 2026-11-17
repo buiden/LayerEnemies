@@ -207,6 +207,15 @@ for _,mode in ipairs({"share","source","guild"}) do
     end)
 end
 
+test("S3 live proof cannot exceed six attempts within the same login",function()
+    local N,r,hello,count,pos=start(); r.failD=true; stop(N,"share")
+    for t=1,1300 do if t%300==0 then hello() end; advance(1) end
+    eq(count("FBUN"),6)
+    h.loaded().WarBoard=true; hello(); advance(10)
+    eq(count("FBUN"),6,"new donor-owned proof cannot reopen the spent login allowance")
+    yes(r.sub); eq(debt(),1)
+end)
+
 for _,unsafe in ipairs({"combat","instance"}) do
     test("N2 "..unsafe.." roster listing us survives long source-off wait",function()
         local N,r,hello,count,pos=start(); r.drop=true; stop(N,"source"); advance(5)
