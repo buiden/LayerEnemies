@@ -1,0 +1,60 @@
+PASS FLH member: builders carry our identity and only our fingerprint
+PASS FLH member: owed replies share six per minute and one per sender per sixty seconds
+PASS FLH member: unsolicited wrong-route self and peer-exchange traffic owes nothing
+PASS FLH member: share refuses even owed whispers
+PASS FLH member: guild refuses even owed whispers
+PASS FLH member: switch refuses even owed whispers
+PASS FLH member: combat refuses even owed whispers
+PASS FLH member: instance refuses even owed whispers
+PASS FLH member: identity refuses even owed whispers
+PASS FLH member: realm refuses even owed whispers
+PASS FLH member: ignored refuses even owed whispers
+FAIL FLH member: guild and group presence is change-driven and capped per route: test/src_flh_member.lua:96: the real addon owns even owed replies: expected 7, got 8
+PASS FLH member: directory joins read only and probes four per minute only while Friendly is open
+PASS FLH member: one directory name waits six hundred seconds and stale snapshots do not probe
+PASS FLH member: directory refused for guild
+PASS FLH member: directory refused for share
+PASS FLH member: directory refused for switch
+PASS FLH member: directory refused for combat
+PASS FLH member: directory refused for instance
+PASS FLH member: directory refused for donor
+PASS FLH member: directory refused for slots
+PASS FLH member: existing fanout sends all forty nine on its original cadence beside owed replies
+PASS FLH member: named guest click correlates one offer and arms only its asked host
+PASS FLH member: explicit FLH batch leaves a selection slot inside the unchanged hop cap
+PASS FLH member: timed-out row is measured and late offers cannot send
+PASS FLH member: pending guest is revoked by share
+PASS FLH member: pending guest is revoked by guild
+PASS FLH member: pending guest is revoked by switch
+PASS FLH member: pending guest is revoked by combat
+PASS FLH member: pending guest is revoked by instance
+PASS FLH member: pending guest is revoked by zone
+PASS FLH member: pending guest is revoked by fingerprint
+PASS FLH member: pending guest is revoked by stop
+PASS FLH member: stale previews and unknown fingerprints never redirect a click
+PASS FLH member: an LR client refusal spends selection without arming or retry
+PASS FLH member: session switch and all received names never enter SavedVariables
+PASS FLH member: unreadable live APIs nil are silent
+PASS FLH member: unreadable live APIs secret are silent
+PASS FLH member: unreadable live APIs throw are silent
+PASS FLH member: share and network off-on revoke already selected guests
+PASS FLH member: selected guest uses unchanged confirmed-move and failure leave rules
+PASS FLH member: deterministic five thousand malformed and structured frames respect every send kind
+PASS FLH member: a guest query excludes every other hop path until stopped
+PASS FLH member: prefix isolation still shares the public per-person cap
+PASS FLH member: no channel send or hosting authority can be manufactured inside dispatch
+PASS FLH member: party and raid share one group presence lane with no guildless copy
+PASS FLH member: other public traffic leaves six owed slots before probes stop
+PASS FLH member: client refusal spends reply and probe budgets without queue or retry
+PASS FLH member: duplicate reentrant dispatch cannot spend one authority twice
+PASS FLH member: forged selection target and changed offer keys are never sent
+PASS FLH member: Wire route grammar independently refuses host and peer-exchange packets
+PASS FLH member: private owed dispatch cannot be redirected to someone else
+PASS FLH member: a freshly known new zone still revokes an open old-zone offer
+PASS FLH member: merged home-realm spelling keeps the shown host and sends canonically
+PASS FLH member: failed presence is spent until our fingerprint changes
+FAIL FLH member: owner thirty-minute stand-down: test/src_flh_member.lua:464: no FLH sends including WR and CA while the donor owns the network: expected 0, got 62
+PASS FLH member: owner thirty-minute no-donor control
+PASS FLH member: owner load blocks new guest queries and revokes an outstanding offer
+FAIL FLH member: owner loading at dispatch blocks owed replies at the final gate: test/src_flh_member.lua:496: owner must be checked again inside Wire authorization: expected 0, got 1
+RESULT: 56 tests passed, 3 failed, 18856 assertions

@@ -1,5 +1,60 @@
 # Forever Layer Hop F2 — membership and guest-hop gate
 
+## Current follow-up: one owner and fair probes
+
+- Follow-up base: `dfcd29bc6f020370313091f12d0f08ad68d2f3fe`.
+- Owner fix: `7533363147faa630d183454961d9fa31e05fe315`.
+- Probe fix / verified implementation: `3a99452da8fba6b518e7bef527a7b877ef219001`.
+- Notes and regenerated evidence are a separate commit. Local commits only; no push, installation or GitHub writes.
+
+This follow-up supersedes the original checkpoint's donor-loaded owed-reply exception and head-first probe scan. The historical checkpoint is retained below; regenerated `test-results.txt`, `verification.json` and `flh-member-mutants.json` now describe this follow-up.
+
+### Owner rule and identifier provenance
+
+`FLHMember.allowed` now refuses **every FLHNET2 send** when `A.loaded("ForeverLayerHop")` is true: HI, WR, CA, WP, LQ and LR. The same predicate is checked again by `FLHMember.authorize` inside Wire. The existing Directory/Net stand-down already prevented the read-only channel join; those modules are unchanged. Receipt, decoding and host-claim projection remain active.
+
+The identifier is **`ForeverLayerHop`**, not its title or SavedVariables name. It comes from `ForeverLayerHop/ForeverLayerHop.toc` inside the pinned `ForeverLayerHop-v0.1.9.zip`; the TOC says title `Forever Layer Hop`, version `0.1.9`, interface `16001`. The archive was read, not executed, at `/opt/data/projects/layerenemies-review/reference-addons-web/forever-layer-hop/ForeverLayerHop-v0.1.9.zip`, with the same SHA-256 recorded in THIRD_PARTY.md: `b5b3dbc608c112463bb50ddb0567c70ae2c3eb5919711b0475875001dd5092b7`. This also matches the existing `Net.LIST.flh.standDown` identifier. The unchanged `Adapters.loaded` uses protected `C_AddOns.IsAddOnLoaded(name)`, falling back to the legacy global only when that namespace is absent.
+
+The thirty-minute donor-loaded regression keeps Friendly open, feeds WP/CQ and HI claims, and changes our fingerprint. It asserts **zero FLH sends and zero joins**, while the received host claim stays readable. The no-donor control verifies the join and positive HI/WR/CA/WP traffic. Additional coverage denies new LQ clicks, cancels an existing query before LR, and detects a donor that loads between receiving a question and final Wire authorization.
+
+### Probe behavior checked before changing it
+
+The base did **not** satisfy either probe rule. Its scan restarted at the first name; with forty directory names and a real shared budget leaving two WP slots per minute, it repeatedly reached only twenty distinct names. It also wrote the 600-second per-name stamp before dispatch, including local transport-pause and per-person-budget refusals.
+
+A bounded round-robin cursor now resumes after the last selected name, including a refused selection. The per-name stamp is set only when dispatch succeeds or reports an actual client attempt. Actual client refusal still spends the cooldown; local gate refusal leaves the name eligible for a later turn. No retry queue or enlarged caps were added. The regression drives twelve real HeadHunter public sends per minute, retains the six owed-reply slots, reaches all forty names in order before wrapping, and checks the unchanged rolling and per-name limits. Separate final-gate pause and per-person tests prove recovery before 600 seconds and that a refused target cannot monopolize the cursor.
+
+### RED → GREEN
+
+The untouched base membership suite first passed: `RESULT: 55 tests passed, 0 failed, 18638 assertions`.
+
+All RED runs used a detached `dfcd29bc` worktree with **only `test/src_flh_member.lua` overlaid**; no production changes:
+
+- Owner slice: `RESULT: 56 tests passed, 3 failed, 18856 assertions` → `RESULT: 59 tests passed, 0 failed, 18911 assertions` (`flh-owner-red.txt`).
+- Round-robin slice: `RESULT: 0 tests passed, 1 failed, 384 assertions` → `RESULT: 1 tests passed, 0 failed, 407 assertions` (`flh-probe-rotation-red.txt`).
+- Local-refusal slice: `RESULT: 0 tests passed, 2 failed, 105 assertions` (`flh-probe-refusal-red.txt`); both pass in the final suite.
+- Final candidate tests against the frozen base: `RESULT: 56 tests passed, 6 failed, 19345 assertions` (`flh-owner-probes-red.txt`).
+- Final candidate GREEN: **`RESULT: 62 tests passed, 0 failed, 19431 assertions`**.
+
+One inherited expectation was deliberately migrated: the presence test's final donor-loaded WP reply count changes from 8 to 7 and now also supplies CQ. The old exception is exactly what the owner revoked. The new no-donor control and donor-loaded guest revocation already passed on the base; they are preserved-behavior coverage, not claimed as RED failures.
+
+### Verification and mutants
+
+Foreground `python3 test/verify.py`, Lua 5.1.5, `TMPDIR=/opt/data/cache/scratch`, process/tool timeout **1800 seconds**, exit 0:
+
+```
+RESULT: 1513 tests passed, 0 failed, 274629 assertions
+```
+
+Syntax (85 Lua files), TOC/static/API policy, packaging and archive/source parity all PASS. The deterministic archive SHA-256 is `729769f417c4da120d4d368bedbf4e6057bd01014678ccdebf47c8dc295e3d2f`. `test.flh_mutants_test`: 2 tests passing. The added-line security scan found no hardcoded secrets, shell execution, eval/exec or unsafe deserialization.
+
+**52/52 membership mutants compile and are killed**, with identical 62-test baseline/final restoration. Three new rule mutants are `owner-includes-owed-replies`, `probe-round-robin`, and `probe-gate-refusal-free`. The old `stand-down` mutant was re-anchored to the unconditional guard without weakening it; existing directory mutants still cover join guards. No mutant survived, and no syntax/collection failure is counted as a kill.
+
+Two complete mutation runs returned success. The second ran from an independent checkout whose path contains spaces, invoked from `/opt/data`, with a copy of the first report already present. Report bytes and modification time stayed unchanged; the original report also stayed unchanged. The report SHA-256 is `1c9693b04890efa869721475474414ea295dd5385b99b942b8f70dfb16130b44`; summary in `flh-owner-probes-stability.json`.
+
+Changed runtime: `LayerEnemies/FLHMember.lua` only. Changed documentation/tests: `README.md`, `test/src_flh_member.lua`, `test/flh_member_mutants.py`; this notes-only commit records the RED logs, mutation/stability evidence, and regenerated full verification. **Native checks not run (alpha, owner's decision)**; offline results do not certify live peer interoperability.
+
+## Historical original F2 checkpoint
+
 **Read-only channel join: YES, `ForeverLayerHopNet`, expressly listed in PLAN.md §10.2. No channel sends.** The README membership section starts with the send table and immediately discloses the join. Directory consent, channel ownership/manual-leave, unreadable-list, two-free-slot, combat, instance and Channels-window guards remain in force.
 
 ## Scope and source

@@ -1451,6 +1451,13 @@ PASS FLH member: private owed dispatch cannot be redirected to someone else
 PASS FLH member: a freshly known new zone still revokes an open old-zone offer
 PASS FLH member: merged home-realm spelling keeps the shown host and sends canonically
 PASS FLH member: failed presence is spent until our fingerprint changes
+PASS FLH member: owner thirty-minute stand-down
+PASS FLH member: owner thirty-minute no-donor control
+PASS FLH member: owner load blocks new guest queries and revokes an outstanding offer
+PASS FLH member: owner loading at dispatch blocks owed replies at the final gate
+PASS FLH member: probe rotation reaches forty names under a shared two-slot budget
+PASS FLH member: probe gate refusal from a transport pause does not charge the name
+PASS FLH member: probe gate refusal rotates past a full target without charging its name
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
 PASS Sources: offer drops untracked and contradictory realms before Known stores anything
 PASS Sources: offer uses only live guild Watch matches and never adds saved tracked names
@@ -1504,4 +1511,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1506 tests passed, 0 failed, 273836 assertions
+RESULT: 1513 tests passed, 0 failed, 274629 assertions
