@@ -43,7 +43,7 @@ local function friend(r,c)
             local live=c.online and c.online(r.id)
             local identity=S.str(v.realm,60) and N.Adapters.peerIdentity(v.name,v.realm)
             local current=live and S.str(live.realm,60) and N.Adapters.peerIdentity(live.name,live.realm)
-            if not identity or identity~=current then return false end
+            if not identity or identity~=current or r.identity~=current then return false end
             if c.groups[identity] or c.guildNames[identity] then return false end
             return P.key(live.name)==key
         end
@@ -61,6 +61,8 @@ end
 function Q.remember(st,r,c)
     if r.route~="BNET" or r.hops~=0 or r.pool~=c.pool then return end
     local key=P.key(r.name)
+    local live=c.online and c.online(r.id)
+    r.identity=live and S.str(live.realm,60) and N.Adapters.peerIdentity(live.name,live.realm) or nil
     if st.heard[key] or S.count(st.heard)<200 then st.heard[key]=r end
 end
 -- Only isolated Battle.net friends may be selected. Shared C2 lanes keep talking.
@@ -91,7 +93,7 @@ function Q.suppressed(peer,c,route,name,id)
     local st=peer.feed
     if not st or (route~="BNET" and route~="WHISPER") then return false end
     for key,source in pairs(st.sources) do
-        if name and P.key(name)==key or id and id==source.id then return true end
+        if name and (P.key(name)==key or N.Adapters.peerIdentity(name)==source.identity) or id and id==source.id then return true end
     end
     return false
 end

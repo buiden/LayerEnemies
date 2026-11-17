@@ -147,9 +147,14 @@ for _,route in ipairs({"BNET","WHISPER"}) do
                 s.route="WHISPER";s.id=nil
             end
             N.Main.setShare(false)
+            local stop=N.Main.overlordFeed.stops["birch scout"]
+            local text=stop and stop.text
             if mode=="switch" then N.Net.setSwitch("overlord",false)
             elseif mode=="consent" then N.Net.setConsent("guild")
             else N.Main.setShare(false);if mode=="three" then N.Main.setShare(false) end end
+            if route=="BNET" then
+                eq(N.Main.overlordFeed.stops["birch scout"].text,text,"preserve the exact queued withdrawal through repeated off")
+            end
             for i=1,5 do H.advance(1) end
             local stops=sends("|HR|8:X:")
             print("PROBE stop "..route.." "..mode..": X="..#stops)

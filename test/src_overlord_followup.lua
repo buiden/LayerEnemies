@@ -180,6 +180,23 @@ for _,case in ipairs({
         eq(N.Main.error,nil)
     end)
 end
+test("M foreign source hears no qualified whisper NH",function()
+    local N,state,refresh=fixture({realm="Other Realm"});refresh();advance(2)
+    eq(#sends("|HR|8:V:"),1)
+    local id="foreignwhisper";local name="Birch Scout-OtherRealm"
+    local wire=table.concat({"global",id,math.floor(GetServerTime()),"Alice Vale",name,"NH","2.5.4~ld~lr~lp6"},"|")
+    H.deliver("CHAT_MSG_ADDON","OverlordF","BF:"..id..":1:1:"..wire,"WHISPER",name)
+    eq(#sends("|NH|"),0,"full foreign identity matches selected BNet source")
+end)
+
+test("M same-name account realm change invalidates old hearing",function()
+    local N,state,refresh=fixture({realm="Other Realm"});refresh();advance(2)
+    eq(#sends("|HR|8:V:"),1)
+    state.realm="Third Realm";H.deliver("BN_FRIEND_LIST_SIZE_CHANGED")
+    eq(next(N.Main.overlordFeed.sources),nil,"old character identity is not new first-hand hearing")
+    advance(1);eq(#sends("|HR|8:X:"),1)
+end)
+
 for _,side in ipairs({"friend","roster"}) do
     test("M unknown realm "..side.." fails closed",function()
         local N,state,refresh=fixture({guild={"Birch Scout-OtherRealm"},realm="Other Realm"})

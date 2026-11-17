@@ -3,6 +3,10 @@ import argparse
 from overlord_peer_mutants import run
 
 MUTANTS = [
+    ('M first-hand realm identity', 'OverlordFeed.lua',
+     'or r.identity~=current', '', 'Overlord followup: M same-name'),
+    ('M qualified whisper identity', 'OverlordFeed.lua',
+     'or N.Adapters.peerIdentity(name)==source.identity', '', 'Overlord followup: M foreign source'),
     ('n3 busy HA only protocol 8', 'OverlordPeer.lua',
      '^(8):([A-Z]):', '^([5-8]):([A-Z]):', 'Overlord followup: n3'),
     ('n2 NH ledger retained across scope changes', 'OverlordPeer.lua',

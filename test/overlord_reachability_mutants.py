@@ -5,9 +5,9 @@ from overlord_peer_mutants import run
 # Existing protocol/stop guards retain their original purpose. Removed shared-lane
 # suppression and hearing-expiry rules are replaced by their approved opposites.
 RULES = [
-    ('source accounts suppress NH', 'OverlordFeed.lua', 'if name and P.key(name)==key or id and id==source.id then', 'if name and P.key(name)==key then'),
+    ('source accounts suppress NH', 'OverlordFeed.lua', 'if name and (P.key(name)==key or N.Adapters.peerIdentity(name)==source.identity) or id and id==source.id then', 'if name and P.key(name)==key then'),
     ('source bound', 'OverlordFeed.lua', 'S.count(st.sources)<2', 'S.count(st.sources)<3'),
-    ('source names suppress NH', 'OverlordFeed.lua', 'if name and P.key(name)==key or id and id==source.id then', 'if id and id==source.id then'),
+    ('source names suppress NH', 'OverlordFeed.lua', 'if name and (P.key(name)==key or N.Adapters.peerIdentity(name)==source.identity) or id and id==source.id then', 'if id and id==source.id then'),
     ('queued NH dispatch suppression', 'OverlordPeer.lua', 'if job.kind=="NH" and N.OverlordFeed and N.OverlordFeed.suppressed(st,c,job.route,job.name,job.id) then', 'if false then'),
     ('request no fabricated ranking', 'OverlordFeed.lua', ':1:LK:0:0:', ':1:LK:1:1:'),
     ('keep control', 'OverlordFeed.lua', 'keep and "8:K:"', 'keep and "8:X:"'),
