@@ -6,7 +6,34 @@ import unittest
 VERIFY = runpy.run_path(str(Path(__file__).with_name('verify.py')))
 
 
+PRESENCE_READS = {'GetSubscribedClubs', 'GetClubMembers', 'GetMemberInfo',
+                  'BNGetNumFriends', 'GetFriendAccountInfo'}
+
+
+def presence_policy(source, filename):
+    for _, word in VERIFY['lua_references'](VERIFY['lua_tokens'](source)):
+        if word in PRESENCE_READS:
+            assert filename == 'Adapters.lua', word + ' outside Adapters.lua'
+        assert word != 'SetClubPresenceSubscription', 'presence subscription forbidden'
+
+
 class ApiPolicyTests(unittest.TestCase):
+    def test_presence_owners_and_no_subscription(self):
+        for path in (Path(__file__).resolve().parents[1] / 'LayerEnemies').glob('*.lua'):
+            presence_policy(path.read_text(), path.name)
+        for word in PRESENCE_READS:
+            for access in (word, '_G["' + word + '"]'):
+                with self.subTest(access=access), self.assertRaisesRegex(AssertionError, 'Adapters.lua'):
+                    presence_policy('if false then local x=' + access + ' end', 'Main.lua')
+        with self.assertRaisesRegex(AssertionError, 'subscription'):
+            presence_policy('local x=C_Club.SetClubPresenceSubscription', 'Adapters.lua')
+
+    def test_presence_data_module_has_no_client_access(self):
+        path = Path(__file__).resolve().parents[1] / 'LayerEnemies/Presence.lua'
+        tokens = VERIFY['lua_tokens'](path.read_text())
+        names = {value for kind, value in tokens if kind == 'name'}
+        self.assertFalse(names & (PRESENCE_READS | {'_G', 'C_Club', 'C_BattleNet', 'C_Timer', 'GetTime', 'UnitFactionGroup', 'Wire'}))
+
     def check_source(self, source, name='Main.lua'):
         VERIFY['check_api_policy'](source, name)
 

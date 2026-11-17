@@ -35,6 +35,7 @@ Known.lua
 Find.lua
 Watch.lua
 OpenMap.lua
+Presence.lua
 CallText.lua
 Call.lua
 OwnDeath.lua
