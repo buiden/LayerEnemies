@@ -45,7 +45,7 @@ MUTANTS += [
     ('clock strictly beyond 300', 'OverlordFeed.lua', 'return c.now-last>300', 'return c.now-last>=300', 'Overlord revision: clock'),
     ('clock no artificial initial wait', 'OverlordFeed.lua', 'if not a then return true end', 'if not a then return c.now-source.since>300 end', 'Overlord revision: clock never'),
     ('clock first-hand session retained', 'OverlordFeed.lua', 'c.now>=r.at and supported(r)', 'c.now>=r.at and c.now-r.at<300 and supported(r)', 'Overlord revision: clock once'),
-    ('clock live account required', 'OverlordFeed.lua', 'local live=c.online and c.online(r.id)', 'local live=v', 'Overlord revision: clock ignores'),
+    ('clock live account required', 'OverlordFeed.lua', '            local live=c.online and c.online(r.id)', '            local live=v', 'Overlord revision: clock ignores'),
     ('clock remember source hearing', 'OverlordPeer.lua', 'N.OverlordFeed.remember(st.feed,r,c)', '', 'Overlord revision: clock never'),
     ('S1 repeated stop retained', 'BNet.lua', 'local stop=keepStops and q.net=="overlord"', 'local stop=false and q.net=="overlord"', 'Overlord revision: S1'),
     ('S2 silent source exponential backoff', 'OverlordFeed.lua', 's.delay=math.min(1800,200*2^(s.silent-1))', 's.delay=200', 'Overlord revision: S2'),
