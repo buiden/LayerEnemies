@@ -119,6 +119,13 @@ def run(lua, cwd):
     return r.returncode, r.stdout + r.stderr
 
 
+def stable_failure(line):
+    # Keep the test filename, line, assertion and traceback; only the random
+    # checkout root and Lua object address are nondeterministic identities.
+    line = re.sub(r'File "[^"\n]*/(test/[^"/]+\.py)"', r'File "\1"', line)
+    return re.sub(r'\b(table|function|thread|userdata): 0x[0-9a-fA-F]+\b', r'\1: <address>', line)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--lua", default=os.environ.get("LAYERENEMIES_LUA", "/opt/data/tools/lua/lua-5.1.5/src/lua"))
@@ -141,7 +148,7 @@ def main():
                 path.write_text(original.replace(old, new))
                 subprocess.run([str(lua.with_name("luac")), "-p", str(path)], check=True, capture_output=True)
                 code, output = run(lua, work)
-                failures = [s for s in output.splitlines() if s.startswith("FAIL Presence:")]
+                failures = [stable_failure(s) for s in output.splitlines() if s.startswith("FAIL Presence:")]
                 caught = code != 0 and any(s.startswith("FAIL Presence: " + target + ":") for s in failures)
                 results.append({"mutant": label, "caught": caught, "target": target, "failures": failures})
                 print(("KILLED " if caught else "SURVIVED ") + label)
@@ -157,7 +164,9 @@ def main():
                "caught": sum(r["caught"] for r in results), "total": len(results)}
     output = ROOT / args.output
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(payload, indent=2) + "\n")
+    evidence = json.dumps(payload, indent=2) + "\n"
+    if not output.exists() or output.read_text() != evidence:
+        output.write_text(evidence)
     assert payload["caught"] == payload["total"], "mutant survived; strengthen the behavioral test"
     print(f"RESULT: {payload['caught']}/{payload['total']} mutants killed; baseline/final green")
 

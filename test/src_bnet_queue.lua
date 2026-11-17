@@ -21,7 +21,7 @@ test("BNet queue: single shared thirty per minute cap and one second pace",funct
     local N=setup()
     -- Production sources count in default shares. Include configured networks so
     -- this still reaches the exact shared 30/minute boundary, not a smaller cap.
-    local rows={{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WBQueue",10},
+    local rows={{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WarBoard",10},
         {"alpha","AlphaSrc",4},{"beta","BetaSrc",4}}
     for i=1,3 do fixture.register(N,rows[i][1],rows[i][2]) end
     yes(fixture.defaultShare(N)>=4)
