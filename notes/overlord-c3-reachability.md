@@ -1,5 +1,11 @@
 # C3 reachability — Step 0
 
+Scope update: PLAN 6.5.1 and the owner's override select only isolated Battle.net
+friends, of either faction. The group-WHISPER path below is a historical source
+finding, not a shipping feed route. Current rules and verification are in
+`overlord-c3-review-r2.md`. The >300 s wait applies only after an NH that could
+reach that account; no NH sent this session means no startup wait.
+
 Pinned donor: Overlord 2.5.4, `c821808586ab50bb4ccb5d54b146e0d7c2671734`, read-only checkout `/opt/data/profiles/aqeel/cache/scratch/le12-overlord-new/OverlordForever`. No donor code copied or executed.
 
 **Both requested routes work in the source model, without NH.**

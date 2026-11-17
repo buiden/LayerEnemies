@@ -1,8 +1,13 @@
-# C3 completion — NH-free kill feed
+# Historical C3 completion — superseded scope
 
-This is the current C3 evidence, superseding the unavailable-feed and no-stop
-policy recorded in `overlord-c3-review.md`. Scope is PLAN section 6.5 plus the
-owner's explicit NH silence, busy answer and stop rulings.
+The current correction, checkpoints and verification are in
+`overlord-c3-review-r2.md` (PLAN 6.5.1 and the owner's Battle.net-only override).
+This file preserves the evidence for the earlier `7d7287df` checkpoint. Its
+source-selection, shared-lane suppression and quiet-start policies are obsolete.
+
+This was the C3 evidence superseding the unavailable-feed and no-stop
+policy recorded in `overlord-c3-review.md`. Its scope was PLAN section 6.5 plus the
+owner's then-current NH silence, busy answer and stop rulings.
 
 ## Checkpoints
 

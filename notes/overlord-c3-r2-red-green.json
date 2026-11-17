@@ -1,0 +1,126 @@
+{
+  "reviewed_c3_base": "7d7287df",
+  "candidate_code_head": "93ab76abf49389913051861385b9838d8250af30",
+  "note": "M/S1/S2/S3 RED ran on the detached reviewed base. The memory RED exposed a new route-ceiling regression during this correction, before its fix. Initial assertion counts are preserved, not conflated with final expanded coverage.",
+  "families": [
+    {
+      "rule_family": "M",
+      "red_passed": 1,
+      "red_failed": 16,
+      "red_assertions": 874,
+      "formerly_failed_now_passed": 16,
+      "red_failures": [
+        "FAIL Overlord revision: M excludes audible friend Élan Scout guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
+        "FAIL Overlord revision: M excludes audible friend Ølaf Scout guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
+        "FAIL Overlord revision: M excludes audible friend Борис Скаут guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
+        "FAIL Overlord revision: M excludes audible friend Birch Scout unreadable: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8",
+        "FAIL Overlord revision: M excludes audible friend Birch Scout qualified: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8",
+        "FAIL Overlord revision: M excludes audible friend Birch Scout dual: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8",
+        "FAIL Overlord revision: M excludes audible friend Birch Scout group: test/src_overlord_revision.lua:78: audible or possibly audible friends are not feed sources: expected 0, got 900",
+        "FAIL Overlord revision: M excludes audible friend Birch Scout badguild: test/src_overlord_revision.lua:78: audible or possibly audible friends are not feed sources: expected 0, got 900",
+        "FAIL Overlord revision: M group-only peer stays C2 and is never asked: test/src_overlord_revision.lua:88: not equal: expected nil, got birch scout",
+        "FAIL Overlord revision: M Unicode realm BNet alias is silent while selected: test/harness.lua:7: positive eligible source: expected true, got false",
+        "FAIL Overlord revision: clock never-sent account starts without artificial wait: test/src_overlord_revision.lua:101: never sent NH: immediate first request: expected 1, got 0",
+        "FAIL Overlord revision: clock retains first-hand friend through sparse 600-second hearing: test/src_overlord_revision.lua:113: hearing older than 300 remains eligible: expected 1, got 0",
+        "FAIL Overlord revision: clock actual NH restarts quiet on BNET: test/src_overlord_revision.lua:133: no request during the restarted >300-second quiet clock: expected 1, got 2",
+        "FAIL Overlord revision: clock actual NH restarts quiet on WHISPER: test/src_overlord_revision.lua:133: no request during the restarted >300-second quiet clock: expected 1, got 2",
+        "FAIL Overlord revision: clock actual NH restarts quiet on GUILD: test/src_overlord_revision.lua:133: no request during the restarted >300-second quiet clock: expected 1, got 2",
+        "FAIL Overlord revision: clock actual NH restarts quiet on PARTY: test/src_overlord_revision.lua:133: no request during the restarted >300-second quiet clock: expected 1, got 2"
+      ],
+      "red_probes": [
+        "PROBE isolation Élan Scout guild: selectedTicks=900 sourceNH=2 laneNH=2",
+        "PROBE isolation Ølaf Scout guild: selectedTicks=900 sourceNH=2 laneNH=2",
+        "PROBE isolation Борис Скаут guild: selectedTicks=900 sourceNH=2 laneNH=2",
+        "PROBE isolation Birch Scout unreadable: selectedTicks=900 sourceNH=8 laneNH=8",
+        "PROBE isolation Birch Scout qualified: selectedTicks=900 sourceNH=8 laneNH=8",
+        "PROBE isolation Birch Scout dual: selectedTicks=900 sourceNH=8 laneNH=0",
+        "PROBE isolation Birch Scout group: selectedTicks=900 sourceNH=0 laneNH=0",
+        "PROBE isolation Birch Scout badguild: selectedTicks=900 sourceNH=0 laneNH=0"
+      ]
+    },
+    {
+      "rule_family": "S1",
+      "red_passed": 4,
+      "red_failed": 4,
+      "red_assertions": 380,
+      "formerly_failed_now_passed": 4,
+      "red_failures": [
+        "FAIL Overlord revision: S1 exactly one stop BNET twice: test/src_overlord_revision.lua:156: same-tick cancellation preserves exactly one owed stop: expected 1, got 0",
+        "FAIL Overlord revision: S1 exactly one stop BNET three: test/src_overlord_revision.lua:156: same-tick cancellation preserves exactly one owed stop: expected 1, got 0",
+        "FAIL Overlord revision: S1 exactly one stop BNET switch: test/src_overlord_revision.lua:156: same-tick cancellation preserves exactly one owed stop: expected 1, got 0",
+        "FAIL Overlord revision: S1 exactly one stop BNET consent: test/src_overlord_revision.lua:156: same-tick cancellation preserves exactly one owed stop: expected 1, got 0"
+      ],
+      "red_probes": [
+        "PROBE stop BNET twice: X=0",
+        "PROBE stop BNET three: X=0",
+        "PROBE stop BNET switch: X=0",
+        "PROBE stop BNET consent: X=0",
+        "PROBE stop WHISPER twice: X=1",
+        "PROBE stop WHISPER three: X=1",
+        "PROBE stop WHISPER switch: X=1",
+        "PROBE stop WHISPER consent: X=1"
+      ]
+    },
+    {
+      "rule_family": "S2",
+      "red_passed": 0,
+      "red_failed": 5,
+      "red_assertions": 306,
+      "formerly_failed_now_passed": 5,
+      "red_failures": [
+        "FAIL Overlord revision: S2 silent source backs off to 1800 seconds: test/harness.lua:7: bounded requests with cap reached: expected true, got false",
+        "FAIL Overlord revision: S2 any valid reply resets backoff R: test/src_overlord_revision.lua:185: reply restores the base 200-second interval: expected 4, got 3",
+        "FAIL Overlord revision: S2 any valid reply resets backoff S: test/src_overlord_revision.lua:185: reply restores the base 200-second interval: expected 4, got 3",
+        "FAIL Overlord revision: S2 any valid reply resets backoff P: test/src_overlord_revision.lua:185: reply restores the base 200-second interval: expected 4, got 3",
+        "FAIL Overlord revision: S2 any valid reply resets backoff HB: test/src_overlord_revision.lua:185: reply restores the base 200-second interval: expected 4, got 3"
+      ],
+      "red_probes": [
+        "PROBE backoff: requests=34 gaps=200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200"
+      ]
+    },
+    {
+      "rule_family": "S3",
+      "red_passed": 0,
+      "red_failed": 2,
+      "red_assertions": 214,
+      "formerly_failed_now_passed": 2,
+      "red_failures": [
+        "FAIL Overlord revision: S3 only HR V gets a bounded busy HA: test/src_overlord_revision.lua:198: T reply policy: expected 0, got 1",
+        "FAIL Overlord revision: S3 README states Battle.net scope reply kinds and backoff: test/harness.lua:8: do not promise answers to every HR: expected false, got true"
+      ],
+      "red_probes": []
+    },
+    {
+      "rule_family": "memory",
+      "red_passed": 0,
+      "red_failed": 1,
+      "red_assertions": 43,
+      "formerly_failed_now_passed": 1,
+      "red_failures": [
+        "FAIL Overlord revision: memory remembered friends do not bypass C2 route ceilings: test/src_overlord_revision.lua:203: cached metadata cannot bypass the public route ceiling: expected 96, got 200"
+      ],
+      "red_probes": []
+    }
+  ],
+  "final_focused_result": "RESULT: 186 tests passed, 0 failed, 55170 assertions",
+  "final_revision_tests_passed": 38,
+  "green_probes": [
+    "PROBE isolation Élan Scout guild: selectedTicks=0 sourceNH=0 laneNH=2",
+    "PROBE isolation Ølaf Scout guild: selectedTicks=0 sourceNH=0 laneNH=2",
+    "PROBE isolation Борис Скаут guild: selectedTicks=0 sourceNH=0 laneNH=2",
+    "PROBE isolation Birch Scout unreadable: selectedTicks=0 sourceNH=0 laneNH=8",
+    "PROBE isolation Birch Scout qualified: selectedTicks=0 sourceNH=0 laneNH=8",
+    "PROBE isolation Birch Scout dual: selectedTicks=0 sourceNH=0 laneNH=8",
+    "PROBE isolation Birch Scout group: selectedTicks=0 sourceNH=0 laneNH=8",
+    "PROBE isolation Birch Scout badguild: selectedTicks=0 sourceNH=0 laneNH=2",
+    "PROBE stop BNET twice: X=1",
+    "PROBE stop BNET three: X=1",
+    "PROBE stop BNET switch: X=1",
+    "PROBE stop BNET consent: X=1",
+    "PROBE stop WHISPER twice: X=1",
+    "PROBE stop WHISPER three: X=1",
+    "PROBE stop WHISPER switch: X=1",
+    "PROBE stop WHISPER consent: X=1",
+    "PROBE backoff: requests=7 gaps=200,400,800,1600,1800,1800"
+  ]
+}

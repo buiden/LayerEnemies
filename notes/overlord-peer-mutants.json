@@ -262,7 +262,11 @@
       "FAIL Overlord peer: pure peer announces own truthful identity and answers targeted NH: test/harness.lua:7: not equal: expected true, got false",
       "FAIL Overlord peer: rotation skips a member marked offline for one hour: emitted capability claim: expected false, got true",
       "FAIL Overlord peer: rotation survives member five going offline for three hours: emitted capability claim: expected false, got true",
-      "FAIL Overlord peer: rotation canonicalizes a home-realm-qualified member: emitted capability claim: expected false, got true"
+      "FAIL Overlord peer: rotation canonicalizes a home-realm-qualified member: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: self silence Alice Vale: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: self silence \u00c9lan Scout: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: self silence \u00d8laf Scout: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: self silence \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442: emitted capability claim: expected false, got true"
     ],
     "killed": true,
     "rule": "own identity"
