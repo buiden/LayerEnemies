@@ -30,17 +30,17 @@ add('six answers admitted per minute', '#st.answers>=6', '#st.answers>=7', 'A si
 add('six answers actually attempted per minute', '#st.answerSent>=6', '#st.answerSent>=7', 'A dispatch cap')
 add('ten shared WarBoard sends per minute', 'warboard=10', 'warboard=11', 'discovery selects', 'BNet.lua')
 add('thirty shared network sends per minute', '#times<30', '#times<31', 'A dispatch cap', 'BNet.lua')
-add('final source predicate honored', 'if q.still and S.call(q.still,now)~=true then', 'if false then', 'live account identity', 'BNet.lua')
+add('final source predicate honored', 'if valid~=true then refuse(q.net); complete(q,false); break end', 'do end', 'live account identity', 'BNet.lua')
 add('share off silence', 'not N.Main.sharing()', 'false', 'share stops', 'BNet.lua')
 add('public off silence', 'not authorized or not N.Main.sharing() or N.Net.consent()~="public" or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"public")', 'not authorized or not N.Main.sharing() or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"guild")', 'public stops', 'BNet.lua')
 add('stand down own sends', 'standDown="WarBoard"', 'standDown="Uninstalled"', 'stand down')
-add('stand down cancels queued answers', 'if N.Adapters.loaded("WarBoard") then return false end',
-    'do end', 'stand down cancels queued H and A')
-add('no FBAK send', 'local text="WBF1|"..cmd', 'local text="WBF1|FBAK"..cmd', 'compatible H')
-add('no forwarding', 'if st.seen[encoded] then return duplicate() end', 'BN.send("warboard",71,"WarBoard","WBF1|D|"..encoded,"own")\n    if st.seen[encoded] then return duplicate() end', 'no FBAK or request')
-add('no alternative send route', 'local accepted=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'N.Wire.send("WarBoard",text,"GUILD")\n    local accepted=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'compatible H')
-add('confirmed peer required', 'if not peer or peer.rs~=ctx.rs', 'peer=peer or {rs=ctx.rs,key=who.key,faction=who.faction,at=ctx.now}\n    if not peer or peer.rs~=ctx.rs', 'unconfirmed wrong')
-add('peer lifetime bounded', 'ctx.now-peer.at>=1200', 'ctx.now-peer.at>1200', 'unconfirmed wrong')
+add('stand down cancels queued answers', 'or N.Adapters.loaded("WarBoard") then return false end',
+    'then return false end', 'stand down cancels queued H and A')
+add('handshake grammar cannot masquerade as FBAK', 'local text="WBF1|"..cmd', 'local text="WBF1|FBAK"..cmd', 'compatible H')
+add('no forwarding', 'if st.seen[encoded] then return duplicate() end', 'BN.send("warboard",71,"WarBoard","WBF1|D|"..encoded,"own")\n    if st.seen[encoded] then return duplicate() end', 'no unsolicited application response')
+add('no alternative send route', 'local queued=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'N.Wire.send("WarBoard",text,"GUILD")\n    local queued=BN.send("warboard",id,"WarBoard",text,prio,function(now)', 'compatible H')
+add('confirmed peer required', 'if not peer or peer.rs~=ctx.rs', 'peer=peer or {rs=ctx.rs,key=who.key,faction=who.faction,at=ctx.now}; at=at or ctx.now\n    if not peer or peer.rs~=ctx.rs', 'unconfirmed wrong')
+add('peer lifetime bounded', 'received.now-at>=1200', 'received.now-at>1200', 'unconfirmed wrong')
 add('identity rechecked', 'peer.key~=who.key', 'false', 'unconfirmed wrong')
 add('carrier faction matches envelope', '(bnetFaction and fac~=bnetFaction)', 'false', 'invalid SHRD faction')
 add('four thousand byte frame', '#text>4000', '#text>4001', 'frame four thousand')
@@ -70,7 +70,7 @@ add('only enemy faction admitted', 'or fac==ctx.faction then', 'then', 'same fac
 add('SHRD expires after one eighty', 'ev.expiresAt=ctx.now+180', 'ev.expiresAt=ctx.now+181', 'SHRD own zone')
 add('clear respects source', 'e.source==source and e.evidenceTag==tag', 'e.evidenceTag==tag', 'source clear', 'Known.lua')
 add('clear respects type', 'e.source==source and e.evidenceTag==tag', 'e.source==source', 'source clear', 'Known.lua')
-add('position age bound', 'stamp(d.sentAt,ctx,121)', 'stamp(d.sentAt,ctx,122)', 'safe fields')
+add('position age bound', 'stamp(d.sentAt,ctx.received or ctx,121)', 'stamp(d.sentAt,ctx.received or ctx,122)', 'safe fields')
 add('position future bound', 'v>ctx.wall+120', 'v>ctx.wall+121', 'safe fields')
 add('coordinate provenance', 'ev.pos="enemy"', 'ev.pos="observer"', 'relayed FBLP')
 add('coordinate axis order', 'vector(worldY,worldX)', 'vector(worldX,worldY)', 'FBLP world', 'Adapters.lua')
@@ -128,7 +128,7 @@ review('relayed position wording is not own position',
 review('matching addon subject is not authenticated BN self',
        'if e.t=="FBLP" and not bnetFaction then bridge=true end', 'do end', 'FBLP wording GUILD')
 review('README discloses new-peer publication',
-       'When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user; LayerEnemies never asks anyone to broadcast their position.',
+       'When LayerEnemies completes the handshake, a real WarBoard client treats it as a new peer and shares its profile, kill streak and board snapshot with its Battle.net contacts, as it does for any WarBoard user.',
        '', 'README explains', '../README.md')
 
 
@@ -163,6 +163,18 @@ round2('mutant runner does not require owner scratch path', 'def main():\n    sc
        "def main():\n    scratch = Path(os.environ.get('TMPDIR', '/opt/data/cache/scratch'))\n    assert str(scratch).startswith('/opt/data/cache/scratch')",
        'portable mutant runner', '../test/warboard_mutants.py')
 
+round2('identical mutant evidence is not rewritten',
+       'if not report.exists() or report.read_bytes() != content:\n        report.write_bytes(content)',
+       'if True:\n        report.write_bytes(content)', 'portable mutant runner', '../test/warboard_mutants.py')
+round2('random traceback paths and addresses normalized',
+       "def diagnostic(line):\n    line = re.sub(r'(?:table|function): 0x[0-9a-fA-F]+', '<object>', line)",
+       'def diagnostic(line):\n    return line', 'portable mutant runner', '../test/warboard_mutants.py')
+
+
+def diagnostic(line):
+    line = re.sub(r'(?:table|function): 0x[0-9a-fA-F]+', '<object>', line)
+    return re.sub(r'File "[^"\n]*/((?:test|LayerEnemies)/[^"\n]+)"', r'File "<checkout>/\1"', line)
+
 
 add('enemy position survives observer-label composition', 'if x and kind~="self" and ev.pos~="enemy" then',
     'if x and kind~="self" then', 'WarBoard position subject', 'Sources.lua', suite='Stack: ')
@@ -173,7 +185,7 @@ add('real H and A expire after sixty seconds', 'now-q.at>60', 'now-q.at>61',
 
 
 # Stack-9 review: refusal accounting, fair discovery, disclosure and evidence.
-add('S1 refused H does not spend admission cooldown', 'if accepted and cmd=="H" then st.hellos[id]={at=ctx.now} end',
+add('S1 refused H does not spend admission cooldown', 'if queued and cmd=="H" then st.hellos[id]={at=ctx.now} end',
     'if cmd=="H" then st.hellos[id]={at=ctx.now} end', 'queue refusal')
 add('S1 discovery resumes after last greeted account', 'if st.lastHello then',
     'if false then', 'round robin')
@@ -200,7 +212,7 @@ review('N1 hello recipients are not restricted to known WarBoard users',
        "WarBoard users among the player's Battle.net friends and community members of the opposite faction",
        'README explains', '../README.md')
 review('N2 tracking-request statement is scoped to this part',
-       'This part never sends the tracking request (see the tracking-request section when it is added).',
+       'This handshake does not request a position broadcast; the tracking-request section above does.',
        'LayerEnemies never sends the tracking request.', 'README explains', '../README.md')
 for name, old, new in (
     ('source', "[stable_failure(line) for line in run.stdout.splitlines() if line.startswith('FAIL ')]",
@@ -242,16 +254,16 @@ def main():
                     subprocess.run([sys.executable, '-m', 'py_compile', str(path)], check=True, capture_output=True)
                 run = subprocess.run([LUA, 'test/harness.lua', '--only', selector], cwd=root,
                                      capture_output=True, text=True, errors='replace', timeout=90)
-                failures = [stable_failure(s) for s in run.stdout.splitlines() if s.startswith('FAIL ')]
+                failures = [diagnostic(s) for s in run.stdout.splitlines() if s.startswith('FAIL ')]
                 killed = run.returncode != 0 and 'RESULT:' in run.stdout and any('expected ' in s for s in failures)
                 results.append({'rule': rule, 'file': file, 'selector': selector, 'killed': killed, 'failures': failures})
                 print(('KILLED ' if killed else 'SURVIVED ') + rule, flush=True)
             finally:
                 path.write_text(original)
-    path = ROOT / 'notes/warboard-mutants.json'
-    evidence = json.dumps(results, indent=2) + '\n'
-    if not path.exists() or path.read_text() != evidence:
-        path.write_text(evidence)
+    report = ROOT / 'notes/warboard-mutants.json'
+    content = (json.dumps(results, indent=2) + '\n').encode()
+    if not report.exists() or report.read_bytes() != content:
+        report.write_bytes(content)
     total = sum(r['killed'] for r in results)
     print(f'RESULT: {total}/{len(results)} WarBoard mutants killed')
     raise SystemExit(total != len(results))

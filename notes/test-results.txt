@@ -1532,7 +1532,7 @@ PASS WarBoard: A dispatch cap survives a shared-budget delay and global queue ne
 PASS WarBoard: share off then on before timer cannot resurrect queued data
 PASS WarBoard: public off then on before timer cannot resurrect queued data
 PASS WarBoard: switch off then on before timer cannot resurrect queued data
-PASS WarBoard: no FBAK or request answer or forwarding for any application type
+PASS WarBoard: no unsolicited application response or forwarding; FBAK requires verified Find target
 PASS WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations
 PASS WarBoard: safe fields clocks and conversions fail closed, source input cannot change saved fields
 PASS WarBoard: relayed FBLP still carries target coordinates and different current zone labels
@@ -1558,6 +1558,38 @@ PASS WarBoard: full WarBoard evidence is measured before laying out the Find row
 PASS WarBoard: SHRD clear and sequence follow the player across direct and relayed identity spellings
 PASS WarBoard: same faction addon records never become tracked enemy evidence
 PASS WarBoard: 5000 deterministic hostile frames terminate within budget with bounded memory
+PASS WarBoard debt: M1 share relog settles from target H only
+PASS WarBoard debt: M1 share combat 30 minute stop recovers
+PASS WarBoard debt: M1 share instance 30 minute stop recovers
+PASS WarBoard debt: M1 source relog settles from target H only
+PASS WarBoard debt: M1 source combat 30 minute stop recovers
+PASS WarBoard debt: M1 source instance 30 minute stop recovers
+PASS WarBoard debt: M1 guild relog settles from target H only
+PASS WarBoard debt: M1 guild combat 30 minute stop recovers
+PASS WarBoard debt: M1 guild instance 30 minute stop recovers
+PASS WarBoard debt: M1 donor relog settles from target H only
+PASS WarBoard debt: M1 donor combat 30 minute stop recovers
+PASS WarBoard debt: M1 donor instance 30 minute stop recovers
+PASS WarBoard debt: M2 share target reload during combat reanswers latest H
+PASS WarBoard debt: M2 source target reload during combat reanswers latest H
+PASS WarBoard debt: M2 guild target reload during combat reanswers latest H
+PASS WarBoard debt: M2 track target reload during combat reanswers latest H
+PASS WarBoard debt: M2 accepted send retained until later roster excludes hunter
+PASS WarBoard debt: M2 source off and removed Find still observes cleanup roster
+PASS WarBoard debt: M2 listed roster rehandshakes then resends lost withdrawal
+PASS WarBoard debt: M2 missing roster silence clears only at fifteen minute boundary
+PASS WarBoard debt: M2 stale relayed malformed or wrong account roster cannot settle
+PASS WarBoard debt: S1 failed sends reopen after ten minutes three per window
+PASS WarBoard debt: M2 login six attempt bound reopens with debt retained
+PASS WarBoard debt: M2 continuous listed rosters prevent quiet clearing at resend bound
+PASS WarBoard debt: S3 per character save waits for original hunter login
+PASS WarBoard debt: M1 exception cannot reach another account while debt remains
+PASS WarBoard debt: M2 latest safe H supersedes queued withdrawal and failed answer
+PASS WarBoard debt: M1 donor observes owed H during unsafe wait without LE answer
+PASS WarBoard debt: M1 answered H without received A does not grant normal request eligibility
+PASS WarBoard debt: M1 queued handshakes stand down when real addon loads
+PASS WarBoard debt: M2 saved attempts sanitize only retained target GUIDs
+PASS WarBoard debt: S2 N1 README states cleanup limitations without crash guarantee
 PASS WarBoard review: SHRD inflate ceiling is applied before bomb expansion
 PASS WarBoard review: FBLP inflate ceiling is applied before bomb expansion
 PASS WarBoard review: FREC inflate ceiling is applied before bomb expansion
@@ -1616,6 +1648,86 @@ PASS WarBoard R2: untracked FBLC reopens immediately when the name is added
 PASS WarBoard R2: untracked FCBD reopens immediately when the name is added
 PASS WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch
 PASS WarBoard R2: overall window is rolling with exact expiry and rollback refusal
+PASS WarBoard rulings: M1 share exhausted debt has no handshake exception
+PASS WarBoard rulings: M1 share accepted debt has no handshake exception
+PASS WarBoard rulings: M1 source exhausted debt has no handshake exception
+PASS WarBoard rulings: M1 source accepted debt has no handshake exception
+PASS WarBoard rulings: M1 guild exhausted debt has no handshake exception
+PASS WarBoard rulings: M1 guild accepted debt has no handshake exception
+TIMING S1 donor 301 -> 302
+PASS WarBoard rulings: S1 donor handshake offset 301
+TIMING S1 donor 302 -> 303
+PASS WarBoard rulings: S1 donor handshake offset 302
+TIMING S1 donor 303 -> 304
+PASS WarBoard rulings: S1 donor handshake offset 303
+TIMING S1 donor 304 -> 305
+PASS WarBoard rulings: S1 donor handshake offset 304
+TIMING S1 donor 305 -> 306
+PASS WarBoard rulings: S1 donor handshake offset 305
+TIMING S1 donor 306 -> 307
+PASS WarBoard rulings: S1 donor handshake offset 306
+TIMING S1 donor 307 -> 308
+PASS WarBoard rulings: S1 donor handshake offset 307
+TIMING S1 donor 308 -> 309
+PASS WarBoard rulings: S1 donor handshake offset 308
+TIMING S1 donor 309 -> 310
+PASS WarBoard rulings: S1 donor handshake offset 309
+TIMING S1 donor 310 -> 311
+PASS WarBoard rulings: S1 donor handshake offset 310
+TIMING S1 donor 311 -> 312
+PASS WarBoard rulings: S1 donor handshake offset 311
+TIMING S1 donor 312 -> 313
+PASS WarBoard rulings: S1 donor handshake offset 312
+TIMING S1 donor 313 -> 314
+PASS WarBoard rulings: S1 donor handshake offset 313
+TIMING S1 donor 314 -> 315
+PASS WarBoard rulings: S1 donor handshake offset 314
+TIMING S1 donor 315 -> 316
+PASS WarBoard rulings: S1 donor handshake offset 315
+TIMING S1 own 301 -> 303
+PASS WarBoard rulings: S1 own handshake offset 301
+TIMING S1 own 303 -> 305
+PASS WarBoard rulings: S1 own handshake offset 303
+TIMING S1 own 305 -> 307
+PASS WarBoard rulings: S1 own handshake offset 305
+TIMING S1 own 307 -> 309
+PASS WarBoard rulings: S1 own handshake offset 307
+TIMING S1 own 309 -> 311
+PASS WarBoard rulings: S1 own handshake offset 309
+TIMING S1 own 311 -> 313
+PASS WarBoard rulings: S1 own handshake offset 311
+TIMING S1 own 313 -> 315
+PASS WarBoard rulings: S1 own handshake offset 313
+TIMING S1 own 315 -> 317
+PASS WarBoard rulings: S1 own handshake offset 315
+PASS WarBoard rulings: S1 delayed roster cannot wipe newer unused confirmation
+PASS WarBoard rulings: S2 donor A only safe cannot confirm or clear debt
+PASS WarBoard rulings: S2 donor A only combat cannot confirm or clear debt
+PASS WarBoard rulings: S2 donor A only instance cannot confirm or clear debt
+PASS WarBoard rulings: S2 donor unsafe H must still be under twenty minutes old
+PASS WarBoard rulings: S2 donor waits for target H then withdraws without rejected 3s send
+PASS WarBoard rulings: S2 donor still remembering an established exchange withdraws promptly
+PASS WarBoard rulings: S3 share six attempts reopen once per login and M1 then closes
+PASS WarBoard rulings: S3 source six attempts reopen once per login and M1 then closes
+PASS WarBoard rulings: S3 guild six attempts reopen once per login and M1 then closes
+PASS WarBoard rulings: S3 live proof cannot exceed six attempts within the same login
+PASS WarBoard rulings: N2 combat roster listing us survives long source-off wait
+PASS WarBoard rulings: N2 combat excluding multipart roster is validated at receipt time
+PASS WarBoard rulings: N2 instance roster listing us survives long source-off wait
+PASS WarBoard rulings: N2 instance excluding multipart roster is validated at receipt time
+PASS WarBoard rulings: N2 deferred inbox frame bound vetoes lost input silence
+PASS WarBoard rulings: N2 deferred inbox byte bound vetoes lost input silence
+PASS WarBoard rulings: N2 deferred inbox remains held during clock rollback
+PASS WarBoard rulings: N2 deferred roster cannot settle after current GUID changes
+PASS WarBoard rulings: N1 genuine recent confirmation permits FBAK when sharing resumes
+PASS WarBoard rulings: delta cleanup-only partial starts in combat and finishes safe
+PASS WarBoard rulings: delta cleanup-only partial starts in instance and finishes safe
+PASS WarBoard rulings: delta identity change characterName discards queued partial before completion
+PASS WarBoard rulings: delta identity change realmName discards queued partial before completion
+PASS WarBoard rulings: delta stale direct roster preserves accepted withdrawal
+PASS WarBoard rulings: delta stale multipart roster preserves accepted withdrawal
+PASS WarBoard rulings: delta incomplete cleanup keeps acceptance until original assembly expiry
+PASS WarBoard rulings: N1 README states revised confirmation and retry rules
 PASS Stack: WarBoard mutant evidence rerun is byte and mtime stable
 PASS Stack: WarBoard position subject survives Wanted observer wording on BN self
 PASS Stack: WarBoard position subject survives Wanted observer wording on BN third
@@ -1623,4 +1735,62 @@ PASS Stack: WarBoard position subject survives Wanted observer wording on GUILD
 PASS Stack: WarBoard position subject survives Wanted observer wording on PARTY
 PASS Stack: WarBoard position subject survives Wanted observer wording on RAID
 PASS Stack: WarBoard position subject survives Wanted observer wording on CHANNEL
-RESULT: 1598 tests passed, 0 failed, 424268 assertions
+PASS WarBoard track: exact FBAK and FBUN audit fields and codec round trip
+PASS WarBoard track: remove sends exactly one owed FBUN through stop gates
+PASS WarBoard track: remove cancels an unsent ask without creating debt
+PASS WarBoard track: clear sends exactly one owed FBUN through stop gates
+PASS WarBoard track: clear cancels an unsent ask without creating debt
+PASS WarBoard track: track sends exactly one owed FBUN through stop gates
+PASS WarBoard track: track cancels an unsent ask without creating debt
+PASS WarBoard track: share sends exactly one owed FBUN through stop gates
+PASS WarBoard track: share cancels an unsent ask without creating debt
+PASS WarBoard track: guild sends exactly one owed FBUN through stop gates
+PASS WarBoard track: guild cancels an unsent ask without creating debt
+PASS WarBoard track: source sends exactly one owed FBUN through stop gates
+PASS WarBoard track: source cancels an unsent ask without creating debt
+PASS WarBoard track: standdown sends exactly one owed FBUN through stop gates
+PASS WarBoard track: standdown cancels an unsent ask without creating debt
+PASS WarBoard track: logout sends exactly one owed FBUN through stop gates
+PASS WarBoard track: logout cancels an unsent ask without creating debt
+PASS WarBoard track: combat holds cleanup until safe including an already queued FBUN
+PASS WarBoard track: instance holds cleanup until safe including an already queued FBUN
+PASS WarBoard track: FBUN refused and throwing client retries three times sixty seconds apart
+PASS WarBoard track: accepted FBUN remains unverified until roster proof not queue admission
+PASS WarBoard track: reload login settles GUID only with answered target H even source off
+PASS WarBoard track: logout in combat retains owed list and login while tracked cleans before asking
+PASS WarBoard track: only new saved field is bounded dense target GUID list oldest out
+PASS WarBoard track: switch defaults on is session only and status states limits
+PASS WarBoard track: only own Find names never shared Watch or untracked
+PASS WarBoard track: confirmation rules identity expiry and ambiguous accounts fail closed
+PASS WarBoard track: GUID only from live client never a received frame
+PASS WarBoard track: dispatch rechecks live GUID own identity scope and rules
+PASS WarBoard track: server time integer mandatory and not local wall clock
+PASS WarBoard track: first asks three attempts six seconds apart then FBUN and 300 second idle
+PASS WarBoard track: fresh positions then renewal 45 to 300 seconds only and 45 apart
+PASS WarBoard track: newest position controls renewal and old out of order data cannot refresh
+PASS WarBoard track: past 300 seconds sends FBUN idle until 300 pause or new handshake
+PASS WarBoard track: six FBAK per rolling minute admission and dispatch max twenty targets
+PASS WarBoard track: owed A before FBUN before FBAK within ten frame WarBoard share
+PASS WarBoard track: positions remain honest Find evidence and never new guild relay
+PASS WarBoard track: rollback stays silent and tagged cancellation preserves other targets and A
+PASS WarBoard track: README send table first exact consequences and persistent debt
+PASS WarBoard track: active request and received evidence save only target GUID no other metadata
+PASS WarBoard track: no generic owed bypass for H FBAK foreign net or invented FBUN
+PASS WarBoard track: server clock unreadable at dispatch does not send or forget cleanup
+PASS WarBoard track: missing own name GUID faction version or rules never asks
+PASS WarBoard track: failed FBAK spends three attempts and still owes FBUN
+PASS WarBoard track: all actual request attempts respect six after shared queue delay
+PASS WarBoard track: same GUID debt cannot be redirected by a received forged position
+PASS WarBoard track: restored forty debt bound oldest out on the next attempted request
+PASS WarBoard track: remove quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: clear quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: track quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: share quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: guild quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: source quick stop resume cannot erase withdrawal obligation
+PASS WarBoard track: six forty-five and sixty second exact admission boundaries
+PASS WarBoard track: H cannot revive an expired A confirmation
+PASS WarBoard track: renewal exact forty-five second per target boundary
+PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
+PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
+RESULT: 1745 tests passed, 0 failed, 436036 assertions

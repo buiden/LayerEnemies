@@ -1,9 +1,18 @@
 -- WarBoard Forever 1.6.3 protocol facts only; independent implementation.
--- No donor code, ledger, subscriptions, forwarding or SavedVariables. See THIRD_PARTY.md.
+-- No donor code, ledger, forwarding or SavedVariables. Tracking is in WarBoardTrack.lua.
 local _,N=...
 local W,S,BN,Src={},N.Safe,N.BNet,N.Sources
 N.WarBoard=W
 local rules={normal=true,pvp=true,rp=true,rppvp=true,hardcore=true}
+local controls={}
+local function sequence(st) st.serial=(st.serial or 0)+1; return st.serial end
+local function proof(st,peer,now)
+    peer.proof=sequence(st); peer.proofAt=now
+end
+function W.handshake(id,text)
+    return controls[id] and controls[id][text] and N.WarBoardTrack
+        and N.WarBoardTrack.needsHandshake(id) and not N.Adapters.loaded("WarBoard") or false
+end
 local function refuse() Src.count("warboard","refused"); return false end
 local function recent(at,now,gap) return at and now-at<gap end -- rollback cannot reopen a gate
 local function pruneTimes(t,now)
@@ -65,7 +74,7 @@ local function input(st,key,ctx,channel)
     r.at=ctx.now; r.times[#r.times+1]=ctx.now
     return true
 end
--- The ONLY outbound grammar. The protocol/rules digits describe the wire, not
+-- The handshake outbound grammar (tracking owns FBAK/FBUN separately). The protocol/rules digits describe the wire, not
 -- WarBoard's identity or gameplay implementation. LE has no gameplay rules: 0.
 local function send(st,id,cmd,ctx)
     if cmd~="H" and cmd~="A" then return refuse() end
@@ -73,7 +82,20 @@ local function send(st,id,cmd,ctx)
     if not ctx.version then return refuse() end
     local text="WBF1|"..cmd.."|5|"..ctx.rs.."|LayerEnemies/"..ctx.version.."|0"
     local prio=cmd=="A" and "owed" or "own"
-    if not BN.allowed("warboard",id,"WarBoard",text,prio) then return refuse() end
+    local debt=N.WarBoardTrack and N.WarBoardTrack.needsHandshake(id)
+    local function permit(on)
+        if not debt then return end
+        if on then controls[id]=controls[id] or {}; controls[id][text]=(controls[id][text] or 0)+1
+        elseif controls[id] then
+            controls[id][text]=(controls[id][text] or 1)-1
+            if controls[id][text]<=0 then controls[id][text]=nil end
+            if not next(controls[id]) then controls[id]=nil end
+        end
+    end
+    permit(true)
+    local allowed=BN.allowed("warboard",id,"WarBoard",text,prio)
+    permit(false)
+    if not allowed then return refuse() end
     if cmd=="H" then
         local r=st.hellos[id]
         if r and recent(r.at,ctx.now,600) then return false end
@@ -85,10 +107,14 @@ local function send(st,id,cmd,ctx)
         st.answers[#st.answers+1]=ctx.now
     end
     local rs,faction=ctx.rs,ctx.faction
-    local accepted=BN.send("warboard",id,"WarBoard",text,prio,function(now)
-        if N.Adapters.loaded("WarBoard") then return false end
+    local peer=st.peers[id]; local hello=peer and peer.hello
+    local sentAt
+    permit(true)
+    local queued=BN.send("warboard",id,"WarBoard",text,prio,function(now)
         local live=context()
-        if not live or live.rs~=rs or live.faction~=faction or not identity(id,live) or now<ctx.now or now-ctx.now>=120 then return false end
+        if not live or live.rs~=rs or live.faction~=faction or not identity(id,live) or now<ctx.now or now-ctx.now>=120
+            or N.Adapters.loaded("WarBoard") then return false end
+        if cmd=="A" and peer and (st.peers[id]~=peer or peer.hello~=hello) then return false end
         -- Actual-attempt caps as well as enqueue caps: a delayed cohort must not
         -- burst through the answer cap when the shared queue opens again.
         if cmd=="A" then
@@ -101,10 +127,22 @@ local function send(st,id,cmd,ctx)
             if not r and slots(st.helloSent,now,600)>=200 then return false end
             st.helloSent[id]={at=now}
         end
+        sentAt=now
         return true
+    end,nil,function(ok)
+        permit(false)
+        if cmd=="A" and peer then
+            peer.answerPending=nil
+            if ok and st.peers[id]==peer and peer.hello==hello then
+                peer.needAnswer=nil; proof(st,peer,sentAt)
+                -- An answered H alone does not supply received-A request eligibility.
+            end
+        end
     end)
-    if accepted and cmd=="H" then st.hellos[id]={at=ctx.now} end
-    return accepted
+    if queued and cmd=="H" then st.hellos[id]={at=ctx.now} end
+    if not queued then permit(false)
+    elseif cmd=="A" and peer then peer.answerPending=true end
+    return queued
 end
 local Cd=N.Codec
 local function integer(v,lo,hi)
@@ -220,8 +258,16 @@ local function duplicate()
     Src.count("warboard","deduped")
     return refuse()
 end
-function W.assemble(st,text,id,now)
-    for key,r in pairs(st.parts) do if now<r.at or now-r.at>=90 then st.parts[key]=nil end end
+local function discardPart(st,key)
+    local r=st.parts[key]
+    if r and r.received and N.WarBoardTrack then N.WarBoardTrack.uncertain(r.owner) end
+    st.parts[key]=nil
+end
+local function expireParts(st,now)
+    for key,r in pairs(st.parts) do if now<r.at or now-r.at>=90 then discardPart(st,key) end end
+end
+function W.assemble(st,text,id,now,received,who)
+    expireParts(st,now)
     local direct=text:match("^WBF1|D|(.*)$")
     if direct then return direct end
     local token,i,n,chunk=text:match("^WBF1|F|([%x%-]+)|(%d+)|(%d+)|(.*)$")
@@ -229,19 +275,22 @@ function W.assemble(st,text,id,now)
     if not token or #token>80 or not integer(n,2,64) or not integer(i,1,n) then return nil end
     local key=id..":"..token
     local r=st.parts[key]
-    if r and r.n~=n then st.parts[key]=nil; return nil end
+    if r and who and (r.key~=who.key or r.faction~=who.faction) then discardPart(st,key); return nil end
+    if r and r.n~=n then discardPart(st,key); return nil end
     if not r then
         if S.count(st.parts)>=16 then return nil end
         local owned=0
         for _,part in pairs(st.parts) do if part.owner==id then owned=owned+1 end end
         if owned>=2 then return nil end
-        r={at=now,owner=id,n=n,size=0,count=0,chunks={}}; st.parts[key]=r
+        r={at=now,owner=id,n=n,size=0,count=0,chunks={},key=who and who.key,faction=who and who.faction}; st.parts[key]=r
     end
     if r.chunks[i]~=nil then return nil end -- first copy wins, no age refresh
     r.size=r.size+#chunk
-    if r.size>262144 then st.parts[key]=nil; return nil end
+    if r.size>262144 then discardPart(st,key); return nil end
     r.chunks[i]=chunk; r.count=r.count+1
-    if r.count==n then st.parts[key]=nil; return table.concat(r.chunks) end
+    r.received=received or r.received -- any deferred part makes the whole frame cleanup-only
+    if r.count==n then st.parts[key]=nil; return table.concat(r.chunks),r.received end
+    return nil,r.received,true -- retained input is not lost evidence
 end
 local function origin(name,carrier)
     name=N.Invite.name(name)
@@ -270,7 +319,7 @@ local function shardText(v,max,digits)
     local s=S.str(v,max)
     return s and (not digits or s:match("^%d+$")) and s or nil
 end
-local function location(st,t,d,e,ctx,carrier,bridge,cached)
+local function location(st,t,d,e,ctx,carrier,bridge,cached,account)
     if not S.tab(d) then return false end
     local ev
     if t=="SHRD" then
@@ -300,7 +349,7 @@ local function location(st,t,d,e,ctx,carrier,bridge,cached)
         st.shards[key]={seq=seq,at=ctx.now,name=ev.name}; return true
     elseif t=="FBLP" then
         local x,y=S.num(d.worldX),S.num(d.worldY)
-        local at=stamp(d.sentAt,ctx,121)
+        local at=stamp(d.sentAt,ctx.received or ctx,121)
         local n=array(d.roster,100)
         if not S.str(d.targetGuid,80) or not x or not y or math.abs(x)>100000000 or math.abs(y)>100000000
             or not integer(d.instanceID,0,100000) or not integer(d.rank,0,14) or not at
@@ -318,7 +367,8 @@ local function location(st,t,d,e,ctx,carrier,bridge,cached)
         ev.pos="enemy"
         ev.note=(ev.kind=="self" and "own position; " or "reported position; ")..d.zone..(d.subZone and d.subZone~="" and ("; "..d.subZone) or "")
             ..(d.approximate and "; approximate coordinates; zone labels are current" or "")
-        if not knownName(ev.name,ctx) then return false,"untracked" end
+        if N.WarBoardTrack then N.WarBoardTrack.roster(ev,d.roster,account,ctx) end
+        if ctx.cleanupOnly or not Src.enabled("warboard") or not knownName(ev.name,ctx) then return false,"untracked" end
         local pos=N.Adapters.worldMapPos(x,y,d.instanceID)
         if pos then ev.zone,ev.map,ev.x,ev.y=pos.map,pos.map,pos.x,pos.y end
     elseif t=="FREC" then
@@ -366,6 +416,7 @@ local function location(st,t,d,e,ctx,carrier,bridge,cached)
     else return false end
     ev.tag=t
     local accepted=Src.offer(ev)
+    if accepted and N.WarBoardTrack then N.WarBoardTrack.note(ev) end
     return accepted or nil,not accepted and not knownName(ev.name,ctx) and "untracked" or nil
 end
 local types={SHRD=true,FBLP=true,FREC=true,FBLC=true,FCBD=true}
@@ -414,6 +465,7 @@ local function payload(st,encoded,ctx,carrier,bridge,bnetFaction,account,channel
     if e.rs~=ctx.rs then return decodedRefuse() end
     local fac=e.faction~=nil and e.faction or e.d.faction
     if not faction(fac) or (bnetFaction and fac~=bnetFaction) then return decodedRefuse() end
+    if (ctx.cleanupOnly or not Src.enabled("warboard")) and e.t~="FBLP" then return decodedRefuse() end
     local accepted,invalid,untracked=false,false,false
     if e.t=="FCBD" then
         local d=e.d; local n=array(d.entries,40)
@@ -429,9 +481,11 @@ local function payload(st,encoded,ctx,carrier,bridge,bnetFaction,account,channel
         -- Only a matching subject on authenticated BN may claim "own position".
         if e.t=="FBLP" and not bnetFaction then bridge=true end
         local why
-        accepted,why=location(st,e.t,e.d,e,ctx,carrier,bridge,false)
+        accepted,why=location(st,e.t,e.d,e,ctx,carrier,bridge,false,account)
         invalid=accepted==false; untracked=why=="untracked"
     end
+    -- A validated cleanup roster was processed even when stale or not displayed.
+    if ctx.cleanupOnly and untracked then return true end
     if not accepted then
         if not untracked then remember() end
         if invalid then return refuse() end
@@ -444,10 +498,43 @@ local function payload(st,encoded,ctx,carrier,bridge,bnetFaction,account,channel
     st.seen[encoded]=true; st.seenOrder[#st.seenOrder+1]=encoded; st.seenBytes=st.seenBytes+#encoded
     return true
 end
-function W.bnet(st,text,id,ctx)
-    if not ctx or S.secret(text) or type(text)~="string" or #text>4000 or #text<1 or not S.num(id) or id<1 or id%1~=0 then return refuse() end
+local function defer(st,text,id)
+    local T,peer=N.WarBoardTrack,st.peers[id]
+    if not T or not T.hasOwed() or not peer or not text:match("^WBF1|[DF]|") then return end
+    local received=N.Adapters.warboardContext(true) -- clocks/rules only; never an account scan
+    st.deferred=st.deferred or {}; st.deferredBytes=st.deferredBytes or 0
+    if not received or received.rs~=peer.rs or received.now<peer.at or received.now-peer.at>=1200
+        or #st.deferred>=128 or st.deferredBytes+#text>262144 or not input(st,"bn:"..id,received) then
+        T.uncertain(id); return
+    end
+    st.deferred[#st.deferred+1]={text=text,id=id,received=received,peer=peer,at=peer.at}
+    st.deferredBytes=st.deferredBytes+#text
+end
+local function drain(st,ctx)
+    if not ctx or (st.high and ctx.now<st.high) or not st.deferred then return end
+    local pending=st.deferred; st.deferred=nil; st.deferredBytes=0
+    for _,q in ipairs(pending) do
+        if not W.bnet(st,q.text,q.id,ctx,q) and N.WarBoardTrack then N.WarBoardTrack.uncertain(q.id) end
+    end
+end
+function W.bnet(st,text,id,ctx,deferred)
+    if N.WarBoardTrack and N.WarBoardTrack.closed then return false end
+    if S.secret(text) or type(text)~="string" or #text>4000 or #text<1 or not S.num(id) or id<1 or id%1~=0 then return refuse() end
+    if not ctx then
+        defer(st,text,id)
+        -- No identity scans or sends while unsafe. Remember only a possible H
+        -- from an already known account; revalidate its client identity when safe.
+        local cmd,rs,version,rv=text:match("^WBF1|([HA])|5|([^|]+)|([^|]+)|(%d+)$")
+        local peer=st.peers[id]
+        if peer and rs==peer.rs and S.str(version,80) and #rv<=7 then
+            if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end
+            if cmd=="H" then peer.donorObserved=N.Adapters.loaded("WarBoard") and N.Adapters.warboardContext(true) or nil end
+        end
+        return false
+    end
+    if not deferred then drain(st,ctx) end -- rosters precede newer traffic and silence settlement
     local who=identity(id,ctx)
-    if not who or not input(st,"bn:"..id,ctx) then return refuse() end
+    if not who or (not deferred and not input(st,"bn:"..id,ctx)) then return refuse() end
     local cmd,proto,rs,version,rv=text:match("^WBF1|([HA])|(%d+)|([^|]+)|([^|]*)|(%d+)$")
     if cmd then
         if proto~="5" or not rules[rs] or not S.str(version,80) or #rv>7 then st.peers[id]=nil; return refuse() end
@@ -457,15 +544,35 @@ function W.bnet(st,text,id,ctx)
             return false
         end
         if not st.peers[id] and slots(st.peers,ctx.now,1200)>=200 then return refuse() end
-        st.peers[id]={at=ctx.now,key=who.key,faction=who.faction,rs=rs}
+        local old=st.peers[id]
+        local confirmed=cmd=="A" or (old and old.confirmed and ctx.now>=old.at and ctx.now-old.at<1200
+            and old.key==who.key and old.rs==rs and old.faction==who.faction)
+        local peer=old and old.key==who.key and old.rs==rs and old.faction==who.faction and old or {}
+        peer.at=ctx.now; peer.key=who.key; peer.faction=who.faction; peer.rs=rs; peer.confirmed=confirmed
+        st.peers[id]=peer
+        if cmd=="H" then peer.hello=sequence(st); peer.proof=nil; peer.needAnswer=true end
+        local debt=N.WarBoardTrack and N.WarBoardTrack.owedAccount(id)
+        local donor=N.Adapters.loaded("WarBoard")
+        if debt and donor and cmd=="H" then
+            peer.needAnswer=nil; proof(st,peer,ctx.now)
+        elseif not donor and cmd=="A" and not peer.needAnswer then proof(st,peer,ctx.now) end
         if cmd=="H" then send(st,id,"A",ctx) end
         return true
     end
     local peer=st.peers[id]
+    local at=deferred and deferred.at or (peer and peer.at)
+    local received=deferred and deferred.received or ctx
     if not peer or peer.rs~=ctx.rs or peer.key~=who.key or peer.faction~=who.faction
-        or ctx.now<peer.at or ctx.now-peer.at>=1200 then return refuse() end
-    local encoded=W.assemble(st,text,id,ctx.now)
-    return encoded and payload(st,encoded,ctx,who.name,false,who.faction,id) or false
+        or (deferred and (deferred.peer~=peer or received.rs~=ctx.rs or received.faction~=ctx.faction))
+        or received.now<at or received.now-at>=1200 then return refuse() end
+    local encoded,held,retained=W.assemble(st,text,id,received.now,deferred and received,who)
+    if not encoded then return retained or false end
+    if deferred or held then
+        ctx={now=ctx.now,wall=ctx.wall,rs=ctx.rs,faction=ctx.faction,received=held or received,cleanupOnly=true}
+    end
+    local handled=payload(st,encoded,ctx,who.name,false,who.faction,id)
+    if not handled and held and N.WarBoardTrack then N.WarBoardTrack.uncertain(id) end
+    return handled
 end
 function W.addon(st,prefix,text,dist,sender,ctx)
     if not ctx or (prefix~="WarBoard" and prefix~="WarBoardBN") or S.secret(text) or type(text)~="string" or #text>255
@@ -479,6 +586,43 @@ function W.addon(st,prefix,text,dist,sender,ctx)
     return encoded and payload(st,encoded,ctx,sender,prefix=="WarBoardBN",nil,nil,dist=="CHANNEL") or false
 end
 function W.tick(st,ctx)
+    if ctx and not (st.high and ctx.now<st.high) then drain(st,ctx); expireParts(st,ctx.now) end
+    local T=N.WarBoardTrack
+    if T and T.hasOwed() and ctx and not (st.high and ctx.now<st.high) and N.Adapters.loaded("WarBoard") then
+        -- Validate deferred donor-owned control observations only when safe;
+        -- no LE handshake or account scan was performed in combat/instances.
+        for id,peer in pairs(st.peers) do
+            local observed=peer.donorObserved
+            peer.donorObserved=nil
+            local who=observed and ctx.now>=observed.now and ctx.now-observed.now<1200
+                and observed.rs==ctx.rs and observed.faction==ctx.faction and T.owedAccount(id) and identity(id,ctx)
+            if who and peer.rs==ctx.rs and who.key==peer.key and who.faction==peer.faction then
+                peer.needAnswer=nil; peer.at=observed.now
+                proof(st,peer,observed.now)
+            end
+        end
+    end
+    if T and T.hasOwed() and ctx and not (st.high and ctx.now<st.high) and not N.Adapters.loaded("WarBoard") then
+        -- Only debt accounts may use the handshake exception, even with every
+        -- normal send switch off. The usual H/A caps and shared budgets remain.
+        for id,peer in pairs(st.peers) do
+            if T.needsHandshake(id) and peer.rs==ctx.rs and identity(id,ctx) then
+                if peer.needAnswer and not peer.answerPending then send(st,id,"A",ctx) end
+                if not T.ready(peer,ctx.now) then send(st,id,"H",ctx) end
+            end
+        end
+        if not recent(st.debtScan,ctx.now,60) then
+            st.debtScan=ctx.now
+            for _,r in ipairs(BN.peers(ctx.now)) do
+                if T.needsHandshake(r.id) and identity(r.id,ctx) then
+                    local peer=st.peers[r.id]
+                    if not T.ready(peer,ctx.now) then send(st,r.id,"H",ctx) end
+                end
+            end
+        end
+    end
+    if N.WarBoardTrack then N.WarBoardTrack.tick(st,ctx) end
+    if N.WarBoardTrack and N.WarBoardTrack.closed then return end
     if not ctx or (st.high and ctx.now<st.high) then return end
     if recent(st.scan,ctx.now,60) then return end
     if not Src.enabled("warboard") or not N.Main.sharing() or not N.Net.allowed("warboard","public") then return end

@@ -145,6 +145,12 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertEqual(source.count('BN.send('), 1)
         self.assertIn('Src.register{name="warboard"', source)
         self.assertNotIn('SendAddonMessage', names)
+        track = (root / 'WarBoardTrack.lua').read_text()
+        self.check_source(track, 'WarBoardTrack.lua')
+        VERIFY['check_send_policy'](track, 'WarBoardTrack.lua')
+        words = {v for k, v in VERIFY['lua_tokens'](track) if k == 'name'}
+        self.assertFalse(words & {'_G', 'C_Timer', 'CreateFrame', 'Wire', 'LayerEnemiesDB', 'UnitGUID', 'GetTime'})
+        self.assertEqual(track.count('BN.send('), 1)
         self.assertNotIn('SendGameData', names)
         for path in root.glob('*.lua'):
             refs = {v for _, v in VERIFY['lua_references'](VERIFY['lua_tokens'](path.read_text()))}
