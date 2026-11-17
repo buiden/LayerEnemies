@@ -180,10 +180,41 @@ test("BNet shared queue used with eight frame cap and dispatch pool guard",funct
     H.advance(1);eq(#calls,6,"pool change cancels at actual dispatch")
 end)
 
-test("stand down suppresses own presence but permits owed NH",function()
+test("donor loaded blocks every send but retains incoming evidence",function()
     local N=setup();enable(N);H.loaded().Overlord=true
-    N.Main.overlordTick(H.clock());eq(#onlySent(),0)
-    hear("owed","NH","2.5.4",nil,nil,"Alice Vale");eq(#onlySent(),1)
+    N.Directory.members=function() return {"Directory Scout"} end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true}} end
+    N.BNet.who=function() return {name="Birch Scout",faction="Horde",realm="Test Realm"} end
+    local calls=0;C_BattleNet.SendGameData=function() calls=calls+1;return true end
+    for i=1,4 do
+        N.Main.overlordTick(H.clock())
+        hear("nh"..i,"NH","2.5.4",nil,nil,"Alice Vale")
+        hear("hr"..i,"HR","8:V:"..(GetServerTime()-100)..":123n4n5f:1:LK:0:0:H",nil,nil,"Alice Vale")
+        H.deliver("BN_CHAT_MSG_ADDON","OverlordF","R2:Forever_global_H:BR:"..packet("bn"..i,"HR",
+            "8:V:"..(GetServerTime()-100)..":123n4n5f:1:LK:0:0:H",nil,"Alice Vale"),nil,71)
+        H.advance(160)
+    end
+    eq(#onlySent(),0);eq(calls,0);eq(N.BNet.queued(),0)
+    hear("gw","GW","1:Enemy Guild:H:77:6:#1434:42:"..GetServerTime())
+    eq(#N.Main.reportedRows(),1,"stand-down still receives")
+end)
+
+test("donor loading cancels queued owed answers and gateway bypass",function()
+    local N=setup();enable(N)
+    N.BNet.who=function() return {name="Birch Scout",faction="Horde",realm="Test Realm"} end
+    local calls=0;C_BattleNet.SendGameData=function() calls=calls+1;return true end
+    H.deliver("BN_CHAT_MSG_ADDON","OverlordF","R2:Forever_global_H:BR:"..packet("queued","HR",
+        "8:V:"..(GetServerTime()-100)..":123n4n5f:1:LK:0:0:H",nil,"Alice Vale"),nil,71)
+    eq(N.BNet.queued(),1)
+    H.loaded().Overlord=true
+    no(N.Main.overlordContext().allowed,"no owed exemption in context")
+    no(N.BNet.allowed("overlord",71,"OverlordF","queued","owed"),"no owed exemption in queue")
+    local P=N.OverlordPeer;local c=ctx(N)
+    c.send=function(_,text,route,target,prio)
+        return N.Wire.send("OverlordF",text,route,target,{net="overlord",prio=prio})
+    end
+    no(P.emit(P.new(),c,"NH",P.presence(c),"WHISPER","Birch Scout","probe",150,true),"Wire refuses forged context")
+    H.advance(1);eq(calls,0);eq(N.BNet.queued(),0);eq(#onlySent(),0)
 end)
 
 test("path target loop and malformed assemblies never learn routes",function()

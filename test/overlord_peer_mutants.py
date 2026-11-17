@@ -12,6 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 LUA = os.environ.get('LAYERENEMIES_LUA') or shutil.which('lua5.1') or shutil.which('lua') or '/opt/data/tools/lua/lua-5.1.5/src/lua'
 # rule, file, unique anchor, replacement, test selector
 MUTANTS = [
+ ('donor loaded context silence','Main.lua','and ok==true and not A.inCombat()','and true and not A.inCombat()','Overlord peer:'),
+ ('donor loaded BNet silence','BNet.lua','net~="overlord" and why=="stand down"','why=="stand down"','Overlord peer:'),
+ ('donor loaded Wire silence','Wire.lua','if not ok then return nil, why end','if not ok and not (prefix=="OverlordF" and why=="stand down" and opts.prio=="owed") then return nil, why end','Overlord peer:'),
  ('24 parts','Overlord.lua','uint(part,24,1),uint(count,24,1)','uint(part,25,1),uint(count,25,1)','Overlord peer:'),
  ('3600 bytes','Overlord.lua','a.bytes+#chunk>3600','a.bytes+#chunk>3601','Overlord peer:'),
  ('total assembly lifetime','Overlord.lua','now-a.at>=120','now-a.at>120','Overlord peer:'),

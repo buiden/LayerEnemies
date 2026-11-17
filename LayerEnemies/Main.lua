@@ -459,14 +459,14 @@ function M.overlordPool()
     end)
 end
 function M.overlordContext(time)
-    local ok,why=N.Net.allowed("overlord","public")
+    local ok=N.Net.allowed("overlord","public")
     local me=A.ownIdentity()
     local version=S.call(function() return C_AddOns.GetAddOnMetadata("LayerEnemies","Version") end)
     local faction=S.str(S.call(UnitFactionGroup,"player"),16)
     return {now=time or S.num(S.call(GetTime)),wall=S.num(S.call(GetServerTime)),pool=M.overlordPool(),
         me=me,version=S.str(version,32),faction=faction and faction:sub(1,1),
         allowed=M.sharing() and N.Net.consent()=="public" and N.Net.switch("overlord")
-            and (ok or why=="stand down") and not A.inCombat() and A.inInstance()==false,
+            and ok==true and not A.inCombat() and A.inInstance()==false,
         own=ok==true}
 end
 local function overlordSend(c,text,route,target,prio,job)

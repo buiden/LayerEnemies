@@ -7,15 +7,16 @@
 | Own `NH` (one `BF`) | Guild | Once/120 s with a heard listener; once/600 s alone | Any stop below |
 | Own `NH` (one `BF`) | Current party or raid | On joining, then once/120 s, shared group gap | Any stop below |
 | Own `NH` (`R2` + `BR`) | Up to five live Battle.net friends plus two rotating unheard friends | One cycle/120 s; once/120 s per account | Any stop below |
-| Owed targeted `NH` | Direct whisper sender addressing us | Once/150 s per peer; six owed answers/minute total | Any stop below, except donor stand-down |
+| Owed targeted `NH` | Direct whisper sender addressing us | Once/150 s per peer; six owed answers/minute total | Any stop below |
 | Own targeted `NH` greeting | Read-only Overlord directory members | One/minute, six live partners; same candidate no sooner than 600 s | Any stop below |
-| Empty `HA S ... :0:0` for v8 `HR V`; `HA R` for unsupported page requests | Direct addressed whisper/Battle.net requester only | Once/150 s per peer, sharing the six owed answers/minute | Any stop below, except donor stand-down |
+| Empty `HA S ... :0:0` for v8 `HR V`; `HA R` for unsupported page requests | Direct addressed whisper/Battle.net requester only | Once/150 s per peer, sharing the six owed answers/minute | Any stop below |
 
 **All sends stop** with `/le share off`, Guild only (`/le net guild`),
 `/le net overlord off`, combat, instances, or an unreadable ruleset pool,
 local character or own addon version. No off-switch withdrawal is sent.
-Overlord installed: own announcements stop, but these capped owed answers remain
-eligible. Battle.net uses `BN.send`: **eight frames/minute**, inside the shared
+When the real Overlord addon is loaded, **every Overlord send stops**, including
+NH replies, HA answers, greetings and feed requests on guild, group, whisper and
+Battle.net. Queued work is also refused at dispatch. LE still receives traffic. Battle.net uses `BN.send`: **eight frames/minute**, inside the shared
 30/minute and one/second queue. Addon messages use Wire; stranger whispers share
 its **20/minute**, four/minute/target budget. Own Overlord announcements use the
 low-priority reserve so ordinary LE guild traffic keeps priority within the

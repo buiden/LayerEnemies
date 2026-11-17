@@ -54,7 +54,7 @@ function BN.allowed(net,id,prefix,text,prio)
         or (net=="overlord" and prefix=="OverlordF" and N.Sources.enabled(net))
     if not authorized or not N.Main.sharing() or N.Net.consent()~="public" or not safe() then return false end
     local ok,why=N.Net.allowed(net,"public")
-    return ok or (why=="stand down" and prio=="owed")
+    return ok or (net~="overlord" and why=="stand down" and prio=="owed")
 end
 local dispatch
 function BN.dispatching(net,id,prefix,text,prio,fn)

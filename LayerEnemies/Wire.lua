@@ -309,7 +309,7 @@ local function check(prefix, text, kind, target, opts)
         if opts.net ~= route.net then return nil, "network off" end
         public = kind == "WHISPER" and not (N.Adapters and N.Adapters.guildMember(target) == true)
         local ok, why = N.Net.allowed(route.net, public and "public" or "guild")
-        if not ok and not (prefix=="OverlordF" and why=="stand down" and opts.prio=="owed") then return nil, why end
+        if not ok then return nil, why end
         if prefix=="OverlordF" and kind=="WHISPER" then public=true end
     end
     return route, tag, target, opts, public
