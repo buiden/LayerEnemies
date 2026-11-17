@@ -20,10 +20,16 @@ local function font(parent,size,color)
     local f=parent:CreateFontString(nil,"OVERLAY")
     f:SetFont("Fonts\\FRIZQT__.TTF",size,""); f:SetJustifyH("LEFT"); f:SetTextColor(unpack(color or {.81,.84,.87})); return f
 end
+-- Clear the previous height before measuring so shorter text can shrink again.
+local function fitText(f,minimum)
+    f:SetHeight(0)
+    local height=math.max(minimum or 0,math.ceil(f:GetStringHeight()))
+    f:SetHeight(height); return height
+end
 local function button(parent,w,h,label,fn)
     local b=CreateFrame("Button",nil,parent)
     b:SetSize(w,h); b.bg=paint(b,{.137,.227,.11}); b.edges=border(b,{.30,.48,.23})
-    b.label=font(b,10,{.79,.96,.65}); b.label:SetPoint("CENTER"); b.label:SetWidth(w-8); b.label:SetJustifyH("CENTER"); b.label:SetText(label)
+    b.label=font(b,10,{.79,.96,.65}); b.label:SetPoint("CENTER"); b.label:SetWidth(w-8); b.label:SetJustifyH("CENTER"); b.label:SetWordWrap(false); b.label:SetText(label)
     b:SetScript("OnClick",fn); return b
 end
 local function age(at)
@@ -43,11 +49,11 @@ local function rowFrame()
     r:Hide(); r:SetSize(348,64); paint(r,colors.card); border(r)
     r.stripe=r:CreateTexture(nil,"ARTWORK"); r.stripe:SetPoint("TOPLEFT"); r.stripe:SetPoint("BOTTOMLEFT"); r.stripe:SetWidth(4)
     r.levelBG=r:CreateTexture(nil,"ARTWORK"); r.levelBG:SetColorTexture(.055,.071,.086); r.levelBG:SetPoint("TOPLEFT",4,-1); r.levelBG:SetPoint("BOTTOMLEFT",4,1); r.levelBG:SetWidth(32)
-    r.level=font(r,13); r.level:SetPoint("TOPLEFT",r,"TOPLEFT",10,-16); r.level:SetWidth(25)
-    r.title=font(r,12); r.title:SetPoint("TOPLEFT",r,"TOPLEFT",42,-8); r.title:SetWidth(225)
+    r.level=font(r,13); r.level:SetPoint("TOPLEFT",r,"TOPLEFT",10,-16); r.level:SetWidth(25); r.level:SetWordWrap(false)
+    r.title=font(r,12); r.title:SetPoint("TOPLEFT",r,"TOPLEFT",42,-8); r.title:SetWidth(225); r.title:SetWordWrap(false)
     r.sub=font(r,10,colors.muted); r.sub:SetPoint("TOPLEFT",r,"TOPLEFT",42,-26); r.sub:SetWidth(294); r.sub:SetHeight(31); r.sub:SetJustifyV("TOP")
     r.place=font(r,10,colors.muted); r.place:SetWidth(294); r.place:SetHeight(40); r.place:SetJustifyV("TOP"); r.place:Hide()
-    r.age=font(r,10,colors.muted); r.age:SetPoint("TOPRIGHT",r,"TOPRIGHT",-8,-8); r.age:SetJustifyH("RIGHT")
+    r.age=font(r,10,colors.muted); r.age:SetPoint("TOPRIGHT",r,"TOPRIGHT",-8,-8); r.age:SetJustifyH("RIGHT"); r.age:SetWidth(64); r.age:SetWordWrap(false)
     r.ask=button(r,220,20,"Ask for invite",function()
         if r.hostRow then N.Main.hopHostTo(r.hostRow,r.hostShown); U.render()
         elseif r.hopRecord then N.Main.hopTo(r.hopRecord,r.hopShown); U.render()
@@ -151,6 +157,11 @@ function U.render()
     U.hosting:SetText(hosting and "Hosting for your guild (stays on after reload)"
         or ("Hosting is on but inactive: "..tostring(M.host and M.host.inactive or "")))
     U.hosting:SetShown(want==true)
+    local headerBottom=50+fitText(U.meta)
+    if want then headerBottom=headerBottom+4+fitText(U.hosting) end
+    local tabsTop=math.max(76,headerBottom+8)
+    for _,b in pairs(U.tabs) do b:SetPoint("TOPLEFT",U.frame,"TOPLEFT",b.x,-tabsTop) end
+    U.body:SetPoint("TOPLEFT",U.frame,"TOPLEFT",6,-tabsTop-38)
     U.auto:SetShown(U.tab=="friendly"); U.auto.label:SetText(M.autoHop() and "Auto: on" or "Auto: off")
     U.share.label:SetText(M.sharing() and "Share: on" or "Share: off")
     U.call.label:SetText(M.calling() and "Call: on" or "Call: off")
@@ -159,35 +170,63 @@ function U.render()
     local function netLabel(key,name) return name..": "..(N.Net.SHIP[key]~=true and "n/a" or N.Net.switch(key) and "on" or "off") end
     U.netWe.label:SetText(netLabel("we","War Effort")); U.netHh.label:SetText(netLabel("hh","HeadHunter"))
     local hint=U.tab=="friendly" and not known
-    U.banner:ClearAllPoints(); U.banner:SetPoint("TOPLEFT",4,U.tab=="find" and -16 or 0)
-    U.banner:SetWidth(U.tab=="find" and 340 or 250)
+    local bannerTop=U.tab=="find" and math.max(16,fitText(U.findTitle)+2) or 0
+    U.banner:ClearAllPoints(); U.banner:SetPoint("TOPLEFT",4,-bannerTop)
+    U.banner:SetWidth(U.tab=="reported" and 250 or 340)
     U.banner:SetText(U.tab=="reported" and "Reported, not confirmed. Age as the reporter's clock gives it." or U.tab=="find" and "Up to 20 names. Hash matches are possible, not certain." or hint and N.Invite.HINT or "")
+    local bannerHeight=fitText(U.banner)
+    local inputTop=bannerTop+bannerHeight+4
+    U.input:SetPoint("TOPLEFT",4,-inputTop); U.add:SetPoint("TOPRIGHT",-4,-inputTop)
+    local friendlyTop=hint and bannerHeight+6 or 0
+    U.findHosts:SetPoint("TOPRIGHT",-4,-friendlyTop); U.host:SetPoint("TOPRIGHT",-92,-friendlyTop)
+    U.auto:SetPoint("TOPRIGHT",-166,-friendlyTop); U.hopAny:SetPoint("TOPLEFT",4,-friendlyTop-23)
     local function knownHeight(e)
         local function height(v) return v and ((v.own or v.layer or v.x) and 58 or 44) or 0 end
         return height(e.current)+height(e.seen)+height(e.otherSeen)+height(e.reported)
     end
-    local function rowHeight(e)
+    local function minimumHeight(e)
         if U.tab=="find" then
             if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0) end
             return e.place and 146 or e.at and 106 or 76
         end
         return U.tab=="local" and 48 or U.tab=="friendly" and 68 or 80
     end
-    local top=U.tab=="find" and 70 or U.tab=="friendly" and 48 or U.tab=="reported" and 23 or 0
+    -- Measure the actual strings before paging, not an assumed line count for
+    -- each evidence slot. One hidden FontString serves every row in the pool.
+    local layouts={}
+    for index,e in ipairs(rows) do
+        local detailHeight=knownHeight(e)
+        local text
+        if U.tab=="local" then
+            text=className(e.class).." · "..M.zoneName(e.zone)..(index>liveSeen and " · previous zone" or e.layer==nil and " · layer unknown" or "")
+        elseif U.tab=="reported" then
+            text="reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or "")
+        elseif U.tab=="friendly" then
+            text=table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.layer and "layer "..e.layer or "layer not known")
+        else
+            text=M.findDetails(e) or (e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or (e.place and "" or "Not located"))
+            if e.probably and detailHeight==0 then text=text.." · probably your layer (key ambiguous)" end
+        end
+        local minimum=U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or 24
+        U.measure:SetWidth(U.tab=="friendly" and 200 or 294); U.measure:SetText(text)
+        local layout={text=text,subHeight=fitText(U.measure,minimum)}
+        local bottom=26+layout.subHeight
+        if U.tab=="find" and e.place then
+            layout.place=M.placeText(e.place); U.measure:SetText(layout.place)
+            layout.placeHeight=fitText(U.measure,40)
+            layout.placeTop=math.max(detailHeight>0 and 29+detailHeight or e.at and 73 or 26,text~="" and bottom+3 or 26)
+            bottom=layout.placeTop+layout.placeHeight
+        end
+        layout.height=math.max(minimumHeight(e),bottom+(U.tab=="local" and 4 or 32)+4)
+        layouts[e]=layout
+    end
+    local function rowHeight(e) return layouts[e].height end
+    local top=U.tab=="find" and math.max(70,inputTop+38) or U.tab=="friendly" and friendlyTop+48 or U.tab=="reported" and math.max(23,bannerHeight+6) or 0
     -- A hash line beside both cached slots and an OpenMap place can exceed
     -- the usual page. Grow only enough for one whole card; never hide it.
     local bodyHeight=300
-    if U.tab=="find" then
-        for _,row in ipairs(rows) do bodyHeight=math.max(bodyHeight,top+rowHeight(row)) end
-    end
-    if U.bodyHeight~=bodyHeight then
-        U.bodyHeight=bodyHeight; U.body:SetHeight(bodyHeight)
-        local extra=bodyHeight-300
-        U.frame:SetHeight(514+extra); U.hint:SetPoint("TOPLEFT",10,-420-extra)
-        for _,item in ipairs({{U.share,6,440},{U.call,6,462},{U.guildOnly,80,440},{U.netWe,176,440},{U.netHh,266,440}}) do
-            item[1]:SetPoint("TOPLEFT",item[2],-item[3]-extra)
-        end
-    end
+    for _,row in ipairs(rows) do bodyHeight=math.max(bodyHeight,top+rowHeight(row)) end
+    U.bodyHeight=bodyHeight; U.body:SetHeight(bodyHeight)
     -- Clamp to the last full page, accounting for each row's own height.
     local maximum,used=#rows,0
     for i=#rows,1,-1 do
@@ -216,35 +255,38 @@ function U.render()
         r.ask:SetWidth(friendly and 120 or 220); r.ask.label:SetWidth(friendly and 112 or 212)
         r.sub:SetWidth(friendly and 200 or 294)
         r.levelBG:SetShown(not friendly)
-        local detailHeight=knownHeight(e)
-        r.sub:SetHeight(U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or 24)
+        local layout=layouts[e]
+        r.sub:SetHeight(layout.subHeight); r.sub:SetText(layout.text)
         r.level:SetText(e.level and tostring(e.level) or U.tab=="friendly" and "" or "?")
         r.age:SetText(e.at and age(e.at) or e.age and age(time-e.age) or "")
         r.title:SetText(e.displayName or e.name or "Unknown")
         if U.tab=="local" then
-            r.sub:SetText(className(e.class).." · "..M.zoneName(e.zone)..(index+U.offset>liveSeen and " · previous zone" or e.layer==nil and " · layer unknown" or "")); askState(r,nil)
+            askState(r,nil)
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))
-            r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or ""))
             hopState(r,e.record)
         elseif U.tab=="friendly" then
-            r.sub:SetText(table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.layer and "layer "..e.layer or "layer not known"))
             local p=not e.unknownOwn and M.hostPreview(e)
             if e.unknownOwn then unknownState(r)
             elseif p then hostState(r,e,p)
             else askState(r,e.name,"Ask for invite") end
         else
             r.tracked=e.name; r.clear:Show()
-            r.sub:SetText(M.findDetails(e) or (e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or (e.place and "" or "Not located")))
             askState(r,e.canAsk and e.spotter or nil,e.spotter and ("Ask "..e.spotter.." for invite") or "")
-            if e.probably and detailHeight==0 then r.sub:SetText(r.sub:GetText().." · probably your layer (key ambiguous)") end
             if e.place then
-                r.place:ClearAllPoints(); r.place:SetPoint("TOPLEFT",r,"TOPLEFT",42,detailHeight>0 and -29-detailHeight or e.at and -73 or -26)
-                r.place:SetText(M.placeText(e.place)); r.place:Show()
+                r.place:ClearAllPoints(); r.place:SetPoint("TOPLEFT",r,"TOPLEFT",42,-layout.placeTop)
+                r.place:SetHeight(layout.placeHeight); r.place:SetText(layout.place); r.place:Show()
             end
         end
     end
     U.hint:SetText(#rows==0 and "No eligible observations yet." or (#rows>visible and ("Mouse wheel: "..(U.offset+1).."–"..math.min(#rows,U.offset+visible).." of "..#rows) or ""))
+    local optionsTop=tabsTop+38+bodyHeight+6+math.max(20,fitText(U.hint)+8)
+    for _,item in ipairs({{U.share,6,0},{U.call,6,22},{U.guildOnly,80,0},{U.netWe,184,0},{U.netHh,80,22}}) do
+        item[1]:SetPoint("TOPLEFT",item[2],-optionsTop-item[3])
+    end
+    local footerTop=optionsTop+22+18+16
+    U.footer:SetPoint("TOPLEFT",10,-footerTop)
+    U.frame:SetHeight(footerTop+fitText(U.footer)+9)
     U.lastPaint=time
 end
 function U.refresh(soon)
@@ -294,19 +336,20 @@ function U.create()
     local title=font(bar,12); title:SetPoint("LEFT",10,0); title:SetText("LAYER ENEMIES")
     local close=button(bar,22,20,"x",function() f:Hide() end); close:SetPoint("RIGHT",-4,0)
     local chip=f:CreateTexture(nil,"BACKGROUND"); chip:SetColorTexture(.047,.063,.035); chip:SetPoint("TOPLEFT",6,-32); chip:SetSize(70,34)
-    U.layer=font(f,18,colors.green); U.layer:SetPoint("TOPLEFT",12,-39); U.layer:SetWidth(64)
+    U.layer=font(f,18,colors.green); U.layer:SetPoint("TOPLEFT",12,-39); U.layer:SetWidth(64); U.layer:SetWordWrap(false)
     local label=font(f,10,colors.muted); label:SetPoint("TOPLEFT",86,-34); label:SetText("YOUR LAYER")
     U.meta=font(f,10); U.meta:SetPoint("TOPLEFT",86,-50); U.meta:SetWidth(264)
     local x=0
     for _,entry in ipairs({{"local",112,"Seen by you"},{"reported",88,"Reported"},{"friendly",98,"Friendly"},{"find",62,"Find"}}) do
         local key=entry[1]
         local b=button(f,entry[2]-1,30,entry[3],function() U.select(key) end)
-        b:SetPoint("TOPLEFT",f,"TOPLEFT",x,-76); U.tabs[key]=b
+        b.x=x; b:SetPoint("TOPLEFT",f,"TOPLEFT",x,-76); U.tabs[key]=b
         for _,edge in ipairs(b.edges) do edge:SetColorTexture(0,0,0) end
         b.line=b:CreateTexture(nil,"OVERLAY"); b.line:SetColorTexture(unpack(colors.gold)); b.line:SetHeight(2); b.line:SetPoint("BOTTOMLEFT"); b.line:SetPoint("BOTTOMRIGHT")
         x=x+entry[2]
     end
     U.body=CreateFrame("Frame",nil,f); U.body:SetSize(348,300); U.body:SetPoint("TOPLEFT",6,-114)
+    U.measure=font(U.body,10); U.measure:Hide()
     U.body:EnableMouseWheel(true)
     U.body:SetScript("OnMouseWheel",function(_,delta) U.offset=math.max(0,U.offset-(delta>0 and 1 or -1)); U.render() end)
     U.findTitle=font(U.body,12); U.findTitle:SetPoint("TOPLEFT",4,0); U.findTitle:SetWidth(340); U.findTitle:Hide()
@@ -344,22 +387,22 @@ function U.create()
     -- Auto accept and leave: accept the asked host's invite, leave that group after the move (saved, on by default)
     U.auto=button(U.body,70,18,"Auto: on",function() local M=N.Main; M.setAutoHop(not M.autoHop()); U.render() end)
     U.auto:SetPoint("TOPRIGHT",-166,0); U.auto:Hide()
-    U.hosting=font(f,10,{.79,.96,.65}); U.hosting:SetPoint("TOPLEFT",86,-64); U.hosting:Hide()
-    U.hint=font(f,10,colors.muted); U.hint:SetPoint("TOPLEFT",10,-420); U.hint:SetWidth(340)
+    U.hosting=font(f,10,{.79,.96,.65}); U.hosting:SetPoint("TOPLEFT",U.meta,"BOTTOMLEFT",0,-4); U.hosting:SetWidth(264); U.hosting:Hide()
+    U.hint=font(f,10,colors.muted); U.hint:SetPoint("TOPLEFT",U.body,"BOTTOMLEFT",4,-6); U.hint:SetWidth(340)
     -- 1.0 settings, saved, on every tab: sharing our own sightings, guild only (no public networks), each network
     local M=N.Main
     U.share=button(f,70,18,"Share: on",function() M.setShare(not M.sharing()); U.render() end)
     U.share:SetPoint("TOPLEFT",6,-440)
     U.call=button(f,70,18,"Call: on",function() M.setCall(not M.calling()); U.render() end)
     U.call:SetPoint("TOPLEFT",6,-462)
-    U.guildOnly=button(f,92,18,"Guild only: off",function() M.setConsent(N.Net.consent()=="public" and "guild" or "public"); U.render() end)
+    U.guildOnly=button(f,100,18,"Guild only: off",function() M.setConsent(N.Net.consent()=="public" and "guild" or "public"); U.render() end)
     U.guildOnly:SetPoint("TOPLEFT",80,-440)
-    U.netWe=button(f,86,18,"War Effort: on",function() M.setNet("we",not N.Net.switch("we")); U.render() end)
-    U.netWe:SetPoint("TOPLEFT",176,-440)
-    U.netHh=button(f,86,18,"HeadHunter: on",function() M.setNet("hh",not N.Net.switch("hh")); U.render() end)
-    U.netHh:SetPoint("TOPLEFT",266,-440)
-    local footer=font(f,10,colors.muted); footer:SetPoint("BOTTOMLEFT",10,9); footer:SetWidth(340)
-    footer:SetText("Only players seen by you or reported by other players' addons.")
+    U.netWe=button(f,100,18,"War Effort: on",function() M.setNet("we",not N.Net.switch("we")); U.render() end)
+    U.netWe:SetPoint("TOPLEFT",184,-440)
+    U.netHh=button(f,112,18,"HeadHunter: on",function() M.setNet("hh",not N.Net.switch("hh")); U.render() end)
+    U.netHh:SetPoint("TOPLEFT",80,-462)
+    U.footer=font(f,10,colors.muted); U.footer:SetWidth(340)
+    U.footer:SetText("Only players seen by you or reported by other players' addons.")
     f:SetScript("OnShow",function() U.generation=(U.generation or 0)+1; U.tick(U.generation) end)
     f:SetScript("OnHide",function() U.generation=(U.generation or 0)+1; U.input:ClearFocus() end)
 end

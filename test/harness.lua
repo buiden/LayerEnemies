@@ -8,6 +8,7 @@ local function yes(v,msg) eq(not not v,true,msg) end
 local function no(v,msg) eq(not not v,false,msg) end
 local forbidden
 local function test(name,fn)
+    if arg and arg[1]=="--ui-layout-only" and not name:find("UI layout:",1,true) then return end
     if arg and arg[1]=="--spy-relay-only" and not name:find("Spy relay",1,true) then return end
     if arg and arg[1]=="--relay-policy-only" and not name:find("Guild relay policy:",1,true) then return end
     if arg and arg[1]=="--kills-only" and not name:find("Kills",1,true) then return end
@@ -74,6 +75,7 @@ function methods:ClearAllPoints() self.point=nil end
 function methods:SetAllPoints() end
 function methods:SetColorTexture(...) self.color={...} end
 function methods:SetFont(...) self.font={...} end
+function methods:SetWordWrap(value) self.wordWrap=value end
 function methods:SetJustifyH(value) self.justifyH=value end
 function methods:SetJustifyV() end
 function methods:SetTextColor(...) self.textColor={...} end
@@ -93,7 +95,42 @@ function methods:SetText(text)
 end
 function methods:SetTexture(path) self.texture=path; return true end
 function methods:GetText() return self.text or "" end
-function methods:GetStringHeight() return math.ceil(#self:GetText()/30)*12 end
+-- Approximate metrics, not a native-font renderer: respect width, word wrap and
+-- explicit newlines so a fixed-height box can no longer hide an overflow test.
+local function textWidth(text,size)
+    local _,chars=text:gsub("[^\128-\191]","")
+    return chars*size*.6
+end
+function methods:GetStringWidth()
+    local widest=0; local size=(rawget(self,"font") or {})[2] or 10
+    for line in (self:GetText().."\n"):gmatch("(.-)\n") do widest=math.max(widest,textWidth(line,size)) end
+    return widest
+end
+function methods:GetStringHeight()
+    if self:GetText()=="" then return 0 end
+    local size=(rawget(self,"font") or {})[2] or 10
+    local width=rawget(self,"width") or math.huge
+    local lines=0
+    for line in (self:GetText().."\n"):gmatch("(.-)\n") do
+        local count,used=1,0
+        if rawget(self,"wordWrap")~=false and width>0 then
+            for word in line:gmatch("%S+") do
+                local w=textWidth(word,size)
+                local space=used>0 and textWidth(" ",size) or 0
+                if used>0 and used+space+w>width then count=count+1; used=0; space=0 end
+                local extra=math.max(0,math.ceil(w/width)-1)
+                count=count+extra; used=used+space+w-extra*width
+            end
+        end
+        lines=lines+count
+    end
+    return lines*(size+2)
+end
+function methods:GetWidth() return rawget(self,"width") or self:GetStringWidth() end
+function methods:GetHeight()
+    local height=rawget(self,"height")
+    return height and height>0 and height or self:GetStringHeight()
+end
 function methods:SetFrameStrata(value) self.strata=value end
 function methods:SetMovable() end
 function methods:SetClampedToScreen(value) self.clamped=value end
@@ -111,8 +148,12 @@ function methods:Click() if not self.disabled and self.scripts.OnClick then self
 local function object(kind)
     return setmetatable({kind=kind,shown=true,disabled=false,events={},scripts={}}, {__index=function(_,key) if methods[key] then return methods[key] end; error("unknown frame method: "..key) end})
 end
-function methods:CreateTexture() return object("Texture") end
-function methods:CreateFontString() return object("FontString") end
+function methods:CreateTexture() local t=object("Texture"); t.parent=self; return t end
+function methods:CreateFontString()
+    local f=object("FontString"); f.parent=self
+    self.regions=rawget(self,"regions") or {}; self.regions[#self.regions+1]=f
+    return f
+end
 function methods:RegisterEvent(event)
     if event=="COMBAT_LOG_EVENT_UNFILTERED" then forbidden=(forbidden or 0)+1 end
     self.events[event]=true
@@ -7809,6 +7850,9 @@ assert(loadfile("test/kills_round2.lua"))({test=test,eq=eq,yes=yes,no=no,load=lo
     advance=advance,clock=function() return clock end,deliver=deliver,drain=drain,
     units=function() return units end,player=player,combat=function(v) combat=v end,
     loaded=function() return loaded end,sent=function() return sent end})
+
+assert(loadfile("test/ui_layout.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,
+    clock=function() return clock end,establish=establish,sent=function() return sent end})
 
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end
