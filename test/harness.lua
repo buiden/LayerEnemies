@@ -8,6 +8,7 @@ local function yes(v,msg) eq(not not v,true,msg) end
 local function no(v,msg) eq(not not v,false,msg) end
 local forbidden
 local function test(name,fn)
+    if arg and arg[1]=="--overlord-only" and not name:find("Overlord:",1,true) then return end
     if arg and arg[1]=="--spy-relay-only" and not name:find("Spy relay",1,true) then return end
     if arg and arg[1]=="--relay-policy-only" and not name:find("Guild relay policy:",1,true) then return end
     if arg and arg[1]=="--kills-only" and not name:find("Kills",1,true) then return end
@@ -48,7 +49,7 @@ local joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true},
     WEFF1={GUILD=true,PARTY=true,RAID=true,WHISPER=true},HeadHunter={WHISPER=true}}
 -- Prefixes the addon may register.
-local PREFIXES={OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true,GBOUNTY=true,WALLOFSHAME=true,FTold1=true}
+local PREFIXES={OverlordF=true,OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true,GBOUNTY=true,WALLOFSHAME=true,FTold1=true}
 -- The addon's source files, in load order, as the TOC lists them.
 local function addonFiles()
     local out={}
@@ -7809,6 +7810,11 @@ assert(loadfile("test/kills_round2.lua"))({test=test,eq=eq,yes=yes,no=no,load=lo
     advance=advance,clock=function() return clock end,deliver=deliver,drain=drain,
     units=function() return units end,player=player,combat=function(v) combat=v end,
     loaded=function() return loaded end,sent=function() return sent end})
+
+assert(loadfile("test/overlord.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
+    advance=advance,clock=function(v) if v then clock=v end; return clock end,deliver=deliver,drain=drain,
+    combat=function(v) combat=v end,instance=function(v) inInstance=v end,
+    sent=function() return sent end,log=function() return log end,registered=function() return registered end})
 
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

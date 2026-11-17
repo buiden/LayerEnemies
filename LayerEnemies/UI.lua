@@ -112,7 +112,7 @@ function U.render()
     local seen=T.rows(M.store,time,"local")
     local liveSeen=#seen
     for _,e in ipairs(T.previous(M.store,time)) do seen[#seen+1]=e end
-    local reports=T.rows(M.store,time,"reported")
+    local reports=M.reportedRows()
     local friends=M.candidates()
     local eligible={}; for _,c in ipairs(friends) do eligible[c.short]=true end
     local tracked=M.findRows()
@@ -167,6 +167,7 @@ function U.render()
         return height(e.current)+height(e.seen)+height(e.otherSeen)+height(e.reported)
     end
     local function rowHeight(e)
+        if U.tab=="reported" and e.guild then return 184 end
         if U.tab=="find" then
             if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0) end
             return e.place and 146 or e.at and 106 or 76
@@ -223,6 +224,9 @@ function U.render()
         r.title:SetText(e.displayName or e.name or "Unknown")
         if U.tab=="local" then
             r.sub:SetText(className(e.class).." · "..M.zoneName(e.zone)..(index+U.offset>liveSeen and " · previous zone" or e.layer==nil and " · layer unknown" or "")); askState(r,nil)
+        elseif U.tab=="reported" and e.guild then
+            r.title:SetText("guild "..e.guild)
+            r.sub:SetHeight(140); r.sub:SetText(M.overlordText(e)); askState(r,nil)
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))
             r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or ""))

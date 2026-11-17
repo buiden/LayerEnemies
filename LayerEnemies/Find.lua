@@ -144,6 +144,16 @@ local function matches(entry,e,homeKey)
     if realm then return entry.realmKey==F.fold(realm) end
     return true,entry.realmKey~=homeKey or nil
 end
+-- Reuse the exact Find name/realm rules before admitting receive-only named claims.
+function F.tracked(st,name)
+    name=F.name(name)
+    if not name then return false end
+    local base=parts(name)
+    for _,entry in ipairs(st.byName[F.fold(base)] or {}) do
+        if matches(entry,{name=name},st.homeKey) then return true end
+    end
+    return false
+end
 local function location(e,name,realmUnknown)
     local loc={}
     for k,v in pairs(e) do loc[k]=v end

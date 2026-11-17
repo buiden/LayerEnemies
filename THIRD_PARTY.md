@@ -1,4 +1,22 @@
-# Offline art provenance
+# Third-party provenance
+
+## Receive-only wire formats
+
+| Donor | Version / source pin | License | Use |
+|---|---|---|---|
+| Overlord Forever | 2.5.1, git `fd8dfd58cb5d5491faadc93e8a5e8322fdb802cb` | All Rights Reserved | **protocol only, no code**. Owner-approved, independently written `OverlordF` BF/GW/GD/EK reader; no donor code, assets or runtime dependency. |
+
+Overlord Forever 2.5.1: wire format only, no code. The donor was read, never
+executed. Protocol references: `Sync.lua`, `SyncRelay.lua`, `SyncGuild.lua`,
+`GuildKillAlert.lua`, `GeneralSync.lua`, `CombatTracker.lua`, `SyncResolution.lua`.
+Pinned file SHA-256 values:
+
+- `Sync.lua`: `c641eab0bfcc9a98d1e0dcbbbb021527ce1de73963f8d9288998c5277453b3a0`
+- `SyncRelay.lua`: `657224e46beb186980f3ffceb93ac4d7ed7d261e42f1425aab4080755ce641d6`
+- `SyncGuild.lua`: `67faa7938439e5e94af00e927abfd261c076bff3e8e9c6041a7f295158a07601`
+- `GuildKillAlert.lua`: `57b8b5b45c6aa02596f34fb8fbaf6c1b1088717d991f698706a86b01cb9cd69f`
+
+## Offline art provenance
 
 | Material | Use | Source / license | Shipped? |
 |---|---|---|---|
