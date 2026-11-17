@@ -192,6 +192,38 @@ test("FLH: same identity merges independent provenance without changing LayerSwa
     eq(#N.Main.candidates(),3); no(N.Main.error)
 end)
 
+test("FLH: claim never promotes a listed nonhost or changes hop-any priority",function()
+    local N=H.load(); H.establish(N)
+    N.Main.heard.heard["Cedar Vale"]={layer="7102-55",zone=100,at=H.wall()-30,host=false}
+    local function rank(rows)
+        local c=N.Main.hopAnyContext(); c.hosts=rows
+        c.ignored=function() return false end; c.offline=function() return false end
+        local picks=N.HopAny.candidates(N.Main.hopAnyState,{{fullName="Cedar Vale",area=c.zoneName}},c)
+        eq(#picks,1); return picks[1].rank
+    end
+    local before=N.Main.candidates(); no(before[1].host); local priority=rank(before)
+    receive(hostLines[1]); local rows=N.Main.candidates(); eq(#rows,1); local c=rows[1]
+    no(c.host,"FLH must not promote the general host flag on a listed player")
+    no(c.hosts.LayerSwap); yes(c.hosts.FLH); eq(c.layer,"7102"); eq(c.uid,55); eq(c.age,30)
+    eq(rank(rows),priority,"FLH provenance cannot change hop-any ranking")
+    receive("HI|100|8|0|0.1.3|1234"); c=N.Main.candidates()[1]
+    no(c.host); no(c.hosts.FLH); no(c.hosts.LayerSwap); eq(#H.sent(),0)
+end)
+
+test("FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via",function()
+    local N=H.load(); H.establish(N)
+    N.Main.heard.heard["Real Host"]={layer="7102-55",zone=100,at=H.wall()-300,host=true}
+    local shown=N.Main.candidates()[1]; eq(shown.name,"Real Host"); eq(shown.age,300)
+    yes(N.Main.hostPreview(shown))
+    for i=1,100 do receive(hostLines[1],"WHISPER","Fresh"..H.abc(i)) end
+    eq(N.Safe.count(N.Main.heard.flhHosts),64)
+    local rows=N.Main.candidates(); eq(#rows,40); eq(rows[1].name,"Real Host")
+    yes(rows[1].layer); eq(rows[1].age,300)
+    yes(N.Main.hopHostTo(shown),"the displayed real host must still send its ask")
+    eq(#H.sent(),1); eq(H.sent()[1].prefix,"LayerSwap"); eq(H.sent()[1].target,"Real Host")
+    no(N.Main.error)
+end)
+
 test("FLH: wire ingestion cannot persist names or silently refresh malformed hosts",function()
     local N=H.load()
     local function snapshot(t)

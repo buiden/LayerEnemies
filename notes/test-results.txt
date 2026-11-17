@@ -1263,6 +1263,8 @@ PASS FLH: route identity ignore and unreadable context fail closed
 PASS FLH: presence reaches friendly hosts without pretending to be a server key
 PASS FLH: host projection is zone scoped fresh and visible with own layer unknown
 PASS FLH: same identity merges independent provenance without changing LayerSwap fields
+PASS FLH: claim never promotes a listed nonhost or changes hop-any priority
+PASS FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via
 PASS FLH: wire ingestion cannot persist names or silently refresh malformed hosts
 PASS FLH: seeded byte and structured fuzz is bounded silent and never sends
 PASS FLH: readable-looking secret strings are refused before any use
@@ -1303,4 +1305,4 @@ PASS Overlord: single guild rampage reaches Reported without a hop
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
-RESULT: 1305 tests passed, 0 failed, 173615 assertions
+RESULT: 1307 tests passed, 0 failed, 173729 assertions

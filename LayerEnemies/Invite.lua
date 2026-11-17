@@ -124,6 +124,11 @@ local function addSource(c,label)
     c.sources[#c.sources+1]=label
 end
 local function better(a,b)
+    -- Layerless FLH-only claims must not displace real layer rows at the cap.
+    -- Keep the existing reporter and known-layer ordering otherwise.
+    local af=a.flhKey~=nil and not a.layer and not a.reporter
+    local bf=b.flhKey~=nil and not b.layer and not b.reporter
+    if af~=bf then return not af end
     if (a.probably==true)~=(b.probably==true) then return not a.probably end
     if a.reporter~=b.reporter then return a.reporter end
     if a.host~=b.host then return a.host end
@@ -182,7 +187,7 @@ function I.collect(env)
                     byName[key]=c
                 end
                 c.flhKey,c.flhAge=e.key,age
-                c.hosts.FLH=true; c.host=true; addSource(c,"Forever Layer Hop")
+                c.hosts.FLH=true; addSource(c,"Forever Layer Hop")
                 flhCount=flhCount+1
             end
         end
