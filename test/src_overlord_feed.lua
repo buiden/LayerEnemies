@@ -7,7 +7,10 @@ local function test(n,f) H.test("Overlord feed: "..n,f) end
 -- No fixture overrides the shipping availability/capability policy.
 local function setup(testEngine)
     local N=H.load();N.Net.SHIP.overlord=true
-    N.Adapters.groupNames=function() return {["birch scout"]="A"} end
+    N.Adapters.groupNames=function() return {} end
+    IsInGuild=function() return false end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true}} end
+    N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Horde"} end
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
     UnitName=function() return "Alice Vale",GetRealmName() end
@@ -16,7 +19,7 @@ local function setup(testEngine)
 end
 local serial=0
 local function hear(kind,payload,name,route,target,path,pool)
-    serial=serial+1;local id="feed"..serial;name=name or "Birch Scout"
+    serial=serial+1;local id="feed"..serial;name=name or "Birch Scout";route=route or "BNET"
     local wire=table.concat({pool or "global",id,math.floor(GetServerTime()),target or "Alice Vale",path or name,kind,payload},"|")
     if route=="BNET" then
         H.deliver("BN_CHAT_MSG_ADDON","OverlordF","R2:Forever_"..(pool or "global").."_H:BR:"..wire,nil,71)
@@ -37,7 +40,7 @@ local function epoch(N,name,e,route)
     N.Main.overlordTick(H.clock())
     local source=N.Main.overlordFeed.sources[N.Find.fold(name)]
     if source then source.since=H.clock()-301 end -- pre-existing quiet fixture
-    N.Main.overlordTick(H.clock());return e
+    N.Main.overlordTick(H.clock());if not route then N.BNet.pump(H.clock()) end;return e
 end
 
 local function blob(rows)
@@ -72,7 +75,7 @@ test("honest advert omits unsupported ranking page capabilities",function()
         {"~ld~lr~lp6",8},{"~l9~ld~lr~lp6",9},{"~la~l9~ld~lr~lp6",10},
         {"~lb~la~l9~ld~lr~lp6",11},{"~ld~lr~lp6junk~lp6",8},{"~ld~lp6",6}}
     for _,v in ipairs(vectors) do eq(donorCapability(v[1]),v[2]) end
-    local N=setup(false);N.Adapters.groupNames=function() return {} end;hear("NH","2.5.4~ld~lr~lp6")
+    local N=setup(false);N.Adapters.groupNames=function() return {} end;hear("NH","2.5.4~ld~lr~lp6",nil,"WHISPER")
     local hello=H.sent()[1];yes(hello)
     local payload=hello.text:match("|NH|(.*)$")
     eq(payload,"LayerEnemies 1.1.0","no unsupported paged ranking claim")
@@ -81,6 +84,7 @@ end)
 
 test("feed waits for quiet source without any capability claim",function()
     local N=setup(false);local e=GetServerTime()-100
+    N.Main.overlordTick(H.clock());N.BNet.pump(H.clock()) -- actual NH before source selection
     hear("NH","2.5.4~ld~lr~lp6")
     hear("K","Birch Scout:#1434:21:WARRIOR:Horde:"..e.."::en:0:Orc:2:B"..e..":60",nil,nil,"*")
     N.Main.overlordTick(H.clock())
@@ -116,7 +120,7 @@ test("only exact donor thirteen-field K establishes an epoch",function()
     hear("K",stem.."Orc:2:B"..e..":60",nil,nil,"*")
     eq(N.Main.overlordPeer.routes["birch scout"].epoch,e,"donor race/sex precede bucket and level")
     N.Main.overlordFeed.sources["birch scout"].since=H.clock()-301
-    N.Main.overlordTick(H.clock());eq(#requestSends(),1)
+    N.Main.overlordTick(H.clock());N.BNet.pump(H.clock());eq(#requestSends(),1)
 end)
 
 test("solicited full then compact rows offer only tracked opposite names as unknown-time claims",function()
@@ -136,17 +140,18 @@ end)
 local function model(N,count,route)
     local P,Q=N.OverlordPeer,N.OverlordFeed;local peer,st=P.new(),Q.new();peer.feed=st
     local c={now=100,wall=1700000000,pool="global",me="Alice Vale",version="1.1.0",faction="A",
-        allowed=true,own=true,stopAllowed=true,groups={},friends={},out={},offers={},tracked=function() return true end}
+        allowed=true,own=true,stopAllowed=true,groups={},guildNames={},friends={},out={},offers={},tracked=function() return true end}
     c.offer=function(v) c.offers[#c.offers+1]=v;return true end
+    c.online=function(id) for _,f in ipairs(c.friends) do if f.id==id then return f end end end
     c.send=function(_,text,dist,target,prio,job)
         if not P.claim(peer,job,c) then return false end
         c.out[#c.out+1]={text=text,route=dist,target=target,at=c.now,job=job};P.sent(peer,job,c);return true
     end
     for i=1,(count or 1) do
-        local name="Peer"..H.abc(i).." Scout";local id=route=="BNET" and i or nil
-        c.friends[#c.friends+1]={id=id,name=name,friend=true};c.groups[N.Find.fold(name)]="A"
+        local name="Peer"..H.abc(i).." Scout";local id=i
+        c.friends[#c.friends+1]={id=id,name=name,friend=true}
         local p={origin=name,pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4~lp8"}
-        local r=P.receive(peer,p,route or "WHISPER",name,id,c)
+        local r=P.receive(peer,p,route or "BNET",name,id,c)
         -- Sources receive no presence, including the initial owed greeting.
         p.kind="K";p.payload=name..":#1434:20:WARRIOR:Horde:1699488000::en:0:Orc:2:B1699488000:60"
         Q.observe(st,peer,p,r,c)
@@ -180,7 +185,7 @@ test("two sources 200 second request keep and busy state machine",function()
     yes(hr(c)[3].text:find("|HR|8:K:1699488000",1,true));yes(hr(c)[4].text:find("|HR|8:V:",1,true))
     local b=st.sessions["peerb scout"];receive(Q,st,peer,c,{},"peerb scout","HA","8:R:"..b.epoch..":"..b.nonce..":1:C")
     eq(b.asked,nil);receive(Q,st,peer,c,{"z#1434",full()},"peerb scout");eq(#c.offers,0)
-    for _,v in ipairs(hr(c)) do eq(v.route,"WHISPER");yes(v.target=="Peera Scout" or v.target=="Peerb Scout") end
+    for _,v in ipairs(hr(c)) do eq(v.route,"BNET");yes(v.target==1 or v.target==2) end
 end)
 
 test("compact unknown no-zone stale totals and marker reset",function()
@@ -216,7 +221,7 @@ for _,mode in ipairs({"share","guild","switch"}) do
         elseif mode=="guild" then N.Net.setConsent("guild");N.Net.setConsent("public")
         else N.Net.setSwitch("overlord",false);N.Net.setSwitch("overlord",true) end
         eq(next(N.Main.overlordFeed.sessions),nil)
-        feed(e,{"z#1434",full()});eq(known(N),nil);eq(#H.sent(),before+1)
+        H.advance(1);feed(e,{"z#1434",full()});eq(known(N),nil);eq(#H.sent(),before+1)
     end)
 end
 
@@ -313,7 +318,7 @@ for _,mode in ipairs({"share","guild","switch","combat","instance","pool","donor
         elseif mode=="instance" then H.instance(true)
         elseif mode=="pool" then C_GameRules=nil;GetRealmName=function() return "7102" end
         else H.loaded().Overlord=true end
-        feed(e,{"z#1434",full()});N.Main.overlordTick(H.clock()+200)
+        H.advance(1);feed(e,{"z#1434",full()});N.Main.overlordTick(H.clock()+200)
         eq(known(N),nil);eq(#H.sent(),before+((mode=="share" or mode=="guild" or mode=="switch") and 1 or 0));eq(N.BNet.queued(),0)
     end)
 end
@@ -437,15 +442,15 @@ test("dispatch gap stale epochs routes old releases and foreign ACK are refused"
     local N=setup();local Q,st,peer,c=model(N);local r=peer.routes["peera scout"];local s=st.sessions["peera scout"]
     c.now=299;no(N.OverlordPeer.claim(peer,hr(c)[1].job,c),"actual 200 second gap")
     receive(Q,st,peer,c,{},nil,"HA","8:S:"..s.epoch..":wrongnonce:1:LK:0:0");eq(s.live,nil)
-    c.now=400;Q.tick(st,peer,c);eq(next(st.sessions),nil,"route expires at 300")
-    r.at=700;r.announced=700;c.now=700;Q.tick(st,peer,c);eq(next(st.sessions),nil,"epoch expires at 600")
-    r.epochAt=700;r.version="2.4.9~lp8";Q.tick(st,peer,c);eq(next(st.sessions),nil,"provider predates feeds")
+    c.now=400;Q.tick(st,peer,c);yes(st.sessions["peera scout"],"first-hand session evidence survives C2 route expiry")
+    c.now=700;Q.tick(st,peer,c);yes(st.sessions["peera scout"],"source epoch is not guessed or expired by hearing cadence")
+    r.version="2.4.9~lp8";Q.tick(st,peer,c);eq(next(st.sessions),nil,"provider predates feeds")
 end)
 
-test("epoch boundary independent of route expiry and fresh selection",function()
+test("future epoch independent of route expiry and fresh selection",function()
     local N=setup();local Q,st,peer,c=model(N);local r=peer.routes["peera scout"]
-    c.now=700;r.at=c.now
-    Q.tick(st,peer,c);eq(next(st.sessions),nil,"epoch at age 600 is unusable despite a warm current route")
+    c.now=700;r.at=c.now;r.epoch=c.wall+1
+    Q.tick(st,peer,c);eq(next(st.sessions),nil,"a future epoch is unusable despite a warm route")
 end)
 test("old provider independent of quiet period and epoch",function()
     local N=setup();local Q,st,peer,c=model(N);local r=peer.routes["peera scout"]
@@ -496,7 +501,7 @@ test("unknown epoch silent then direct owner K opens truthful v8 subscription",f
     local N=setup()
     hear("NH","2.5.4~ld~lr~lp6");N.Main.overlordTick(H.clock());eq(#requestSends(),0)
     local e=epoch(N);local out=requestSends();eq(#out,1)
-    eq(out[1].kind,"WHISPER");eq(out[1].target,"Birch Scout")
+    eq(out[1].kind,"BN");eq(out[1].target,71)
     yes(out[1].text:find("|Alice Vale|HR|8:V:"..e..":",1,true))
     yes(out[1].text:match(":%d+n%d+n%d+f:1:LK:0:0:H$"))
     for _,v in ipairs(H.sent()) do no(v.text:find("~",1,true)) end

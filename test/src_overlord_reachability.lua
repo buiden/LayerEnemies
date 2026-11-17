@@ -31,10 +31,11 @@ local function fixture(route)
     local N=H.load();local P,Q=N.OverlordPeer,N.OverlordFeed
     local peer,st=P.new(),Q.new();peer.feed=st
     local c={now=100,wall=1800000000,me="Alice Vale",version="1.1.0",pool="global",faction="A",
-        allowed=true,own=true,stopAllowed=true,group="PARTY",groups={["birch scout"]="A"},guild=true,guildNames={},
+        allowed=true,own=true,stopAllowed=true,groups={},guild=true,guildNames={},
         friends={},out={},tracked=function() return true end,offer=function() end}
-    route=route or "WHISPER"
+    route=route or "BNET"
     if route=="BNET" then c.friends={{id=71,name="Birch Scout",friend=true}} end
+    c.online=function(id) for _,v in ipairs(c.friends) do if v.id==id then return v end end end
     local d=donor()
     c.send=function(_,text,dist,target,prio,job)
         honest(text)
@@ -55,21 +56,20 @@ end
 local function requests(c,op)
     local out={};for _,v in ipairs(c.out) do if v.text:find("|HR|8:"..(op or ""),1,true) then out[#out+1]=v end end;return out
 end
-for _,route in ipairs({"WHISPER","BNET"}) do
-    test("NH-free source serves and can route reply over "..route,function()
-        local N,P,Q,peer,st,c,d,hear=fixture(route)
-        hear(100);Q.tick(st,peer,c);P.tick(peer,c)
-        eq(d.caps[c.me],nil,"no initial owed or periodic NH to feed source")
-        eq(#requests(c),0)
-        hear(250);Q.tick(st,peer,c);P.tick(peer,c)
-        hear(400);Q.tick(st,peer,c);eq(#requests(c),0,"known capability still exists at exactly 300")
-        c.now=401;Q.tick(st,peer,c);P.tick(peer,c)
-        eq(#requests(c),1);eq(d.served,1);eq(d.refused,0);yes(d.subs[c.me])
-        eq(d.routes[c.me].route,route,"HR teaches return route without NH")
-        eq(d.caps[c.me],nil)
-        c.now=500;hear(500);P.tick(peer,c);eq(d.caps[c.me],nil,"owed NH stays suppressed")
-    end)
-end
+test("NH-free source serves and can route reply over BNET",function()
+    local N,P,Q,peer,st,c,d,hear=fixture()
+    hear(100);Q.tick(st,peer,c);P.tick(peer,c)
+    eq(#requests(c),1,"never announced: no wait");eq(d.served,1);eq(d.refused,0);yes(d.subs[c.me])
+    eq(d.routes[c.me].route,"BNET","HR teaches return route without NH")
+    eq(d.caps[c.me],nil)
+    c.now=500;hear(500);P.tick(peer,c);eq(d.caps[c.me],nil,"targeted NH stays suppressed")
+end)
+test("WHISPER group peer stays ordinary C2 without a feed",function()
+    local N,P,Q,peer,st,c,d,hear=fixture("WHISPER")
+    c.group="PARTY";c.groups["birch scout"]="A"
+    hear(100);Q.tick(st,peer,c);P.tick(peer,c)
+    eq(next(st.sources),nil);eq(#requests(c),0);eq(d.caps[c.me],100)
+end)
 test("donor refuses recent NH but accepts unknown after expiry",function()
     local d=donor();local base="global|id|1800000000|Birch Scout|Alice Vale|"
     d:hear(base.."HR|8:V:1799999900:1800000000n100n1f:1:LK:0:0:H","BNET",71,0);eq(d.served,1)
@@ -77,19 +77,19 @@ test("donor refuses recent NH but accepts unknown after expiry",function()
     d:hear(base.."HR|8:V:1799999900:1800000000n100n2f:1:LK:0:0:H","BNET",71,310);eq(d.refused,1)
     d:hear(base.."HR|8:V:1799999900:1800000000n100n3f:1:LK:0:0:H","BNET",71,311);eq(d.served,2)
 end)
-test("source guild and group NH lanes suppressed while other peers keep presence",function()
+test("guild and group NH lanes stay live and audible friend is not a source",function()
     local N,P,Q,peer,st,c,d,hear=fixture("BNET")
     c.guildNames["birch scout"]=true
     c.friends[2]={id=72,name="Cedar Friend",friend=true}
     hear(100);Q.tick(st,peer,c);P.tick(peer,c)
-    eq(d.caps[c.me],nil)
-    local other=0
-    for _,v in ipairs(c.out) do if v.target==72 then other=other+1 end;no(v.route=="GUILD" or v.route=="PARTY") end
-    eq(other,1,"unselected friend still hears C2 presence")
+    eq(d.caps[c.me],100);eq(next(st.sources),nil)
+    local other,guild=0,0
+    for _,v in ipairs(c.out) do if v.target==72 then other=other+1 end;if v.route=="GUILD" then guild=guild+1 end end
+    eq(other,1,"unselected friend still hears C2 presence");eq(guild,1)
 end)
 
 test("busy HA even for zero comparison shares NH reply gap",function()
-    local N,P,Q,peer,st,c,d,hear=fixture()
+    local N,P,Q,peer,st,c,d,hear=fixture("WHISPER")
     c.groups={};hear(100) -- not a feed source: ordinary owed NH
     local p={origin="Birch Scout",hops=0,target=c.me,kind="HR",payload="8:V:1799999900:123n4n5f:1:LK:0:0:H"}
     c.now=249;P.receive(peer,p,"WHISPER",p.origin,nil,c);eq(#c.out,1)
@@ -122,7 +122,8 @@ test("account aliases and unreadable shared lanes cannot leak NH",function()
     P.emit(peer,c,"NH",P.presence(c),"BNET",{id=71,name="Alternate Name"},"alias",120,false)
     eq(#c.out,0,"suppress the account, not just its current spelling")
     c.groups=nil;c.guildNames=nil;c.group="RAID"
-    P.tick(peer,c);eq(#c.out,0,"unknown shared audiences fail closed")
+    P.tick(peer,c);eq(next(st.sources),nil,"unknown shared audiences exclude friends")
+    yes(#c.out>0,"C2 shared lanes remain live")
 end)
 local wireSerial=0
 local function countNH(c)
@@ -137,6 +138,7 @@ test("a prior NH is forgotten only after continuous quiet and queue recheck",fun
     P.emit(peer,c,"NH",P.presence(c),"BNET",{id=71,name="Birch Scout"},"bn:71",120,false)
     c.send=send;peer.feed=st
     d:hear("global|prior|1800000000|Birch Scout|Alice Vale|NH|LayerEnemies 1.1.0","BNET",71,c.now)
+    P.sent(peer,queued,c)
     hear(100);no(P.claim(peer,queued,c),"already queued NH is suppressed at dispatch")
     hear(250);hear(400);Q.tick(st,peer,c);eq(#requests(c),0)
     c.now=401;Q.tick(st,peer,c);eq(d.served,1);eq(d.refused,0)
@@ -147,17 +149,18 @@ test("source count selection and rotation cannot skip silence",function()
     local N,P,Q,peer,st,c,d,hear=fixture()
     hear(100)
     for _,name in ipairs({"Cedar Friend","Maple Friend"}) do
-        c.groups[name:lower()]="A"
-        P.receive(peer,{origin=name,pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4"},"WHISPER",name,nil,c)
+        local id=71+#c.friends
+        c.friends[#c.friends+1]={name=name,id=id,friend=true}
+        P.receive(peer,{origin=name,pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4"},"BNET",name,id,c)
     end
     eq(N.Safe.count(st.sources),2);eq(st.sources["maple friend"],nil)
-    c.groups["birch scout"]=nil;Q.tick(st,peer,c)
-    yes(st.sources["maple friend"]);eq(#requests(c),0,"replacement starts its own 301-second wait")
+    table.remove(c.friends,1);Q.tick(st,peer,c)
+    yes(st.sources["maple friend"]);eq(#requests(c),0,"replacement lacks a source-validated epoch")
 end)
-test("departed group cannot deliver feed before next tick",function()
+test("departed friend cannot deliver feed before next tick",function()
     local N,P,Q,peer,st,c,d,hear=fixture()
     hear(100);hear(250);hear(401);Q.tick(st,peer,c)
-    local offered=0;c.offer=function() offered=offered+1 end;c.groups={}
+    local offered=0;c.offer=function() offered=offered+1 end;c.friends={}
     local row="kEnemy One:21:WARRIOR:Horde:en::0:60"
     local r=peer.routes["birch scout"]
     Q.receive(st,peer,{origin=r.name,target=c.me,hops=0,pool=c.pool,kind="HB",
@@ -172,15 +175,15 @@ local function live(route)
     C_AddOns.GetAddOnMetadata=function() return "1.1.0" end
     UnitName=function(unit) return unit=="party1" and "Birch Scout" or "Alice Vale",GetRealmName() end
     UnitFactionGroup=function() return "Alliance" end
-    IsInGroup=function() return true end;IsInRaid=function() return false end
+    IsInGroup=function() return false end;IsInRaid=function() return false end;IsInGuild=function() return false end
     UnitExists=function(unit) return unit=="player" or unit=="party1" end
     GetNumGroupMembers=function() return 2 end
     N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Horde"} end
-    N.BNet.peers=function() return route=="BNET" and {{id=71,name="Birch Scout",friend=true}} or {} end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true}} end
     local function hear(kind,body,target)
         wireSerial=wireSerial+1;local id="live"..wireSerial
         local text=table.concat({"global",id,math.floor(GetServerTime()),target or "Alice Vale","Birch Scout",kind,body},"|")
-        if route=="BNET" then H.deliver("BN_CHAT_MSG_ADDON","OverlordF","R2:Forever_global_H:BR:"..text,nil,71)
+        if true then H.deliver("BN_CHAT_MSG_ADDON","OverlordF","R2:Forever_global_H:BR:"..text,nil,71)
         else H.deliver("CHAT_MSG_ADDON","OverlordF","BF:"..id..":1:1:"..text,"WHISPER","Birch Scout") end
     end
     local e=GetServerTime()-100
@@ -193,6 +196,9 @@ local function live(route)
         H.advance(150);refresh();N.Main.overlordTick(H.clock())
         H.advance(151);refresh();N.Main.overlordTick(H.clock())
         H.advance(1)
+        if route=="WHISPER" then
+            local s=N.Main.overlordFeed.sessions["birch scout"];s.route="WHISPER";s.id=nil
+        end -- legacy stop compatibility only, never a new whisper source
     end
     return N,mature,hear,e
 end
@@ -238,8 +244,7 @@ for _,route in ipairs({"WHISPER","BNET"}) do
             elseif mode=="guild" then N.Net.setConsent("guild")
             elseif mode=="switch" then N.Net.setSwitch("overlord",false)
             elseif mode=="logout" then H.deliver("PLAYER_LOGOUT")
-            elseif route=="BNET" then N.BNet.peers=function() return {} end;N.Main.overlordTick(H.clock())
-            else IsInGroup=function() return false end;N.Main.overlordTick(H.clock()) end
+            else N.BNet.peers=function() return {} end;N.Main.overlordTick(H.clock()) end
             eq(next(N.Main.overlordFeed.sessions),nil,"cancellation is immediate, not the next tick")
             H.advance(2)
             local stops=0

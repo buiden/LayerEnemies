@@ -465,7 +465,7 @@ function M.overlordContext(time)
     local faction=S.str(S.call(UnitFactionGroup,"player"),16)
     local c={now=time or S.num(S.call(GetTime)),wall=S.num(S.call(GetServerTime)),pool=M.overlordPool(),
         me=me,version=S.str(version,32),faction=faction and faction:sub(1,1),
-        allowed=M.sharing() and N.Net.consent()=="public" and N.Net.switch("overlord")
+        allowed=not M.overlordClosing and M.sharing() and N.Net.consent()=="public" and N.Net.switch("overlord")
             and ok==true and not A.inCombat() and A.inInstance()==false,
         own=ok==true,online=N.BNet.who,offer=N.Sources.offer,tracked=function(name)
             local _,_,_,watchers=N.Watch.match(M.watch,name,now())
@@ -2575,7 +2575,7 @@ local function dispatch(_,event,...)
     end
     if event=="PLAYER_LOGIN" then guarded(M.start); return end
     if not M.started then return end
-    if event=="PLAYER_LOGOUT" then guarded(M.overlordCancel);N.BNet.pump(now());guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
+    if event=="PLAYER_LOGOUT" then M.overlordClosing=true;guarded(M.overlordCancel);N.BNet.pump(now());guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
     elseif event=="CHAT_MSG_ADDON" then guarded(M.message,...)
     elseif event=="BN_CHAT_MSG_ADDON" then
         local prefix,text,channel,id=...
