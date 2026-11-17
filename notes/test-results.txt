@@ -622,10 +622,10 @@ PASS Call review: victim value and row grow with measured text height
 PASS Call review: killer value and row grow with measured text height
 PASS Call review: where value and row grow with measured text height
 PASS hop-any click calls who synchronously once and waits five seconds
-PASS hop-any 49 rows send exactly eight at one second intervals through 120 s
+PASS hop-any 49 rows send eight initially then the whole list within 45 rounds
 PASS hop-any events timers and replies without a click never start a round
-PASS hop-any stop cancels and thirty second click guard is exact
-PASS hop-any filters rows and prioritizes listed hosts then online guildmates
+PASS hop-any stop cancels and ten second click guard is exact
+PASS hop-any filters rows and prioritizes listed hosts then same-zone rows
 PASS hop-any never reads a fiftieth who row
 PASS hop-any click guard groupUnknown sends and searches nothing
 PASS hop-any click guard guild sends and searches nothing
@@ -655,11 +655,11 @@ PASS hop-any stop on instance cannot resume from events or timers
 PASS hop-any stop on zone cannot resume from events or timers
 PASS hop-any stop on guild cannot resume from events or timers
 PASS hop-any stop on stop cannot resume from events or timers
-PASS hop-any stops forever on Wire result 3
+PASS hop-any Wire throttle retries the head until the list ends
 PASS hop-any stops forever on Wire result 4
 PASS hop-any stops forever on Wire result error
-PASS hop-any offline attempt counts toward eight without accepting its invite
-PASS hop-any first asked host reply stops sends and unasked whole names do not
+PASS hop-any offline attempts never arm acceptance; an unrelated invite stops fanout
+PASS hop-any host replies do not stop fanout and unasked whole names do not enter the book
 PASS hop-any wrong route addressee zone same layer and nonhost do not stop
 PASS hop-any asked invite stops sends and autoaccepts once, no foreign alias
 PASS hop-any asked invite stops sends even with autoaccept disabled
@@ -677,9 +677,9 @@ PASS hop-any no-answer table evicts oldest at three hundred and prunes exactly s
 PASS hop-any UI is friendly-only with disabled reason and Stop state
 PASS hop-any caller policy traps disguised calls and cannot be widened from addon tables
 PASS hop-any one reserve per click and every attempted name shares Invite cooldown
-PASS hop-any replies and invites expire from last send, never renew their window
-PASS hop-any Wire local paused ends the round without queue or retry
-PASS hop-any Wire local budget ends the round without queue or retry
+PASS hop-any replies and invites expire from first send, never renew their window
+PASS hop-any Wire local paused retries the same head without a Wire queue
+PASS hop-any Wire local budget retries the same head without a Wire queue
 PASS hop-any refused who throw never arms late results
 PASS hop-any refused who false never arms late results
 PASS hop-any refused who secret never arms late results
@@ -711,6 +711,99 @@ PASS hop-any cannot dispatch again while a send is still in flight
 PASS hop-any old send completion cannot mutate a replacement round
 PASS hop-any rechecks ignore at dispatch and never trusts a skipped candidate
 PASS hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps
+PASS Hop fanout: 49 distinct requests within 45 rounds with eight initial then one per second
+PASS Hop fanout: throttle leaves exact head until the next round
+PASS Hop fanout: named client throttle 3 cancels before click
+PASS Hop fanout: named client throttle 3 cancels who click
+PASS Hop fanout: named client throttle 3 cancels send click
+PASS Hop fanout: reply client throttle 3 cancels before click
+PASS Hop fanout: reply client throttle 3 cancels who click
+PASS Hop fanout: reply client throttle 3 cancels send click
+PASS Hop fanout: hop client throttle 3 pauses named and reply for thirty seconds
+PASS Hop fanout: named client throttle 8 cancels before click
+PASS Hop fanout: named client throttle 8 cancels who click
+PASS Hop fanout: named client throttle 8 cancels send click
+PASS Hop fanout: reply client throttle 8 cancels before click
+PASS Hop fanout: reply client throttle 8 cancels who click
+PASS Hop fanout: reply client throttle 8 cancels send click
+PASS Hop fanout: hop client throttle 8 pauses named and reply for thirty seconds
+PASS Hop fanout: non-hop throttle cannot be missed by a delayed pump
+PASS Hop fanout: another prefix throttle does not cancel the click
+PASS Hop fanout: local named budget refusal leaves fanout running
+PASS Hop fanout: active named pause refuses click before WHO
+PASS Hop fanout: active reply pause refuses click before WHO
+PASS Hop fanout: prefix pause expiry permits only a fresh click
+PASS Hop fanout: permanent throttling makes at most 45 rounds
+PASS Hop fanout: same-zone rows precede other-zone rows without discarding them
+PASS Hop fanout: raw fiftieth row is never a replacement for unreadable rows
+PASS Hop fanout: named requests and other prefixes keep their five token cap
+PASS Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target
+PASS Hop fanout: stopped click is blocked at nine seconds and allowed at ten
+PASS Hop fanout: hosting reply does not end queue but any nonfailed invite does
+PASS Hop fanout: cancellation stop cannot resume
+PASS Hop fanout: cancellation GROUP_ROSTER_UPDATE cannot resume
+PASS Hop fanout: cancellation PLAYER_ENTERING_WORLD cannot resume
+PASS Hop fanout: cancellation ZONE_CHANGED_NEW_AREA cannot resume
+PASS Hop fanout: cancellation ZONE_CHANGED cannot resume
+PASS Hop fanout: unchanged ZONE_CHANGED preserves who and autoaccept
+PASS Hop fanout: unchanged ZONE_CHANGED preserves send and autoaccept
+PASS Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves who and autoaccept
+PASS Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves send and autoaccept
+PASS Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves who and autoaccept
+PASS Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves send and autoaccept
+PASS Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves who and autoaccept
+PASS Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves send and autoaccept
+PASS Hop fanout: unchanged SHARD_TRANSFER preserves who and autoaccept
+PASS Hop fanout: unchanged SHARD_TRANSFER preserves send and autoaccept
+PASS Hop fanout: session six-hour suppression and known-book bypass
+PASS Hop fanout: known offline skip is 600 seconds without changing other offline sends
+PASS Hop fanout: unknown same-zone host reasked once at plus three without exclusion
+PASS Hop fanout: known alternative host delays unknown retry until plus ten
+PASS Hop fanout: late unknown answer caught at plus ten and fallback throttle is spent
+PASS Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback
+PASS Hop fanout: half-second duplicate pumps consume no extra attempt
+PASS Hop fanout: donor book gone timestamp blocks for six hundred seconds
+PASS Hop fanout: skip map never grows beyond cap even on offline results
+PASS Hop fanout: offline unknown target remains suppressed for six hours
+PASS Hop fanout: known-offline expiry is exact and ordinary expiry remains one hour
+PASS Hop fanout: failed automatic hop retains the host realm without penalizing its namesake
+PASS Hop fanout: unknown-layer host answer earns next-click priority in memory only
+PASS Hop fanout: duplicate fallback pumps never exceed eight attempts per second
+PASS Hop fanout: cooldown and invite wait start at first accepted whisper
+PASS Hop fanout: SavedVariables exactly unchanged after sends responses fallback and stop
+PASS Hop fanout: WHO suppression never replaces OnEvent
+PASS Hop fanout: visible FriendsFrame is never unregistered
+PASS Hop fanout: visible LFGWhoListFrame is never unregistered
+PASS Hop fanout: visible WhoFrame is never unregistered
+PASS Hop fanout: WHO suppression needs no script accessors
+PASS Hop fanout: WHO hush before query and restoration after result in either event order
+PASS Hop fanout: WHO restores registrations on result and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on no rows and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on timeout and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on stop and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on slash stop and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on combat and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on zone and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on subzone and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on world and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on group and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on invite and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on guild-only and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on error and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on reload and leaves manual search usable
+PASS Hop fanout: late WHO after timeout is not active even after clock rollback
+PASS Hop fanout: late WHO after stop is not active even after clock rollback
+PASS Hop fanout: late WHO after invite is not active even after clock rollback
+PASS Hop fanout: WHO unregister errors do not strand the remaining frames
+PASS Hop fanout: WHO registration errors do not prevent other frames restoring
+PASS Hop fanout: no WHO result releases late guard at thirty seconds
+PASS Hop fanout: player WHO during pending or late lease wins at 1 seconds
+PASS Hop fanout: player WHO during pending or late lease wins at 6 seconds
+PASS Hop fanout: optional WHO APIs and throwing frames never strand other frames
+PASS Hop fanout: no event is detached when its restoration API is missing
+PASS Hop fanout: missing secure hook falls back without blocking manual WHO
+PASS Hop fanout: result-handler error restores UI without displaying our result
+PASS Hop fanout: unregistered frame and visible player window retain their prior state
 PASS Find20 26: load builds at most 180 hash candidates once
 PASS Find20 26: report has zero list hashes and at most 10 plus 20 index reads
 PASS Find20 26: own sighting uses at most two name index reads
@@ -1123,4 +1216,4 @@ PASS UI layout: tab notes reserve their wrapped height before controls and rows
 PASS UI layout: wrapped footer and hint stay clear of settings and inside window
 PASS UI layout: Find measures every retained line and OpenMap place before paging
 PASS UI layout: local, Reported and Friendly cards also fit long wrapped details
-RESULT: 1125 tests passed, 0 failed, 119421 assertions
+RESULT: 1218 tests passed, 0 failed, 127516 assertions

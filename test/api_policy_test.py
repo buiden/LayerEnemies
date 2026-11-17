@@ -17,6 +17,14 @@ class ApiPolicyTests(unittest.TestCase):
             with self.subTest(access=access), self.assertRaisesRegex(AssertionError, 'Adapters.lua'):
                 self.check_source('if false then local f=' + access + '; f("query",1) end')
 
+    def test_who_ui_ownership_stays_in_adapter(self):
+        for word in ('SetWhoToUi', 'FriendsFrame', 'LFGWhoListFrame', 'WhoFrame'):
+            source = 'local value=_G["' + word + '"]'
+            with self.subTest(word=word):
+                with self.assertRaisesRegex(AssertionError, 'Adapters.lua'):
+                    self.check_source(source)
+                self.check_source(source, 'Adapters.lua')
+
     def test_dormant_accept_aliases(self):
         for access in ('AcceptGroup', '_G.AcceptGroup', '_G["Accept".."Group"]',
                        '_G[("Ac".."cept")..("Gr".."oup")]',

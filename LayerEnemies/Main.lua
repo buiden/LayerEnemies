@@ -3,7 +3,14 @@ local S,A,T,L,I=N.Safe,N.Adapters,N.Store,N.Layer,N.Invite
 local M={statusBulo="not installed",statusWE="not installed",pendingUnits={},staleGUIDs={},staleUnits={}}
 N.Main=M
 local function now() return S.num(S.call(GetTime)) or 0 end
-local function guarded(fn,...) local ok=pcall(fn,...); if not ok then M.error="data unavailable (API error)" end end
+local function guarded(fn,...)
+    local ok=pcall(fn,...)
+    if not ok then
+        if M.hopAnyStop then pcall(M.hopAnyStop,"API error") end
+        if A.whoEnd then pcall(A.whoEnd,"error") end
+        M.error="data unavailable (API error)"
+    end
+end
 local function after(delay,fn)
     if S.tab(C_Timer) and type(C_Timer.After)=="function" then return pcall(C_Timer.After,delay,fn) end
     return false
@@ -1020,16 +1027,17 @@ function M.hopAnyContext()
 end
 function M.hopAny()
     local c=M.hopAnyContext()
+    if N.Wire.hopBlocked(c.now) then M.say("LayerEnemies: LayerSwap whisper paused."); return false end
     local ok,why=N.HopAny.begin(M.hopAnyState,c)
     if not ok then M.say("LayerEnemies: "..why); return false end
-    if not A.who(c.term) then
+    if not A.who(c.term,function() M.hopAnyStop("your who search takes priority") end) then
         N.HopAny.close(M.hopAnyState); M.say("LayerEnemies: the game refused the search.")
         if N.UI then N.UI.refresh(true) end
         return false
     end
     M.hopAnySchedule(M.hopAnyState.round)
     if N.UI then N.UI.refresh(true) end
-    M.say("LayerEnemies: searching this zone; up to 8 players will be asked, one per second.")
+    M.say("LayerEnemies: searching this zone; up to 49 players will be asked, at most 8 attempts per second.")
     return true
 end
 function M.hopAnySchedule(r)
@@ -1042,6 +1050,7 @@ function M.hopAnySchedule(r)
 end
 function M.hopAnyStop(reason)
     local st=M.hopAnyState
+    A.whoEnd("stop")
     if not st or not st.round then return false end
     N.HopAny.close(st,now())
     if M.invite.pending and M.invite.pending.any then M.invite.pending=nil end
@@ -1053,6 +1062,7 @@ function M.hopAnySafe()
     local r=M.hopAnyState and M.hopAnyState.round
     if not r then return false end
     if N.Net.consent()~="public" then M.hopAnyStop("guild-only mode"); return false end
+    if N.Wire.hopBlocked(r.at) then M.hopAnyStop("LayerSwap whisper paused"); return false end
     if A.grouped() or A.inCombat() or A.inInstance()~=false or A.location()~=r.zone then
         M.hopAnyStop("group, combat, instance or zone changed"); return false
     end
@@ -1061,40 +1071,47 @@ function M.hopAnySafe()
     return true
 end
 function M.hopAnyWho()
+    local mine=A.whoEvent()
     local st=M.hopAnyState
+    if not mine then return end
     if not st or not st.round or st.round.phase~="who" then return end
     if not M.hopAnySafe() then return end
     local note=N.HopAny.expire(st,now())
     if note then M.say("LayerEnemies: "..note); if N.UI then N.UI.refresh(true) end; return end
     local c=M.hopAnyContext()
-    c.hosts=M.candidates(); c.ignored=A.ignored; c.offline=N.Wire.offlineUntil; c.guild=A.guildMember
+    c.hosts=N.HopAny.hosts(A.friendLists(M.guildLines,M.heardBook()),st,c.now,A.wall()); c.ignored=A.ignored; c.offline=N.Wire.offlineUntil
     local ok,why=N.HopAny.who(st,A.whoRows(),c)
     if why then M.say("LayerEnemies: "..why); if N.UI then N.UI.refresh(true) end end
     if ok then M.hopAnyPump() end
 end
--- The only Wire caller for hop-any requests. No queue, catch-up burst, retry or second round.
+-- The only Wire caller for hop-any requests; HopAny owns all bounded queue work, never Wire.queue.
 function M.hopAnyPump()
     local st=M.hopAnyState
     if not M.hopAnySafe() then return end
     local note=N.HopAny.expire(st,now())
     if note then
+        A.whoEnd("timeout")
         if M.invite.pending and M.invite.pending.any then M.invite.pending=nil end
         M.say("LayerEnemies: "..note); if N.UI then N.UI.refresh(true) end; return
     end
-    local c=N.HopAny.next(st,now())
-    if c then
+    local round=st.round
+    if round.sending then return end
+    for _=1,N.HopAny.CAP do
+        if st.round~=round or not M.hopAnySafe() then break end
+        local c=N.HopAny.next(st,now())
+        if not c then break end
         local r=st.round
         local ignored=A.ignored(c.name)
         if st.round~=r then return end
         local ok,why=false,"ignored"
         if not ignored then
             M.invite.asked[c.short]=now()
-            ok,why=N.Wire.send("LayerSwap",r.line,"WHISPER",c.name,{prio="click"})
+            ok,why=N.Wire.send("LayerSwap",c.line or r.line,"WHISPER",c.name,{prio="click",hopAny=true,hopKnown=c.known==true})
         end
         -- A foreign send hook may stop or replace the round before returning.
         if st.round~=r then return end
         local message=N.HopAny.sent(st,c,now(),ok,why)
-        if ok then M.invite.pending={any=true,auto=true,at=now(),from=r.from,zone=r.zone,asked=r.asked} end
+        if ok and not c.fallback then M.invite.pending={any=true,auto=true,at=r.firstSend,from=r.from,zone=r.zone,asked=r.asked} end
         if message then
             if M.invite.pending and M.invite.pending.any then M.invite.pending=nil end
             M.say("LayerEnemies: "..message)
@@ -1302,10 +1319,10 @@ end
 -- online guild member), within 120 s of the ask, while not grouped, not in an instance and not in combat. Anything
 -- else is left to the player.
 function M.partyInvite(name)
-    -- Even with auto-accept off, an invite from an actually asked name ends the fan-out.
+    -- Any readable, not-known-failed inviter ends fan-out; auto-accept below still requires an asked name.
     if M.hopAnyState and M.hopAnyState.round then
         if not M.hopAnySafe() then return end
-        N.HopAny.invite(M.hopAnyState,name,now())
+        if N.HopAny.invite(M.hopAnyState,name,now()) then A.whoEnd("stop") end
     end
     if not M.autoHop() or M.auto.group then return end
     local p=M.invite.pending
@@ -1388,6 +1405,7 @@ function M.autoTick()
     end
     if time-g.joinedAt>=M.AUTO_FAIL then
         if fighting then after(1,function() guarded(M.autoTick) end); return end
+        if g.any then N.HopAny.failed(M.hopAnyState,g.short,time) end
         N.Wire.leave(time); M.auto.group=nil; M.hopDone()
         M.say("LayerEnemies: hop failed: "..g.host.." could not move you")
     end
@@ -2126,7 +2144,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_LOGOUT","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -2138,7 +2156,8 @@ local function dispatch(_,event,...)
     end
     if event=="PLAYER_LOGIN" then guarded(M.start); return end
     if not M.started then return end
-    if event=="CHAT_MSG_ADDON" then guarded(M.message,...)
+    if event=="PLAYER_LOGOUT" then guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
+    elseif event=="CHAT_MSG_ADDON" then guarded(M.message,...)
     elseif event=="BN_CHAT_MSG_ADDON" then guarded(M.openmapBn,...)
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
     elseif event=="PLAYER_REGEN_DISABLED" then guarded(M.hopAnyStop,"combat started")

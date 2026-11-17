@@ -140,7 +140,7 @@ class SendGateTests(unittest.TestCase):
         self.assertIsNotNone(self.gate_error(moved, 'Wire.lua', replace=wire))
 
     def test_extra_wire_access_in_deliver_is_rejected(self):
-        start = 'local function deliver(prefix, text, kind, target, now, key)\n'
+        start = 'local function deliver(prefix, text, kind, target, now, key, hop)\n'
         # Exact reviewer plant from so-le17, dormant unless sending a raid K packet.
         extra = '    if IsInRaid() and prefix=="LEGW1" and text:sub(1,2)=="K|" then C_ChatInfo.SendAddonMessage("WEFF1",text,"PARTY") end\n'
         self.assertIsNotNone(self.gate_error(start + extra, 'Wire.lua', replace=start))

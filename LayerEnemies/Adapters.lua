@@ -1,7 +1,93 @@
 local _, N = ...
 local A,S = {},N.Safe
 N.Adapters=A
--- Source: pinned Forever FriendList API. No manipulation of the game's who UI.
+-- WHO UI ownership is temporary and session-only. No hiding windows or replacing SendWho.
+-- Hidden, registered frames are detached during our query and its late-result guard (max 30 s).
+-- A player's SendWho wins ownership. Open windows and all frame scripts are left untouched.
+A.WHO_LATE=30
+local whoLease,whoSending,whoHooked=nil,false,nil
+local function whoLater(delay,fn)
+    return S.tab(_G.C_Timer) and type(S.clean(_G.C_Timer.After))=="function" and pcall(_G.C_Timer.After,delay,fn)
+end
+local function whoFrames() return {_G.FriendsFrame,_G.LFGWhoListFrame,_G.WhoFrame} end
+local function whoRoute(ui)
+    pcall(function()
+        local f=_G.C_FriendList
+        if S.tab(f) and type(S.clean(f.SetWhoToUi))=="function" then f.SetWhoToUi(ui) end
+    end)
+end
+local function whoRegisters(q)
+    for _,v in ipairs(q.frames) do
+        if v.detached then
+            local ok=pcall(function() v.frame:RegisterEvent("WHO_LIST_UPDATE") end)
+            if ok then v.detached=false end
+        end
+    end
+end
+local function whoRelease(q)
+    if whoLease~=q then return end
+    whoRegisters(q)
+    whoLease=nil
+    local visible=false
+    for _,frame in pairs(whoFrames()) do
+        pcall(function() if frame:IsVisible() then visible=true end end)
+    end
+    whoRoute(visible)
+end
+function A.whoEnd(reason)
+    local q=whoLease; if not q then return end
+    q.active=false
+    if reason=="result" or q.event then
+        q.event=true
+        -- Keep frames detached through this dispatch, even if ours runs first.
+        if not whoLater(0,function() whoRelease(q) end) then whoRelease(q) end
+    elseif reason~="timeout" and reason~="stop" then whoRelease(q) end
+end
+function A.whoEvent()
+    local q=whoLease
+    if not q then return false end
+    local time=S.num(S.call(GetTime))
+    local mine=q.active and time and time>=q.at and time-q.at<N.HopAny.WHO
+    A.whoEnd("result")
+    return mine
+end
+local function whoHush(cancel)
+    if whoLease then whoRelease(whoLease) end
+    local q={at=S.num(S.call(GetTime)) or 0,frames={},active=true}
+    whoLease=q
+    -- Without a deadline timer, do not acquire UI state which could be left behind.
+    if not whoLater(A.WHO_LATE,function() whoRelease(q) end) then whoLease=nil; return end
+    pcall(function()
+        local f=_G.C_FriendList
+        if whoHooked~=f and type(S.clean(_G.hooksecurefunc))=="function" then
+            _G.hooksecurefunc(f,"SendWho",function()
+                local old=whoLease
+                if old and not whoSending then
+                    whoRelease(old)
+                    if type(old.cancel)=="function" then pcall(old.cancel) end
+                end
+            end)
+            whoHooked=f
+        end
+    end)
+    q.cancel=cancel
+    if whoHooked~=_G.C_FriendList then return end -- missing hook: retain the old UI behavior
+    for _,frame in pairs(whoFrames()) do
+        pcall(function()
+            for _,method in ipairs({"IsEventRegistered","RegisterEvent","UnregisterEvent","IsVisible"}) do
+                if type(S.clean(frame[method]))~="function" then return end
+            end
+            if frame:IsVisible()~=false or frame:IsEventRegistered("WHO_LIST_UPDATE")~=true then return end
+            local v={frame=frame}
+            q.frames[#q.frames+1]=v
+            -- Mark first so even a partially failing client method is restored on every exit.
+            v.detached=true
+            frame:UnregisterEvent("WHO_LIST_UPDATE")
+        end)
+    end
+    whoRoute(true)
+end
+-- Source: pinned Forever FriendList API; UI suppression reverses the former no-manipulation rule.
 function A.whoTerm(zoneName)
     local f,e=_G.C_FriendList,_G.Enum
     local tag=S.str(_G.WHO_TAG_ZONE,32)
@@ -13,12 +99,17 @@ function A.whoTerm(zoneName)
     if not S.tab(e) or not S.tab(e.SocialWhoOrigin) or not S.num(e.SocialWhoOrigin.Social) then return nil end
     return tag..'"'..zoneName..'"'
 end
-function A.who(term)
+function A.who(term,cancel)
     local f,e=_G.C_FriendList,_G.Enum
     if not S.str(term,180) or not S.tab(f) or type(S.clean(f.SendWho))~="function"
         or not S.tab(e) or not S.tab(e.SocialWhoOrigin) or not S.num(e.SocialWhoOrigin.Social) then return false end
+    whoHush(cancel)
+    whoSending=true
     local ok,result=pcall(f.SendWho,term,e.SocialWhoOrigin.Social)
-    return ok and not S.secret(result) and result~=false
+    whoSending=false
+    local accepted=ok and not S.secret(result) and result~=false
+    if not accepted then A.whoEnd("error") end
+    return accepted
 end
 -- Read no more than 49 rows. A malformed row is skipped, never converted to a short name.
 function A.whoRows()

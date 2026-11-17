@@ -9,6 +9,8 @@ local function no(v,msg) eq(not not v,false,msg) end
 local forbidden
 local function test(name,fn)
     if arg and arg[1]=="--ui-layout-only" and not name:find("UI layout:",1,true) then return end
+    if arg and arg[1]=="--hop-fanout-only" and not name:find("Hop fanout:",1,true) then return end
+    if arg and arg[1]=="--hop-any-only" and not name:find("hop-any",1,true) and not name:find("Hop fanout:",1,true) then return end
     if arg and arg[1]=="--spy-relay-only" and not name:find("Spy relay",1,true) then return end
     if arg and arg[1]=="--relay-policy-only" and not name:find("Guild relay policy:",1,true) then return end
     if arg and arg[1]=="--kills-only" and not name:find("Kills",1,true) then return end
@@ -27,7 +29,7 @@ local clock,map,server,channels,inGuild,clientIgnored,inInstance
 local guildName="Test Guild"
 local wall,grouped,opened
 local sent,sendResult,registered,bnInfo,bnCalls
-local whoCalls,whoRows,whoRead,clickStack
+local whoCalls,whoRows,whoRead,clickStack,whoHooks,manualWho
 -- File-local policy: exposing an addon table must not let another file widen it.
 local WHO_CALLERS={["@LayerEnemies/Adapters.lua"]=true}
 local ANY_CALLERS={["@LayerEnemies/Main.lua"]=true}
@@ -277,13 +279,18 @@ local function loadAddon(savedCallTest)
         GetPlayerMapPosition=function() return {GetXY=function() return .25,.75 end} end,
     }
     _G.C_AddOns={IsAddOnLoaded=function(name) return loaded[name]==true end,GetAddOnMetadata=function(name,key) return metadata[name] end}
-    whoCalls,whoRows,whoRead,clickStack={},{},{},false
+    whoCalls,whoRows,whoRead,clickStack,whoHooks,manualWho={},{},{},false,{},false
+    _G.FriendsFrame=nil; _G.LFGWhoListFrame=nil; _G.WhoFrame=nil
+    _G.hooksecurefunc=function(tbl,key,fn)
+        if tbl==C_FriendList and key=="SendWho" then whoHooks[#whoHooks+1]=fn else error("unexpected hook") end
+    end
     _G.WHO_TAG_ZONE="z-"; _G.Enum={SocialWhoOrigin={Social=1}}
     _G.C_FriendList={IsIgnored=function() return clientIgnored end,
         SendWho=function(term,origin)
             local caller=firstLuaCaller()
-            if not WHO_CALLERS[caller.source] or not clickStack then forbidden=forbidden+1 end
+            if not manualWho and (not WHO_CALLERS[caller.source] or not clickStack) then forbidden=forbidden+1 end
             whoCalls[#whoCalls+1]={term=term,origin=origin,at=clock}
+            for _,fn in ipairs(whoHooks) do fn(term,origin) end
         end,
         GetNumWhoResults=function()
             if not WHO_CALLERS[firstLuaCaller().source] then forbidden=forbidden+1 end
@@ -7289,16 +7296,16 @@ test("hop-any click calls who synchronously once and waits five seconds",functio
     deliver("WHO_LIST_UPDATE"); advance(120); eq(#sent,0); eq(#whoCalls,1)
 end)
 
-test("hop-any 49 rows send exactly eight at one second intervals through 120 s",function()
+test("hop-any 49 rows send eight initially then the whole list within 45 rounds",function()
     local N=anyFixture(); anyClick(N); advance(1); eq(#sent,0)
-    deliver("WHO_LIST_UPDATE"); eq(#sent,1); eq(#whoRead,49)
+    deliver("WHO_LIST_UPDATE"); eq(#sent,8); eq(#whoRead,49)
     eq(sent[1].text,"inv layer <LS 100 not 7086-0 25.0,75.0>")
     local req=N.GuildHost.parse(sent[1].text); yes(req); eq(req.nots[1],"7086-0")
-    for i=2,8 do advance(.5); eq(#sent,i-1); advance(.5); eq(#sent,i); eq(sent[i].at-sent[i-1].at,1) end
-    for _=1,120 do advance(1); deliver("WHO_LIST_UPDATE"); eq(#sent,8) end
-    advance(1); yes(table.concat(log,"\n"):find("asked 8 players, no host answered",1,true))
+    for i=9,49 do advance(.5); eq(#sent,i-1); advance(.5); eq(#sent,i) end
+    for _=1,120 do advance(1); deliver("WHO_LIST_UPDATE"); eq(#sent,49) end
+    advance(1); yes(table.concat(log,"\n"):find("asked 49 players, no host answered",1,true))
     for _=1,600 do advance(1) end
-    eq(#sent,8); eq(#whoCalls,1); eq(#accepts,0)
+    eq(#sent,49); eq(#whoCalls,1); eq(#accepts,0)
 end)
 test("hop-any events timers and replies without a click never start a round",function()
     local N=anyFixture()
@@ -7308,15 +7315,15 @@ test("hop-any events timers and replies without a click never start a round",fun
     end
     eq(#sent,0); eq(#whoCalls,0); eq(#accepts,0); eq(#whoRead,0)
 end)
-test("hop-any stop cancels and thirty second click guard is exact",function()
+test("hop-any stop cancels and ten second click guard is exact",function()
     local N=anyFixture(); anyClick(N); local start=clock
-    deliver("WHO_LIST_UPDATE"); eq(#sent,1)
-    SlashCmdList.LAYERENEMIES("hop stop"); advance(29); anyClick(N); eq(#whoCalls,1)
-    advance(1); eq(clock-start,30); anyClick(N); eq(#whoCalls,2)
-    deliver("WHO_LIST_UPDATE"); eq(#sent,2); no(sent[1].target==sent[2].target)
-    SlashCmdList.LAYERENEMIES("hop stop"); advance(600); eq(#sent,2)
+    deliver("WHO_LIST_UPDATE"); eq(#sent,8)
+    SlashCmdList.LAYERENEMIES("hop stop"); advance(9); anyClick(N); eq(#whoCalls,1)
+    advance(1); eq(clock-start,10); anyClick(N); eq(#whoCalls,2)
+    deliver("WHO_LIST_UPDATE"); eq(#sent,16); no(sent[1].target==sent[9].target)
+    SlashCmdList.LAYERENEMIES("hop stop"); advance(600); eq(#sent,16)
 end)
-test("hop-any filters rows and prioritizes listed hosts then online guildmates",function()
+test("hop-any filters rows and prioritizes listed hosts then same-zone rows",function()
     local N=anyFixture()
     whoRows={{fullName="Me",area="Ashenvale"},{fullName="Me-TestRealm",area="Ashenvale"},
         {fullName="Other Zone",area="Durotar"},{fullName="Ignored Peer",area="Ashenvale"},
@@ -7332,14 +7339,15 @@ test("hop-any filters rows and prioritizes listed hosts then online guildmates",
     LayerSwapDB={book={["Host Peer"]={layer="8000-9",zone=100,at=wall,host=true}}}
     loaded.LayerSwap=true
     anyClick(N); deliver("WHO_LIST_UPDATE"); for _=1,7 do advance(1) end
-    eq(#sent,4); eq(sent[1].target,"Host Peer"); eq(sent[2].target,"Guild Peer")
-    eq(sent[3].target,"Ordinary Peer"); eq(sent[4].target,"Me-OtherRealm")
+    eq(#sent,5); eq(sent[1].target,"Host Peer"); eq(sent[2].target,"Ordinary Peer")
+    eq(sent[3].target,"Guild Peer"); eq(sent[4].target,"Me-OtherRealm"); eq(sent[5].target,"Other Zone")
 end)
 test("hop-any never reads a fiftieth who row",function()
     local N=anyFixture(); anyRows(80)
     for i=1,49 do whoRows[i].area="Durotar" end
-    anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#whoRead,49); eq(#sent,0)
-    yes(table.concat(log,"\n"):find("nobody new to ask in this zone",1,true))
+    anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#whoRead,49); eq(#sent,8)
+    for _=1,45 do advance(1) end; eq(#sent,49)
+    for _,v in ipairs(sent) do no(v.target=="Seeker "..abc(50)) end
 end)
 local anyGuards={
     guild=function(N) N.Main.setConsent("guild") end,
@@ -7374,28 +7382,28 @@ for label,setup in pairs(anyGuards) do
 end
 for _,kind in ipairs({"group","combat","instance","zone","guild","stop"}) do
     test("hop-any stop on "..kind.." cannot resume from events or timers",function()
-        local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
+        local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,8)
         if kind=="group" then grouped=true; deliver("GROUP_ROSTER_UPDATE")
         elseif kind=="combat" then combat=true; deliver("PLAYER_REGEN_DISABLED")
         elseif kind=="instance" then inInstance=true
         elseif kind=="zone" then map=200; deliver("ZONE_CHANGED_NEW_AREA")
         elseif kind=="guild" then N.Main.setConsent("guild")
         else SlashCmdList.LAYERENEMIES("hop stop") end
-        advance(1); eq(#sent,1)
+        advance(1); eq(#sent,8)
         grouped,combat,inInstance,map=false,false,false,100; N.Main.setConsent("public")
         for _=1,600 do advance(1); deliver("WHO_LIST_UPDATE") end
-        eq(#sent,1); eq(#whoCalls,1)
+        eq(#sent,8); eq(#whoCalls,1)
     end)
 end
 for _,result in ipairs({3,4,"error"}) do
-    test("hop-any stops forever on Wire result "..tostring(result),function()
+    test(result==3 and "hop-any Wire throttle retries the head until the list ends" or ("hop-any stops forever on Wire result "..tostring(result)),function()
         local N=anyFixture(); sendResult=result=="error" and function() error("client send failure") end or result
         anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
-        sendResult=0; for _=1,600 do advance(1) end; eq(#sent,1)
+        sendResult=0; for _=1,600 do advance(1) end; eq(#sent,result==3 and 50 or 1)
     end)
 end
-test("hop-any offline attempt counts toward eight without accepting its invite",function()
-    local N=anyFixture(); sendResult=12; anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
+test("hop-any offline attempts never arm acceptance; an unrelated invite stops fanout",function()
+    local N=anyFixture(); sendResult=12; anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,8)
     deliver("PARTY_INVITE_REQUEST","Seeker a"); eq(#accepts,0)
     sendResult=0; for _=1,120 do advance(1) end; eq(#sent,8)
     no(N.Main.invite.pending and N.Main.invite.pending.short=="seeker a")
@@ -7404,12 +7412,12 @@ end)
 local function anyReply(name,flag,layer,zone,kind,me)
     deliver("CHAT_MSG_ADDON","LayerSwap","heard "..(me or "Me").."|"..(layer or "8000-7").."|"..(zone or "100").."|"..(flag or "h"),kind or "WHISPER",name)
 end
-test("hop-any first asked host reply stops sends and unasked whole names do not",function()
-    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
-    anyReply("Seeker a-Elsewhere"); anyReply("Seeker b"); anyReply("Outsider Peer")
+test("hop-any host replies do not stop fanout and unasked whole names do not enter the book",function()
+    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,8)
+    anyReply("Seeker a-Elsewhere"); anyReply("Seeker z"); anyReply("Outsider Peer")
     eq(N.Safe.count(N.Main.heard.heard),0)
-    advance(1); eq(#sent,2)
-    anyReply("Seeker a"); advance(121); eq(#sent,2)
+    advance(1); eq(#sent,9)
+    anyReply("Seeker a"); for _=1,41 do advance(1) end; advance(121); eq(#sent,49)
     yes(table.concat(log,"\n"):find("answered as a host but sent no invite",1,true))
     eq(N.Main.hopAnyState.quiet["seeker a"],nil); yes(N.Main.hopAnyState.quiet["seeker b"])
 end)
@@ -7418,21 +7426,21 @@ test("hop-any wrong route addressee zone same layer and nonhost do not stop",fun
     anyReply("Seeker a","h",nil,nil,"GUILD"); anyReply("Seeker a","h",nil,nil,nil,"Someone Else")
     anyReply("Seeker a","h",nil,"200"); anyReply("Seeker a","h","7086-1")
     anyReply("Seeker a","-" ); deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Seeker a")
-    advance(1); eq(#sent,2); advance(1); eq(#sent,3)
+    advance(1); eq(#sent,9); advance(1); eq(#sent,10)
     eq(N.Main.hopAnyState.round.negative,1)
     SlashCmdList.LAYERENEMIES("hop stop"); eq(N.Main.hopAnyState.quiet["seeker a"],nil)
 end)
 test("hop-any asked invite stops sends and autoaccepts once, no foreign alias",function()
     local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
-    deliver("PARTY_INVITE_REQUEST","Seeker b"); deliver("PARTY_INVITE_REQUEST","Seeker a-Elsewhere"); eq(#accepts,0)
-    advance(1); eq(#sent,2)
+    deliver("PARTY_INVITE_REQUEST","Unasked Person"); deliver("PARTY_INVITE_REQUEST","Seeker a-Elsewhere"); eq(#accepts,0)
+    advance(1); eq(#sent,8)
     deliver("PARTY_INVITE_REQUEST","Seeker a-TestRealm"); eq(#accepts,1)
     deliver("PARTY_INVITE_REQUEST","Seeker a"); deliver("PARTY_INVITE_REQUEST","Seeker b"); eq(#accepts,1)
-    advance(120); eq(#sent,2)
+    advance(120); eq(#sent,8)
 end)
 test("hop-any asked invite stops sends even with autoaccept disabled",function()
     local N=anyFixture(); N.Main.setAutoHop(false); anyClick(N); deliver("WHO_LIST_UPDATE")
-    deliver("PARTY_INVITE_REQUEST","Seeker a"); advance(120); eq(#sent,1); eq(#accepts,0)
+    deliver("PARTY_INVITE_REQUEST","Seeker a"); advance(120); eq(#sent,8); eq(#accepts,0)
 end)
 local function anyJoined()
     local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); deliver("PARTY_INVITE_REQUEST","Seeker a")
@@ -7442,7 +7450,7 @@ end
 test("hop-any different known key in same zone leaves after three seconds",function()
     local N=anyJoined(); N.Main.applyLayer("8000-8","test")
     advance(2.9); eq(#leaves,0); advance(.2); eq(#leaves,1)
-    for _=1,600 do advance(1) end; eq(#sent,1); eq(#leaves,1)
+    for _=1,600 do advance(1) end; eq(#sent,8); eq(#leaves,1)
 end)
 test("hop-any same key never succeeds and fails at thirty seconds",function()
     local N=anyJoined(); N.Main.applyLayer("7086-9","test")
@@ -7468,15 +7476,14 @@ for _,change in ipairs({"zone","instance","raid","leader","otherLeader","combat"
 end
 test("hop-any no-answer table lasts six hours and a second round reaches different names",function()
     local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
-    for _=1,128 do advance(1) end
-    eq(#sent,8); eq(N.Safe.count(N.Main.hopAnyState.quiet),8)
-    anyClick(N); deliver("WHO_LIST_UPDATE"); for _=1,7 do advance(1) end
-    eq(#sent,16); local seen={}; for _,v in ipairs(sent) do no(seen[v.target]); seen[v.target]=true end
-    SlashCmdList.LAYERENEMIES("hop stop")
+    for _=1,170 do advance(1) end
+    eq(#sent,49); eq(N.Safe.count(N.Main.hopAnyState.quiet),49)
+    anyClick(N); deliver("WHO_LIST_UPDATE"); for _=1,10 do advance(1) end
+    eq(#sent,49); local seen={}; for _,v in ipairs(sent) do no(seen[v.target]); seen[v.target]=true end
     local first=sent[1].at; clock=first+21600-1
-    anyClick(N); deliver("WHO_LIST_UPDATE"); eq(sent[#sent].target,"Seeker q")
-    SlashCmdList.LAYERENEMIES("hop stop"); clock=first+21600+30
-    anyClick(N); deliver("WHO_LIST_UPDATE"); eq(sent[#sent].target,"Seeker a")
+    anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,49)
+    clock=first+21600+10
+    anyClick(N); deliver("WHO_LIST_UPDATE"); eq(sent[50].target,"Seeker a")
     no(LayerEnemiesDB.quiet); no(LayerEnemiesDB.hopAnyState)
     N=loadAddon(); eq(N.Safe.count(N.Main.hopAnyState.quiet),0)
 end)
@@ -7496,8 +7503,8 @@ test("hop-any UI is friendly-only with disabled reason and Stop state",function(
     yes(N.UI.hopAny:IsShown()); eq(N.UI.hopAny.label:GetText(),"Hop to another layer"); no(N.UI.hopAny.disabled)
     anyClick(N,true); eq(#whoCalls,1); N.UI.render(); eq(N.UI.hopAny.label:GetText(),"Stop")
     N.UI.hopAny:Click(); advance(6); eq(#sent,0); N.UI.render()
-    yes(N.UI.hopAny.disabled); yes(N.UI.hopAny.reason:find("30 s",1,true))
-    advance(30); N.Main.setConsent("guild"); N.UI.render(); yes(N.UI.hopAny.disabled)
+    yes(N.UI.hopAny.disabled); yes(N.UI.hopAny.reason:find("10 s",1,true))
+    advance(10); N.Main.setConsent("guild"); N.UI.render(); yes(N.UI.hopAny.disabled)
     yes(N.UI.hopAny.reason:find("guild-only",1,true)); N.UI.select("local"); no(N.UI.hopAny:IsShown())
 end)
 
@@ -7514,25 +7521,26 @@ end)
 test("hop-any one reserve per click and every attempted name shares Invite cooldown",function()
     local N=anyFixture(); local reserve=N.Invite.reserve; local calls=0
     N.Invite.reserve=function(...) calls=calls+1; return reserve(...) end
-    anyClick(N); deliver("WHO_LIST_UPDATE"); for _=1,7 do advance(1) end
-    eq(calls,1); eq(#sent,8)
+    anyClick(N); deliver("WHO_LIST_UPDATE"); for _=1,41 do advance(1) end
+    eq(calls,1); eq(#sent,49)
     for _,v in ipairs(sent) do eq(N.Main.invite.asked[N.Invite.key(v.target)],v.at) end
     SlashCmdList.LAYERENEMIES("hop stop"); advance(10)
     local ok=N.Invite.reserve(N.Main.invite,{name="Seeker a",short="seeker a"},clock); no(ok)
 end)
-test("hop-any replies and invites expire from last send, never renew their window",function()
+test("hop-any replies and invites expire from first send, never renew their window",function()
     local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); advance(1); anyReply("Seeker b")
-    advance(119); anyReply("Seeker a")
+    for _=1,40 do advance(1) end; advance(78); anyReply("Seeker a")
     advance(2); deliver("PARTY_INVITE_REQUEST","Seeker a"); eq(#accepts,0)
-    eq(#sent,2); no(N.Main.hopAnyState.round)
+    eq(#sent,49); no(N.Main.hopAnyState.round)
 end)
 for _,what in ipairs({"paused","budget"}) do
-    test("hop-any Wire local "..what.." ends the round without queue or retry",function()
+    test("hop-any Wire local "..what.." retries the same head without a Wire queue",function()
         local N=anyFixture()
         if what=="paused" then sendResult=3 end
-        for i=1,(what=="paused" and 1 or 5) do N.Wire.send("LayerSwap","inv layer <LS 100 want 8000-0>","WHISPER","Budget "..abc(i),{prio="click"}) end
+        for i=1,(what=="paused" and 1 or 8) do N.Wire.send("LayerSwap","inv layer <LS 100 want 8000-0>","WHISPER","Budget "..abc(i),{prio="click",hopAny=true}) end
         local before=#sent; sendResult=0; anyClick(N); deliver("WHO_LIST_UPDATE")
-        eq(#sent,before); for _=1,600 do advance(1) end; eq(#sent,before)
+        eq(#sent,before); eq(N.Wire.queued(),0); for _=1,45 do advance(1) end; eq(#sent,before+(what=="budget" and 44 or 49))
+        for _=1,121 do advance(1) end
         no(N.Main.hopAnyState.round)
     end)
 end
@@ -7560,7 +7568,7 @@ test("hop-any all replies and invite paths refuse own identity becoming unreadab
     local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
     UnitName=function() return secret end
     anyReply("Seeker a"); deliver("PARTY_INVITE_REQUEST","Seeker a"); advance(600)
-    eq(#accepts,0); eq(#sent,1); no(N.Main.hopAnyState.round)
+    eq(#accepts,0); eq(#sent,8); no(N.Main.hopAnyState.round)
 end)
 test("hop-any acceptance refusal is spent even for a local throttle",function()
     local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
@@ -7573,7 +7581,7 @@ test("hop-any active round cannot be overwritten by an existing named hop",funct
     loaded.LayerSwap=true; LayerSwapDB={book={["Listed Peer"]={layer="8000-7",zone=100,host=true,at=wall}}}
     local rows=N.Main.candidates(); eq(#rows,1); local shown=N.Main.hostPreview(rows[1])
     anyClick(N); deliver("WHO_LIST_UPDATE"); advance(11)
-    no(N.Main.hopHostTo(rows[1],shown)); eq(#sent,2); yes(N.Main.invite.pending.any)
+    no(N.Main.hopHostTo(rows[1],shown)); eq(#sent,16); yes(N.Main.invite.pending.any)
 end)
 test("hop-any changed back before scheduled leave does not claim a move",function()
     local N=anyJoined(); N.Main.applyLayer("8000-8","test")
@@ -7582,11 +7590,11 @@ test("hop-any changed back before scheduled leave does not claim a move",functio
 end)
 
 test("hop-any pace resists duplicate pumps and a long clock jump never catches up",function()
-    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
-    for _=1,3 do advance(.25); N.Main.hopAnyPump(); eq(#sent,1) end
-    advance(.25); N.Main.hopAnyPump(); eq(#sent,2)
-    advance(60); N.Main.hopAnyPump(); eq(#sent,3)
-    SlashCmdList.LAYERENEMIES("hop stop"); advance(600); eq(#sent,3)
+    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,8)
+    for _=1,3 do advance(.25); N.Main.hopAnyPump(); eq(#sent,8) end
+    advance(.25); N.Main.hopAnyPump(); eq(#sent,9)
+    advance(60); N.Main.hopAnyPump(); eq(#sent,17)
+    SlashCmdList.LAYERENEMIES("hop stop"); advance(600); eq(#sent,17)
 end)
 test("hop-any Wire caller gate rejects a different function even in Main",function()
     local N=anyFixture()
@@ -7603,12 +7611,12 @@ test("hop-any not-hosting answer removes a remembered host without a per-reply l
     local N=anyFixture(); N.Main.heard.heard["Seeker a"]={layer="8000-7",zone=100,host=true,at=wall}
     anyClick(N); deliver("WHO_LIST_UPDATE"); eq(sent[1].target,"Seeker a"); local before=#log
     anyReply("Seeker a","-"); eq(N.Main.heard.heard["Seeker a"],nil); eq(#log,before)
-    advance(1); eq(#sent,2)
+    advance(1); eq(#sent,9)
 end)
 test("hop-any instance entry event cancels even if it ends before the next pump",function()
-    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
+    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,8)
     inInstance=true; deliver("PLAYER_ENTERING_WORLD"); inInstance=false
-    advance(1); eq(#sent,1); no(N.Main.hopAnyState.round)
+    advance(1); eq(#sent,8); no(N.Main.hopAnyState.round)
 end)
 test("hop-any auto-leave cancels on an out-and-back zone transition",function()
     local N=anyJoined(); N.Main.applyLayer("8000-8","test")
@@ -7629,7 +7637,7 @@ end)
 test("hop-any observed invite is never reported as no invite after auto-off",function()
     local N=anyFixture(); N.Main.setAutoHop(false); anyClick(N); deliver("WHO_LIST_UPDATE")
     anyReply("Seeker a"); deliver("PARTY_INVITE_REQUEST","Seeker a"); advance(121)
-    eq(#sent,1); eq(#accepts,0)
+    eq(#sent,8); eq(#accepts,0)
     no(table.concat(log,"\n"):find("sent no invite",1,true))
     yes(table.concat(log,"\n"):find("invite arrived",1,true))
 end)
@@ -7639,9 +7647,9 @@ test("hop-any offline selection fills all eight slots with online candidates",fu
     local N=anyFixture()
     sendResult=12; N.Wire.send("LayerSwap","same","WHISPER","Seeker a",{prio="click"}); sendResult=0
     sent={}; advance(10)
-    anyClick(N); deliver("WHO_LIST_UPDATE"); for _=1,7 do advance(1) end
+    anyClick(N); deliver("WHO_LIST_UPDATE")
     eq(#sent,8); eq(sent[1].target,"Seeker b"); eq(sent[8].target,"Seeker i")
-    eq(N.Main.hopAnyState.round.count,8)
+    eq(N.Main.hopAnyState.round.count,8) -- the first round only
 end)
 test("hop-any rejects nonwhisper replies before changing round or host state",function()
     for _,route in ipairs({"PARTY","RAID","CHANNEL"}) do
@@ -7650,7 +7658,7 @@ test("hop-any rejects nonwhisper replies before changing round or host state",fu
         eq(N.Main.hopAnyState.round.phase,"send",route)
         eq(N.Safe.count(N.Main.hopAnyState.round.answered),0,route)
         eq(N.Safe.count(N.Main.heard.heard),0,route)
-        advance(1); eq(#sent,2,route)
+        advance(1); eq(#sent,9,route)
     end
 end)
 test("hop-any live zone guard precedes auto-leave without a zone event",function()
@@ -7660,34 +7668,34 @@ test("hop-any live zone guard precedes auto-leave without a zone event",function
 end)
 test("hop-any painted Stop cancels a sending round before the next whisper",function()
     local N=anyFixture(); N.UI.toggle(); N.UI.select("friendly")
-    anyClick(N,true); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
+    anyClick(N,true); deliver("WHO_LIST_UPDATE"); eq(#sent,8)
     eq(N.UI.hopAny.label:GetText(),"Stop"); anyClick(N,true)
     no(N.Main.hopAnyState.round); no(N.Main.invite.pending)
     for _=1,600 do advance(1) end
-    eq(#sent,1); eq(#whoCalls,1)
+    eq(#sent,8); eq(#whoCalls,1)
 end)
 test("hop-any live group guard stops before the roster event",function()
     local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
     grouped=true; clock=clock+1; N.Main.hopAnyPump()
-    eq(#sent,1); no(N.Main.hopAnyState.round)
+    eq(#sent,8); no(N.Main.hopAnyState.round)
     grouped=false; for _=1,600 do advance(1) end
-    eq(#sent,1); eq(#whoCalls,1)
+    eq(#sent,8); eq(#whoCalls,1)
 end)
 
 test("hop-any stale painted Stop after expiry never starts another round",function()
     local N=anyFixture(); N.UI.toggle(); N.UI.select("friendly"); anyClick(N,true)
-    deliver("WHO_LIST_UPDATE"); for _=1,7 do advance(1) end
-    eq(#sent,8); advance(119.5); eq(N.UI.hopAny.label:GetText(),"Stop")
+    deliver("WHO_LIST_UPDATE"); for _=1,41 do advance(1) end
+    eq(#sent,49); advance(78.5); eq(N.UI.hopAny.label:GetText(),"Stop")
     clock=clock+.7; N.Main.hopAnyPump(); no(N.Main.hopAnyState.round)
     anyClick(N,true); eq(#whoCalls,1,"a stale Stop is never a new search")
     deliver("WHO_LIST_UPDATE"); for _=1,8 do advance(1) end
-    eq(#sent,8); no(N.Main.hopAnyState.round)
+    eq(#sent,49); no(N.Main.hopAnyState.round)
 end)
 
 test("hop-any expiry requests a next-frame repaint before the age tick",function()
     local N=anyFixture(); N.UI.toggle(); N.UI.select("friendly"); anyClick(N,true)
-    deliver("WHO_LIST_UPDATE"); for _=1,7 do advance(1) end
-    advance(119.5); eq(N.UI.hopAny.label:GetText(),"Stop")
+    deliver("WHO_LIST_UPDATE"); for _=1,41 do advance(1) end
+    advance(78.5); eq(N.UI.hopAny.label:GetText(),"Stop")
     clock=clock+.7; N.Main.hopAnyPump(); no(N.Main.hopAnyState.round)
     drain(); eq(N.UI.hopAny.label:GetText(),"Hop to another layer")
     anyClick(N,true); eq(#whoCalls,2)
@@ -7706,11 +7714,10 @@ test("hop-any stale button mode cannot stop a later slash-started round",functio
 end)
 
 test("hop-any reserves the final attempt before a reentrant send edge",function()
-    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE")
-    for _=1,6 do advance(1) end; eq(#sent,7)
+    local N=anyFixture(); anyClick(N)
     local fired,observed=false,{}
     sendResult=function()
-        if not fired then
+        if #sent==8 and not fired then
             fired=true
             local r=N.Main.hopAnyState.round
             observed={count=r.count,index=r.index,at=r.lastAttempt,nameAt=N.Main.invite.asked["seeker h"]}
@@ -7718,11 +7725,12 @@ test("hop-any reserves the final attempt before a reentrant send edge",function(
         end
         return 0
     end
-    advance(2); eq(#sent,8,"no ninth request at the reentrant edge")
+    deliver("WHO_LIST_UPDATE"); eq(#sent,8,"no ninth request in the first round")
     eq(observed.count,8); eq(observed.index,9); eq(observed.at,clock); eq(observed.nameAt,clock)
     eq(N.Main.hopAnyState.round.count,8); no(N.Main.error)
-    for i=2,#sent do yes(sent[i].at-sent[i-1].at>=1) end
-    advance(600); eq(#sent,8); eq(#whoCalls,1)
+    for _=1,41 do advance(1) end; eq(#sent,49)
+    local batches={}; for _,v in ipairs(sent) do batches[v.at]=(batches[v.at] or 0)+1; yes(batches[v.at]<=8) end
+    advance(121); eq(#sent,49); eq(#whoCalls,1)
 end)
 
 test("hop-any reentrant Stop cannot recreate pending acceptance or fault",function()
@@ -7739,11 +7747,11 @@ test("hop-any cannot dispatch again while a send is still in flight",function()
     local N=anyFixture(); anyClick(N)
     local fired=false
     sendResult=function()
-        if not fired then fired=true; clock=clock+2; N.Main.hopAnyPump() end
+        if not fired then fired=true; clock=clock+2; N.Main.hopAnyPump(); eq(#sent,1) end
         return 0
     end
-    deliver("WHO_LIST_UPDATE"); eq(#sent,1); eq(N.Main.hopAnyState.round.count,1)
-    advance(1); eq(#sent,2); no(N.Main.error)
+    deliver("WHO_LIST_UPDATE"); eq(#sent,8); eq(N.Main.hopAnyState.round.count,8)
+    advance(1); eq(#sent,10); no(N.Main.error)
 end)
 
 test("hop-any old send completion cannot mutate a replacement round",function()
@@ -7761,18 +7769,16 @@ test("hop-any old send completion cannot mutate a replacement round",function()
 end)
 
 test("hop-any rechecks ignore at dispatch and never trusts a skipped candidate",function()
-    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,1)
-    C_FriendList.IsIgnored=function(name) return name=="Seeker b" end
-    advance(1); eq(#sent,1,"newly ignored candidate must not reach Wire")
-    eq(N.Main.hopAnyState.round.count,2)
-    no(N.Main.hopAnyState.round.asked["seeker b"]); no(N.Main.invite.asked["seeker b"])
-    deliver("PARTY_INVITE_REQUEST","Seeker b"); eq(#accepts,0)
-    for _=1,6 do advance(1) end
-    eq(#sent,7); eq(N.Main.hopAnyState.round.count,8)
-    for _,row in ipairs(sent) do no(row.target=="Seeker b") end
-    for i=2,#sent do yes(sent[i].at-sent[i-1].at>=1) end
-    SlashCmdList.LAYERENEMIES("hop stop"); no(N.Main.hopAnyState.quiet["seeker b"])
-    advance(600); eq(#sent,7); no(N.Main.error)
+    local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,8)
+    C_FriendList.IsIgnored=function(name) return name=="Seeker i" end
+    advance(1); eq(#sent,9); eq(sent[9].target,"Seeker j")
+    no(N.Main.hopAnyState.round.asked["seeker i"]); no(N.Main.invite.asked["seeker i"])
+    for _=1,45 do advance(1) end
+    eq(#sent,48)
+    for _,row in ipairs(sent) do no(row.target=="Seeker i") end
+    deliver("PARTY_INVITE_REQUEST","Seeker i"); eq(#accepts,0)
+    SlashCmdList.LAYERENEMIES("hop stop"); no(N.Main.hopAnyState.quiet["seeker i"])
+    advance(600); eq(#sent,48); no(N.Main.error)
 end)
 
 test("hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps",function()
@@ -7783,12 +7789,22 @@ test("hop-any unreadable ignore policy at dispatch fails closed without cooldown
             if mode=="secret" then return secret end
         end or nil
         for _=1,7 do advance(1) end
-        eq(#sent,1,mode); eq(N.Main.hopAnyState.round.count,8,mode)
-        eq(N.Safe.count(N.Main.hopAnyState.round.asked),1,mode)
-        eq(N.Safe.count(N.Main.invite.asked),1,mode)
-        advance(121); eq(#sent,1,mode); no(N.Main.error)
+        eq(#sent,8,mode); eq(N.Main.hopAnyState.round.count,49,mode)
+        eq(N.Safe.count(N.Main.hopAnyState.round.asked),8,mode)
+        eq(N.Safe.count(N.Main.invite.asked),8,mode)
+        advance(121); eq(#sent,8,mode); no(N.Main.error)
     end
 end)
+
+assert(loadfile("test/hop_fanout.lua"))({test=test,eq=eq,yes=yes,no=no,load=anyFixture,click=anyClick,reply=anyReply,
+    rows=function(v) whoRows=v end,abc=abc,secret=secret,advance=advance,deliver=deliver,drain=drain,
+    time=function(v) if v then clock=v end; return clock end,sent=function() return sent end,
+    result=function(v) sendResult=v end,loaded=function(k,v) loaded[k]=v end,
+    accepts=function() return accepts end,frames=function() return frames end,
+    leaves=function() return leaves end,unit=function(k,v) units[k]=v end,
+    calls=function() return whoCalls end,group=function(v) grouped=v end,map=function(v) map=v end,
+    instance=function(v) inInstance=v end,
+    manual=function() manualWho=true; C_FriendList.SendWho("manual lookup",1); manualWho=false end})
 
 assert(loadfile("test/find20.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
     advance=advance,clock=function() return clock end,log=function() return log end,
