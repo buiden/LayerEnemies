@@ -27,6 +27,7 @@ end
 -- Queued Battle.net frames cannot burst across a new admission window.
 function P.claim(st,job,c,checkOnly)
     if not ready(c,job.owed) or c.pool~=job.pool or c.me~=job.me then return false end
+    if job.kind=="NH" and N.OverlordFeed and N.OverlordFeed.suppressed(st,c,job.route,job.name,job.id) then return false end
     if job.valid and not job.valid(c) then return false end
     if not due(st.actual[job.key],c.now,job.gap) then return false end
     st.actualOwed=recent(st.actualOwed,c.now)
@@ -65,8 +66,11 @@ function P.emit(st,c,kind,payload,route,target,key,gap,owed,callbacks)
     if route=="BNET" then text="R2:Forever_"..c.pool.."_"..c.faction..":BR:"..packet
     else text="BF:"..id..":1:1:"..packet;if #packet>230 or #text>255 then return false end end
     local address=route=="BNET" and target.id or target
-    local job={key=key,gap=gap,owed=owed==true,pool=c.pool,me=c.me,kind=kind,route=route,
-        name=dest~="*" and dest or nil,valid=callbacks and callbacks.valid,sent=callbacks and callbacks.sent}
+    if kind=="NH" and N.OverlordFeed and N.OverlordFeed.suppressed(st,c,route,dest,address) then return false end
+    local job={key=key,gap=gap,owed=owed==true,pool=c.pool,me=c.me,kind=kind,route=route,id=route=="BNET" and address or nil,
+        name=dest~="*" and dest or nil,valid=callbacks and callbacks.valid,sent=callbacks and callbacks.sent,
+        stop=callbacks and callbacks.stop}
+    if job.stop then job.stop.text=text end
     flight={text=text,route=route,target=address}
     local ok,result,attempted=pcall(c.send,c,text,route,address,owed and "owed" or "own",job)
     flight=nil
@@ -99,6 +103,7 @@ function P.receive(st,p,route,sender,id,c)
     if not r then return end
     if route=="GUILD" then st.guildHeard=c.now end
     if p.kind=="NH" and p.hops==0 then r.nh=c.now;r.version=S.str(p.payload,200) end
+    if st.feed and N.OverlordFeed then N.OverlordFeed.prepare(st.feed,st,c) end
     -- Owed answers only to direct addressed peers, never to overheard/relayed requests.
     if p.hops~=0 or p.target~=c.me or (route~="WHISPER" and route~="BNET") then return r end
     local target=route=="BNET" and {id=id,name=p.origin} or sender
@@ -109,18 +114,15 @@ function P.receive(st,p,route,sender,id,c)
         local v,op,e,nonce,seq,tail=p.payload:match("^([5-8]):([A-Z]):(%d+):(%w+):(%d+):?(.*)$")
         if not v or #p.payload>250 or #nonce>32 or #e>10 or tonumber(e)<1
             or tonumber(e)>c.wall or #seq>5 or tonumber(seq)<1 or tonumber(seq)>10000 then return r end
-        local stream,count,hash=tail:match("^([A-Z]+):(%d+):(%d+)[AH%-:]*$")
-        local empty=v=="8" and op=="V" and (stream=="LK" or stream=="LC" or stream=="LR" or stream=="LB")
-            and #count<=8 and #hash<=10 and tonumber(count)==0 and tonumber(hash)==0
         if op=="F" then return r end
-        local body=table.concat({v,empty and "S" or "R",e,nonce,seq},":")
-        if empty then body=body..":"..stream..":0:0" end
+        local body=table.concat({v,"R",e,nonce,seq},":")
         P.emit(st,c,"HA",body,route,target,"reply:"..key,150,true)
     end
     -- SR: an empty map has zero pages in 2.5.4; no invented empty-map opcode.
     return r
 end
 function P.tick(st,c)
+    if st.feed and N.OverlordFeed then N.OverlordFeed.prepare(st.feed,st,c) end
     P.sweep(st,c.now)
     if not ready(c,false) then return end
     if c.guild then

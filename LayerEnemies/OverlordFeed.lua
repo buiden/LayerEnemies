@@ -1,5 +1,5 @@
 -- Overlord 2.5.4 protocol only; independently written, no donor code.
--- Dormant v8 comparison + named kill feed, not a ranking host; see ship gate.
+-- NH-free v8 comparison + named kill feed, not a ranking host.
 local _,N=...
 local Q,S,F,P={},N.Safe,N.Find,N.OverlordPeer
 N.OverlordFeed=Q
@@ -7,8 +7,8 @@ N.OverlordFeed=Q
 -- This location-only reader implements none of that ranking exchange. Do not
 -- impersonate it merely to pass the provider's >=8 gate (SyncRelay:2843-2851).
 Q.capability=""
-Q.available=false -- fail closed; no player option until honest page support exists.
-function Q.new() return {sessions={},serial=0} end
+Q.available=true -- unknown v8 requesters are served; never announce to a source.
+function Q.new() return {sources={},sessions={},stops={},serial=0} end
 local function uint(v,max,min)
     if not S.str(v,10) or not v:match("^%d+$") then return nil end
     local n=tonumber(v);if n and n>=(min or 0) and n<=max then return n end
@@ -40,19 +40,70 @@ local function friend(r,c)
     end
     return false
 end
-local function current(r,c)
+local function eligible(r,c)
     return r and r.hops==0 and r.pool==c.pool and c.now>=r.at and c.now-r.at<300
-        and r.epoch and r.epoch<=c.wall and c.now>=r.epochAt and c.now-r.epochAt<600
-        and supported(r) and friend(r,c)
+        and supported(r) and (r.route=="BNET" and friend(r,c)
+            or r.route~="BNET" and c.groups and c.groups[F.fold(r.name)]==true)
 end
-local function announced(peer,r,c)
-    if r.announced and r.announcePool==c.pool and r.announceMe==c.me
-        and c.now>=r.announced and c.now-r.announced<300 then return true end
-    local a=peer.announced
-    local at=a and (r.route=="GUILD" and a.guild or (r.route=="PARTY" or r.route=="RAID") and a.group)
-    return a and a.pool==c.pool and a.me==c.me and at and c.now>=at and c.now-at<300
+local function current(r,c)
+    return eligible(r,c) and r.epoch and r.epoch<=c.wall and c.now>=r.epochAt and c.now-r.epochAt<600
 end
-function Q.cancel(st) st.sessions={} end
+-- Select before C2 can answer NH. Silence is continuous, across every lane the
+-- selected player can hear, for strictly >300 s (the donor retains age ==300).
+function Q.prepare(st,peer,c)
+    peer.feed=st
+    if not Q.available or not ready(c) then return end
+    for key,source in pairs(st.sources) do
+        local r=peer.routes[key]
+        if not eligible(r,c) or source.id~=r.id or source.pool~=c.pool or source.me~=c.me
+            or c.now<source.since then Q.stop(st,peer,c,key);st.sources[key]=nil end
+    end
+    local candidates={}
+    for key,r in pairs(peer.routes) do if eligible(r,c) then candidates[#candidates+1]={key=key,r=r} end end
+    table.sort(candidates,function(a,b)
+        if (a.r.route=="BNET")~=(b.r.route=="BNET") then return a.r.route=="BNET" end
+        return a.key<b.key
+    end)
+    for _,v in ipairs(candidates) do
+        if not st.sources[v.key] and S.count(st.sources)<2 then
+            st.sources[v.key]={name=v.r.name,id=v.r.id,route=v.r.route,since=c.now,pool=c.pool,me=c.me}
+        end
+    end
+end
+function Q.suppressed(peer,c,route,name,id)
+    local st=peer.feed
+    if not st then return false end
+    for key,source in pairs(st.sources) do
+        if name and F.fold(name)==key or id and id==source.id then return true end
+        if route=="GUILD" and (not c.guildNames or c.guildNames[key]) then return true end
+        if (route=="PARTY" or route=="RAID") and (not c.groups or c.groups[key]) then return true end
+    end
+    return false
+end
+local function quiet(st,key,c)
+    local source=st.sources[key]
+    return source and c.now-source.since>300
+end
+function Q.stop(st,peer,c,key)
+    local s=st.sessions[key]
+    st.sessions[key]=nil
+    if not s or not s.asked or not peer or not c then return end
+    local row={name=s.name,id=s.id,route=s.route,pool=s.pool,me=st.me,epoch=s.epoch,at=c.now}
+    st.stops[key]=row
+    local route=row.route=="BNET" and "BNET" or "WHISPER"
+    local target=route=="BNET" and {name=row.name,id=row.id} or row.name
+    local function valid(live)
+        return st.stops[key]==row and live.pool==row.pool and live.me==row.me
+            and live.now>=row.at and live.now-row.at<=60
+    end
+    local ok=P.emit(peer,c,"HR","8:X:"..row.epoch,route,target,"stop:"..key,0,true,
+        {stop=row,valid=valid,sent=function() st.stops[key]=nil end})
+    if not ok then st.stops[key]=nil end -- best effort, no retry of refusal
+end
+function Q.cancel(st,peer,c)
+    for key in pairs(st.sessions) do Q.stop(st,peer,c,key) end
+    st.sources={}
+end
 function Q.observe(st,peer,p,r,c)
     if not ready(c) or not r or p.hops~=0 then return end
     local e
@@ -71,7 +122,7 @@ function Q.observe(st,peer,p,r,c)
             and (v[9]=="A" or v[9]=="H" or v[9]=="-") then e=uint(v[3],9999999999,1) end
     end
     if e and e<=c.wall then
-        if r.epoch~=e then st.sessions[F.fold(r.name)]=nil end
+        if r.epoch~=e then Q.stop(st,peer,c,F.fold(r.name)) end
         r.epoch,r.epochAt=e,c.now
     end
 end
@@ -172,20 +223,21 @@ function Q.receive(st,peer,p,r,c)
     end
 end
 function Q.tick(st,peer,c)
-    if not Q.available then Q.cancel(st);return end
-    if not ready(c) then Q.cancel(st);return end
-    if st.pool~=c.pool or st.me~=c.me then Q.cancel(st);st.pool,st.me=c.pool,c.me end
+    if not Q.available then Q.cancel(st,peer,c);return end
+    if not ready(c) then Q.cancel(st,peer,c);return end
+    if st.pool~=c.pool or st.me~=c.me then st.pool,st.me=c.pool,c.me end
+    Q.prepare(st,peer,c)
     for key,s in pairs(st.sessions) do
         for who,value in pairs(s.known) do
             if not c.tracked(value.name) or c.now<value.at or c.now-value.at>=900 then s.known[who]=nil end
         end
         local r=peer.routes[key]
         if not current(r,c) or r.epoch~=s.epoch or r.id~=s.id or s.pool~=c.pool
-            or c.now<s.created then st.sessions[key]=nil end
+            or c.now<s.created then Q.stop(st,peer,c,key) end
     end
     local candidates={}
     for key,r in pairs(peer.routes) do
-        if current(r,c) and announced(peer,r,c) then candidates[#candidates+1]={key=key,r=r} end
+        if current(r,c) and quiet(st,key,c) then candidates[#candidates+1]={key=key,r=r} end
     end
     table.sort(candidates,function(a,b)
         if (a.r.route=="BNET")~=(b.r.route=="BNET") then return a.r.route=="BNET" end
@@ -194,7 +246,7 @@ function Q.tick(st,peer,c)
     for _,v in ipairs(candidates) do
         local key,r=v.key,v.r;local s=st.sessions[key]
         if not s and S.count(st.sessions)<2 then
-            s={epoch=r.epoch,pool=c.pool,id=r.id,created=c.now,known={}};st.sessions[key]=s
+            s={name=r.name,route=r.route,epoch=r.epoch,pool=c.pool,id=r.id,created=c.now,known={}};st.sessions[key]=s
         end
         if s and (not s.attempt or c.now>=s.attempt and c.now-s.attempt>=200) then
             s.attempt=c.now
@@ -208,7 +260,7 @@ function Q.tick(st,peer,c)
                 local function valid(live)
                     live=live or c
                     local latest=peer.routes[key]
-                    return st.sessions[key]==s and current(latest,live) and latest.epoch==s.epoch and latest.id==s.id
+                    return st.sessions[key]==s and quiet(st,key,live) and current(latest,live) and latest.epoch==s.epoch and latest.id==s.id
                 end
                 local function sent(at,live)
                     if not valid(live) then return end
