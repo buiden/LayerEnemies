@@ -129,6 +129,20 @@ test("compact unknown no-zone stale totals and marker reset",function()
     receive(Q,st,peer,c,{"z#1434","sEnemy One:24",full("Friendly One",30,"Alliance")});eq(#c.offers,2)
 end)
 
+test("feed identities accept donor race strings then compact updates",function()
+    for _,race in ipairs({"o2","Skyborne3","h0","Orc2"}) do
+        local N=setup();local Q,st,peer,c=model(N)
+        receive(Q,st,peer,c,{"z#1434",full()..":"..race})
+        eq(#c.offers,1,race);eq(c.offers[1].name,"Enemy One")
+        receive(Q,st,peer,c,{"z#1434","sEnemy One:22"});eq(#c.offers,2)
+    end
+    for _,race in ipairs({"2","o1","x2","Unknown3","o2:garbage",string.rep("a",42).."2"}) do
+        local N=setup();local Q,st,peer,c=model(N)
+        receive(Q,st,peer,c,{"z#1434",full()..":"..race})
+        eq(#c.offers,0,race);receive(Q,st,peer,c,{"z#1434","sEnemy One:22"});eq(#c.offers,0)
+    end
+end)
+
 for _,mode in ipairs({"share","guild","switch"}) do
     test("immediate "..mode.." off-on cancels lease without HR X",function()
         local N=setup();N.Find.add(N.Main.find,"Enemy One");local e=epoch(N);eq(#requestSends(),1)

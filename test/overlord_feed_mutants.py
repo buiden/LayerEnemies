@@ -3,6 +3,8 @@ import argparse
 from overlord_peer_mutants import run
 
 RULES = [
+ ('race strings not integers','(#f==9 and not raceWire(f[9]))','(#f==9 and not uint(f[9],255,1))'),
+ ('race strings validated','(#f==9 and not raceWire(f[9]))','false'),
  ('K exact thirteen fields','local f=split(p.payload,13)','local f=split(p.payload,14); if f and #f==14 then table.remove(f) end'),
  ('K refuses missing race','if f and #f==13 and F.fold(f[1])','if f and #f==11 then table.insert(f,10,"Orc");table.insert(f,11,"2") end; if f and #f==13 and F.fold(f[1])'),
  ('K refuses garbage twelfth field','if f and #f==13 and F.fold(f[1])','if f and #f==12 then table.remove(f);table.insert(f,10,"Orc");table.insert(f,11,"2") end; if f and #f==13 and F.fold(f[1])'),

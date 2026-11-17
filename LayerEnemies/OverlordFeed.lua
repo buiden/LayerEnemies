@@ -89,6 +89,11 @@ function Q.decode(payload)
     return e,rows
 end
 local classes={WARRIOR=true,PALADIN=true,HUNTER=true,ROGUE=true,PRIEST=true,SHAMAN=true,MAGE=true,WARLOCK=true,DRUID=true}
+local function raceWire(field)
+    if #field>41 then return false end
+    local token=field:match("^([A-Za-z]+)[023]$")
+    return token and (raceNames[token] or (#token==1 and ("hdngoutr"):find(token,1,true))) or false
+end
 identity=function(row,wall)
     local f=split(row:sub(2),9)
     if not f or (#f~=8 and #f~=9) then return nil end
@@ -96,7 +101,7 @@ identity=function(row,wall)
     if name~=f[1] or not name or not total or not classes[f[3]]
         or (f[4]~="Horde" and f[4]~="Alliance") or not f[5]:match("^%a%a%a?%a?$")
         or #f[6]>24 or not uint(f[7],math.floor(wall)+30) or not uint(f[8],60,1)
-        or (#f==9 and not uint(f[9],255,1)) then return nil end
+        or (#f==9 and not raceWire(f[9])) then return nil end
     return {name=name,total=total,faction=f[4]}
 end
 function Q.receive(st,peer,p,r,c)
