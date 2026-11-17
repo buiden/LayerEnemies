@@ -36,6 +36,17 @@ MUTANTS = [
     ('route-computed-new-prefix', 'policy', [(WIRE, READ, READ + '\n    if prefix == "ReviewPrefix" then local key = "ki" .. "nds"; route = { [key] = { GUILD = true }, check = function() return "line" end } end')]),
     ('route-computed-channel', 'policy', [(WIRE, READ, READ + '\n    if prefix == "FLHNET2" and kind == "CHANNEL" then local key = "ki" .. "nds"; route = { [key] = { CHANNEL = true }, check = route.check } end')]),
     ('gate-alias-freeze', 'policy', [(GATE, "('ROUTES', 'kinds', 'route', 'check')", "('ROUTES', 'kinds')")]),
+    ('route-expression-new-prefix', 'policy', [(WIRE, READ,
+        'local fieldA="ki".."nds"; local fieldB="ch".."eck"\n    ' + READ +
+        ' or (prefix=="ReviewPrefix" and { [fieldA]={GUILD=true}, [fieldB]=function() return "line" end })')]),
+    ('route-expression-channel', 'policy', [(WIRE, READ,
+        'local fieldA="ki".."nds"; local fieldB="ch".."eck"\n    ' + READ +
+        ' and kind~="CHANNEL" or (prefix=="FLHNET2" and { [fieldA]={CHANNEL=true}, [fieldB]=function() return "line" end })')]),
+    ('route-debug-upvalue', 'policy', [(WIRE, READ,
+        'local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)\n    ' + READ)]),
+    ('stop-inflight-name-cooldown', 'lua', [(MEMBER,
+        'if sent or attempted then N.Main.invite.asked[v.short]=now end',
+        'if guest==r and (sent or attempted) then N.Main.invite.asked[v.short]=now end')]),
 ]
 
 

@@ -247,6 +247,34 @@ test("FLH batch: paced discovery still caps the whole click at seven queries",fu
     eq(#lines("LQ"),7); ceilings()
 end)
 
+for _,stopAt in ipairs({2,6}) do
+    for _,result in ipairs({0,3}) do
+        test("FLH batch: stop inside LQ "..stopAt.." preserves attempted cooldown result "..result,function()
+            local N=member(); hosts(N); if stopAt==6 then ordinary(N,2) end
+            local at=H.clock(); local stopped,target,stamp=false
+            H.result(function()
+                local queries=lines("LQ")
+                if not stopped and #queries==stopAt then
+                    stopped=true; target=queries[stopAt].target; stamp=queries[stopAt].at
+                    SlashCmdList.LAYERENEMIES("hop stop")
+                    return result
+                end
+                return 0
+            end)
+            N.FLHMember.hop(); H.advance(2)
+            yes(stopped,"real client callback stopped the initial or paced batch")
+            eq(#lines("LQ"),stopAt); no(N.FLHMember.pending())
+            eq(N.Main.invite.asked[N.Invite.key(target)],stamp,"canceled client attempt still spends name cooldown")
+            H.result(0); H.clock(at+35); yes(N.FLHMember.hop())
+            H.advance(10)
+            local count=0
+            for _,q in ipairs(lines("LQ")) do if q.target==target then count=count+1 end end
+            eq(count,1,"a second click cannot re-query the canceled in-flight name before sixty seconds")
+            ceilings(); no(N.Main.error)
+        end)
+    end
+end
+
 -- The reviewer's r2b/r2c cadence: 12 clicks over 3600 timer-driven seconds,
 -- refreshed host claims, 30 directory peers, and independent WP/CQ strangers.
 local function replay(strangers,offset,delay)

@@ -208,6 +208,7 @@ class ApiPolicyTests(unittest.TestCase):
         plant = ('local _, captured=debug.getupvalue(Wr.send,1); '
                  'debug.setupvalue(Wr.send,1,captured)')
         for path in root.glob('*.lua'):
+            self.check_source(path.read_text(), path.name)
             for access in (plant, 'local d=debug; d.getupvalue(fn,1)',
                            '_G["de".."bug"].getupvalue(fn,1)',
                            '_G.debug.setupvalue(fn,1,{})'):

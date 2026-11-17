@@ -125,11 +125,13 @@ local function queries(r)
         else
             r.sending=v
             local sent,why,attempted=dispatch(FL.lq(r.id,F.context(),v.key),"WHISPER",v.name,"click")
+            -- A send hook can stop/replace this guest, but cannot undo the
+            -- client attempt or release that name's shared click cooldown.
+            if sent or attempted then N.Main.invite.asked[v.short]=now end
             if guest~=r then return end
             r.sending=nil
             if not sent and not attempted and (why=="throttled" or why=="paused") then break end
             r.next=r.next+1
-            if sent or attempted then N.Main.invite.asked[v.short]=now end
             if sent then r.first=r.at; r.asked[v.short]=v end
         end
     end

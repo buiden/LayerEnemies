@@ -1,39 +1,39 @@
 {
   "baseline": {
     "lua": {
-      "assertions": 2693,
+      "assertions": 3039,
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 24
+      "tests": 28
     },
     "policy": {
       "assertions": null,
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 22
+      "tests": 25
     }
   },
   "final": {
     "lua": {
-      "assertions": 2693,
+      "assertions": 3039,
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 24
+      "tests": 28
     },
     "policy": {
       "assertions": null,
       "caught_by": [],
       "failed": 0,
       "rc": 0,
-      "tests": 22
+      "tests": 25
     }
   },
   "mutants": [
     {
-      "assertions": 2504,
+      "assertions": 2850,
       "caught_by": [
         "FAIL FLH batch: ordinary whisper then offer at half a second accepts: test/src_flh_batch.lua:55: one shared token must remain for LR: expected 6, got 7",
         "FAIL FLH batch: unsent queries pace without spending the reserved token: test/src_flh_batch.lua:64: not equal: expected 5, got 6",
@@ -46,10 +46,10 @@
       "mutant": "reserve-query-token",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2544,
+      "assertions": 2890,
       "caught_by": [
         "FAIL FLH batch: ordinary and owed traffic cannot steal the reserved LR: test/harness.lua:8: sent: expected false, got true",
         "FAIL FLH batch: the last rolling-minute slot belongs to LR: test/harness.lua:8: sent: expected false, got true"
@@ -59,10 +59,10 @@
       "mutant": "reserve-ordinary-token",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2570,
+      "assertions": 2916,
       "caught_by": [
         "FAIL FLH batch: the last rolling-minute slot belongs to LR: test/src_flh_batch.lua:179: only five of six remaining minute slots are queryable: expected 5, got 6"
       ],
@@ -71,23 +71,25 @@
       "mutant": "reserve-minute-slot",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2625,
+      "assertions": 2881,
       "caught_by": [
         "FAIL FLH batch: unsent queries pace without spending the reserved token: test/src_flh_batch.lua:66: not equal: expected 6, got 5",
-        "FAIL FLH batch: a full burst paces all queries within the original click window: test/src_flh_batch.lua:162: not equal: expected 1, got 0"
+        "FAIL FLH batch: a full burst paces all queries within the original click window: test/src_flh_batch.lua:162: not equal: expected 1, got 0",
+        "FAIL FLH batch: stop inside LQ 6 preserves attempted cooldown result 0: test/harness.lua:7: real client callback stopped the initial or paced batch: expected true, got false",
+        "FAIL FLH batch: stop inside LQ 6 preserves attempted cooldown result 3: test/harness.lua:7: real client callback stopped the initial or paced batch: expected true, got false"
       ],
-      "failed": 2,
+      "failed": 4,
       "killed": true,
       "mutant": "pace-unsent-queries",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2597,
+      "assertions": 2943,
       "caught_by": [
         "FAIL FLH batch: LR success and explicit stop release shared capacity immediately: test/src_flh_batch.lua:196: not equal: expected 6, got 5"
       ],
@@ -96,10 +98,10 @@
       "mutant": "release-after-LR",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2647,
+      "assertions": 2993,
       "caught_by": [
         "FAIL FLH batch: reserve expires at the original window without a tick: test/src_flh_batch.lua:90: expiry releases the reserve even before the guest tick: expected 8, got 7"
       ],
@@ -108,10 +110,10 @@
       "mutant": "release-at-expiry",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2578,
+      "assertions": 2924,
       "caught_by": [
         "FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:120: not equal: expected 2, got 1",
         "FAIL FLH batch: successful retry never extends invite authority at 89: test/src_flh_batch.lua:130: not equal: expected 1, got 0",
@@ -124,10 +126,10 @@
       "mutant": "retry-unspent-selection",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2671,
+      "assertions": 3017,
       "caught_by": [
         "FAIL FLH batch: third LR refusal ends the click with one exact chat line and row note: test/harness.lua:8: not equal: expected false, got true"
       ],
@@ -136,10 +138,10 @@
       "mutant": "two-retries-only",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2667,
+      "assertions": 3013,
       "caught_by": [
         "FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:117: polls and duplicate offers must not spend retries: expected 1, got 3"
       ],
@@ -148,10 +150,10 @@
       "mutant": "retry-only-with-room",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2623,
+      "assertions": 2969,
       "caught_by": [
         "FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:121: retry retains the original armed deadline: expected 11, got 71",
         "FAIL FLH batch: successful retry never extends invite authority at 90: test/src_flh_batch.lua:132: not equal: expected 0, got 1",
@@ -162,10 +164,10 @@
       "mutant": "original-LR-window",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2661,
+      "assertions": 3007,
       "caught_by": [
         "FAIL FLH batch: a full burst paces all queries within the original click window: test/src_flh_batch.lua:163: not equal: expected 11, got 15"
       ],
@@ -174,10 +176,10 @@
       "mutant": "original-paced-window",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2661,
+      "assertions": 3007,
       "caught_by": [
         "FAIL FLH batch: third LR refusal ends the click with one exact chat line and row note: test/src_flh_batch.lua:141: not equal: expected 1, got 0",
         "FAIL FLH batch: pending LR at expiry prints once and never sends after ninety seconds: test/src_flh_batch.lua:153: not equal: expected 1, got 0"
@@ -187,10 +189,10 @@
       "mutant": "failure-chat-line",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2675,
+      "assertions": 3021,
       "caught_by": [
         "FAIL FLH batch: third LR refusal ends the click with one exact chat line and row note: test/harness.lua:7: not equal: expected true, got false"
       ],
@@ -199,10 +201,10 @@
       "mutant": "failure-row-note",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2634,
+      "assertions": 2980,
       "caught_by": [
         "FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:117: polls and duplicate offers must not spend retries: expected 1, got 3",
         "FAIL FLH batch: a refused selection cannot be redirected by another queried host: test/src_flh_batch.lua:203: not equal: expected 0, got 1"
@@ -212,10 +214,10 @@
       "mutant": "pending-host-binding",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
-      "assertions": 2670,
+      "assertions": 3016,
       "caught_by": [
         "FAIL FLH batch: an offline head cannot block the paced batch: test/src_flh_batch.lua:239: not equal: expected 6, got 0"
       ],
@@ -224,7 +226,7 @@
       "mutant": "offline-query-head",
       "rc": 1,
       "suite": "lua",
-      "tests": 24
+      "tests": 28
     },
     {
       "assertions": null,
@@ -238,7 +240,7 @@
       "mutant": "route-loop-over-alias",
       "rc": 1,
       "suite": "policy",
-      "tests": 22
+      "tests": 25
     },
     {
       "assertions": null,
@@ -252,7 +254,7 @@
       "mutant": "route-computed-new-prefix",
       "rc": 1,
       "suite": "policy",
-      "tests": 22
+      "tests": 25
     },
     {
       "assertions": null,
@@ -266,23 +268,75 @@
       "mutant": "route-computed-channel",
       "rc": 1,
       "suite": "policy",
-      "tests": 22
+      "tests": 25
     },
     {
       "assertions": null,
       "caught_by": [
         "FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes) (plant=1)",
-        "FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes) (plant=2)",
-        "FAIL: test_flh_route_gate_rejects_computed_replacement_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_replacement_routes) (plant='if prefix == \"ReviewPrefix\" then local key = \"ki\" .. \"nds\"; route = { [key] = { GUILD = true }, check = function() return \"line\" end } end')",
-        "FAIL: test_flh_route_gate_rejects_computed_replacement_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_replacement_routes) (plant='if prefix == \"FLHNET2\" and kind == \"CHANNEL\" then local key = \"ki\" .. \"nds\"; route = { [key] = { CHANNEL = true }, check = route.check } end')",
-        "FAIL: test_flh_route_gate_rejects_loop_over_local_alias (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_loop_over_local_alias)"
+        "FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes) (plant=2)"
       ],
-      "failed": 5,
+      "failed": 2,
       "killed": true,
       "mutant": "gate-alias-freeze",
       "rc": 1,
       "suite": "policy",
-      "tests": 22
+      "tests": 25
+    },
+    {
+      "assertions": null,
+      "caught_by": [
+        "FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes)",
+        "FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape)",
+        "FAIL: test_flh_routes_are_only_the_four_approved_routes (test.api_policy_test.ApiPolicyTests.test_flh_routes_are_only_the_four_approved_routes)"
+      ],
+      "failed": 3,
+      "killed": true,
+      "mutant": "route-expression-new-prefix",
+      "rc": 1,
+      "suite": "policy",
+      "tests": 25
+    },
+    {
+      "assertions": null,
+      "caught_by": [
+        "FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes)",
+        "FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape)",
+        "FAIL: test_flh_routes_are_only_the_four_approved_routes (test.api_policy_test.ApiPolicyTests.test_flh_routes_are_only_the_four_approved_routes)"
+      ],
+      "failed": 3,
+      "killed": true,
+      "mutant": "route-expression-channel",
+      "rc": 1,
+      "suite": "policy",
+      "tests": 25
+    },
+    {
+      "assertions": null,
+      "caught_by": [
+        "FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module)"
+      ],
+      "failed": 1,
+      "killed": true,
+      "mutant": "route-debug-upvalue",
+      "rc": 1,
+      "suite": "policy",
+      "tests": 25
+    },
+    {
+      "assertions": 2889,
+      "caught_by": [
+        "FAIL FLH batch: stop inside LQ 2 preserves attempted cooldown result 0: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 11, got nil",
+        "FAIL FLH batch: stop inside LQ 2 preserves attempted cooldown result 3: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 11, got nil",
+        "FAIL FLH batch: stop inside LQ 6 preserves attempted cooldown result 0: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 13, got nil",
+        "FAIL FLH batch: stop inside LQ 6 preserves attempted cooldown result 3: test/src_flh_batch.lua:267: canceled client attempt still spends name cooldown: expected 13, got nil"
+      ],
+      "failed": 4,
+      "killed": true,
+      "mutant": "stop-inflight-name-cooldown",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 28
     }
   ]
 }
