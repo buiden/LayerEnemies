@@ -180,8 +180,21 @@ add('S1 discovery resumes after last greeted account', 'if st.lastHello then',
 add('S1 discovery order is stable across roster changes', 'table.sort(ids)',
     'do end', 'round robin')
 add('S1 refused accounts do not advance the greeting cursor',
-    'if identity(id,ctx) and send(st,id,"H",ctx) then st.lastHello=id end',
-    'if identity(id,ctx) then send(st,id,"H",ctx); st.lastHello=id end', 'round robin')
+    'if send(st,id,"H",ctx) then st.lastHello=id end',
+    'send(st,id,"H",ctx); st.lastHello=id', 'round robin')
+add('unreadable names neither consume selection nor block rotation',
+    '''        if identity(id,ctx) then
+            selected=selected+1
+            if selected>20 then break end
+            if send(st,id,"H",ctx) then st.lastHello=id end
+        else
+            -- Skip unreadable names without spending a selection or stopping the ring.
+            st.lastHello=id
+        end''',
+    '''        selected=selected+1
+        if selected>20 then break end
+        if identity(id,ctx) and send(st,id,"H",ctx) then st.lastHello=id end''',
+    'unreadable hello')
 review('N1 hello recipients are not restricted to known WarBoard users',
        'every eligible opposite-faction Battle.net friend or community member account that is online in WoW',
        "WarBoard users among the player's Battle.net friends and community members of the opposite faction",

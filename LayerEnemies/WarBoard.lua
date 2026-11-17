@@ -484,7 +484,7 @@ function W.tick(st,ctx)
     if not Src.enabled("warboard") or not N.Main.sharing() or not N.Net.allowed("warboard","public") then return end
     st.scan=ctx.now
     -- Peer enumeration can change order or lose the previous account. Numeric
-    -- IDs give a stable ring; resume strictly after the last admitted hello.
+    -- IDs give a stable ring; resume after the last admitted or unreadable account.
     local ids,seen={},{}
     for _,r in ipairs(BN.peers(ctx.now)) do
         if S.tab(r) and S.num(r.id) and r.id>0 and r.id%1==0 and not seen[r.id]
@@ -499,9 +499,14 @@ function W.tick(st,ctx)
     end
     for step=0,#ids-1 do
         local id=ids[(start+step-1)%#ids+1]
-        selected=selected+1
-        if selected>20 then break end
-        if identity(id,ctx) and send(st,id,"H",ctx) then st.lastHello=id end
+        if identity(id,ctx) then
+            selected=selected+1
+            if selected>20 then break end
+            if send(st,id,"H",ctx) then st.lastHello=id end
+        else
+            -- Skip unreadable names without spending a selection or stopping the ring.
+            st.lastHello=id
+        end
     end
 end
 Src.register{name="warboard",prefixes={"WarBoard","WarBoardBN"},counters={},

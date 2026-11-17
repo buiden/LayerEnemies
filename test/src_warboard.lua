@@ -222,6 +222,99 @@ for _,count in ipairs({12,20,25,40}) do
     end
 end
 
+for _,mode in ipairs({"missing","secret","throwing"}) do
+    test("unreadable hello cursor skips "..mode.." names without spending the selection budget",function()
+        local N=setup(); local order={}; local scans=0
+        local lookup=C_BattleNet.GetGameAccountInfoByID
+        C_BattleNet.GetGameAccountInfoByID=function(id)
+            local r=lookup(id)
+            if id>=81 and id<=102 then
+                r.characterName=mode=="secret" and h.secret or nil
+                if mode=="throwing" then
+                    setmetatable(r,{__index=function(_,key)
+                        if key=="characterName" then error("unreadable character name") end
+                    end})
+                end
+            end
+            return r
+        end
+        local queued=N.BNet.send
+        N.BNet.send=function(net,id,...)
+            if net=="warboard" then order[#order+1]=id end
+            return queued(net,id,...)
+        end
+        N.BNet.peers=function()
+            scans=scans+1; local rows={}
+            for id=71,115 do rows[#rows+1]={id=id,faction="Horde"} end
+            return rows
+        end
+        for id=81,102 do eq(N.BNet.who(id),nil,"fixture name is unreadable through the real adapter") end
+        advance(1); eq(scans,1)
+        eq(#order,20,"unreadable accounts do not consume readable selections")
+        eq(N.BNet.queued(),10,"shared admission cap is unchanged")
+        for i=1,10 do eq(order[i],70+i); eq(order[10+i],102+i) end
+        eq(N.WarBoard.state.lastHello,102,"cursor passes unreadable names but not readable queue refusals")
+        for id=81,102 do eq(N.WarBoard.state.hellos[id],nil,"unreadable names spend no cooldown") end
+        advance(60); eq(scans,2)
+        eq(#order,33,"next pass starts after the unreadable block; earlier hellos stay on cooldown")
+        for i=1,13 do eq(order[20+i],102+i) end
+        advance(10); eq(#sends("H"),20)
+        no(N.Main.error)
+    end)
+end
+
+for _,unreadable in ipairs({false,true}) do
+    test("unreadable hello reach over sixty minutes with "..(unreadable and "22 unreadable" or "all readable").." of 45 accounts",function()
+        local N=setup(); local scans,attempts,lastScan=0,0,nil
+        local function blocked(id) return unreadable and id>=81 and id<=102 end
+        local lookup=C_BattleNet.GetGameAccountInfoByID
+        C_BattleNet.GetGameAccountInfoByID=function(id)
+            local r=lookup(id)
+            if blocked(id) then r.characterName=nil end
+            return r
+        end
+        local queued=N.BNet.send
+        N.BNet.send=function(net,id,prefix,text,prio,still)
+            if net=="warboard" and text:sub(6,6)=="H" then
+                attempts=attempts+1
+                yes(attempts<=20,"unchanged twenty-account selection cap")
+                no(blocked(id),"unreadable accounts never enter the hello queue")
+            end
+            return queued(net,id,prefix,text,prio,still)
+        end
+        N.BNet.peers=function()
+            if lastScan then yes(h.clock()-lastScan>=60,"unchanged sixty-second scan cadence") end
+            lastScan=h.clock(); scans=scans+1; attempts=0
+            local rows={}
+            for id=71,115 do rows[#rows+1]={id=id,faction="Horde"} end
+            return rows
+        end
+        for id=71,115 do
+            eq(N.BNet.who(id)~=nil,not blocked(id),"live identity readability matches the fixture")
+        end
+        advance(3600); eq(scans,60)
+        local out=sends("H"); local greeted,last={},{}
+        local first=1
+        for i,s in ipairs(out) do
+            yes(s.target>=71 and s.target<=115); no(blocked(s.target))
+            if last[s.target] then yes(s.at-last[s.target]>=600,"unchanged per-account hello cooldown") end
+            last[s.target]=s.at; greeted[s.target]=true
+            while s.at-out[first].at>=60 do first=first+1 end
+            yes(i-first+1<=10,"unchanged ten-per-minute WarBoard budget")
+            if i>1 then yes(s.at-out[i-1].at>=1,"unchanged shared one-second pace") end
+        end
+        local after=0
+        for id=103,115 do if greeted[id] then after=after+1 end end
+        local expected=unreadable and 23 or 45
+        print("UNREADABLE REACH "..(unreadable and "22 missing" or "none")..": "..
+            N.Safe.count(greeted).."/"..expected.."; after block "..after.."/13")
+        eq(N.Safe.count(greeted),expected,"all readable accounts greeted within sixty minutes")
+        eq(after,13,"readable accounts after the block are not starved")
+        eq(#sends("A"),0); eq(#out,#h.sent(),"only permitted hellos are emitted")
+        no(N.Main.error)
+    end)
+end
+
 test("discovery selects twenty opposite accounts at sixty seconds and greets once per six hundred",function()
     local N=setup(); local scans=0
     local attempts=0; local queued=N.BNet.send
