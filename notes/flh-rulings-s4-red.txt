@@ -1,0 +1,122 @@
+......FFFFFFFFFFFFF.......
+======================================================================
+FAIL: test_flh_route_gate_rejects_bracket_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_bracket_routes) (key='["CHANNEL"]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 92, in test_flh_route_gate_rejects_bracket_routes
+    with self.subTest(key=key), self.assertRaises(AssertionError):
+                                ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_bracket_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_bracket_routes) (key='["CHAN".."NEL"]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 92, in test_flh_route_gate_rejects_bracket_routes
+    with self.subTest(key=key), self.assertRaises(AssertionError):
+                                ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_bracket_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_bracket_routes) (key='[routeName]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 92, in test_flh_route_gate_rejects_bracket_routes
+    with self.subTest(key=key), self.assertRaises(AssertionError):
+                                ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape) (later='ROUTES.FLHNET2.kinds.CHANNEL = true')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 103, in test_flh_route_gate_rejects_later_mutation_and_escape
+    with self.subTest(later=later), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape) (later='ROUTES["FLHNET2"].kinds["CHANNEL"] = 1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 103, in test_flh_route_gate_rejects_later_mutation_and_escape
+    with self.subTest(later=later), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape) (later='local alias = ROUTES; alias.FLHNET2.kinds.CHANNEL = true')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 103, in test_flh_route_gate_rejects_later_mutation_and_escape
+    with self.subTest(later=later), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape) (later='rawset(ROUTES.FLHNET2.kinds,"CHANNEL",true)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 103, in test_flh_route_gate_rejects_later_mutation_and_escape
+    with self.subTest(later=later), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape) (later='route.kinds.CHANNEL = true')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 103, in test_flh_route_gate_rejects_later_mutation_and_escape
+    with self.subTest(later=later), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_truthy_nonboolean_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_truthy_nonboolean_routes) (value='1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 85, in test_flh_route_gate_rejects_truthy_nonboolean_routes
+    with self.subTest(value=value), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_truthy_nonboolean_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_truthy_nonboolean_routes) (value='"yes"')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 85, in test_flh_route_gate_rejects_truthy_nonboolean_routes
+    with self.subTest(value=value), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_truthy_nonboolean_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_truthy_nonboolean_routes) (value='function() end')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 85, in test_flh_route_gate_rejects_truthy_nonboolean_routes
+    with self.subTest(value=value), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_truthy_nonboolean_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_truthy_nonboolean_routes) (value='false')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 85, in test_flh_route_gate_rejects_truthy_nonboolean_routes
+    with self.subTest(value=value), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_requires_complete_unique_literal_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_requires_complete_unique_literal_routes) (kinds='GUILD = true, PARTY = true, RAID = true, WHISPER = true, WHISPER = false')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/api_policy_test.py", line 115, in test_flh_route_gate_requires_complete_unique_literal_routes
+    with self.subTest(kinds=kinds), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.167s
+
+FAILED (failures=13)

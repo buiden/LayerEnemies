@@ -1,57 +1,58 @@
 {
   "baseline": {
-    "assertions": 19431,
+    "assertions": 21653,
     "caught_by": [],
     "failed": 0,
-    "passed": 62,
+    "passed": 91,
     "rc": 0
   },
   "final": {
-    "assertions": 19431,
+    "assertions": 21653,
     "caught_by": [],
     "failed": 0,
-    "passed": 62,
+    "passed": 91,
     "rc": 0
   },
   "mutants": [
     {
-      "assertions": 19426,
+      "assertions": 21648,
       "caught_by": [
         "FLH member: owed replies share six per minute and one per sender per sixty seconds: test/src_flh_member.lua:47: not equal: expected 1, got 3"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "reply-sender-gap",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19044,
+      "assertions": 21262,
       "caught_by": [
         "FLH member: owed replies share six per minute and one per sender per sixty seconds: test/src_flh_member.lua:49: not equal: expected 6, got 7",
+        "FLH member: one directory name waits six hundred seconds and stale snapshots do not probe: test/src_flh_member.lua:131: not equal: expected 1, got 0",
         "FLH member: existing fanout sends all forty nine on its original cadence beside owed replies: test/src_flh_member.lua:166: not equal: expected 6, got 7",
         "FLH member: deterministic five thousand malformed and structured frames respect every send kind: test/harness.lua:7: not equal: expected true, got false",
         "FLH member: probe rotation reaches forty names under a shared two-slot budget: test/src_flh_member.lua:513: two admitted probes per minute under the real shared cap: expected 2, got 1"
       ],
-      "failed": 4,
+      "failed": 5,
       "killed": true,
       "mutant": "reply-total-cap",
-      "passed": 58,
+      "passed": 86,
       "rc": 1
     },
     {
-      "assertions": 19414,
+      "assertions": 21636,
       "caught_by": [
         "FLH member: directory joins read only and probes four per minute only while Friendly is open: test/src_flh_member.lua:121: not equal: expected 4, got 5"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "probe-total-cap",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19426,
+      "assertions": 21648,
       "caught_by": [
         "FLH member: one directory name waits six hundred seconds and stale snapshots do not probe: test/src_flh_member.lua:133: not equal: expected 1, got 40",
         "FLH member: client refusal spends reply and probe budgets without queue or retry: test/src_flh_member.lua:374: not equal: expected 1, got 2"
@@ -59,22 +60,22 @@
       "failed": 2,
       "killed": true,
       "mutant": "probe-name-gap",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19413,
+      "assertions": 21635,
       "caught_by": [
         "FLH member: directory joins read only and probes four per minute only while Friendly is open: test/src_flh_member.lua:117: closed window stays silent for an hour: expected 0, got 36"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "probe-window",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19402,
+      "assertions": 21624,
       "caught_by": [
         "FLH member: probe rotation reaches forty names under a shared two-slot budget: test/src_flh_member.lua:524: every directory name gets a turn before the head repeats: expected 40, got 20",
         "FLH member: probe gate refusal rotates past a full target without charging its name: test/src_flh_member.lua:553: not equal: expected 1, got 0"
@@ -82,60 +83,62 @@
       "failed": 2,
       "killed": true,
       "mutant": "probe-round-robin",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19423,
+      "assertions": 21645,
       "caught_by": [
         "FLH member: probe gate refusal from a transport pause does not charge the name: test/src_flh_member.lua:537: a locally refused probe can send when the pause clears, not after 600 s: expected 1, got 0",
-        "FLH member: probe gate refusal rotates past a full target without charging its name: test/src_flh_member.lua:555: the first target can use a newly free slot without a false 600 s cooldown: expected 2, got 1"
+        "FLH member: probe gate refusal rotates past a full target without charging its name: test/src_flh_member.lua:555: the first target can use a newly free slot without a false 600 s cooldown: expected 2, got 1",
+        "FLH member: R2 probes leave six shared burst slots for owed replies: test/src_flh_rulings.lua:103: refused probe keeps its name eligible: expected 1, got 0"
       ],
-      "failed": 2,
+      "failed": 3,
       "killed": true,
       "mutant": "probe-gate-refusal-free",
-      "passed": 60,
+      "passed": 88,
       "rc": 1
     },
     {
-      "assertions": 19429,
+      "assertions": 21651,
       "caught_by": [
         "FLH member: existing fanout sends all forty nine on its original cadence beside owed replies: test/src_flh_member.lua:166: no probes during any live fanout round: expected 0, got 4"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "probe-during-fanout",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19372,
+      "assertions": 21592,
       "caught_by": [
         "FLH member: builders carry our identity and only our fingerprint: test/src_flh_member.lua:31: not equal: expected HI|100|7|0|LayerEnemies 1.1.0|TestRealm|BUILD=LayerEnemies 1.1.0, got HI|100|7|1|LayerEnemies 1.1.0|TestRealm|BUILD=LayerEnemies 1.1.0",
         "FLH member: guild and group presence is change-driven and capped per route: test/src_flh_member.lua:87: not equal: expected 2, got 0",
         "FLH member: party and raid share one group presence lane with no guildless copy: test/src_flh_member.lua:351: not equal: expected 1, got 0",
         "FLH member: failed presence is spent until our fingerprint changes: test/src_flh_member.lua:437: not equal: expected 1, got 0",
-        "FLH member: owner thirty-minute no-donor control: test/harness.lua:7: HI still runs without the donor: expected true, got false"
+        "FLH member: owner thirty-minute no-donor control: test/harness.lua:7: HI still runs without the donor: expected true, got false",
+        "FLH member: R2 HI spends the overall burst: test/src_flh_rulings.lua:94: real authorized send reached the client: expected 1, got 0"
       ],
-      "failed": 5,
+      "failed": 6,
       "killed": true,
       "mutant": "host-flag",
-      "passed": 57,
+      "passed": 85,
       "rc": 1
     },
     {
-      "assertions": 19426,
+      "assertions": 21648,
       "caught_by": [
         "FLH member: guild and group presence is change-driven and capped per route: test/src_flh_member.lua:91: not equal: expected 4, got 6"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "presence-rate",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19452,
+      "assertions": 21674,
       "caught_by": [
         "FLH member: guild and group presence is change-driven and capped per route: test/src_flh_member.lua:89: no periodic presence when unchanged: expected 2, got 4",
         "FLH member: failed presence is spent until our fingerprint changes: test/src_flh_member.lua:439: a client-refused presence is not retried: expected 1, got 2"
@@ -143,67 +146,66 @@
       "failed": 2,
       "killed": true,
       "mutant": "presence-change-driven",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19428,
+      "assertions": 21650,
       "caught_by": [
         "FLH member: failed presence is spent until our fingerprint changes: test/src_flh_member.lua:439: a client-refused presence is not retried: expected 1, got 2"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "no-presence-client-retry",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19428,
+      "assertions": 21650,
       "caught_by": [
         "FLH member: party and raid share one group presence lane with no guildless copy: test/src_flh_member.lua:353: not equal: expected 1, got 2"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "group-presence-lane",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19406,
+      "assertions": 21628,
       "caught_by": [
         "FLH member: builders carry our identity and only our fingerprint: test/src_flh_member.lua:31: not equal: expected HI|100|7|0|LayerEnemies 1.1.0|TestRealm|BUILD=LayerEnemies 1.1.0, got HI|100|7|0|0.1.3|TestRealm|BUILD=LayerEnemies 1.1.0"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "identity-is-layerenemies",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19406,
+      "assertions": 21628,
       "caught_by": [
         "FLH member: builders carry our identity and only our fingerprint: test/src_flh_member.lua:31: not equal: expected HI|100|7|0|LayerEnemies 1.1.0|TestRealm|BUILD=LayerEnemies 1.1.0, got HI|100|7|0|LayerEnemies 1.1.0|TestRealm|BUILD=ForeverLayerHop 0.1.9"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "honest-build-marker",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19428,
+      "assertions": 21652,
       "caught_by": [
-        "FLH member: share refuses even owed whispers: test/src_flh_member.lua:80: not equal: expected 0, got 1",
-        "FLH member: directory refused for share: test/harness.lua:8: not equal: expected false, got true"
+        "FLH member: share refuses even owed whispers: test/src_flh_member.lua:80: not equal: expected 0, got 1"
       ],
-      "failed": 2,
+      "failed": 1,
       "killed": true,
       "mutant": "share-off",
-      "passed": 60,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19427,
+      "assertions": 21649,
       "caught_by": [
         "FLH member: guild refuses even owed whispers: test/src_flh_member.lua:80: not equal: expected 0, got 1",
         "FLH member: guild and group presence is change-driven and capped per route: test/src_flh_member.lua:94: not equal: expected 7, got 8"
@@ -211,22 +213,22 @@
       "failed": 2,
       "killed": true,
       "mutant": "guild-consent",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19430,
+      "assertions": 21652,
       "caught_by": [
         "FLH member: switch refuses even owed whispers: test/src_flh_member.lua:80: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "network-switch",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19151,
+      "assertions": 21373,
       "caught_by": [
         "FLH member: combat refuses even owed whispers: test/src_flh_member.lua:80: not equal: expected 0, got 1",
         "FLH member: unreadable live APIs nil are silent: test/src_flh_member.lua:271: not equal: expected 0, got 2",
@@ -236,22 +238,22 @@
       "failed": 4,
       "killed": true,
       "mutant": "combat-gate",
-      "passed": 58,
+      "passed": 87,
       "rc": 1
     },
     {
-      "assertions": 19428,
+      "assertions": 21650,
       "caught_by": [
         "FLH member: pending guest is revoked by instance: test/src_flh_member.lua:232: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "instance-gate",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19367,
+      "assertions": 21589,
       "caught_by": [
         "FLH member: guild and group presence is change-driven and capped per route: test/src_flh_member.lua:95: not equal: expected 7, got 8",
         "FLH member: owner thirty-minute stand-down: test/src_flh_member.lua:464: no FLH sends including WR and CA while the donor owns the network: expected 0, got 72",
@@ -261,11 +263,11 @@
       "failed": 4,
       "killed": true,
       "mutant": "stand-down",
-      "passed": 58,
+      "passed": 87,
       "rc": 1
     },
     {
-      "assertions": 19376,
+      "assertions": 21598,
       "caught_by": [
         "FLH member: guild and group presence is change-driven and capped per route: test/src_flh_member.lua:96: the real addon owns even owed replies: expected 7, got 8",
         "FLH member: owner thirty-minute stand-down: test/src_flh_member.lua:464: no FLH sends including WR and CA while the donor owns the network: expected 0, got 62",
@@ -274,22 +276,22 @@
       "failed": 3,
       "killed": true,
       "mutant": "owner-includes-owed-replies",
-      "passed": 59,
+      "passed": 88,
       "rc": 1
     },
     {
-      "assertions": 19429,
+      "assertions": 21651,
       "caught_by": [
         "FLH member: directory refused for slots: test/harness.lua:8: not equal: expected false, got true"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "directory-slots",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19387,
+      "assertions": 21607,
       "caught_by": [
         "FLH member: directory joins read only and probes four per minute only while Friendly is open: test/src_flh_member.lua:121: not equal: expected 4, got 0",
         "FLH member: one directory name waits six hundred seconds and stale snapshots do not probe: test/src_flh_member.lua:134: not equal: expected 2, got 1",
@@ -301,16 +303,18 @@
         "FLH member: directory refused for donor: test/harness.lua:8: not equal: expected false, got true",
         "FLH member: directory refused for slots: test/harness.lua:8: not equal: expected false, got true",
         "FLH member: owner thirty-minute stand-down: test/src_flh_member.lua:465: no directory join while the donor owns the network: expected 0, got 1",
-        "FLH member: owner thirty-minute no-donor control: test/harness.lua:7: WP still runs without the donor: expected true, got false"
+        "FLH member: owner thirty-minute no-donor control: test/harness.lua:7: WP still runs without the donor: expected true, got false",
+        "FLH member: R2 privacy leave waits until after combat: test/src_flh_rulings.lua:140: not equal: expected 1, got 0",
+        "FLH member: R2 privacy leave waits until after instance: test/src_flh_rulings.lua:140: not equal: expected 1, got 0"
       ],
-      "failed": 11,
+      "failed": 13,
       "killed": true,
       "mutant": "directory-consent",
-      "passed": 51,
+      "passed": 78,
       "rc": 1
     },
     {
-      "assertions": 19080,
+      "assertions": 21302,
       "caught_by": [
         "FLH member: other public traffic leaves six owed slots before probes stop: test/src_flh_member.lua:364: not equal: expected 0, got 1",
         "FLH member: probe rotation reaches forty names under a shared two-slot budget: test/src_flh_member.lua:513: two admitted probes per minute under the real shared cap: expected 2, got 4"
@@ -318,22 +322,22 @@
       "failed": 2,
       "killed": true,
       "mutant": "owed-reserve",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19430,
+      "assertions": 21652,
       "caught_by": [
         "FLH member: other public traffic leaves six owed slots before probes stop: test/harness.lua:8: not equal: expected false, got true"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "public-total-cap",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19423,
+      "assertions": 21645,
       "caught_by": [
         "FLH member: prefix isolation still shares the public per-person cap: test/src_flh_member.lua:334: existing four public lines leave no per-person room: expected 0, got 1",
         "FLH member: probe gate refusal rotates past a full target without charging its name: test/src_flh_member.lua:551: not equal: expected 0, got 1"
@@ -341,11 +345,11 @@
       "failed": 2,
       "killed": true,
       "mutant": "public-per-person-cap",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19376,
+      "assertions": 21598,
       "caught_by": [
         "FLH member: existing fanout sends all forty nine on its original cadence beside owed replies: test/src_flh_member.lua:161: not equal: expected 8, got 7",
         "FLH member: explicit FLH batch leaves a selection slot inside the unchanged hop cap: test/src_flh_member.lua:199: not equal: expected 7, got 4"
@@ -353,11 +357,11 @@
       "failed": 2,
       "killed": true,
       "mutant": "independent-fanout-budget",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19423,
+      "assertions": 21645,
       "caught_by": [
         "FLH member: named guest click correlates one offer and arms only its asked host: test/src_flh_member.lua:188: not equal: expected 1, got 2",
         "FLH member: an LR client refusal spends selection without arming or retry: test/src_flh_member.lua:249: not equal: expected 1, got 2"
@@ -365,133 +369,137 @@
       "failed": 2,
       "killed": true,
       "mutant": "one-selection",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19421,
+      "assertions": 21361,
       "caught_by": [
-        "FLH member: named guest click correlates one offer and arms only its asked host: test/src_flh_member.lua:185: not equal: expected 0, got 1"
+        "FLH member: named guest click correlates one offer and arms only its asked host: test/src_flh_member.lua:185: not equal: expected 0, got 1",
+        "FLH member: R2 only the selected host and matching status can cancel: test/src_flh_rulings.lua:165: not equal: expected 0, got 1",
+        "FLH member: R2 LI cannot arm without the selected host successful LR and id: test/src_flh_rulings.lua:200: wrong id: expected 0, got 1"
       ],
-      "failed": 1,
+      "failed": 3,
       "killed": true,
       "mutant": "request-id",
-      "passed": 61,
+      "passed": 88,
       "rc": 1
     },
     {
-      "assertions": 19421,
+      "assertions": 21643,
       "caught_by": [
         "FLH member: named guest click correlates one offer and arms only its asked host: test/src_flh_member.lua:185: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "offer-map",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19422,
+      "assertions": 21644,
       "caught_by": [
         "FLH member: named guest click correlates one offer and arms only its asked host: test/src_flh_member.lua:186: not equal: expected 1, got 0"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "offer-target-key",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19419,
+      "assertions": 21641,
       "caught_by": [
-        "FLH member: timed-out row is measured and late offers cannot send: test/src_flh_member.lua:212: not equal: expected 0, got 1"
+        "FLH member: timed-out row is measured and late offers cannot send: test/src_flh_member.lua:212: not equal: expected 0, got 1",
+        "FLH member: R2 LI retains the original ninety second window at 90: test/src_flh_rulings.lua:186: not equal: expected 0, got 1"
       ],
-      "failed": 1,
+      "failed": 2,
       "killed": true,
       "mutant": "offer-window",
-      "passed": 61,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19421,
+      "assertions": 21643,
       "caught_by": [
         "FLH member: timed-out row is measured and late offers cannot send: test/harness.lua:7: not equal: expected true, got false"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "timeout-detail",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19430,
+      "assertions": 21652,
       "caught_by": [
         "FLH member: explicit FLH batch leaves a selection slot inside the unchanged hop cap: test/src_flh_member.lua:205: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "selected-target-only",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19430,
+      "assertions": 21652,
       "caught_by": [
         "FLH member: an LR client refusal spends selection without arming or retry: test/harness.lua:8: not equal: expected false, got true",
-        "FLH member: forged selection target and changed offer keys are never sent: test/harness.lua:8: not equal: expected false, got true"
+        "FLH member: forged selection target and changed offer keys are never sent: test/harness.lua:8: not equal: expected false, got true",
+        "FLH member: R2 LI cannot arm without the selected host successful LR and id: test/src_flh_rulings.lua:200: LR refused: expected 0, got 1"
       ],
-      "failed": 2,
+      "failed": 3,
       "killed": true,
       "mutant": "selection-after-success",
-      "passed": 60,
+      "passed": 88,
       "rc": 1
     },
     {
-      "assertions": 19430,
+      "assertions": 21652,
       "caught_by": [
         "FLH member: a freshly known new zone still revokes an open old-zone offer: test/src_flh_member.lua:416: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "guest-zone",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19428,
+      "assertions": 21650,
       "caught_by": [
         "FLH member: pending guest is revoked by fingerprint: test/src_flh_member.lua:232: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "guest-own-key",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19427,
+      "assertions": 21649,
       "caught_by": [
         "FLH member: stale previews and unknown fingerprints never redirect a click: test/harness.lua:8: not equal: expected false, got true"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "stale-preview",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19421,
+      "assertions": 21643,
       "caught_by": [
         "FLH member: explicit FLH batch leaves a selection slot inside the unchanged hop cap: test/src_flh_member.lua:199: not equal: expected 7, got 8"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "batch-cap-reserves-lr",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19384,
+      "assertions": 21606,
       "caught_by": [
         "FLH member: session switch and all received names never enter SavedVariables: test/src_flh_member.lua:258: no new saved field: expected nil, got true",
         "FLH member: deterministic five thousand malformed and structured frames respect every send kind: test/src_flh_member.lua:320: not equal: expected nil, got true"
@@ -499,88 +507,88 @@
       "failed": 2,
       "killed": true,
       "mutant": "no-saved-switch",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
-      "assertions": 19409,
+      "assertions": 21631,
       "caught_by": [
         "FLH member: named guest click correlates one offer and arms only its asked host: test/harness.lua:8: FLH does not promote the general host flag: expected false, got true"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "general-host-flag",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19431,
+      "assertions": 21653,
       "caught_by": [
         "FLH member: private owed dispatch cannot be redirected to someone else: test/src_flh_member.lua:409: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "private-flight-payload",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19430,
+      "assertions": 21652,
       "caught_by": [
         "FLH member: duplicate reentrant dispatch cannot spend one authority twice: test/harness.lua:7: not equal: expected true, got false"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "one-flight-use",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19331,
+      "assertions": 21553,
       "caught_by": [
         "FLH member: share and network off-on revoke already selected guests: test/src_flh_member.lua:283: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "share-off-on-revocation",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19380,
+      "assertions": 21602,
       "caught_by": [
         "FLH member: share and network off-on revoke already selected guests: test/src_flh_member.lua:283: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "network-off-on-revocation",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19429,
+      "assertions": 21651,
       "caught_by": [
         "FLH member: share and network off-on revoke already selected guests: test/src_flh_member.lua:283: not equal: expected 0, got 1"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "consent-off-on-revocation",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19426,
+      "assertions": 21648,
       "caught_by": [
         "FLH member: a guest query excludes every other hop path until stopped: test/harness.lua:7: not equal: expected true, got false"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "other-hop-exclusion",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19406,
+      "assertions": 21628,
       "caught_by": [
         "FLH member: builders carry our identity and only our fingerprint: test/src_flh_member.lua:31: not equal: expected LQ|42|100|8|7||BUILD=LayerEnemies 1.1.0, got LQ|42|100|8|7|8|BUILD=LayerEnemies 1.1.0",
         "FLH member: named guest click correlates one offer and arms only its asked host: test/src_flh_member.lua:182: not equal: expected , got 8"
@@ -588,7 +596,7 @@
       "failed": 2,
       "killed": true,
       "mutant": "no-peer-name-disclosure",
-      "passed": 60,
+      "passed": 89,
       "rc": 1
     },
     {
@@ -601,25 +609,25 @@
       "rc": 1
     },
     {
-      "assertions": 19426,
+      "assertions": 21648,
       "caught_by": [
         "FLH member: merged home-realm spelling keeps the shown host and sends canonically: test/harness.lua:7: not equal: expected true, got false"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "canonical-guest-target",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     },
     {
-      "assertions": 19424,
+      "assertions": 21646,
       "caught_by": [
         "FLH member: Wire route grammar independently refuses host and peer-exchange packets: test/harness.lua:8: sent: expected false, got true"
       ],
       "failed": 1,
       "killed": true,
       "mutant": "no-host-offer-route",
-      "passed": 61,
+      "passed": 90,
       "rc": 1
     }
   ]

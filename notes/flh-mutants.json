@@ -213,12 +213,13 @@
     },
     {
       "caught_by": [
-        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: <address>"
+        "FLH: malformed fields and unknown commands are silent nil: test/flh.lua:60: not equal: expected nil, got table: <address>",
+        "FLH: seeded byte and structured fuzz is bounded silent and never sends: test/harness.lua:7: not equal: expected true, got false"
       ],
-      "failed": 1,
+      "failed": 2,
       "killed": true,
       "mutant": "no-metadata-validation",
-      "passed": 28,
+      "passed": 27,
       "rc": 1
     },
     {

@@ -1,6 +1,10 @@
 # Forever Layer Hop F2 — membership and guest-hop gate
 
-## Current follow-up: one owner and fair probes
+## Current follow-up: reviewer rulings S1–S4 / N1–N3
+
+See [flh-review-rulings.md](flh-review-rulings.md) for the corrected shared ceilings, retained directory membership, decline/leader handling, exact route gate, README side effect and stable mutant evidence. It supersedes the historical behavior and counts below. Verified implementation: `e54229dfde9f3a960c00eba2027233cda26707ec`; evidence is committed separately.
+
+## Historical follow-up: one owner and fair probes
 
 - Follow-up base: `dfcd29bc6f020370313091f12d0f08ad68d2f3fe`.
 - Owner fix: `7533363147faa630d183454961d9fa31e05fe315`.

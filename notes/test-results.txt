@@ -1458,6 +1458,35 @@ PASS FLH member: owner loading at dispatch blocks owed replies at the final gate
 PASS FLH member: probe rotation reaches forty names under a shared two-slot budget
 PASS FLH member: probe gate refusal from a transport pause does not charge the name
 PASS FLH member: probe gate refusal rotates past a full target without charging its name
+PASS FLH member: R2 eight ordinary plus six owed replies never exceeds eight at once
+PASS FLH member: R2 forty ordinary in fifty nine seconds leaves no reply room
+PASS FLH member: R2 replies charge the shared bucket before ordinary traffic
+PASS FLH member: R2 HI spends the overall burst
+PASS FLH member: R2 WR spends the overall burst
+PASS FLH member: R2 CA spends the overall burst
+PASS FLH member: R2 WP spends the overall burst
+PASS FLH member: R2 LQ spends the overall burst
+PASS FLH member: R2 LR spends the overall burst
+PASS FLH member: R2 probes leave six shared burst slots for owed replies
+PASS FLH member: R2 probes leave six shared minute slots for owed replies
+PASS FLH member: R2 directory stays joined through twenty combat periods
+PASS FLH member: R2 privacy leave waits until after combat
+PASS FLH member: R2 directory stays joined through twenty instance periods
+PASS FLH member: R2 privacy leave waits until after instance
+PASS FLH member: R2 host status LD|%d cancels and prints once
+PASS FLH member: R2 host status LA|%d cancels and prints once
+PASS FLH member: R2 host status HQ|%d|2 cancels and prints once
+PASS FLH member: R2 host status LN|%d cancels and prints once
+PASS FLH member: R2 host status LN|%d|busy cancels and prints once
+PASS FLH member: R2 only the selected host and matching status can cancel
+PASS FLH member: R2 LI transfers authority only to its named whole leader
+PASS FLH member: R2 LI retains the original ninety second window at 89
+PASS FLH member: R2 LI retains the original ninety second window at 90
+PASS FLH member: R2 LI retains the original ninety second window at 91
+PASS FLH member: R2 LI cannot arm without the selected host successful LR and id
+PASS FLH member: R2 LI missing or invalid leader never accepts anyone
+PASS FLH member: R2 bare LI is only an acknowledgement and cannot undo a handoff
+PASS FLH member: R2 decline after LI cancels leader authority too
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
 PASS Sources: offer drops untracked and contradictory realms before Known stores anything
 PASS Sources: offer uses only live guild Watch matches and never adds saved tracked names
@@ -1511,4 +1540,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1513 tests passed, 0 failed, 274629 assertions
+RESULT: 1542 tests passed, 0 failed, 276851 assertions

@@ -1,0 +1,12 @@
+FAIL FLH member: R2 eight ordinary plus six owed replies never exceeds eight at once: test/src_flh_rulings.lua:68: not equal: expected 8, got 14
+FAIL FLH member: R2 forty ordinary in fifty nine seconds leaves no reply room: test/src_flh_rulings.lua:75: not equal: expected 40, got 46
+FAIL FLH member: R2 replies charge the shared bucket before ordinary traffic: test/src_flh_rulings.lua:81: not equal: expected 2, got 8
+FAIL FLH member: R2 HI spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 WR spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 CA spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 WP spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 LQ spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 7, got 8
+FAIL FLH member: R2 LR spends the overall burst: test/src_flh_rulings.lua:95: not equal: expected 6, got 8
+FAIL FLH member: R2 probes leave six shared burst slots for owed replies: test/src_flh_rulings.lua:101: probe loses priority at the shared ceiling: expected 0, got 1
+FAIL FLH member: R2 probes leave six shared minute slots for owed replies: test/src_flh_rulings.lua:108: not equal: expected 0, got 1
+RESULT: 0 tests passed, 11 failed, 497 assertions

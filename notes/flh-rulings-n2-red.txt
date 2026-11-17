@@ -1,0 +1,9 @@
+FAIL FLH member: R2 LI transfers authority only to its named whole leader: test/src_flh_rulings.lua:174: not equal: expected 0, got 1
+FAIL FLH member: R2 LI retains the original ninety second window at 89: test/src_flh_rulings.lua:186: not equal: expected 1, got 0
+PASS FLH member: R2 LI retains the original ninety second window at 90
+PASS FLH member: R2 LI retains the original ninety second window at 91
+PASS FLH member: R2 LI cannot arm without the selected host successful LR and id
+FAIL FLH member: R2 LI missing or invalid leader never accepts anyone: test/src_flh_rulings.lua:211: not equal: expected 0, got 1
+RESULT: 3 tests passed, 3 failed, 544 assertions
+FAIL FLH member: R2 bare LI is only an acknowledgement and cannot undo a handoff: test/src_flh_rulings.lua:221: not equal: expected 0, got 1
+RESULT: 0 tests passed, 1 failed, 90 assertions
