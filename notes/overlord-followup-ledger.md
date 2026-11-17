@@ -11,7 +11,7 @@ Reviewer scenarios: read-only /opt/data/profiles/mani/cache/scratch/c4/p9.lua an
 - n1: retain owed stops through unsafe contexts, with at most 60 safe seconds to deliver, no duplicate successful stop.
 - n2: retain actual NH accounting across pool/own-character round trips.
 - n3: answer only protocol-8 addressed HR V.
-- Part A gate: full verify; all Overlord mutants; separate evidence commit and move C3 tag.
+- Part A gate: complete. Full verify: `RESULT: 1656 tests passed, 0 failed, 296079 assertions`; follow-up mutants 8/8 and reachability mutants 48/48. Separate evidence commit and C3 tag moved before upstream merge.
 - Part B: fetch main, merge --no-ff into C2, resolve semantically and verify; separate notes commit and move C2 tag. Merge updated C2 into C3 and repeat all gates; document every conflict and non-mechanical production edit in notes/overlord-main-merge.md.
 - Native testing: not run (alpha, owner's decision).
 

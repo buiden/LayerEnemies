@@ -1,0 +1,61 @@
+FAIL Overlord followup: n3 busy HA version 5: test/src_overlord_followup.lua:65: only protocol 8 gets a busy answer: expected 0, got 1
+FAIL Overlord followup: n3 busy HA version 6: test/src_overlord_followup.lua:65: only protocol 8 gets a busy answer: expected 0, got 1
+FAIL Overlord followup: n3 busy HA version 7: test/src_overlord_followup.lua:65: only protocol 8 gets a busy answer: expected 0, got 1
+PASS Overlord followup: n3 busy HA version 8
+PASS Overlord followup: n3 busy HA version 9
+FAIL Overlord followup: n2 NH clock survives pool round trip: test/src_overlord_followup.lua:86: round trip cannot forget the source's actual NH: expected 0, got 2
+FAIL Overlord followup: n2 NH clock survives character round trip: test/src_overlord_followup.lua:86: round trip cannot forget the source's actual NH: expected 0, got 2
+FAIL Overlord followup: n1 deferred stop combat queued=false duration=1: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0
+FAIL Overlord followup: n1 deferred stop combat queued=false duration=90: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0
+FAIL Overlord followup: n1 deferred stop combat queued=true duration=1: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0
+FAIL Overlord followup: n1 deferred stop combat queued=true duration=90: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0
+FAIL Overlord followup: n1 deferred stop instance queued=false duration=1: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0
+FAIL Overlord followup: n1 deferred stop instance queued=false duration=90: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0
+FAIL Overlord followup: n1 deferred stop instance queued=true duration=1: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0
+FAIL Overlord followup: n1 deferred stop instance queued=true duration=90: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0
+FAIL Overlord followup: S2 removal invalidates cached friend active=false: test/src_overlord_followup.lua:119: event invalidates eligibility immediately: expected 0, got 1
+FAIL Overlord followup: S2 removal invalidates cached friend active=true: test/src_overlord_followup.lua:119: event invalidates eligibility immediately: expected 0, got 1
+FAIL Overlord followup: S1 cancellation from a fresh dispatch context queues the stop now: test/src_overlord_followup.lua:135: dispatch-time stop is queued, not waiting for a heartbeat: expected 1, got 0
+PASS Overlord followup: S1 senderless cancellation offset 100
+PASS Overlord followup: S1 senderless cancellation offset 101
+PASS Overlord followup: S1 senderless cancellation offset 102
+PASS Overlord followup: S1 senderless cancellation offset 103
+PASS Overlord followup: S1 senderless cancellation offset 104
+PASS Overlord followup: S1 senderless cancellation offset 105
+PASS Overlord followup: S1 senderless cancellation offset 106
+PASS Overlord followup: S1 senderless cancellation offset 107
+PASS Overlord followup: S1 senderless cancellation offset 108
+PASS Overlord followup: S1 senderless cancellation offset 109
+PASS Overlord followup: S1 senderless cancellation offset 110
+PASS Overlord followup: S1 senderless cancellation offset 111
+PASS Overlord followup: S1 senderless cancellation offset 112
+PASS Overlord followup: S1 senderless cancellation offset 113
+PASS Overlord followup: S1 senderless cancellation offset 114
+PASS Overlord followup: S1 senderless cancellation offset 115
+PASS Overlord followup: S1 senderless cancellation offset 116
+PASS Overlord followup: S1 senderless cancellation offset 117
+PASS Overlord followup: S1 senderless cancellation offset 118
+PASS Overlord followup: S1 senderless cancellation offset 119
+PASS Overlord followup: S1 senderless cancellation offset 120
+FAIL Overlord followup: S1 senderless cancellation offset 121: test/src_overlord_followup.lua:146: one stop at every queue/heartbeat phase: expected 1, got 0
+PASS Overlord followup: S1 senderless cancellation offset 122
+PASS Overlord followup: S1 senderless cancellation offset 123
+PASS Overlord followup: S1 senderless cancellation offset 124
+PASS Overlord followup: S1 senderless cancellation offset 125
+PASS Overlord followup: S1 senderless cancellation offset 126
+PASS Overlord followup: S1 senderless cancellation offset 127
+PASS Overlord followup: S1 senderless cancellation offset 128
+PASS Overlord followup: S1 senderless cancellation offset 129
+PASS Overlord followup: S1 senderless cancellation offset 130
+FAIL Overlord followup: M foreign guild: test/src_overlord_followup.lua:176: no NH reaches a selected source: expected 0, got 3
+PASS Overlord followup: M same guild
+PASS Overlord followup: M foreign split party
+FAIL Overlord followup: M foreign joined party: test/src_overlord_followup.lua:176: no NH reaches a selected source: expected 0, got 15
+PASS Overlord followup: M isolated foreign friend
+FAIL Overlord followup: M different realm namesake guild: test/src_overlord_followup.lua:177: realm-aware selection: expected true, got false
+FAIL Overlord followup: M different realm namesake party: test/src_overlord_followup.lua:177: realm-aware selection: expected true, got false
+FAIL Overlord followup: M foreign source hears no qualified whisper NH: test/src_overlord_followup.lua:189: full foreign identity matches selected BNet source: expected 0, got 1
+FAIL Overlord followup: M same-name account realm change invalidates old hearing: test/src_overlord_followup.lua:196: old character identity is not new first-hand hearing: expected nil, got birch scout
+PASS Overlord followup: M unknown realm friend fails closed
+PASS Overlord followup: M unknown realm roster fails closed
+RESULT: 37 tests passed, 23 failed, 3500 assertions

@@ -196,21 +196,21 @@
   },
   {
     "failures": [
-      "FAIL Overlord revision: M club-only account is never a source: test/src_overlord_revision.lua:264: online club members are not Battle.net friends: expected nil, got birch scout"
+      "FAIL Overlord revision: M club-only account is never a source: test/src_overlord_revision.lua:269: online club members are not Battle.net friends: expected nil, got birch scout"
     ],
     "killed": true,
     "rule": "M Battle.net friend not club-only"
   },
   {
     "failures": [
-      "FAIL Overlord revision: M same-faction Battle.net friend is an eligible NH-free source: test/src_overlord_revision.lua:280: same-faction direct K is sufficient first-hand evidence: expected 1, got 0"
+      "FAIL Overlord revision: M same-faction Battle.net friend is an eligible NH-free source: test/src_overlord_revision.lua:285: same-faction direct K is sufficient first-hand evidence: expected 1, got 0"
     ],
     "killed": true,
     "rule": "M same-faction friend remains eligible"
   },
   {
     "failures": [
-      "FAIL Overlord revision: M same-faction Battle.net friend is an eligible NH-free source: test/src_overlord_revision.lua:280: same-faction direct K is sufficient first-hand evidence: expected 1, got 0"
+      "FAIL Overlord revision: M same-faction Battle.net friend is an eligible NH-free source: test/src_overlord_revision.lua:285: same-faction direct K is sufficient first-hand evidence: expected 1, got 0"
     ],
     "killed": true,
     "rule": "M first-hand K need not wait for NH"
@@ -233,8 +233,8 @@
   },
   {
     "failures": [
-      "FAIL Overlord revision: M excludes audible friend Birch Scout qualified: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8",
-      "FAIL Overlord revision: M queued request loses eligibility when source joins party: test/src_overlord_revision.lua:232: not equal: expected nil, got birch scout"
+      "FAIL Overlord followup: M foreign split party: test/src_overlord_followup.lua:176: no NH reaches a selected source: expected 0, got 15",
+      "FAIL Overlord followup: M different realm namesake party: test/src_overlord_followup.lua:178: not equal: expected true, got false"
     ],
     "killed": true,
     "rule": "M realm-qualified party unit"
@@ -250,18 +250,16 @@
     "failures": [
       "FAIL Overlord revision: M excludes audible friend \u00c9lan Scout guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
       "FAIL Overlord revision: M excludes audible friend \u00d8laf Scout guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
-      "FAIL Overlord revision: M excludes audible friend \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442 guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
-      "FAIL Overlord revision: M excludes audible friend Birch Scout badguild: test/src_overlord_revision.lua:78: audible or possibly audible friends are not feed sources: expected 0, got 900"
+      "FAIL Overlord revision: M excludes audible friend \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442 guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2"
     ],
     "killed": true,
     "rule": "M guild exclusion"
   },
   {
     "failures": [
-      "FAIL Overlord revision: M excludes audible friend Birch Scout unreadable: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8",
       "FAIL Overlord revision: M excludes audible friend Birch Scout qualified: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8",
       "FAIL Overlord revision: M excludes audible friend Birch Scout group: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8",
-      "FAIL Overlord revision: M queued request loses eligibility when source joins party: test/src_overlord_revision.lua:232: not equal: expected nil, got birch scout"
+      "FAIL Overlord revision: M queued request loses eligibility when source joins party: test/src_overlord_revision.lua:237: not equal: expected nil, got birch scout"
     ],
     "killed": true,
     "rule": "M group exclusion"
@@ -276,7 +274,7 @@
       "FAIL Overlord revision: M excludes audible friend Birch Scout dual: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
       "FAIL Overlord revision: M excludes audible friend Birch Scout group: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
       "FAIL Overlord revision: M excludes audible friend Birch Scout badguild: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
-      "FAIL Overlord revision: M queued request loses eligibility when source joins party: test/src_overlord_revision.lua:234: C2 party presence is not suppressed: expected 1, got 0"
+      "FAIL Overlord revision: M queued request loses eligibility when source joins party: test/src_overlord_revision.lua:239: C2 party presence is not suppressed: expected 1, got 0"
     ],
     "killed": true,
     "rule": "M no lane suppression"
@@ -293,7 +291,7 @@
   },
   {
     "failures": [
-      "FAIL Overlord revision: clock exact 300-second client dispatch is refused: test/src_overlord_revision.lua:215: donor retains NH capability at age 300: expected 0, got 1"
+      "FAIL Overlord revision: clock exact 300-second client dispatch is refused: test/src_overlord_revision.lua:220: donor retains NH capability at age 300: expected 0, got 1"
     ],
     "killed": true,
     "rule": "clock strictly beyond 300"
@@ -307,14 +305,14 @@
   },
   {
     "failures": [
-      "FAIL Overlord revision: clock once-heard online friend stays selected for 7000 seconds: test/src_overlord_revision.lua:221: not equal: expected 0, got 56"
+      "FAIL Overlord revision: clock once-heard online friend stays selected for 7000 seconds: test/src_overlord_revision.lua:226: not equal: expected 0, got 56"
     ],
     "killed": true,
     "rule": "clock first-hand session retained"
   },
   {
     "failures": [
-      "FAIL Overlord revision: clock ignores unselected account NH and rejects offline or foreign-pool friends: test/src_overlord_revision.lua:292: offline account is not a selected source even before queue dispatch: expected nil, got birch scout"
+      "FAIL Overlord revision: clock ignores unselected account NH and rejects offline or foreign-pool friends: test/src_overlord_revision.lua:297: offline account is not a selected source even before queue dispatch: expected nil, got birch scout"
     ],
     "killed": true,
     "rule": "clock live account required"
@@ -328,10 +326,10 @@
   },
   {
     "failures": [
-      "FAIL Overlord revision: S1 exactly one stop BNET twice: test/src_overlord_revision.lua:156: same-tick cancellation preserves exactly one owed stop: expected 1, got 0",
-      "FAIL Overlord revision: S1 exactly one stop BNET three: test/src_overlord_revision.lua:156: same-tick cancellation preserves exactly one owed stop: expected 1, got 0",
-      "FAIL Overlord revision: S1 exactly one stop BNET switch: test/src_overlord_revision.lua:156: same-tick cancellation preserves exactly one owed stop: expected 1, got 0",
-      "FAIL Overlord revision: S1 exactly one stop BNET consent: test/src_overlord_revision.lua:156: same-tick cancellation preserves exactly one owed stop: expected 1, got 0"
+      "FAIL Overlord revision: S1 exactly one stop BNET twice: test/src_overlord_revision.lua:156: preserve the exact queued withdrawal through repeated off: expected R2:Forever_global_A:BR:global|720420-6|720420|Birch Scout|Alice Vale|HR|8:X:720000, got R2:Forever_global_A:BR:global|720420-7|720420|Birch Scout|Alice Vale|HR|8:X:720000",
+      "FAIL Overlord revision: S1 exactly one stop BNET three: test/src_overlord_revision.lua:156: preserve the exact queued withdrawal through repeated off: expected R2:Forever_global_A:BR:global|720420-6|720420|Birch Scout|Alice Vale|HR|8:X:720000, got R2:Forever_global_A:BR:global|720420-8|720420|Birch Scout|Alice Vale|HR|8:X:720000",
+      "FAIL Overlord revision: S1 exactly one stop BNET switch: test/src_overlord_revision.lua:156: preserve the exact queued withdrawal through repeated off: expected R2:Forever_global_A:BR:global|720420-6|720420|Birch Scout|Alice Vale|HR|8:X:720000, got R2:Forever_global_A:BR:global|720420-7|720420|Birch Scout|Alice Vale|HR|8:X:720000",
+      "FAIL Overlord revision: S1 exactly one stop BNET consent: test/src_overlord_revision.lua:156: preserve the exact queued withdrawal through repeated off: expected R2:Forever_global_A:BR:global|720420-6|720420|Birch Scout|Alice Vale|HR|8:X:720000, got R2:Forever_global_A:BR:global|720420-7|720420|Birch Scout|Alice Vale|HR|8:X:720000"
     ],
     "killed": true,
     "rule": "S1 repeated stop retained"
@@ -345,28 +343,28 @@
   },
   {
     "failures": [
-      "FAIL Overlord revision: S2 silent source backs off to 1800 seconds: test/src_overlord_revision.lua:171: silent-source exponential backoff: expected 1800, got 3200"
+      "FAIL Overlord revision: S2 silent source backs off to 1800 seconds: test/src_overlord_revision.lua:176: silent-source exponential backoff: expected 1800, got 3200"
     ],
     "killed": true,
     "rule": "S2 backoff cap"
   },
   {
     "failures": [
-      "FAIL Overlord revision: S2 any valid reply resets backoff R: test/src_overlord_revision.lua:185: reply restores the base 200-second interval: expected 4, got 3"
+      "FAIL Overlord revision: S2 any valid reply resets backoff R: test/src_overlord_revision.lua:190: reply restores the base 200-second interval: expected 4, got 3"
     ],
     "killed": true,
     "rule": "S2 busy reply resets"
   },
   {
     "failures": [
-      "FAIL Overlord revision: S2 any valid reply resets backoff HB: test/src_overlord_revision.lua:185: reply restores the base 200-second interval: expected 4, got 3"
+      "FAIL Overlord revision: S2 any valid reply resets backoff HB: test/src_overlord_revision.lua:190: reply restores the base 200-second interval: expected 4, got 3"
     ],
     "killed": true,
     "rule": "S2 full feed resets"
   },
   {
     "failures": [
-      "FAIL Overlord revision: S3 only HR V gets a bounded busy HA: test/src_overlord_revision.lua:245: T reply policy: expected 0, got 1"
+      "FAIL Overlord revision: S3 only HR V gets a bounded busy HA: test/src_overlord_revision.lua:250: T reply policy: expected 0, got 1"
     ],
     "killed": true,
     "rule": "S3 only V receives busy"
@@ -380,14 +378,14 @@
   },
   {
     "failures": [
-      "FAIL Overlord revision: memory remembered friends do not bypass C2 route ceilings: test/src_overlord_revision.lua:200: bounded session evidence: expected 200, got 201"
+      "FAIL Overlord revision: memory remembered friends do not bypass C2 route ceilings: test/src_overlord_revision.lua:205: bounded session evidence: expected 200, got 201"
     ],
     "killed": true,
     "rule": "session hearing cache bound"
   },
   {
     "failures": [
-      "FAIL Overlord revision: memory remembered friends do not bypass C2 route ceilings: test/src_overlord_revision.lua:203: cached metadata cannot bypass the public route ceiling: expected 96, got 200"
+      "FAIL Overlord revision: memory remembered friends do not bypass C2 route ceilings: test/src_overlord_revision.lua:208: cached metadata cannot bypass the public route ceiling: expected 96, got 200"
     ],
     "killed": true,
     "rule": "remembered metadata respects route ceiling"

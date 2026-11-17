@@ -1441,6 +1441,66 @@ PASS Overlord feed: batch row ceiling and marker byte bound are independent
 PASS Overlord feed: global feed budget survives source rotation and privacy cancellation
 PASS Overlord feed: global byte and batch-row ceilings hold across replacement sources
 PASS Overlord feed: unknown epoch silent then direct owner K opens truthful v8 subscription
+PASS Overlord followup: n3 busy HA version 5
+PASS Overlord followup: n3 busy HA version 6
+PASS Overlord followup: n3 busy HA version 7
+PASS Overlord followup: n3 busy HA version 8
+PASS Overlord followup: n3 busy HA version 9
+PASS Overlord followup: n2 NH clock survives pool round trip
+PASS Overlord followup: n2 NH clock survives character round trip
+PASS Overlord followup: n1 deferred stop combat queued=false duration=1
+PASS Overlord followup: n1 deferred stop combat queued=false duration=90
+PASS Overlord followup: n1 deferred stop combat queued=true duration=1
+PASS Overlord followup: n1 deferred stop combat queued=true duration=90
+PASS Overlord followup: n1 deferred stop instance queued=false duration=1
+PASS Overlord followup: n1 deferred stop instance queued=false duration=90
+PASS Overlord followup: n1 deferred stop instance queued=true duration=1
+PASS Overlord followup: n1 deferred stop instance queued=true duration=90
+PASS Overlord followup: S2 removal invalidates cached friend active=false
+PASS Overlord followup: S2 removal invalidates cached friend active=true
+PASS Overlord followup: S1 cancellation from a fresh dispatch context queues the stop now
+PASS Overlord followup: S1 senderless cancellation offset 100
+PASS Overlord followup: S1 senderless cancellation offset 101
+PASS Overlord followup: S1 senderless cancellation offset 102
+PASS Overlord followup: S1 senderless cancellation offset 103
+PASS Overlord followup: S1 senderless cancellation offset 104
+PASS Overlord followup: S1 senderless cancellation offset 105
+PASS Overlord followup: S1 senderless cancellation offset 106
+PASS Overlord followup: S1 senderless cancellation offset 107
+PASS Overlord followup: S1 senderless cancellation offset 108
+PASS Overlord followup: S1 senderless cancellation offset 109
+PASS Overlord followup: S1 senderless cancellation offset 110
+PASS Overlord followup: S1 senderless cancellation offset 111
+PASS Overlord followup: S1 senderless cancellation offset 112
+PASS Overlord followup: S1 senderless cancellation offset 113
+PASS Overlord followup: S1 senderless cancellation offset 114
+PASS Overlord followup: S1 senderless cancellation offset 115
+PASS Overlord followup: S1 senderless cancellation offset 116
+PASS Overlord followup: S1 senderless cancellation offset 117
+PASS Overlord followup: S1 senderless cancellation offset 118
+PASS Overlord followup: S1 senderless cancellation offset 119
+PASS Overlord followup: S1 senderless cancellation offset 120
+PASS Overlord followup: S1 senderless cancellation offset 121
+PASS Overlord followup: S1 senderless cancellation offset 122
+PASS Overlord followup: S1 senderless cancellation offset 123
+PASS Overlord followup: S1 senderless cancellation offset 124
+PASS Overlord followup: S1 senderless cancellation offset 125
+PASS Overlord followup: S1 senderless cancellation offset 126
+PASS Overlord followup: S1 senderless cancellation offset 127
+PASS Overlord followup: S1 senderless cancellation offset 128
+PASS Overlord followup: S1 senderless cancellation offset 129
+PASS Overlord followup: S1 senderless cancellation offset 130
+PASS Overlord followup: M foreign guild
+PASS Overlord followup: M same guild
+PASS Overlord followup: M foreign split party
+PASS Overlord followup: M foreign joined party
+PASS Overlord followup: M isolated foreign friend
+PASS Overlord followup: M different realm namesake guild
+PASS Overlord followup: M different realm namesake party
+PASS Overlord followup: M foreign source hears no qualified whisper NH
+PASS Overlord followup: M same-name account realm change invalidates old hearing
+PASS Overlord followup: M unknown realm friend fails closed
+PASS Overlord followup: M unknown realm roster fails closed
 PASS Overlord peer: directory uses audited pool channel and two free slots
 PASS Overlord peer: real whisper owes one truthful reply; no forwarding or bypass
 PASS Overlord peer: all sends silent with share
@@ -1618,4 +1678,4 @@ PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
 PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
 PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
 PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
-RESULT: 1596 tests passed, 0 failed, 292499 assertions
+RESULT: 1656 tests passed, 0 failed, 296079 assertions
