@@ -3,6 +3,9 @@ import argparse
 from overlord_peer_mutants import run
 
 MUTANTS = [
+    ('S2 friend cache invalidation', 'BNet.lua',
+     'function BN.invalidatePeers() cache,cacheAt={},nil end',
+     'function BN.invalidatePeers() end', 'Overlord followup: S2'),
     ('S1 senderless cancellation', 'Main.lua',
      'c.send=overlordSend -- prepare can cancel from a queued-send guard, not only the tick.',
      '', 'Overlord followup: S1'),

@@ -55,6 +55,23 @@ local function sends(op)
 end
 local function advance(n) for _=1,n do H.advance(1) end end
 
+for _,active in ipairs({false,true}) do
+    test("S2 removal invalidates cached friend active="..tostring(active),function()
+        local N,state,refresh=fixture()
+        eq(#N.BNet.peers(H.clock()),1,"cache is warm")
+        if active then refresh();advance(2);eq(#sends("|HR|8:V:"),1) end
+        state.friend=false
+        H.deliver("BN_FRIEND_LIST_SIZE_CHANGED")
+        eq(#N.BNet.peers(H.clock()),0,"event invalidates eligibility immediately")
+        if not active then refresh() end
+        N.BNet.pump(H.clock());advance(1)
+        eq(next(N.Main.overlordFeed.sources),nil)
+        eq(#sends("|HR|8:V:"),active and 1 or 0)
+        eq(#sends("|HR|8:X:"),active and 1 or 0,"active removal stops without cache expiry")
+        advance(75);eq(#sends("|HR|8:X:"),active and 1 or 0)
+    end)
+end
+
 for offset=100,130 do
     test("S1 senderless cancellation offset "..offset,function()
         local N,state,refresh=fixture({two=true});refresh()

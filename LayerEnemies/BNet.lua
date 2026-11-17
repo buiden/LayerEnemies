@@ -3,6 +3,7 @@ local _,N=...
 local BN,A,S={},N.Adapters,N.Safe
 N.BNet=BN
 local cache,cacheAt={},nil
+function BN.invalidatePeers() cache,cacheAt={},nil end
 local function safe() return not A.inCombat() and A.inInstance()==false end
 local function copies(rows)
     local out={}
