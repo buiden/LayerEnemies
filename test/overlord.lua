@@ -380,6 +380,46 @@ test("combat and instance unreadable gates do no map scans",function()
     end
 end)
 
+test("net diagnostic shows the currently detected pool on the Overlord line",function()
+    local N=setup()
+    for _,case in ipairs({{false,false,true,"global"},{false,false,false,"pve"},
+        {false,true,false,"rpg"},{false,true,true,"rpv"},{true,false,true,"hc"}}) do
+        rules(case[1],case[2],case[3]); local before=#H.log()
+        SlashCmdList.LAYERENEMIES("net")
+        local found
+        for i=before+1,#H.log() do
+            local line=H.log()[i]
+            if line:find("Overlord session:",1,true) then found=line end
+        end
+        yes(found,"Overlord has its own diagnostic line")
+        yes(found:find("pool "..case[4],1,true),"diagnostic names the detected "..case[4].." pool")
+        no(found:find("unknown",1,true)); yes(found:find("lines=0 taken=0 refused=0",1,true))
+        eq(N.Main.overlord.stats.lines,0,"diagnostic does not receive traffic")
+    end
+end)
+
+test("net diagnostic explains unknown pool receives nothing and updates on recovery",function()
+    local N=setup(); GetRealmName=function() return "7102" end
+    for _,mode in ipairs({"missing","partial","enum","throw"}) do
+        rules(false,false,true)
+        if mode=="missing" then C_GameRules=nil
+        elseif mode=="partial" then rules(false,false,nil)
+        elseif mode=="enum" then Enum.GameRule.HardcoreRuleset=nil
+        else C_GameRules.IsGameRuleActive=function() error("not readable") end end
+        local before=#H.log(); SlashCmdList.LAYERENEMIES("net")
+        local found
+        for i=before+1,#H.log() do
+            local line=H.log()[i]
+            if line:find("Overlord session:",1,true) then found=line end
+        end
+        yes(found and found:find("pool unknown (receiving nothing)",1,true),mode.." explains fail-closed receipt")
+        eq(N.Main.overlord.stats.taken,0); eq(N.Main.overlord.stats.refused,0)
+    end
+    rules(false,false,true); local before=#H.log(); SlashCmdList.LAYERENEMIES("net")
+    local text=table.concat(H.log(),"\n",before+1)
+    yes(text:find("pool global",1,true)); no(text:find("receiving nothing",1,true),"diagnostic reflects recovered pool immediately")
+end)
+
 test("session counters diagnostics and no added SavedVariables",function()
     local N=setup(); hear(bf(packet())); hear(bf(packet())); hear("bad")
     eq(N.Main.overlord.stats.lines,3); eq(N.Main.overlord.stats.taken,1); eq(N.Main.overlord.stats.refused,1)

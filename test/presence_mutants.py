@@ -1,7 +1,7 @@
 """PR 1 behavioral mutants; isolated scratch copies, never mutate the worktree.
 Run: python3 test/presence_mutants.py [--output notes/presence-mutants.json]
 Each mutant must compile and fail its named behavioral test. Baseline and final
-runs must pass. No network/client access; TMPDIR stays under the owner scratch.
+runs must pass. No network/client access; temporary copies honor TMPDIR.
 """
 from pathlib import Path
 import argparse
@@ -20,6 +20,16 @@ FRIENDS = "friends use only online characters in this project and cap 200"
 TTL = "expiry boundary future clocks and remove clear session state"
 SAFETY = "no roster adapters with empty Find combat instance or unknown safety"
 MUTANTS = [
+    ("R2 restore 56px presence text floor", U,
+     "layout.presenceHeight=fitText(U.measure)", "layout.presenceHeight=fitText(U.measure,56)",
+     "measured presence cards keep several per page without overlap"),
+    ("R2 restore fixed presence card surcharge", U,
+     "return e.place and 146 or e.at and 106 or 76",
+     "return (e.place and 146 or e.at and 106 or 76)+(e.presence and 56 or 0)",
+     "measured presence cards keep several per page without overlap"),
+    ("R2 resolve offline member accounts", A,
+     "if presence~=1 and presence~=4 and presence~=5 then return nil end", "if not presence then return nil end",
+     "only online community members resolve Battle.net accounts"),
     ("R1 match club display name instead of resolved character", A,
      'local name=S.str(v(game.characterName),100)', 'local name=S.str(v(r.name),100)',
      "club character comes from account not member display name"),
@@ -117,9 +127,8 @@ def main():
     code, baseline = run(lua, ROOT)
     assert code == 0, baseline
     results = []
-    scratch = Path(os.environ.get("TMPDIR", "/opt/data/cache/scratch"))
-    assert str(scratch).startswith("/opt/data/cache/scratch"), "use the owner scratch directory"
-    with tempfile.TemporaryDirectory(prefix="le-presence-mutants-", dir=scratch) as directory:
+    # Honor the caller's TMPDIR (or the platform default), independent of clone path.
+    with tempfile.TemporaryDirectory(prefix="le-presence-mutants-") as directory:
         work = Path(directory)
         shutil.copytree(ROOT / "LayerEnemies", work / "LayerEnemies")
         shutil.copytree(ROOT / "test", work / "test")

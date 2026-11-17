@@ -2265,7 +2265,8 @@ function M.net(command)
         netLines(M.say)
         M.say(N.HeadHunter.summary(M.hh.stats))
         local s=M.overlord.stats
-        M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused)
+        local pool=M.overlordPool() or "unknown (receiving nothing)"
+        M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused.." · pool "..pool)
         for _,line in ipairs(N.Sources.lines()) do M.say(line) end
         return
     end
