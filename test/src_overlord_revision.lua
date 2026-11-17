@@ -256,6 +256,33 @@ test("S3 README states Battle.net scope reply kinds and backoff",function()
     no(text:find("**Presence trade-off:**",1,true),"no whole-lane presence sacrifice")
 end)
 
+test("M club-only account is never a source",function()
+    local N,refresh=fixture()
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",faction="Horde",friend=false,club=4}} end
+    refresh()
+    for i=1,900 do if i%120==0 then refresh() end;H.advance(1) end
+    eq(next(N.Main.overlordFeed.sources),nil,"online club members are not Battle.net friends")
+    eq(#sends("|HR|8:V:"),0)
+end)
+
+test("M same-faction Battle.net friend is an eligible NH-free source",function()
+    local N=fixture()
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",faction="Alliance",friend=true}} end
+    N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Alliance",realm="Test Realm"} or nil end
+    local e=GetServerTime()-100
+    local function hear()
+        serial=serial+1;local id="samefriend"..serial
+        local body="Birch Scout:#1434:21:WARRIOR:Alliance:"..e.."::en:0:Human:2:B"..e..":60"
+        local packet=table.concat({"global",id,math.floor(GetServerTime()),"Alice Vale","Birch Scout","K",body},"|")
+        H.deliver("BN_CHAT_MSG_ADDON","OverlordF","R2:Forever_global_A:BR:"..packet,nil,71)
+    end
+    hear();N.Main.overlordTick(H.clock());H.advance(1)
+    eq(#sends("|HR|8:V:"),1,"same-faction direct K is sufficient first-hand evidence")
+    for i=1,900 do if i%120==0 then hear() end;H.advance(1) end
+    yes(N.Main.overlordFeed.sources["birch scout"])
+    eq(#sends("|NH|"),0)
+end)
+
 test("clock ignores unselected account NH and rejects offline or foreign-pool friends",function()
     local N,refresh,hear,e,online=fixture()
     refresh(nil,"pve");N.Main.overlordTick(H.clock());H.advance(1)

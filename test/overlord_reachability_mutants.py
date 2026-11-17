@@ -31,6 +31,9 @@ RULES = [
 ]
 MUTANTS = [(rule, file, old, new, 'Overlord reach:') for rule, file, old, new in RULES]
 MUTANTS += [
+    ('M Battle.net friend not club-only', 'OverlordFeed.lua', 'if v.friend and v.id==r.id', 'if v.id==r.id', 'Overlord revision: M club'),
+    ('M same-faction friend remains eligible', 'OverlordFeed.lua', 'if v.friend and v.id==r.id', 'if v.friend and v.faction=="Horde" and v.id==r.id', 'Overlord revision: M same-faction'),
+    ('M first-hand K need not wait for NH', 'OverlordFeed.lua', 'if not r.version then return true end', 'if not r.version then return false end', 'Overlord revision: M same-faction'),
     ('M canonical guild roster', 'Adapters.lua', 'keys[canonical and canonical(name) or key]=true', 'keys[key]=true', 'Overlord revision: M'),
     ('M unreadable party count', 'Adapters.lua', 'if read~=(raid and count or count-1) then return nil end', 'if false then return nil end', 'Overlord revision: M'),
     ('M realm-qualified party unit', 'Adapters.lua', 'out[N.OverlordPeer.key(canonical)]', 'out[N.Find.fold(canonical)]', 'Overlord revision: M'),
