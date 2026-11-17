@@ -103,6 +103,24 @@ Forward merges retain this record; each level regenerates its own
 - Archive SHA-256:
   `f921e3f2beb8853c4d232645d6224c091410b869eb8a8292fae4d3da97c404a6`.
 
+### Forward integration — level 5
+
+- Merged corrected level 4 into `stack/5-overlord` with `--no-ff`.
+- Only conflicts: `notes/test-results.txt`, `notes/verification.json`. Resolved
+  generated-note markers before verification, then regenerated both files.
+  Production auto-merged; Overlord/FLH/Find/Known, TOC and verifier are unchanged
+  from the old level-5 head outside the incoming presence changes.
+- The two existing arrival-order composition cases initially failed because
+  their old fixture supplied only raw club character fields. Migrated that
+  fixture to a BattleTag member with `bnetAccountId` and explicit resolved game
+  account. Every inherited assertion remains unchanged; added one account-ID
+  assertion. Focused stack result: `3 tests passed, 0 failed, 251 assertions`.
+- Final: `RESULT: 1256 tests passed, 0 failed, 168676 assertions`, exit 0.
+- Presence mutants rerun against the full composition: **38/38 killed**,
+  baseline/final green. No survivors or further production changes.
+- Archive SHA-256:
+  `303a5a45e1dde3180952f42b6f6c6ee32fcbb0b5239e16605ae67003872455e6`.
+
 ## Result and boundaries
 
 - Four protected adapters, pure `Presence.lua`, incremental Main scan, independent

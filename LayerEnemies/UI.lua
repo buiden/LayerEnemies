@@ -120,7 +120,7 @@ function U.render()
     local seen=T.rows(M.store,time,"local")
     local liveSeen=#seen
     for _,e in ipairs(T.previous(M.store,time)) do seen[#seen+1]=e end
-    local reports=T.rows(M.store,time,"reported")
+    local reports=M.reportedRows()
     local friends=M.candidates()
     local eligible={}; for _,c in ipairs(friends) do eligible[c.short]=true end
     local tracked=M.findRows()
@@ -201,6 +201,8 @@ function U.render()
         local text
         if U.tab=="local" then
             text=className(e.class).." · "..M.zoneName(e.zone)..(index>liveSeen and " · previous zone" or e.layer==nil and " · layer unknown" or "")
+        elseif U.tab=="reported" and e.guild then
+            text=M.overlordText(e)
         elseif U.tab=="reported" then
             text="reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or "")
         elseif U.tab=="friendly" then
@@ -269,6 +271,9 @@ function U.render()
         r.age:SetText(e.at and age(e.at) or e.age and age(time-e.age) or "")
         r.title:SetText(e.displayName or e.name or "Unknown")
         if U.tab=="local" then
+            askState(r,nil)
+        elseif U.tab=="reported" and e.guild then
+            r.title:SetText("guild "..e.guild)
             askState(r,nil)
         elseif U.tab=="reported" then
             r.title:SetText("Unknown "..className(e.class))

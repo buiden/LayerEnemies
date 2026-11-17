@@ -138,6 +138,67 @@ opposite-faction community accounts resolve to characters/zones/factions without
 a subscription, how fresh those fields are, and live chat-lockdown restrictions
 remain unknown. The TOC/package version remains 1.1.0 until the release PR.
 
+## Unreleased - Overlord (receive only)
+
+Independent reader of **Overlord Forever 2.5.1** (`OverlordF`), with no donor
+addon required or code copied. No new sends, replies, presence, forwarding,
+channel joins, SavedVariables or membership. `Wire.lua` and the verification
+send gate are unchanged. Reception works with or without Overlord installed.
+
+- **Reported / `/le reports`:** opposite-faction `GW` guild rampages show
+  `guild <name>: <kills> kills by <members> in <zone>, layer <n> (Overlord claim)`.
+  One row per guild, at most 32, expiring 300 seconds from the source timestamp;
+  zone/layer changes do not erase them. Only `#<uiMapID>` can resolve a place.
+  `@front`, capture-zone IDs and unresolved maps say **place unknown**; an empty
+  layer stays unknown. A claimed layer never creates a Hop or host target.
+- **Find:** `GD` names a General's killer; `EK` names a groupmate's killer.
+  Only killers matching your Find list or an unexpired guildmate shared watch
+  list enter session memory. Own-list matches appear as **named as killer
+  (claim)**, with zone and source age, for at most 60 minutes. Shared-list-only
+  matches are retained for Find if you add that name; they do not add names to
+  your saved list or create a general enemy board. Existing first-hand evidence
+  and its legitimate Ask target retain priority; these claims never grant Ask.
+- GUILD reads **BF relay fragments only**. PARTY/RAID also read direct `GW`,
+  `GD`, `EK`. `EK` is direct group traffic only, never a guild/relay kill feed.
+  WHISPER, CHANNEL, Battle.net bridges and all other payloads are ignored.
+- Frame limits: 255-byte whole line (252 after `BF:`), 64-byte alphanumeric/
+  hyphen ID, integer `1 <= part <= count <= 24`, and 230-byte chunks. We accept
+  only one or two parts: 32 pending assemblies, oldest evicted at capacity,
+  30-second lifetime from the first part (duplicates do not extend it).
+  Completed assemblies are removed. Sender and ID isolate each assembly.
+- Packets have exactly seven pipe-separated fields, matching envelope ID,
+  broadcast target `*`, 1–4 distinct path nodes ending in the transport sender,
+  and at most 3,600 bytes (our two-part receive limit is tighter). Age 120 seconds
+  is accepted; 121 is refused; future skew is limited to 30 seconds. The packet
+  pool must exactly match our readable ruleset pool: PvP `global`, PvE `pve`,
+  RP `rpg`, RP-PvP `rpv`, or Hardcore `hc`. Game rules and explicit realm-name
+  labels determine it; an unknown pool is never guessed as PvP. While our pool
+  is unknown, all Overlord receipt (including direct group lines and partial
+  fragments) is silently refused. `GD`'s payload pool must also match. An
+  origin/ID ring remembers the last 256 accepted packets.
+- `GW` payloads are capped at 200 bytes, guild names at 24, kills 50–9,999,
+  members 5–999, layer 0–99,999,999, and zone references at 40 bytes. Its source
+  timestamp may be 300 seconds old. We conservatively cap future skew at 30
+  seconds for all three payloads, stricter than Overlord's GW payload allowance.
+  `EK` admission is limited to 120 seconds old. `GD` carries **General claim
+  time, not death time**; we preserve that conservative age and discard it at
+  60 minutes rather than invent a recent killing time. Relayed GD must still
+  pass the separate 120-second envelope check. Small accepted future skew is
+  clamped to receipt time, never displayed as a negative age.
+- Nothing is decoded/scanned in combat or instances. Unreadable gates, secret
+  values, malformed fields, controls, oversized or stale lines fail silently.
+  `/le net` adds **Overlord session: lines / taken / refused** counters and
+  the currently detected pool tag, or **pool unknown (receiving nothing)** when
+  detection is unavailable. These counters count eligible transport lines,
+  accepted payloads and refusals; waiting
+  fragments and duplicate packets do not count as taken or refused.
+
+Offline coverage: `test/overlord.lua`, `test/overlord_mutants.py`, and the
+unchanged `python3 test/verify.py`. No native test is a gate: **not tested in game
+(alpha, owner's decision)**. Traffic availability, live map resolution and
+native rendering remain unknown. If no guildmate/groupmate runs Overlord (or
+its messages never arrive), nothing new appears; the counter stays at zero.
+
 ## 1.1.0 at a glance
 
 Everything since 1.0.1, with the sections below and the reference chapters

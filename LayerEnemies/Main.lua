@@ -123,6 +123,8 @@ function M.poll()
     N.Find.home(M.find,M.homeRealm())
     N.Known.prune(M.find.known,time)
     M.presenceScan()
+    N.Overlord.sweep(M.overlord,time)
+    N.Overlord.rows(M.overlord,time)
     M.findAlerts()
     N.CallUI.check()
     if N.UI then N.UI.refresh() end
@@ -244,6 +246,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     -- Check every delivered value before comparing/indexing it.
     local args={prefix,text,kind,sender,target,zoneChannelID,localID,channelName}
     for i=1,8 do if S.secret(args[i]) then return end end
+    if prefix=="OverlordF" then return M.overlordIn(text,kind,sender) end
     if prefix=="OpenMapLoc" then return M.openmapIn(text,kind,sender) end
     if prefix=="HeadHunter" then return M.headhunter(text,kind,sender) end
     if prefix=="LayerSwap" then return M.layerswap(text,kind,sender) end
@@ -412,6 +415,115 @@ function M.presenceStatus()
         ..", resolved to a character: "..s.resolved..", with a zone: "..s.zones..", opposite faction: "..s.opposite
         ..", matches: "..s.matches.." (all sources), secret: "..(s.secret and "yes" or "no")
         ..", refusals: "..s.refused..".")
+end
+-- Overlord is receive-only, including when the donor is installed. Never enter relay/host paths.
+local function overlordZone(map)
+    if not map then return nil end
+    if S.secret(C_Map) then return false end
+    if not S.tab(C_Map) then return nil end
+    local lookup=C_Map.GetMapInfo
+    if S.secret(lookup) then return false end
+    if type(lookup)~="function" then return nil end
+    local refused,label=false,nil
+    -- A.zone deliberately conflates unavailable and secret data. This lane must
+    -- distinguish them: unavailable means place unknown, secret means skip row.
+    local zone=L.zone(map,function(id)
+        local ok,info=pcall(lookup,id)
+        if not ok or S.secret(info) then refused=true; return nil end
+        if not S.tab(info) then return nil end
+        local read,name,kind,parent=pcall(function() return info.name,info.mapType,info.parentMapID end)
+        if not read or S.secret(name) or S.secret(kind) or S.secret(parent) then
+            refused=true; return nil
+        end
+        label=S.str(name,120)
+        return {mapType=S.num(kind),parentMapID=S.num(parent)}
+    end)
+    if refused then return false end
+    if zone and label then return zone,label end
+end
+function M.overlordPool()
+    return S.call(function()
+        local G,E=_G.C_GameRules,_G.Enum
+        local hc,rp,pvp
+        if S.tab(G) and S.tab(E) and S.tab(E.GameRule) then
+            local function read(rule)
+                if S.secret(rule) or rule==nil then return nil end
+                local value=S.call(G.IsGameRuleActive,rule)
+                if type(value)=="boolean" then return value end
+            end
+            hc=read(E.GameRule.HardcoreRuleset); rp=read(E.GameRule.RPRuleset); pvp=read(E.GameRule.PvPRuleset)
+        end
+        return N.Overlord.pool(S.call(GetRealmName),hc,rp,pvp)
+    end)
+end
+local function overlordReceive(text,kind,sender)
+    local Ov=N.Overlord
+    if not M.overlord or S.secret(kind) or S.secret(text) or S.secret(sender) then return end
+    if kind~="GUILD" and kind~="PARTY" and kind~="RAID" then return end
+    local stats=M.overlord.stats; stats.lines=stats.lines+1
+    local function refuse() stats.refused=stats.refused+1 end
+    if A.inCombat() or A.inInstance()~=false then return refuse() end
+    local pool=M.overlordPool()
+    if not pool then return refuse() end
+    local name,_,canonical=I.name(sender)
+    if not name or M.isMe(name) or A.ignored(name) then return refuse() end
+    local wall=S.num(S.call(GetServerTime)); local time=S.num(S.call(GetTime))
+    if not wall or not time then return refuse() end
+    if type(text)~="string" or #text>255 then return refuse() end
+    local p,id
+    if text:sub(1,3)=="BF:" then
+        local wire
+        wire,id=Ov.fragment(M.overlord,text,canonical,time)
+        if wire==nil then return end
+        if wire==false then return refuse() end
+        p=Ov.packet(wire,id,canonical,wall)
+        if p and p.pool~=pool then return refuse() end
+    elseif kind=="PARTY" or kind=="RAID" then
+        p=Ov.direct(text)
+        if p then p.origin=canonical end
+    end
+    if not p then return refuse() end
+    if p.kind=="GW" then
+        local g=Ov.gw(p.payload,wall)
+        local own=S.str(S.call(UnitFactionGroup,"player"),20)
+        if not g or (own~="Alliance" and own~="Horde") or g.faction==own:sub(1,1) then return refuse() end
+        g.zone,g.zoneName=overlordZone(g.map)
+        if g.zone==false then return refuse() end
+        if id and Ov.seen(M.overlord,p.origin,id) then return end
+        Ov.rampage(M.overlord,g,time,wall)
+    else
+        local d=p.kind=="GD" and Ov.gd(p.payload) or p.kind=="EK" and Ov.ek(p.payload)
+        if d and p.kind=="GD" and d.pool~=pool then return refuse() end
+        if not d or M.isMe(d.killer) then return refuse() end
+        -- GD carries the General's claim time, not a death timestamp. Keep that
+        -- conservative age; the relay envelope is independently limited to 120 s.
+        if d.ts-wall>30 or (p.kind=="EK" and wall-d.ts>120) or wall-d.ts>=N.Known.TTL then return refuse() end
+        local _,_,_,watchers=N.Watch.match(M.watch,d.killer,time)
+        if not N.Find.tracked(M.find,d.killer) and #watchers==0 then return refuse() end
+        local zone=overlordZone(d.map)
+        if zone==false then return refuse() end
+        if id and Ov.seen(M.overlord,p.origin,id) then return end
+        N.Find.report(M.find,{sender=p.origin,zone=zone,at=time-math.max(0,wall-d.ts),now=time,
+            enemies={{name=d.killer,class=d.class}},source="overlord",kind="claim",relayed=true,
+            detail="named as killer (claim)"},M.homeRealm())
+    end
+    stats.taken=stats.taken+1
+    if N.UI then N.UI.refresh() end
+end
+function M.overlordIn(text,kind,sender)
+    -- Optional map/ignore/identity APIs can throw on access as well as on call.
+    -- Unlike the general event guard, a refused foreign line never changes runtime status.
+    local ok=pcall(overlordReceive,text,kind,sender)
+    if not ok and M.overlord then M.overlord.stats.refused=M.overlord.stats.refused+1 end
+end
+function M.overlordText(g)
+    return "guild "..g.guild..": "..g.kills.." kills by "..g.members.." in "..(g.zoneName or "place unknown")
+        ..", "..(g.layer and ("layer "..g.layer) or "layer unknown").." (Overlord claim)"
+end
+function M.reportedRows()
+    local rows=T.rows(M.store,now(),"reported")
+    for _,g in ipairs(N.Overlord.rows(M.overlord,now())) do rows[#rows+1]=g end
+    return rows
 end
 -- OpenMap places are private, session-only Find data: no alerts, reports, peers or outgoing work.
 local function openmapPlace(text,kind,sender,faction)
@@ -2150,6 +2262,9 @@ function M.net(command)
         M.say("Networks: "..(N.Net.consent()=="public" and "public" or "guild only"))
         netLines(M.say)
         M.say(N.HeadHunter.summary(M.hh.stats))
+        local s=M.overlord.stats
+        local pool=M.overlordPool() or "unknown (receiving nothing)"
+        M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused.." · pool "..pool)
         return
     end
     if rest=="guild" or rest=="public" then M.setConsent(rest); return end
@@ -2177,12 +2292,14 @@ function M.text(command)
     if not L.key(M.store.bulo) then say(I.HINT) end
     local kind=command=="reports" and "reported" or command=="unclassified" and "unclassified" or "local"
     say(kind=="reported" and "Reported, not confirmed (War Effort; age as the reporter's clock gives it):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
-    local rows=T.rows(M.store,now(),kind)
+    local rows=kind=="reported" and M.reportedRows() or T.rows(M.store,now(),kind)
     local previous=kind=="local" and T.previous(M.store,now()) or {}
     if #rows==0 and #previous==0 then say(kind=="reported" and "No live reports for your zone." or "No eligible observations.") end
     local numbers,records,shown={},{},{}
     for _,e in ipairs(rows) do
         local when=ago(now()-e.at)
+        if e.guild then say(M.overlordText(e).." | "..when.." ago")
+        else
         local extra=""
         if kind=="reported" and e.record and not numbers[e.record] then
             records[#records+1]=e.record; numbers[e.record]=#records
@@ -2193,6 +2310,7 @@ function M.text(command)
             extra=" | reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " | relayed" or "")..(e.positionKind and (" | "..e.positionKind) or "")..(e.untimed and " | time of receipt (no timestamp)" or "")..(e.age and e.age>0 and (" | claimed "..e.age.." s old") or "").." | "..(e.relation=="same" and "same server key as yours" or e.relation=="other" and ("other server key "..tostring(e.reportLayer)) or "layer unknown")
         end
         say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or "")..(not e.reporter and e.layer==nil and " | layer unknown when seen" or ""))
+        end
     end
     for _,e in ipairs(previous) do
         say((e.displayName or e.name or "Unknown").." | "..(e.class or "Unknown class").." · "..M.zoneName(e.zone).." · previous zone | "..tostring(e.level or "?").." | seen "..ago(now()-e.at).." ago")
@@ -2217,6 +2335,7 @@ function M.start()
     if M.started then return end
     M.started=true
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new(); M.hh=N.HeadHunter.new()
+    M.overlord=N.Overlord.new()
     M.hopAnyState=N.HopAny.new()
     M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
@@ -2270,6 +2389,7 @@ function M.start()
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"GBOUNTY")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"WALLOFSHAME")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FTold1")
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OverlordF") -- receive only
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OpenMapLoc") -- receive only, including hellos
     end
     SlashCmdList=SlashCmdList or {}

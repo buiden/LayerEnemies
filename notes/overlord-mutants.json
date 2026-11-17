@@ -1,0 +1,474 @@
+{
+  "total": 52,
+  "killed": 52,
+  "results": [
+    {
+      "mutant": "last-sender",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout: expected nil, got table: 0x58a5fa663690",
+        "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:348: not equal: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "rampage-normal-height",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap: test/overlord.lua:466: normal measured Reported card height: expected 82, got 180"
+      ]
+    },
+    {
+      "mutant": "foreign-pool",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: foreign packet pools are refused before evidence or dedupe: test/overlord.lua:154: foreign pool pve: expected 0, got 1",
+        "FAIL Overlord: pool detection maps readable rules and explicit realm fallback without a PvP guess: test/overlord.lua:193: another campaign refused: expected 1, got 2"
+      ]
+    },
+    {
+      "mutant": "unknown-pool",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: unknown own pool accepts no wrapped direct or partial traffic and recovers without reload: test/overlord.lua:180: missing: expected 0, got 4"
+      ]
+    },
+    {
+      "mutant": "ruleset-pool",
+      "killed": true,
+      "failed": 18,
+      "caught_by": [
+        "FAIL Overlord: two parts join in either order reverse=false: test/overlord.lua:58: not equal: expected 1, got 0",
+        "FAIL Overlord: two parts join in either order reverse=true: test/overlord.lua:58: not equal: expected 1, got 0",
+        "FAIL Overlord: origin id ring takes once and caps at 256: test/overlord.lua:133: attempt to index field '?' (a nil value)",
+        "FAIL Overlord: foreign packet pools are refused before evidence or dedupe: test/overlord.lua:154: foreign pool pve: expected 0, got 1",
+        "FAIL Overlord: unknown own pool accepts no wrapped direct or partial traffic and recovers without reload: test/overlord.lua:183: not equal: expected 1, got 0",
+        "FAIL Overlord: pool detection maps readable rules and explicit realm fallback without a PvP guess: test/overlord.lua:191: global: expected 1, got 0",
+        "FAIL Overlord: GD foreign payload pool is refused on both direct and wrapped routes: test/overlord.lua:208: not equal: expected 0, got 1",
+        "FAIL Overlord: GD tracked killer claim reaches Find for one hour with no Ask: test/harness.lua:7: killer claim admitted: expected true, got false",
+        "FAIL Overlord: direct route matrix EK only group and no whisper or channel: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:309: not equal: expected 1, got 0",
+        "FAIL Overlord: GW one per guild capped expiring and survives zone or layer boundary: test/overlord.lua:316: attempt to index field '?' (a nil value)",
+        "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:349: not equal: expected 1, got 0",
+        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:385: not equal: expected 1, got 0",
+        "FAIL Overlord: map lookup failures cannot consume packet identity and secret names refuse: test/overlord.lua:424: not equal: expected 1, got 0",
+        "FAIL Overlord: slash Reported shows guild claim but no hop record: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap: test/overlord.lua:456: not equal: expected 32, got 0",
+        "FAIL Overlord: single guild rampage reaches Reported without a hop: test/overlord.lua:482: not equal: expected 1, got 0"
+      ]
+    },
+    {
+      "mutant": "GD-payload-pool",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GD foreign payload pool is refused on both direct and wrapped routes: test/overlord.lua:208: not equal: expected 0, got 2"
+      ]
+    },
+    {
+      "mutant": "assembly-sender",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: two parts join in either order reverse=false: test/overlord.lua:54: never cross sender: expected nil, got global|pkt-1|720100|*|Birch Scout|GW|1:Enemy Guild:H:77:6:#1434:12345:720100",
+        "FAIL Overlord: two parts join in either order reverse=true: test/overlord.lua:54: never cross sender: expected nil, got global|pkt-1|720100|*|Birch Scout|GW|1:Enemy Guild:H:77:6:#1434:12345:720100"
+      ]
+    },
+    {
+      "mutant": "envelope-id",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x59785cd71c50",
+        "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:348: not equal: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "three-parts",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: fragment frame bounds and single-part fast path: test/overlord.lua:69: BF:a:1:3:x: expected false, got nil"
+      ]
+    },
+    {
+      "mutant": "own-faction",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:306: own faction: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "untracked-killer",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: untracked killers never enter Known even before later tracking: test/overlord.lua:231: not equal: expected nil, got cedar vale",
+        "FAIL Overlord: tracked matcher keeps foreign realms distinct and supports unqualified names: test/overlord.lua:238: not equal: expected nil, got cedar vale-realmb"
+      ]
+    },
+    {
+      "mutant": "120-inclusive",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/harness.lua:7: not equal: expected true, got false"
+      ]
+    },
+    {
+      "mutant": "dedupe",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: origin id ring takes once and caps at 256: test/harness.lua:7: not equal: expected true, got false",
+        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:385: not equal: expected 1, got 2"
+      ]
+    },
+    {
+      "mutant": "guild-direct-EK",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: direct route matrix EK only group and no whisper or channel: test/overlord.lua:265: GUILD: expected nil, got cedar vale"
+      ]
+    },
+    {
+      "mutant": "fragment-252",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: fragment frame bounds and single-part fast path: test/overlord.lua:69: BF:aaaaaaaaaaaaaaaaaa:1:1:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx: expected false, got xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ]
+    },
+    {
+      "mutant": "chunk-230",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: fragment frame bounds and single-part fast path: test/overlord.lua:69: BF:a:1:1:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx: expected false, got xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ]
+    },
+    {
+      "mutant": "id-64",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: fragment frame bounds and single-part fast path: test/overlord.lua:69: BF:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:1: expected false, got x"
+      ]
+    },
+    {
+      "mutant": "id-alphabet",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: fragment frame bounds and single-part fast path: test/overlord.lua:69: BF:a_b:1:1:x: expected false, got x"
+      ]
+    },
+    {
+      "mutant": "part-order",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: fragment frame bounds and single-part fast path: test/overlord.lua:69: BF:a:2:1:x: expected false, got x"
+      ]
+    },
+    {
+      "mutant": "packet-3600",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:101: not equal: expected nil, got table: 0x5cc27208a650"
+      ]
+    },
+    {
+      "mutant": "broadcast",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x592c6cad9360"
+      ]
+    },
+    {
+      "mutant": "path-four",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Aa One,Bb Two,Cc Three,Dd Four,Birch Scout: expected nil, got table: 0x55a8ebd45d70"
+      ]
+    },
+    {
+      "mutant": "path-repeat",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: packet path one to four no repeats and last sender: test/overlord.lua:111: Other Scout,Birch Scout,OTHER SCOUT,Birch Scout: expected nil, got table: 0x5639de0936e0"
+      ]
+    },
+    {
+      "mutant": "integer-time",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720100.5: expected nil, got table: 0x5f298d8e4180"
+      ]
+    },
+    {
+      "mutant": "clock-skew",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: packet age accepts 120 not 121 and skew 30 not 31: test/overlord.lua:122: 720131: expected nil, got table: 0x610b45a07280",
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 720131: expected nil, got table: 0x610b456c5bb0"
+      ]
+    },
+    {
+      "mutant": "control-bytes",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: packet identity exact seven fields broadcast and allowed kinds: test/overlord.lua:100: not equal: expected nil, got table: 0x5979a6c53200"
+      ]
+    },
+    {
+      "mutant": "pending-cap",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: 33 pending evicts oldest including same-time arrivals: test/overlord.lua:91: not equal: expected 32, got 33",
+        "FAIL Overlord: malformed frame fuzz bounded state and zero sends: test/harness.lua:7: not equal: expected true, got false"
+      ]
+    },
+    {
+      "mutant": "assembly-30",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: fragment duplicate conflicts and timeout do not extend assembly life: test/overlord.lua:81: 30s expires from first part: expected nil, got ab",
+        "FAIL Overlord: 33 pending evicts oldest including same-time arrivals: test/overlord.lua:94: idle sweep: expected nil, got birch scout:p1"
+      ]
+    },
+    {
+      "mutant": "duplicate-renews-partial",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: fragment duplicate conflicts and timeout do not extend assembly life: test/overlord.lua:81: 30s expires from first part: expected nil, got ab"
+      ]
+    },
+    {
+      "mutant": "duplicate-conflict",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: fragment duplicate conflicts and timeout do not extend assembly life: test/overlord.lua:80: conflict: expected false, got nil"
+      ]
+    },
+    {
+      "mutant": "seen-ring",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: origin id ring takes once and caps at 256: test/overlord.lua:132: not equal: expected 256, got 257"
+      ]
+    },
+    {
+      "mutant": "GW-kills",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 10000: expected nil, got table: 0x5b73e72a98b0"
+      ]
+    },
+    {
+      "mutant": "GW-members",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 1000: expected nil, got table: 0x62af3e7af320"
+      ]
+    },
+    {
+      "mutant": "GW-layer",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 100000000: expected nil, got table: 0x5d933b54b840"
+      ]
+    },
+    {
+      "mutant": "GW-age",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: 719799: expected nil, got table: 0x57548bd8ce00"
+      ]
+    },
+    {
+      "mutant": "guild-name-cap",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x56c4dbe4a370"
+      ]
+    },
+    {
+      "mutant": "zone-ref-cap",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:303: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: expected nil, got table: 0x617e435c9340"
+      ]
+    },
+    {
+      "mutant": "guild-TTL",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GW one per guild capped expiring and survives zone or layer boundary: test/overlord.lua:321: not equal: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "guild-cap",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: GW one per guild capped expiring and survives zone or layer boundary: test/overlord.lua:327: not equal: expected 32, got 33"
+      ]
+    },
+    {
+      "mutant": "combat",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: combat and instance unreadable gates do no map scans: test/overlord.lua:378: not equal: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "instance",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: combat and instance unreadable gates do no map scans: test/overlord.lua:378: not equal: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "whisper",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: direct route matrix EK only group and no whisper or channel: test/overlord.lua:268: WHISPER: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "outgoing-attempt",
+      "killed": true,
+      "failed": 23,
+      "caught_by": [
+        "FAIL Overlord: two parts join in either order reverse=false: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: two parts join in either order reverse=true: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: origin id ring takes once and caps at 256: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: foreign packet pools are refused before evidence or dedupe: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 6",
+        "FAIL Overlord: unknown own pool accepts no wrapped direct or partial traffic and recovers without reload: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 7",
+        "FAIL Overlord: pool detection maps readable rules and explicit realm fallback without a PvP guess: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 12",
+        "FAIL Overlord: GD foreign payload pool is refused on both direct and wrapped routes: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: GD tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: EK tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: tracked matcher keeps foreign realms distinct and supports unqualified names: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 2",
+        "FAIL Overlord: guildmate shared tracked killer is admitted without adding saved names: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: claim never overwrites an existing first-hand Ask target: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: direct route matrix EK only group and no whisper or channel: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 6",
+        "FAIL Overlord: killer payload exact fields no unknown killer and source age retained: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 2",
+        "FAIL Overlord: GW bounds faction timestamp and unknown places: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 4",
+        "FAIL Overlord: GW one per guild capped expiring and survives zone or layer boundary: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 35",
+        "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: bad origin id or sender cannot poison a later valid packet: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/overlord.lua:385: not equal: expected 1, got 2",
+        "FAIL Overlord: map lookup failures cannot consume packet identity and secret names refuse: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: slash Reported shows guild claim but no hop record: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1",
+        "FAIL Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 32",
+        "FAIL Overlord: single guild rampage reaches Reported without a hop: test/overlord.lua:20: not even an attempted gateway send: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "claim-Ask",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: claim never overwrites an existing first-hand Ask target: test/harness.lua:8: not equal: expected false, got true"
+      ]
+    },
+    {
+      "mutant": "claim-hour",
+      "killed": true,
+      "failed": 3,
+      "caught_by": [
+        "FAIL Overlord: GD tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x63eb37fa85d0",
+        "FAIL Overlord: EK tracked killer claim reaches Find for one hour with no Ask: test/overlord.lua:224: not equal: expected nil, got table: 0x63eb3849e810",
+        "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/overlord.lua:337: not equal: expected nil, got table: 0x63eb3832d8e0"
+      ]
+    },
+    {
+      "mutant": "secret-map-name",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: map lookup failures cannot consume packet identity and secret names refuse: test/overlord.lua:426: secret map name must skip row: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "secret-map-object",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:444: object: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "secret-map-type",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:444: type: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "secret-map-parent",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: secret map objects or map types skip the entire claim: test/overlord.lua:444: parent: expected 0, got 1"
+      ]
+    },
+    {
+      "mutant": "EK-future",
+      "killed": true,
+      "failed": 2,
+      "caught_by": [
+        "FAIL Overlord: killer payload exact fields no unknown killer and source age retained: test/overlord.lua:293: not equal: expected nil, got cedar vale",
+        "FAIL Overlord: GD claim time is not assumed to be kill time or renewed on arrival: test/overlord.lua:341: not equal: expected nil, got cedar vale"
+      ]
+    },
+    {
+      "mutant": "EK-age",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: killer payload exact fields no unknown killer and source age retained: test/overlord.lua:292: not equal: expected nil, got cedar vale"
+      ]
+    },
+    {
+      "mutant": "save-received-data",
+      "killed": true,
+      "failed": 1,
+      "caught_by": [
+        "FAIL Overlord: session counters diagnostics and no added SavedVariables: test/harness.lua:7: no new save field overlord: expected true, got false"
+      ]
+    }
+  ]
+}

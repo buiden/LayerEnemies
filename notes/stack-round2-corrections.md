@@ -43,3 +43,19 @@ version while preparing the 1.2.0 stack. No inherited assertion weakened.
 Only `notes/test-results.txt` and `notes/verification.json` conflicted; regenerated
 both. Production, tests and README auto-merged. Full verify: **1276 passed,
 0 failed, 160562 assertions**, all syntax/static/package/source parity gates pass.
+
+## Level 5: forward merge and Overlord diagnostic
+
+Only the two generated verification notes conflicted; regenerated both. Added
+pool text to the existing Overlord session line without changing admission:
+known `global/pve/rpg/rpv/hc`, otherwise `pool unknown (receiving nothing)`.
+
+- `Overlord: net diagnostic shows the currently detected pool on the Overlord line`
+- `Overlord: net diagnostic explains unknown pool receives nothing and updates on recovery`
+
+Both failed before the change: **34 passed / 2 failed / 17129 assertions**;
+then **36 / 0 / 17171**. Tests cover all five tags, missing/partial/throwing rule
+reads, missing enum and live recovery without receipt or counter changes.
+Two diagnostic mutants supplement the unchanged 52 legacy cases.
+Full verify: **1316 passed, 0 failed, 178092 assertions**, with all static,
+syntax and package/source parity checks green.
