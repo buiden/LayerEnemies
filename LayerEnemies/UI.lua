@@ -171,7 +171,7 @@ function U.render()
             if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0) end
             return e.place and 146 or e.at and 106 or 76
         end
-        return U.tab=="local" and 48 or U.tab=="friendly" and 68 or 80
+        return U.tab=="local" and 48 or U.tab=="friendly" and (e.flhKey and 104 or 68) or 80
     end
     local top=U.tab=="find" and 70 or U.tab=="friendly" and 48 or U.tab=="reported" and 23 or 0
     -- A hash line beside both cached slots and an OpenMap place can exceed
@@ -217,7 +217,7 @@ function U.render()
         r.sub:SetWidth(friendly and 200 or 294)
         r.levelBG:SetShown(not friendly)
         local detailHeight=knownHeight(e)
-        r.sub:SetHeight(U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or 24)
+        r.sub:SetHeight(U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or (friendly and e.flhKey) and 60 or 24)
         r.level:SetText(e.level and tostring(e.level) or U.tab=="friendly" and "" or "?")
         r.age:SetText(e.at and age(e.at) or e.age and age(time-e.age) or "")
         r.title:SetText(e.displayName or e.name or "Unknown")
@@ -228,7 +228,7 @@ function U.render()
             r.sub:SetText("reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or ""))
             hopState(r,e.record)
         elseif U.tab=="friendly" then
-            r.sub:SetText(table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.layer and "layer "..e.layer or "layer not known"))
+            r.sub:SetText(table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.flhKey and M.hostPlace(e) or (e.layer and "layer "..e.layer or "layer not known")))
             local p=not e.unknownOwn and M.hostPreview(e)
             if e.unknownOwn then unknownState(r)
             elseif p then hostState(r,e,p)

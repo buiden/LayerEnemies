@@ -1,3 +1,22 @@
+# Protocol provenance
+
+| Donor | Use | Version / rights | Reuse |
+|---|---|---|---|
+| [Forever Layer Hop](https://www.curseforge.com/wow/addons/forever-layer-hop) | Independent `FLHNET2` receive-only decoder; direct presence in the friendly hosts list | 0.1.9; All Rights Reserved; owner-approved protocol interoperation | **protocol only, no code** |
+
+Pinned release: `ForeverLayerHop-v0.1.9.zip`, SHA-256
+`b5b3dbc608c112463bb50ddb0567c70ae2c3eb5919711b0475875001dd5092b7`.
+The inspected `ForeverLayerHop.lua` SHA-256 is
+`e86941e5fcef9bf88caa150c68b614bd2929e0cefe5ed27f0634b8c5f8186bc2`.
+Only wire facts were read; no donor source, assets, libraries or implementation
+were copied, translated, bundled or executed. LE's parser is independently
+written from positional field layouts. Source references in that pinned file:
+prefix/version 37/42; delimiters 957–969; decimal GUID-field-5 fingerprint
+973–1008; presence 6370, 9560–9614, 9733–9755, 9925–10035; hop conversation
+10079–10336; peer expiry 65. LE accepts presence only on the four routes in
+its plan, not FLH's broader channel/instance routes. `WP/CQ/LQ/LO/LR/LN` are
+decoded but have no action in this receive-only slice.
+
 # Offline art provenance
 
 | Material | Use | Source / license | Shipped? |
