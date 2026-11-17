@@ -66,3 +66,46 @@ Conflicts: `Main.lua` and the two generated verification notes. Main's resolutio
 retains both the pool-aware Overlord line and the following `Sources.lines()`
 loop; no diagnostic was dropped. Generated notes regenerated. Full verify:
 **1393 passed, 0 failed, 216396 assertions**, all static/syntax/package gates pass.
+
+## Level 7: forward merge before Wanted follow-up
+
+Only generated verification notes conflicted; regenerated both. Full verify of
+this intermediate composition: **1418 passed, 0 failed, 237085 assertions**,
+all static/syntax/package/source parity checks green.
+
+### Wanted round-1 merge
+
+Merged exact source `8da62639d5220f474da3cb45c6ef17d4902da642` (including
+`fac5151` behavior changes). Only the generated verification notes conflicted;
+regenerated both, no code/test resolution necessary. Source fixes add isolated
+rate lanes, guild-reserved/per-carrier bounded assembly and replay, map-only
+zone projection, numeric 1.29.x patches and stable mutant evidence.
+
+Focused Wanted: **40 passed, 0 failed, 23469 assertions**; Python evidence
+regression: **1 passed**. Full verify: **1433 passed, 0 failed, 239897 assertions**,
+all static/syntax/package checks pass. Source's own RED evidence remains in
+`notes/wanted-receive.md`; no additional production fix was needed in the stack.
+
+### Later owner instruction: six mixed Find cards
+
+`Stack: six mixed Wanted presence and Overlord cards use measured heights and page without overlap`
+was added at level 7 and will run unchanged at level 8. Real numbered Wanted
+frames populate all six names, then newer Overlord events replace two claims;
+real community scans supply presence, in both arrival orders. Wanted and
+Overlord share one retained Reported slot, so the board contains four Wanted
+and two Overlord claims, not fabricated simultaneous duplicate claim slots.
+Every page must show at least two complete cards; all six must be reachable,
+nonoverlapping, measured exactly, with complete claim text and no Ask action.
+
+- Actual behavior RED: **3 passed / 1 failed / 332 assertions**, 24px claim text
+  occupied an assumed 44px box even after the presence floor fix.
+- Fix only presence-bearing Find cards: measure their complete detail strings
+  and use the ordinary card floor instead of summed evidence-slot estimates.
+  Unrelated Find-only, Friendly and Reported floors remain unchanged.
+- GREEN: **4 / 0 / 665**. Full verify: **1434 / 0 / 240311** (all gates pass).
+- Two initial fixture failures were corrected before that behavior RED: Wanted
+  IDs permit at most three characters, and Overlord integer timestamps must be
+  newer than Wanted's fractional receipt before replacing its claim. No assertion
+  was removed or weakened. Failed fixture logs are retained separately.
+- The presence card-surcharge mutant now injects the same old floor at the
+  minimum-height entry, so the new early mixed-card branch cannot mask it.

@@ -32,7 +32,7 @@ local function register(r)
     if not name or not name:match("^[a-z]+$") or sources[name] or #order>=32 then return false end
     if not S.tab(r.prefixes) or #r.prefixes>8 then return false end
     local copy={name=name,prefixes={},counters=S.tab(r.counters) and r.counters or {}}
-    for _,key in ipairs({"onAddon","onBNet","tick"}) do
+    for _,key in ipairs({"onAddon","onBNet","tick","status"}) do
         local fn=r[key]
         if S.secret(fn) or (fn~=nil and type(fn)~="function") then return false end
         copy[key]=fn
@@ -141,6 +141,7 @@ local function offer(ev)
     if (ev.guid~=nil and not guid) or (ev.faction~=nil and faction~="Horde" and faction~="Alliance")
         or (ev.shard~=nil and not shard) or (ev.via~=nil and not via) then return false end
     local detail=net.." "..kind..": "..kinds[kind].." (claim)"
+    if x and kind~="self" then detail=detail.." · seen near observer" end
     if zoneText then detail=detail.." · "..zoneText end
     if shard then detail=detail.." · shard "..shard.." (source key)" end
     if ev.at==nil then detail=detail.." · time unknown" end
@@ -159,11 +160,24 @@ function Src.offer(ev)
     if safe then Src.count(net,"refused") end
     return false
 end
-function Src.lines()
+function Src.lines(name)
     local out={}
     for _,r in ipairs(order) do
-        local c=r.counters
-        out[#out+1]=r.name..": heard="..c.heard.." accepted="..c.accepted.." sent="..c.sent.." refused="..c.refused
+        if name==nil or name==r.name then
+            local c=r.counters
+            out[#out+1]=r.name..": heard="..c.heard.." accepted="..c.accepted.." sent="..c.sent.." refused="..c.refused
+            -- Only an explicit /le net <source> asks for bounded extra diagnostics.
+            if name and r.status and Src.enabled(name) then
+                pcall(function()
+                    local rows=r.status()
+                    if not S.tab(rows) then return end
+                    for i=1,math.min(#rows,240) do
+                        local line=S.str(rows[i],160)
+                        if line then out[#out+1]=line end
+                    end
+                end)
+            end
+        end
     end
     return out
 end

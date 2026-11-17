@@ -188,6 +188,8 @@ function U.render()
     end
     local function minimumHeight(e)
         if U.tab=="find" then
+            -- Mixed presence cards use complete measured content, not slot estimates.
+            if e.presence then return 76 end
             if e.seen or e.reported then return 62+knownHeight(e)+(e.place and 40 or 0) end
             return e.place and 146 or e.at and 106 or 76
         end
@@ -212,6 +214,7 @@ function U.render()
             if e.probably and detailHeight==0 then text=text.." · probably your layer (key ambiguous)" end
         end
         local minimum=U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14) or U.tab=="local" and 14 or (U.tab=="friendly" and e.flhKey) and 60 or 24
+        if U.tab=="find" and e.presence then minimum=0 end
         U.measure:SetWidth(U.tab=="friendly" and 200 or 294); U.measure:SetText(text)
         local layout={text=text,subHeight=fitText(U.measure,minimum)}
         local bottom=26+layout.subHeight

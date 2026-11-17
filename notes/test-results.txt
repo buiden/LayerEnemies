@@ -1311,6 +1311,7 @@ PASS Overlord: slash Reported shows guild claim but no hop record
 PASS Overlord: secret map objects or map types skip the entire claim
 PASS Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap
 PASS Overlord: single guild rampage reaches Reported without a hop
+PASS Stack: six mixed Wanted presence and Overlord cards use measured heights and page without overlap
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
@@ -1334,10 +1335,10 @@ PASS BNet queue: bounds secrets rollback and timer absence fail closed
 PASS BNet queue: S1 configured admission cap wanted
 PASS BNet queue: S1 configured admission cap overlord
 PASS BNet queue: S1 configured admission cap warboard
-PASS BNet queue: S1 default fair admission share across 1 registered sources
-PASS BNet queue: S1 default fair admission share across 2 registered sources
-PASS BNet queue: S1 default fair admission share across 4 registered sources
-PASS BNet queue: S1 default fair admission share across 32 registered sources
+PASS BNet queue: S1 default fair admission share with 1 requested default sources
+PASS BNet queue: S1 default fair admission share with 2 requested default sources
+PASS BNet queue: S1 default fair admission share with 4 requested default sources
+PASS BNet queue: S1 default fair admission share with 32 requested default sources
 PASS BNet queue: S1 default fair share also limits rolling dispatch
 PASS BNet queue: S1 configured and default sources share one rolling cap
 PASS BNet queue: S1 normal flood leaves eight owed-only slots
@@ -1391,4 +1392,58 @@ PASS Sources: OpenMap Battle.net keeps its original event path and values
 PASS Sources: guarded callbacks secrets and switches fail silent
 PASS Sources: unavailable optional timer and registration APIs fail silent
 PASS Sources: tick-only source runs at one second cadence and net counters append
-RESULT: 1393 tests passed, 0 failed, 216396 assertions
+PASS Wanted: independent zlib record hash and decoder ceilings
+PASS Wanted: deterministic 5000-input decoder and dispatch fuzz has no errors
+PASS Wanted: record and sighting location fields do not alias each other
+PASS Wanted: bad hashes and malformed payloads increment refusal without chat
+PASS Wanted: record batch and flat-data limits reject valid oversized objects
+PASS Wanted: stale and future records are refused before the offer boundary
+PASS Wanted: bounded dedupe evictions do not save evidence or new names
+PASS Wanted: known same-faction GUIDs cannot become enemies through sightings
+PASS Wanted: echo realm identity and source switch cannot admit forged claims
+PASS Wanted: source diagnostics are opt-in bounded and protected
+PASS Wanted: R and F records use record time participants and honest provenance
+PASS Wanted: forged origin hash malformed envelope and stale records store nothing
+PASS Wanted: relayed records cannot promote provenance or renew original time
+PASS Wanted: spotted resolves only an already tracked exact GUID without a name cache
+PASS Wanted: Battle.net summaries are anonymous diagnostics never named evidence
+PASS Wanted: Battle.net eligibility and numbered parts are verified before ingestion
+PASS Wanted: summary validation caps senders entries and finite counts
+PASS Wanted: passive channel join preserves player ownership and two free slots
+PASS Wanted: inbound budgets are per canonical sender and bounded globally
+PASS Wanted: receive tick and every ignored tag never attempt any send
+PASS Wanted: two unfinished messages per sender cover all addon routes
+PASS Wanted: numbered framing supports reorder and bounds every unfinished stream
+PASS Wanted: fragmented S and E on guild and channel retain no untracked names
+PASS Wanted: route version array faction and secret guards fail silent
+PASS Wanted: audit sighting vector reaches measured Find as witness near observer
+PASS Wanted: R1 S1 300 channel users cannot suppress 75 guild sightings
+PASS Wanted: R1 S1 128 junk senders cannot suppress 20 guild sightings
+PASS Wanted: R1 S1 invalid tags and shapes take no sender entries
+PASS Wanted: R1 S1 valid channel whisper and BNet floods leave guild capacity
+PASS Wanted: R1 S2 sightings show only map-derived zone never free text
+PASS Wanted: R1 S2 records cannot contradict map zone or inject bidi
+PASS Wanted: R1 S2 absent invalid and unresolved maps have no zone fallback
+PASS Wanted: R1 S3 two assemblies per canonical sender across routes
+PASS Wanted: R1 S3 BNet dispatch shares one assembly owner across message IDs
+PASS Wanted: R1 S3 reserved assemblies survive a full public pool
+PASS Wanted: R1 S3 renewed channel holds cannot suppress 20 five-frame guild messages
+PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
+PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
+PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
+PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
+PASS Wanted: R2 S4 one sighting a minute for two hours shows 120 of 120
+PASS Wanted: R2 S4 one sighting every twenty seconds shows all sixty
+PASS Wanted: R2 S4 twenty-second cadence stays live for two hours
+PASS Wanted: R2 S4 channel scout also shows 120 of 120
+PASS Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID
+PASS Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout
+PASS Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve
+PASS Wanted: R2 S4 eviction counter is visible through net wanted including zero
+PASS Wanted: R2 S4 counter counts public and global evictions not refusals
+PASS Wanted: R2 S4 overlapping sender and public limits count both evictions
+PASS Wanted: R2 S4 mixed records evict by admission not observation or expiry
+PASS Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry
+PASS Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs
+PASS Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks
+RESULT: 1448 tests passed, 0 failed, 243052 assertions

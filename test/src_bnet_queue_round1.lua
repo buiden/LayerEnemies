@@ -1,5 +1,6 @@
 local h=...
 local test,eq,yes,no=h.test,h.eq,h.yes,h.no
+local fixture=assert(loadfile("test/bnet_queue_fixture.lua"))(h)
 local function setup()
     local N=h.load()
     _G.WOW_PROJECT_ID=42
@@ -9,11 +10,7 @@ local function setup()
     end
     return N
 end
-local function register(N,name,prefix)
-    local counters={}
-    yes(N.Sources.register{name=name,prefixes={prefix},counters=counters})
-    return counters
-end
+local register=fixture.register
 local function sent()
     local out={}; for _,s in ipairs(h.sent()) do if s.kind=="BN" then out[#out+1]=s end end; return out
 end
@@ -35,9 +32,11 @@ for _,row in ipairs({{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","
 end
 
 for _,size in ipairs({1,2,4,32}) do
-    test("BNet queue: S1 default fair admission share across "..size.." registered sources",function()
-        local N=setup(); local rows={}; local limit=math.max(1,math.floor(30/size))
-        for i=1,size do
+    test("BNet queue: S1 default fair admission share with "..size.." requested default sources",function()
+        local N=setup(); local rows={}; local existing=#N.Sources.lines()
+        local added=math.min(size,32-existing)
+        local limit=math.max(1,math.floor(30/(existing+added)))
+        for i=1,added do
             local name,prefix="source"..h.abc(i),"Queue"..i
             rows[i]={name=name,prefix=prefix,c=register(N,name,prefix)}
         end
@@ -47,55 +46,57 @@ for _,size in ipairs({1,2,4,32}) do
             no(N.BNet.send(r.name,72,r.prefix,"overflow-owed","owed"))
             eq(r.c.refused,2)
         end
-        eq(N.BNet.queued(),limit*size)
+        eq(#N.Sources.lines(),existing+added)
+        eq(N.BNet.queued(),limit*added)
+        if existing+added==32 then no(N.Sources.register{name="overflow",prefixes={"Overflow"},counters={}}) end
     end)
 end
 
 test("BNet queue: S1 default fair share also limits rolling dispatch",function()
     local N=setup(); local c=register(N,"alpha","AlphaQueue"); register(N,"beta","BetaQueue")
-    for i=1,16 do
+    local limit=fixture.defaultShare(N)
+    for i=1,limit+1 do
         yes(N.BNet.send("alpha",71,"AlphaQueue","line"..i,"own"))
         h.advance(1)
     end
-    eq(#sent(),15,"refilling the queue must not bypass the default per-minute share")
-    eq(c.sent,15); eq(N.BNet.queued(),1); eq(c.refused,0)
-    for _=1,44 do h.advance(1) end; eq(#sent(),15)
-    h.advance(1); eq(#sent(),16); eq(N.BNet.queued(),0)
+    eq(#sent(),limit,"refilling the queue must not bypass the default per-minute share")
+    eq(c.sent,limit); eq(N.BNet.queued(),1); eq(c.refused,0)
+    for _=1,60-(limit+1) do h.advance(1) end; eq(#sent(),limit)
+    h.advance(1); eq(#sent(),limit+1); eq(N.BNet.queued(),0)
 end)
 
 test("BNet queue: S1 configured and default sources share one rolling cap",function()
     local N=setup()
-    local rows={{"overlord","OLQueue",8},{"wanted","WNTDB",4},{"warboard","WBQueue",10},
-        {"alpha","AlphaQueue",6},{"beta","BetaQueue",6}}
-    for _,r in ipairs(rows) do register(N,r[1],r[2]) end
+    local rows=fixture.mixed(N); local limit=fixture.defaultShare(N)
+    rows[4][3]=limit; rows[5][3]=limit
+    local total=22+2*limit; yes(total>30,"the global cap, not a source cap, is exercised")
     for _,r in ipairs(rows) do
         for i=1,r[3] do yes(N.BNet.send(r[1],71,r[2],r[1]..i,"own")) end
     end
-    eq(N.BNet.queued(),34)
+    eq(N.BNet.queued(),total)
     for _=1,30 do h.advance(1) end; eq(#sent(),30)
     for _=1,30 do h.advance(1) end
     eq(#sent(),30,"individual shares must not enlarge the global thirty-attempt limit")
-    eq(N.BNet.queued(),4,"the test reaches the shared-budget wait with individually eligible work")
+    eq(N.BNet.queued(),total-30,"the test reaches the shared-budget wait with individually eligible work")
 end)
 
 test("BNet queue: S1 normal flood leaves eight owed-only slots",function()
     local N=setup()
-    -- Register in stages to reach the global boundary independently of the
-    -- per-network caps. New registrations tighten future admissions, not old ones.
-    register(N,"alpha","AlphaQueue")
-    for i=1,30 do yes(N.BNet.send("alpha",71,"AlphaQueue","alpha-"..i,"own")) end
-    for _,r in ipairs({{"warboard","WBQueue",10},{"overlord","OLQueue",8},{"wanted","WNTDB",4}}) do
-        register(N,r[1],r[2])
-        for i=1,r[3] do yes(N.BNet.send(r[1],71,r[2],r[1]..i,"own")) end
-    end
+    -- Fill using the real current registry size. No source is disabled to regain
+    -- a hypothetical empty-registry share; exact global boundaries stay 52/60.
+    fixture.fill(N,52,"own","normal")
     local beta=register(N,"beta","BetaQueue")
     eq(N.BNet.queued(),52)
     no(N.BNet.send("beta",71,"BetaQueue","normal-overflow","own"),"normal traffic cannot use the eight reserved slots")
     eq(beta.refused,1); eq(N.BNet.queued(),52)
-    for i=1,4 do yes(N.BNet.send("beta",71,"BetaQueue","owed-beta-"..i,"owed")) end
-    local gamma=register(N,"gamma","GammaQueue")
-    for i=1,4 do yes(N.BNet.send("gamma",71,"GammaQueue","owed-gamma-"..i,"owed")) end
+    yes(N.BNet.send("beta",71,"BetaQueue","owed-1","owed"))
+    for i=2,8 do
+        local name,prefix="owed"..h.abc(i),"Owed"..i
+        register(N,name,prefix)
+        yes(N.BNet.send(name,71,prefix,"owed-"..i,"owed"))
+    end
     eq(N.BNet.queued(),60)
+    local gamma=register(N,"gamma","GammaQueue")
     no(N.BNet.send("gamma",71,"GammaQueue","owed-overflow","owed"),"absolute queue cap still applies")
     eq(gamma.refused,1)
     h.advance(1); eq(#sent(),1); eq(N.BNet.queued(),59)
@@ -103,22 +104,20 @@ test("BNet queue: S1 normal flood leaves eight owed-only slots",function()
     for _=1,7 do h.advance(1) end
     local rows=sent(); eq(#rows,8)
     for i,r in ipairs(rows) do
-        eq(r.text,i<=4 and "owed-beta-"..i or "owed-gamma-"..(i-4),"all eight owed frames leave before normal traffic")
+        eq(r.text,"owed-"..i,"all eight owed frames leave before normal traffic")
     end
     h.advance(1); eq(#sent(),9)
     yes(N.BNet.send("beta",71,"BetaQueue","normal-after-normal","own"),"dispatching normal releases a normal slot")
 end)
 
 test("BNet queue: S1 owed occupancy does not shrink the normal allowance",function()
-    local N=setup(); register(N,"alpha","AlphaQueue")
-    for i=1,30 do yes(N.BNet.send("alpha",71,"AlphaQueue","owed-"..i,"owed")) end
-    for _,r in ipairs({{"warboard","WBQueue",10},{"overlord","OLQueue",8},{"wanted","WNTDB",4},
-        {"beta","BetaQueue",6},{"gamma","GammaQueue",2}}) do
-        register(N,r[1],r[2])
-        for i=1,r[3] do yes(N.BNet.send(r[1],71,r[2],r[1]..i,"own"),"available non-reserved slots remain usable") end
-    end
-    eq(N.BNet.queued(),60)
-    no(N.BNet.send("gamma",71,"GammaQueue","overflow","owed"))
+    local N=setup()
+    fixture.fill(N,30,"owed","reserved")
+    eq(N.BNet.queued(),30)
+    fixture.fill(N,30,"own","normal")
+    eq(N.BNet.queued(),60,"available non-reserved slots remain usable after owed-first arrival")
+    register(N,"overflow","OverflowQueue")
+    no(N.BNet.send("overflow",71,"OverflowQueue","overflow","owed"))
 end)
 
 test("BNet queue: S1 reviewer flood admits another source and its owed answer within share",function()
@@ -189,11 +188,14 @@ for _,prio in ipairs({"own","owed"}) do
 end
 
 test("BNet queue: S1 expiry runs while the rolling minute is exhausted",function()
-    local N=setup(); local alpha=register(N,"alpha","AlphaQueue"); register(N,"beta","BetaQueue")
+    local N=setup(); local rows=fixture.mixed(N)
+    local alpha=rows[4].c
     yes(N.BNet.send("alpha",71,"AlphaQueue","old-own","own"))
     h.advance(.5)
-    for i=1,14 do yes(N.BNet.send("alpha",71,"AlphaQueue","owed-a"..i,"owed")) end
-    for i=1,15 do yes(N.BNet.send("beta",71,"BetaQueue","owed-b"..i,"owed")) end
+    for _,r in ipairs(rows) do
+        local count=r[3]-(r[1]=="alpha" and 1 or 0)
+        for i=1,count do yes(N.BNet.send(r[1],71,r[2],"owed-"..r[1]..i,"owed")) end
+    end
     for i=1,30 do
         h.advance(1)
         if i==1 then yes(N.BNet.send("alpha",71,"AlphaQueue","owed-replacement","owed")) end

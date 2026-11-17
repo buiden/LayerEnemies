@@ -2271,6 +2271,7 @@ function M.net(command)
         return
     end
     if rest=="guild" or rest=="public" then M.setConsent(rest); return end
+    if N.Sources.has(rest) then for _,line in ipairs(N.Sources.lines(rest)) do M.say(line) end; return end
     local name,state=rest:match("^(%a+)%s+(%a+)$")
     local key=name and (NET_KEYS[name] or (N.Sources.has(name) and name))
     if key and (state=="on" or state=="off") then M.setNet(key,state=="on"); return end

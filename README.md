@@ -1,5 +1,109 @@
 # LayerEnemies
 
+## Unreleased - Wanted (receive only)
+
+Reads Wanted 1.29.x (protocol audited at v1.29.2) without Wanted installed;
+**no greetings, replies, requests, relays, invites, addon-message sends,
+Battle.net sends or outgoing version claim**.
+No new SavedVariables fields, record ledger, signing keys or saved player names.
+The existing `/le net wanted on|off` switch defaults on. If Wanted itself is
+loaded, passive membership stands down but incoming data still work.
+
+- `WNTD` **E/S** on guild or channel: tracked enemy sightings. Find's measured
+  **Reported** detail says **seen near observer**; percentage coordinates belong
+  to the observer, not the enemy. Observation time stays unknown; age is receipt
+  age. Known same-faction GUIDs are refused. E/S on whisper are not donor formats.
+- `WNTD` **R/F** on guild, channel or whisper: `kill`, `death`, `assist`, `claim`,
+  `bounty` and `spotted`. Named participants are matched against your Find list
+  or a live guild Watch; known friendly participants are omitted. Direct R has
+  witness provenance only when origin equals the transport sender; F and carried
+  R are relayed. All are **unverified claims**, not authenticated records: Adler-32
+  is checked, Ed25519 and chain authority are not. Bounty last-seen information is
+  cached, aged from `seenAt`; claims use `killT`, other records use record `t`.
+  `spotted` has only a GUID and is used only if existing tracked Find evidence
+  already binds it to one name. No new GUID-to-name cache is created.
+- Sender-supplied zone text is **never displayed**. Only a zone resolved from the
+  map ID is shown; absent, invalid or unresolved maps show no zone, with no text
+  fallback. Coordinates without a valid map ID are discarded.
+- `WNTDB` whole / `WNTDP` numbered **L** summaries: anonymous opposite-faction
+  counts, only from a live same-realm game account resolved through BNet. View
+  map/layer counts with `/le net wanted`; overlapping carriers use max, not sum.
+  They never identify or locate a player. H/A/N and all other bridge kinds are
+  ignored. A silent new listener is not normally sent bridge data until D2's
+  handshake exists; D1 does not initiate it.
+- A conservative read-only join of `WantedNetAlliance` / `WantedNetHorde` uses
+  the existing Directory ownership/consent checks and leaves two channel slots
+  free. No roster scans or directory names are collected for D1. If the channel
+  is unavailable, guild and any already-delivered whisper records still work.
+  Channel migration/password/control messages and all fast-path whispers are
+  ignored, never answered. No location becomes an LE layer, Ask/Hop target, sound
+  (including later alert polls) or outgoing relay.
+
+Named evidence uses the existing `Sources.offer` → Known/Find claim projection,
+not a new board or a kill list. It appears in Find's existing measured Reported
+line, **not** the separate zone-local Reported tab. Guild-Watch-only matches are
+retained by the shared registry in session Known; they do not add saved Find
+names or new rows of their own. This is the existing registry projection.
+
+Limits (deliberately stricter than the donor where needed): WNTD 255 bytes/frame,
+240-byte chunks, 12 parts; WNTDP 3800 bytes/frame, 3784-byte chunks, eight parts.
+**Two unfinished messages per canonical sender across addon routes** (or BNet
+game ID), **16 assemblies globally, eight reserved for guild traffic**; channel,
+whisper and BNet together may occupy at most eight. Thirty seconds total lifetime.
+Encoded payload at most 30272 bytes, inflation at most 65536 bytes; shared codec depth 8 / 4096 logical values. Batches: 15 sightings,
+10 R records, eight F records. Records: 64 scalar data fields, 512 bytes/string,
+live sequence 1000001–2147483647, valid ID/hash; no nested data. WNTD versions
+1.29.x with any numeric patch (including 1.29.0 and later patches; version text
+at most 32 bytes). Other majors/minors and version suffixes are refused; this
+receive policy is never advertised. No timestamped location at least one hour
+old or ahead of server time is accepted. No-time sightings expire one hour after first receipt. Session
+replay ledger: **512 identities, at most 32 per canonical carrier across addon
+routes and packet/record kinds; 256 reserved for guild**. Claimed record origins
+do not get their own carrier quota. Expired IDs are pruned first. New accepted
+evidence evicts the **oldest remembered ID** from a full sender quota, then from
+the non-guild pool if full, then globally if still full; it is never refused just
+because replay memory is full. Admission order breaks same-clock ties; duplicate
+IDs still remembered are dropped without refreshing age or order. Invalid or
+untracked input cannot evict live IDs. `/le net wanted` shows **Wanted replay:
+evicted=N**, counting each live ID displaced (not expiry or a refusal).
+Trade-off: an evicted sighting ID can be accepted again before its original hour
+expires; timestamped records still retain their original observation/expiry time.
+Other receive-rate and assembly limits remain. Rate ledgers: **128 identities each for guild,
+whisper, channel and Battle.net**, with 120-second idle expiry; 60 addon datagrams
+per sender per route / 30 Battle.net datagrams per game ID per fixed minute.
+WNTD tag/route and basic fragment shape validate before taking a sender entry;
+malformed numbered Battle.net fragments also take no entry. L: 20 carriers ×
+12 rows, counts clamped at 200, expiry at 600 seconds. Decoder/record/offer/budget
+and protected-call failures contribute refusals; ignored tags and pending
+fragments need not. Every store is session-only and bounded.
+
+Protocol difference from the plan shorthand: Wanted uses its own **numbered
+fragments, not AceComm**. The shared `addonDecode`, `inflate`, `lsRead` are used;
+AceComm control bytes are rejected, not mistaken for Wanted framing. The audit's
+E/S producer is guild/channel only; PARTY/RAID remain unsupported. The guild
+reserves do not add new group routes. Mapless evidence stays place-unknown;
+missing bounty `seenAt`, unresolved spotted GUIDs and unreadable
+faction/identity/time fail silent.
+
+Registry addition: optional `status() -> {string,...}` on `Sources.register` and
+`Sources.lines(name)` support opt-in diagnostics (240 lines, 160 bytes/line,
+protected and sanitized). `/le net` remains one counter line per network; one
+new generic command branch dispatches `/le net <registered source>`. The existing
+addon/BNet event wiring, heartbeat and UI measuring/rendering code are unchanged.
+
+Reproduce: `lua test/harness.lua --only Wanted:`, `python3 test/wanted_vectors.py`,
+`python3 test/wanted_mutants.py`, `python3 -B test/wanted_mutants_test.py`,
+`python3 test/verify.py`. Mutation evidence normalizes Lua object addresses and
+is not rewritten when unchanged. Round-1 regressions reproduce the 300-user
+channel flood (75/75 guild sightings), 128 junk senders (20/20), and renewed
+assembly holds (20/20 five-frame guild messages). Round-2 S4 regressions show all
+120 sightings at one/minute for two hours, all 60 at one/20 seconds, and all 360
+at that faster cadence for two hours; retained duplicates still drop. Pool and
+counter tests cover sender/public/global eviction, shared carrier ownership,
+oldest ordering, exact expiry and invalid-input isolation. Fixtures are
+constructed from the audit, Python zlib and an independent serializer, not live captures.
+**Native checks not run (alpha, owner's decision)**. This is D1 only, not D2.
+
 ## Unreleased - source registry (no behaviour change)
 
 PR 0b adds extension seams, **no registered source, no new discovery scan and no
@@ -183,7 +287,9 @@ Find now reads the Battle.net communities you already belong to and your
 Battle.net friends. It adds `online (community)` or `online (friend)`, a zone,
 and the age of our read. Presence text uses its measured height, so a one-line
 presence-only card is as compact as a normal one-line card and wrapped zones
-still fit without overlapping. It joins nothing and sends nothing: no new addon
+still fit without overlapping. Mixed Find cards also measure the complete
+claim text before placing presence; assumed per-claim boxes do not add empty
+space. It joins nothing and sends nothing: no new addon
 messages, chat, Battle.net data, presence subscriptions, or `/who` by name.
 There is no per-community Watch button. No donor addon or donor code is used.
 

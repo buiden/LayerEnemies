@@ -45,5 +45,6 @@ CallText.lua
 Call.lua
 OwnDeath.lua
 CallUI.lua
+Wanted.lua
 UI.lua
 Main.lua
