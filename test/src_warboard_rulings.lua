@@ -334,6 +334,35 @@ for _,field in ipairs({"characterName","realmName"}) do
     end)
 end
 
+for _,multipart in ipairs({false,true}) do
+    test("delta stale "..(multipart and "multipart" or "direct").." roster preserves accepted withdrawal",function()
+        local N,r,hello,count,pos=start(); stop(N,"track"); advance(5)
+        local record=N.WarBoardTrack.owedAccount(71); local accepted=record.accepted
+        yes(accepted); eq(count("FBUN"),1)
+        h.combat(true)
+        if multipart then
+            local first,last=parts(pos,true,function(d) d.sentAt=h.wall()-10 end)
+            receive(first); receive(last); eq(#N.WarBoard.state.deferred,2)
+        else pos(true,function(d) d.sentAt=h.wall()-10 end); eq(#N.WarBoard.state.deferred,1) end
+        h.combat(false); advance(1)
+        eq(record.accepted,accepted,"old roster cannot erase newer accepted FBUN")
+        advance(65); eq(count("FBUN"),1,"no extra withdrawal from a stale deferred roster")
+        no(N.Find.rows(N.Main.find,h.clock(),100)[1].reported)
+        advance(900); eq(debt(),0,"original silence deadline remains usable")
+    end)
+end
+
+test("delta incomplete cleanup keeps acceptance until original assembly expiry",function()
+    local N,r,hello,count,pos=start(); stop(N,"track"); advance(5)
+    local record=N.WarBoardTrack.owedAccount(71); local accepted=record.accepted; yes(accepted)
+    local first=parts(pos,true); h.combat(true); receive(first); h.combat(false)
+    N.WarBoard.tick(N.WarBoard.state,N.Adapters.warboardContext())
+    eq(record.accepted,accepted,"an admitted partial is not yet lost evidence")
+    advance(89); eq(record.accepted,accepted)
+    advance(1); no(record.accepted,"expired incomplete roster retains uncertainty")
+    eq(N.WarBoard.state.parts["71:abc"],nil)
+end)
+
 test("N1 README states revised confirmation and retry rules",function()
     local f=assert(io.open("README.md")); local s=f:read("*a"):gsub("%s+"," "); f:close()
     for _,phrase in ipairs({"A genuine confirmation under **20 minutes** old can authorize a new FBAK",

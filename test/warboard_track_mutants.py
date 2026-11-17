@@ -210,6 +210,17 @@ ruling('R2 N1 genuine recent confirmation permits new requests', [
     ('README.md', 'old can authorize a new FBAK', 'old cannot authorize a new FBAK')], 'N1 README')
 
 
+ruling('Delta cleanup-only provenance survives a live final fragment', [
+    ('LayerEnemies/WarBoard.lua', 'if deferred or held then', 'if deferred then')], 'delta cleanup-only')
+ruling('Delta fragments cannot cross character identity', [
+    ('LayerEnemies/WarBoard.lua', 'if r and who and (r.key~=who.key or r.faction~=who.faction) then discardPart(st,key); return nil end',
+     'do end')], 'delta identity')
+ruling('Delta validated stale roster is not lost cleanup input', [
+    ('LayerEnemies/WarBoard.lua', 'if ctx.cleanupOnly and untracked then return true end', 'do end')], 'delta stale')
+ruling('Delta incomplete cleanup expires without silently settling', [
+    ('LayerEnemies/WarBoard.lua', 'drain(st,ctx); expireParts(st,ctx.now)', 'drain(st,ctx)')], 'delta incomplete')
+
+
 def main():
     if not LUA:
         raise SystemExit('Set LAYERENEMIES_LUA to a Lua 5.1 interpreter')

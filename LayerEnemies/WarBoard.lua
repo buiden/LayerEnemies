@@ -257,8 +257,16 @@ local function duplicate()
     Src.count("warboard","deduped")
     return refuse()
 end
+local function discardPart(st,key)
+    local r=st.parts[key]
+    if r and r.received and N.WarBoardTrack then N.WarBoardTrack.uncertain(r.owner) end
+    st.parts[key]=nil
+end
+local function expireParts(st,now)
+    for key,r in pairs(st.parts) do if now<r.at or now-r.at>=90 then discardPart(st,key) end end
+end
 function W.assemble(st,text,id,now,received,who)
-    for key,r in pairs(st.parts) do if now<r.at or now-r.at>=90 then st.parts[key]=nil end end
+    expireParts(st,now)
     local direct=text:match("^WBF1|D|(.*)$")
     if direct then return direct end
     local token,i,n,chunk=text:match("^WBF1|F|([%x%-]+)|(%d+)|(%d+)|(.*)$")
@@ -266,8 +274,8 @@ function W.assemble(st,text,id,now,received,who)
     if not token or #token>80 or not integer(n,2,64) or not integer(i,1,n) then return nil end
     local key=id..":"..token
     local r=st.parts[key]
-    if r and who and (r.key~=who.key or r.faction~=who.faction) then st.parts[key]=nil; return nil end
-    if r and r.n~=n then st.parts[key]=nil; return nil end
+    if r and who and (r.key~=who.key or r.faction~=who.faction) then discardPart(st,key); return nil end
+    if r and r.n~=n then discardPart(st,key); return nil end
     if not r then
         if S.count(st.parts)>=16 then return nil end
         local owned=0
@@ -277,10 +285,11 @@ function W.assemble(st,text,id,now,received,who)
     end
     if r.chunks[i]~=nil then return nil end -- first copy wins, no age refresh
     r.size=r.size+#chunk
-    if r.size>262144 then st.parts[key]=nil; return nil end
+    if r.size>262144 then discardPart(st,key); return nil end
     r.chunks[i]=chunk; r.count=r.count+1
     r.received=received or r.received -- any deferred part makes the whole frame cleanup-only
     if r.count==n then st.parts[key]=nil; return table.concat(r.chunks),r.received end
+    return nil,r.received,true -- retained input is not lost evidence
 end
 local function origin(name,carrier)
     name=N.Invite.name(name)
@@ -474,6 +483,8 @@ local function payload(st,encoded,ctx,carrier,bridge,bnetFaction,account,channel
         accepted,why=location(st,e.t,e.d,e,ctx,carrier,bridge,false,account)
         invalid=accepted==false; untracked=why=="untracked"
     end
+    -- A validated cleanup roster was processed even when stale or not displayed.
+    if ctx.cleanupOnly and untracked then return true end
     if not accepted then
         if not untracked then remember() end
         if invalid then return refuse() end
@@ -553,11 +564,14 @@ function W.bnet(st,text,id,ctx,deferred)
     if not peer or peer.rs~=ctx.rs or peer.key~=who.key or peer.faction~=who.faction
         or (deferred and (deferred.peer~=peer or received.rs~=ctx.rs or received.faction~=ctx.faction))
         or received.now<at or received.now-at>=1200 then return refuse() end
-    local encoded,held=W.assemble(st,text,id,received.now,deferred and received,who)
+    local encoded,held,retained=W.assemble(st,text,id,received.now,deferred and received,who)
+    if not encoded then return retained or false end
     if deferred or held then
         ctx={now=ctx.now,wall=ctx.wall,rs=ctx.rs,faction=ctx.faction,received=held or received,cleanupOnly=true}
     end
-    return encoded and payload(st,encoded,ctx,who.name,false,who.faction,id) or false
+    local handled=payload(st,encoded,ctx,who.name,false,who.faction,id)
+    if not handled and held and N.WarBoardTrack then N.WarBoardTrack.uncertain(id) end
+    return handled
 end
 function W.addon(st,prefix,text,dist,sender,ctx)
     if not ctx or (prefix~="WarBoard" and prefix~="WarBoardBN") or S.secret(text) or type(text)~="string" or #text>255
@@ -571,7 +585,7 @@ function W.addon(st,prefix,text,dist,sender,ctx)
     return encoded and payload(st,encoded,ctx,sender,prefix=="WarBoardBN",nil,nil,dist=="CHANNEL") or false
 end
 function W.tick(st,ctx)
-    if ctx and not (st.high and ctx.now<st.high) then drain(st,ctx) end
+    if ctx and not (st.high and ctx.now<st.high) then drain(st,ctx); expireParts(st,ctx.now) end
     local T=N.WarBoardTrack
     if T and T.hasOwed() and ctx and not (st.high and ctx.now<st.high) and N.Adapters.loaded("WarBoard") then
         -- Validate deferred donor-owned control observations only when safe;
