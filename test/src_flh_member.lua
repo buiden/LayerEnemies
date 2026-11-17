@@ -204,6 +204,10 @@ test("FLH member: explicit FLH batch leaves a selection slot inside the unchange
     eq(#countCmd(N,"LR"),1); eq(#lines(),N.HopAny.CAP)
     H.deliver("PARTY_INVITE_REQUEST",queries[1].target); eq(H.accepts(),0)
     H.deliver("PARTY_INVITE_REQUEST",queries[2].target); eq(H.accepts(),1)
+    -- A reserved shared token must not hide an eighth queued target.
+    N=member(); for i=1,20 do host(N,"Host "..H.abc(i),tostring(10+i)) end
+    SlashCmdList.LAYERENEMIES("hop flh"); for _=1,10 do H.advance(1) end
+    eq(#countCmd(N,"LQ"),N.HopAny.CAP-1)
 end)
 
 test("FLH member: timed-out row is measured and late offers cannot send",function()

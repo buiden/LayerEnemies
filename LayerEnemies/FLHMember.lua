@@ -119,15 +119,19 @@ end
 local function queries(r)
     while guest==r and not r.offer and r.next<=#r.targets and F.checkGuest() do
         local v=r.targets[r.next]; local now=S.num(S.call(GetTime))
-        if not N.Wire.flhClickReady("LQ",v.name,now) then break end
-        r.sending=v
-        local sent,why,attempted=dispatch(FL.lq(r.id,F.context(),v.key),"WHISPER",v.name,"click")
-        if guest~=r then return end
-        r.sending=nil
-        if not sent and not attempted and (why=="throttled" or why=="paused") then break end
-        r.next=r.next+1
-        if sent or attempted then N.Main.invite.asked[v.short]=now end
-        if sent then r.first=r.at; r.asked[v.short]=v end
+        if N.Wire.offlineUntil(v.name,now) then
+            r.next=r.next+1 -- a terminally unavailable head must not hold the batch
+        elseif not N.Wire.flhClickReady("LQ",v.name,now) then break
+        else
+            r.sending=v
+            local sent,why,attempted=dispatch(FL.lq(r.id,F.context(),v.key),"WHISPER",v.name,"click")
+            if guest~=r then return end
+            r.sending=nil
+            if not sent and not attempted and (why=="throttled" or why=="paused") then break end
+            r.next=r.next+1
+            if sent or attempted then N.Main.invite.asked[v.short]=now end
+            if sent then r.first=r.at; r.asked[v.short]=v end
+        end
     end
 end
 function F.hop(row,shown)

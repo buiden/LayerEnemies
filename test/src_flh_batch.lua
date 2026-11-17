@@ -164,3 +164,135 @@ test("FLH batch: a full burst paces all queries within the original click window
     H.clock(at+90); H.deliver("PARTY_INVITE_REQUEST",lines("LQ")[1].target); eq(H.accepts(),0)
     ceilings(); no(N.Main.error)
 end)
+
+-- Additional budget boundaries: these assert real admitted attempts, not just
+-- reservation flags, including release while the guest still awaits an invite.
+test("FLH batch: the last rolling-minute slot belongs to LR",function()
+    local N=member(); N.Net.SHIP.we=true; hosts(N); local at=H.clock()
+    for i=1,34 do
+        H.clock(at+(i-1)*1.5)
+        if i%2==0 then
+            yes(N.Wire.send("WEFF1","H|1.6.6|100|7086|1|19|0|123|100|456|H|60|1|42|1","PARTY",nil,{net="we",prio="own"}))
+        else yes(N.Wire.send("LEGW1","R|probe-"..i,"GUILD",nil,{prio="own"})) end
+    end
+    H.clock(at+59); SlashCmdList.LAYERENEMIES("hop flh")
+    eq(#lines("LQ"),5,"only five of six remaining minute slots are queryable")
+    no(N.Wire.send("HeadHunter","1AH:own","WHISPER","Normal Peer",{net="hh",prio="own"}))
+    offer(N,lines("LQ")[1]); eq(#lines("LR"),1); eq(#H.sent(),40)
+    ceilings()
+end)
+
+test("FLH batch: LR success and explicit stop release shared capacity immediately",function()
+    for _,stop in ipairs({false,true}) do
+        local N=member(); hosts(N); local q=namedQuery(N)
+        if stop then N.FLHMember.stop() else offer(N,q); yes(N.Main.invite.pending) end
+        local admitted=0
+        for i=1,5 do
+            if N.Wire.send("HeadHunter","1AH:own","WHISPER","Normal "..H.abc(i),{net="hh",prio="own"}) then admitted=admitted+1 end
+        end
+        for i=1,5 do
+            if N.Wire.send("LayerSwap","inv layer <LS 100 want 7102-8 50.0,50.0>","WHISPER","Later "..H.abc(i),{prio="click"}) then admitted=admitted+1 end
+        end
+        eq(admitted,stop and 7 or 6); eq(#H.sent(),8); ceilings()
+    end
+end)
+
+test("FLH batch: a refused selection cannot be redirected by another queried host",function()
+    local N=member(); hosts(N); limitHost(N,"Host a"); local at=H.clock()
+    SlashCmdList.LAYERENEMIES("hop flh"); local queries=lines("LQ"); yes(#queries>=2)
+    offer(N,queries[1]); offer(N,queries[2]); eq(#lines("LR"),0); no(N.Main.invite.pending)
+    local id=N.FLH.decode(queries[1].text).id
+    receive("LI|"..id.."|S|Other Leader",queries[1].target)
+    H.deliver("PARTY_INVITE_REQUEST","Other Leader"); eq(H.accepts(),0)
+    H.clock(at+60); N.FLHMember.tick(H.clock()); eq(#lines("LR"),1)
+    eq(lines("LR")[1].target,queries[1].target)
+    offer(N,queries[2]); H.deliver("PARTY_INVITE_REQUEST",queries[2].target); eq(H.accepts(),0)
+    H.deliver("PARTY_INVITE_REQUEST",queries[1].target); eq(H.accepts(),1); ceilings()
+end)
+
+for _,mode in ipairs({"stop","share","consent","network","combat","instance","zone","donor","rollback"}) do
+    test("FLH batch: retry and paced query cancellation on "..mode,function()
+        for _,retry in ipairs({false,true}) do
+            local N=member(); hosts(N); local at=H.clock()
+            if retry then limitHost(N,"Host a") else ordinary(N,2) end
+            SlashCmdList.LAYERENEMIES("hop flh"); local q=lines("LQ")[1]; yes(q)
+            if retry then offer(N,q); eq(#lines("LR"),0) end
+            local before=#lines("LQ")
+            if mode=="stop" then N.FLHMember.stop()
+            elseif mode=="share" then N.Main.setShare(false); N.Main.setShare(true)
+            elseif mode=="consent" then N.Net.setConsent("guild"); N.Net.setConsent("public")
+            elseif mode=="network" then N.Net.setSwitch("flh",false); N.Net.setSwitch("flh",true)
+            elseif mode=="combat" then H.combat(true)
+            elseif mode=="instance" then H.instance(true)
+            elseif mode=="zone" then N.Main.store.zoneUID=99
+            elseif mode=="donor" then H.loaded().ForeverLayerHop=true
+            else H.clock(at-1); N.FLHMember.tick(H.clock()) end
+            H.clock(at+60); N.FLHMember.tick(H.clock()); offer(N,q)
+            eq(#lines("LQ"),before); eq(#lines("LR"),0); no(N.FLHMember.pending())
+            H.deliver("PARTY_INVITE_REQUEST",q.target); eq(H.accepts(),0); ceilings(); no(N.Main.error)
+        end
+    end)
+end
+
+test("FLH batch: an offline head cannot block the paced batch",function()
+    local N=member(); hosts(N); N.Wire.markOffline("Host a",H.clock())
+    yes(N.FLHMember.hop()); eq(#lines("LQ"),6)
+    eq(lines("LQ")[1].target,"Host b"); offer(N,lines("LQ")[1]); eq(#lines("LR"),1)
+    ceilings()
+end)
+
+test("FLH batch: paced discovery still caps the whole click at seven queries",function()
+    local N=member(); hosts(N); SlashCmdList.LAYERENEMIES("hop flh")
+    for _=1,10 do H.advance(1) end
+    eq(#lines("LQ"),7); ceilings()
+end)
+
+-- The reviewer's r2b/r2c cadence: 12 clicks over 3600 timer-driven seconds,
+-- refreshed host claims, 30 directory peers, and independent WP/CQ strangers.
+local function replay(strangers,offset,delay)
+    local N=member(); local names={}
+    for i=1,30 do names[i]="Directory "..H.abc(i) end
+    H.channelMembers("ForeverLayerHopNet",names)
+    N.Directory.sync(); N.Directory.refresh("flh"); H.advance(3)
+    N.UI.create(); N.UI.tab="friendly"; N.UI.frame:Show(); N.UI.render()
+    hosts(N); for _=1,120 do H.advance(1) end
+    local clicks,accepted=0,H.accepts()
+    for s=1,3600 do
+        H.advance(1)
+        if strangers and s%10==0 then
+            receive("WP|"..s.."|1234|0.1.3|100|8|1","Stranger "..H.abc(s/10))
+            receive("CQ|"..s.."|100|8|1|0.1.3|1234","Asker "..H.abc(s/10))
+        end
+        if s%60==0 then hosts(N); N.Main.store.zoneUID=100+s/60 end
+        if s%300==30+offset then
+            local before=#lines("LQ")
+            SlashCmdList.LAYERENEMIES("hop flh"); clicks=clicks+1
+            H.advance(delay)
+            local q=lines("LQ")[before+1]; yes(q,"click must actually query a host")
+            eq(q.target:lower(),"host a"); offer(N,q)
+            H.advance(.5); H.deliver("PARTY_INVITE_REQUEST",q.target)
+            H.advance(1-((delay+.5)%1))
+            SlashCmdList.LAYERENEMIES("hop stop")
+            if N.Main.leaveGroup then N.Main.leaveGroup() end
+        end
+    end
+    eq(clicks,12); ceilings(); no(N.Main.error)
+    return clicks,H.accepts()-accepted
+end
+for _,delay in ipairs({.2,1}) do
+    test("FLH batch replay: twelve WP plus CQ clicks with offer at "..delay,function()
+        local clicks,accepted=replay(true,0,delay)
+        print("FLH_REPLAY strangers delay="..delay.." accepted="..accepted.."/"..clicks)
+        eq(accepted,12)
+    end)
+end
+for _,strangers in ipairs({true,false}) do
+    test("FLH batch replay: 120 offset clicks "..(strangers and "with strangers" or "own probes control"),function()
+        local clicks,accepted=0,0
+        for offset=0,18,2 do
+            local n,a=replay(strangers,offset,.5); clicks,accepted=clicks+n,accepted+a
+        end
+        print("FLH_REPLAY offset-sweep strangers="..tostring(strangers).." accepted="..accepted.."/"..clicks)
+        eq(clicks,120); eq(clicks-accepted,0)
+    end)
+end
