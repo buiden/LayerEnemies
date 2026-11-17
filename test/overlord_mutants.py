@@ -11,6 +11,8 @@ OV = "LayerEnemies/Overlord.lua"
 MAIN = "LayerEnemies/Main.lua"
 # Each mutation targets one admission, lifetime, provenance or side-effect rule.
 MUTANTS = [
+    ("diagnostic-pool-omitted", "net diagnostic shows", MAIN, '.." · pool "..pool', ''),
+    ("diagnostic-unknown-misleading", "net diagnostic explains", MAIN, 'or "unknown (receiving nothing)"', 'or "global"'),
     ("last-sender", "packet path", OV, "if key~=last then", "if false then"),
     ("rampage-normal-height", "32 rampages", "LayerEnemies/UI.lua", 'local function minimumHeight(e)', 'local function minimumHeight(e)\n        if U.tab=="reported" and e.guild then return 184 end'),
     ("foreign-pool", "foreign packet pools", MAIN, 'if p and p.pool~=pool then return refuse() end', '-- mutant: foreign envelope pool accepted'),
