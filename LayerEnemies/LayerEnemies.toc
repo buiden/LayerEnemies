@@ -17,6 +17,8 @@ Store.lua
 Reports.lua
 HeadHunter.lua
 Adapters.lua
+Codec.lua
+Sources.lua
 Invite.lua
 Hop.lua
 HopAny.lua
@@ -37,6 +39,7 @@ Find.lua
 Watch.lua
 OpenMap.lua
 Presence.lua
+BNet.lua
 Overlord.lua
 CallText.lua
 Call.lua

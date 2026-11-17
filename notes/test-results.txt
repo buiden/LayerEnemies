@@ -1310,4 +1310,81 @@ PASS Overlord: single guild rampage reaches Reported without a hop
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
-RESULT: 1312 tests passed, 0 failed, 175822 assertions
+PASS BNet: independent peer readers need no presence zone and read no account names
+PASS BNet: peers are friends first deduplicated and cached thirty seconds
+PASS BNet: live identity rejects offline wrong client project region and conflicting realms
+PASS BNet: nil secret and unavailable readers fail closed without scans in combat instance
+PASS BNet: thousand member club bounded and friend game enumeration capped
+PASS BNet queue: single shared thirty per minute cap and one second pace
+PASS BNet queue: owed answers precede own work FIFO within a priority
+PASS BNet queue: unregistered source wrong prefix and dormant PR never send
+PASS BNet queue: share off refuses and drops pending work before dispatch
+PASS BNet queue: public off refuses and drops pending work before dispatch
+PASS BNet queue: switch off refuses and drops pending work before dispatch
+PASS BNet queue: combat off refuses and drops pending work before dispatch
+PASS BNet queue: instance off refuses and drops pending work before dispatch
+PASS BNet queue: Wire cannot dispatch outside the queue's private delivery
+PASS BNet queue: failed client send is spent counted and never retried
+PASS BNet queue: per-network shares stand-down owed exception and live peer validation
+PASS BNet queue: bounds secrets rollback and timer absence fail closed
+PASS BNet queue: S1 configured admission cap wanted
+PASS BNet queue: S1 configured admission cap overlord
+PASS BNet queue: S1 configured admission cap warboard
+PASS BNet queue: S1 default fair admission share across 1 registered sources
+PASS BNet queue: S1 default fair admission share across 2 registered sources
+PASS BNet queue: S1 default fair admission share across 4 registered sources
+PASS BNet queue: S1 default fair admission share across 32 registered sources
+PASS BNet queue: S1 default fair share also limits rolling dispatch
+PASS BNet queue: S1 configured and default sources share one rolling cap
+PASS BNet queue: S1 normal flood leaves eight owed-only slots
+PASS BNet queue: S1 owed occupancy does not shrink the normal allowance
+PASS BNet queue: S1 reviewer flood admits another source and its owed answer within share
+PASS BNet queue: S1 exact sixty-second boundary is live but older frames drop
+PASS BNet queue: S1 delayed dispatch drops expired own frames
+PASS BNet queue: S1 delayed dispatch drops expired owed frames
+PASS BNet queue: S1 expiry runs while the rolling minute is exhausted
+PASS BNet queue: S1 unreadable admission clock fails closed
+PASS Codec: addon escaping exact bytes and roundtrip
+PASS Codec: addon malformed escapes and byte ceilings
+PASS Codec: inflate zlib known answers and stored writer
+PASS Codec: inflate malformed blocks, distance and work budget
+PASS Codec: AceSerializer hand answers and full-byte strings
+PASS Codec: AceSerializer strict malformed and resource rejection
+PASS Codec: LibSerialize hand answers and table/string references
+PASS Codec: LibSerialize every scalar and explicit count family
+PASS Codec: LibSerialize malformed, truncated, cycles and bounds
+PASS Codec: aceRead accepts exactly 2048 entries and refuses 2049
+PASS Codec: aceWrite accepts exactly 2048 entries and refuses 2049
+PASS Codec: lsRead accepts exactly 2048 entries and refuses 2049
+PASS Codec: lsWrite accepts exactly 2048 entries and refuses 2049
+PASS Codec: serializer logical budget includes the root and nested table entries
+PASS Codec: LibSerialize wire value budget includes nil array slots
+PASS Codec: AceComm split/join all controls and boundaries
+PASS Codec: AceComm sender isolation, restart, orphan and clock rollback
+PASS Codec: AceComm one-second frames join with the last frame at 29 seconds
+PASS Codec: AceComm 20000-byte message joins at one 255-byte frame per second
+PASS Codec: AceComm idle timeout is 15 seconds since the last accepted frame
+PASS Codec: AceComm active streams join just before the 120-second total cap
+PASS Codec: AceComm total cap drops active streams at 120 and 121 seconds
+PASS Codec: AceComm idle progress is isolated per stream
+PASS Codec: AceComm rejected and standalone frames do not refresh idle progress
+PASS Codec: AceComm idle pruning releases stream capacity but retains active peers
+PASS Codec: AceComm stream, bytes, fragment, key and frame ceilings
+PASS Codec: independent Python serializer vectors and audit network payloads
+PASS Codec: logical references cannot evade string, depth or table bounds
+PASS Codec: RFC bit-level malformed trees and degenerate valid alphabets
+PASS Codec: AceComm invalid reserved frames abandon only their sender stream
+PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
+PASS Sources: offer drops untracked and contradictory realms before Known stores anything
+PASS Sources: offer uses only live guild Watch matches and never adds saved tracked names
+PASS Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh
+PASS Sources: readable-looking secret scalars cannot be offered
+PASS Sources: malformed secret and throwing offers store nothing and never set runtime error
+PASS Sources: registry routes addon and Battle.net with unchanged arguments
+PASS Sources: every legacy prefix is refused atomically and counted
+PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
+PASS Sources: OpenMap Battle.net keeps its original event path and values
+PASS Sources: guarded callbacks secrets and switches fail silent
+PASS Sources: unavailable optional timer and registration APIs fail silent
+PASS Sources: tick-only source runs at one second cadence and net counters append
+RESULT: 1389 tests passed, 0 failed, 214126 assertions

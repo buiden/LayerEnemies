@@ -203,6 +203,80 @@ function A.bnFriends()
     end)
     return rows,why or refused
 end
+-- Peer-only readers, independent of the four presence readers above. Source:
+-- Forever build 70938 BattleNet/Club documentation, bebcb6bf309cf41b41bd74f8ca651e6a105b2676.
+local function gameId(id) id=S.num(id); return id and id>0 and id%1==0 and id or nil end
+local function peerGame(game,v)
+    if not S.tab(game) then return nil end
+    local project=S.num(v(_G.WOW_PROJECT_ID))
+    local id=gameId(v(game.gameAccountID))
+    if not project or not id or v(game.isOnline)~=true or S.str(v(game.clientProgram),16)~="WoW"
+        or S.num(v(game.wowProjectID))~=project or v(game.isInCurrentRegion)~=true then return nil end
+    local name,realm,faction=S.str(v(game.characterName),100),S.str(v(game.realmName),60),S.str(v(game.factionName),16)
+    if not name or not realm or (faction~="Horde" and faction~="Alliance") or not N.OpenMap.bnName(name,realm) then return nil end
+    return {id=id,name=name,realm=realm,faction=faction}
+end
+function A.clubPeer(clubId,memberId)
+    return presenceRead(function(v)
+        clubId,memberId=presenceId(v(clubId)),presenceId(v(memberId))
+        if not clubId or not memberId then return nil end
+        local api=v(_G.C_Club)
+        if not S.tab(api) or type(v(api.GetMemberInfo))~="function" then return nil end
+        local r=v(api.GetMemberInfo(clubId,memberId))
+        if not S.tab(r) then return nil end
+        return gameId(v(r.bnetAccountId))
+    end)
+end
+function A.bnGame(id)
+    return presenceRead(function(v)
+        id=gameId(v(id)); if not id then return nil end
+        local api=v(_G.C_BattleNet)
+        if not S.tab(api) or type(v(api.GetGameAccountInfoByID))~="function" then return nil end
+        local r=peerGame(v(api.GetGameAccountInfoByID(id)),v)
+        if r and r.id==id then return r end
+    end)
+end
+function A.bnAccount(id)
+    return presenceRead(function(v)
+        id=gameId(v(id)); if not id then return nil end
+        local api=v(_G.C_BattleNet)
+        if not S.tab(api) or type(v(api.GetAccountInfoByID))~="function" then return nil end
+        local r=v(api.GetAccountInfoByID(id))
+        if not S.tab(r) then return nil end
+        return peerGame(v(r.gameAccountInfo),v)
+    end)
+end
+function A.bnFriendGames()
+    return presenceRead(function(v)
+        local api,count=v(_G.C_BattleNet),v(_G.BNGetNumFriends)
+        if not S.tab(api) or type(count)~="function" then return nil end
+        local n=S.num(v(count()))
+        if not n or n<0 or n%1~=0 then return nil end
+        local many=v(api.GetFriendNumGameAccounts)
+        local read=v(api.GetFriendGameAccountInfo)
+        local one=v(api.GetFriendAccountInfo)
+        if not (type(many)=="function" and type(read)=="function") and type(one)~="function" then return nil end
+        local out={}
+        for i=1,math.min(n,200) do
+            if type(many)=="function" and type(read)=="function" then
+                local total=S.num(v(S.call(many,i)))
+                if total and total>=0 and total%1==0 then
+                    for j=1,math.min(total,10) do
+                        local r=presenceRead(function(value) return peerGame(value(read(i,j)),value) end)
+                        if r then out[#out+1]=r end
+                    end
+                end
+            else
+                local r=presenceRead(function(value)
+                    local account=value(one(i))
+                    if S.tab(account) then return peerGame(value(account.gameAccountInfo),value) end
+                end)
+                if r then out[#out+1]=r end
+            end
+        end
+        return out
+    end)
+end
 -- Source: pinned Forever FriendList API; temporary WHO UI ownership is managed above.
 function A.whoTerm(zoneName)
     local f,e=_G.C_FriendList,_G.Enum

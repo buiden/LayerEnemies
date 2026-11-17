@@ -225,7 +225,8 @@ function F.report(st,r,home)
             else
                 local cached=N.Known.put(st.known,{name=e.name,zone=r.zone,x=r.x,y=r.y,pos=r.pos,at=r.at,
                     source=source,spotter=r.sender,class=e.class,level=e.level,layer=r.layer,ns=r.ns,
-                    kind=(r.kind=="claim" or r.relayed or source=="death") and "claim" or "seen",detail=r.detail},r.now or r.at)
+                    kind=(r.kind=="claim" or r.relayed or source=="death") and "claim" or "seen",detail=r.detail,
+                    observedAt=r.observedAt,got=r.got,evidenceKind=r.evidenceKind,guid=r.guid,faction=r.faction,shard=r.shard,map=r.map},r.now or r.at)
                 for _,entry in ipairs(candidates or {}) do remember(st,entry,cached) end
             end
         end
@@ -330,6 +331,7 @@ function F.alert(st,row,now,presence)
         if old and now>=old and now-old<600 then return false end
         st.presenceAlerts[row.name]=now; return true
     end
+    if row.evidenceKind then return false end -- registry claims are silent, including later polls
     if not row.at or now-row.at>=F.TTL or now<row.at then return false end
     local old=st.alerts[row.name]
     if old and old.zone==row.zone and now-old.at<F.ALERT then return false end

@@ -7,7 +7,8 @@ VERIFY = runpy.run_path(str(Path(__file__).with_name('verify.py')))
 
 
 PRESENCE_READS = {'GetSubscribedClubs', 'GetClubMembers', 'GetMemberInfo',
-                  'BNGetNumFriends', 'GetFriendAccountInfo', 'GetAccountInfoByID'}
+                  'BNGetNumFriends', 'GetFriendAccountInfo', 'GetAccountInfoByID',
+                  'GetFriendNumGameAccounts', 'GetFriendGameAccountInfo'}
 
 
 def presence_policy(source, filename):
@@ -33,6 +34,20 @@ class ApiPolicyTests(unittest.TestCase):
         tokens = VERIFY['lua_tokens'](path.read_text())
         names = {value for kind, value in tokens if kind == 'name'}
         self.assertFalse(names & (PRESENCE_READS | {'_G', 'C_Club', 'C_BattleNet', 'C_Timer', 'GetTime', 'UnitFactionGroup', 'Wire'}))
+
+    def test_bnet_send_has_one_owner_and_one_local_delivery_site(self):
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        source = (root / 'BNet.lua').read_text()
+        VERIFY['check_send_policy'](source, 'BNet.lua')
+        for name in ('Main.lua', 'Adapters.lua', 'Wire.lua', 'Sources.lua'):
+            with self.subTest(name=name), self.assertRaises(AssertionError):
+                VERIFY['check_send_policy']('local fn=C_BattleNet.SendGameData', name)
+        for access in ('C_BattleNet.SendGameData', 'C_BattleNet["Send".."GameData"]', 'BNSendGameData'):
+            with self.subTest(access=access), self.assertRaises(AssertionError):
+                VERIFY['check_send_policy'](source + '\nif false then local x=' + access + ' end', 'BNet.lua')
+        moved = source.replace('api.SendGameData', 'nil') + '\nlocal function bypass() return C_BattleNet.SendGameData end'
+        with self.assertRaises(AssertionError):
+            VERIFY['check_send_policy'](moved, 'BNet.lua')
 
     def check_source(self, source, name='Main.lua'):
         VERIFY['check_api_policy'](source, name)
@@ -75,6 +90,19 @@ class ApiPolicyTests(unittest.TestCase):
     def test_comments_and_plain_data_are_not_api_references(self):
         self.check_source('-- AcceptGroup\n--[=[ C_FriendList.SendWho ]=]\n'
                           'local note="AcceptGroup"; local text=[=[_G["Accept".."Group"]]=]')
+
+
+    def test_codec_has_only_local_protocol_exports_and_no_send_api(self):
+        import re
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Codec.lua').read_text()
+        self.check_source(source, 'Codec.lua')
+        VERIFY['check_send_policy'](source, 'Codec.lua')
+        exports = re.findall(r'function Cd\.(\w+)\(', source)
+        self.assertEqual(sorted(exports), sorted(('inflate', 'deflateStored', 'addonEncode', 'addonDecode',
+                                                 'aceRead', 'aceWrite', 'lsRead', 'lsWrite', 'aceCommJoin', 'aceCommSplit')))
+        names = [value for kind, value in VERIFY['lua_tokens'](source) if kind == 'name']
+        self.assertFalse(set(names) & {'_G', 'LibStub', 'CreateFrame', 'C_Timer', 'GetTime', 'time', 'loadstring', 'dofile'})
+        self.assertFalse(any(x.startswith('C_') for x in names))
 
 
 if __name__ == '__main__':

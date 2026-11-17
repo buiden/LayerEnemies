@@ -206,14 +206,17 @@ def check_send_policy(source, filename):
     tokens = lua_tokens(source)
     send_sites = []
     for at, word in lua_references(tokens):
-        forbidden = word in ('SendGameData', 'SendChatMessage') or re.fullmatch(r'BN\w*Send\w*', word)
+        forbidden = (word == 'SendGameData' and filename != 'BNet.lua') or word == 'SendChatMessage' or re.fullmatch(r'BN\w*Send\w*', word)
+        if word == 'SendGameData' and filename == 'BNet.lua':
+            send_sites.append(at)
         assert not forbidden, 'Unexpected outgoing/forbidden API: ' + word + ' in ' + filename
         if word == 'SendAddonMessage':
             assert filename == 'Wire.lua', 'SendAddonMessage outside Wire.lua: ' + filename
             send_sites.append(at)
     check_chat_namespace(tokens, filename)
-    if filename == 'Wire.lua':
-        assert len(send_sites) == 1, 'Wire.lua must have exactly one SendAddonMessage access'
+    if filename in ('Wire.lua', 'BNet.lua'):
+        api = 'SendAddonMessage' if filename == 'Wire.lua' else 'SendGameData'
+        assert len(send_sites) == 1, filename + ' must have exactly one ' + api + ' access'
         # Lua block keywords (not textual lines) locate the top-level deliver body.
         # for/while blocks are opened by their do; elseif does not open a block.
         blocks, deliveries = [], []
@@ -229,7 +232,7 @@ def check_send_policy(source, filename):
                 if deliver:
                     deliveries.append((start, i))
         assert len(deliveries) == 1 and deliveries[0][0] < send_sites[0] < deliveries[0][1], \
-            'SendAddonMessage must belong to the single local deliver function in Wire.lua'
+            api + ' must belong to the single local deliver function in ' + filename
 
 
 def main():
@@ -303,6 +306,7 @@ def main():
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
     subprocess.run([sys.executable, '-I', 'test/api_policy_test.py'], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, '-I', 'test/harness_sources_test.py'], cwd=ROOT, check=True)
     shipped = payload_files(listed)
     check_media()
     check_call_text()
