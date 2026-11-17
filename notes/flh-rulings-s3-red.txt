@@ -1,0 +1,6 @@
+FAIL FLH member: R2 host status LD|%d cancels and prints once: test/src_flh_rulings.lua:150: not equal: expected 0, got 1
+FAIL FLH member: R2 host status LA|%d cancels and prints once: test/src_flh_rulings.lua:150: not equal: expected 0, got 1
+FAIL FLH member: R2 host status HQ|%d|2 cancels and prints once: test/src_flh_rulings.lua:150: not equal: expected 0, got 1
+FAIL FLH member: R2 host status LN|%d cancels and prints once: test/src_flh_rulings.lua:150: not equal: expected 0, got 1
+FAIL FLH member: R2 host status LN|%d|busy cancels and prints once: test/src_flh_rulings.lua:152: not equal: expected 1, got 0
+RESULT: 0 tests passed, 5 failed, 233 assertions

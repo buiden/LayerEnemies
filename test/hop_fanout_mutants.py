@@ -1,14 +1,16 @@
 """One independent mutation per hop rule. Private scratch copies; never edits the working addon."""
 from pathlib import Path
+import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-LUA = os.environ.get('LAYERENEMIES_LUA', '/opt/data/tools/lua/lua-5.1.5/src/lua')
-SCRATCH = Path(os.environ.get('TMPDIR', '/opt/data/cache/scratch'))
+LUA = os.environ.get('LAYERENEMIES_LUA') or shutil.which('lua5.1') or shutil.which('lua')
+SCRATCH = Path(os.environ.get('TMPDIR') or str(ROOT.parent)).resolve()
 MUTANTS = [
     ('first-49-raw-rows', 'Adapters.lua', 'math.min(n,49)', 'math.min(n,50)'),
     ('eight-attempt-round', 'HopAny.lua', '=8,1,10,5,120', '=9,1,10,5,120'),
@@ -78,16 +80,39 @@ MUTANTS = [
 ]
 
 
-def run(root):
-    return subprocess.run([LUA, 'test/harness.lua', '--hop-any-only'], cwd=root, capture_output=True, text=True, timeout=120)
+def normalize(output, root):
+    output = output.replace(str(root) + os.sep, '')
+    return re.sub(r'(table|function|thread|userdata): 0x[0-9a-fA-F]+', r'\1: <address>', output)
+
+
+def write_report(path, report):
+    data = (json.dumps(report, indent=2, sort_keys=True) + '\n').encode()
+    if not path.exists() or path.read_bytes() != data:
+        path.write_bytes(data)
+
+
+def run(root, lua=None):
+    executable = lua or LUA
+    assert executable, '--lua or LAYERENEMIES_LUA must select Lua 5.1'
+    result = subprocess.run([executable, 'test/harness.lua', '--hop-any-only'], cwd=root,
+                            capture_output=True, text=True, errors='replace', timeout=120)
+    result.stdout = normalize(result.stdout, root)
+    result.stderr = normalize(result.stderr, root)
+    return result
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix='le-hop-mutants-', dir=SCRATCH) as name:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--lua', default=LUA)
+    parser.add_argument('--scratch', default=str(SCRATCH))
+    args = parser.parse_args()
+    if not args.lua:
+        parser.error('--lua or LAYERENEMIES_LUA must select Lua 5.1')
+    with tempfile.TemporaryDirectory(prefix='le-hop-mutants-', dir=Path(args.scratch).resolve()) as name:
         root = Path(name)
         shutil.copytree(ROOT / 'test', root / 'test')
         shutil.copytree(ROOT / 'LayerEnemies', root / 'LayerEnemies')
-        baseline = run(root)
+        baseline = run(root, args.lua)
         assert baseline.returncode == 0, baseline.stdout + baseline.stderr
         results = []
         for rule, file, old, new in MUTANTS:
@@ -96,9 +121,10 @@ def main():
             assert original.count(old) == 1, (rule, original.count(old))
             path.write_text(original.replace(old, new, 1))
             try:
-                syntax = subprocess.run([str(Path(LUA).with_name('luac')), '-p', str(path)], capture_output=True, text=True)
+                syntax = subprocess.run([args.lua, '-e', 'assert(loadfile(' + json.dumps(str(path)) + '))'],
+                                        capture_output=True, text=True, timeout=30)
                 assert syntax.returncode == 0, (rule, syntax.stderr)
-                result = run(root)
+                result = run(root, args.lua)
                 failures = [line for line in result.stdout.splitlines() if line.startswith('FAIL ')]
                 caught = result.returncode != 0 and bool(failures)
                 results.append({'rule': rule, 'file': file, 'caught': caught, 'failed_tests': failures})
@@ -107,7 +133,10 @@ def main():
                 path.write_text(original)
         output = {'baseline': baseline.stdout.splitlines()[-1], 'total': len(results),
                   'caught': sum(r['caught'] for r in results), 'mutants': results}
-        (ROOT / 'notes/hop-fanout-mutants.json').write_text(json.dumps(output, indent=2) + '\n')
+        final = run(root, args.lua)
+        assert final.returncode == 0 and final.stdout == baseline.stdout, final.stdout + final.stderr
+        (ROOT / 'notes').mkdir(exist_ok=True)
+        write_report(ROOT / 'notes/hop-fanout-mutants.json', output)
         print(f"MUTANTS: {output['caught']}/{output['total']} caught")
         assert output['caught'] == output['total'], 'surviving mutants'
 

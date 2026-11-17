@@ -75,7 +75,7 @@ add('status prints track state', '(N.WarBoardTrack.on and "on" or "off")', '"on"
 add('remove synchronously owes withdrawal', 'if N.WarBoardTrack then N.WarBoardTrack.changed(st) end\nend\nfunction F.hashes', 'do end\nend\nfunction F.hashes', 'remove quick', 'LayerEnemies/Find.lua')
 add('clear synchronously owes withdrawal', 'if N.WarBoardTrack then N.WarBoardTrack.changed(st) end\n        return', 'do end\n        return', 'clear quick', 'LayerEnemies/Find.lua')
 add('track off synchronously owes withdrawal', 'if not T.on then T.stop() end', 'do end', 'track quick')
-add('share off synchronously owes withdrawal', 'N.OwnDeath.cancel(); N.BNet.cancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end', 'N.OwnDeath.cancel(); N.BNet.cancel()', 'share quick', 'LayerEnemies/Main.lua')
+add('share off synchronously owes withdrawal', 'N.OwnDeath.cancel(); N.BNet.cancel(); N.FLHMember.stop("share off"); if N.WarBoardTrack then N.WarBoardTrack.stop() end', 'N.OwnDeath.cancel(); N.BNet.cancel(); N.FLHMember.stop("share off")', 'share quick', 'LayerEnemies/Main.lua')
 add('Guild only synchronously owes withdrawal', 'N.BNet.cancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end', 'N.BNet.cancel()', 'guild quick', 'LayerEnemies/Net.lua')
 add('source off synchronously owes withdrawal', 'if key=="warboard" and N.WarBoardTrack then N.WarBoardTrack.stop() end', 'do end', 'source quick', 'LayerEnemies/Net.lua')
 add('logout owes withdrawal', 'if N.WarBoardTrack then N.WarBoardTrack.stop(true) end', 'do end', 'logout sends', 'LayerEnemies/Main.lua')

@@ -1,0 +1,27 @@
+{
+  "implementation_head": "3a99452da8fba6b518e7bef527a7b877ef219001",
+  "report": "notes/flh-member-mutants.json",
+  "report_sha256": "1c9693b04890efa869721475474414ea295dd5385b99b942b8f70dfb16130b44",
+  "full_runs": 2,
+  "mutants": 52,
+  "killed": 52,
+  "baseline_and_restored_final": {
+    "passed": 62,
+    "failed": 0,
+    "assertions": 19431,
+    "rc": 0
+  },
+  "new_rule_mutants": [
+    "owner-includes-owed-replies",
+    "probe-round-robin",
+    "probe-gate-refusal-free"
+  ],
+  "independent_checkout": {
+    "path_contains_spaces": true,
+    "invoked_from_unrelated_cwd": true,
+    "existing_report_bytes_preserved": true,
+    "existing_report_mtime_preserved": true,
+    "original_report_bytes_and_mtime_preserved": true,
+    "rc": 0
+  }
+}

@@ -74,7 +74,15 @@ end
 local function hhText(text)
     return text:match("^1[AH]([NEQOSH]):.+$")
 end
+local function flhText(text,kind)
+    local m=N.FLH.decode(text)
+    if not m then return nil end
+    if m.cmd=="HI" then return kind~="WHISPER" and m.host==0 and m.cmd or nil end
+    return kind=="WHISPER" and (m.cmd=="WR" or m.cmd=="CA" or m.cmd=="WP" or m.cmd=="LQ" or m.cmd=="LR")
+        and (m.host==nil or m.host==0) and m.cmd or nil
+end
 local ROUTES = {
+    FLHNET2 = { kinds = { GUILD = true, PARTY = true, RAID = true, WHISPER = true }, check = flhText },
     LayerSwap = { kinds = { WHISPER = true }, check = layerswapText },
     LEGW1 = { kinds = { GUILD = true }, check = legw1Text },
     LFSw = { kinds = { GUILD = true }, check = function(text) return text == Wr.LFSW_TEXT and "q" or nil end },
@@ -367,15 +375,19 @@ function Wr.guildMinute(now)
 end
 -- room(prefix, kind, target, public, now, cost, low, catchup) -> ok: every budget has room for one send; low: a line
 -- that may not spend the reserve; catchup: a pull's frame (its own allowance instead of the per-player cap)
+local function flhReserve(now)
+    return N.FLHMember and N.FLHMember.reserved(now) or 0
+end
 local function room(prefix, kind, target, public, now, cost, low, catchup)
     local b = buckets[prefix] or { tokens = PREFIX_CAP, at = nil }
     buckets[prefix] = b
     refill(b, PREFIX_CAP, PREFIX_REFILL, now); refill(all, ALL_CAP, ALL_REFILL, now)
-    if b.tokens < cost or all.tokens < cost + (low and Wr.RESERVE_TOKENS or 0) then return false end
+    local reserve = flhReserve(now)
+    if b.tokens < cost or all.tokens < cost + math.max(low and Wr.RESERVE_TOKENS or 0, reserve) then return false end
     -- in combat (cost 2) every minute cap is halved
     local function cap(n) return math.floor(n / cost) end
     allTimes = recent(allTimes, now)
-    if #allTimes >= cap(ALL_MINUTE) - (low and cap(Wr.RESERVE_MINUTE) or 0) then return false end
+    if #allTimes >= cap(ALL_MINUTE) - math.max(low and cap(Wr.RESERVE_MINUTE) or 0, reserve) then return false end
     if kind == "GUILD" then
         guildTimes = recent(guildTimes, now)
         if #guildTimes >= cap(GUILD_MINUTE) - (low and cap(Wr.RESERVE_GUILD) or 0) then return false end
@@ -410,6 +422,71 @@ local function spendCatchup(target, now)
     c.n = c.n + 1
 end
 
+-- FLH membership is independent of the hop-any bucket. Whisper sends still
+-- consume the existing 20/minute public ledger (even to a guildmate).
+Wr.FLH_REPLIES, Wr.FLH_PROBES, Wr.FLH_GAP, Wr.FLH_NAME = 6, 4, 60, 600
+local flhReplies, flhProbes, flhNames, flhHi = {}, {}, {}, {}
+function Wr.flhProbeReady(target,now)
+    local key=who(target)
+    if not key or not S.num(now) then return false end
+    local last=flhNames["probe:"..key]
+    return #recent(flhProbes,now)<Wr.FLH_PROBES and #recent(publicTimes,now)<PUBLIC_MINUTE-Wr.FLH_REPLIES
+        and not (last and now-last.at<Wr.FLH_NAME)
+end
+local function flhBudget(tag,kind,key,now,checkOnly)
+    -- Membership shares the ordinary global ceilings, not an extra allowance.
+    -- Probes yield first: keep six shared tokens/minute slots for owed answers.
+    refill(all,ALL_CAP,ALL_REFILL,now); allTimes=recent(allTimes,now)
+    local reserve=tag=="WP" and Wr.FLH_REPLIES or 0
+    reserve=math.max(reserve,tag~="LR" and flhReserve(now) or 0)
+    if all.tokens<1+reserve or #allTimes>=ALL_MINUTE-reserve then return false end
+    flhReplies=recent(flhReplies,now); flhProbes=recent(flhProbes,now)
+    for k,v in pairs(flhNames) do if now-v.at>=v.keep then flhNames[k]=nil end end
+    publicTimes=recent(publicTimes,now); guildTimes=recent(guildTimes,now)
+    if kind=="WHISPER" and #publicTimes>=PUBLIC_MINUTE then return false end
+    for k,v in pairs(publicTo) do v=recent(v,now); publicTo[k]=v[1] and v or nil end
+    if kind=="WHISPER" and #(publicTo[key] or {})>=PUBLIC_ONE then return false end
+    if kind=="GUILD" and #guildTimes>=GUILD_MINUTE then return false end
+    if tag=="WP" and not Wr.flhProbeReady(key,now) then return false end
+    local owed=tag=="WR" or tag=="CA"
+    local bucket=owed and flhReplies or flhProbes
+    local rateKey=(owed and "reply:" or "probe:")..(key or "")
+    local last=flhNames[rateKey]
+    if owed or tag=="WP" then
+        local cap=owed and Wr.FLH_REPLIES or Wr.FLH_PROBES
+        if #bucket>=cap or (last and now-last.at<last.keep) or (not last and S.count(flhNames)>=64) then return false end
+        bucket[#bucket+1]=now
+        flhNames[rateKey]={at=now,keep=owed and Wr.FLH_GAP or Wr.FLH_NAME}
+    elseif tag=="HI" then
+        local lane=kind=="GUILD" and "GUILD" or "GROUP"
+        if flhHi[lane] and now-flhHi[lane]<120 then return false end
+        flhHi[lane]=now
+    end
+    if tag=="LQ" or tag=="LR" then
+        refill(hopBucket,Wr.HOP_CAP,Wr.HOP_REFILL,now)
+        hopTimes=recent(hopTimes,now)
+        for k,v in pairs(hopTo) do v=recent(v,now); hopTo[k]=v[1] and v or nil end
+        if hopBucket.tokens<1 or #hopTimes>=Wr.HOP_MINUTE or #(hopTo[key] or {})>=Wr.HOP_ONE then return false end
+        if checkOnly then return true end -- click preflight never charges a ledger
+        hopBucket.tokens=hopBucket.tokens-1; hopTimes[#hopTimes+1]=now
+        local list=hopTo[key] or {}; list[#list+1]=now; hopTo[key]=list
+    end
+    if kind=="WHISPER" then
+        publicTimes[#publicTimes+1]=now
+        local list=publicTo[key] or {}; list[#list+1]=now; publicTo[key]=list
+    end
+    all.tokens=all.tokens-1; allTimes[#allTimes+1]=now
+    if kind=="GUILD" then guildTimes[#guildTimes+1]=now end
+    return true
+end
+-- Readiness is not send authority. The private flight and live context are
+-- still checked by send; waiting LQ/LR work never enters the general queue.
+function Wr.flhClickReady(tag,target,now)
+    local key=who(target)
+    if not S.num(now) or not key or (tag~="LQ" and tag~="LR") then return false end
+    if (paused.FLHNET2 and now<paused.FLHNET2) or Wr.offlineUntil(target,now) then return false end
+    return flhBudget(tag,"WHISPER",key,now,true)
+end
 local enqueue
 -- check(prefix, text, kind, target, opts) -> route, extras | nil, why: everything but budgets and the client
 local function check(prefix, text, kind, target, opts)
@@ -431,6 +508,10 @@ local function check(prefix, text, kind, target, opts)
         target = nil
     end
     opts = S.tab(opts) and opts or {}
+    if prefix == "FLHNET2" then
+        if not N.FLHMember or N.FLHMember.authorize(text,kind,target,opts)~=tag then return nil,"network off" end
+        return route,tag,target,opts,kind=="WHISPER"
+    end
     if tag == "fallback" and not (prefix == "LayerSwap" and opts.hopAny == true and opts.prio == "click") then return nil, "bad text" end
     -- a network whisper is public unless its target is a checked online guildmate (never the caller's word)
     local public = false
@@ -495,6 +576,10 @@ local function sendNow(prefix, text, kind, target, opts, fromQueue)
         or (not hop and paused[prefix] and now < paused[prefix]) then return false, "paused" end
     local key = target and who(target)
     if target and Wr.offlineUntil(target, now, hop and opts.hopKnown == true and 600 or nil) then return false, "offline" end
+    if prefix == "FLHNET2" then
+        if not flhBudget(tag,kind,key,now) then return false,"throttled" end
+        return deliver(prefix,text,kind,target,now,key)
+    end
     local cost = inCombat() and 2 or 1
     -- the reserve binds the lines that say they rank low (embassy, mesh); an unmarked line keeps the old rules
     local low = opts.prio == "embassy" or opts.prio == "catchup" or opts.prio == "mesh"

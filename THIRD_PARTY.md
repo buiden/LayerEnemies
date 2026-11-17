@@ -79,7 +79,7 @@ presence resolution and actual Battle.net delivery are not verified.
 
 | Donor | Use | Version / rights | Reuse |
 |---|---|---|---|
-| [Forever Layer Hop](https://www.curseforge.com/wow/addons/forever-layer-hop) | Independent `FLHNET2` receive-only decoder; direct presence in the friendly hosts list | 0.1.9; All Rights Reserved; owner-approved protocol interoperation | **protocol only, no code** |
+| [Forever Layer Hop](https://www.curseforge.com/wow/addons/forever-layer-hop) | Independent `FLHNET2` decoder, nonhosting membership builders and guest requests; direct presence in the friendly hosts list | 0.1.9; All Rights Reserved; owner-approved protocol interoperation | **protocol only, no code** |
 
 Pinned release: `ForeverLayerHop-v0.1.9.zip`, SHA-256
 `b5b3dbc608c112463bb50ddb0567c70ae2c3eb5919711b0475875001dd5092b7`.
@@ -91,8 +91,13 @@ written from positional field layouts. Source references in that pinned file:
 prefix/version 37/42; delimiters 957–969; decimal GUID-field-5 fingerprint
 973–1008; presence 6370, 9560–9614, 9733–9755, 9925–10035; hop conversation
 10079–10336; peer expiry 65. LE accepts presence only on the four routes in
-its plan, not FLH's broader channel/instance routes. `WP/CQ/LQ/LO/LR/LN` are
-decoded but have no action in this receive-only slice.
+its plan, not FLH's broader channel/instance routes. F2 adds only the six sends
+in the README table: HI/WR/CA/WP/LQ/LR through Wire, host flag 0, LayerEnemies
+identity and BUILD metadata. It answers WP/CQ and correlates LO/LN only within
+a locally requested guest session. No hosting, peer exchange, name lists or
+channel sends; the approved ForeverLayerHopNet join is read-only. Our own GUID
+field-5 fingerprint never establishes a mapping to server-layer keys. The
+donor may reject our honest identity; live-client interoperability is unverified.
 
 ## Overlord receive-only wire formats
 

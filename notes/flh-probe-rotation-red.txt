@@ -1,0 +1,2 @@
+FAIL FLH member: probe rotation reaches forty names under a shared two-slot budget: test/src_flh_member.lua:524: every directory name gets a turn before the head repeats: expected 40, got 20
+RESULT: 0 tests passed, 1 failed, 384 assertions

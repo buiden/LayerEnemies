@@ -1,126 +1,126 @@
 {
-  "baseline": "RESULT: 1015 tests passed, 0 failed, 109017 assertions",
+  "baseline": "RESULT: 51 tests passed, 0 failed, 9017 assertions",
   "mutants": [
     {
       "mutant": "hash every held list per sighting",
       "killing_test": "watch lookup budget: one hash per sighting regardless of held-list size",
       "failure": "FAIL watch lookup budget: one hash per sighting regardless of held-list size: test/watch.lua:381: never hash every held list per sighting: expected 10, got 40010",
-      "result": "RESULT: 1014 tests passed, 1 failed, 109017 assertions"
+      "result": "RESULT: 50 tests passed, 1 failed, 9017 assertions"
     },
     {
       "mutant": "accept incomplete part set",
       "killing_test": "watch 16: hundred hashes commit only when all three parts arrive",
       "failure": "FAIL watch 16: hundred hashes commit only when all three parts arrive: test/harness.lua:7: not equal: expected true, got false",
-      "result": "RESULT: 1010 tests passed, 5 failed, 108690 assertions"
+      "result": "RESULT: 46 tests passed, 5 failed, 8690 assertions"
     },
     {
       "mutant": "no per-sender hash cap",
       "killing_test": "watch 24: 101st hash, fourth part and malformed data drop only the incoming set",
       "failure": "FAIL watch 24: 101st hash, fourth part and malformed data drop only the incoming set: test/harness.lua:7: not equal: expected true, got false",
-      "result": "RESULT: 1014 tests passed, 1 failed, 108710 assertions"
+      "result": "RESULT: 50 tests passed, 1 failed, 8710 assertions"
     },
     {
       "mutant": "list never expires",
       "killing_test": "watch 18: refresh extends 25-minute expiry and clear removes the index at once",
       "failure": "FAIL watch 18: refresh extends 25-minute expiry and clear removes the index at once: test/harness.lua:8: not equal: expected false, got true",
-      "result": "RESULT: 1013 tests passed, 2 failed, 109008 assertions"
+      "result": "RESULT: 49 tests passed, 2 failed, 9008 assertions"
     },
     {
       "mutant": "notice on relayed entries",
       "killing_test": "watch 21: no notice for own-list, reported, relayed, guild O or friendly entries",
       "failure": "FAIL watch 21: no notice for own-list, reported, relayed, guild O or friendly entries: test/watch.lua:240: not equal: expected 0, got 1",
-      "result": "RESULT: 1014 tests passed, 1 failed, 109009 assertions"
+      "result": "RESULT: 50 tests passed, 1 failed, 9009 assertions"
     },
     {
       "mutant": "no T rate limit",
       "killing_test": "watch 22: T hard cap waits and retries after three actual sends in sixty seconds",
       "failure": "FAIL watch 22: T hard cap waits and retries after three actual sends in sixty seconds: test/watch.lua:298: not equal: expected 3, got 4",
-      "result": "RESULT: 1014 tests passed, 1 failed, 108859 assertions"
+      "result": "RESULT: 50 tests passed, 1 failed, 8859 assertions"
     },
     {
       "mutant": "match by class and level",
       "killing_test": "watch 25: folded base-name hash matches case and realm, never class and level",
       "failure": "FAIL watch 25: folded base-name hash matches case and realm, never class and level: test/watch.lua:369: same class/level is not identity: expected 0, got 1",
-      "result": "RESULT: 1014 tests passed, 1 failed, 109009 assertions"
+      "result": "RESULT: 50 tests passed, 1 failed, 9009 assertions"
     },
     {
       "mutant": "find sharing-off still sends refresh",
       "killing_test": "watch 17: find share off sends one clear, stops refresh, and keeps local Find",
       "failure": "FAIL watch 17: find share off sends one clear, stops refresh, and keeps local Find: test/watch.lua:103: not equal: expected 2, got 4",
-      "result": "RESULT: 1011 tests passed, 4 failed, 108754 assertions"
+      "result": "RESULT: 49 tests passed, 2 failed, 8951 assertions"
     },
     {
       "mutant": "master sharing-off still sends",
       "killing_test": "watch 22: no T outside guild, inside instance, or with master sharing off",
       "failure": "FAIL watch 22: no T outside guild, inside instance, or with master sharing off: test/watch.lua:284: share: expected 0, got 2",
-      "result": "RESULT: 1013 tests passed, 2 failed, 108920 assertions"
+      "result": "RESULT: 49 tests passed, 2 failed, 8920 assertions"
     },
     {
       "mutant": "unlisted O goes first",
       "killing_test": "watch 19: ninth listed enemy is in the first O line for either list owner",
       "failure": "FAIL watch 19: ninth listed enemy is in the first O line for either list owner: test/watch.lua:144: not equal: expected Watch i, got Watch a",
-      "result": "RESULT: 1012 tests passed, 3 failed, 108952 assertions"
+      "result": "RESULT: 48 tests passed, 3 failed, 8952 assertions"
     },
     {
       "mutant": "fitted names lose receipt cooldown",
       "killing_test": "watch receipt: fitted names retain their cooldown while still fresh",
       "failure": "FAIL watch receipt: fitted names retain their cooldown while still fresh: test/watch.lua:161: not equal: expected 1, got 2",
-      "result": "RESULT: 1007 tests passed, 8 failed, 107918 assertions"
+      "result": "RESULT: 43 tests passed, 8 failed, 7918 assertions"
     },
     {
       "mutant": "withdrawn own list keeps hash priority",
       "killing_test": "watch withdrawal: a cleared list cannot prioritize an unsent name",
       "failure": "FAIL watch withdrawal: a cleared list cannot prioritize an unsent name: test/watch.lua:174: not equal: expected Watch e, got Watch i",
-      "result": "RESULT: 1014 tests passed, 1 failed, 109017 assertions"
+      "result": "RESULT: 50 tests passed, 1 failed, 9017 assertions"
     },
     {
       "mutant": "War Effort loses independent cooldown reservation",
       "killing_test": "watch O locality: list changes never become extra War Effort names",
       "failure": "FAIL watch O locality: list changes never become extra War Effort names: test/watch.lua:191: not equal: expected 1, got 2",
-      "result": "RESULT: 1004 tests passed, 11 failed, 108403 assertions"
+      "result": "RESULT: 50 tests passed, 1 failed, 8951 assertions"
     },
     {
       "mutant": "unlisted relay gets last token",
       "killing_test": "watch relays: listed name takes the last available token before unlisted reports",
       "failure": "FAIL watch relays: listed name takes the last available token before unlisted reports: test/watch.lua:536: not equal: expected Watch a-OtherRealm, got Other Name",
-      "result": "RESULT: 1014 tests passed, 1 failed, 109016 assertions"
+      "result": "RESULT: 50 tests passed, 1 failed, 9016 assertions"
     },
     {
       "mutant": "list churn re-arms receipt cooldowns",
       "killing_test": "watch R1 repeat: list churn every 1 seconds preserves per-name sixty seconds",
       "failure": "FAIL watch R1 repeat: list churn every 1 seconds preserves per-name sixty seconds: test/watch.lua:500: unchanged sixty-second send budget: expected 5, got 20",
-      "result": "RESULT: 1007 tests passed, 8 failed, 107888 assertions"
+      "result": "RESULT: 43 tests passed, 8 failed, 7888 assertions"
     },
     {
       "mutant": "unlisted sightings starve",
       "killing_test": "watch R1 fairness: nine enemies all leave while four listed names churn",
       "failure": "FAIL watch R1 fairness: nine enemies all leave while four listed names churn: test/watch.lua:519: unlisted names must not starve: expected 9, got 4",
-      "result": "RESULT: 1010 tests passed, 5 failed, 108833 assertions"
+      "result": "RESULT: 46 tests passed, 5 failed, 8833 assertions"
     },
     {
       "mutant": "bare subcommand is tracked",
       "killing_test": "watch R1 slash: bare share shows usage without tracking or sharing it",
       "failure": "FAIL watch R1 slash: bare share shows usage without tracking or sharing it: test/watch.lua:471: bare subcommand is not a player name: expected {1=string:Keep Name}, got {1=string:Keep Name,2=string:share}",
-      "result": "RESULT: 1013 tests passed, 2 failed, 108987 assertions"
+      "result": "RESULT: 49 tests passed, 2 failed, 8987 assertions"
     },
     {
       "mutant": "removed sender is readmitted",
       "killing_test": "watch R1 roster: removed senders stay rejected until a complete roster readmits them",
       "failure": "FAIL watch R1 roster: removed senders stay rejected until a complete roster readmits them: test/watch.lua:445: a departed sender cannot resurrect a list: expected nil, got birch scout",
-      "result": "RESULT: 1014 tests passed, 1 failed, 109008 assertions"
+      "result": "RESULT: 50 tests passed, 1 failed, 9008 assertions"
     },
     {
       "mutant": "hash notice claims definite identity",
       "killing_test": "watch R1 wording: real hash collisions never claim definite identity",
       "failure": "FAIL watch R1 wording: real hash collisions never claim definite identity: test/watch.lua:433: not equal: expected LayerEnemies: lvvaasbsmb may be tracked by Birch Scout, got LayerEnemies: lvvaasbsmb is tracked by Birch Scout",
-      "result": "RESULT: 1012 tests passed, 3 failed, 108948 assertions"
+      "result": "RESULT: 48 tests passed, 3 failed, 8948 assertions"
     }
   ],
   "restored_sha256": {
-    "LayerEnemies/Watch.lua": "abfe0b169fe5ea453c61e3ee746c11d7b4cc7f51f35737577b49dd2db524626c",
-    "LayerEnemies/Main.lua": "c9306911894686e75806978b98034a94bc32b6f420082a49e4a7b52a88e6fffc",
+    "LayerEnemies/Watch.lua": "6a8c4adf849bab16e4979d67e20cc489854881e4f398b7dadeff209642f4f0f8",
+    "LayerEnemies/Main.lua": "bba65782d672008a341aa25811ca180b633a7119f0d15e80c969c8e045c4e5f9",
     "LayerEnemies/Share.lua": "bf465536aeb25ce7f0a0f174ecbee45237e1d7f67bbf21c55cd1f4d148eea4bf",
-    "LayerEnemies/Relay.lua": "43a1b5f41617fb554fac8558bb2791f0b21e2b11089ae3ad50446bdd18b1a733"
+    "LayerEnemies/Relay.lua": "5c9bbb8ab544f532841392e048a8521a3bfb79d9ea9f08e81b3c49d38bb88970"
   },
-  "restored_result": "RESULT: 1015 tests passed, 0 failed, 109017 assertions"
+  "restored_result": "RESULT: 51 tests passed, 0 failed, 9017 assertions"
 }

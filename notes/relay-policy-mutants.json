@@ -1,0 +1,59 @@
+[
+  {
+    "mutant": "relay-ignores-share-off",
+    "failed": 4,
+    "killed": true,
+    "caught_by": [
+      "FAIL Guild relay policy: share off silences own, Spy and HeadHunter before receipt: test/relay_policy.lua:106: no LEGW1 traffic of any kind while sharing is off: expected 0, got 2",
+      "FAIL Guild relay policy: share off silences own, Spy and HeadHunter during wait: test/relay_policy.lua:106: no LEGW1 traffic of any kind while sharing is off: expected 0, got 2",
+      "FAIL Guild relay policy: share off silences own, Spy and HeadHunter saved off: test/relay_policy.lua:106: no LEGW1 traffic of any kind while sharing is off: expected 0, got 2",
+      "FAIL Guild relay policy: off then on cancels pending relays but allows fresh observations: test/relay_policy.lua:115: cancelled relays cannot revive after a quick toggle: expected 0, got 2"
+    ]
+  },
+  {
+    "mutant": "spend-own-reserve",
+    "failed": 13,
+    "killed": true,
+    "caught_by": [
+      "FAIL Guild relay policy: Spy burst reserves own O capacity out of combat: test/relay_policy.lua:141: every own O survives the preceding relay burst: expected 1, got 0",
+      "FAIL Guild relay policy: Spy burst reserves own O capacity in combat: test/relay_policy.lua:141: every own O survives the preceding relay burst: expected 1, got 0",
+      "FAIL Guild relay policy: HeadHunter burst reserves own O capacity out of combat: test/relay_policy.lua:141: every own O survives the preceding relay burst: expected 1, got 0",
+      "FAIL Guild relay policy: HeadHunter burst reserves own O capacity in combat: test/relay_policy.lua:141: every own O survives the preceding relay burst: expected 1, got 0",
+      "FAIL Guild relay policy: mixed burst reserves own O capacity out of combat: test/relay_policy.lua:141: every own O survives the preceding relay burst: expected 1, got 0",
+      "FAIL Guild relay policy: mixed burst reserves own O capacity in combat: test/relay_policy.lua:141: every own O survives the preceding relay burst: expected 1, got 0",
+      "FAIL Guild relay policy: sustained HH keeps all five own O slots combat=false every=1: test/relay_policy.lua:177: no own refusal under sustained relay load: expected 0, got 2",
+      "FAIL Guild relay policy: sustained HH keeps all five own O slots combat=true every=1: test/relay_policy.lua:177: no own refusal under sustained relay load: expected 0, got 3",
+      "FAIL Guild relay policy: earlier guild control lines count against the relay reserve: test/relay_policy.lua:233: not equal: expected 1, got 0",
+      "FAIL Guild relay policy: clear and clock rollback cannot refill the reserve: test/relay_policy.lua:242: clearing pending relays cannot refill tokens: expected 3, got 4",
+      "FAIL Guild relay policy: combat relay then K then O has the documented one-line reserve limit: test/relay_policy.lua:263: K still sends once: expected 1, got 0",
+      "FAIL Guild relay policy: merged K author preserves the reserve out of combat: test/relay_policy.lua:282: own sighting survives K followed by relays: expected 1, got 0",
+      "FAIL Guild relay policy: merged K author preserves the reserve in combat: test/relay_policy.lua:282: own sighting survives K followed by relays: expected 1, got 0"
+    ]
+  },
+  {
+    "mutant": "spend-guild-minute-reserve",
+    "failed": 5,
+    "killed": true,
+    "caught_by": [
+      "FAIL Guild relay policy: sustained HH keeps all five own O slots combat=false every=1: test/relay_policy.lua:176: all five own minute slots must reach Wire: expected 5, got 4",
+      "FAIL Guild relay policy: sustained HH keeps all five own O slots combat=true every=1: test/relay_policy.lua:177: no own refusal under sustained relay load: expected 0, got 2",
+      "FAIL Guild relay policy: sustained HH keeps all five own O slots combat=true every=4: test/relay_policy.lua:177: no own refusal under sustained relay load: expected 0, got 2",
+      "FAIL Guild relay policy: minute reserve includes other prefixes combat=false: test/relay_policy.lua:216: a full relay allowance drops the relay, even with unused LEGW1 tokens: expected 17, got 18",
+      "FAIL Guild relay policy: minute reserve includes other prefixes combat=true: test/relay_policy.lua:216: a full relay allowance drops the relay, even with unused LEGW1 tokens: expected 8, got 9"
+    ]
+  },
+  {
+    "mutant": "combat-reserve-suppresses-all-relays",
+    "failed": 7,
+    "killed": true,
+    "caught_by": [
+      "FAIL Guild relay policy: Spy burst reserves own O capacity in combat: test/relay_policy.lua:142: relays leave two own tokens, including one combat line: expected 1, got 0",
+      "FAIL Guild relay policy: HeadHunter burst reserves own O capacity in combat: test/relay_policy.lua:142: relays leave two own tokens, including one combat line: expected 1, got 0",
+      "FAIL Guild relay policy: mixed burst reserves own O capacity in combat: test/relay_policy.lua:142: relays leave two own tokens, including one combat line: expected 1, got 0",
+      "FAIL Guild relay policy: combat relay sends with a full prefix bucket and leaves one own line: test/relay_policy.lua:154: a full bucket must allow a combat relay: expected 1, got 0",
+      "FAIL Guild relay policy: sustained HH keeps all five own O slots combat=true every=1: test/harness.lua:7: own priority must not be a vacuous pass with all relays suppressed: expected true, got false",
+      "FAIL Guild relay policy: sustained HH keeps all five own O slots combat=true every=4: test/harness.lua:7: own priority must not be a vacuous pass with all relays suppressed: expected true, got false",
+      "FAIL Guild relay policy: combat relay then K then O has the documented one-line reserve limit: test/relay_policy.lua:264: combat relays remain active with one own line reserved: expected 1, got 0"
+    ]
+  }
+]

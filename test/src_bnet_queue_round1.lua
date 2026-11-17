@@ -67,9 +67,9 @@ end)
 
 test("BNet queue: S1 configured and default sources share one rolling cap",function()
     local N=setup()
-    local rows=fixture.mixed(N); local limit=fixture.defaultShare(N)
-    rows[4][3]=limit; rows[5][3]=limit
-    local total=22+2*limit; yes(total>30,"the global cap, not a source cap, is exercised")
+    local rows=fixture.mixed(N,31)
+    local total=0; for _,r in ipairs(rows) do total=total+r[3] end
+    yes(total>30,"the global cap, not a source cap, is exercised")
     for _,r in ipairs(rows) do
         for i=1,r[3] do yes(N.BNet.send(r[1],71,r[2],r[1]..i,"own")) end
     end
