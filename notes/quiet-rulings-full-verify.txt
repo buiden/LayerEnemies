@@ -1,0 +1,1603 @@
+PASS strict frames start shown, dispatcher hidden, no UI or OnUpdate
+PASS neither source: own observation works after local NPC confirmation
+PASS Bulo present subscribes and copies timestamps without position
+PASS Bulo shape changes and throwing fields cannot crash
+PASS Bulo unsafe/no event bus uses polling
+PASS Bulo layer and raw changes wipe all previous sightings
+PASS transfer epoch rejects old Bulo and carried unit observations
+PASS zone and child-map handling reset only real zones
+PASS missing map API safely disables zone-dependent output
+PASS hostility does not override same faction or unknown faction
+PASS secret names/classes/levels/GUIDs remain unreadable
+PASS optional GUID enrichment checks each return and missing API
+PASS NPC GUID parsing keeps namespaces and requires distinct NPC kinds
+PASS mixed servers sharing zoneUID do not confirm a server id
+PASS NPC vote memory, TTL, pets, and coalescing bounded
+PASS hash vectors and normalization
+PASS we decodes C/E/H 1.6.6 vectors
+PASS decoder rejects hostile malformed and oversized messages
+PASS we accepts trailing unknown fields
+PASS we G and X unwrap one level and reject nesting
+PASS we stamp ages
+PASS we C alone is a record
+PASS we E before C attaches within 15 s and expires after
+PASS we lost middle E still shows count
+PASS we report ids: newer only, caps
+PASS reported reducer output stays separate with possible hash identities
+PASS store expiration, epoch, caps and deterministic newest ordering
+PASS headless map candidates only for shown zone, never fake enemy coordinates
+PASS SavedVariables contain options only; no sightings survive reload
+PASS heartbeat is five seconds idle, two while map shown
+PASS missing timer and message-registration APIs degrade safely
+PASS old units must disappear before reacquisition after a transfer
+PASS a zone boundary drops held lists and reports, not the report order
+PASS foreign field getter failures do not escape game event dispatch
+PASS unchanged Bulo timestamps allocate no duplicate observations
+PASS deterministic decoder fuzz never crashes or accepts oversized input
+PASS same-frame own unit data can classify a Bulo copy without restamping
+PASS loaded Bulo with missing namespace reports unavailable rather than absent
+PASS one layer key helper compares the server part only
+PASS a War Effort report shows as reported, not confirmed
+PASS receipt-time reports expire ten minutes after receipt
+PASS a repeated report id is not a new sighting; an hour later it is (documented limit)
+PASS we drops whisper and channel, and types a route does not carry
+PASS we own echo, ignore list for sender and origin, guild membership
+PASS we rate limit 6 per 10 s
+PASS we works with no War Effort installed
+PASS we layer is unknown without a hello, below 13 and above 19
+PASS we layer is server after hello minor 19
+PASS we repeated G of one report is one record
+PASS we zone, layer zero and clock
+PASS we caps hold under a flood
+PASS reports from another server key in our zone are kept apart and labelled
+PASS we a hello from one realm never vouches for a namesake on another (مانع T3 F1)
+PASS we a wrapper naming its own sender, or us, is refused
+PASS we E, then a boundary, then C of the same id is a new report (مانع T3 S1, accepted)
+PASS we secret values in any message argument stop the message (مانع T3 S2)
+PASS we held lists are capped across origins, rate table too (مانع T3 S3)
+PASS we reports never enter LayerEnemiesDB (مانع T3 S4)
+PASS candidates: every source absent
+PASS candidates: Bulo guild list in wrong shapes is ignored whole
+PASS candidates: Bulo secret, stale, other zone, same layer and self excluded
+PASS candidates: LayerSwap book absent, wrong shape, stale, gone, zone, same layer
+PASS candidates: host preference and one row per name across sources
+PASS candidates: huge foreign lists stay bounded
+PASS ask: chat box opened one frame later with the exact line, never sent
+PASS ask: ChatFrame_OpenChat route and every print fallback
+PASS ask: 60 s per name and one ask per 10 s overall
+PASS ask: only listed, readable, ungrouped targets
+PASS /le hosts numbers the candidates and /le ask <n> asks one
+PASS after join: confirmed layer change is announced once (Bulo)
+PASS after join: change confirmed by two NPC kinds; other layer than listed is said
+PASS after join: unchanged after 60 s says so once; nothing is left for the user
+PASS after join: no ask, late join, unknown layer and zone change
+PASS ask from a War Effort report: reporter is the target, own layer unknown
+PASS addon never chats, invites, accepts, leaves or joins; sends only through Wire
+PASS Find fold: Latin and Cyrillic tables, exclusions and unchanged UTF-8
+PASS Find fold: lone continuation and truncated UTF-8 tails are byte-preserved
+PASS Find casefold own: élodie
+PASS Find casefold named: élodie
+PASS Find casefold hash: élodie
+PASS Find casefold own: ÉLODIE
+PASS Find casefold named: ÉLODIE
+PASS Find casefold hash: ÉLODIE
+PASS Find casefold own: Élodie
+PASS Find casefold named: Élodie
+PASS Find casefold hash: Élodie
+PASS Find casefold own: ZOÉ
+PASS Find casefold named: ZOÉ
+PASS Find casefold hash: ZOÉ
+PASS Find casefold own: zoé
+PASS Find casefold named: zoé
+PASS Find casefold hash: zoé
+PASS Find casefold own: ялора
+PASS Find casefold named: ялора
+PASS Find casefold hash: ялора
+PASS Find casefold own: ЯЛОРА
+PASS Find casefold named: ЯЛОРА
+PASS Find casefold hash: ЯЛОРА
+PASS Find casefold own: ёлва
+PASS Find casefold named: ёлва
+PASS Find casefold hash: ёлва
+PASS Find casefold own: łukasz
+PASS Find casefold named: łukasz
+PASS Find casefold hash: łukasz
+PASS Find casefold own: ŁUKASZ
+PASS Find casefold named: ŁUKASZ
+PASS Find casefold hash: ŁUKASZ
+PASS Find casefold own: ÿlune
+PASS Find casefold named: ÿlune
+PASS Find casefold hash: ÿlune
+PASS Find casefold own: ĺava
+PASS Find casefold named: ĺava
+PASS Find casefold hash: ĺava
+PASS Find casefold own: źora
+PASS Find casefold named: źora
+PASS Find casefold hash: źora
+PASS Find casefold own: mira élune
+PASS Find casefold named: mira élune
+PASS Find casefold hash: mira élune
+PASS Find casefold own: MIRA ÉLUNE
+PASS Find casefold named: MIRA ÉLUNE
+PASS Find casefold hash: MIRA ÉLUNE
+PASS Find casefold own: élodie łava
+PASS Find casefold named: élodie łava
+PASS Find casefold hash: élodie łava
+PASS Find casefold own: cedar vale
+PASS Find casefold named: cedar vale
+PASS Find casefold hash: cedar vale
+PASS Find casefold own: CEDAR VALE
+PASS Find casefold named: CEDAR VALE
+PASS Find casefold hash: CEDAR VALE
+PASS Find casefold own: élodie-TestRealm
+PASS Find casefold named: élodie-TestRealm
+PASS Find casefold hash: élodie-TestRealm
+PASS Find casefold key: trim display, fold single and full names, keep validation
+PASS Find casefold add: duplicate spelling preserves one entry and session state
+PASS Find casefold hash candidates: given, folded and Titlecase spellings per part, bounded and wire unchanged
+PASS Find casefold keeps the spelling as given: mixed-case realm from the game or typed exactly still matches
+PASS Find casefold remove: other case clears stored location and alert, not a neighbour
+PASS Find hashes mirror upstream realm, realm-less and Forever surname keys
+PASS Find match, no match, collisions, expiry, own sighting and alerts
+PASS Find integration: cross-zone privacy gate, same layer and persistence
+PASS Find cap, validation, remove, alert sound and own name with surname
+PASS UI starts hidden, toggles with /le, paints ages only while shown
+PASS UI tabs, scrolling and row pooling never allocate on repeat refresh
+PASS UI Friendly and Reported buttons dispatch AskInvite and show real cooldown
+PASS UI Find add, status, clear and invite use existing flow
+PASS UI dragging saves and restores valid per-character position
+PASS Forever surname whisper uses native target API, never malformed slash text
+PASS relation never crosses namespaces
+PASS relation is zone scoped
+PASS equal server is unknown while ambiguous
+PASS own server key without Bulo
+PASS ambiguity lasts 1800 s
+PASS an unreadable map does not end the zone epoch
+PASS record rejects bad fields
+PASS store relation uses the record
+PASS tracking a name looks through reports already stored (records)
+PASS hop line matches the LayerSwap grammar
+PASS hop sends exactly one whisper per click
+PASS hop refuses when grouped, other zone, zoneuid layer, same layer, no candidate
+PASS hop cooldown blocks a second click
+PASS hop does not retry on throttle
+PASS hop parses heard for me and ignores heard for others
+PASS hop parses same
+PASS hop ignores inv layer requests and sends no heard
+PASS hop works while LayerSwap and Bulo are loaded
+PASS hop state clears on zone change and reload
+PASS hop acts on the shown candidate only (مانع T5 F1)
+PASS hop replies: same wording, ambiguity, full-name sender, route (مانع T5 F2, S2)
+PASS hop: grouping, live zone and per-source host rank (مانع T5 S1, S3)
+PASS hop: two zone boundaries before a poll end the layer watch (مانع T5 S4)
+PASS hop: a failed send keeps the cooldown
+PASS claims are keyed by full name; HeadHunter never compares (T3/T4 leftovers)
+PASS /le hop numbers do not survive a zone change (r2)
+PASS guild L line without Bulo fills the host list
+PASS hop: own layer is the confirmed one, never a stale server key (مانع T2 S2)
+PASS hop: an ambiguous own key is never a certain same layer (مانع T2 S3)
+PASS ask texts: no promise about leaving, server-key wording
+PASS hh decodes a 7-field P with names and layer
+PASS hh decodes a 5-field P
+PASS hh rejects 6-field P and version 2
+PASS hh unwraps E and keeps author as origin
+PASS hh drops other faction
+PASS hh L becomes an outlaw record with unknown layer
+PASS hh layer is never comparable
+PASS hh age window ±300 s
+PASS hh ignores N, Q, O, S and sends nothing
+PASS hh routes, duplicates, ignore, rate, ttl and caps in the window
+PASS relay round-trips a we record and an hh record
+PASS relay skips records heard on GUILD
+PASS relay never re-relays a guild record
+PASS relay stands down when another guildmate sends first
+PASS relay sends each id once in 120 s
+PASS relay drops instead of queueing when only the own reserve remains
+PASS relayed record is labelled and not first-hand
+PASS relay rejects format version 2 and oversize
+PASS relay silent outside a guild
+PASS hh only P, L and E frames count against the rate (مانع T4 S1)
+PASS hh E envelope fields are checked (مانع T4 S2)
+PASS hh bounds: base36 digits, allies, frame size, rate table (مانع T4 S3)
+PASS hh carrier ignore and secrets on every event argument (مانع T4 S3)
+PASS hh count is the number of enemy ids; rows show via <carrier>
+PASS relayed origins never become Find spotters (مانع T6 F1)
+PASS relay rechecks guild and instance at send time (مانع T6 S1)
+PASS relayed HeadHunter lives 300 s from origin time (مانع T6 S2)
+PASS relay rejects bad levels, self-relays, and caps pending offers (مانع T6 S3, S4)
+PASS a stored relay replayed into Find stays unaskable (r2)
+PASS a duplicate relay does not make a first-hand Find row unaskable (r2)
+PASS relayed reporters are never invite candidates
+PASS relay receive limit: 12 per 10 s per sender
+PASS the send mock counts any caller but Wire.lua as forbidden
+PASS wire routes cannot be opened from outside
+PASS wire sends only on the allowed routes
+PASS wire rejects oversize and secret text
+PASS wire maps client results
+PASS wire guild bucket
+PASS 0.3.1 T3: hosts are listed while our own layer is unknown; nothing is sent or drafted
+PASS 0.3.1 T3: Invite.collect marks rows while unknown; a report hop never picks them
+PASS 0.3.1 T3: the window shows the hint and disables the row button while unknown
+PASS 0.3.1 T2: /le hop host sends one LayerSwap whisper through Hop.request, with its cooldowns
+PASS 0.3.1 T2: hop host refuses stale lists, bad numbers, changed rows, reporters and our own layer
+PASS 0.3.1 T2: the Friendly button hops via the host, one message per click
+PASS 0.3.1 T4: a heard|h reply from the asked player is remembered for 12 minutes, read-only
+PASS 0.3.1 T4: replies not from the asked player, not on WHISPER, late or for someone else are not stored
+PASS 0.3.1 T4: with LayerSwap installed its own book is used and ours is ignored; the store is capped
+PASS 0.3.1 guardrails: 20 idle minutes with the new paths send nothing
+PASS 0.4 T1: /le hosts find sends exactly one LFSw Q on GUILD, then waits 60 s
+PASS 0.4 T1: the 60 s limit is in Wire itself, and Wire takes only the literal Q
+PASS 0.4 T1: not in a guild, nothing is sent; an incoming Q is never answered
+PASS 0.4 T1: the Find hosts button on the Friendly tab, one Q per click
+PASS 0.3.1 fix S1: own layer unknown, a report hop refuses with the hint, no draft even via the reporter
+PASS 0.3.1 fix S2: hop host refuses when the host flag or the LayerSwap uid changed since the preview
+PASS 0.3.1 fix S3 and note: the hint names two different kinds of NPC; a non-host Bulo row says it may not answer
+PASS 0.4 T5: no one known on the layer: Ask guild (chat) drafts the exact /g line and sends nothing
+PASS 0.4 T5: a known host or another precondition means no guild ask
+PASS 0.4 T5: GUILD heard replies are read for 120 s after our own guild ask, naming us, and stored as hosts
+PASS 0.4 T5: the Reported row button drafts the guild line
+PASS 0.4 T7.1: parse accepts only the full want/not grammar
+PASS 0.4 T7.1: decide order: hosting, name, 60 s per asker, zone, key, instance, combat, guild
+PASS 0.4 T7.1: want and not rules with their replies
+PASS 0.4 T7.1: group rule, own request, 10 s overall and 6 per 600 s give busy
+PASS 0.4 T7.1: the asker table is capped at 128 and the 60 s counts from the guild check
+PASS 0.4 T7.2: guild membership: one online roster entry, exact name first, bare name only when unique
+PASS 0.4 T7.2: roster age from GUILD_ROSTER_UPDATE, refresh at most every 15 s
+PASS 0.4 T7.2: combat and party state; unreadable combat is in combat, unreadable party is nil
+PASS 0.4 T7.3: Wire.invite keeps its own limits: 10 s, 60 s per name, 6 per 600 s; our realm dropped
+PASS 0.4 T7.3: LayerSwap whispers carry only the request, same or heard; replies one per 6 s
+PASS 0.4 T7.3: hosting: off at load, on refused beside LayerSwap or Bulo or without the invite call
+PASS 0.4 T7.3: a guild member's request: one reply, at most one invite, one line
+PASS 0.4 T7.3: unreadable party, combat or own layer fails closed
+PASS 0.4 T7.3: a stale roster: one refresh, the request held in one slot for 5 s
+PASS 0.4 T7.3: 20 idle minutes with hosting on: nothing sent, nothing invited
+PASS 0.4 T7.3: the window toggle and the hosting line
+PASS 0.4 T7.4: a 0.3.1 decoder rejects F and H lines as invalid; Relay builds and reads them strictly
+PASS 0.4 T7.4: Find hosts sends one Q and one F|1, once per 60 s; outside a guild neither
+PASS 0.4 T7.4: turning hosting on announces H once; an F gets one H 1 to 6 s later, at most once per 60 s
+PASS 0.4 T7.4: no H when hosting is off, our layer or zone unknown, or LayerSwap loaded
+PASS 0.4 T7.4: a guild H is remembered 12 minutes as a host on <key>-0; /le hop host asks it
+PASS 0.4 host saved: on survives a reload and is active; one login line; no H at login
+PASS 0.4 host saved: off persists; a bad saved value is off
+PASS 0.4 host saved: on but inactive at login says why, answers nothing, stays saved
+PASS 0.4 host saved: the window line and toggle
+PASS 0.4 T8: the asked host's invite is accepted, the popup hidden as accepted; the move then leaves after 3 s
+PASS 0.4 T8: Wire keeps its own limits on accept and leave (10 s each)
+PASS 0.4 T8: no move within 30 s of joining: leave and say the hop failed
+PASS 0.4 T8: another inviter, a late invite, grouped, instance or combat: nothing is accepted
+PASS 0.4 T8: a group not joined through our hop is never left; leader changes, raid or our lead stop the leave
+PASS 0.4 T8: the guild ask accepts an online guild member's invite only
+PASS 0.4 T8: hostOwn carries our own name key (it was dropped by an and-expression in 7.3)
+PASS 0.4 T8: Auto accept and leave: on by default, saved, /le hop auto and the toggle; off means manual
+PASS 1.0 T1: each route's text check: WEFF1 and HeadHunter carry only their planned types
+PASS 1.0 T1: global budget: 8 at once, 1 per 1.5 s, never more than 40 in 60 s
+PASS 1.0 T1: whispers outside guild and group: 4 a minute to one player, 20 a minute in total; consent guild sends none
+PASS 1.0 T1: guild budget: 20 a minute over all prefixes
+PASS 1.0 T1: throttled by the client: dropped, never retried, that prefix pauses 30 s; offline target skipped 1 h
+PASS 1.0 T1: the queue: over budget a queued line waits; full, the oldest forward goes and a click stays; priority order
+PASS 1.0 T1: in combat every rate halves; in an instance only clicks go
+PASS 1.0 T1: network off sends nothing and registers no timer; the real addon loaded stands its prefix down
+PASS 1.0 T1: callers carry their priority: a hop click and Find hosts go in an instance, host and relay lines do not
+PASS 1.0 T2: a wrapped, enveloped, relayed or synced record is never first-hand
+PASS 1.0 T2: at is the origin's time, never the time we heard it
+PASS 1.0 T2: positions are labelled: enemy, observer, victim or none
+PASS 1.0 T2: a record older than its network's limit is dropped, counted from the origin's time
+PASS 1.0 T2: one row per origin, zone and 5 s; first-hand first, then the copy with names
+PASS 1.0 T3: the War Effort channel name follows the realm's ruleset; HeadHunter's is fixed
+PASS 1.0 T3: no join at consent guild; joins at public; leaves on switch-off or consent guild
+PASS 1.0 T3: the member list is read after selecting the channel, never with the Channels window open, in combat or an instance
+PASS 1.0 T3: nothing is ever sent to a channel; channel calls only from Directory.lua
+PASS 0.3.1 S1 narrowed: only a reporter who is himself a Bulo/LayerSwap row seen while unknown is refused
+PASS 0.3.1 extra: a readable zone change clears the /le hosts numbers
+PASS 0.3.1 extra: /le ask from a list taken while our layer was unknown re-checks before drafting
+PASS 0.3.1 extra: with LayerSwap loaded our remembered replies are never used, even while its saved table is missing
+PASS 0.4 fix M1: the player checked is the player invited; realms are kept unless they are ours
+PASS 0.4 fix S1: the party is unreadable (busy) when the count and the party units disagree or a unit read fails
+PASS 0.4 fix S2: a spaced name with a realm is one rule everywhere: guild check, host and Wire
+PASS 0.4 fix S3: an asker already in our party gets same; a guest who joined frees the pending slot at once
+PASS 0.4 host saved (review 6c): a host resumed at login answers no F before the first guild roster
+PASS 0.4 fix S2 (must): First Last, numeric realms; double, leading and trailing spaces and three words refused
+PASS 0.4 fix S2 (must): the LayerSwap reply grammar takes the spaced name and nothing looser
+PASS 0.3.x name paths: a Bulo guild line from First Last-OtherRealm keeps the realm; ours is dropped
+PASS 0.4 host (review 6c): no H before this session's first guild roster; turning hosting on then announces once on it
+PASS 1.0 T2 names: every network's sender and origin pass the one name rule (First Last, numeric realms)
+PASS 0.4 T8 B1: a drafted whisper arms auto-accept only once we see it go out to that host
+PASS 0.4 T8 B1: the guild ask arms on our own /g line; then only an answerer or a listed host is accepted
+PASS 0.4 T8 B1: a request whose line cannot be built leaves nothing armed
+PASS 0.4 T8 B2: the hop group ends: tracking stops at once; a later group of the same host is never left
+PASS 0.4 T8: never auto-leave inside an instance; in combat the leave waits for combat to end
+PASS 0.4 L2: a finished or expired hop no longer counts as asking for the guild host
+PASS 0.4 L1: isMe uses the one name rule; letters refuse a no-break space, zero-width and invalid bytes
+PASS 1.0 T1-1: in combat the minute caps halve too: GUILD 10, public 10, one player 2, all 20
+PASS 1.0 T1-2: a network whisper is public unless the target is a checked online guildmate; opts.scope is not trusted
+PASS 1.0 T1-3: a clock stepping back counts as just sent; the limits hold
+PASS 1.0 T1: one player is one key for the per-player limit; the target tables are pruned
+PASS 1.0 T2-1: across networks a first-hand copy wins before the name count
+PASS 1.0 T2: a War Effort sync answer is not first-hand
+PASS 1.0 T2: a relayed HeadHunter record keeps its observer position and a hop count; the relay codes the origin's time
+PASS 1.0 T2: a record with no timestamp uses receipt time and says so
+PASS 1.0 T3-1: a channel we were already in is read but never joined or left by us
+PASS 1.0 T3-2: the delayed read rechecks combat, instance and the Channels window; an unreadable count forgets
+PASS 1.0 T3-2: a join that fails is not marked joined; toggling never stacks timers
+PASS names end to end: a foreign spaced host First Last-7103 on realm 7102: line, hop, whisper, auto-accept
+PASS a7: leaving the guild makes hosting inactive; a new guild's H waits for that guild's roster
+PASS a7: leaving the guild drops a scheduled F answer and an owed H
+PASS crowd 5: nine enemies use consecutive 4,4,1 slots without repeats
+PASS crowd 6: a sighting waiting 30 seconds keeps its real age
+PASS crowd rate: duplicate and fractional pumps never open an early slot
+PASS crowd cap: no fourth line for a 13-plus snapshot even at age 45
+PASS crowd packing: byte-trimmed names wait for the next slot
+PASS crowd encoder: fitted receipt matches unchanged O bytes
+PASS crowd repeat: a new arrival never pulls a recently sent name along
+PASS crowd repeat identity: duplicate observed names do not bypass 60 seconds
+PASS crowd freshness: age 45 is allowed but a waiting name past 45 is dropped
+PASS crowd age: omitted newer names cannot rejuvenate the fitted sightings
+PASS crowd switch: share off cancels the remaining snapshot without resetting pace
+PASS crowd boundaries: zone and world resets discard the pending old sightings
+PASS crowd guild: a leave or readable switch cancels old-guild remaining lines
+PASS crowd refusal: no shared stamp on a refused send and retry still waits 15 seconds
+PASS crowd cancel pace: a quick off-on cycle preserves both cooldowns
+PASS crowd guild blink: same or unreadable guild events retain the existing burst
+PASS crowd boundary cooldown: new-zone observations cannot repeat a name inside 60 seconds
+PASS crowd cancel memory: repeated boundaries keep skipped keys bounded to the current store
+PASS crowd receiver: 5 enemies keep their exact displayed total
+PASS crowd receiver: 9 enemies keep their exact displayed total
+PASS crowd receiver: 13 enemies keep their exact displayed total
+PASS crowd receiver: 30 enemies keep their exact displayed total
+PASS crowd receiver: byte-trimmed lines count only their own names
+PASS crowd War Effort fight: 6 enemies produce five pairs in five minutes
+PASS crowd War Effort fight: 13 enemies produce five pairs in five minutes
+PASS crowd War Effort cooldown: unguilded keeps enemy dedupe
+PASS crowd War Effort cooldown: guild line refused keeps enemy dedupe
+PASS crowd War Effort cooldown: share off/on keeps enemy dedupe
+PASS crowd War Effort new arrivals: cooldown is per enemy, not global
+PASS crowd War Effort: O follow-up slots do not multiply the public report
+PASS 1.0 A1: WeOut encodes C and E as War Effort does; they decode back to the same values
+PASS 1.0 A1: an O line to the guild: 3 s settle, one per 15 s, the same enemy again only after 60 s
+PASS 1.0 A1: a guildmate's O line is a first-hand row with names; our own is not stored
+PASS 1.0 A1: C and E for two or more enemies, only where a War Effort reader was heard; the id rises and is saved
+PASS 1.0 A1: no C or E with the network off, War Effort loaded, in an instance, without a position; groups get them too
+PASS e4 M1: an own-realm suffixed origin heard first-hand and through the guild relay is one row, in both orders
+PASS e4 S1: the folded key everywhere a player is keyed (peers, report order, rates, relay ids, reporters)
+PASS e4 S3: decoders through CHAT_MSG_ADDON with spaced and suffixed names (War Effort, HeadHunter, guild relay)
+PASS e4 S1b: one key in the remembered hosts and the offline skip ('Gone' and 'Gone-TestRealm' are one player)
+PASS r040c G1: a listed Bulo or LayerSwap row counts as a host only with its host flag
+PASS r040c G2/G3: an answer before our guild line goes out does not count; the window runs from the send
+PASS r040c: an AcceptGroup that throws spends the ask
+PASS r040c D1: no join while the channel display list is unreadable or empty
+PASS r040c D2: ours only by our own join notice; a hand leave and rejoin is the player's; a nil or empty return is no join
+PASS cc: Directory lists nobody while our own name or home realm is unreadable; one entry per player
+PASS 1f M2: leave, a roster while guildless, join: no H until the new guild's roster
+PASS 1f: joining B with no leave seen is a switch, by the guild event or by a roster alone
+PASS 1f: B's roster before the guild event: the switch asks for a roster; the late event changes nothing more
+PASS 1f: an unreadable guild name in a switch keeps nothing of the old guild
+PASS 1f: a request held for the roster is dropped by a guild switch, even if the requester is in the new guild
+PASS e4c: an enemy re-seen every second is reported 3 s after its first sighting
+PASS e4c: only our own unit sightings are shared, never a Bulo copy (also not one refreshing our own row)
+PASS e4c: an unknown or just-changed layer is sent as unknown, never a guessed key
+PASS 1.0 A2: WeOut builds H, Q, K and sync-marked C; our decoder reads them back
+PASS 1.0 A2: hello at login and every 180 s to the guild; not in an instance; an identical one not within 30 s
+PASS 1.0 A2: a group with players outside the guild gets a hello too
+PASS 1.0 A2: Q once at login, to the guild
+PASS 1.0 A2: a guild Y is answered by whisper from our own last three reports, slowly, once per 600 s
+PASS 1.0 A2: WeNet: a report that grows older than the asked age while queued is skipped
+PASS 1.0 A2: a J gets one K saying off (status 2) per 60 s, by whisper, and never an invite
+PASS 1.0 A3: the election score is War Effort's (DJB2, highest wins, lower name on ties)
+PASS 1.0 A3: the embassy stays off with a reason; an empty or missing member list greets nobody
+PASS 1.0 A3: we greet only our share, one a minute; an answer makes a partner; no answer leaves them alone 1800 s
+PASS 1.0 A3: a greeting is answered at most 6 times a minute over all players; a guildmate's P makes no partner
+PASS 1.0 A3: D lists only links we serve; withdrawn with D| when public networks go off
+PASS 1.0 A3: forwarding: a guildmate's own report only if their hello said public; ours; H once per 600 s; never a wrapped one
+PASS 1.0 A3: only the top-scored holder of a guild forwards to it
+PASS 1.0 A3: a W from a live partner of another guild goes into the guild as G and is stored as relayed; from others it is dropped
+PASS 1.0 B1: hello is exactly LayerEnemies, once per peer per session, one per tick at most; an N is answered once
+PASS 1.0 B1: an envelope is forwarded unchanged but its hops, to peers that are neither author nor carrier
+PASS 1.0 B1: hops 5, too old, from the future, another world, our own, author-carried after hop 1, T: not forwarded
+PASS 1.0 B1: the duplicate ring holds 4000 keys
+PASS 1.0 B2: catch-up: Q:h after login, offers collected, pulled from one, S taken only from that sender
+PASS 1.0 B2: serving: no O with an empty store; O counts what a pull then sends, byte-equal; E0; once per requester per 300 s
+PASS 1.0 B2: a link H is answered with our home server, once per 600 s
+PASS 1.0 B: off, guild-only, HeadHunter loaded or in an instance: nothing on HeadHunter
+PASS 1.0 C1: a [Spy] line: the enemy as First Last, observer position, map to zone, class and level checked
+PASS 1.0 C1: [Spy] refusals: multi-part, field count, class, level, coordinates, guild, name, map, route, own
+PASS 1.0 C1: ForeverSpy1 on a group: name and zone name; FSENT03: GUID, age, level
+PASS 1.0 C1: the same enemy again from one observer is one row; 6 lines per sender per 10 s; donor prefixes remain receive-only
+PASS 1.0 C2: a Guild Bounty death: the killer as enemy, the victim's position (zone map only), class and level
+PASS 1.0 C2: a Wall of Shame death names its killer by zone name; Forever Told S is a wanted player seen
+PASS 1.0 consent: no choice saved reads as public: public whispers and channel joins run; guild only when chosen
+PASS 1.0 consent: the first-login line, once, only while a network ships; not after a guild choice
+PASS 1.0 consent: /le net shows and sets the level and each network's switch
+PASS 1.0 consent: /le share off stops every own-sighting send (O, C+E); saved; on again restores
+PASS 1.0 consent: window switches for sharing, guild only and each network
+PASS 1.0 consent: /le status names the network level, sharing and each network
+PASS 21e fab7253: hosting acts only while the guild name is readable and equal to the guild seen
+PASS 21e fab7253: the post-switch roster request is retried once the 15 s limit has passed
+PASS 21e fab7253: a guild name that blinks unreadable on a guild event comes back on the next readable event or roster
+PASS 21e 56dbb3c: with Bulo refreshing every second, our own sightings still go out
+PASS 21e 21eacaf: answer pacing compares against the last send time (no float edge: two sends at one timestamp)
+PASS 21e 21eacaf: the answer queue holds five requesters; the sixth is refused
+PASS 21e 21eacaf: a War Effort C or E whisper to a non-guildmate needs public consent like any other
+PASS 21e 21eacaf: a raid with players outside the guild (raid units only) gets a raid hello
+PASS 21e 21eacaf: the login Q is tried at most twice
+PASS 21e 21eacaf: answer ages are the observation's, rechecked at each send (C and E)
+PASS 1.0.0 release: both networks ship on; the first login says so once
+PASS 124 A3: held keys: an empty holder set is dropped and the table is capped at 256
+PASS 124 A3: wrapped lines are rebuilt from decoded fields: no trailing text travels, W out or G in
+PASS 124 A3: a P makes a partner only from a channel member or someone we greeted in the last 10 min
+PASS 124 A3: queued embassy lines are dropped when the embassy stops, the seat is lost or the origin revokes public
+PASS 124 A3: D| goes out at once when the War Effort switch goes off or War Effort is loaded; then former partners are dropped
+PASS 124 A3: a guildmate's public=1 expires 600 s after their last hello
+PASS 124 A3: a queued greeting is dropped when the embassy stops
+PASS 9b8 B: answered and offered are pruned after 300 s and capped at 256
+PASS 9b8 B: a record too long for a frame on its own is not served
+PASS 9b8 B: the history keeps the newest 300 records
+PASS 9b8 B: catch-up serves the newest 10 records that fit, counted exactly in O and the end marker, byte for byte
+PASS 9b8 B: a pull gets its own allowance (up to 16 frames, about one per 2 s) inside the public budget; 10 records served
+PASS 9b8 B: Q:p only from a known peer of our faction; S records from the other faction only of the kinds allowed across
+PASS 9b8 B: own lines are never starved by a busy mesh, in or out of combat; embassy and owed lines go before mesh ones
+PASS 9b8 B: a forward keeps the timestamp bytes and changes only the hop; a queued forward over 600 s old is dropped
+PASS 9b8 B: hello replies are paced to one per 2 s; a peer counts as known only if heard within 3600 s
+PASS 7a0 C1/C2: one row per enemy whatever the spelling: First-Last and First-Last-7102 fold to one key
+PASS 7a0 C1: the zone-name table is kept only when both lookups gave data; otherwise tried again
+PASS 7a0 C1: the sender in Spy spelling: our own line is refused, and the rate bucket is the folded name
+PASS 7a0 C1: an ambiguous zone name is no answer whichever map comes first; a C1 row never goes out as our O
+PASS b5c d744383: /le share off drops sync answers with our C/E and the reports kept for them
+PASS b5c d744383: /le share off drops our own W lines still queued for an embassy partner
+PASS b5c: a hosting blink ends on the next request or F when the guild name is readable and equal; else a roster is asked
+PASS A3 close: a hello's received count (field 14) and ambiguity flag (field 15) are read and kept in a rebuilt line
+PASS 6c5 B: a pull's end marker leaves within 60 s of the Q:p even with the public budget saturated by mesh lines
+PASS 6c5 B: hello replies stay 2 s apart after a backlog (no burst when the budget refills)
+PASS 6c5 B: a peer last heard more than 3600 s ago gets no pull
+PASS invalid-whisper A: accepted API call then localized failure blocks the identity for one hour
+PASS invalid-whisper A: exact correlation leaves unknown, ambiguous, unrelated and secret system errors alone
+PASS invalid-whisper A: localized literals are escaped, unsupported templates fail closed, evidence is consumed
+PASS invalid-whisper A: only recent actual whisper calls supply evidence, never queued or locally refused lines
+PASS invalid-whisper A: synchronous offline and async offline share the same bounded window across prefixes
+PASS invalid-whisper A: outgoing target uses only the existing home-realm canonicalization
+PASS invalid-whisper B: terminal hello results clear owed state and do not starve the next peer
+PASS invalid-whisper B: transient local refusals back off, expire and give other peers a turn
+PASS invalid-whisper B: offline evidence cancels an owed hello before another Wire attempt
+PASS invalid-whisper C: successful empty directory is applied by the hello timer, retaining only direct fresh peers
+PASS invalid-whisper C: failed or blocked roster reads are not empty success and old candidates expire
+PASS invalid-whisper C: valid fresh roster and incoming evidence replace spelling, never compact-key identity
+PASS invalid-whisper C: cached directory does not overwrite a newer incoming spelling or renew candidate age
+PASS invalid-whisper C: queued directory-selected queries cannot outlive an empty or expired snapshot
+PASS invalid-whisper B: retry attempts and deadline are independently bounded; terminal reasons are not retryable
+PASS invalid-whisper B: switching off cancels pending retries and switching on does not strand the timer
+PASS invalid-whisper B: async offline clears owed state immediately without consuming a timer turn
+PASS invalid-whisper A: queued-only evidence and backward clocks cannot mark a target offline
+PASS invalid-whisper C: queued envelope forwards recheck an empty directory as well as envelope age
+PASS invalid-whisper B: an opposite-faction hello keeps its one-reply behavior without an idle debt
+PASS invalid-whisper B: a new peer outranks a due retry on the same paced turn
+PASS invalid-whisper R2: consumed foreign async evidence still makes a bare namesake error ambiguous
+PASS invalid-whisper R2: synchronous foreign offline retains ambiguity without renewing suppression
+PASS invalid-whisper R2: repeated failures consume every matching attempt without extending the hour
+PASS invalid-whisper R2: consumed ambiguity expires at the original send timestamp, not failure time
+PASS invalid-whisper R2: consumed records count toward the same recent cap and oldest records are evicted
+PASS invalid-whisper R2: offline-cap eviction does not revive consumed evidence
+PASS invalid-whisper R2: an unsent queued foreign namesake is not ambiguity evidence
+PASS invalid-whisper R2: a dequeued foreign failure retains ambiguity for home sends and queued work
+PASS invalid-whisper R2: a qualified home error still matches beside a consumed foreign identity
+PASS own identity: split direct self C/E is refused while local and independent Unknown rows survive
+PASS own identity: split and combined forms share exact full-name and home-realm keys
+PASS own identity: unreadable or ambiguous own data fails closed and recovers without stale aliases
+PASS own identity: G/GUILD rejects self origins, not different surnames or realms
+PASS own identity: X/PARTY rejects self origins, not different surnames or realms
+PASS own identity: X/RAID rejects self origins, not different surnames or realms
+PASS own identity: W/WHISPER rejects self origins, not different surnames or realms
+PASS own identity: distinct first-only names, surnames and foreign realms remain real direct reporters
+PASS own identity: LEGW1 refuses our sender and relayed origin without suppressing independent reports
+PASS own identity: unknown identity refuses LEGW1 reports, control and LFSw claims
+PASS own identity: HeadHunter and Spy receive gates use the same split full name
+PASS own identity: host self key and candidate lists use the full identity
+PASS own identity: Directory excludes only the full own identity and refuses unknown identity
+PASS own identity: LayerSwap heard and guild claim readers use our full name, never a bare-first alias
+PASS own identity: our split-name raid unit is not mistaken for an outside-guild peer
+PASS own identity: a guild host does not act while its own identity is unreadable or ambiguous
+PASS guild O full name: split and combined observations round-trip without first-name aliases
+PASS guild O full name: malformed display identity is omitted, never replaced by the first name
+PASS guild O full name: legacy single and combined names retain their O1 bytes
+PASS guild O full name: four-entry cap counts intact full identities, not first-name aliases
+PASS guild O full name: 100-byte names and the 255-byte line boundary keep whole entries
+PASS guild O full name: oversized legacy packets trim the tail once without duplicating the retained name
+PASS guild O full name: observed split identity crosses share, Wire and cross-zone Find without donor traffic
+PASS seen unknown 01: a targeted enemy is listed and labelled before the layer is known
+PASS seen unknown 02: learning the layer preserves nil-layer rows but clears reports and identities
+PASS seen unknown 08: a learned layer is never assigned to an earlier sighting on the wire
+PASS seen unknown 10: nil-layer rows never become map candidates
+PASS seen unknown 03: a fresh sighting replaces the pre-layer row with the known layer
+PASS seen unknown 03b: Bulo copies at or before learning cannot give a kept row a layer
+PASS seen unknown 03c: a Bulo observation after learning may replace the kept unknown row
+PASS seen unknown 04: kept rows expire 600 seconds after the original sighting
+PASS seen unknown 05: unreadable faction stays unclassified with no layer
+PASS seen unknown 01b: Find says layer unknown for an own sighting made before the layer is known
+PASS seen unknown 06: a real layer or raw-id change still wipes kept pre-layer rows
+PASS seen unknown 07: shard transfer still wipes unknown and kept sightings
+PASS seen unknown 09: learning preserves the 60-second shared-enemy cooldown
+PASS previous zone 11: real crossings carry an own row for 120 seconds from its sighting
+PASS previous zone 11b: learning the new zone layer keeps the carry until its original expiry
+PASS previous zone 12: expired own sightings are not revived by a crossing or Bulo refresh
+PASS previous zone 13: only the newest eight sightings are carried as independent copies
+PASS previous zone 14: only opposite-faction own-source current-epoch rows are eligible
+PASS previous zone 15: non-zone boundaries clear carry-over even when the map also changes
+PASS previous zone 16: reacquiring the same player replaces the carried display with one live row
+PASS previous zone 17: carried rows never become sends, Find locations, maps or actions
+PASS previous zone 18: a second crossing keeps only the zone just left after live rows
+PASS previous zone 19: scrolled live and carried rows keep their distinct labels
+PASS previous zone 20: carry rejects future own timestamps before the previous-row reader runs
+PASS previous zone 21: a backward clock permanently prunes future carried rows
+PASS OpenMap guild tracer: exact tracked sender yields a session place without sends
+PASS OpenMap untracked and empty watchlist: no state changes or decoding
+PASS OpenMap wire grammar: complete valid bounds and empty class
+PASS OpenMap malformed lines cannot replace a live place
+PASS OpenMap every secret event argument is discarded before indexing
+PASS OpenMap routes and unreadable senders are refused silently
+PASS OpenMap exact folded identity: no first-name alias and no foreign-realm alias
+PASS OpenMap own identity and ignores fail closed then recover
+PASS OpenMap lifecycle: L0 and 150 second expiry, including backward clocks
+PASS OpenMap lifecycle: casefold remove and clear delete stored spellings only
+PASS OpenMap places are bounded by the watchlist and are never saved
+PASS OpenMap BN tracer: registered event yields a place with opposite faction, not account data
+PASS OpenMap BN untracked and empty watchlist never retain lookup data or decode
+PASS OpenMap BN lookup failures and invalid arguments are harmless
+PASS OpenMap BN names require readable characters and realms without reading accounts
+PASS OpenMap BN hellos, own character by name or GUID, and ignored friends are refused
+PASS OpenMap BN faction classification never guesses unreadable values
+PASS OpenMap GUILD and BN share one newest place and either route can withdraw
+PASS OpenMap optional BN event absent: loading and both chat routes still work
+PASS OpenMap tiers 1 sighting only: frozen legacy row fields stay identical
+PASS OpenMap tiers 2 place only: separate line, no layer, ask, hop, alert or relay
+PASS OpenMap tiers 3 both same zone: sighting owns fields, place has its own age
+PASS OpenMap tiers 4 conflicting zones and ages stay separate in text and UI
+PASS OpenMap tiers 5 arrival order is commutative and only the sighting alerts
+PASS OpenMap tiers 6 known layer belongs only to the sighting
+PASS OpenMap tiers 7 independent 600 and 150 second expiry falls back either way
+PASS OpenMap tiers 8 ten-minute place stream never refreshes a sighting or calls findAlerts
+PASS OpenMap tiers 9 L0 clears only place; layer boundary clears only sightings
+PASS OpenMap chat ignore API field failure stays silent like an unreadable lookup
+PASS OpenMap presentation: faction known or unknown, zone fallback and tracked slash output
+PASS OpenMap UI pool reuse hides stale places and drops former sighting actions
+PASS OpenMap malformed precision cannot refresh an identical older place
+PASS OpenMap BN qualified realm suffix is case folded
+PASS OpenMap BN display realm removes both spaces and hyphens
+PASS OpenMap qualified home-realm watch entry matches only the full sender
+PASS OpenMap UTF-8 own identity is rejected even in a different case
+PASS OpenMap decoder directly enforces the 64-byte limit
+PASS OpenMap stored BN place has only the location field allowlist
+PASS OpenMap row projection never aliases or mutates its stored place
+PASS OpenMap place-only text stays inside its card above Clear
+PASS OpenMap combined-row text avoids both sighting text and buttons
+PASS OpenMap last-place expiry restores compact rows and clamps five-name scrolling
+PASS Call: guild bounty death shows victim killer zone and one sound without sending
+PASS Call: WOS creature unknown and same-faction killers never show; known opposite does
+PASS Call: WOS does not trust remote reports or a stale local identity
+PASS Call: FTold1 and HeadHunter D are not popup triggers
+PASS Call: own death split combined and home realm names never show; other surname does
+PASS Call: unknown own identity refuses without recording; then recovers
+PASS Call: switch is on for fresh and old saves; saved false survives reload
+PASS Call: slash and window switch clear the popup and all history without affecting share
+PASS Call: instance unreadable and erroring fail closed; combat alone is allowed
+PASS Call: age 120 accepted 121 and future refused without history
+PASS Call: one victim per 180 seconds, all victims per 20, newest replaces
+PASS Call: duplicate sources within 60 seconds prefer coordinates without sound or new lifetime
+PASS Call: session table cap evicts oldest and ages prune; no event data saved
+PASS Call: plain clamped popup under minimap or parent fallback and Escape closes
+PASS Call: closes at 30 seconds; stale timer never closes replacement
+PASS Call: duplicate does not restart 30-second lifetime or revive dismissal
+PASS Call: entering an instance hides a current call and blocks the old Help closure
+PASS Call: waypoint works without the Mainline-only UiMapPoint helper
+PASS Call: Help uses the shown event once for waypoint and full killer Find only
+PASS Call: Help without coordinates prints one useful line and does not set a waypoint
+PASS Call: waypoint API absent false or throwing prints coordinates safely
+PASS Call: Find full stays unchanged; partial names are never added
+PASS Call: Dismiss and x only close; swapping dismiss id changes only its art path
+PASS Call: nil button art requests no texture and shows exact English including alternate Close
+PASS Call: exact three heading IDs and body IDs exist with swappable button art
+PASS Call: art off persists and enlarges Latin; nil or failing texture retains Latin
+PASS Call: random heading and English body draw including B4 only through age 30
+PASS Call: template percent and space slots are literal and text passed to client stays Latin
+PASS Call: tracked killer and popup share one sound for the same incoming death
+PASS Call: pure admission refuses own split identity and unavailable identity too
+PASS Call: off forgets the last displayed event as well as histories
+PASS Call: dedupe boundary 60 enriches, 61 does not; rejected copies are not remembered
+PASS Call: all repeats stay within one shown frame and a bounded timer population
+PASS Call: label art right anchors each row and value ends three pixels before its colon ink
+PASS Call: nil label art shows English LTR at full width and never requests a texture
+PASS Call: art off or every nil art requests no texture and restores English for labels and buttons
+PASS Call review: WOS proof must belong to the current epoch
+PASS Call review: WOS proof cannot come from the future
+PASS Call review: classless GB needs independent local opposite proof
+PASS Call review: killer cannot be our own identity
+PASS Call review: enrichment refuses a different zone
+PASS Call review: enrichment refuses a different killer
+PASS Call review: an older event cannot replace a newer displayed event
+PASS Call review: invalid coordinates are removed as a pair
+PASS Call review: history cap is the fixed contract of 64 entries
+PASS Call review: explicit full false is not a Find identity
+PASS Call review: old Help closure cannot act after a replacement render
+PASS Call review: Help rechecks instance before the next event or timer
+PASS Call review: waypoint uses a displayed map other than the local map
+PASS Call review: Find accepts realm-qualified two-word killers
+PASS Call review: victim value and row grow with measured text height
+PASS Call review: killer value and row grow with measured text height
+PASS Call review: where value and row grow with measured text height
+PASS hop-any click calls who synchronously once and waits five seconds
+PASS hop-any 49 rows send eight initially then the whole list within 45 rounds
+PASS hop-any events timers and replies without a click never start a round
+PASS hop-any stop cancels and ten second click guard is exact
+PASS hop-any filters rows and prioritizes listed hosts then same-zone rows
+PASS hop-any never reads a fiftieth who row
+PASS hop-any click guard groupUnknown sends and searches nothing
+PASS hop-any click guard guild sends and searches nothing
+PASS hop-any click guard instanceUnknown sends and searches nothing
+PASS hop-any click guard ambiguous sends and searches nothing
+PASS hop-any click guard combatUnknown sends and searches nothing
+PASS hop-any click guard hop sends and searches nothing
+PASS hop-any click guard tagSecret sends and searches nothing
+PASS hop-any click guard sendWho sends and searches nothing
+PASS hop-any click guard ask sends and searches nothing
+PASS hop-any click guard ownName sends and searches nothing
+PASS hop-any click guard instance sends and searches nothing
+PASS hop-any click guard layer sends and searches nothing
+PASS hop-any click guard cooldown sends and searches nothing
+PASS hop-any click guard readWho sends and searches nothing
+PASS hop-any click guard combat sends and searches nothing
+PASS hop-any click guard countWho sends and searches nothing
+PASS hop-any click guard groupSecret sends and searches nothing
+PASS hop-any click guard zoneName sends and searches nothing
+PASS hop-any click guard zone sends and searches nothing
+PASS hop-any click guard enum sends and searches nothing
+PASS hop-any click guard grouped sends and searches nothing
+PASS hop-any click guard tag sends and searches nothing
+PASS hop-any stop on group cannot resume from events or timers
+PASS hop-any stop on combat cannot resume from events or timers
+PASS hop-any stop on instance cannot resume from events or timers
+PASS hop-any stop on zone cannot resume from events or timers
+PASS hop-any stop on guild cannot resume from events or timers
+PASS hop-any stop on stop cannot resume from events or timers
+PASS hop-any Wire throttle retries the head until the list ends
+PASS hop-any stops forever on Wire result 4
+PASS hop-any stops forever on Wire result error
+PASS hop-any offline attempts never arm acceptance; an unrelated invite stops fanout
+PASS hop-any host replies do not stop fanout and unasked whole names do not enter the book
+PASS hop-any wrong route addressee zone same layer and nonhost do not stop
+PASS hop-any asked invite stops sends and autoaccepts once, no foreign alias
+PASS hop-any asked invite stops sends even with autoaccept disabled
+PASS hop-any different known key in same zone leaves after three seconds
+PASS hop-any same key never succeeds and fails at thirty seconds
+PASS hop-any unknown key never succeeds
+PASS hop-any auto-leave respects zone
+PASS hop-any auto-leave respects instance
+PASS hop-any auto-leave respects raid
+PASS hop-any auto-leave respects leader
+PASS hop-any auto-leave respects otherLeader
+PASS hop-any auto-leave respects combat
+PASS hop-any no-answer table lasts six hours and a second round reaches different names
+PASS hop-any no-answer table evicts oldest at three hundred and prunes exactly six hours
+PASS hop-any UI is friendly-only with disabled reason and Stop state
+PASS hop-any caller policy traps disguised calls and cannot be widened from addon tables
+PASS hop-any one reserve per click and every attempted name shares Invite cooldown
+PASS hop-any replies and invites expire from first send, never renew their window
+PASS hop-any Wire local paused retries the same head without a Wire queue
+PASS hop-any Wire local budget retries the same head without a Wire queue
+PASS hop-any refused who throw never arms late results
+PASS hop-any refused who false never arms late results
+PASS hop-any refused who secret never arms late results
+PASS hop-any unreadable who count and rows fail closed
+PASS hop-any all replies and invite paths refuse own identity becoming unreadable
+PASS hop-any acceptance refusal is spent even for a local throttle
+PASS hop-any active round cannot be overwritten by an existing named hop
+PASS hop-any changed back before scheduled leave does not claim a move
+PASS hop-any pace resists duplicate pumps and a long clock jump never catches up
+PASS hop-any Wire caller gate rejects a different function even in Main
+PASS hop-any key learned before group event still compares with the key left
+PASS hop-any not-hosting answer removes a remembered host without a per-reply line
+PASS hop-any instance entry event cancels even if it ends before the next pump
+PASS hop-any auto-leave cancels on an out-and-back zone transition
+PASS hop-any accepted hop still waiting for group blocks a new search
+PASS hop-any line requires valid coordinates and never fabricates a position
+PASS hop-any observed invite is never reported as no invite after auto-off
+PASS hop-any offline selection fills all eight slots with online candidates
+PASS hop-any rejects nonwhisper replies before changing round or host state
+PASS hop-any live zone guard precedes auto-leave without a zone event
+PASS hop-any painted Stop cancels a sending round before the next whisper
+PASS hop-any live group guard stops before the roster event
+PASS hop-any stale painted Stop after expiry never starts another round
+PASS hop-any expiry requests a next-frame repaint before the age tick
+PASS hop-any stale button mode cannot stop a later slash-started round
+PASS hop-any reserves the final attempt before a reentrant send edge
+PASS hop-any reentrant Stop cannot recreate pending acceptance or fault
+PASS hop-any cannot dispatch again while a send is still in flight
+PASS hop-any old send completion cannot mutate a replacement round
+PASS hop-any rechecks ignore at dispatch and never trusts a skipped candidate
+PASS hop-any unreadable ignore policy at dispatch fails closed without cooldown stamps
+PASS Hop fanout: 49 distinct requests within 45 rounds with eight initial then one per second
+PASS Hop fanout: throttle leaves exact head until the next round
+PASS Hop fanout: named client throttle 3 cancels before click
+PASS Hop fanout: named client throttle 3 cancels who click
+PASS Hop fanout: named client throttle 3 cancels send click
+PASS Hop fanout: reply client throttle 3 cancels before click
+PASS Hop fanout: reply client throttle 3 cancels who click
+PASS Hop fanout: reply client throttle 3 cancels send click
+PASS Hop fanout: hop client throttle 3 pauses named and reply for thirty seconds
+PASS Hop fanout: named client throttle 8 cancels before click
+PASS Hop fanout: named client throttle 8 cancels who click
+PASS Hop fanout: named client throttle 8 cancels send click
+PASS Hop fanout: reply client throttle 8 cancels before click
+PASS Hop fanout: reply client throttle 8 cancels who click
+PASS Hop fanout: reply client throttle 8 cancels send click
+PASS Hop fanout: hop client throttle 8 pauses named and reply for thirty seconds
+PASS Hop fanout: non-hop throttle cannot be missed by a delayed pump
+PASS Hop fanout: another prefix throttle does not cancel the click
+PASS Hop fanout: local named budget refusal leaves fanout running
+PASS Hop fanout: active named pause refuses click before WHO
+PASS Hop fanout: active reply pause refuses click before WHO
+PASS Hop fanout: prefix pause expiry permits only a fresh click
+PASS Hop fanout: permanent throttling makes at most 45 rounds
+PASS Hop fanout: same-zone rows precede other-zone rows without discarding them
+PASS Hop fanout: raw fiftieth row is never a replacement for unreadable rows
+PASS Hop fanout: named requests and other prefixes keep their five token cap
+PASS Hop fanout: direct hop budget cannot exceed eight burst sixty per minute or four per target
+PASS Hop fanout: stopped click is blocked at nine seconds and allowed at ten
+PASS Hop fanout: hosting reply does not end queue but any nonfailed invite does
+PASS Hop fanout: cancellation stop cannot resume
+PASS Hop fanout: cancellation GROUP_ROSTER_UPDATE cannot resume
+PASS Hop fanout: cancellation PLAYER_ENTERING_WORLD cannot resume
+PASS Hop fanout: cancellation ZONE_CHANGED_NEW_AREA cannot resume
+PASS Hop fanout: cancellation ZONE_CHANGED cannot resume
+PASS Hop fanout: unchanged ZONE_CHANGED preserves who and autoaccept
+PASS Hop fanout: unchanged ZONE_CHANGED preserves send and autoaccept
+PASS Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves who and autoaccept
+PASS Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves send and autoaccept
+PASS Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves who and autoaccept
+PASS Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves send and autoaccept
+PASS Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves who and autoaccept
+PASS Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves send and autoaccept
+PASS Hop fanout: unchanged SHARD_TRANSFER preserves who and autoaccept
+PASS Hop fanout: unchanged SHARD_TRANSFER preserves send and autoaccept
+PASS Hop fanout: session six-hour suppression and known-book bypass
+PASS Hop fanout: known offline skip is 600 seconds without changing other offline sends
+PASS Hop fanout: unknown same-zone host reasked once at plus three without exclusion
+PASS Hop fanout: known alternative host delays unknown retry until plus ten
+PASS Hop fanout: late unknown answer caught at plus ten and fallback throttle is spent
+PASS Hop fanout: wrong-zone nonhosts same replies and known-failed hosts never fallback
+PASS Hop fanout: half-second duplicate pumps consume no extra attempt
+PASS Hop fanout: donor book gone timestamp blocks for six hundred seconds
+PASS Hop fanout: skip map never grows beyond cap even on offline results
+PASS Hop fanout: offline unknown target remains suppressed for six hours
+PASS Hop fanout: known-offline expiry is exact and ordinary expiry remains one hour
+PASS Hop fanout: failed automatic hop retains the host realm without penalizing its namesake
+PASS Hop fanout: unknown-layer host answer earns next-click priority in memory only
+PASS Hop fanout: duplicate fallback pumps never exceed eight attempts per second
+PASS Hop fanout: cooldown and invite wait start at first accepted whisper
+PASS Hop fanout: SavedVariables exactly unchanged after sends responses fallback and stop
+PASS Hop fanout: WHO suppression never replaces OnEvent
+PASS Hop fanout: visible FriendsFrame is never unregistered
+PASS Hop fanout: visible LFGWhoListFrame is never unregistered
+PASS Hop fanout: visible WhoFrame is never unregistered
+PASS Hop fanout: WHO suppression needs no script accessors
+PASS Hop fanout: WHO hush before query and restoration after result in either event order
+PASS Hop fanout: WHO restores registrations on result and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on no rows and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on timeout and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on stop and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on slash stop and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on combat and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on zone and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on subzone and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on world and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on group and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on invite and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on guild-only and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on error and leaves manual search usable
+PASS Hop fanout: WHO restores registrations on reload and leaves manual search usable
+PASS Hop fanout: late WHO after timeout is not active even after clock rollback
+PASS Hop fanout: late WHO after stop is not active even after clock rollback
+PASS Hop fanout: late WHO after invite is not active even after clock rollback
+PASS Hop fanout: WHO unregister errors do not strand the remaining frames
+PASS Hop fanout: WHO registration errors do not prevent other frames restoring
+PASS Hop fanout: no WHO result releases late guard at thirty seconds
+PASS Hop fanout: player WHO during pending or late lease wins at 1 seconds
+PASS Hop fanout: player WHO during pending or late lease wins at 6 seconds
+PASS Hop fanout: optional WHO APIs and throwing frames never strand other frames
+PASS Hop fanout: no event is detached when its restoration API is missing
+PASS Hop fanout: missing secure hook falls back without blocking manual WHO
+PASS Hop fanout: result-handler error restores UI without displaying our result
+PASS Hop fanout: unregistered frame and visible player window retain their prior state
+PASS Find20 26: load builds at most 180 hash candidates once
+PASS Find20 26: report has zero list hashes and at most 10 plus 20 index reads
+PASS Find20 26: own sighting uses at most two name index reads
+PASS Find20 lookup rebuilds only on a list change or first readable home
+PASS Find20 home becomes known on the normal poll without waiting for a report
+PASS Find20 27: twenty adds fit, twenty-first refuses, duplicates remain idempotent
+PASS Find20 27: saved input is validated and deduplicated within its first twenty entries
+PASS Find20 matching preserves legacy aliases, realm checks, collisions and precedence
+PASS Find20 aliases preserve trailing-hyphen validation and full-name own guards
+PASS Find20 28: adding a name prints only its row, including a retained sighting
+PASS Find20 28: five names in one second give three details, one summary and one sound
+PASS Find20 sound cooldown is rolling and quiet alerts do not consume it
+PASS Find20 UI sorts located first, newest first, with compact missing status and paging
+PASS Find20 UI counts shared positions as located without changing their alert or layer meaning
+PASS Known 1: named evidence survives zone, layer and world boundaries
+PASS Known 2: at 600 and 601 seconds last known hides actions; at 3600 it expires
+PASS Known 3: first-hand and reported slots both show without a relay replacing first-hand
+PASS Known 4: add after receipt and a boundary finds old memory without an alert
+PASS Known 4: add a fresh cached name alerts once and remove does not destroy memory
+PASS Known A14: both guild death formats cache killer claims in another zone
+PASS Known guild O: first-hand server claim uses origin age and observer coordinates
+PASS Known Spy-family: all three named input formats populate memory before tracking
+PASS Known own: untracked sighting survives boundaries but never claims today's layer
+PASS Known A12: hashes stay possible and never populate named memory
+PASS Known A17: OpenMap remains independent and never refreshes either cached slot
+PASS Known 14: bounded 300-name cache evicts oldest evidence, not alphabetical first
+PASS Known retention: independent slots, old arrivals, clock rollback and bounded copied fields
+PASS Known 14: cache stays out of every saved table and reload starts empty
+PASS Known retention: idle untracked memory expires on the normal poll
+PASS Known source scope: existing HeadHunter P and L keep the legacy Find path
+PASS Known pure module runs without any WoW globals or SavedVariables
+PASS PartyTargets 13: UNIT_TARGET is registered and party2target uses the coalesced queue
+PASS PartyTargets 13: raid5target is a first-hand own sighting, shared by the existing path
+PASS PartyTargets guard: invisible or unreadable members are never observed
+PASS PartyTargets guard: instance or unreadable instance state refuses observation
+PASS PartyTargets guard: visibility and instance are rechecked after queuing
+PASS PartyTargets guard: secret unit payload is rejected before matching, concatenation or APIs
+PASS PartyTargets bounds: only party1-4 and raid1-40 members admit target tokens
+PASS PartyTargets boundaries: queued old work is discarded and stale targets stay quarantined
+PASS PartyTargets queue: all 44 member tokens fit alongside 42 existing unit tokens
+PASS Realm names: new forms normalize only the realm and preserve typed case
+PASS Realm names: new grammar enforces word realm and total byte limits
+PASS Realm names: every legacy accepted pattern keeps both return values
+PASS Realm names: saved display dedupe removal and base buckets keep separate realms
+PASS Realm names: spy bare tracked base accepts any reported realm
+PASS Realm names: spy different explicit realms never match
+PASS Realm names: spy explicit realms normalize and fold before matching
+PASS Realm names: spy realm-less evidence marks foreign realm unknown
+PASS Realm names: spy home realm needs no unknown note
+PASS Realm names: guild bare tracked base accepts any reported realm
+PASS Realm names: guild different explicit realms never match
+PASS Realm names: guild explicit realms normalize and fold before matching
+PASS Realm names: guild realm-less evidence marks foreign realm unknown
+PASS Realm names: guild home realm needs no unknown note
+PASS Realm names: relayed bare tracked base accepts any reported realm
+PASS Realm names: relayed different explicit realms never match
+PASS Realm names: relayed explicit realms normalize and fold before matching
+PASS Realm names: relayed realm-less evidence marks foreign realm unknown
+PASS Realm names: relayed home realm needs no unknown note
+PASS Realm names: death bare tracked base accepts any reported realm
+PASS Realm names: death different explicit realms never match
+PASS Realm names: death explicit realms normalize and fold before matching
+PASS Realm names: death realm-less evidence marks foreign realm unknown
+PASS Realm names: death home realm needs no unknown note
+PASS Realm names: headhunter bare tracked base accepts any reported realm
+PASS Realm names: headhunter different explicit realms never match
+PASS Realm names: headhunter explicit realms normalize and fold before matching
+PASS Realm names: headhunter realm-less evidence marks foreign realm unknown
+PASS Realm names: headhunter home realm needs no unknown note
+PASS Realm names: Known own rejects cross-realm memory before and after adding
+PASS Realm names: Known own realm-less evidence has per-entry unknown flags
+PASS Realm names: Known spy rejects cross-realm memory before and after adding
+PASS Realm names: Known spy realm-less evidence has per-entry unknown flags
+PASS Realm names: Known guild rejects cross-realm memory before and after adding
+PASS Realm names: Known guild realm-less evidence has per-entry unknown flags
+PASS Realm names: Known relayed rejects cross-realm memory before and after adding
+PASS Realm names: Known relayed realm-less evidence has per-entry unknown flags
+PASS Realm names: Known death rejects cross-realm memory before and after adding
+PASS Realm names: Known death realm-less evidence has per-entry unknown flags
+PASS Realm names: own full display uses its realm not the surname second return
+PASS Realm names: own realm-less surname sighting warns and alerts exactly once
+PASS Realm names: own home-realm exemption is recomputed when home becomes readable
+PASS Realm names: real guild O receive retains realm uncertainty in Find text
+PASS Realm names: surname hashes use the base and never a typed-realm home tuple
+PASS Realm names: every hash tuple stays possible and never confirms even the home realm
+PASS Realm names: late home discovery removes the named HeadHunter uncertainty only
+PASS Realm names: a hash cannot override an explicitly different named realm
+PASS Realm names: On my way adds the shown qualified killer and saves it without sends
+PASS Spy relay 7: [Spy] PARTY becomes one named guild claim after the wait
+PASS Spy relay 7: [Spy] RAID becomes one named guild claim after the wait
+PASS Spy relay 7: ForeverSpy1 PARTY becomes one named guild claim after the wait
+PASS Spy relay 7: ForeverSpy1 RAID becomes one named guild claim after the wait
+PASS Spy relay 7: FSENT03 PARTY becomes one named guild claim after the wait
+PASS Spy relay 7: FSENT03 RAID becomes one named guild claim after the wait
+PASS Spy relay 7: GUILD never offered, even when a group copy would be eligible
+PASS Spy relay 8: a guildmate copy cancels the pending relay and never echoes
+PASS Spy relay 9: frozen main decoder rejects unknown spy src without storing
+PASS Spy relay 10: accepted into Known as relayed claim, never an ask or hop target
+PASS Spy relay codec: no layer even on a poisoned input, exactly one full name or no line
+PASS Spy relay cap: seventh in rolling minute dropped and a new sighting allowed at 60 seconds
+PASS Spy relay cap: pending burst rechecks the cap at dispatch
+PASS Spy relay cap: same full enemy name once per 60 seconds across origins, routes and family
+PASS Spy relay receiver: newer same-id sighting refreshes Known, older copy cannot regress it
+PASS Spy relay A13: share guild, instance, unknown context, whisper and full pending refuse
+PASS Spy relay A13: instance or guild change during the wait drops, not retries
+PASS Spy relay forward priority: full Wire bucket drops it without queueing ahead of own lines
+PASS Spy relay 8: stand-down also matches normalized Forever Spy and Sentinel sources
+PASS Spy relay zone: another-zone sighting still goes to the guild and Find
+PASS Spy relay cap: pending names coalesce at dispatch and bounded limits survive clears and clock rollback
+PASS Spy relay invalid: malformed family lines and self sightings never offered
+PASS Guild relay policy: only a fitted guild O attempt spends the own reserve
+PASS Guild relay policy: sharing on sends own, Spy and HeadHunter lines
+PASS Guild relay policy: share off silences own, Spy and HeadHunter before receipt
+PASS Guild relay policy: share off silences own, Spy and HeadHunter during wait
+PASS Guild relay policy: share off silences own, Spy and HeadHunter saved off
+PASS Guild relay policy: off then on cancels pending relays but allows fresh observations
+PASS Guild relay policy: saved share off also silences guild membership and host discovery
+PASS Guild relay policy: Spy burst reserves own O capacity out of combat
+PASS Guild relay policy: Spy burst reserves own O capacity in combat
+PASS Guild relay policy: HeadHunter burst reserves own O capacity out of combat
+PASS Guild relay policy: HeadHunter burst reserves own O capacity in combat
+PASS Guild relay policy: mixed burst reserves own O capacity out of combat
+PASS Guild relay policy: mixed burst reserves own O capacity in combat
+PASS Guild relay policy: combat relay sends with a full prefix bucket and leaves one own line
+PASS Guild relay policy: sustained HH keeps all five own O slots combat=false every=1
+PASS Guild relay policy: sustained HH keeps all five own O slots combat=true every=1
+PASS Guild relay policy: sustained HH keeps all five own O slots combat=true every=4
+PASS Guild relay policy: minute reserve includes other prefixes combat=false
+PASS Guild relay policy: minute reserve includes other prefixes combat=true
+PASS Guild relay policy: earlier guild control lines count against the relay reserve
+PASS Guild relay policy: clear and clock rollback cannot refill the reserve
+PASS Guild relay policy: combat relay then K then O has the documented one-line reserve limit
+PASS Guild relay policy: merged K author preserves the reserve out of combat
+PASS Guild relay policy: merged K author preserves the reserve in combat
+PASS Kills 11: D creates a timed killer claim in LE-only
+PASS Kills 11: D creates a timed killer claim in stand-down
+PASS Kills 11: incomplete killer never matches by partial name, class or level
+PASS Kills 11: author must be the victim under whole-name identity
+PASS Kills 12: inferred label, victim attribution and relay provenance without Reported rows
+PASS Kills 12: simulated and unknown confidence create no finding
+PASS Kills 12: assists and helpers never create entries or counts
+PASS Kills age: catch-up retains real age, hour boundary expires without fresh alerts
+PASS Kills decode: envelope validation, other faction, malformed names and future skew
+PASS Kills Find: claims cannot borrow the victim layer or replace first-hand evidence
+PASS Kills counters: session receive totals in LE-only
+PASS Kills counters: session receive totals in stand-down
+PASS Kills 12a: whispered D reaches Find and guild in LE-only
+PASS Kills 12a: whispered D reaches Find and guild in stand-down
+PASS Kills 12b: fresh whisper relays; old catch-up stays local with origin age
+PASS Kills relay: recheck freshness at dispatch and encoding
+PASS Kills relay: non-whisper fresh and catch-up records stay local
+PASS Kills relay: frozen main receiver ignores kill and killi as invalid
+PASS Kills relay: guild claims never reach Reported, Ask, Hop, or re-forward
+PASS Kills relay: malformed kill wire cannot smuggle counts, hashes, extra enemies or layer
+PASS Kills relay: guild copy during wait cancels our send
+PASS Kills relay budget: fifth within rolling minute is dropped, not queued
+PASS Kills relay budget: same whole killer name once per 60 seconds
+PASS Kills relay budget: realms stay distinct and backwards time never reopens allowance
+PASS Kills relay priority: full Wire bucket drops without queue or successful counter
+PASS Kills relay lifecycle: no guild, instance and guild switch invalidate pending
+PASS Round1 realm: own sighting rejects colliding realm 1234/84860
+PASS Round1 realm: own sighting rejects colliding realm Home/ochg
+PASS Round1 cost: polling 20 tracked names visits only matching Known entries
+PASS Round1 cost: Known index follows aliases replacement eviction expiry and rollback
+PASS Round1 own: a newer guild O keeps fresh own evidence primary and both lines visible
+PASS Round1 own: an own sighting in another zone does not suppress fresh on-site evidence
+PASS Round1 hash: fresh Ask provenance is visible beside the old own sighting
+PASS Round1 long: legacy first names match adapter displays over 100 bytes
+PASS Round1 long: own display bound covers two adapter strings but remains finite
+PASS Round1 raid: the player member never relabels our own target
+PASS Round1 group: member existence and self identity are rechecked at drain
+PASS Round1 group: retarget without a new event cannot change a queued observation
+PASS Round1 hash: all evidence plus an independent place fits on a Find page
+PASS Round1 realm: own realm equality normalizes and folds full strings
+PASS Round2 relayed: guild O survives a newer claim beside own history
+PASS Round2 death: guild O survives a newer claim beside own history
+PASS Round2 claims: guild O survives relay and death without an own entry
+PASS Round2 retention: own guild and claim expire independently without refreshing O
+PASS Round2 own: layer change releases priority to guild O
+PASS Round2 own: unknown layer never takes priority over guild O
+PASS Round2 own: current-layer 599-second sighting stays primary beside another zone
+PASS Round2 bounds: own storage participates in eviction and rollback indexing
+PASS Round2 UI: own guild claim current hash and OpenMap all fit
+PASS K: hostile opposite-player recap sends one exact guild line after PLAYER_DEAD
+PASS K: whole grammar refuses malformed lines at Wire, not just a K prefix
+PASS K: Wire rate is 120 seconds inclusive, rolls back closed and stamps refused API calls
+PASS K: sixth line within 30 minutes refused and oldest expires at 1800
+PASS K: Wire cannot bypass share or instance with click priority or queue it
+PASS K: only LEGW1 GUILD accepts the death payload and old stand-downs stay closed
+PASS K: grammar round trip retains full partial or empty killer and age boundary
+PASS K: guild death enters Call only, never reports relay Find locations or ask candidates
+PASS K: partial or empty killer still displays but Help never adds it to Find
+PASS K: unknown version drops silently, non-guild sender and killer equals sender refused
+PASS K: own split combined home names refused and unknown own identity fails closed
+PASS K: call off drops all state, share off still receives, existing Call cooldowns apply
+PASS K: mob fall drowning pet friendly and same-faction duel never send
+PASS K: race fallback proves faction but not a full name, neutral unknown and same races refuse
+PASS K: seen name proof stays partial without a matching GUID; stale or foreign identity is no proof
+PASS K: absent empty secret or erroring recap APIs never send and never set Main.error
+PASS K: every required recap field secret or missing fails closed without error
+PASS K: h confidence retains hostile hit even when mob finishes, e prefers a player finisher
+PASS K: retry deadlines are 0.3 1 2 seconds, bounded and no late recap beyond them
+PASS K: share off at death or toggled off-on before retries cancels held work
+PASS K: BG arena dungeon unknown instance never send; entering later cancels
+PASS K: resurrection guild-change or zone boundary invalidates already scheduled retries
+PASS K: delayed callbacks from a superseded death cannot send its snapshot
+PASS K: layer field has the same 15-digit grammar as O including zero
+PASS K: source flag type and hostile masks each independently required
+PASS K: death-event rate limits and cap apply after attribution, not only direct Wire callers
+PASS K: shared prefix pause and budgets drop events, never postpone or retry a send
+PASS K: send caller sentinel catches a disguised out-of-Wire client invocation
+PASS K: exposed route copy cannot widen LEGW1 or any other prefix
+PASS K: seen same-faction proof overrides contradictory opposite-race metadata
+PASS K: zone cancellation persists even when race can still prove the killer after store reset
+PASS K: death in an instance cannot become eligible by leaving before the first retry
+PASS K login boundary: pew-empty cannot clear incomplete-recap suppression
+PASS K login boundary: pew-other cannot clear incomplete-recap suppression
+PASS K login boundary: pew-unavail cannot clear incomplete-recap suppression
+PASS K login boundary: pew-twice cannot clear incomplete-recap suppression
+PASS K login boundary: readable login seed records old rows and permits a fresh killer
+PASS K login boundary: incomplete login seed re-arms suppression (secret)
+PASS K login boundary: incomplete login seed re-arms suppression (throwing)
+PASS K login boundary: incomplete login seed re-arms suppression (overflow)
+PASS K login boundary: readable reload seed records old rows and permits a fresh killer
+PASS K login boundary: incomplete reload seed re-arms suppression (secret)
+PASS K login boundary: incomplete reload seed re-arms suppression (throwing)
+PASS K login boundary: incomplete reload seed re-arms suppression (overflow)
+PASS K login boundary: unreadable payload fails closed (missing)
+PASS K login boundary: unreadable payload fails closed (secret-login)
+PASS K login boundary: unreadable payload fails closed (secret-reload)
+PASS K login boundary: unreadable payload fails closed (secret-both)
+PASS K login boundary: unreadable payload fails closed (secret-with-reload)
+PASS K login boundary: unreadable payload fails closed (login-with-secret)
+PASS K login boundary: unreadable payload fails closed (missing-with-reload)
+PASS K login boundary: unreadable payload fails closed (login-with-missing)
+PASS K login boundary: unreadable payload fails closed (nonboolean-login)
+PASS K login boundary: unreadable payload fails closed (nonboolean-reload)
+PASS K login boundary: unreadable payload fails closed (throwing-secret-check)
+PASS K login boundary: direct seed without a login/reload world entry cannot clear suppression
+PASS K login boundary: PLAYER_LOGIN without a login/reload world entry cannot clear suppression
+PASS K login boundary: SHARD_TRANSFER without a login/reload world entry cannot clear suppression
+PASS K login boundary: ZONE_CHANGED_NEW_AREA without a login/reload world entry cannot clear suppression
+PASS K login boundary: loading screen still records visible seed rows as old
+PASS K login boundary: missing payload still records visible seed rows as old
+PASS K login boundary: secret payload still records visible seed rows as old
+PASS K login boundary: direct seed still records visible seed rows as old
+PASS K environment: four readable no-source recaps keep their own killers (both nil)
+PASS K environment: no-source killing blow never names a player hit (both nil)
+PASS K environment: four readable no-source recaps keep their own killers (both empty)
+PASS K environment: no-source killing blow never names a player hit (both empty)
+PASS K environment: four readable no-source recaps keep their own killers (sourceGUID nil)
+PASS K environment: no-source killing blow never names a player hit (sourceGUID nil)
+PASS K environment: four readable no-source recaps keep their own killers (sourceGUID empty)
+PASS K environment: no-source killing blow never names a player hit (sourceGUID empty)
+PASS K environment: four readable no-source recaps keep their own killers (sourceName nil)
+PASS K environment: no-source killing blow never names a player hit (sourceName nil)
+PASS K environment: four readable no-source recaps keep their own killers (sourceName empty)
+PASS K environment: no-source killing blow never names a player hit (sourceName empty)
+PASS K environment: a no-source finisher seen at death stays silent after its row disappears
+PASS K environment: a no-source finisher seen at retry stays silent after its row disappears
+PASS K environment: a readable no-source-only death cannot clear an earlier unreadable death
+PASS K environment: recorded no-source rows stay old when amounts change or source fields arrive
+PASS K environment: absent source does not hide an unreadable sourceGUID (secret)
+PASS K environment: absent source does not hide an unreadable sourceGUID (throwing)
+PASS K environment: absent source does not hide an unreadable sourceName (secret)
+PASS K environment: absent source does not hide an unreadable sourceName (throwing)
+PASS K environment: absent source does not hide an unreadable timestamp (secret)
+PASS K environment: absent source does not hide an unreadable timestamp (throwing)
+PASS K environment: absent source does not hide an unreadable timestamp (non-number)
+PASS K environment: absent source does not hide an unreadable timestamp (missing)
+PASS K environment: absent source does not hide an unreadable overkill (secret)
+PASS K environment: absent source does not hide an unreadable overkill (throwing)
+PASS K review F1: earlier recap is refused while retrying for persistent
+PASS K review F1: earlier recap is refused while retrying for fresh mob
+PASS K review F1: earlier recap is refused while retrying for fresh player
+PASS K review F1: records death rows even when no K is sent for share off
+PASS K review F1: records death rows even when no K is sent for instance
+PASS K review F1: records death rows even when no K is sent for unproven
+PASS K review F1: world entry seeds the held recap before the first death refresh=false
+PASS K review F1: world entry seeds the held recap before the first death refresh=true
+PASS K review F1-C: rows arriving after an unsent death's first look stay with that death
+PASS K review F1-C: an unsent death's timed looks record a row set the client replaced before revive
+PASS K review F1-D: rows arriving after the retries ran out belong to the old death on revive
+PASS K review (second opinion case 2): an old row back with edited damage is still the old death
+PASS K review (second opinion case 2): an old row back with edited sourceFlags is still the old death
+PASS K cap: after 256 rows the oldest are evicted; a newer death still sends, an evicted row never does
+PASS K review N1 (accepted miss): an earlier death's 2 s look may take a quick next death's rows
+PASS K review N2: rows arriving between the 1 s and 2 s looks of an unsent death stay with it
+PASS K review F1: row-set identity ignores table allocation and order
+PASS K review F1: a changed recap sourceGUID is a new row; only a newer timestamp can name
+PASS K review F1: a changed recap sourceName is a new row; only a newer timestamp can name
+PASS K review F1: a changed recap timestamp is a new row; only a newer timestamp can name
+PASS K review (second opinion case 2): a changed recap amount alone is still the old row set
+PASS K review (second opinion case 2): a changed recap overkill alone is still the old row set
+PASS K review (second opinion case 1): rows shown during a cancelled death stay with it
+PASS K review (second opinion guard ordering): old rows after a quick revive and death are never sent
+PASS K fix check: a row first seen on an earlier death never names the killer (subset)
+PASS K fix check: a row first seen on an earlier death never names the killer (superset)
+PASS K fix check: a row first seen on an earlier death never names the killer (secret sibling)
+PASS K fix check: a new player row next to an old one still names the new killer
+PASS K fix check: a death whose recap cannot name still owns its rows (65 rows)
+PASS K fix check: a death whose recap cannot name still owns its rows (throwing sibling)
+PASS K fix check: a 65-row recap with a new killer sends; over 256 rows never name
+PASS K blind A/B/C: unrelated mob rows cannot recover until login/reload (login)
+PASS K blind A/B/C: unrelated mob rows cannot recover until login/reload (reload)
+PASS K blind A/B/C: unrelated mob rows cannot recover until login/reload (loading screen)
+PASS K blind A/B/C: unrelated player rows cannot recover until login/reload (login)
+PASS K blind A/B/C: unrelated player rows cannot recover until login/reload (reload)
+PASS K blind A/B/C: unrelated player rows cannot recover until login/reload (loading screen)
+PASS K blind: a row an unsent death could not record suppresses later deaths until login/reload
+PASS K blind: empty and non-empty readable deaths keep suppression until login/reload
+PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after empty
+PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after hidden
+PASS K blind: duplicate PLAYER_DEAD cannot spend suppression after readable sibling
+PASS K: duplicate PLAYER_DEAD retains the first snapshot until PLAYER_ALIVE
+PASS K: duplicate PLAYER_DEAD retains the first snapshot until PLAYER_UNGHOST
+PASS K blind: an incomplete death cannot recover after a later readable look
+PASS K blind: an unrecordable row beside a sibling stamped lower or higher never lets the old row name a later death
+PASS K review F1: an ineligible fresh row set does not stop later eligible retries
+PASS K cap: an evicted earlier row is never fresh again; a newer one is
+PASS K review S1: malformed UTF-8 after unhex is refused by codec Wire and receiver
+PASS K review S1: valid multi-byte names retain their exact bytes
+PASS K review S2: Wire refuses guildless K even at click priority
+PASS K review S2: delayed callbacks honor the 2.5 second absolute deadline
+PASS K review S2: retry binds the live guild even without a guild-change event
+PASS K review S2: recap killer matching our own name is not sent
+PASS K review S2: zone upper bound is 999999 not one million
+PASS K review S2: unhex must validate player syntax as well as UTF-8
+PASS K review S2: K consumes the shared per-sender LEGW1 receive budget
+PASS watch 16: twenty names use one T line and a new id replaces the complete list
+PASS watch 16: hundred hashes commit only when all three parts arrive
+PASS watch 16: incomplete sets expire at 120 seconds and a new id discards them
+PASS watch 17: find share off sends one clear, stops refresh, and keeps local Find
+PASS watch 18: refresh extends 25-minute expiry and clear removes the index at once
+PASS watch 18: leave and guild switches clear complete and partial lists on either event
+PASS watch roster: remove departed senders, retain offline and unreadable rosters
+PASS watch 19: ninth listed enemy is in the first O line for either list owner
+PASS watch 20: changed lists and refreshes never bypass the sixty-second O cooldown
+PASS watch receipt: fitted names retain their cooldown while still fresh
+PASS watch withdrawal: a cleared list cannot prioritize an unsent name
+PASS watch O locality: list changes never become extra War Effort names
+PASS watch priority: changed lists preserve unsent names and own freshness
+PASS watch changed list: already sent names cannot displace a pending burst
+PASS watch 21: own sighting prints one quiet notice, never inside ten minutes or an instance
+PASS watch 21: no notice for own-list, reported, relayed, guild O or friendly entries
+PASS watch notice budget: three per sliding minute and sorted watcher attribution
+PASS watch 22: login jitter and refresh jitter stay in their documented intervals
+PASS watch 22: ten edits debounce once and content sends remain sixty seconds apart
+PASS watch 22: no T outside guild, inside instance, or with master sharing off
+PASS watch 22: T hard cap waits and retries after three actual sends in sixty seconds
+PASS watch queue: a full Wire bucket waits and rechecks policy before retry
+PASS watch queue: a guild change drops an old pending list and reschedules in the new guild
+PASS watch 22: base control and report decoders ignore the unknown T kind
+PASS watch 23: only the two switches are saved, never held lists or notice history
+PASS watch 24: 101st hash, fourth part and malformed data drop only the incoming set
+PASS watch 24: cap includes partial senders, 201st is ignored, clear frees a slot
+PASS watch 25: folded base-name hash matches case and realm, never class and level
+PASS watch lookup budget: one hash per sighting regardless of held-list size
+PASS watch receive policy: guild only, own echo and unreadable names never enter the index
+PASS watch opt-out lifecycle: saved off and edits while off never advertise again
+PASS watch expiry: an incomplete replacement keeps its own 120-second lifetime
+PASS watch receive conflicts: duplicate parts are idempotent, conflicting parts drop the set
+PASS watch notice history: event-only operation still bounds remembered notices
+PASS watch R1 wording: real hash collisions never claim definite identity
+PASS watch R1 roster: removed senders stay rejected until a complete roster readmits them
+PASS watch R1 roster: guild reset drops the previous guild admission snapshot
+PASS watch R1 slash: bare share shows usage without tracking or sharing it
+PASS watch R1 slash: bare notice shows usage without tracking or sharing it
+PASS watch R1 repeat: list churn every 1 seconds preserves per-name sixty seconds
+PASS watch R1 repeat: list churn every 5 seconds preserves per-name sixty seconds
+PASS watch R1 repeat: list churn every 30 seconds preserves per-name sixty seconds
+PASS watch R1 fairness: nine enemies all leave while four listed names churn
+PASS watch relays: listed name takes the last available token before unlisted reports
+PASS watch relays: full pending cap drops an unlisted entry before a listed one
+PASS Watch: extra spaces still reach the find share/notice switches
+PASS Kills R1 S1: HeadHunter rejects ourselves and killer equals victim
+PASS Kills R1 S1: guild rejects ourselves and killer equals victim
+PASS Kills R1 M1: one D id across carriers for its lifetime skew=0
+PASS Kills R1 M1: one D id across carriers for its lifetime skew=-300
+PASS Kills R1 S2: identical guild kill preserves age at 240 seconds
+PASS Kills R1 S2: identical guild killi preserves age at 240 seconds
+PASS Kills R1 M1: guild and whisper carriers share identity and stand-down
+PASS Kills R1 M1: kill id survives legacy relay history eviction
+PASS Kills R1 M2: mixed relay burst leaves two own tokens
+PASS Kills R1 M2: real own sighting survives mixed burst combat=false
+PASS Kills R1 M2: real own sighting survives mixed burst combat=true
+PASS Kills R1 M2: legacy relay burst leaves two own tokens
+PASS Kills R1 M2: real own sighting survives legacy burst combat=false
+PASS Kills R1 M2: real own sighting survives legacy burst combat=true
+PASS Kills R1 M2: earlier own traffic also counts against the prefix reserve
+PASS Kills R1 share: off before receipt sends nothing on LEGW1
+PASS Kills R1 share: off while pending sends nothing on LEGW1
+PASS Kills R1 share: off then on while pending sends nothing on LEGW1
+PASS Kills R1 share: off at dispatch sends nothing on LEGW1
+PASS Kills R1 bounds: live event ledger evicts overflow and expires without renewal
+PASS Kills R1 bounds: relay reserve mirrors Wire capacity and survives clear and rollback
+PASS Watch T + relays: own O goes out on time with T accounted combat=true
+PASS Watch T + relays: own O goes out on time with T accounted combat=false
+PASS Kills R2 reserve: full combat bucket sends a kill relay and leaves one own line
+PASS Kills R2 reserve: active combat relays keep all five own O slots every=1
+PASS Kills R2 reserve: active combat relays keep all five own O slots every=4
+PASS Kills R2 reserve: kill dispatch uses the shared spend gate
+PASS Kills R2 reserve: kill relays leave the guild-minute own slots
+PASS Kills R2 ledger: new kill stays visible after 260 direct kills at five per minute
+PASS Kills R2 ledger: new kill stays visible after 300 guild kills at one per second
+PASS Kills R2 ledger: overflow evicts the oldest admitted id and prunes expiry first
+PASS UI layout: wrapped header follows status, hosting and long-zone changes on every tab
+PASS UI layout: option on, off and n/a labels fit on one line inside disjoint buttons
+PASS UI layout: tab notes reserve their wrapped height before controls and rows
+PASS UI layout: wrapped footer and hint stay clear of settings and inside window
+PASS UI layout: Find measures every retained line and OpenMap place before paging
+PASS UI layout: local, Reported and Friendly cards also fit long wrapped details
+PASS UI layout: presence follows measured sighting and OpenMap lines and shrinks on reuse
+PASS UI layout: FLH and LayerSwap provenance is measured before Friendly paging
+PASS UI layout: Overlord guild claims measure complete text and never inherit report actions
+PASS Presence: club character comes from account not member display name
+PASS Presence: only online community members resolve Battle.net accounts
+PASS Presence: account resolution unavailable secret incomplete and non WoW fail silent
+PASS Presence: friends use only online characters in this project and cap 200
+PASS Presence: untracked offline mobile unknown and blank rows store nothing
+PASS Presence: secret fields refuse exactly one row and diagnostic has no names
+PASS Presence: missing erroring and secret APIs or tables are silent
+PASS Presence: reread offline or non WoW drops personal and shared evidence immediately
+PASS Presence: unread members keep TTL and another source keeps its own evidence
+PASS Presence: diagnostic separates unresolved zoneless same faction and unmatched members
+PASS Presence: expiry boundary future clocks and remove clear session state
+PASS Presence: real sighting and OpenMap retain their status and Ask target
+PASS Presence: no roster adapters with empty Find combat instance or unknown safety
+PASS Presence: fifty per tick thousand per club twenty clubs and guild exclusion
+PASS Presence: qualified realm stays exact and bare name matches any realm
+PASS Presence: per name 600 second silent alert uses shared burst throttle
+PASS Presence: Find switches and window opens share one force per 60 seconds
+PASS Presence: automatic 300s cadence and Find opening refresh without overlap
+PASS Presence: UI and slash text show zone age and hide stale pooled line
+PASS Presence: measured presence cards keep several per page without overlap
+PASS Presence: invalid friend realm never falls back to a bare character
+PASS Presence: guild watch hash matches are session-only possible rows and withdraw
+PASS Presence: shared lists alone do not trigger an empty personal Find scan
+PASS Presence: malformed names and throwing pure row fields fail silently
+PASS Presence: pure bounds and adapter field allowlists
+PASS Presence: absent namespaces counts project and own faction fail closed
+PASS Presence: cancel stale queued work on empty list and restart
+PASS Presence: tracked community tracer has zone and no action or send
+PASS FLH: hop layout LQ decodes without performing it
+PASS FLH: hop layout LO decodes without performing it
+PASS FLH: hop layout LR decodes without performing it
+PASS FLH: hop layout LN decodes without performing it
+PASS FLH: HI preserves the decimal fingerprint and advertises a host
+PASS FLH: separators metadata and unknown places preserve positions
+PASS FLH: malformed fields and unknown commands are silent nil
+PASS FLH: the wire limit accepts 255 bytes and refuses 256
+PASS FLH: its host cache is separate bounded and expires at 180 seconds
+PASS FLH: passive GUILD presence admits only explicit hosts
+PASS FLH: passive PARTY presence admits only explicit hosts
+PASS FLH: passive RAID presence admits only explicit hosts
+PASS FLH: passive WHISPER presence admits only explicit hosts
+PASS FLH: every received command is passive and non-presence cannot add hosts
+PASS FLH: route identity ignore and unreadable context fail closed
+PASS FLH: presence reaches friendly hosts without pretending to be a server key
+PASS FLH: host projection is zone scoped fresh and visible with own layer unknown
+PASS FLH: same identity merges independent provenance without changing LayerSwap fields
+PASS FLH: claim never promotes a listed nonhost or changes hop-any priority
+PASS FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via
+PASS FLH: wire ingestion cannot persist names or silently refresh malformed hosts
+PASS FLH: seeded byte and structured fuzz is bounded silent and never sends
+PASS FLH: readable-looking secret strings are refused before any use
+PASS FLH: friendly text gets space for its separate provenance and age
+PASS FLH: presence layout WP keeps its positional fields
+PASS FLH: presence layout WR keeps its positional fields
+PASS FLH: presence layout CQ keeps its positional fields
+PASS FLH: presence layout CA keeps its positional fields
+PASS Overlord: two parts join in either order reverse=false
+PASS Overlord: two parts join in either order reverse=true
+PASS Overlord: fragment frame bounds and single-part fast path
+PASS Overlord: fragment duplicate conflicts and timeout do not extend assembly life
+PASS Overlord: 33 pending evicts oldest including same-time arrivals
+PASS Overlord: packet identity exact seven fields broadcast and allowed kinds
+PASS Overlord: packet path one to four no repeats and last sender
+PASS Overlord: packet age accepts 120 not 121 and skew 30 not 31
+PASS Overlord: origin id ring takes once and caps at 256
+PASS Overlord: foreign packet pools are refused before evidence or dedupe
+PASS Overlord: unknown own pool accepts no wrapped direct or partial traffic and recovers without reload
+PASS Overlord: pool detection maps readable rules and explicit realm fallback without a PvP guess
+PASS Overlord: GD foreign payload pool is refused on both direct and wrapped routes
+PASS Overlord: GD tracked killer claim reaches Find for one hour with no Ask
+PASS Overlord: EK tracked killer claim reaches Find for one hour with no Ask
+PASS Overlord: untracked killers never enter Known even before later tracking
+PASS Overlord: tracked matcher keeps foreign realms distinct and supports unqualified names
+PASS Overlord: guildmate shared tracked killer is admitted without adding saved names
+PASS Overlord: claim never overwrites an existing first-hand Ask target
+PASS Overlord: direct route matrix EK only group and no whisper or channel
+PASS Overlord: killer payload exact fields no unknown killer and source age retained
+PASS Overlord: GW bounds faction timestamp and unknown places
+PASS Overlord: GW one per guild capped expiring and survives zone or layer boundary
+PASS Overlord: GD claim time is not assumed to be kill time or renewed on arrival
+PASS Overlord: bad origin id or sender cannot poison a later valid packet
+PASS Overlord: secrets malformed and throwing APIs are silent
+PASS Overlord: combat and instance unreadable gates do no map scans
+PASS Overlord: net diagnostic shows the currently detected pool on the Overlord line
+PASS Overlord: net diagnostic explains unknown pool receives nothing and updates on recovery
+PASS Overlord: session counters diagnostics and no added SavedVariables
+PASS Overlord: malformed frame fuzz bounded state and zero sends
+PASS Overlord: map lookup failures cannot consume packet identity and secret names refuse
+PASS Overlord: slash Reported shows guild claim but no hop record
+PASS Overlord: secret map objects or map types skip the entire claim
+PASS Overlord: 32 rampages use normal measured Reported rows with several per page and no overlap
+PASS Overlord: single guild rampage reaches Reported without a hop
+PASS Stack: six mixed Wanted presence and Overlord cards use measured heights and page without overlap
+PASS Stack: slash commands route independently without shadowing
+PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
+PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
+PASS BNet: independent peer readers need no presence zone and read no account names
+PASS BNet: peers are friends first deduplicated and cached thirty seconds
+PASS BNet: live identity rejects offline wrong client project region and conflicting realms
+PASS BNet: nil secret and unavailable readers fail closed without scans in combat instance
+PASS BNet: thousand member club bounded and friend game enumeration capped
+PASS BNet queue: single shared thirty per minute cap and one second pace
+PASS BNet queue: owed answers precede own work FIFO within a priority
+PASS BNet queue: unregistered source wrong prefix and dormant PR never send
+PASS BNet queue: share off refuses and drops pending work before dispatch
+PASS BNet queue: public off refuses and drops pending work before dispatch
+PASS BNet queue: switch off refuses and drops pending work before dispatch
+PASS BNet queue: combat off refuses and drops pending work before dispatch
+PASS BNet queue: instance off refuses and drops pending work before dispatch
+PASS BNet queue: Wire cannot dispatch outside the queue's private delivery
+PASS BNet queue: failed client send is spent counted and never retried
+PASS BNet queue: per-network shares stand-down owed exception and live peer validation
+PASS BNet queue: bounds secrets rollback and timer absence fail closed
+PASS BNet queue: S1 configured admission cap wanted
+PASS BNet queue: S1 configured admission cap overlord
+PASS BNet queue: S1 configured admission cap warboard
+PASS BNet queue: S1 default fair admission share with 1 requested default sources
+PASS BNet queue: S1 default fair admission share with 2 requested default sources
+PASS BNet queue: S1 default fair admission share with 4 requested default sources
+PASS BNet queue: S1 default fair admission share with 32 requested default sources
+PASS BNet queue: S1 default fair share also limits rolling dispatch
+PASS BNet queue: S1 configured and default sources share one rolling cap
+PASS BNet queue: S1 normal flood leaves eight owed-only slots
+PASS BNet queue: S1 owed occupancy does not shrink the normal allowance
+PASS BNet queue: S1 reviewer flood admits another source and its owed answer within share
+PASS BNet queue: S1 exact sixty-second boundary is live but older frames drop
+PASS BNet queue: S1 delayed dispatch drops expired own frames
+PASS BNet queue: S1 delayed dispatch drops expired owed frames
+PASS BNet queue: S1 expiry runs while the rolling minute is exhausted
+PASS BNet queue: S1 unreadable admission clock fails closed
+PASS ChehulNet: registry receives guild and group with counters and live switch
+PASS ChehulNet: unreadable foreign values and live context fail silent
+PASS ChehulNet: no sends joins evidence saved names or own layer changes even on later ticks
+PASS ChehulNet: pure store accepts only guild group and whole other identities
+PASS ChehulNet: comparisons require own readings and never use server keys
+PASS ChehulNet: expiry rollback replacement and oldest eviction are bounded
+PASS ChehulNet: Friendly hints have no Ask and never become hop candidates
+PASS ChehulNet: hints never inflate the Friendly tab count
+PASS ChehulNet: hint subsection follows every host with measured paged rows
+PASS ChehulNet: existing hosts gain independent measured annotation without capability changes
+PASS ChehulNet: layer command counts distinct current-map UIDs and names our peers
+PASS ChehulNet: layer command caps same-layer names at eight with exact overflow
+PASS ChehulNet: 5000 deterministic fuzz inputs are bounded and silent
+PASS ChehulNet: live map changes withhold comparison and UI rows expire independently
+PASS ChehulNet: display context errors and missing clock cannot assert a relation
+PASS ChehulNet: exact HELLO grammar and optional layer
+PASS Codec: addon escaping exact bytes and roundtrip
+PASS Codec: addon malformed escapes and byte ceilings
+PASS Codec: inflate zlib known answers and stored writer
+PASS Codec: inflate malformed blocks, distance and work budget
+PASS Codec: AceSerializer hand answers and full-byte strings
+PASS Codec: AceSerializer strict malformed and resource rejection
+PASS Codec: LibSerialize hand answers and table/string references
+PASS Codec: LibSerialize every scalar and explicit count family
+PASS Codec: LibSerialize malformed, truncated, cycles and bounds
+PASS Codec: aceRead accepts exactly 2048 entries and refuses 2049
+PASS Codec: aceWrite accepts exactly 2048 entries and refuses 2049
+PASS Codec: lsRead accepts exactly 2048 entries and refuses 2049
+PASS Codec: lsWrite accepts exactly 2048 entries and refuses 2049
+PASS Codec: serializer logical budget includes the root and nested table entries
+PASS Codec: LibSerialize wire value budget includes nil array slots
+PASS Codec: AceComm split/join all controls and boundaries
+PASS Codec: AceComm sender isolation, restart, orphan and clock rollback
+PASS Codec: AceComm one-second frames join with the last frame at 29 seconds
+PASS Codec: AceComm 20000-byte message joins at one 255-byte frame per second
+PASS Codec: AceComm idle timeout is 15 seconds since the last accepted frame
+PASS Codec: AceComm active streams join just before the 120-second total cap
+PASS Codec: AceComm total cap drops active streams at 120 and 121 seconds
+PASS Codec: AceComm idle progress is isolated per stream
+PASS Codec: AceComm rejected and standalone frames do not refresh idle progress
+PASS Codec: AceComm idle pruning releases stream capacity but retains active peers
+PASS Codec: AceComm stream, bytes, fragment, key and frame ceilings
+PASS Codec: independent Python serializer vectors and audit network payloads
+PASS Codec: logical references cannot evade string, depth or table bounds
+PASS Codec: RFC bit-level malformed trees and degenerate valid alphabets
+PASS Codec: AceComm invalid reserved frames abandon only their sender stream
+PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
+PASS Sources: offer drops untracked and contradictory realms before Known stores anything
+PASS Sources: offer uses only live guild Watch matches and never adds saved tracked names
+PASS Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh
+PASS Sources: readable-looking secret scalars cannot be offered
+PASS Sources: malformed secret and throwing offers store nothing and never set runtime error
+PASS Quiet names: spaced home name is recorded and matched without compacting
+PASS Quiet names: foreign suffix is required and distinct namesakes stay ambiguous
+PASS Quiet names: pattern characters in a surname are invalid targets not wildcard matches
+PASS Quiet: own localized failure is hidden by a once-registered filter
+PASS Quiet: lineID hides three chat frames once in either dispatcher order
+PASS Quiet: missing lineID deduplicates only this tick, not a later identical failure
+PASS Quiet: saved mode defaults on and off never disables offline bookkeeping
+PASS Quiet: hidden counter counts lines, not chat frames or observer-only events
+PASS Quiet: unmatched localized notices count once per line, never by chat frame
+PASS Quiet: each pending whisper hides one notice without renewing the offline hold
+PASS Quiet: synchronous offline still leaves one display receipt, not another offline stamp
+PASS Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden
+PASS Quiet: only the localized supported template matches, with literal pattern punctuation
+PASS Quiet: secret unreadable text, clocks and throwing predicates fail open
+PASS Quiet: absent or throwing registration is harmless, one attempt only
+PASS Quiet: 30-second boundary and backward clock invalidate whisper evidence
+PASS Quiet: retained foreign namesakes never let a bare name hide the wrong line
+PASS Quiet: locally blocked, queued-only and missing-API whispers supply no display receipt
+PASS Quiet: rejected or throwing client calls never hide another cause's notice
+PASS Quiet: nothing about notice identities or counts is saved
+PASS Quiet: unmatched diagnostics retain no names, including no-ID deduplication
+PASS Quiet: correlation and message ledgers obey the original capacity and expiry
+PASS Quiet: accepted legacy boolean send also supplies one display receipt
+PASS Quiet: readable-looking secret strings are not compared or hidden
+PASS Quiet: donor presence leaves send stand-down policy unchanged
+PASS QuietAll modes: booleans migrate, strings survive, invalid values default on
+PASS QuietAll modes: slash accepts all, persists it and reports current scope
+PASS QuietAll hook: both secure post-hooks install at startup without sends or replacements
+PASS QuietAll filter: any localized not-found is hidden, only typed targets are excepted
+PASS QuietAll hook: each available API works alone and failed installs fall back to on
+PASS QuietAll counters: own, other and shown decisions are separate and per event
+PASS QuietAll counters: observer-only hides are not counted and reload resets totals
+PASS QuietAll manual: only WHISPER is recorded, with existing full name normalization
+PASS QuietAll manual: ten-second strict expiry, rollback and refresh do not extend on notices
+PASS QuietAll manual: sixteen distinct targets bounded and duplicate hooks refresh one slot
+PASS QuietAll bookkeeping: manual exception does not alter own offline consumption in any mode
+PASS QuietAll decisions: repeated frames freeze both outcomes across mode and time changes
+PASS QuietAll privacy: no target, message or counter is saved and reload forgets manual names
+PASS QuietAll safety: exact localized pattern only and protected callbacks never escape
+PASS QuietAll status: no-hook query explains fallback instead of claiming blanket hiding
+PASS QuietAll decisions: a numeric fingerprint collision can never hide a manual failure
+PASS QuietAll coexistence: all mode works with donors loaded without starting their sends
+PASS QuietAll review S1: failed existing modern hook disables all
+PASS QuietAll review S1: failed existing legacy hook disables all
+PASS QuietAll review S2: 17 typed whispers fail open in all
+PASS QuietAll review S2: 17 typed whispers fail open in on
+PASS QuietAll review S2: full means sixteen, drains at expiry, duplicate hooks use one slot
+PASS QuietAll review M1: unvalidatable typed target string "Bob2"
+PASS QuietAll review M1: unvalidatable typed target string "B"
+PASS QuietAll review M1: unvalidatable typed target string "Bob."
+PASS QuietAll review M1: unvalidatable typed target string "Bobby_x"
+PASS QuietAll review M1: unvalidatable typed target string "Anna Maria Lee"
+PASS QuietAll review M1: unvalidatable typed target string "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+PASS QuietAll review M1: unvalidatable typed target string "Bob-"
+PASS QuietAll review M1: unvalidatable typed target string "12345"
+PASS QuietAll review M1: unvalidatable typed target string "Bob Smith "
+PASS QuietAll review M1: unvalidatable typed target string "élodie"
+PASS QuietAll review M1: unvalidatable typed target number "12345"
+PASS QuietAll review M1: unvalidatable typed target string "Bob-Éire"
+PASS QuietAll review M1: unreadable targets and validator failures protect everything
+PASS QuietAll review M1: marker refresh, rollback and reload retain no invalid target
+PASS QuietAll review Note: on-mode typed protection Shared Person
+PASS QuietAll review Note: on-mode typed protection Invalid.Name
+PASS QuietAll review Note: on-mode typed protection élodie
+PASS Sources: registry routes addon and Battle.net with unchanged arguments
+PASS Sources: every legacy prefix is refused atomically and counted
+PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
+PASS Sources: OpenMap Battle.net keeps its original event path and values
+PASS Sources: guarded callbacks secrets and switches fail silent
+PASS Sources: unavailable optional timer and registration APIs fail silent
+PASS Sources: tick-only source runs at one second cadence and net counters append
+PASS Wanted: independent zlib record hash and decoder ceilings
+PASS Wanted: deterministic 5000-input decoder and dispatch fuzz has no errors
+PASS Wanted: record and sighting location fields do not alias each other
+PASS Wanted: bad hashes and malformed payloads increment refusal without chat
+PASS Wanted: record batch and flat-data limits reject valid oversized objects
+PASS Wanted: stale and future records are refused before the offer boundary
+PASS Wanted: bounded dedupe evictions do not save evidence or new names
+PASS Wanted: known same-faction GUIDs cannot become enemies through sightings
+PASS Wanted: echo realm identity and source switch cannot admit forged claims
+PASS Wanted: source diagnostics are opt-in bounded and protected
+PASS Wanted: R and F records use record time participants and honest provenance
+PASS Wanted: forged origin hash malformed envelope and stale records store nothing
+PASS Wanted: relayed records cannot promote provenance or renew original time
+PASS Wanted: spotted resolves only an already tracked exact GUID without a name cache
+PASS Wanted: Battle.net summaries are anonymous diagnostics never named evidence
+PASS Wanted: Battle.net eligibility and numbered parts are verified before ingestion
+PASS Wanted: summary validation caps senders entries and finite counts
+PASS Wanted: passive channel join preserves player ownership and two free slots
+PASS Wanted: inbound budgets are per canonical sender and bounded globally
+PASS Wanted: receive tick and every ignored tag never attempt any send
+PASS Wanted: two unfinished messages per sender cover all addon routes
+PASS Wanted: numbered framing supports reorder and bounds every unfinished stream
+PASS Wanted: fragmented S and E on guild and channel retain no untracked names
+PASS Wanted: route version array faction and secret guards fail silent
+PASS Wanted: audit sighting vector reaches measured Find as witness near observer
+PASS Wanted: R1 S1 300 channel users cannot suppress 75 guild sightings
+PASS Wanted: R1 S1 128 junk senders cannot suppress 20 guild sightings
+PASS Wanted: R1 S1 invalid tags and shapes take no sender entries
+PASS Wanted: R1 S1 valid channel whisper and BNet floods leave guild capacity
+PASS Wanted: R1 S2 sightings show only map-derived zone never free text
+PASS Wanted: R1 S2 records cannot contradict map zone or inject bidi
+PASS Wanted: R1 S2 absent invalid and unresolved maps have no zone fallback
+PASS Wanted: R1 S3 two assemblies per canonical sender across routes
+PASS Wanted: R1 S3 BNet dispatch shares one assembly owner across message IDs
+PASS Wanted: R1 S3 reserved assemblies survive a full public pool
+PASS Wanted: R1 S3 renewed channel holds cannot suppress 20 five-frame guild messages
+PASS Wanted: R1 S3 sixty sightings a minute cannot freeze another guildmate
+PASS Wanted: R1 S3 replay ownership is carrier-wide across routes and record origins
+PASS Wanted: R1 S3 replay reserves 256 guild entries within global 512
+PASS Wanted: R1 N6 accepts any 1.29 patch and no other version family
+PASS Wanted: R2 S4 one sighting a minute for two hours shows 120 of 120
+PASS Wanted: R2 S4 one sighting every twenty seconds shows all sixty
+PASS Wanted: R2 S4 twenty-second cadence stays live for two hours
+PASS Wanted: R2 S4 channel scout also shows 120 of 120
+PASS Wanted: R2 S4 public pool evicts oldest public ID not an older guild ID
+PASS Wanted: R2 S4 global pool evicts oldest ID and admits a new guild scout
+PASS Wanted: R2 S4 public traffic can replace borrowed slots but not the guild reserve
+PASS Wanted: R2 S4 eviction counter is visible through net wanted including zero
+PASS Wanted: R2 S4 counter counts public and global evictions not refusals
+PASS Wanted: R2 S4 overlapping sender and public limits count both evictions
+PASS Wanted: R2 S4 mixed records evict by admission not observation or expiry
+PASS Wanted: R2 S4 expired IDs are pruned before capacity eviction at exact expiry
+PASS Wanted: R2 S4 invalid untracked and duplicate input cannot evict remembered IDs
+PASS Wanted: R2 S4 sender overflow evicts only its oldest admission even with tied clocks
+RESULT: 1528 tests passed, 0 failed, 263936 assertions
+{
+  "lua_version": "Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio",
+  "syntax_files": 86,
+  "syntax_status": "PASS",
+  "tests_passed": 1528,
+  "tests_failed": 0,
+  "assertions": 263936,
+  "fuzz_inputs": 5000,
+  "toc_and_static_checks": "PASS",
+  "archive_integrity_and_source_parity": "PASS",
+  "archive": "dist/LayerEnemies-1.1.0.zip",
+  "archive_members": 55,
+  "archive_bytes": 256934,
+  "unpacked_bytes": 1016882,
+  "media_bytes": 295308,
+  "call_assets_tests": 11,
+  "archive_sha256": "eb470c13452166a59691ce271d82d5885a0a3d46a832d62d27ddefd4468d2402",
+  "real_client_verified": false,
+  "live_remote_reports": "War Effort 1.6.x and HeadHunter as a member, the Spy family and three guild incident addons read-only, LEGW1 own sightings and relays; shown as reported, not confirmed",
+  "ask_for_invite": "Single-host hops remain one request; hop-any clicks query WHO once with UI suppressed, consider 49 rows, use at most 8 attempts/round at 1 s for 45 rounds, 10 s between clicks; retry throttled heads and re-ask unknown same-zone hosts once at +3/+10 s; guild requests stay player-sent",
+  "auto_accept_leave": "On by default, saved: accepts only the asked host invite (120 s, not grouped/instance/combat), leaves only that group 3 s after the move or 30 s without one",
+  "guild_host": "Off until turned on, then saved (guildHost boolean, ON line at login); guild members only, guild name readable and unchanged; at most one InviteUnit per request, 10 s apart, 6 per 600 s; never in combat; refused beside LayerSwap or Bulo",
+  "networks": "Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches",
+  "sends": "LayerSwap/WHISPER, LEGW1/GUILD (including K1 own-death, share switch, 1/120s and 5/30min), LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope)",
+  "visual_design": "Approved B implemented with fourth Find tab; native client appearance unverified"
+}
+.......................
+----------------------------------------------------------------------
+Ran 23 tests in 140.568s
+
+OK
+test_bnet_send_has_one_owner_and_one_local_delivery_site (__main__.ApiPolicyTests.test_bnet_send_has_one_owner_and_one_local_delivery_site) ... ok
+test_chehulnet_has_no_send_join_save_or_enemy_projection_access (__main__.ApiPolicyTests.test_chehulnet_has_no_send_join_save_or_enemy_projection_access) ... ok
+test_codec_has_only_local_protocol_exports_and_no_send_api (__main__.ApiPolicyTests.test_codec_has_only_local_protocol_exports_and_no_send_api) ... ok
+test_comments_and_plain_data_are_not_api_references (__main__.ApiPolicyTests.test_comments_and_plain_data_are_not_api_references) ... ok
+test_dormant_accept_aliases (__main__.ApiPolicyTests.test_dormant_accept_aliases) ... ok
+test_dormant_who_aliases (__main__.ApiPolicyTests.test_dormant_who_aliases) ... ok
+test_global_alias_and_dynamic_keys_fail_closed (__main__.ApiPolicyTests.test_global_alias_and_dynamic_keys_fail_closed) ... ok
+test_permitted_owners (__main__.ApiPolicyTests.test_permitted_owners) ... ok
+test_presence_data_module_has_no_client_access (__main__.ApiPolicyTests.test_presence_data_module_has_no_client_access) ... ok
+test_presence_owners_and_no_subscription (__main__.ApiPolicyTests.test_presence_owners_and_no_subscription) ... ok
+test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) ... ok
+test_wanted_is_receive_only_and_reuses_shared_codecs (__main__.ApiPolicyTests.test_wanted_is_receive_only_and_reuses_shared_codecs) ... ok
+test_who_ui_ownership_stays_in_adapter (__main__.ApiPolicyTests.test_who_ui_ownership_stays_in_adapter) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.166s
+
+OK
+test_discovered_failure_is_not_hidden (__main__.HarnessSourcesTests.test_discovered_failure_is_not_hidden) ... ok
+test_empty_selection_and_invalid_args_fail_closed (__main__.HarnessSourcesTests.test_empty_selection_and_invalid_args_fail_closed) ... ok
+test_generic_equals_filter (__main__.HarnessSourcesTests.test_generic_equals_filter) ... ok
+test_generic_space_filter_and_autoload (__main__.HarnessSourcesTests.test_generic_space_filter_and_autoload) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.429s
+
+OK
+test_call_sources_and_art_references (__main__.CallAssets.test_call_sources_and_art_references) ... ok
+test_exact_dimensions_padding_and_ink_for_every_asset (__main__.CallAssets.test_exact_dimensions_padding_and_ink_for_every_asset) ... ok
+test_exact_media_and_source_allowlist (__main__.CallAssets.test_exact_media_and_source_allowlist) ... ok
+test_labels_right_aligned_and_ink_matches_metadata (__main__.CallAssets.test_labels_right_aligned_and_ink_matches_metadata) ... ok
+test_reject_changed_header_and_size (__main__.CallAssets.test_reject_changed_header_and_size) ... ok
+test_reject_footer_signature_and_offsets_for_every_asset (__main__.CallAssets.test_reject_footer_signature_and_offsets_for_every_asset) ... ok
+test_reject_heading_ink_wider_than_190_inside_legal_padding (__main__.CallAssets.test_reject_heading_ink_wider_than_190_inside_legal_padding) ... ok
+test_reject_ink_in_each_four_pixel_padding_edge (__main__.CallAssets.test_reject_ink_in_each_four_pixel_padding_edge) ... ok
+test_reject_small_padding_empty_and_footer_damage (__main__.CallAssets.test_reject_small_padding_empty_and_footer_damage) ... ok
+test_reject_stray_addon_file_and_folder (__main__.CallAssets.test_reject_stray_addon_file_and_folder) ... ok
+test_reject_stray_media (__main__.CallAssets.test_reject_stray_media) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.648s
+
+OK

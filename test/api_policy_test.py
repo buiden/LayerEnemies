@@ -257,6 +257,15 @@ class ApiPolicyTests(unittest.TestCase):
         self.check_source('local f=_G["Accept".."Group"]', 'Wire.lua')
         self.check_source('local tip=_G.GameTooltip; local map=_G["C_".."Map"]')
 
+    def test_system_filter_owner_is_wire_only(self):
+        for access in ('ChatFrame_AddMessageEventFilter', '_G.ChatFrame_AddMessageEventFilter',
+                       '_G["ChatFrame_".."AddMessageEventFilter"]'):
+            code = 'if false then local fn=' + access + ' end'
+            self.check_source(code, 'Wire.lua')
+            for filename in ('Main.lua', 'Adapters.lua', 'Sources.lua'):
+                with self.subTest(access=access, filename=filename), self.assertRaisesRegex(AssertionError, 'Wire.lua'):
+                    self.check_source(code, filename)
+
     def test_comments_and_plain_data_are_not_api_references(self):
         self.check_source('-- AcceptGroup\n--[=[ C_FriendList.SendWho ]=]\n'
                           'local note="AcceptGroup"; local text=[=[_G["Accept".."Group"]]=]')

@@ -1,0 +1,6 @@
+PASS QuietAll modes: booleans migrate, strings survive, invalid values default on
+PASS QuietAll modes: slash accepts all, persists it and reports current scope
+FAIL QuietAll hook: both secure post-hooks install at startup without sends or replacements: test/src_quiet_all.lua:74: not equal: expected function, got nil
+FAIL QuietAll filter: any localized not-found is hidden, only typed targets are excepted: test/harness.lua:7: not equal: expected true, got false
+FAIL QuietAll hook: each available API works alone and failed installs fall back to on: test/src_quiet_all.lua:96: not equal: expected function, got nil
+RESULT: 2 tests passed, 3 failed, 727 assertions

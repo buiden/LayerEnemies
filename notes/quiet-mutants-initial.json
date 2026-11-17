@@ -1,0 +1,391 @@
+[
+  {
+    "rule": "register-at-start",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: own localized failure is hidden by a once-registered filter: test/src_quiet.lua:75: one filter registered at startup: expected 1, got 0",
+      "FAIL Quiet: lineID hides three chat frames once in either dispatcher order: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: missing lineID deduplicates only this tick, not a later identical failure: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: only the localized supported template matches, with literal pattern punctuation: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: secret unreadable text, clocks and throwing predicates fail open: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: absent or throwing registration is harmless, one attempt only: test/src_quiet.lua:223: not equal: expected 1, got 0",
+      "FAIL Quiet: 30-second boundary and backward clock invalidate whisper evidence: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: retained foreign namesakes never let a bare name hide the wrong line: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: locally blocked, queued-only and missing-API whispers supply no display receipt: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: rejected or throwing client calls never hide another cause's notice: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: nothing about notice identities or counts is saved: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: unmatched diagnostics retain no names, including no-ID deduplication: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: correlation and message ledgers obey the original capacity and expiry: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: accepted legacy boolean send also supplies one display receipt: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: readable-looking secret strings are not compared or hidden: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)",
+      "FAIL Quiet: donor presence leaves send stand-down policy unchanged: test/src_quiet.lua:23: attempt to call local 'filter' (a nil value)"
+    ]
+  },
+  {
+    "rule": "register-once",
+    "caught": false,
+    "failures": []
+  },
+  {
+    "rule": "registration-protected",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: absent or throwing registration is harmless, one attempt only: test/harness.lua:8: startup error: expected false, got true"
+    ]
+  },
+  {
+    "rule": "callback-fails-open",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: secret unreadable text, clocks and throwing predicates fail open: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "system-event-only",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "own-receipt-required",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: lineID hides three chat frames once in either dispatcher order: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: missing lineID deduplicates only this tick, not a later identical failure: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/harness.lua:8: off also consumed the attempt: expected false, got true",
+      "FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: 30-second boundary and backward clock invalidate whisper evidence: test/src_quiet.lua:231: not equal: expected false, got true",
+      "FAIL Quiet: retained foreign namesakes never let a bare name hide the wrong line: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: locally blocked, queued-only and missing-API whispers supply no display receipt: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: rejected or throwing client calls never hide another cause's notice: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: unmatched diagnostics retain no names, including no-ID deduplication: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: correlation and message ledgers obey the original capacity and expiry: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: accepted legacy boolean send also supplies one display receipt: test/harness.lua:8: ID cannot hide different text: expected false, got true",
+      "FAIL Quiet: donor presence leaves send stand-down policy unchanged: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "one-line-per-whisper",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: lineID hides three chat frames once in either dispatcher order: test/harness.lua:8: one attempt cannot hide a different line: expected false, got true",
+      "FAIL Quiet: missing lineID deduplicates only this tick, not a later identical failure: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/harness.lua:8: off also consumed the attempt: expected false, got true",
+      "FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: correlation and message ledgers obey the original capacity and expiry: test/harness.lua:8: evicted decision fails open, no receipt revived: expected false, got true"
+    ]
+  },
+  {
+    "rule": "offline-stamp-not-renewed",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/src_quiet.lua:166: existing offline evidence is consumed across this identity, not renewed: expected 1, got 2",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/src_quiet.lua:177: not equal: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "separate-display-consumption",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "namesake-ambiguity",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet names: foreign suffix is required and distinct namesakes stay ambiguous: test/harness.lua:5: attempt to concatenate a table value",
+      "FAIL Quiet: retained foreign namesakes never let a bare name hide the wrong line: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "full-realm-identity",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet names: foreign suffix is required and distinct namesakes stay ambiguous: test/src_quiet.lua:58: not equal: expected first surname-7105, got first surname",
+      "FAIL Quiet: retained foreign namesakes never let a bare name hide the wrong line: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "spaced-name-identity",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet names: spaced home name is recorded and matched without compacting: test/src_quiet.lua:49: not equal: expected first surname, got nil",
+      "FAIL Quiet names: foreign suffix is required and distinct namesakes stay ambiguous: test/src_quiet.lua:58: not equal: expected first surname-7105, got nil",
+      "FAIL Quiet names: pattern characters in a surname are invalid targets not wildcard matches: test/src_quiet.lua:70: not equal: expected first surname, got nil",
+      "FAIL Quiet: own localized failure is hidden by a once-registered filter: test/harness.lua:7: hide our failure: expected true, got false",
+      "FAIL Quiet: lineID hides three chat frames once in either dispatcher order: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: missing lineID deduplicates only this tick, not a later identical failure: test/harness.lua:7: same-tick frame 1: expected true, got false",
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/src_quiet.lua:118: not equal: expected 1, got 0",
+      "FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: only the localized supported template matches, with literal pattern punctuation: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: secret unreadable text, clocks and throwing predicates fail open: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: absent or throwing registration is harmless, one attempt only: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: 30-second boundary and backward clock invalidate whisper evidence: test/src_quiet.lua:231: not equal: expected true, got false",
+      "FAIL Quiet: retained foreign namesakes never let a bare name hide the wrong line: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: nothing about notice identities or counts is saved: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: correlation and message ledgers obey the original capacity and expiry: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: accepted legacy boolean send also supplies one display receipt: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: readable-looking secret strings are not compared or hidden: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: donor presence leaves send stand-down policy unchanged: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "literal-surname-validation",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet names: pattern characters in a surname are invalid targets not wildcard matches: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "secret-text-refused",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: readable-looking secret strings are not compared or hidden: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "no-english-fallback",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: only the localized supported template matches, with literal pattern punctuation: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: readable-looking secret strings are not compared or hidden: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "exact-localized-line",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "localized-literals-escaped",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: only the localized supported template matches, with literal pattern punctuation: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "single-name-template",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: only the localized supported template matches, with literal pattern punctuation: test/src_quiet.lua:42: /le net counter: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "thirty-second-expiry",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: 30-second boundary and backward clock invalidate whisper evidence: test/src_quiet.lua:231: not equal: expected false, got true",
+      "FAIL Quiet: correlation and message ledgers obey the original capacity and expiry: test/src_quiet.lua:293: not equal: expected 30, got 31"
+    ]
+  },
+  {
+    "rule": "rollback-prunes-evidence",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: 30-second boundary and backward clock invalidate whisper evidence: test/src_quiet.lua:231: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "whisper-ledger-cap",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: correlation and message ledgers obey the original capacity and expiry: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "decision-ledger-cap",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: correlation and message ledgers obey the original capacity and expiry: test/src_quiet.lua:298: not equal: expected 2, got 3"
+    ]
+  },
+  {
+    "rule": "fallback-only-same-tick",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: missing lineID deduplicates only this tick, not a later identical failure: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: unmatched diagnostics retain no names, including no-ID deduplication: test/src_quiet.lua:42: /le net counter: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "distinct-lineIDs",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: lineID hides three chat frames once in either dispatcher order: test/harness.lua:8: one attempt cannot hide a different line: expected false, got true",
+      "FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: retained foreign namesakes never let a bare name hide the wrong line: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: donor presence leaves send stand-down policy unchanged: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "cache-idempotence",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: lineID hides three chat frames once in either dispatcher order: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: missing lineID deduplicates only this tick, not a later identical failure: test/harness.lua:7: same-tick frame 1: expected true, got false",
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: unmatched diagnostics retain no names, including no-ID deduplication: test/src_quiet.lua:42: /le net counter: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "main-forwards-lineID",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: lineID hides three chat frames once in either dispatcher order: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/src_quiet.lua:42: /le net counter: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "counter-per-line",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/src_quiet.lua:42: /le net counter: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "unmatched-counter",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: absent or throwing registration is harmless, one attempt only: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: retained foreign namesakes never let a bare name hide the wrong line: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: rejected or throwing client calls never hide another cause's notice: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: nothing about notice identities or counts is saved: test/src_quiet.lua:42: /le net counter: expected 1, got 0",
+      "FAIL Quiet: unmatched diagnostics retain no names, including no-ID deduplication: test/src_quiet.lua:42: /le net counter: expected 1, got 0"
+    ]
+  },
+  {
+    "rule": "no-unmatched-names",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: unmatched diagnostics retain no names, including no-ID deduplication: test/harness.lua:8: unmatched text/name retained: expected false, got true"
+    ]
+  },
+  {
+    "rule": "only-accepted-display-evidence",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: rejected or throwing client calls never hide another cause's notice: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "sync-offline-display-receipt",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "legacy-boolean-display-receipt",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: accepted legacy boolean send also supplies one display receipt: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "quiet-off",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "default-on",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: own localized failure is hidden by a once-registered filter: test/harness.lua:7: hide our failure: expected true, got false",
+      "FAIL Quiet: lineID hides three chat frames once in either dispatcher order: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: missing lineID deduplicates only this tick, not a later identical failure: test/harness.lua:7: same-tick frame 1: expected true, got false",
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/src_quiet.lua:113: not equal: expected true, got false",
+      "FAIL Quiet: hidden counter counts lines, not chat frames or observer-only events: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: each pending whisper hides one notice without renewing the offline hold: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: synchronous offline still leaves one display receipt, not another offline stamp: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: non-system, unrelated, unknown and invalid-name lines are never hidden: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: only the localized supported template matches, with literal pattern punctuation: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: secret unreadable text, clocks and throwing predicates fail open: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: 30-second boundary and backward clock invalidate whisper evidence: test/src_quiet.lua:231: not equal: expected true, got false",
+      "FAIL Quiet: retained foreign namesakes never let a bare name hide the wrong line: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: nothing about notice identities or counts is saved: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: correlation and message ledgers obey the original capacity and expiry: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: accepted legacy boolean send also supplies one display receipt: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: readable-looking secret strings are not compared or hidden: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Quiet: donor presence leaves send stand-down policy unchanged: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "saved-off",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/src_quiet.lua:129: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "quiet-command",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: saved boolean switch defaults on and off never disables offline bookkeeping: test/src_quiet.lua:114: not equal: expected false, got true",
+      "FAIL Quiet: unmatched localized notices count once per line, never by chat frame: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "no-saved-notice-names",
+    "caught": true,
+    "failures": [
+      "FAIL Quiet: nothing about notice identities or counts is saved: test/harness.lua:7: unexpected saved field noticeName: expected true, got false"
+    ]
+  },
+  {
+    "rule": "filter-API-owner",
+    "caught": true,
+    "failures": [
+      "FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='ChatFrame_AddMessageEventFilter', filename='Main.lua')",
+      "FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='ChatFrame_AddMessageEventFilter', filename='Adapters.lua')",
+      "FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='ChatFrame_AddMessageEventFilter', filename='Sources.lua')",
+      "FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G.ChatFrame_AddMessageEventFilter', filename='Main.lua')",
+      "FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G.ChatFrame_AddMessageEventFilter', filename='Adapters.lua')",
+      "FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G.ChatFrame_AddMessageEventFilter', filename='Sources.lua')",
+      "FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G[\"ChatFrame_\"..\"AddMessageEventFilter\"]', filename='Main.lua')",
+      "FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G[\"ChatFrame_\"..\"AddMessageEventFilter\"]', filename='Adapters.lua')",
+      "FAIL: test_system_filter_owner_is_wire_only (__main__.ApiPolicyTests.test_system_filter_owner_is_wire_only) (access='_G[\"ChatFrame_\"..\"AddMessageEventFilter\"]', filename='Sources.lua')"
+    ]
+  }
+]
