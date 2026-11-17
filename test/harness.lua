@@ -12,6 +12,7 @@ local function test(name,fn)
     if arg and arg[1]=="--hop-fanout-only" and not name:find("Hop fanout:",1,true) then return end
     if arg and arg[1]=="--hop-any-only" and not name:find("hop-any",1,true) and not name:find("Hop fanout:",1,true) then return end
     if arg and arg[1]=="--presence-only" and not name:find("Presence:",1,true) then return end
+    if arg and arg[1]=="--flh-only" and not name:find("FLH:",1,true) then return end
     if arg and arg[1]=="--spy-relay-only" and not name:find("Spy relay",1,true) then return end
     if arg and arg[1]=="--relay-policy-only" and not name:find("Guild relay policy:",1,true) then return end
     if arg and arg[1]=="--kills-only" and not name:find("Kills",1,true) then return end
@@ -52,7 +53,7 @@ local joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn
 local ROUTES={LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true},
     WEFF1={GUILD=true,PARTY=true,RAID=true,WHISPER=true},HeadHunter={WHISPER=true}}
 -- Prefixes the addon may register.
-local PREFIXES={OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true,GBOUNTY=true,WALLOFSHAME=true,FTold1=true}
+local PREFIXES={FLHNET2=true,OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true,GBOUNTY=true,WALLOFSHAME=true,FTold1=true}
 -- The addon's source files, in load order, as the TOC lists them.
 local function addonFiles()
     local out={}
@@ -7874,6 +7875,11 @@ assert(loadfile("test/presence.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAd
     sent=function() return sent end,log=function() return log end,timers=function() return timers end,
     combat=function(v) combat=v end,instance=function(v) inInstance=v end,snapshot=snapshot})
 
+assert(loadfile("test/flh.lua"))({test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
+    advance=advance,deliver=deliver,drain=drain,establish=establish,
+    sent=function() return sent end,log=function() return log end,frames=function() return frames end,
+    registered=function() return registered end,wall=function(v) if v then wall=v end; return wall end,
+    loaded=function() return loaded end,combat=function(v) combat=v end,instance=function(v) inInstance=v end})
 
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
 if failed>0 then os.exit(1) end

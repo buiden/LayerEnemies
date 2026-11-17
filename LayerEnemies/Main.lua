@@ -247,6 +247,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     if prefix=="OpenMapLoc" then return M.openmapIn(text,kind,sender) end
     if prefix=="HeadHunter" then return M.headhunter(text,kind,sender) end
     if prefix=="LayerSwap" then return M.layerswap(text,kind,sender) end
+    if prefix=="FLHNET2" then return M.flhIn(text,kind,sender) end
     if prefix=="LFSw" then return M.lfsw(text,kind,sender) end
     if prefix=="LEGW1" then return M.relayIn(text,kind,sender) end
     if N.Spy.SRC[prefix] or N.Incident.SRC[prefix] then return M.spyIn(prefix,text,kind,sender) end
@@ -832,6 +833,24 @@ function M.heardBook()
     if wall then N.Hosts.prune(M.heard,wall) end
     return M.heard.heard
 end
+-- FLH presence only. Decoded requests/offers have no side effects in PR 3a:
+-- no membership, whisper replies, directory, invitation or hop request.
+function M.flhIn(text,kind,sender)
+    kind=S.str(kind,20)
+    if kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return end
+    if not M.heard or not I.name(sender) then return end
+    if not A.ownIdentity() or M.isMe(sender) or A.ignored(sender) then return end
+    if A.inCombat() or A.inInstance()~=false then return end
+    if kind=="GUILD" and S.call(IsInGuild)~=true then return end
+    local msg=N.FLH.decode(text)
+    if not msg or (msg.cmd~="HI" and msg.cmd~="WR" and msg.cmd~="CA") then return end
+    local wall=A.wall()
+    if not wall then return end
+    local claim
+    if msg.host==1 and msg.map>0 and msg.key~="" then claim={map=msg.map,key=msg.key} end
+    N.Hosts.flh(M.heard,sender,claim,wall)
+    if N.UI then N.UI.refresh() end
+end
 -- LFSw prefix: Bulo guild layer lines, GUILD only, read and never answered.
 function M.lfsw(text,kind,sender)
     if kind~="GUILD" or not S.str(sender,100) or S.call(IsInGuild)~=true then return end
@@ -1056,13 +1075,23 @@ local function ago(seconds)
     seconds=math.floor(math.max(0,seconds))
     return seconds<60 and (seconds.." s") or (math.floor(seconds/60).." min")
 end
+-- Describe both namespaces explicitly; FLH freshness never replaces another source's age.
+function M.hostPlace(c)
+    local text=c.layer and ("layer "..c.layer) or "layer unknown - saw reported enemies"
+    if c.flhKey then
+        local key=#c.flhKey>20 and (c.flhKey:sub(1,20).."...") or c.flhKey
+        local claim="FLH key "..key.." (claim, "..ago(c.flhAge).." ago)"
+        text=c.layer and (text.." / "..claim) or claim
+    end
+    return text
+end
 -- listed=true: only what Bulo and LayerSwap themselves list (not our remembered replies, which are answers)
 function M.candidates(listed)
     local time=now()
     local lists=A.friendLists(M.guildLines,not listed and M.heardBook() or nil)
     local _,short=A.ownIdentity()
     return I.collect({now=time,wall=A.wall(),zone=M.store.zone,ownKey=L.key(M.store.bulo),ambiguous=M.store.ambiguous(time),self=short,
-        reporters=T.reporters(M.store,time),bulo=lists.bulo,book=lists.book})
+        reporters=T.reporters(M.store,time),bulo=lists.bulo,book=lists.book,flh=not listed and M.heard.flhHosts or nil})
 end
 -- Puts the line into the chat box one frame later: a slash command runs inside
 -- the box's own send, which empties the box afterwards. The user presses Enter.
@@ -1403,10 +1432,10 @@ function M.hosts()
     if #list==0 then M.say("No one to ask right now.") end
     for i,c in ipairs(list) do
         names[i]=c.name
-        M.say(i..". "..c.name.." | "..(c.layer and ("layer "..c.layer) or "layer unknown - saw reported enemies")..(c.probably and " (probably your layer: your key is ambiguous)" or "").." | "..table.concat(c.sources," + ")..(c.host and " | host" or "").." | "..ago(c.age).." ago")
+        M.say(i..". "..c.name.." | "..M.hostPlace(c)..(c.probably and " (probably your layer: your key is ambiguous)" or "").." | "..table.concat(c.sources," + ")..(c.host and " | host" or "").." | "..ago(c.age).." ago")
     end
     M.hostList={at=now(),names=names,rows=list}
-    M.say("Bulo: "..status.bulo.." / LayerSwap: "..status.book.." / War Effort reporters: "..status.reports)
+    M.say("Bulo: "..status.bulo.." / LayerSwap: "..status.book.." / War Effort reporters: "..status.reports.." / Forever Layer Hop: "..status.flh)
     M.say("/le hop host <number> asks that host directly: one LayerSwap whisper per click.")
     M.say("/le hop <number> from /le reports asks one host on that layer directly (one whisper per click).")
     M.say("/le ask <number> puts a whisper in your chat box; you press Enter. Nothing is sent, accepted or left for you.")
@@ -2213,6 +2242,7 @@ function M.start()
         -- replies to our hop request, and Bulo guild layer lines; we answer neither
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LayerSwap")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LFSw")
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FLHNET2") -- receive only
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LEGW1")
         -- the Spy family: read only (lane C1)
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"[Spy]")
