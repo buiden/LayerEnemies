@@ -1,0 +1,39 @@
+PASS FLH batch: ordinary whisper then offer at half a second accepts
+PASS FLH batch: unsent queries pace without spending the reserved token
+PASS FLH batch: ordinary and owed traffic cannot steal the reserved LR
+PASS FLH batch: reserve expires at the original window without a tick
+PASS FLH batch: refused LR keeps selection and waits for actual budget room
+PASS FLH batch: successful retry never extends invite authority at 89
+PASS FLH batch: successful retry never extends invite authority at 90
+PASS FLH batch: third LR refusal ends the click with one exact chat line and row note
+PASS FLH batch: pending LR at expiry prints once and never sends after ninety seconds
+PASS FLH batch: a full burst paces all queries within the original click window
+PASS FLH batch: the last rolling-minute slot belongs to LR
+PASS FLH batch: LR success and explicit stop release shared capacity immediately
+PASS FLH batch: a refused selection cannot be redirected by another queried host
+PASS FLH batch: retry and paced query cancellation on stop
+PASS FLH batch: retry and paced query cancellation on share
+PASS FLH batch: retry and paced query cancellation on consent
+PASS FLH batch: retry and paced query cancellation on network
+PASS FLH batch: retry and paced query cancellation on combat
+PASS FLH batch: retry and paced query cancellation on instance
+PASS FLH batch: retry and paced query cancellation on zone
+PASS FLH batch: retry and paced query cancellation on donor
+PASS FLH batch: retry and paced query cancellation on rollback
+PASS FLH batch: an offline head cannot block the paced batch
+PASS FLH batch: paced discovery still caps the whole click at seven queries
+PASS FLH batch: stop inside LQ 2 preserves attempted cooldown result 0
+PASS FLH batch: stop inside LQ 2 preserves attempted cooldown result 3
+PASS FLH batch: stop inside LQ 6 preserves attempted cooldown result 0
+PASS FLH batch: stop inside LQ 6 preserves attempted cooldown result 3
+PASS FLH batch: recursive tick inside LQ 1 cannot consume remaining targets
+PASS FLH batch: recursive tick inside LQ 6 cannot consume remaining targets
+PASS FLH batch: join then leave between ticks revokes offer click
+PASS FLH batch: join then leave between ticks revokes paced click
+PASS FLH batch: join then leave between ticks revokes retry click
+PASS FLH batch: join then leave between ticks revokes selected click
+PASS FLH batch: paced query revalidates current host other layer
+PASS FLH batch: paced query revalidates current host own layer
+PASS FLH batch: paced query revalidates current host same layer new spelling
+PASS FLH batch: paced query revalidates current host withdrawn
+RESULT: 38 tests passed, 0 failed, 3840 assertions

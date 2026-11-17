@@ -195,7 +195,10 @@ test("ChehulNet: hint subsection follows every host with measured paged rows",fu
                 yes(top(r)+r:GetHeight()<=U.body:GetHeight(),"complete card inside page")
                 if previous then yes(top(r)>=top(previous)+previous:GetHeight()+4,"rows do not overlap") end
                 previous=r
-                if index<=3 then lastHost=r; eq(r.spotter,expected[index],"existing FLH action preserved"); yes(r.ask:IsShown())
+                if index<=3 then
+                    lastHost=r; yes(r.hostRow,"F2 host hop preview replaces the F1 manual Ask")
+                    eq(r.hostRow.name,expected[index],"the FLH host action still names the shown row")
+                    eq(r.hostShown.candidate.source,"FLH"); no(r.spotter); yes(r.ask:IsShown())
                 else
                     firstHint=firstHint or r
                     no(r.ask:IsShown()); no(r.hostRow); no(r.hopRecord); no(r.spotter)

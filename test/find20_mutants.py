@@ -1,7 +1,7 @@
 """Run isolated Find20 mutants; restore source bytes even on failure or timeout.
 
 Usage: python test/find20_mutants.py /path/to/lua-5.1
-No live client or outgoing API is used; each mutant runs the full Lua harness.
+No live client or outgoing API is used; each mutant runs the Find20 suite; full verification remains unfiltered.
 """
 from pathlib import Path
 import json
@@ -31,8 +31,8 @@ MUTANTS = [
     ("located-oldest-first", "LayerEnemies/UI.lua",
      "if aa~=bb then return aa>bb end", "if aa~=bb then return aa<bb end"),
     ("missing-status-stays-tall", "LayerEnemies/UI.lua",
-     'r.sub:SetHeight(U.tab=="find" and (detailHeight>0 and detailHeight or e.at and 44 or 14)',
-     'r.sub:SetHeight(U.tab=="find" and (detailHeight>0 and detailHeight or 44)'),
+     'r.sub:SetHeight(layout.subHeight)',
+     'r.sub:SetHeight(U.tab=="find" and not e.at and math.max(44,layout.subHeight) or layout.subHeight)'),
     ("no-home-poll-rebuild", "LayerEnemies/Main.lua",
      "    N.Find.home(M.find,M.homeRealm())\n", ""),
 ]
@@ -41,7 +41,7 @@ MUTANTS = [
 def main():
     lua = sys.argv[1] if len(sys.argv) > 1 else "lua"
     originals = {path: (ROOT / path).read_bytes() for _, path, _, _ in MUTANTS}
-    baseline = subprocess.run([lua, "test/harness.lua"], cwd=ROOT, capture_output=True, text=True, timeout=120)
+    baseline = subprocess.run([lua, "test/harness.lua", "--only=Find20"], cwd=ROOT, capture_output=True, text=True, timeout=120)
     if baseline.returncode:
         raise SystemExit("Refusing mutation run: baseline harness is not green\n" + baseline.stdout + baseline.stderr)
     results = []
@@ -53,7 +53,7 @@ def main():
                 raise AssertionError("mutation target must be unique: " + name)
             try:
                 target.write_text(source.replace(old, new, 1))
-                run = subprocess.run([lua, "test/harness.lua"], cwd=ROOT, capture_output=True, text=True, timeout=120)
+                run = subprocess.run([lua, "test/harness.lua", "--only=Find20"], cwd=ROOT, capture_output=True, text=True, timeout=120)
                 output = run.stdout + run.stderr
                 (ROOT / ("build-find20-mutant-" + name + ".log")).write_text(output)
                 failures = [line for line in output.splitlines() if line.startswith("FAIL Find20")]

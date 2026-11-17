@@ -1,0 +1,11 @@
+PASS FLH batch: ordinary whisper then offer at half a second accepts
+PASS FLH batch: unsent queries pace without spending the reserved token
+PASS FLH batch: ordinary and owed traffic cannot steal the reserved LR
+PASS FLH batch: reserve expires at the original window without a tick
+FAIL FLH batch: refused LR keeps selection and waits for actual budget room: test/src_flh_batch.lua:120: not equal: expected 2, got 1
+FAIL FLH batch: successful retry never extends invite authority at 89: test/src_flh_batch.lua:130: not equal: expected 1, got 0
+FAIL FLH batch: successful retry never extends invite authority at 90: test/src_flh_batch.lua:130: not equal: expected 1, got 0
+FAIL FLH batch: third LR refusal ends the click with one exact chat line and row note: test/src_flh_batch.lua:140: not equal: expected 2, got 1
+FAIL FLH batch: pending LR at expiry prints once and never sends after ninety seconds: test/src_flh_batch.lua:153: not equal: expected 1, got 0
+FAIL FLH batch: a full burst paces all queries within the original click window: test/harness.lua:7: not equal: expected true, got false
+RESULT: 4 tests passed, 6 failed, 627 assertions

@@ -1,0 +1,322 @@
+{
+  "baseline": {
+    "evidence": {
+      "assertions": null,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 4
+    },
+    "lua": {
+      "assertions": 2222,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 29
+    },
+    "policy": {
+      "assertions": null,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 27
+    }
+  },
+  "final": {
+    "evidence": {
+      "assertions": null,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 4
+    },
+    "lua": {
+      "assertions": 2222,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 29
+    },
+    "policy": {
+      "assertions": null,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 27
+    }
+  },
+  "mutants": [
+    {
+      "assertions": 2217,
+      "caught_by": [
+        "FAIL FLH member: R2 eight ordinary plus six owed replies never exceeds eight at once: test/src_flh_rulings.lua:68: not equal: expected 8, got 14",
+        "FAIL FLH member: R2 probes leave six shared burst slots for owed replies: test/src_flh_rulings.lua:102: probe loses priority at the shared ceiling: expected 0, got 1"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "S1-shared-burst",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2218,
+      "caught_by": [
+        "FAIL FLH member: R2 forty ordinary in fifty nine seconds leaves no reply room: test/src_flh_rulings.lua:75: not equal: expected 40, got 46",
+        "FAIL FLH member: R2 probes leave six shared minute slots for owed replies: test/src_flh_rulings.lua:109: not equal: expected 0, got 1"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "S1-shared-minute",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2213,
+      "caught_by": [
+        "FAIL FLH member: R2 replies charge the shared bucket before ordinary traffic: test/src_flh_rulings.lua:81: not equal: expected 2, got 8",
+        "FAIL FLH member: R2 HI spends the overall burst: test/src_flh_rulings.lua:96: not equal: expected 7, got 8",
+        "FAIL FLH member: R2 WR spends the overall burst: test/src_flh_rulings.lua:96: not equal: expected 7, got 8",
+        "FAIL FLH member: R2 CA spends the overall burst: test/src_flh_rulings.lua:96: not equal: expected 7, got 8",
+        "FAIL FLH member: R2 WP spends the overall burst: test/src_flh_rulings.lua:96: not equal: expected 7, got 8",
+        "FAIL FLH member: R2 LQ spends the overall burst: test/src_flh_rulings.lua:96: not equal: expected 6, got 7",
+        "FAIL FLH member: R2 LR spends the overall burst: test/src_flh_rulings.lua:96: not equal: expected 6, got 8"
+      ],
+      "failed": 7,
+      "killed": true,
+      "mutant": "S1-shared-accounting",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2217,
+      "caught_by": [
+        "FAIL FLH member: R2 probes leave six shared burst slots for owed replies: test/src_flh_rulings.lua:102: probe loses priority at the shared ceiling: expected 0, got 1",
+        "FAIL FLH member: R2 probes leave six shared minute slots for owed replies: test/src_flh_rulings.lua:109: not equal: expected 0, got 1"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "S1-owed-priority",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2130,
+      "caught_by": [
+        "FAIL FLH member: R2 directory stays joined through twenty combat periods: test/src_flh_rulings.lua:126: not equal: expected ForeverLayerHopNet, got nil",
+        "FAIL FLH member: R2 privacy leave waits until after combat: test/src_flh_rulings.lua:138: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 directory stays joined through twenty instance periods: test/src_flh_rulings.lua:126: not equal: expected ForeverLayerHopNet, got nil",
+        "FAIL FLH member: R2 privacy leave waits until after instance: test/src_flh_rulings.lua:138: not equal: expected 0, got 1"
+      ],
+      "failed": 4,
+      "killed": true,
+      "mutant": "S2-stay-joined",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2216,
+      "caught_by": [
+        "FAIL FLH member: R2 privacy leave waits until after combat: test/src_flh_rulings.lua:138: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 privacy leave waits until after instance: test/src_flh_rulings.lua:138: not equal: expected 0, got 1"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "S2-defer-unsafe-leave",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2071,
+      "caught_by": [
+        "FAIL FLH member: R2 host status LD|%d cancels and prints once: test/src_flh_rulings.lua:151: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 decline after LI cancels leader authority too: test/src_flh_rulings.lua:230: not equal: expected 0, got 1"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "S3-declined",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2118,
+      "caught_by": [
+        "FAIL FLH member: R2 host status LA|%d cancels and prints once: test/src_flh_rulings.lua:151: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 decline after LI cancels leader authority too: test/src_flh_rulings.lua:230: not equal: expected 0, got 1"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "S3-no-answer",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2212,
+      "caught_by": [
+        "FAIL FLH member: R2 host status HQ|%d|2 cancels and prints once: test/src_flh_rulings.lua:151: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 decline after LI cancels leader authority too: test/src_flh_rulings.lua:230: not equal: expected 0, got 1"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "S3-queued",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2165,
+      "caught_by": [
+        "FAIL FLH member: R2 host status LN|%d cancels and prints once: test/src_flh_rulings.lua:151: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 decline after LI cancels leader authority too: test/src_flh_rulings.lua:230: not equal: expected 0, got 1"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "S3-bare-negative",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2197,
+      "caught_by": [
+        "FAIL FLH member: R2 host status LD|%d cancels and prints once: test/src_flh_rulings.lua:153: not equal: expected 1, got 0",
+        "FAIL FLH member: R2 host status LA|%d cancels and prints once: test/src_flh_rulings.lua:153: not equal: expected 1, got 0",
+        "FAIL FLH member: R2 host status HQ|%d|2 cancels and prints once: test/src_flh_rulings.lua:153: not equal: expected 1, got 0",
+        "FAIL FLH member: R2 host status LN|%d cancels and prints once: test/src_flh_rulings.lua:153: not equal: expected 1, got 0",
+        "FAIL FLH member: R2 host status LN|%d|busy cancels and prints once: test/src_flh_rulings.lua:153: not equal: expected 1, got 0"
+      ],
+      "failed": 5,
+      "killed": true,
+      "mutant": "S3-one-status-line",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2214,
+      "caught_by": [
+        "FAIL FLH member: R2 LI transfers authority only to its named whole leader: test/src_flh_rulings.lua:175: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 LI retains the original ninety second window at 89: test/src_flh_rulings.lua:187: not equal: expected 1, got 0",
+        "FAIL FLH member: R2 bare LI is only an acknowledgement and cannot undo a handoff: test/src_flh_rulings.lua:222: not equal: expected 0, got 1"
+      ],
+      "failed": 3,
+      "killed": true,
+      "mutant": "N2-named-leader",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2118,
+      "caught_by": [
+        "FAIL FLH member: R2 LI transfers authority only to its named whole leader: test/src_flh_rulings.lua:175: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 LI missing or invalid leader never accepts anyone: test/src_flh_rulings.lua:212: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 bare LI is only an acknowledgement and cannot undo a handoff: test/src_flh_rulings.lua:222: not equal: expected 0, got 1"
+      ],
+      "failed": 3,
+      "killed": true,
+      "mutant": "N2-replace-host-authority",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": 2222,
+      "caught_by": [
+        "FAIL FLH member: R2 LI retains the original ninety second window at 90: test/src_flh_rulings.lua:187: not equal: expected 0, got 1",
+        "FAIL FLH member: R2 LI retains the original ninety second window at 91: test/src_flh_rulings.lua:187: not equal: expected 0, got 1"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "N2-original-window",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 29
+    },
+    {
+      "assertions": null,
+      "caught_by": [
+        "FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes)",
+        "FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape)",
+        "FAIL: test_flh_routes_are_only_the_four_approved_routes (test.api_policy_test.ApiPolicyTests.test_flh_routes_are_only_the_four_approved_routes)"
+      ],
+      "failed": 3,
+      "killed": true,
+      "mutant": "S4-truthy-extra-route",
+      "rc": 1,
+      "suite": "policy",
+      "tests": 27
+    },
+    {
+      "assertions": null,
+      "caught_by": [
+        "FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes)",
+        "FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape)",
+        "FAIL: test_flh_routes_are_only_the_four_approved_routes (test.api_policy_test.ApiPolicyTests.test_flh_routes_are_only_the_four_approved_routes)"
+      ],
+      "failed": 3,
+      "killed": true,
+      "mutant": "S4-bracket-extra-route",
+      "rc": 1,
+      "suite": "policy",
+      "tests": 27
+    },
+    {
+      "assertions": null,
+      "caught_by": [
+        "FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes)",
+        "FAIL: test_flh_route_gate_rejects_later_mutation_and_escape (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_later_mutation_and_escape)",
+        "FAIL: test_flh_routes_are_only_the_four_approved_routes (test.api_policy_test.ApiPolicyTests.test_flh_routes_are_only_the_four_approved_routes)"
+      ],
+      "failed": 3,
+      "killed": true,
+      "mutant": "S4-post-table-assignment",
+      "rc": 1,
+      "suite": "policy",
+      "tests": 27
+    },
+    {
+      "assertions": null,
+      "caught_by": [
+        "FAIL: test_flh_membership_side_effect_is_disclosed (test.api_policy_test.ApiPolicyTests.test_flh_membership_side_effect_is_disclosed)"
+      ],
+      "failed": 1,
+      "killed": true,
+      "mutant": "N1-disclose-cross-realm-introduction",
+      "rc": 1,
+      "suite": "policy",
+      "tests": 27
+    },
+    {
+      "assertions": null,
+      "caught_by": [
+        "FAIL: test_hop_report_normalizes_runtime_identity_and_checkout_paths (test.flh_mutants_test.MutationEvidenceTests.test_hop_report_normalizes_runtime_identity_and_checkout_paths)"
+      ],
+      "failed": 1,
+      "killed": true,
+      "mutant": "N3-normalize-hop-evidence",
+      "rc": 1,
+      "suite": "evidence",
+      "tests": 4
+    },
+    {
+      "assertions": null,
+      "caught_by": [
+        "FAIL: test_report_writer_preserves_identical_evidence (test.flh_mutants_test.MutationEvidenceTests.test_report_writer_preserves_identical_evidence) (runner='hop_fanout_mutants.py')"
+      ],
+      "failed": 1,
+      "killed": true,
+      "mutant": "N3-no-identical-report-write",
+      "rc": 1,
+      "suite": "evidence",
+      "tests": 4
+    }
+  ]
+}

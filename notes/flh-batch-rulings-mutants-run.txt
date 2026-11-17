@@ -1,0 +1,21 @@
+S1-shared-burst: KILLED
+S1-shared-minute: KILLED
+S1-shared-accounting: KILLED
+S1-owed-priority: KILLED
+S2-stay-joined: KILLED
+S2-defer-unsafe-leave: KILLED
+S3-declined: KILLED
+S3-no-answer: KILLED
+S3-queued: KILLED
+S3-bare-negative: KILLED
+S3-one-status-line: KILLED
+N2-named-leader: KILLED
+N2-replace-host-authority: KILLED
+N2-original-window: KILLED
+S4-truthy-extra-route: KILLED
+S4-bracket-extra-route: KILLED
+S4-post-table-assignment: KILLED
+N1-disclose-cross-realm-introduction: KILLED
+N3-normalize-hop-evidence: KILLED
+N3-no-identical-report-write: KILLED
+Mutants: 20/20 killed

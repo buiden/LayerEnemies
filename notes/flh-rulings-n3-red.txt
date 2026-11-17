@@ -1,0 +1,28 @@
+FF.
+======================================================================
+FAIL: test_hop_report_normalizes_runtime_identity_and_checkout_paths (test.flh_mutants_test.MutationEvidenceTests.test_hop_report_normalizes_runtime_identity_and_checkout_paths)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/flh_mutants_test.py", line 39, in test_hop_report_normalizes_runtime_identity_and_checkout_paths
+    self.assertEqual(results[0], results[1])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'FAIL[33 chars]lone-a/test/harness.lua:7: expected nil, got table: 0x123abc\n' != 'FAIL[33 chars]lone-b/test/harness.lua:7: expected nil, got table: 0x789def\n'
+- FAIL Hop fanout: identity: /scratch/clone-a/test/harness.lua:7: expected nil, got table: 0x123abc
+?                                           ^                                                ^^^^^^
++ FAIL Hop fanout: identity: /scratch/clone-b/test/harness.lua:7: expected nil, got table: 0x789def
+?                                           ^                                                ^^^^^^
+
+
+======================================================================
+FAIL: test_report_writer_preserves_identical_evidence (test.flh_mutants_test.MutationEvidenceTests.test_report_writer_preserves_identical_evidence) (runner='hop_fanout_mutants.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-rulings-red/test/flh_mutants_test.py", line 47, in test_report_writer_preserves_identical_evidence
+    self.assertTrue('write_report' in runner, 'missing stable report writer')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : missing stable report writer
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.024s
+
+FAILED (failures=2)

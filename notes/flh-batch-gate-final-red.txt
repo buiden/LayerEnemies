@@ -1,0 +1,59 @@
+........FFFFF.F..........
+======================================================================
+FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes) (plant=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-batch-red-8b8a18fe/test/api_policy_test.py", line 149, in test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes
+    with self.subTest(plant=i), self.assertRaises(AssertionError):
+                                ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes) (plant=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-batch-red-8b8a18fe/test/api_policy_test.py", line 149, in test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes
+    with self.subTest(plant=i), self.assertRaises(AssertionError):
+                                ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes) (plant=2)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-batch-red-8b8a18fe/test/api_policy_test.py", line 149, in test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes
+    with self.subTest(plant=i), self.assertRaises(AssertionError):
+                                ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_computed_replacement_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_replacement_routes) (plant='if prefix == "ReviewPrefix" then local key = "ki" .. "nds"; route = { [key] = { GUILD = true }, check = function() return "line" end } end')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-batch-red-8b8a18fe/test/api_policy_test.py", line 136, in test_flh_route_gate_rejects_computed_replacement_routes
+    with self.subTest(plant=plant), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_computed_replacement_routes (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_computed_replacement_routes) (plant='if prefix == "FLHNET2" and kind == "CHANNEL" then local key = "ki" .. "nds"; route = { [key] = { CHANNEL = true }, check = route.check } end')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-batch-red-8b8a18fe/test/api_policy_test.py", line 136, in test_flh_route_gate_rejects_computed_replacement_routes
+    with self.subTest(plant=plant), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_loop_over_local_alias (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_loop_over_local_alias)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-batch-red-8b8a18fe/test/api_policy_test.py", line 124, in test_flh_route_gate_rejects_loop_over_local_alias
+    with self.assertRaises(AssertionError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.465s
+
+FAILED (failures=6)

@@ -1,0 +1,1661 @@
+....FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF......FF...FF.........
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Spy.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Spy.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Spy.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Spy.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Sources.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Sources.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Sources.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Sources.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='BNet.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='BNet.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='BNet.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='BNet.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Wire.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Wire.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Wire.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Wire.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Net.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Net.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Net.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Net.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Peers.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Peers.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Peers.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Peers.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Wanted.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Wanted.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Wanted.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Wanted.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hash.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hash.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hash.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hash.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hosts.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hosts.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hosts.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hosts.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Main.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Main.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Main.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Main.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HhNet.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HhNet.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HhNet.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HhNet.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='OpenMap.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='OpenMap.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='OpenMap.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='OpenMap.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='GuildHost.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='GuildHost.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='GuildHost.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='GuildHost.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Presence.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Presence.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Presence.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Presence.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Safe.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Safe.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Safe.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Safe.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Find.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Find.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Find.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Find.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='UI.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='UI.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='UI.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='UI.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Incident.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Incident.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Incident.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Incident.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Invite.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Invite.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Invite.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Invite.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='FLHMember.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='FLHMember.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='FLHMember.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='FLHMember.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Reports.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Reports.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Reports.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Reports.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Directory.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Directory.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Directory.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Directory.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hop.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hop.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hop.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Hop.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Watch.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Watch.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Watch.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Watch.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Adapters.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Adapters.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Adapters.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Adapters.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HeadHunter.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HeadHunter.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HeadHunter.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HeadHunter.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Overlord.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Overlord.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Overlord.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Overlord.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Share.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Share.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Share.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Share.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='CallText.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='CallText.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='CallText.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='CallText.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='FLH.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='FLH.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='FLH.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='FLH.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Known.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Known.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Known.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Known.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='OwnDeath.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='OwnDeath.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='OwnDeath.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='OwnDeath.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='CallUI.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='CallUI.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='CallUI.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='CallUI.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeOut.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeOut.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeOut.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeOut.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeNet.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeNet.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeNet.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeNet.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Protocol.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Protocol.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Protocol.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Protocol.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Layer.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Layer.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Layer.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Layer.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Store.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Store.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Store.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Store.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Record.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Record.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Record.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Record.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Call.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Call.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Call.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Call.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='ChehulNet.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='ChehulNet.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='ChehulNet.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='ChehulNet.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Codec.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Codec.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Codec.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Codec.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Relay.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Relay.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Relay.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='Relay.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HopAny.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HopAny.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HopAny.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='HopAny.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeEmb.lua', access='local _, captured=debug.getupvalue(Wr.send,1); debug.setupvalue(Wr.send,1,captured)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeEmb.lua', access='local d=debug; d.getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeEmb.lua', access='_G["de".."bug"].getupvalue(fn,1)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_debug_upvalue_access_is_forbidden_in_every_addon_module (test.api_policy_test.ApiPolicyTests.test_debug_upvalue_access_is_forbidden_in_every_addon_module) (file='WeEmb.lua', access='_G.debug.setupvalue(fn,1,{})')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 215, in test_debug_upvalue_access_is_forbidden_in_every_addon_module
+    with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_expression_suffix_replacements (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_expression_suffix_replacements) (prefix='ReviewPrefix')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 196, in test_flh_route_gate_rejects_expression_suffix_replacements
+    with self.subTest(prefix=prefix), self.assertRaises(AssertionError):
+                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_expression_suffix_replacements (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_expression_suffix_replacements) (prefix='FLHNET2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 196, in test_flh_route_gate_rejects_expression_suffix_replacements
+    with self.subTest(prefix=prefix), self.assertRaises(AssertionError):
+                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_unreviewed_tables_and_computed_keys_in_check (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_unreviewed_tables_and_computed_keys_in_check) (plant='local replacement={}')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 203, in test_flh_route_gate_rejects_unreviewed_tables_and_computed_keys_in_check
+    with self.subTest(plant=plant), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_flh_route_gate_rejects_unreviewed_tables_and_computed_keys_in_check (test.api_policy_test.ApiPolicyTests.test_flh_route_gate_rejects_unreviewed_tables_and_computed_keys_in_check) (plant='local replacement=other[key]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/data/cache/scratch/le-flh-member-red-a76/test/api_policy_test.py", line 203, in test_flh_route_gate_rejects_unreviewed_tables_and_computed_keys_in_check
+    with self.subTest(plant=plant), self.assertRaises(AssertionError):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+----------------------------------------------------------------------
+Ran 25 tests in 1.407s
+
+FAILED (failures=184)

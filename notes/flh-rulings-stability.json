@@ -1,0 +1,36 @@
+{
+  "checkout_path_contains_spaces": true,
+  "checks": {
+    "flh-member-mutants.json": {
+      "bytes_equal": true,
+      "exit": 0,
+      "original_unchanged": true,
+      "relocated_unchanged": true,
+      "sha256": "e5cb317c132a0b03c8aa46303d15acdd2491ec09efc5df5e042341c3ff06d044"
+    },
+    "flh-mutants.json": {
+      "bytes_equal": true,
+      "exit": 0,
+      "original_unchanged": true,
+      "relocated_unchanged": true,
+      "sha256": "b5c35e3ff32b3e0a1c5cb5cd6f241b5f359913fd2982c8302655e87709510c98"
+    },
+    "flh-rulings-mutants.json": {
+      "bytes_equal": true,
+      "exit": 0,
+      "original_unchanged": true,
+      "relocated_unchanged": true,
+      "sha256": "f88456367aea7f0defd73998711a554b0bf9366da0a307db824583762151be69"
+    },
+    "hop-fanout-mutants.json": {
+      "bytes_equal": true,
+      "exit": 0,
+      "original_unchanged": true,
+      "relocated_unchanged": true,
+      "sha256": "14d7f58d8123e0836f5c688d0567b7ba16ccfea053c12cc18e299cfe76a69d40"
+    }
+  },
+  "relative_scratch": true,
+  "runs_from_unrelated_cwd": true,
+  "timestamp_fixture_correction": "The initial relocated N3 writer mutant survived a same-timestamp rewrite. Pinning an old fixture mtime made the check deterministic; all 20 controls were rerun."
+}

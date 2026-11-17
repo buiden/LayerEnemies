@@ -27,10 +27,10 @@ MUTANTS = [
     ('no-secret-check', 'FLH.lua', 'S.secret(text) or type(text)', 'type(text)'),
     ('no-control-check', 'FLH.lua', ' or text:find("%c")', ''),
     ('no-metadata-validation', 'FLH.lua', 'if not fields[i]:match("^[A-Z][A-Z0-9_]*=[^|:]*$") then return nil end', '-- metadata unchecked'),
-    ('no-csv-validation', 'FLH.lua', 'if not FL.key(key) then return nil end', 'if false then return nil end'),
-    ('no-prefix-registration', 'Main.lua', 'S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FLHNET2") -- receive only', '-- receive registration missing'),
+    ('no-csv-validation', 'FLH.lua', 'for key in (value..","):gmatch("([^,]*),") do if not FL.key(key) then return nil end end', 'for key in (value..","):gmatch("([^,]*),") do if false then return nil end end'),
+    ('no-prefix-registration', 'Main.lua', 'S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FLHNET2") -- legacy receive owner; F2 sends through Wire', '-- receive registration missing'),
     ('no-prefix-dispatch', 'Main.lua', 'if prefix=="FLHNET2" then return M.flhIn(text,kind,sender) end', '-- dispatch missing'),
-    ('channel-presence', 'Main.lua', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER"', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" and kind~="CHANNEL"'),
+    ('channel-presence', 'Main.lua', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return end\n    if not M.heard', 'kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" and kind~="CHANNEL" then return end\n    if not M.heard'),
     ('requests-become-hosts', 'Main.lua', '(msg.cmd~="HI" and msg.cmd~="WR" and msg.cmd~="CA")', '(msg.cmd~="HI" and msg.cmd~="WR" and msg.cmd~="CA" and msg.cmd~="WP" and msg.cmd~="CQ")'),
     ('answer-received-lines', 'Main.lua', 'local msg=N.FLH.decode(text)', 'N.Wire.send("FLHNET2","WR|42|1234|0.1.3|100|8|0","WHISPER",sender)\n    local msg=N.FLH.decode(text)'),
     ('own-echo-host', 'Main.lua', 'if not A.ownIdentity() or M.isMe(sender) or A.ignored(sender) then return end', 'if not A.ownIdentity() or A.ignored(sender) then return end'),
@@ -52,10 +52,22 @@ MUTANTS = [
 ]
 
 
+def normalize(output, root):
+    """Keep assertions/line numbers, not checkout names or Lua object addresses."""
+    output = output.replace(str(root) + os.sep, '')
+    return re.sub(r'(table|function|thread|userdata): 0x[0-9a-fA-F]+', r'\1: <address>', output)
+
+
+def write_report(path, report):
+    data = (json.dumps(report, indent=2, sort_keys=True) + '\n').encode()
+    if not path.exists() or path.read_bytes() != data:
+        path.write_bytes(data)
+
+
 def run(root, lua):
     proc = subprocess.run([lua, 'test/harness.lua', '--flh-only'], cwd=root,
                           text=True, capture_output=True, timeout=120)
-    output = proc.stdout + proc.stderr
+    output = normalize(proc.stdout + proc.stderr, root)
     match = re.search(r'RESULT: (\d+) tests passed, (\d+) failed, (\d+) assertions', output)
     assert match, 'No complete test result:\n' + output
     return {'passed': int(match[1]), 'failed': int(match[2]), 'rc': proc.returncode,
@@ -64,9 +76,11 @@ def run(root, lua):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--lua', default=os.environ.get('LAYERENEMIES_LUA', '/opt/data/tools/lua/lua-5.1.5/src/lua'))
-    parser.add_argument('--scratch', default=os.environ.get('TMPDIR', '/opt/data/cache/scratch'))
+    parser.add_argument('--lua', default=os.environ.get('LAYERENEMIES_LUA') or shutil.which('lua5.1') or shutil.which('lua'))
+    parser.add_argument('--scratch', default=os.environ.get('TMPDIR') or str(ROOT.parent))
     args = parser.parse_args()
+    if not args.lua:
+        parser.error('--lua or LAYERENEMIES_LUA must select Lua 5.1')
     evidence = ROOT / 'notes/flh-mutants.json'
     with tempfile.TemporaryDirectory(prefix='le-flh-mutants-', dir=args.scratch) as directory:
         root = Path(directory)
@@ -83,6 +97,8 @@ def main():
             assert text.count(before) == 1, (name, 'unique mutation site required', text.count(before))
             try:
                 path.write_text(text.replace(before, after))
+                subprocess.run([args.lua, '-e', 'assert(loadfile(' + json.dumps(str(path.relative_to(root))) + '))'],
+                               cwd=root, capture_output=True, check=True, timeout=30)
                 result, output = run(root, args.lua)
                 assert result['passed'] + result['failed'] == total, (name, 'test inventory changed')
                 result['mutant'] = name
@@ -94,7 +110,7 @@ def main():
         final, output = run(root, args.lua)
         assert final['rc'] == 0 and final['failed'] == 0 and final['passed'] == total, output
     evidence.parent.mkdir(exist_ok=True)
-    evidence.write_text(json.dumps({'baseline': baseline, 'mutants': results, 'final': final}, indent=2) + '\n')
+    write_report(evidence, {'baseline': baseline, 'mutants': results, 'final': final})
     print(next(line for line in output.splitlines() if line.startswith('RESULT:')))
     print(f"Mutants: {sum(r['killed'] for r in results)}/{len(MUTANTS)} killed")
     assert len(results) == len(MUTANTS) and all(r['killed'] for r in results), 'Surviving mutant'

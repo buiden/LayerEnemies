@@ -1,0 +1,49 @@
+{
+  "baseline": {
+    "lua": {
+      "assertions": 3215,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 30
+    },
+    "policy": {
+      "assertions": null,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 25
+    }
+  },
+  "final": {
+    "lua": {
+      "assertions": 3215,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 30
+    },
+    "policy": {
+      "assertions": null,
+      "caught_by": [],
+      "failed": 0,
+      "rc": 0,
+      "tests": 25
+    }
+  },
+  "mutants": [
+    {
+      "assertions": 3142,
+      "caught_by": [
+        "FAIL FLH batch: recursive tick inside LQ 1 cannot consume remaining targets: test/src_flh_batch.lua:292: nested tick cannot discard eligible targets: expected 7, got 1",
+        "FAIL FLH batch: recursive tick inside LQ 6 cannot consume remaining targets: test/src_flh_batch.lua:292: nested tick cannot discard eligible targets: expected 7, got 6"
+      ],
+      "failed": 2,
+      "killed": true,
+      "mutant": "query-reentrant-cursor",
+      "rc": 1,
+      "suite": "lua",
+      "tests": 30
+    }
+  ]
+}

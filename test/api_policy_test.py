@@ -62,7 +62,165 @@ class ApiPolicyTests(unittest.TestCase):
                                  'LibStub', 'loadstring', 'dofile', 'offer', 'SetText', 'PlaySound'})
         self.assertIn('register', refs)
         toc = (Path(__file__).resolve().parents[1] / 'LayerEnemies/LayerEnemies.toc').read_text().splitlines()
-        self.assertEqual(toc[toc.index('ChehulNet.lua') + 1], 'UI.lua')
+        self.assertLess(toc.index('ChehulNet.lua'), toc.index('UI.lua'))
+
+    def test_flh_routes_are_only_the_four_approved_routes(self):
+        self.assertIn('check_route_policy', VERIFY)
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        VERIFY['check_route_policy'](source)
+        for extra in ('CHANNEL = true, ', 'SAY = true, '):
+            changed = source.replace('FLHNET2 = { kinds = { ', 'FLHNET2 = { kinds = { ' + extra)
+            with self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](changed)
+        for name in ('FLHMember.lua', 'FLH.lua'):
+            text = (Path(__file__).resolve().parents[1] / 'LayerEnemies' / name).read_text()
+            VERIFY['check_send_policy'](text, name)
+            refs = {word for _, word in VERIFY['lua_references'](VERIFY['lua_tokens'](text))}
+            self.assertFalse(refs & {'SendAddonMessage', 'SendChatMessage', 'InviteUnit', 'AcceptGroup',
+                                     'LeaveParty', 'LayerEnemiesDB', 'JoinChannelByName', 'SendGameData'})
+
+    def test_flh_route_gate_rejects_truthy_nonboolean_routes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for value in ('1', '"yes"', 'function() end', 'false'):
+            with self.subTest(value=value), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace('FLHNET2 = { kinds = { ',
+                    'FLHNET2 = { kinds = { CHANNEL = ' + value + ', '))
+
+    def test_flh_route_gate_rejects_bracket_routes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for key in ('["CHANNEL"]', '["CHAN".."NEL"]', '[routeName]'):
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace('FLHNET2 = { kinds = { ',
+                    'FLHNET2 = { kinds = { ' + key + ' = true, '))
+
+    def test_flh_route_gate_rejects_later_mutation_and_escape(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for later in ('ROUTES.FLHNET2.kinds.CHANNEL = true',
+                      'ROUTES["FLHNET2"].kinds["CHANNEL"] = 1',
+                      'local alias = ROUTES; alias.FLHNET2.kinds.CHANNEL = true',
+                      'rawset(ROUTES.FLHNET2.kinds,"CHANNEL",true)',
+                      'route.kinds.CHANNEL = true'):
+            with self.subTest(later=later), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source + '\n' + later)
+        VERIFY['check_route_policy'](source + '\n-- ROUTES.FLHNET2.kinds.CHANNEL = true\n'
+                                    'local inert="ROUTES.FLHNET2.kinds.CHANNEL = true"')
+
+    def test_flh_route_gate_requires_complete_unique_literal_routes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for kinds in ('GUILD = true, PARTY = true, RAID = true',
+                      'GUILD = true, PARTY = true, RAID = true, WHISPER = false',
+                      'GUILD = true, PARTY = true, RAID = true, WHISPER = true, WHISPER = false'):
+            changed = source.replace('FLHNET2 = { kinds = { GUILD = true, PARTY = true, RAID = true, WHISPER = true',
+                                     'FLHNET2 = { kinds = { ' + kinds)
+            with self.subTest(kinds=kinds), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](changed)
+
+    def test_flh_route_gate_rejects_loop_over_local_alias(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        read = 'local route = type(prefix) == "string" and ROUTES[prefix]'
+        plant = ('\n    if route then for _, value in pairs(route) do '
+                 'if type(value) == "table" then value.CHANNEL = true end end end')
+        self.assertEqual(source.count(read), 1)
+        with self.assertRaises(AssertionError):
+            VERIFY['check_route_policy'](source.replace(read, read + plant))
+
+    def test_flh_route_gate_rejects_computed_replacement_routes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        read = 'local route = type(prefix) == "string" and ROUTES[prefix]'
+        for plant in (
+            'if prefix == "ReviewPrefix" then local key = "ki" .. "nds"; '
+            'route = { [key] = { GUILD = true }, check = function() return "line" end } end',
+            'if prefix == "FLHNET2" and kind == "CHANNEL" then local key = "ki" .. "nds"; '
+            'route = { [key] = { CHANNEL = true }, check = route.check } end',
+        ):
+            with self.subTest(plant=plant), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(read, read + '\n    ' + plant))
+
+    def test_flh_route_gate_rejects_computed_declaration_fields_and_alias_escapes(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        for i, changed in enumerate((
+            source.replace('local ROUTES = {', 'local key="ki".."nds"\nlocal ROUTES = {')
+                  .replace('check = flhText', 'check = flhText, [key] = { CHANNEL = true }'),
+            source.replace('local tag = route.check(text, kind)',
+                           'local alias=route; for _, v in pairs(alias) do if type(v)=="table" then v.CHANNEL=true end end\n'
+                           '    local tag = route.check(text, kind)'),
+            source.replace('local route, tag, public', 'local route, tag, public\n    route={ [key]={ CHANNEL=true } }'),
+        )):
+            with self.subTest(plant=i), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](changed)
+        VERIFY['check_route_policy'](source + '\n-- route = { [key] = { CHANNEL=true } }\n'
+                                    'local inert=[=[for _,v in pairs(route) do v.CHANNEL=true end]=]')
+
+    def test_flh_route_gate_still_rejects_all_fourteen_earlier_reviewer_plants(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        start = source.index('FLHNET2 = { kinds = { ')
+        end = source.index('\n', start)
+        line = source[start:end]
+        table_end = source.index('\n}', start) + 2
+        def inline(before, after):
+            return source[:start] + line.replace(before, after, 1) + source[end:]
+        def later(text):
+            return source[:table_end] + '\n' + text + source[table_end:]
+        plants = [
+            inline('kinds = { ', 'kinds = { CHANNEL = true, '),
+            inline('kinds = { ', 'kinds = { CHANNEL = 1, '),
+            inline('kinds = { ', 'kinds = { ["CHANNEL"] = true, '),
+            later('ROUTES.FLHNET2.kinds.CHANNEL = true'),
+            later('rawset(ROUTES.FLHNET2.kinds,"CHANNEL",true)'),
+            later('local R = ROUTES; R.FLHNET2["kin".."ds"].CHANNEL = true'),
+            inline('check = flhText', 'check = flhText, kinds = { CHANNEL = true }'),
+            inline('check = flhText', 'check = flhText, ["kinds"] = { CHANNEL = true }'),
+            inline('check = flhText', 'check = flhText, ["kin".."ds"] = { CHANNEL = true }'),
+            source.replace('WHISPER = true', 'WHISPER = true, YELL = true', 1),
+            source[:start] + 'EVILPFX = { kinds = { WHISPER = true } },\n    ' + source[start:],
+            later('local ROUTES = { X = { kinds = { CHANNEL = true } } }'),
+            later('local ROUTES = setmetatable({}, {__index=function() return {kinds={CHANNEL=true}} end})'),
+            source.replace('if not (route and type(kind)',
+                           'route = route or { ["kin".."ds"] = { CHANNEL = true } }\n    if not (route and type(kind)', 1),
+        ]
+        self.assertEqual(len(plants), 14)
+        for i, changed in enumerate(plants):
+            with self.subTest(plant=i), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](changed)
+
+    def test_flh_route_gate_rejects_expression_suffix_replacements(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        read = 'local route = type(prefix) == "string" and ROUTES[prefix]'
+        fields = 'local fieldA="ki".."nds"; local fieldB="ch".."eck"\n    '
+        for prefix, kind in (('ReviewPrefix', 'GUILD'), ('FLHNET2', 'CHANNEL')):
+            # Preserve the old whitelisted subsequence, but replace its result.
+            # The FLH variant also applies when the real ROUTES lookup is truthy.
+            suffix = (' or (prefix=="' + prefix + '" and { [fieldA]={ ' + kind +
+                      '=true }, [fieldB]=function() return "line" end })')
+            plant = fields + read + ((' and kind~="CHANNEL"') if kind == 'CHANNEL' else '') + suffix
+            with self.subTest(prefix=prefix), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(read, plant))
+
+    def test_flh_route_gate_rejects_unreviewed_tables_and_computed_keys_in_check(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        read = 'local route = type(prefix) == "string" and ROUTES[prefix]'
+        for plant in ('local replacement={}', 'local replacement=other[key]'):
+            with self.subTest(plant=plant), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(read, plant + '\n    ' + read))
+
+    def test_debug_upvalue_access_is_forbidden_in_every_addon_module(self):
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        plant = ('local _, captured=debug.getupvalue(Wr.send,1); '
+                 'debug.setupvalue(Wr.send,1,captured)')
+        for path in root.glob('*.lua'):
+            self.check_source(path.read_text(), path.name)
+            for access in (plant, 'local d=debug; d.getupvalue(fn,1)',
+                           '_G["de".."bug"].getupvalue(fn,1)',
+                           '_G.debug.setupvalue(fn,1,{})'):
+                with self.subTest(file=path.name, access=access), self.assertRaises(AssertionError):
+                    self.check_source(path.read_text() + '\n' + access, path.name)
+        self.check_source('-- debug.getupvalue(fn,1)\nlocal inert="debug.setupvalue"')
+
+    def test_flh_membership_side_effect_is_disclosed(self):
+        readme = (Path(__file__).resolve().parents[1] / 'README.md').read_text()
+        self.assertIn("A real Forever Layer Hop client on another realm that hears our messages may introduce "
+                      "our name, realm, map and layer on its own realm's channel, as it does for any Forever "
+                      "Layer Hop user; this is an accepted membership side effect.", readme)
 
     def test_dormant_who_aliases(self):
         for access in ('C_FriendList.SendWho', 'C_FriendList["Send".."Who"]',
@@ -166,6 +324,20 @@ class ApiPolicyTests(unittest.TestCase):
             if 'GetMapPosFromWorldPos' in refs:
                 self.assertEqual(path.name, 'Adapters.lua')
 
+
+    def test_composed_overlord_route_is_frozen_with_flh(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        VERIFY['check_route_policy'](source)
+        anchor = 'OverlordF = { kinds = { '
+        self.assertEqual(source.count(anchor), 1)
+        for field in ('CHANNEL=true, ', 'SAY=1, ', '["GUILD"]=true, '):
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(anchor, anchor + field))
+        for old, new in (('net="overlord"', 'net="flh"'),
+                         ('and "peer" end, net="overlord"', 'and "other" end, net="overlord"')):
+            self.assertEqual(source.count(old), 1)
+            with self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(old, new))
 
     def test_overlord_peer_is_pure_and_uses_owned_transport(self):
         root = Path(__file__).resolve().parents[1] / 'LayerEnemies'

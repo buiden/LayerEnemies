@@ -1,0 +1,52 @@
+diff --git a/test/verify.py b/test/verify.py
+index 03d6099..5eb28ab 100644
+--- a/test/verify.py
++++ b/test/verify.py
+@@ -244,0 +245,6 @@ def check_route_policy(wire):
++    checks = {
++        'FLHNET2': 'flhText', 'LayerSwap': 'layerswapText', 'LEGW1': 'legw1Text',
++        'LFSw': 'function(text) return text == Wr.LFSW_TEXT and "q" or nil end',
++        'WEFF1': 'weText', 'HeadHunter': 'hhText',
++    }
++    nets = {'WEFF1': 'we', 'HeadHunter': 'hh'}
+@@ -279,12 +285,6 @@ def check_route_policy(wire):
+-        # The remaining entry contains the check/net fields, never another kinds
+-        # table. Balance nested expressions without executing the Lua source.
+-        depth = 1
+-        while at < len(tokens) and depth:
+-            token = tokens[at]
+-            if token == ('symbol', '{'):
+-                depth += 1
+-            elif token == ('symbol', '}'):
+-                depth -= 1
+-            at += 1
+-        assert depth == 0, 'unterminated route entry'
+-        take(',')
++        # Consume every field, not just kinds. In particular, a computed key
++        # could replace kinds without spelling that identifier anywhere.
++        take(', check = ' + checks[prefix])
++        if prefix in nets:
++            take(', net = "' + nets[prefix] + '"')
++        take('},')
+@@ -294,2 +294,5 @@ def check_route_policy(wire):
+-    # Freeze the two reads of the private table plus its public copy/boolean
+-    # lookup. Any later assignment, alias, rawset or dynamic access fails closed.
++    # Freeze all references to the table, its local route aliases, and the
++    # check function that returns those aliases. This intentionally rejects
++    # new readers until reviewed: a loop over route can write an aliased kinds
++    # table without mentioning ROUTES/kinds. No additional binding/escape or
++    # assignment (including a computed replacement table) may be overlooked.
+@@ -301,0 +305,10 @@ def check_route_policy(wire):
++        'local function check(prefix, text, kind, target, opts)',
++        'local tag = route.check(text, kind)',
++        'return route,tag,target,opts,kind=="WHISPER"',
++        'if route.net and not withdraw then',
++        'if opts.net ~= route.net then return nil, "network off" end',
++        'local ok, why = N.Net.allowed(route.net, public and "public" or "guild")',
++        'return route, tag, target, opts, public',
++        'local route, tag, public',
++        'route, tag, target, opts, public = check(prefix, text, kind, target, opts)',
++        'if not route then return false, tag end',
+@@ -308 +321 @@ def check_route_policy(wire):
+-        assert word not in ('ROUTES', 'kinds') or i in covered, 'route table mutation or escape'
++        assert word not in ('ROUTES', 'kinds', 'route', 'check') or i in covered, 'route table mutation or escape'

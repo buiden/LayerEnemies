@@ -4,7 +4,7 @@ Usage: python test/watch_mutants.py --lua /path/to/lua5.1
        python test/watch_mutants.py --lua /path/to/lua5.1 --output notes/watch-mutants.json
 
 Each mutant must compile and fail its named assertion, not merely crash. The
-full harness runs before, during and after mutation; source bytes are restored
+watch suite runs before, during and after mutation; source bytes are restored
 in finally, including on timeouts. Do not run alongside writers to this checkout.
 """
 from pathlib import Path
@@ -99,7 +99,7 @@ MUTANTS = [
 
 
 def run(lua):
-    result = subprocess.run([lua, "test/harness.lua"], cwd=ROOT,
+    result = subprocess.run([lua, "test/harness.lua", "--only=watch"], cwd=ROOT,
                             text=True, capture_output=True, timeout=120)
     match = re.search(r"^RESULT: (\d+) tests passed, (\d+) failed, (\d+) assertions$",
                       result.stdout, re.M)

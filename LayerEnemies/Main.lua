@@ -950,7 +950,7 @@ function M.asking()
     local function open(p) return S.tab(p) and S.num(p.at) and time>=p.at and time-p.at<=N.Hop.REPLY end
     if M.hop.pending and not open(M.hop.pending) then N.Hop.clear(M.hop) end
     if M.invite.pending and not open(M.invite.pending) and not (M.auto and M.auto.group) then M.invite.pending=nil end
-    return M.hop.pending~=nil or M.invite.pending~=nil or (M.hopAnyState and M.hopAnyState.round~=nil)
+    return M.hop.pending~=nil or M.invite.pending~=nil or N.FLHMember.pending() or (M.hopAnyState and M.hopAnyState.round~=nil)
 end
 -- Our own state for GuildHost.decide; member is read only after the early checks pass.
 function M.hostOwn()
@@ -1086,8 +1086,8 @@ function M.heardBook()
     if wall then N.Hosts.prune(M.heard,wall) end
     return M.heard.heard
 end
--- FLH presence only. Decoded requests/offers have no side effects in PR 3a:
--- no membership, whisper replies, directory, invitation or hop request.
+-- Preserve the reviewed presence reader. F2 handles only bounded WP/CQ debts
+-- and locally correlated guest offers; claims never gain generic host authority.
 function M.flhIn(text,kind,sender)
     kind=S.str(kind,20)
     if kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return end
@@ -1096,7 +1096,9 @@ function M.flhIn(text,kind,sender)
     if A.inCombat() or A.inInstance()~=false then return end
     if kind=="GUILD" and S.call(IsInGuild)~=true then return end
     local msg=N.FLH.decode(text)
-    if not msg or (msg.cmd~="HI" and msg.cmd~="WR" and msg.cmd~="CA") then return end
+    if not msg then return end
+    N.FLHMember.received(msg,kind,sender)
+    if (msg.cmd~="HI" and msg.cmd~="WR" and msg.cmd~="CA") then return end
     local wall=A.wall()
     if not wall then return end
     local claim
@@ -1334,6 +1336,8 @@ function M.hostPlace(c)
     if c.flhKey then
         local key=#c.flhKey>20 and (c.flhKey:sub(1,20).."...") or c.flhKey
         local claim="FLH key "..key.." (claim, "..ago(c.flhAge).." ago)"
+        local status=N.FLHMember.detail(c)
+        if status then claim=claim.."; "..status end
         text=c.layer and (text.." / "..claim) or claim
     end
     return text
@@ -1409,6 +1413,9 @@ function M.askInvite(name)
 end
 -- A zone who query is made directly in this click stack; only its bounded follow-up uses timers.
 function M.hopAnyBusy()
+    if N.FLHMember.pending() then
+        M.say("LayerEnemies: an FLH hop is still open; /le hop stop first."); return true
+    end
     if M.hopAnyState and M.hopAnyState.round then
         M.say("LayerEnemies: a hop-any round is still open; /le hop stop first.")
         return true
@@ -1456,9 +1463,10 @@ function M.hopAnySchedule(r)
     end) then M.hopAnyStop("timer unavailable") end
 end
 function M.hopAnyStop(reason)
+    local flh=N.FLHMember.stop(reason)
     local st=M.hopAnyState
     A.whoEnd("stop")
-    if not st or not st.round then return false end
+    if not st or not st.round then return flh end
     N.HopAny.close(st,now())
     if M.invite.pending and M.invite.pending.any then M.invite.pending=nil end
     M.say("LayerEnemies: "..(reason or "search stopped")..". Sent requests cannot be recalled; a late invite may still arrive.")
@@ -1606,6 +1614,7 @@ end
 -- A Friendly/hosts row that has a layer from Bulo or LayerSwap: Hop via that host. Same shape and the same
 -- "what was shown is what is asked" rule as hopPreview/hopTo. Returns nil for a row without a host record.
 function M.hostPreview(c)
+    if c.flhKey and not N.Hop.hostCandidate(c) then return N.FLHMember.preview(c) end
     local ctx=M.hopContext()
     local record=N.Hop.hostRecord(c,ctx.own.zone)
     if not record then return nil end
@@ -1625,6 +1634,7 @@ end
 -- c: the row as it was shown; shown: the preview the user clicked (nil from /le hop host). One click, one whisper
 -- through Hop.request (its preconditions and cooldowns); a row that changed since it was shown sends nothing.
 function M.hopHostTo(c,shown)
+    if c.flhKey and not N.Hop.hostCandidate(c) then return N.FLHMember.hop(c,shown) end
     if M.hopAnyBusy() then return false end
     if not L.key(M.store.bulo) or c.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
     local live
@@ -1659,7 +1669,7 @@ function M.hopHost(index)
     local row=index and list.rows and list.rows[index]
     if not row then M.say("LayerEnemies: no such number in the last /le hosts list."); return false end
     if not L.key(M.store.bulo) or row.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
-    if not N.Hop.hostRecord(row,M.store.zone) then
+    if not row.flhKey and not N.Hop.hostRecord(row,M.store.zone) then
         M.say("LayerEnemies: no host addon is known for "..row.name.."; /le ask "..index.." puts a whisper in your chat box instead.")
         return false
     end
@@ -1726,6 +1736,7 @@ end
 -- online guild member), within 120 s of the ask, while not grouped, not in an instance and not in combat. Anything
 -- else is left to the player.
 function M.partyInvite(name)
+    N.FLHMember.checkGuest()
     -- Any readable, not-known-failed inviter ends fan-out; auto-accept below still requires an asked name.
     if M.hopAnyState and M.hopAnyState.round then
         if not M.hopAnySafe() then return end
@@ -1752,6 +1763,7 @@ function M.partyInvite(name)
     local ok,why=N.Wire.accept(time)
     -- the client refused or threw: the ask is spent all the same (no second try on the next invite)
     if not ok then if p.any or why=="error" then M.invite.pending=nil end; return end
+    if p.flh then N.FLHMember.stop() end
     M.invite.pending=nil   -- one accept per ask: a later invite from the same host is left to the player
     N.Wire.hideInvite()
     after(0,function() N.Wire.hideInvite() end)
@@ -2300,6 +2312,7 @@ function M.hopDone()
 end
 function M.groupCheck()
     local grouped=A.grouped()
+    if grouped then N.FLHMember.stop("joined a group") end
     if grouped and M.hopAnyState and M.hopAnyState.round then M.hopAnyStop("joined a group") end
     -- the hop group ended (left by hand or otherwise): stop tracking at once
     if not grouped and M.wasGrouped and M.auto and M.auto.group and M.auto.group.joinedAt then M.auto.group=nil end
@@ -2347,8 +2360,9 @@ function M.setFindNotice(on)
 end
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
-    if not on then N.OwnDeath.cancel(); N.BNet.cancel(nil,nil,true); M.overlordCancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
+    if not on then N.OwnDeath.cancel(); N.BNet.cancel(nil,nil,true); M.overlordCancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end; N.FLHMember.stop("share off") end
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
+    N.Directory.sync()
     -- Off cancels all pending guild relays as well as our sync answers. Queued guild/own embassy lines
     -- are dropped by their still checks. A quick off/on must not revive the cancelled relay timers.
     if not on and M.relay then N.Relay.clear(M.relay) end
@@ -2533,7 +2547,7 @@ function M.start()
         -- replies to our hop request, and Bulo guild layer lines; we answer neither
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LayerSwap")
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LFSw")
-        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FLHNET2") -- receive only
+        S.call(C_ChatInfo.RegisterAddonMessagePrefix,"FLHNET2") -- legacy receive owner; F2 sends through Wire
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"LEGW1")
         -- the Spy family: read only (lane C1)
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"[Spy]")
@@ -2570,6 +2584,7 @@ function M.start()
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
         if command=="hop stop" then guarded(M.hopAnyStop); return end
         if command=="hop any" then guarded(M.hopAny); return end
+        if command=="hop flh" then guarded(N.FLHMember.hop); return end
         if command=="hop auto on" then guarded(M.setAutoHop,true); return end
         if command=="net" or command:match("^net%s") then guarded(M.net,command); return end
         if command=="quiet" or command:match("^quiet%s") then guarded(M.quiet,command); return end
