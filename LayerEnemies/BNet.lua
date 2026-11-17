@@ -140,9 +140,12 @@ function BN.send(net,id,prefix,text,prio,guard,sent)
     queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,guard=guard,sent=sent}
     return true
 end
-function BN.cancel(net)
+function BN.cancel(net,keepStops)
     for i=#queue,1,-1 do
-        if not net or queue[i].net==net then refuse(queue[i].net); table.remove(queue,i) end
+        local q=queue[i]
+        local stop=keepStops and q.net=="overlord" and q.prefix=="OverlordF" and q.prio=="owed"
+            and N.Main.overlordStopping(q.text,"BNET",q.id)
+        if (not net or q.net==net) and not stop then refuse(q.net); table.remove(queue,i) end
     end
 end
 function BN.queued() return #queue end

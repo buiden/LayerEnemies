@@ -135,6 +135,32 @@ for _,route in ipairs({"BNET","WHISPER","GUILD","PARTY"}) do
     end)
 end
 
+for _,route in ipairs({"BNET","WHISPER"}) do
+    for _,mode in ipairs({"twice","three","switch","consent"}) do
+        test("S1 exactly one stop "..route.." "..mode,function()
+            local N,refresh=fixture();refresh()
+            for i=1,320 do if i%120==0 then refresh() end;H.advance(1) end
+            local s=N.Main.overlordFeed.sessions["birch scout"]
+            yes(s and s.opened,"actual request opened the session")
+            if route=="WHISPER" then
+                -- Legacy route cleanup only: no new group/whisper source selection.
+                s.route="WHISPER";s.id=nil
+            end
+            N.Main.setShare(false)
+            if mode=="switch" then N.Net.setSwitch("overlord",false)
+            elseif mode=="consent" then N.Net.setConsent("guild")
+            else N.Main.setShare(false);if mode=="three" then N.Main.setShare(false) end end
+            for i=1,5 do H.advance(1) end
+            local stops=sends("|HR|8:X:")
+            print("PROBE stop "..route.." "..mode..": X="..#stops)
+            eq(#stops,1,"same-tick cancellation preserves exactly one owed stop")
+            eq(stops[1].kind,route=="BNET" and "BN" or "WHISPER")
+            for i=1,70 do H.advance(1) end
+            eq(#sends("|HR|8:X:"),1,"never retry a completed stop")
+        end)
+    end
+end
+
 test("clock ignores unselected account NH and rejects offline or foreign-pool friends",function()
     local N,refresh,hear,e,online=fixture()
     refresh(nil,"pve");N.Main.overlordTick(H.clock());H.advance(1)

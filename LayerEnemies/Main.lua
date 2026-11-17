@@ -2343,7 +2343,7 @@ function M.setFindNotice(on)
 end
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
-    if not on then N.OwnDeath.cancel(); N.BNet.cancel(); M.overlordCancel() end
+    if not on then N.OwnDeath.cancel(); N.BNet.cancel(nil,true); M.overlordCancel() end
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
     -- Off cancels all pending guild relays as well as our sync answers. Queued guild/own embassy lines
     -- are dropped by their still checks. A quick off/on must not revive the cancelled relay timers.
