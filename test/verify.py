@@ -370,7 +370,7 @@ def main():
         'networks': 'Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches',
         'sends': 'LayerSwap/WHISPER, LEGW1/GUILD (including K1 own-death, share switch, 1/120s and 5/30min), LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and '
                  'HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope); '
-                 'OverlordF NH presence, HA owed answers and HR feed request/keep through Wire or BN.send '
+                 'OverlordF NH presence and HA owed answers through Wire or BN.send; feed unavailable (no HR), no ranking capability claim; '
                  '(WHISPER/GUILD/PARTY/RAID and Battle.net as documented in README; no forwarding or CHANNEL sends)',
         'visual_design': 'Approved B implemented with fourth Find tab; native client appearance unverified',
     }

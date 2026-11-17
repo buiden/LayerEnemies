@@ -3,14 +3,17 @@
 ## Overlord kill feed (C3)
 
 Same **2.5.4** immutable pin and **All Rights Reserved / protocol only** boundary
-as C2 below. `OverlordFeed.lua` independently implements the minimal v8 empty
-comparison client and solicited `HB 8:U` named-zone reader. No donor code,
-campaign/reset table, location table, library or asset copied or executed.
-Source references: `SyncRelay.lua:2843–2851` (`~lp8` capability),
-`SyncLeaderboardPages.lua:2297–2358,2941–3109` (row grammar and subscription),
-`SyncAux.lua:2005–2021` (owner K epoch). Campaign E is learned per direct peer
-from validated wire data, never guessed. See README's C3 send table and
-`notes/overlord-peer-build.md` for limits and verification.
+as C2 below. `OverlordFeed.lua` retains an independently written, **ship-disabled**
+`HB 8:U` named-zone protocol engine. The actual presence carries no capability
+suffix and creates no feed subscription. No donor code, campaign/reset table,
+location table, library or asset copied or executed.
+Source references: `SyncRelay.lua:2662-2664,2843-2851` (only the cumulative
+`~ld~lr~lp6` chain reaches 8; it claims ranking-page support that LE lacks),
+`SyncLeaderboardPages.lua:1831-1840,2297-2358,2544-2714,2941-3109` (race-bearing
+feed rows, ranking duties and subscription gate), `SyncAux.lua:1824-1896,2010-2021`
+(race wire facts and exact thirteen-field owner K). Campaign E is learned per
+direct peer from validated wire data, never guessed. See README's unavailable
+feed section and `notes/overlord-c3-review.md` for verification and limitations.
 
 ## Overlord direct peer (C2)
 

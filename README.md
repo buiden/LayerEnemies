@@ -1,77 +1,67 @@
 # LayerEnemies
 
-## Unreleased - Overlord kill feed
+## Unreleased - Overlord kill feed (unavailable: fails closed)
 
-| What LE sends | To whom | Maximum rate | Stops when |
-|---|---|---|---|
-| Fresh `HR 8:V:E:<flagged nonce>:1:LK:0:0:<enemy faction>` | At most **two** live, announced direct Overlord peers; whisper or **Battle.net friends only** | Initial request and every retry/keep share **one frame/200 s/source**, checked again at actual dispatch | Any C2 stop below; donor installed; unknown/stale peer epoch; route/friend/identity lost |
-| `HR 8:K:E` keep-alive | The same sources after a matching HA answer or accepted HB feed | The same **one/200 s/source** slot, not an extra allowance | Same stops, or no feed/answer within 420 s |
-| C2 `NH` now appends **`~lp8`** | Exactly C2's existing recipients | Exactly C2's existing rates, no extra announcement lane | C2 stops below |
+**The feed is not reachable in this build.** LE does not issue feed requests or
+keep-alives. NH remains **`LayerEnemies <installed TOC version>`**, with no
+capability suffix (the current build emits `LayerEnemies 1.1.0`). Overlord 2.5.4
+reads that as capability **5** and will not create a v8 feed subscription.
 
-**Share off / Guild only / network off send nothing, not even `HR X`.** They
-cancel the local lease immediately, including off/on before the next timer. The
-provider expires its own lease. Combat and instances also stop all sends and
-new evidence; no extra stop packet, retry burst, forwarding or hosting is added.
-Battle.net still has **eight frames/minute** within the shared **30/minute**, one/
-second queue. Whisper remains within Wire's **20/minute**, four/target/minute.
-Failed API calls, queued-but-unsent requests and failed announcements do not
-establish a feed lease. A source must have received an actual successful LE NH
-send attempt first (API success is not a delivery receipt).
+The previous `~lp8` claim was wrong: it is also parsed as 5. Only the cumulative
+**`~ld~lr~lp6`** chain reaches 8 (`SyncRelay.lua:2843-2851`). These are ranking
+page capabilities, not independent feed permissions:
 
-**Campaign epoch settled:** LE learns `E` *per direct peer*, from a well-formed
-owner `K` (subject equals origin and `B<E>` agrees), or that peer's addressed v8
-`HR V LK` request. Both arrive through the already validated pool/path/time
-reader. `E` must be positive and not in the future. It is that peer's advertised
-campaign, **not a globally authenticated date**; LE uses it only to ask that
-same peer. No hardcoded reset calendar, current-time guess or donor global/API.
-Knowledge expires after **600 s** without new evidence; accepted same-epoch
-feeds refresh it. Pool or epoch changes invalidate the lease. **If E is unknown,
-no feed request is sent.** A donor that only says NH will therefore remain silent
-until campaign-bearing traffic is heard.
+| Token | Donor meaning | LE's limitation |
+|---|---|---|
+| `~lp6` | Paged leaderboard protocol 6: multi-stream ranking catch-up (`SyncRelay.lua:69`, `2843-2844`; `SyncLeaderboardPages.lua:2943-2947`, `3011-3027`) | No ranking-page exchange or snapshot store |
+| `~lr` | Protocol 7, race-bearing ranking rows (`SyncRelay.lua:2662-2663`; `SyncLeaderboardPages.lua:2943`) | The feed's race row reader is not a ranking-page implementation |
+| `~ld` | Protocol 8, differential ranking pages (`SyncRelay.lua:2664`; `SyncLeaderboardPages.lua:2544-2714`) | LE does not consume/serve the fingerprint, row-list and differing-page exchange |
 
-**Capability settled:** `SyncRelay.lua:2843–2851` recognizes trailing `~lp8`
-directly; `SyncLeaderboardPages.lua:2962–2969` accepts v8 from capability 8. This
-is the smallest token needed for our implemented **empty V comparison and feed
-client**, not a claim to full ranking synchronization. No `~l9`, `~la`, `~lb`,
-rank proof, map fingerprint, helper flag or Overlord-branded release. The NH
-identity remains **LayerEnemies + its actual installed TOC version**.
+**`lr` does not mean relay.** No token above requires transport forwarding, but
+claiming page support merely to obtain the feed would still be false. A busy
+reply and an empty comparison are not that support. Section 6's location-only,
+tracked-names-only feed client and bounded owed answers remain the scope; a
+ranking synchronization implementation is not smuggled into this repair.
+The owner-authorized fail-closed alternative is used instead. Donor rejection
+occurs before subscription (`SyncLeaderboardPages.lua:2962-2967`, `3031-3092`).
 
-**What reaches Find:** solicited `HB 8:U` length-prefixed `z`, `k`, `s` rows.
-A `z#map` marker resolves via the existing client map reader; `z@front` is shown
-as a literal front hint, not guessed into a map. Markers last only for that
-payload. Full `k` supplies an opposite-faction identity; `s` is accepted only
-after a full identity from the **same subscription**. Only tracked/watched names
-are retained, only increasing positive totals with a zone are offered through
-`Src.offer`, as **relayed claims, time unknown, no layer, no Ask/Hop**. The
-existing measured Find row draws the text; no new UI widget or unmeasured line.
-The feed gives no end-to-end observation time. Receipt time controls expiry,
-not a fabricated sighting time; donor per-hop 180 s zone memory is not proof of
-original freshness. No SavedVariables/schema additions or saved feed names.
+The bounded protocol engine is retained and corrected, **dormant behind a ship
+gate with no player override**. Its offline fixtures explicitly lift that gate;
+their passes are not proof of live feed reachability:
 
-Limits after C2's guild-reserved framing/work gate: **two sessions**, **600 bytes/
-payload**, **48 rows**, **2–250 bytes/row**, at most three length-prefix digits;
-**240 rows and 14,400 bytes/minute/source**, plus a separate **480-row / 28,800-byte
-global minute budget** that survives source rotation and privacy cancellation.
-Markers count against LE's row budget, slightly
-stricter than the donor. **64 tracked identities/source**, pruned when untracked
-or 900 s old. Malformed payloads commit no partial rows. Initial feed eligibility
-is 600 s after actual request; a live source lasts 420 s since its last accepted
-word. Nonmatching nonce/epoch/target, multihop, unsolicited and unknown compact
-rows are ignored; no unsolicited stop/forward is emitted.
+- Epochs are source/pool scoped, positive and not future-dated. Only the exact
+  **13-field K** layout with valid race, sex, matching `B<E>` and level can set
+  the epoch; 11/12-field forms and garbage tails are refused. Race/sex precede
+  bucket/level (`SyncAux.lua:2010-2021`). This is deliberately stricter than the
+  donor's optional shorter K. A well-formed addressed `HR V LK` can also teach E.
+- Full `k` identity rows accept donor race strings such as **`o2`** and
+  **`Skyborne3`**, not numeric race IDs (`SyncAux.lua:1875-1896`;
+  `SyncLeaderboardPages.lua:1831-1840`). A later compact `s` resolves only against
+  its subscription's known full identity.
+- An NH received while HR is queued cannot invalidate its successful-send
+  receipt through a stale enqueue clock. The receipt uses revalidated live
+  dispatch context; failed sends, replaced accounts and privacy stops still
+  grant no lease.
+- Engine bounds remain two sources, one request/keep per 200 s/source, 600-byte
+  payloads, 48 rows, 250 bytes/row, 64 tracked identities/source, 240 rows and
+  14,400 bytes/minute/source; global 480 rows and 28,800 bytes/minute survive
+  source churn. Locations are relayed, time unknown, no layer and no Ask/Hop.
+  No ranking data, feed identities or new schema are saved.
 
-HA S/P acknowledges the minimal comparison; HA R unarms reception until a later
-capped fresh request. HB D comparison fingerprints, LC capture history, LB,
-fights and other aggregates are **not locations** and not imported. LE does not
-pull a ranking snapshot: a compact row whose full identity was missed is lost
-until a later full `k`. Provider feed service also requires **the provider's own
-custom-channel-down fallback**, not just LE's refusal to send CHANNEL traffic.
-Cross-faction coverage requires an opposite-faction Overlord friend. A silent
-provider or an unknown epoch adds no Find result.
+**No stop message is sent on switch-off**, as ruled. Local leases and pending
+work are cancelled immediately. Source correction: 200 s is the donor's
+*keep-alive interval*, not subscription expiry; its subscriber TTL is **900 s**
+after the last renewal (`SyncLeaderboardPages.lua:151`, `2048`). This build
+opens no remote subscription. **No map requests are answered: LE does not host.**
+Owed leaderboard comparisons claim equality (`HA S ...:0:0`) only when the
+requester's count and hash are also zero; otherwise the bounded `HA R` refusal
+is sent. LE never claims its empty store equals a nonempty remote store.
 
 Tests: `lua test/harness.lua --only 'Overlord feed:'`,
 `python3 test/overlord_feed_mutants.py [--write]`, `python3 test/verify.py`.
-Independent fixtures, no donor execution. Native checks **not run (alpha,
-owner's decision)**. C2's send table and shared limits follow.
+The emitted NH is checked against an independently written test-side equivalent
+of the donor's capability parser. No donor code copied or executed. Native checks
+**not run (alpha, owner's decision)**. C2's send table and shared limits follow.
 
 ## Unreleased - Overlord direct peer
 
@@ -82,7 +72,7 @@ owner's decision)**. C2's send table and shared limits follow.
 | Own `NH` (`R2` + `BR`) | Up to five live Battle.net friends plus two rotating unheard friends | One cycle/120 s; once/120 s per account | Any stop below |
 | Owed targeted `NH` | Direct whisper sender addressing us | Once/150 s per peer; six owed answers/minute total | Any stop below |
 | Own targeted `NH` greeting | Read-only Overlord directory members | One/minute, six live partners; same candidate no sooner than 600 s | Any stop below |
-| Empty `HA S ... :0:0` for v8 `HR V`; `HA R` for unsupported page requests | Direct addressed whisper/Battle.net requester only | One shared NH/HA 150 s gap per peer, sharing the six owed answers/minute | Any stop below |
+| `HA S ... :0:0` only for a zero-count/hash v8 `HR V`; `HA R` otherwise | Direct addressed whisper/Battle.net requester only | One shared NH/HA 150 s gap per peer, sharing the six owed answers/minute | Any stop below |
 
 **All sends stop** with `/le share off`, Guild only (`/le net guild`),
 `/le net overlord off`, combat, instances, or an unreadable ruleset pool,

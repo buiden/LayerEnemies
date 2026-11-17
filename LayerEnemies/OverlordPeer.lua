@@ -111,7 +111,7 @@ function P.receive(st,p,route,sender,id,c)
             or tonumber(e)>c.wall or #seq>5 or tonumber(seq)<1 or tonumber(seq)>10000 then return r end
         local stream,count,hash=tail:match("^([A-Z]+):(%d+):(%d+)[AH%-:]*$")
         local empty=v=="8" and op=="V" and (stream=="LK" or stream=="LC" or stream=="LR" or stream=="LB")
-            and #count<=8 and #hash<=10
+            and #count<=8 and #hash<=10 and tonumber(count)==0 and tonumber(hash)==0
         if op=="F" then return r end
         local body=table.concat({v,empty and "S" or "R",e,nonce,seq},":")
         if empty then body=body..":"..stream..":0:0" end

@@ -2,8 +2,12 @@
 local H=...
 local eq,yes,no=H.eq,H.yes,H.no
 local function test(n,f) H.test("Overlord feed: "..n,f) end
-local function setup()
+-- All protocol-engine fixtures explicitly lift the ship gate offline. Only the
+-- two M1 tests use setup(false), the real shipped policy. These forced fixtures
+-- prove dormant parsers/queue behavior, NOT interoperability or feed reachability.
+local function setup(testEngine)
     local N=H.load();N.Net.SHIP.overlord=true
+    if testEngine~=false then N.OverlordFeed.available=true end
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
     UnitName=function() return "Alice Vale",GetRealmName() end
@@ -45,6 +49,51 @@ end
 local function known(N,name)
     local p=N.Known.get(N.Main.find.known,name or "Enemy One",H.clock());return p and p.reported
 end
+
+-- Independent equivalent of the pinned NH capability parser, not donor code.
+-- SyncRelay.lua:2843-2851: literal terminal lp6 is the entrance; each complete
+-- contiguous chain found anywhere in the advert enables the next level.
+local function donorCapability(text)
+    if text:match("~lp(%d+)$")~="6" then return 5 end
+    local level,chain=6,"~lp6"
+    for _,token in ipairs({"lr","ld","l9","la","lb"}) do
+        chain="~"..token..chain
+        if not text:find(chain,1,true) then break end
+        level=level+1
+    end
+    return level
+end
+
+test("honest advert omits unsupported ranking page capabilities",function()
+    local vectors={{"plain",5},{"~lp8",5},{"~lp06",5},{"~lp6",6},{"~lr~lp6",7},
+        {"~ld~lr~lp6",8},{"~l9~ld~lr~lp6",9},{"~la~l9~ld~lr~lp6",10},
+        {"~lb~la~l9~ld~lr~lp6",11},{"~ld~lr~lp6junk~lp6",8},{"~ld~lp6",6}}
+    for _,v in ipairs(vectors) do eq(donorCapability(v[1]),v[2]) end
+    local N=setup(false);hear("NH","2.5.4~ld~lr~lp6")
+    local hello=H.sent()[1];yes(hello)
+    local payload=hello.text:match("|NH|(.*)$")
+    eq(payload,"LayerEnemies 1.1.0","no unsupported paged ranking claim")
+    eq(donorCapability(payload),5,"donor rejects this non-ranking client for v8 feed")
+end)
+
+test("feed fails closed without honest ranking page support",function()
+    local N=setup(false);local e=epoch(N)
+    eq(#requestSends(),0,"no request that the donor cannot honestly serve")
+    eq(next(N.Main.overlordFeed.sessions),nil)
+    feed(e,{"z#1434",full()});eq(known(N),nil)
+end)
+
+test("empty comparison never claims equality to nonempty requester",function()
+    local N=setup(false);local P=N.OverlordPeer;local st=P.new()
+    local c={now=100,wall=1700000000,pool="global",me="Alice Vale",version="1.1.0",faction="A",allowed=true,own=true,out={}}
+    c.send=function(_,text) c.out[#c.out+1]={text=text};return true end
+    local p={origin="Birch Scout",hops=0,target=c.me,kind="HR",payload="8:V:1699488000:123n4n5f:1:LK:9:7:H"}
+    P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,1)
+    yes(c.out[1].text:find("|HA|8:R:",1,true),"S means same, not merely our own count")
+    c.now=250;p.payload="8:V:1699488000:123n4n5f:1:LK:0:0:H"
+    P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,2)
+    yes(c.out[2].text:find("|HA|8:S:1699488000:123n4n5f:1:LK:0:0",1,true))
+end)
 
 test("only exact donor thirteen-field K establishes an epoch",function()
     local N=setup();local e=GetServerTime()-100
@@ -421,5 +470,5 @@ test("unknown epoch silent then direct owner K opens truthful v8 subscription",f
     eq(out[1].kind,"WHISPER");eq(out[1].target,"Birch Scout")
     yes(out[1].text:find("|Alice Vale|HR|8:V:"..e..":",1,true))
     yes(out[1].text:match(":%d+n%d+n%d+f:1:LK:0:0:H$"))
-    local hello=H.sent()[1];yes(hello.text:find("LayerEnemies 1.1.0~lp8",1,true));no(hello.text:find("~q",1,true))
+    local hello=H.sent()[1];yes(hello.text:find("LayerEnemies 1.1.0",1,true));no(hello.text:find("~",1,true))
 end)

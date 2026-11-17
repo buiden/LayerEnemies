@@ -1,9 +1,13 @@
 -- Overlord 2.5.4 protocol only; independently written, no donor code.
--- Minimal v8 empty comparison + named kill feed, not a ranking host.
+-- Dormant v8 comparison + named kill feed, not a ranking host; see ship gate.
 local _,N=...
 local Q,S,F,P={},N.Safe,N.Find,N.OverlordPeer
 N.OverlordFeed=Q
-Q.capability="~lp8" -- SyncRelay's trailing ~lp(%d+) recognizes 8 directly.
+-- lp6/lr/ld claim ranking pages, race-bearing pages, and differential v8 pages.
+-- This location-only reader implements none of that ranking exchange. Do not
+-- impersonate it merely to pass the provider's >=8 gate (SyncRelay:2843-2851).
+Q.capability=""
+Q.available=false -- fail closed; no player option until honest page support exists.
 function Q.new() return {sessions={},serial=0} end
 local function uint(v,max,min)
     if not S.str(v,10) or not v:match("^%d+$") then return nil end
@@ -168,6 +172,7 @@ function Q.receive(st,peer,p,r,c)
     end
 end
 function Q.tick(st,peer,c)
+    if not Q.available then Q.cancel(st);return end
     if not ready(c) then Q.cancel(st);return end
     if st.pool~=c.pool or st.me~=c.me then Q.cancel(st);st.pool,st.me=c.pool,c.me end
     for key,s in pairs(st.sessions) do

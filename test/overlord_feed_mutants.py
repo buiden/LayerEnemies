@@ -3,6 +3,7 @@ import argparse
 from overlord_peer_mutants import run
 
 RULES = [
+ ('fail closed unavailable feed','Q.available=false','Q.available=true'),
  ('receipt uses live context','if not valid(live) then return end','if not valid() then return end'),
  ('race strings not integers','(#f==9 and not raceWire(f[9]))','(#f==9 and not uint(f[9],255,1))'),
  ('race strings validated','(#f==9 and not raceWire(f[9]))','false'),
@@ -55,13 +56,14 @@ RULES = [
  ('time unknown','kind="relayed",got=c.now','kind="relayed",got=c.now,at=c.now'),
  ('claim provenance','kind="relayed",got=c.now','kind="self",got=c.now'),
  ('empty count/hash',':1:LK:0:0:',':1:LK:1:1:'),
- ('v8 capability','Q.capability="~lp8"','Q.capability="~lp7"'),
+ ('honest capability','Q.capability=""','Q.capability="~ld~lr~lp6"'),
  ('positive identities only','uint(f[2],15000)','uint(f[2],15001)'),
  ('untrack prune','not c.tracked(value.name) or c.now<value.at','c.now<value.at'),
  ('no active resubscribe','or c.now<s.created then','or c.now<s.created or c.now-s.created>=900 then'),
 ]
 MUTANTS=[(rule,'OverlordFeed.lua',old,new,'Overlord feed:') for rule,old,new in RULES]
 MUTANTS += [
+ ('no false equal response','OverlordPeer.lua','and tonumber(count)==0 and tonumber(hash)==0','and true','Overlord feed:'),
  ('share cancels lease','Main.lua','N.BNet.cancel(); M.overlordCancel()','N.BNet.cancel()','Overlord feed:'),
  ('guild cancels lease','Net.lua','if level~="public" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end','if false then N.Main.overlordCancel() end','Overlord feed:'),
  ('switch cancels lease','Net.lua','if on~=true and key=="overlord" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end','if false then N.Main.overlordCancel() end','Overlord feed:'),
