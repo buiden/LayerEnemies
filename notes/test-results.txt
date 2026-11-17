@@ -1491,8 +1491,12 @@ PASS WarBoard: public stops new sends and cancels queued answers
 PASS WarBoard: switch stops new sends and cancels queued answers
 PASS WarBoard: combat stops new sends and cancels queued answers
 PASS WarBoard: instance stops new sends and cancels queued answers
-PASS WarBoard: stand down blocks own hellos but preserves owed answers
+PASS WarBoard: stand down cancels queued H and A when the real addon loads
 PASS WarBoard: live account identity and ruleset rechecked at dispatch
+STANDDOWN loaded=true minutes=30 H=0 A=0 scans=0 BN_SHRD=30
+PASS WarBoard: stand down H and A over thirty minutes of incoming H traffic
+STANDDOWN loaded=false minutes=30 H=3 A=180 scans=30 BN_SHRD=30
+PASS WarBoard: donor absent H and A over thirty minutes of incoming H traffic
 PASS WarBoard: SHRD own zone and shard through registry, with sequence not seconds; clear and expiry
 PASS WarBoard: FBLP world coordinates convert only via client with axis order; labels survive no conversion
 PASS WarBoard: FREC names killer not victim, self witness relay and cached retain original age
@@ -1612,4 +1616,4 @@ PASS Stack: WarBoard position subject survives Wanted observer wording on GUILD
 PASS Stack: WarBoard position subject survives Wanted observer wording on PARTY
 PASS Stack: WarBoard position subject survives Wanted observer wording on RAID
 PASS Stack: WarBoard position subject survives Wanted observer wording on CHANNEL
-RESULT: 1591 tests passed, 0 failed, 394371 assertions
+RESULT: 1593 tests passed, 0 failed, 403987 assertions

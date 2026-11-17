@@ -68,7 +68,7 @@
     "selector": "WarBoard: H delayed dispatch",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: H delayed dispatch never repeats an account before six hundred actual seconds: test/src_warboard.lua:614: queued early does not permit an early actual hello: expected 1, got 2"
+      "FAIL WarBoard: H delayed dispatch never repeats an account before six hundred actual seconds: test/src_warboard.lua:656: queued early does not permit an early actual hello: expected 1, got 2"
     ]
   },
   {
@@ -77,7 +77,7 @@
     "selector": "WarBoard: H admission",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: H admission gap is six hundred even before dispatch: test/src_warboard.lua:671: not equal: expected 0, got 1"
+      "FAIL WarBoard: H admission gap is six hundred even before dispatch: test/src_warboard.lua:713: not equal: expected 0, got 1"
     ]
   },
   {
@@ -95,7 +95,7 @@
     "selector": "WarBoard: A dispatch cap",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:524: second delayed cohort dropped, not burst: expected 6, got 7"
+      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:566: second delayed cohort dropped, not burst: expected 6, got 7"
     ]
   },
   {
@@ -113,7 +113,7 @@
     "selector": "WarBoard: A dispatch cap",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:520: shared cap holds answers: expected 0, got 1"
+      "FAIL WarBoard: A dispatch cap survives a shared-budget delay and global queue never exceeds thirty: test/src_warboard.lua:562: shared cap holds answers: expected 0, got 1"
     ]
   },
   {
@@ -122,7 +122,7 @@
     "selector": "WarBoard: live account identity",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: live account identity and ruleset rechecked at dispatch: test/src_warboard.lua:290: not equal: expected 0, got 1"
+      "FAIL WarBoard: live account identity and ruleset rechecked at dispatch: test/src_warboard.lua:299: not equal: expected 0, got 1"
     ]
   },
   {
@@ -149,7 +149,16 @@
     "selector": "WarBoard: stand down",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: stand down blocks own hellos but preserves owed answers: test/src_warboard.lua:283: not equal: expected 0, got 1"
+      "FAIL WarBoard: stand down H and A over thirty minutes of incoming H traffic: test/src_warboard.lua:364: stand down leaves discovery stopped: expected 0, got 30"
+    ]
+  },
+  {
+    "rule": "stand down cancels queued answers",
+    "file": "WarBoard.lua",
+    "selector": "WarBoard: stand down cancels queued H and A",
+    "killed": true,
+    "failures": [
+      "FAIL WarBoard: stand down cancels queued H and A when the real addon loads: test/src_warboard.lua:287: loading the donor cancels both queued kinds: expected 0, got 1"
     ]
   },
   {
@@ -167,7 +176,7 @@
     "selector": "WarBoard: no FBAK or request",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: no FBAK or request answer or forwarding for any application type: test/src_warboard.lua:543: not equal: expected 0, got 5"
+      "FAIL WarBoard: no FBAK or request answer or forwarding for any application type: test/src_warboard.lua:585: not equal: expected 0, got 5"
     ]
   },
   {
@@ -239,7 +248,7 @@
     "selector": "WarBoard: fragment limits",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: fragment limits sixty four parts sixteen streams ninety seconds and sender isolation: test/src_warboard.lua:458: not equal: expected 16, got 17"
+      "FAIL WarBoard: fragment limits sixty four parts sixteen streams ninety seconds and sender isolation: test/src_warboard.lua:500: not equal: expected 16, got 17"
     ]
   },
   {
@@ -284,7 +293,7 @@
     "selector": "WarBoard: inbound rolling",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:500: not equal: expected 200, got 201"
+      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:542: not equal: expected 200, got 201"
     ]
   },
   {
@@ -293,7 +302,7 @@
     "selector": "WarBoard: inbound rolling",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:502: peer bound independent of input buckets: expected 200, got 201"
+      "FAIL WarBoard: inbound rolling frame cap applies before decoding and bounds sender rate memory: test/src_warboard.lua:544: peer bound independent of input buckets: expected 200, got 201"
     ]
   },
   {
@@ -302,7 +311,7 @@
     "selector": "WarBoard: dedupe FBLP",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: dedupe FBLP retains observed and received clocks across differently routed copies: test/src_warboard.lua:687: not equal: expected 10, got 71"
+      "FAIL WarBoard: dedupe FBLP retains observed and received clocks across differently routed copies: test/src_warboard.lua:729: not equal: expected 10, got 71"
     ]
   },
   {
@@ -311,7 +320,7 @@
     "selector": "WarBoard: dedupe ring",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: dedupe ring bounded at five hundred twelve and one MiB with fresh evidence admitted: test/src_warboard.lua:513: not equal: expected 512, got 513"
+      "FAIL WarBoard: dedupe ring bounded at five hundred twelve and one MiB with fresh evidence admitted: test/src_warboard.lua:555: not equal: expected 512, got 513"
     ]
   },
   {
@@ -356,7 +365,7 @@
     "selector": "WarBoard: addon routes",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: addon routes use honest relayed labels, read under stand-down, never whisper or send: test/src_warboard.lua:396: GUILDWarBoard: expected relayed, got self"
+      "FAIL WarBoard: addon routes use honest relayed labels, read under stand-down, never whisper or send: test/src_warboard.lua:438: GUILDWarBoard: expected relayed, got self"
     ]
   },
   {
@@ -365,7 +374,7 @@
     "selector": "WarBoard: untracked FBLP",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: untracked FBLP and FREC never reach Known or save names: test/src_warboard.lua:706: not equal: expected nil, got enemy player-123"
+      "FAIL WarBoard: untracked FBLP and FREC never reach Known or save names: test/src_warboard.lua:748: not equal: expected nil, got enemy player-123"
     ]
   },
   {
@@ -383,7 +392,7 @@
     "selector": "WarBoard: SHRD own zone",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: SHRD own zone and shard through registry, with sequence not seconds; clear and expiry: test/src_warboard.lua:330: not equal: expected warboard, got nil"
+      "FAIL WarBoard: SHRD own zone and shard through registry, with sequence not seconds; clear and expiry: test/src_warboard.lua:372: not equal: expected warboard, got nil"
     ]
   },
   {
@@ -401,7 +410,7 @@
     "selector": "WarBoard: SHRD ordering",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: SHRD ordering rejects different bytes with equal or older sequences: test/src_warboard.lua:718: not equal: expected 123, got 124"
+      "FAIL WarBoard: SHRD ordering rejects different bytes with equal or older sequences: test/src_warboard.lua:760: not equal: expected 123, got 124"
     ]
   },
   {
@@ -446,7 +455,7 @@
     "selector": "WarBoard: source clear",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:553: not equal: expected probe, got nil"
+      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:595: not equal: expected probe, got nil"
     ]
   },
   {
@@ -455,7 +464,7 @@
     "selector": "WarBoard: source clear",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:550: not equal: expected FBLP, got nil"
+      "FAIL WarBoard: source clear cannot erase FBLP or other networks and expiry is measured without UI mutations: test/src_warboard.lua:592: not equal: expected FBLP, got nil"
     ]
   },
   {
@@ -482,7 +491,7 @@
     "selector": "WarBoard: relayed FBLP",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: relayed FBLP still carries target coordinates and different current zone labels: test/src_warboard.lua:585: not equal: expected enemy, got observer"
+      "FAIL WarBoard: relayed FBLP still carries target coordinates and different current zone labels: test/src_warboard.lua:627: not equal: expected enemy, got observer"
     ]
   },
   {
@@ -491,7 +500,7 @@
     "selector": "WarBoard: FBLP world",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: FBLP world coordinates convert only via client with axis order; labels survive no conversion: test/src_warboard.lua:350: not equal: expected 0.2, got nil"
+      "FAIL WarBoard: FBLP world coordinates convert only via client with axis order; labels survive no conversion: test/src_warboard.lua:392: not equal: expected 0.2, got nil"
     ]
   },
   {
@@ -500,7 +509,7 @@
     "selector": "WarBoard: client child-map",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: client child-map conversion must be converted again to the displayed zone: test/src_warboard.lua:598: not equal: expected 2, got 1"
+      "FAIL WarBoard: client child-map conversion must be converted again to the displayed zone: test/src_warboard.lua:640: not equal: expected 2, got 1"
     ]
   },
   {
@@ -518,7 +527,7 @@
     "selector": "WarBoard: FREC names",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: FREC names killer not victim, self witness relay and cached retain original age: test/src_warboard.lua:367: not equal: expected cached, got relayed"
+      "FAIL WarBoard: FREC names killer not victim, self witness relay and cached retain original age: test/src_warboard.lua:409: not equal: expected cached, got relayed"
     ]
   },
   {
@@ -527,7 +536,7 @@
     "selector": "WarBoard: rollback refusal",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: rollback refusal drops an H before queuing an answer: test/src_warboard.lua:726: rollback must not create new send authority: expected 0, got 1"
+      "FAIL WarBoard: rollback refusal drops an H before queuing an answer: test/src_warboard.lua:768: rollback must not create new send authority: expected 0, got 1"
     ]
   },
   {
@@ -882,7 +891,7 @@
     "selector": "WarBoard R2: portable mutant runner",
     "killed": true,
     "failures": [
-      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"test/warboard_mutants_portability_test.py\", line 59, in <module> |     main() |     ~~~~^^ |   File \"test/warboard_mutants_portability_test.py\", line 41, in main |     runner.main() |     ~~~~~~~~~~~^^ |   File \"test/warboard_mutants.py\", line 212, in main | AssertionError | : expected true, got false"
+      "FAIL WarBoard R2: portable mutant runner accepts relocated checkout cwd and scratch: test/harness.lua:7: Traceback (most recent call last): |   File \"test/warboard_mutants_portability_test.py\", line 59, in <module> |     main() |     ~~~~^^ |   File \"test/warboard_mutants_portability_test.py\", line 41, in main |     runner.main() |     ~~~~~~~~~~~^^ |   File \"test/warboard_mutants.py\", line 214, in main | AssertionError | : expected true, got false"
     ]
   },
   {
@@ -904,7 +913,7 @@
     "selector": "WarBoard: H cannot consume owed reserve",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: H cannot consume owed reserve while six real A answers use it: test/src_warboard.lua:636: real H cannot take any owed-only slot: expected 52, got 53"
+      "FAIL WarBoard: H cannot consume owed reserve while six real A answers use it: test/src_warboard.lua:678: real H cannot take any owed-only slot: expected 52, got 53"
     ]
   },
   {
@@ -913,10 +922,10 @@
     "selector": "respects shared queue age",
     "killed": true,
     "failures": [
-      "FAIL WarBoard: H respects shared queue age at 60.001 seconds: test/src_warboard.lua:660: sixty seconds is live; older H and A expire: expected 0, got 1",
-      "FAIL WarBoard: H respects shared queue age at 61 seconds: test/src_warboard.lua:660: sixty seconds is live; older H and A expire: expected 0, got 1",
-      "FAIL WarBoard: A respects shared queue age at 60.001 seconds: test/src_warboard.lua:660: sixty seconds is live; older H and A expire: expected 0, got 1",
-      "FAIL WarBoard: A respects shared queue age at 61 seconds: test/src_warboard.lua:660: sixty seconds is live; older H and A expire: expected 0, got 1"
+      "FAIL WarBoard: H respects shared queue age at 60.001 seconds: test/src_warboard.lua:702: sixty seconds is live; older H and A expire: expected 0, got 1",
+      "FAIL WarBoard: H respects shared queue age at 61 seconds: test/src_warboard.lua:702: sixty seconds is live; older H and A expire: expected 0, got 1",
+      "FAIL WarBoard: A respects shared queue age at 60.001 seconds: test/src_warboard.lua:702: sixty seconds is live; older H and A expire: expected 0, got 1",
+      "FAIL WarBoard: A respects shared queue age at 61 seconds: test/src_warboard.lua:702: sixty seconds is live; older H and A expire: expected 0, got 1"
     ]
   },
   {
