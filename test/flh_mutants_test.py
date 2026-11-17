@@ -47,6 +47,9 @@ class MutationEvidenceTests(unittest.TestCase):
                 self.assertTrue('write_report' in runner, 'missing stable report writer')
                 path = Path(tmp) / 'report.json'
                 runner['write_report'](path, {'baseline': {'rc': 0}, 'mutants': []})
+                # A fast rewrite can share one filesystem timestamp tick. Pin an
+                # old mtime so a write is observable without sleeps or timing luck.
+                os.utime(path, ns=(1_000_000_000, 1_000_000_000))
                 before = path.read_bytes(), path.stat().st_mtime_ns
                 runner['write_report'](path, {'mutants': [], 'baseline': {'rc': 0}})
                 self.assertEqual((path.read_bytes(), path.stat().st_mtime_ns), before)
