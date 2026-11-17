@@ -34,14 +34,14 @@ local function fixture(route)
         allowed=true,own=true,stopAllowed=true,groups={},guild=true,guildNames={},
         friends={},out={},tracked=function() return true end,offer=function() end}
     route=route or "BNET"
-    if route=="BNET" then c.friends={{id=71,name="Birch Scout",friend=true}} end
+    if route=="BNET" then c.friends={{id=71,name="Birch Scout",friend=true,realm="Test Realm"}} end
     c.online=function(id) for _,v in ipairs(c.friends) do if v.id==id then return v end end end
     local d=donor()
     c.send=function(_,text,dist,target,prio,job)
         honest(text)
         if not P.claim(peer,job,c) then return false end
         c.out[#c.out+1]={text=text,route=dist,target=target,at=c.now,job=job,prio=prio}
-        if target=="Birch Scout" or target==71 or dist=="PARTY" or dist=="GUILD" and c.guildNames["birch scout"] then d:hear(text,dist,target,c.now) end
+        if target=="Birch Scout" or target==71 or dist=="PARTY" or dist=="GUILD" and c.guildNames["birch scout-testrealm"] then d:hear(text,dist,target,c.now) end
         P.sent(peer,job,c);return true
     end
     local function hear(at)
@@ -66,7 +66,7 @@ test("NH-free source serves and can route reply over BNET",function()
 end)
 test("WHISPER group peer stays ordinary C2 without a feed",function()
     local N,P,Q,peer,st,c,d,hear=fixture("WHISPER")
-    c.group="PARTY";c.groups["birch scout"]="A"
+    c.group="PARTY";c.groups["birch scout-testrealm"]="A"
     hear(100);Q.tick(st,peer,c);P.tick(peer,c)
     eq(next(st.sources),nil);eq(#requests(c),0);eq(d.caps[c.me],100)
 end)
@@ -79,8 +79,8 @@ test("donor refuses recent NH but accepts unknown after expiry",function()
 end)
 test("guild and group NH lanes stay live and audible friend is not a source",function()
     local N,P,Q,peer,st,c,d,hear=fixture("BNET")
-    c.guildNames["birch scout"]=true
-    c.friends[2]={id=72,name="Cedar Friend",friend=true}
+    c.guildNames["birch scout-testrealm"]=true
+    c.friends[2]={id=72,name="Cedar Friend",friend=true,realm="Test Realm"}
     hear(100);Q.tick(st,peer,c);P.tick(peer,c)
     eq(d.caps[c.me],100);eq(next(st.sources),nil)
     local other,guild=0,0
@@ -157,7 +157,7 @@ test("source count selection and rotation cannot skip silence",function()
     hear(100)
     for _,name in ipairs({"Cedar Friend","Maple Friend"}) do
         local id=71+#c.friends
-        c.friends[#c.friends+1]={name=name,id=id,friend=true}
+        c.friends[#c.friends+1]={name=name,id=id,friend=true,realm="Test Realm"}
         P.receive(peer,{origin=name,pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4"},"BNET",name,id,c)
     end
     eq(N.Safe.count(st.sources),2);eq(st.sources["maple friend"],nil)
@@ -185,8 +185,8 @@ local function live(route)
     IsInGroup=function() return false end;IsInRaid=function() return false end;IsInGuild=function() return false end
     UnitExists=function(unit) return unit=="player" or unit=="party1" end
     GetNumGroupMembers=function() return 2 end
-    N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Horde"} end
-    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true}} end
+    N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Horde",realm="Test Realm"} end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true,realm="Test Realm"}} end
     local function hear(kind,body,target)
         wireSerial=wireSerial+1;local id="live"..wireSerial
         local text=table.concat({"global",id,math.floor(GetServerTime()),target or "Alice Vale","Birch Scout",kind,body},"|")

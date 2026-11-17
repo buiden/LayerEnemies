@@ -9,8 +9,8 @@ local function setup(testEngine)
     local N=H.load();N.Net.SHIP.overlord=true
     N.Adapters.groupNames=function() return {} end
     IsInGuild=function() return false end
-    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true}} end
-    N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Horde"} end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true,realm="Test Realm"}} end
+    N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Horde",realm="Test Realm"} end
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
     UnitName=function() return "Alice Vale",GetRealmName() end
@@ -149,7 +149,7 @@ local function model(N,count,route)
     end
     for i=1,(count or 1) do
         local name="Peer"..H.abc(i).." Scout";local id=i
-        c.friends[#c.friends+1]={id=id,name=name,friend=true}
+        c.friends[#c.friends+1]={id=id,name=name,friend=true,realm="Test Realm"}
         local p={origin=name,pool=c.pool,target=c.me,hops=0,kind="NH",payload="2.5.4~lp8"}
         local r=P.receive(peer,p,route or "BNET",name,id,c)
         -- Sources receive no presence, including the initial owed greeting.
@@ -341,7 +341,7 @@ end)
 test("real BNet friend crosses factions only after actual request dispatch",function()
     local N=setup();N.Find.add(N.Main.find,"Enemy One")
     N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Horde",realm="Test Realm"} end
-    N.BNet.peers=function() return {{id=71,name="Birch Scout",faction="Horde",friend=true}} end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",faction="Horde",friend=true,realm="Test Realm"}} end
     local sends={};C_BattleNet.SendGameData=function(id,prefix,text)
         local level,info=2,debug.getinfo(2,"S");while info.what=="C" do level=level+1;info=debug.getinfo(level,"S") end
         yes(info.source:find("Wire.lua",1,true));sends[#sends+1]={id=id,text=text};return true
@@ -362,7 +362,7 @@ end)
 test("NH while request waits in BNet queue preserves its answer",function()
     local N=setup();N.Find.add(N.Main.find,"Enemy One")
     N.BNet.who=function() return {name="Birch Scout",faction="Horde",realm="Test Realm"} end
-    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true}} end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true,realm="Test Realm"}} end
     local requests=0;C_BattleNet.SendGameData=function(_,_,text)
         if text:find("|HR|",1,true) then requests=requests+1 end
         return true
@@ -381,7 +381,7 @@ test("failed request never grants a feed lease",function()
     for _,failure in ipairs({"HR"}) do
         local N=setup();N.Find.add(N.Main.find,"Enemy One")
         N.BNet.who=function() return {name="Birch Scout",faction="Horde",realm="Test Realm"} end
-        N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true}} end
+        N.BNet.peers=function() return {{id=71,name="Birch Scout",friend=true,realm="Test Realm"}} end
         local requests=0
         C_BattleNet.SendGameData=function(_,_,text)
             if text:find("|HR|",1,true) then requests=requests+1 end

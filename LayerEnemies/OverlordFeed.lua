@@ -37,11 +37,15 @@ end
 local function friend(r,c)
     if r.route~="BNET" then return false end
     local key=P.key(r.name)
-    if not c.groups or c.groups[key] or not c.guildNames or c.guildNames[key] then return false end
+    if not c.groups or not c.guildNames then return false end
     for _,v in ipairs(c.friends or {}) do
         if v.friend and v.id==r.id and P.key(v.name)==key then
             local live=c.online and c.online(r.id)
-            return live and P.key(live.name)==key or false
+            local identity=S.str(v.realm,60) and N.Adapters.peerIdentity(v.name,v.realm)
+            local current=live and S.str(live.realm,60) and N.Adapters.peerIdentity(live.name,live.realm)
+            if not identity or identity~=current then return false end
+            if c.groups[identity] or c.guildNames[identity] then return false end
+            return P.key(live.name)==key
         end
     end
     return false
@@ -77,7 +81,9 @@ function Q.prepare(st,peer,c)
     end)
     for _,v in ipairs(candidates) do
         if not st.sources[v.key] and S.count(st.sources)<2 then
-            st.sources[v.key]={name=v.r.name,id=v.r.id,route=v.r.route,since=c.now,pool=c.pool,me=c.me}
+            local live=c.online(v.r.id)
+            st.sources[v.key]={name=v.r.name,id=v.r.id,route=v.r.route,since=c.now,pool=c.pool,me=c.me,
+                identity=N.Adapters.peerIdentity(live.name,live.realm)}
         end
     end
 end
@@ -94,7 +100,8 @@ local function quiet(st,key,c)
     if not source then return false end
     local a=st.peer and st.peer.announced
     if not a or a.pool~=c.pool or a.me~=c.me then return true end
-    local last=math.max(a.names[key] or -math.huge,a.accounts[source.id] or -math.huge,a.unknown or -math.huge)
+    local last=math.max(a.names[key] or -math.huge,a.names[source.identity] or -math.huge,
+        a.accounts[source.id] or -math.huge,a.unknown or -math.huge)
     return c.now-last>300
 end
 function Q.stop(st,peer,c,key)

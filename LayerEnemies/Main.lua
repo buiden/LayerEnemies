@@ -477,7 +477,7 @@ function M.overlordContext(time)
         c.guild=S.call(IsInGuild)==true
         c.group=S.call(IsInRaid)==true and "RAID" or S.call(IsInGroup)==true and "PARTY" or nil
         c.groups=A.groupNames()
-        c.guildNames=S.call(IsInGuild)==false and {} or A.guildNames(N.OverlordPeer.key)
+        c.guildNames=S.call(IsInGuild)==false and {} or A.guildNames(A.peerIdentity)
         c.friends=N.BNet.peers(c.now)
     end
     return c

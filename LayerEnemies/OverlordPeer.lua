@@ -69,7 +69,7 @@ function P.sent(st,job,c)
         elseif job.route=="PARTY" or job.route=="RAID" then audience=c.groups end
         if job.route=="GUILD" or job.route=="PARTY" or job.route=="RAID" then
             if not audience then a.unknown=c.now
-            else for name in pairs(audience) do stamp(a.names,P.key(name),256) end end
+            else for name in pairs(audience) do stamp(a.names,name,256) end end
         end
     end
     if job.sent then job.sent(c.now,c) end

@@ -28,7 +28,7 @@ local function fixture(name,mode)
     end
     local online=true
     local spelling=(mode=="dual" or mode=="alias") and N.Find.fold(name).."-TestRealm" or name
-    N.BNet.peers=function() return {{id=71,name=spelling,faction="Horde",friend=true}} end
+    N.BNet.peers=function() return {{id=71,name=spelling,faction="Horde",friend=true,realm="Test Realm"}} end
     N.BNet.who=function(id) return online and id==71 and {name=spelling,faction="Horde",realm="Test Realm"} or nil end
     local e=GetServerTime()-100
     local function hear(kind,body,route,pool)
@@ -258,7 +258,7 @@ end)
 
 test("M club-only account is never a source",function()
     local N,refresh=fixture()
-    N.BNet.peers=function() return {{id=71,name="Birch Scout",faction="Horde",friend=false,club=4}} end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",faction="Horde",friend=false,club=4,realm="Test Realm"}} end
     refresh()
     for i=1,900 do if i%120==0 then refresh() end;H.advance(1) end
     eq(next(N.Main.overlordFeed.sources),nil,"online club members are not Battle.net friends")
@@ -267,7 +267,7 @@ end)
 
 test("M same-faction Battle.net friend is an eligible NH-free source",function()
     local N=fixture()
-    N.BNet.peers=function() return {{id=71,name="Birch Scout",faction="Alliance",friend=true}} end
+    N.BNet.peers=function() return {{id=71,name="Birch Scout",faction="Alliance",friend=true,realm="Test Realm"}} end
     N.BNet.who=function(id) return id==71 and {name="Birch Scout",faction="Alliance",realm="Test Realm"} or nil end
     local e=GetServerTime()-100
     local function hear()
