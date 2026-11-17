@@ -7,18 +7,28 @@ end
 local function yes(v,msg) eq(not not v,true,msg) end
 local function no(v,msg) eq(not not v,false,msg) end
 local forbidden
+-- One literal substring selector for all current and future suites. Legacy names
+-- remain aliases so the already-gated feature mutants need no wiring migration.
+local aliases={ ["--ui-layout-only"]={"UI layout:"}, ["--hop-fanout-only"]={"Hop fanout:"},
+    ["--hop-any-only"]={"hop-any","Hop fanout:"}, ["--presence-only"]={"Presence:"},
+    ["--flh-only"]={"FLH:"}, ["--overlord-only"]={"Overlord:"}, ["--stack-only"]={"Stack:"},
+    ["--spy-relay-only"]={"Spy relay"}, ["--relay-policy-only"]={"Guild relay policy:"},
+    ["--kills-only"]={"Kills"}, ["--kills-round2-only"]={"Kills R2"} }
+local filters
+if arg and arg[1] then
+    local value=arg[1]:match("^%-%-only=(.*)$")
+    if arg[1]=="--only" then value=arg[2] end
+    if value and value~="" then filters={value}
+    elseif aliases[arg[1]] then filters=aliases[arg[1]]
+    else error("usage: lua test/harness.lua [--only <substring>]") end
+    if arg[(arg[1]=="--only") and 3 or 2] then error("unexpected harness argument") end
+end
 local function test(name,fn)
-    if arg and arg[1]=="--ui-layout-only" and not name:find("UI layout:",1,true) then return end
-    if arg and arg[1]=="--hop-fanout-only" and not name:find("Hop fanout:",1,true) then return end
-    if arg and arg[1]=="--hop-any-only" and not name:find("hop-any",1,true) and not name:find("Hop fanout:",1,true) then return end
-    if arg and arg[1]=="--presence-only" and not name:find("Presence:",1,true) then return end
-    if arg and arg[1]=="--flh-only" and not name:find("FLH:",1,true) then return end
-    if arg and arg[1]=="--overlord-only" and not name:find("Overlord:",1,true) then return end
-    if arg and arg[1]=="--stack-only" and not name:find("Stack:",1,true) then return end
-    if arg and arg[1]=="--spy-relay-only" and not name:find("Spy relay",1,true) then return end
-    if arg and arg[1]=="--relay-policy-only" and not name:find("Guild relay policy:",1,true) then return end
-    if arg and arg[1]=="--kills-only" and not name:find("Kills",1,true) then return end
-    if arg and arg[1]=="--kills-round2-only" and not name:find("Kills R2",1,true) then return end
+    if filters then
+        local selected=false
+        for _,part in ipairs(filters) do if name:find(part,1,true) then selected=true end end
+        if not selected then return end
+    end
     local ok,err=pcall(fn)
     -- No test may reach an API that sends, invites, accepts or leaves.
     if ok and (forbidden or 0)>0 then ok,err=false,"forbidden API reached "..forbidden.." time(s)" end
@@ -229,6 +239,12 @@ local function loadAddon(savedCallTest)
             level=level+1
         end
     end
+    _G.C_BattleNet.SendGameData=function(id,prefix,text)
+        sent[#sent+1]={target=id,prefix=prefix,text=text,kind="BN",at=clock}
+        local src=_G.LayerEnemies.Sources
+        if not fromWire() or not src or not (src.owns(prefix) or (prefix=="OverlordF" and src.has("overlord"))) then forbidden=forbidden+1 end
+        return sendResult
+    end
     -- AcceptGroup (0.4.0 auto-accept): allowed from Wire.lua only; the PARTY_INVITE popup is modelled with Blizzard's
     -- OnHide rule (hiding it without inviteAccepted declines)
     accepts,leaves,popupHidden={},{},0
@@ -310,7 +326,7 @@ local function loadAddon(savedCallTest)
         GetChannelRosterInfo=function(index,r) local n=chanList[index]; local m=n and chanMembers[n] and chanMembers[n][r]; if m then return m,false,false,"Player-1-"..r end end,
         RegisterAddonMessagePrefix=function(prefix)
             registered[prefix]=true
-            if not PREFIXES[prefix] then forbidden=forbidden+1 end
+            if not PREFIXES[prefix] and not (_G.LayerEnemies.Sources and _G.LayerEnemies.Sources.owns(prefix)) then forbidden=forbidden+1 end
             return true
         end,
         -- records every call; a route outside the allowlist counts as forbidden
@@ -7893,5 +7909,24 @@ assert(loadfile("test/stack_integration.lua"))({test=test,eq=eq,yes=yes,no=no,lo
     advance=advance,deliver=deliver,sent=function() return sent end,
     registered=function() return registered end})
 
+-- Sources add test/src_*.lua only; no shared loader edit. Fixed shell command,
+-- sorted filenames and strict basename validation (including leading underscores).
+local sourceHarness={test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
+    advance=advance,deliver=deliver,drain=drain,establish=establish,player=player,
+    clock=function(v) if v then clock=v end; return clock end,
+    time=function(v) if v then clock=v end; return clock end,
+    wall=function(v) if v then wall=v end; return wall end,
+    combat=function(v) combat=v end,instance=function(v) inInstance=v end,
+    sent=function() return sent end,log=function() return log end,frames=function() return frames end,
+    registered=function() return registered end,loaded=function() return loaded end,
+    units=function() return units end,roster=function(v) roster=v end,
+    forbidden=function() return forbidden end,clearForbidden=function() forbidden=0 end}
+local suites=assert(io.popen("printf '%s\n' test/src_*.lua"))
+local files={}
+for file in suites:lines() do
+    if file:match("^test/src_[%w_%-]+%.lua$") then files[#files+1]=file end
+end
+suites:close(); table.sort(files)
+for _,file in ipairs(files) do assert(loadfile(file))(sourceHarness) end
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
-if failed>0 then os.exit(1) end
+if failed>0 or (filters and passed==0) then os.exit(1) end

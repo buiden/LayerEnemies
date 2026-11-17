@@ -125,6 +125,7 @@ function M.poll()
     M.presenceScan()
     N.Overlord.sweep(M.overlord,time)
     N.Overlord.rows(M.overlord,time)
+    N.Sources.tick(time)
     M.findAlerts()
     N.CallUI.check()
     if N.UI then N.UI.refresh() end
@@ -246,6 +247,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
     -- Check every delivered value before comparing/indexing it.
     local args={prefix,text,kind,sender,target,zoneChannelID,localID,channelName}
     for i=1,8 do if S.secret(args[i]) then return end end
+    if N.Sources.owns(prefix) then return N.Sources.addon(prefix,text,kind,sender) end
     if prefix=="OverlordF" then return M.overlordIn(text,kind,sender) end
     if prefix=="OpenMapLoc" then return M.openmapIn(text,kind,sender) end
     if prefix=="HeadHunter" then return M.headhunter(text,kind,sender) end
@@ -2222,7 +2224,7 @@ function M.setFindNotice(on)
 end
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
-    if not on then N.OwnDeath.cancel() end
+    if not on then N.OwnDeath.cancel(); N.BNet.cancel() end
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
     -- Off cancels all pending guild relays as well as our sync answers. Queued guild/own embassy lines
     -- are dropped by their still checks. A quick off/on must not revive the cancelled relay timers.
@@ -2265,11 +2267,12 @@ function M.net(command)
         local s=M.overlord.stats
         local pool=M.overlordPool() or "unknown (receiving nothing)"
         M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused.." · pool "..pool)
+        for _,line in ipairs(N.Sources.lines()) do M.say(line) end
         return
     end
     if rest=="guild" or rest=="public" then M.setConsent(rest); return end
     local name,state=rest:match("^(%a+)%s+(%a+)$")
-    local key=name and NET_KEYS[name]
+    local key=name and (NET_KEYS[name] or (N.Sources.has(name) and name))
     if key and (state=="on" or state=="off") then M.setNet(key,state=="on"); return end
     M.say("/le net; /le net guild; /le net public; /le net wareffort on|off; /le net headhunter on|off")
 end
@@ -2392,6 +2395,7 @@ function M.start()
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OverlordF") -- receive only
         S.call(C_ChatInfo.RegisterAddonMessagePrefix,"OpenMapLoc") -- receive only, including hellos
     end
+    N.Sources.start()
     SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"
     SlashCmdList.LAYERENEMIES=function(command)
@@ -2451,7 +2455,10 @@ local function dispatch(_,event,...)
     if not M.started then return end
     if event=="PLAYER_LOGOUT" then guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
     elseif event=="CHAT_MSG_ADDON" then guarded(M.message,...)
-    elseif event=="BN_CHAT_MSG_ADDON" then guarded(M.openmapBn,...)
+    elseif event=="BN_CHAT_MSG_ADDON" then
+        local prefix,text,channel,id=...
+        if not S.secret(prefix) and prefix=="OpenMapLoc" then guarded(M.openmapBn,...)
+        elseif not S.secret(channel) then guarded(N.Sources.bnet,prefix,text,id) end
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
     elseif event=="PLAYER_REGEN_DISABLED" then guarded(M.hopAnyStop,"combat started")
     elseif event=="PLAYER_DEAD" then N.OwnDeath.dead()

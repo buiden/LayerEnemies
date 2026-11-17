@@ -449,6 +449,15 @@ pump = function()
         if S.tab(T) and type(T.After) == "function" then pumping = pcall(T.After, 0.5, pump) == true end
     end
 end
+-- Battle.net keeps its sole queue/budget in BNet. The client function is acquired
+-- there once; invocation stays in Wire's caller frame, with a final privacy check.
+function Wr.bnet(net,id,prefix,text,prio,fn)
+    if not N.BNet.allowed(net,id,prefix,text,prio) or S.secret(fn) or type(fn)~="function"
+        or not N.BNet.dispatching(net,id,prefix,text,prio,fn) then return false end
+    local ok,result=pcall(fn,id,prefix,text)
+    return ok and not S.secret(result) and (result==0 or result==true)
+end
+
 function Wr.queued() return #queue end
 function Wr.sizes() return N.Safe.count(publicTo), N.Safe.count(offline) end
 function Wr.isQueued(text) for _, q in ipairs(queue) do if q.text == text then return true end end return false end

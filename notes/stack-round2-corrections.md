@@ -59,3 +59,10 @@ reads, missing enum and live recovery without receipt or counter changes.
 Two diagnostic mutants supplement the unchanged 52 legacy cases.
 Full verify: **1316 passed, 0 failed, 178092 assertions**, with all static,
 syntax and package/source parity checks green.
+
+## Level 6: forward merge onto source registry
+
+Conflicts: `Main.lua` and the two generated verification notes. Main's resolution
+retains both the pool-aware Overlord line and the following `Sources.lines()`
+loop; no diagnostic was dropped. Generated notes regenerated. Full verify:
+**1393 passed, 0 failed, 216396 assertions**, all static/syntax/package gates pass.

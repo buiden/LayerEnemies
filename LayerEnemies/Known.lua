@@ -6,7 +6,8 @@ N.Known=K
 local sources={own=true,guild=true,relayed=true,spy=true,death=true,headhunter=true,overlord=true}
 local fields={"name","zone","x","y","pos","at","source","spotter","class","level","layer","ns","kind",
     -- Own-source identity and epoch preserve the existing Find matcher and layer-unknown rule.
-    "ownName","realm","epoch","detail"}
+    "ownName","realm","epoch","detail",
+    "observedAt","got","evidenceKind","guid","faction","shard","map"}
 local function fresh(e,now) return e and now>=e.at and now-e.at<K.TTL end
 local function empty(t) for _ in pairs(t) do return false end; return true end
 local function unindex(st,key,p)
@@ -64,7 +65,7 @@ function K.put(st,e,now)
     -- A.unit joins two Safe.str values (160 bytes each); preserve legacy first-name matches.
     local limit=e.source=="own" and 321 or 100
     if type(e.name)~="string" or #e.name<2 or #e.name>limit or e.name:find("[%c|]")
-        or not sources[e.source] or (e.kind~="seen" and e.kind~="claim")
+        or not (sources[e.source] or (N.Sources and N.Sources.has(e.source))) or (e.kind~="seen" and e.kind~="claim")
         or type(e.at)~="number" or not fresh(e,now) then return end
     local key=N.Find.fold(e.name)
     local p=st.entries[key]
