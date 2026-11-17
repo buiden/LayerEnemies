@@ -1061,6 +1061,7 @@ function M.hopAnySafe()
     local r=M.hopAnyState and M.hopAnyState.round
     if not r then return false end
     if N.Net.consent()~="public" then M.hopAnyStop("guild-only mode"); return false end
+    if N.Wire.hopBlocked(r.at) then M.hopAnyStop("LayerSwap whisper paused"); return false end
     if A.grouped() or A.inCombat() or A.inInstance()~=false or A.location()~=r.zone then
         M.hopAnyStop("group, combat, instance or zone changed"); return false
     end
@@ -2164,9 +2165,8 @@ local function dispatch(_,event,...)
     elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,(...))
     elseif event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER" then
         if event=="PLAYER_ENTERING_WORLD" then N.OwnDeath.seed(...) end
-        guarded(M.hopAnyStop,"world changed"); guarded(M.boundary,A.location()); M.queuePoll()
+        guarded(M.hopAnySafe); guarded(M.boundary,A.location()); M.queuePoll()
     elseif event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
-        guarded(M.hopAnyStop,"zone changed")
         if A.location()~=M.store.zone then guarded(M.boundary,A.location(),true) end
         M.queuePoll()
     elseif event=="PLAYER_TARGET_CHANGED" then M.queueUnit("target")
@@ -2174,7 +2174,7 @@ local function dispatch(_,event,...)
     elseif event=="UPDATE_MOUSEOVER_UNIT" then M.queueUnit("mouseover")
     elseif event=="NAME_PLATE_UNIT_ADDED" then M.queueUnit(...)
     elseif event=="NAME_PLATE_UNIT_REMOVED" then M.releaseUnit(...)
-    elseif event=="GROUP_ROSTER_UPDATE" then guarded(M.hopAnyStop,"group changed"); guarded(M.groupCheck); guarded(M.inviteTick)
+    elseif event=="GROUP_ROSTER_UPDATE" then guarded(M.groupCheck); guarded(M.inviteTick)
     elseif event=="GUILD_ROSTER_UPDATE" then guarded(M.rosterUpdate)
     elseif event=="PARTY_INVITE_REQUEST" then guarded(M.partyInvite,(...))
     elseif event=="CHAT_MSG_WHISPER_INFORM" then local text,who=...; guarded(M.draftSent,"WHISPER",text,who)
