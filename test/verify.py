@@ -8,6 +8,7 @@ import subprocess
 import struct
 import sys
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = Path(os.environ.get('LAYERENEMIES_LUA', '/opt/data/tools/lua/lua-5.1.5/src/lua'))
@@ -465,10 +466,114 @@ def check_global_writes(path):
     assert not bad, 'Global write outside the owned list in %s: %s' % (path.name, ', '.join(sorted(set(bad))))
 
 
-def main():
+
+# Parallel test runner. --jobs 1 keeps the original serial order and commands. Otherwise the harness runs as
+# N shards (test/harness.lua --shard K/N) beside the Python suites; the merged harness
+# output is rebuilt in serial test order and must cover the full --list exactly once.
+RESULT_RE = re.compile(r'RESULT: (\d+) tests passed, (\d+) failed, (\d+) assertions')
+PY_SUITES = [['-I', '-B', 'test/test_verify.py'], ['-I', 'test/api_policy_test.py'], ['-I', 'test/flh_mutants_test.py'],
+             ['-I', 'test/harness_sources_test.py'], ['-I', '-B', 'test/call_assets_test.py']]
+
+
+def default_jobs():
+    return max(1, min(os.cpu_count() or 1, 8))
+
+
+def parse_jobs(argv):
+    if not argv:
+        return default_jobs()
+    if len(argv) == 2 and argv[0] == '--jobs' and argv[1].isdigit() and int(argv[1]) >= 1:
+        return int(argv[1])
+    raise SystemExit('usage: python3 test/verify.py [--jobs N]')
+
+
+def harness_list():
+    out = subprocess.run([str(LUA), 'test/harness.lua', '--list'], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    names = []
+    for line in out.split('\n'):
+        m = re.match(r'\x1eTEST (\d+)\t(.*)$', line)
+        if m:
+            assert int(m[1]) == len(names), 'harness --list out of order at %s' % m[1]
+            names.append(m[2])
+    count = re.search(r'\x1eCOUNT (\d+)', out)
+    assert count and int(count[1]) == len(names) > 0, 'harness --list incomplete'
+    return names
+
+
+def parse_shard(k, n, proc):
+    """{index: (name, output)} plus totals; raises with the shard's whole output on any framing problem."""
+    blocks, current, buf = {}, None, []
+    for line in proc.stdout.split('\n'):
+        start = re.match(r'\x1eTEST (\d+)\t(.*)$', line)
+        if start:
+            assert current is None, 'shard %d/%d: test %s started inside test %s' % (k, n, start[1], current)
+            current, buf = (int(start[1]), start[2]), []
+            continue
+        end = re.match(r'\x1eEND (\d+)$', line)
+        if end:
+            assert current and current[0] == int(end[1]), 'shard %d/%d: unmatched END %s' % (k, n, end[1])
+            assert current[0] not in blocks, 'shard %d/%d: test %d ran twice' % (k, n, current[0])
+            blocks[current[0]] = (current[1], ''.join(l + '\n' for l in buf))
+            current = None
+            continue
+        if current is not None:
+            buf.append(line)
+    assert current is None, 'shard %d/%d: test %d never finished' % (k, n, current[0] if current else -1)
+    tail = re.search(r'\x1eSHARD (\d+)/(\d+) outside=(\d+)\n' + RESULT_RE.pattern, proc.stdout)
+    assert tail and (int(tail[1]), int(tail[2])) == (k, n), 'shard %d/%d: no RESULT line' % (k, n)
+    assert int(tail[3]) == 0, 'shard %d/%d printed %s line(s) outside any test' % (k, n, tail[3])
+    assert all(i % n == k for i in blocks), 'shard %d/%d ran a test of another shard' % (k, n)
+    return blocks, tuple(int(tail[i]) for i in (4, 5, 6))
+
+
+def run_parallel(jobs):
+    """Runs the Python suites and harness shards concurrently; returns a CompletedProcess-like harness result."""
+    def run(cmd):
+        return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+    names = harness_list()
+    with ThreadPoolExecutor(max_workers=jobs + len(PY_SUITES)) as pool:
+        shards = [pool.submit(run, [str(LUA), 'test/harness.lua', '--shard', '%d/%d' % (k, jobs)]) for k in range(jobs)]
+        suites = [pool.submit(run, [sys.executable] + args) for args in PY_SUITES]
+        for args, fut in zip(PY_SUITES, suites):
+            r = fut.result()
+            sys.stdout.write(r.stdout); sys.stderr.write(r.stderr)
+            if r.returncode:
+                raise SystemExit('%s failed (rc %d)' % (' '.join(args[-1:]), r.returncode))
+        procs = [f.result() for f in shards]
+    merged, totals, problems, stderr = {}, [0, 0, 0], [], ''
+    for k, proc in enumerate(procs):
+        try:
+            blocks, counts = parse_shard(k, jobs, proc)
+        except AssertionError as e:
+            problems.append('== shard %d/%d (rc %d): %s\n%s%s' % (k, jobs, proc.returncode, e, proc.stdout, proc.stderr))
+            continue
+        if proc.returncode or counts[1] or proc.stderr:
+            problems.append('== shard %d/%d (rc %d, %d failed)\n%s%s' % (k, jobs, proc.returncode, counts[1],
+                            ''.join(o for _, o in blocks.values() if o.startswith('FAIL ') or '\nFAIL ' in o), proc.stderr))
+        stderr += proc.stderr
+        for i, block in blocks.items():
+            assert i not in merged, 'test %d ran in two shards' % i
+            merged[i] = block
+        totals = [a + b for a, b in zip(totals, counts)]
+    ran = [merged[i][0] for i in sorted(merged)]
+    if not problems and (sorted(merged) != list(range(len(names))) or ran != names):
+        lost = sorted(set(range(len(names))) - set(merged))
+        problems.append('merged tests differ from harness --list: %d listed, %d ran, missing %s'
+                        % (len(names), len(merged), [names[i] for i in lost][:20]))
+    if not problems and totals[0] + totals[1] != len(names):
+        problems.append('shard totals %d+%d do not match %d tests' % (totals[0], totals[1], len(names)))
+    stdout = ''.join(merged[i][1] for i in sorted(merged))
+    stdout += 'RESULT: %d tests passed, %d failed, %d assertions\n' % tuple(totals)
+    return subprocess.CompletedProcess(['harness', '--shards', str(jobs)], 1 if problems else 0,
+                                       stdout + ''.join(p + '\n' for p in problems), stderr)
+
+
+def main(argv=()):
+    jobs = parse_jobs(list(argv))
     notes = ROOT / 'notes'
     notes.mkdir(exist_ok=True)
     files = sorted(ROOT.rglob('*.lua'))
+    # The syntax pass stays first in both modes (about a second): the static checks below assume parsed files.
     for file in files:
         subprocess.run([str(LUAC), '-p', str(file)], cwd=ROOT, check=True)
     toc = (ROOT / 'LayerEnemies/LayerEnemies.toc').read_text()
@@ -545,15 +650,19 @@ def main():
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
     assert '## Version: 1.2.2' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
-    subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
-    subprocess.run([sys.executable, '-I', 'test/api_policy_test.py'], cwd=ROOT, check=True)
-    subprocess.run([sys.executable, '-I', 'test/flh_mutants_test.py'], cwd=ROOT, check=True)
-    subprocess.run([sys.executable, '-I', 'test/harness_sources_test.py'], cwd=ROOT, check=True)
+    if jobs == 1:
+        subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
+        subprocess.run([sys.executable, '-I', 'test/api_policy_test.py'], cwd=ROOT, check=True)
+        subprocess.run([sys.executable, '-I', 'test/flh_mutants_test.py'], cwd=ROOT, check=True)
+        subprocess.run([sys.executable, '-I', 'test/harness_sources_test.py'], cwd=ROOT, check=True)
     shipped = payload_files(listed)
     check_media()
     check_call_text()
-    subprocess.run([sys.executable, '-I', '-B', 'test/call_assets_test.py'], cwd=ROOT, check=True)
-    tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
+    if jobs == 1:
+        subprocess.run([sys.executable, '-I', '-B', 'test/call_assets_test.py'], cwd=ROOT, check=True)
+        tests = subprocess.run([str(LUA), 'test/harness.lua'], cwd=ROOT, capture_output=True, text=True)
+    else:
+        tests = run_parallel(jobs)
     (notes / 'test-results.txt').write_text(tests.stdout + tests.stderr)
     print(tests.stdout, end='')
     tests.check_returncode()
@@ -627,4 +736,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

@@ -23,6 +23,24 @@ local aliases={ ["--ui-layout-only"]={"UI layout:"}, ["--hop-fanout-only"]={"Hop
     ["--kills-only"]={"Kills"}, ["--kills-round2-only"]={"Kills R2"},
     ["--guild-intel-only"]={"Round1 ","Round2 ","Known ","PartyTargets ","Realm names:"} }
 local filters
+-- --shard K/N runs the tests whose stable 0-based index i has i % N == K, framing each test's output with
+-- "\30TEST i\tname" / "\30END i" lines for test/verify.py to merge; --list prints every index and name without
+-- running any test. Output printed outside a test is counted and reported, since it cannot be placed in order.
+local shardK,shardN,listOnly
+if arg and arg[1]=="--list" then
+    if arg[2] then error("unexpected harness argument") end
+    listOnly=true; arg={}
+elseif arg and arg[1]=="--shard" then
+    local k,n=tostring(arg[2] or ""):match("^(%d+)/(%d+)$")
+    k,n=tonumber(k),tonumber(n)
+    if not (k and n and n>=1 and k<n) or arg[3] then error("usage: lua test/harness.lua --shard K/N") end
+    shardK,shardN=k,n; arg={}
+end
+local testIndex,inTest,outside=-1,false,0
+if shardN then
+    local rawPrint=print
+    print=function(...) if not inTest then outside=outside+1 end; return rawPrint(...) end
+end
 if arg and arg[1] then
     local value=arg[1]:match("^%-%-only=(.*)$")
     if arg[1]=="--only" then value=arg[2] end
@@ -32,17 +50,22 @@ if arg and arg[1] then
     if arg[(arg[1]=="--only") and 3 or 2] then error("unexpected harness argument") end
 end
 local function test(name,fn)
+    testIndex=testIndex+1
+    if listOnly then io.write("\30TEST ",testIndex,"\t",name,"\n"); return end
+    if shardN and testIndex%shardN~=shardK then return end
     if filters then
         local selected=false
         for _,part in ipairs(filters) do if name:find(part,1,true) then selected=true end end
         if not selected then return end
     end
     overlordClaim=false
+    if shardN then io.write("\30TEST ",testIndex,"\t",name,"\n"); inTest=true end
     local ok,err=pcall(fn)
     if ok and overlordClaim then ok,err=false,"emitted capability claim: expected false, got true" end
     -- No test may reach an API that sends, invites, accepts or leaves.
     if ok and (forbidden or 0)>0 then ok,err=false,"forbidden API reached "..forbidden.." time(s)" end
     if ok then passed=passed+1; print("PASS "..name) else failed=failed+1; print("FAIL "..name..": "..tostring(err)) end
+    if shardN then inTest=false; io.write("\30END ",testIndex,"\n") end
 end
 -- letters-only suffix for generated player names (names never carry digits; 1.0 T2 name rule)
 local function abc(i) local s=""; repeat local r=(i-1)%26; s=string.char(97+r)..s; i=math.floor((i-1)/26) until i==0; return s end
@@ -7987,5 +8010,7 @@ for file in suites:lines() do
 end
 suites:close(); table.sort(files)
 for _,file in ipairs(files) do assert(loadfile(file))(sourceHarness) end
+if listOnly then io.write("\30COUNT ",testIndex+1,"\n"); os.exit(0) end
+if shardN then io.write("\30SHARD ",shardK,"/",shardN," outside=",outside,"\n") end
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
-if failed>0 or (filters and passed==0) then os.exit(1) end
+if failed>0 or (filters and passed==0) or outside>0 then os.exit(1) end
