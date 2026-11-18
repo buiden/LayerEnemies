@@ -1,6 +1,8 @@
 # LayerEnemies
 
-## 1.2.1 - "On my way" and the found pop-up
+## 1.2.1
+
+### "On my way" and the found pop-up
 
 **New send:** one hidden addon message on `LEGW1` to `GUILD`, `G|1|<zone>|<victim, hex>`.
 It is sent only when you press the help button on a Call pop-up: once per call,
