@@ -493,6 +493,16 @@ local function reportFixture(N)
     return t,feed,peers
 end
 
+test("Slash taint: loading never assigns the client's SlashCmdList, other commands survive",function()
+    local real,writes={TARGET_MARKER=print},0
+    loadAddon(nil,function()
+        rawset(_G,"SlashCmdList",nil)
+        setmetatable(_G,{__index=function(_,k) if k=="SlashCmdList" then return real end end,
+            __newindex=function(t,k,v) if k=="SlashCmdList" then writes=writes+1 else rawset(t,k,v) end end})
+    end)
+    setmetatable(_G,nil); rawset(_G,"SlashCmdList",real)
+    eq(writes,0); eq(real.TARGET_MARKER,print); eq(type(real.LAYERENEMIES),"function"); eq(SLASH_LAYERENEMIES1,"/le")
+end)
 test("strict frames start shown, dispatcher hidden, no UI or OnUpdate",function()
     local N=loadAddon()
     eq(#frames,20); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 20: the dispatcher, hidden window and controls, including the Call toggle and Hop to another layer; popup is lazy
