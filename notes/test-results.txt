@@ -1862,6 +1862,17 @@ PASS Sources: OpenMap Battle.net keeps its original event path and values
 PASS Sources: guarded callbacks secrets and switches fail silent
 PASS Sources: unavailable optional timer and registration APIs fail silent
 PASS Sources: tick-only source runs at one second cadence and net counters append
+PASS Reported names: hash3 fixture names really collide
+PASS Reported names: no send change; the O line already carries the name and the 1.2.2 decoder reads it
+PASS Reported names: a guild LayerEnemies sighting shows its real name, certain
+PASS Reported names: a certain report of someone we see merges into the Seen by you row
+PASS Reported names: a War Effort hash of someone we see reads probably, never merges
+PASS Reported names: colliding known names are all shown, two then +N, never merged
+PASS Reported names: class rules a name out, level breaks a tie
+PASS Reported names: a named report is a known name for later hashes
+PASS Reported names: no match stays Unknown <class>
+PASS Reported names: no Hop for a report on our own layer, Hop kept for another layer
+PASS Reported names: names stay in memory; nothing new is saved and nothing is sent
 PASS Wanted: independent zlib record hash and decoder ceilings
 PASS Wanted: deterministic 5000-input decoder and dispatch fuzz has no errors
 PASS Wanted: record and sighting location fields do not alias each other
@@ -2245,4 +2256,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2169 tests passed, 0 failed, 634829 assertions
+RESULT: 2180 tests passed, 0 failed, 635600 assertions
