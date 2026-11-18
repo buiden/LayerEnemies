@@ -1,5 +1,26 @@
 # LayerEnemies
 
+## 1.2.1 - "On my way" and the found pop-up
+
+**New send:** one hidden addon message on `LEGW1` to `GUILD`, `G|1|<zone>|<victim, hex>`.
+It is sent only when you press the help button on a Call pop-up: once per call,
+at most one per 10 s and six per 10 minutes. Share off, not in a guild, or being in
+an instance sends nothing. No chat text is typed for you and nothing is saved.
+Older LayerEnemies versions ignore the line.
+
+- **On my way.** Guildmates on 1.2.1 see one chat line: "LayerEnemies: <helper> is
+  coming to help <victim> (<zone>)." The player who died sees
+  "LayerEnemies: COMING: <helper> is on the way." and hears the alert sound.
+  There is no separate whisper: calls only come from guildmates, so the guild
+  line already reaches the victim.
+- **Found pop-up.** When a tracked enemy is found, a small window shows the name,
+  level and class if known, zone, age and source, with **Show on map** (the same
+  waypoint as the Call help button) and **Dismiss**. It closes after 30 s, never
+  opens in an instance, and opens at most once per tracked name per 2 minutes.
+  `/le found on|off` (on by default, saved as one setting). It sends nothing.
+
+Not tested on a live client: not run (alpha, owner's decision).
+
 ## 1.2.0 at a glance
 
 Everything since 1.1.0, with the sections below and the reference chapters
