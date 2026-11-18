@@ -97,7 +97,7 @@ only in that 60 s safe window; successful stops are never repeated. Logout pumps
 the existing queue once, subject to its
 normal budgets; delivery is not guaranteed. At logout only one Battle.net frame
 can leave, so if a feed stop and a WarBoard withdrawal are both pending, the
-stop goes and the withdrawal stays owed for that character's next login.
+stop goes and the withdrawal stays owed until that character logs in again.
 Without the client's friend-list event, a removed friend is dropped within
 about 21 s and receives nothing but the stop in the meantime. The donor's subscription expires
 900 s after its last renewal, not 200 s. 200 s is the keep-alive interval.
