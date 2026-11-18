@@ -169,7 +169,9 @@ test("Call: Help uses the shown event once for waypoint and full killer Find onl
     N.Main.call.current={zone=200,x=.1,y=.2,killer="Other Enemy",full=true}
     click(); eq(#p,1); eq(p[1].uiMapID,100); eq(p[1].position.x,.425); eq(p[1].position.y,.61)
     eq(#t,1); eq(t[1],true); eq(#c,1); eq(c[1],100); eq(N.Main.find.names[1],"Cedar Vale")
-    click(); eq(#p,1); eq(#N.Main.find.names,1); eq(#H.sent(),before); no(popup(N))
+    -- 1.2.1: the click sends exactly one hidden LEGW1 "on my way" line, and only once per event.
+    eq(#H.sent(),before+1); local g=H.sent()[#H.sent()]; eq(g.prefix,"LEGW1"); eq(g.kind,"GUILD"); yes(g.text:find("^G|1|100|"))
+    click(); eq(#p,1); eq(#N.Main.find.names,1); eq(#H.sent(),before+1); no(popup(N))
 end)
 test("Call: Help without coordinates prints one useful line and does not set a waypoint",function()
     local N=H.load(); bounty(nil,false); local p=waypoint(); local before=#H.log(); yes(N.CallUI.help)
