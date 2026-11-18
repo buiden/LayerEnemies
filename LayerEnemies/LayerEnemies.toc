@@ -45,6 +45,7 @@ CallText.lua
 Call.lua
 OwnDeath.lua
 CallUI.lua
+Coming.lua
 Wanted.lua
 OverlordPeer.lua
 OverlordFeed.lua

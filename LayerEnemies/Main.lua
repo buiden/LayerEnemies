@@ -795,6 +795,7 @@ function M.relayIn(text,kind,sender)
     local time=now()
     if not N.Relay.allow(M.relay,sender,time) then return end
     if type(text)=="string" and text:sub(1,2)=="K|" then return N.OwnDeath.receive(text,sender,time) end
+    if type(text)=="string" and text:sub(1,2)=="G|" then return M.comingIn(text,sender) end
     if type(text)=="string" and text:sub(1,2)=="T|" then
         if not M.guildCheck(true) or M.guildWhy() then return end
         N.Watch.receive(M.watch,text,sender,time)
@@ -1214,16 +1215,17 @@ function M.setCallArt(on)
     N.CallUI.render()
     M.say(on and "LayerEnemies: Call art is on." or "LayerEnemies: Call art is off (Latin headings).")
 end
-function M.callHelp(e)
+-- showOnMap(zone,x,y): the user waypoint (super-tracked) or, when the map refuses, one chat line with the place.
+function M.showOnMap(zone,x,y)
     local placed=false
-    if e.zone and e.x and e.y and S.tab(C_Map)
-        and S.call(C_Map.CanSetUserWaypointOnMap,e.zone)==true and type(C_Map.SetUserWaypoint)=="function" then
+    if zone and x and y and S.tab(C_Map)
+        and S.call(C_Map.CanSetUserWaypointOnMap,zone)==true and type(C_Map.SetUserWaypoint)=="function" then
         local point
-        if S.tab(UiMapPoint) then point=S.call(UiMapPoint.CreateFromCoordinates,e.zone,e.x,e.y)
+        if S.tab(UiMapPoint) then point=S.call(UiMapPoint.CreateFromCoordinates,zone,x,y)
         else
             -- UiMapPoint's convenience constructor loads only on Mainline. The native struct uses a Vector2D.
-            local position=S.call(CreateVector2D,e.x,e.y)
-            if position then point={uiMapID=e.zone,position=position} end
+            local position=S.call(CreateVector2D,x,y)
+            if position then point={uiMapID=zone,position=position} end
         end
         if point then
             local ok,result=pcall(C_Map.SetUserWaypoint,point)
@@ -1232,9 +1234,35 @@ function M.callHelp(e)
         end
     end
     if not placed then
-        local position=e.x and e.y and string.format("%.1f, %.1f",e.x*100,e.y*100) or "position unavailable"
-        M.say("LayerEnemies: "..N.CallText.clean(M.zoneName(e.zone)).." - "..position..".")
+        local position=x and y and string.format("%.1f, %.1f",x*100,y*100) or "position unavailable"
+        M.say("LayerEnemies: "..N.CallText.clean(M.zoneName(zone)).." - "..position..".")
     end
+    return placed
+end
+-- comingSend(e): one hidden guild line per alert event, from the help click only. Same gates as K1.
+function M.comingSend(e)
+    if e.coming then return false end
+    e.coming=true
+    if not (M.sharing() and A.inInstance()==false and S.call(IsInGuild)==true and A.ownIdentity()) then return false end
+    local line=N.Coming.line(e.zone,e.victim)
+    if not line or not N.Coming.allow(M.coming,now()) then return false end
+    return N.Wire.send("LEGW1",line,"GUILD",nil,{prio="click"})==true
+end
+-- comingIn(text,sender): a guildmate's "on my way"; the victim gets the alert sound too.
+function M.comingIn(text,sender)
+    local d=N.Coming.decode(text)
+    if not d then M.lastDrop="coming invalid"; return end
+    local helper=N.CallText.clean(sender)
+    if M.isMe(d.victim) then
+        M.say("LayerEnemies: COMING: "..helper.." is on the way.")
+        M.alertSound()
+    else
+        M.say("LayerEnemies: "..helper.." is coming to help "..N.CallText.clean(d.victim).." ("..N.CallText.clean(M.zoneName(d.zone))..").")
+    end
+end
+function M.callHelp(e)
+    M.showOnMap(e.zone,e.x,e.y)
+    M.comingSend(e)
     if e.full and e.killer then
         local ok,why=N.Find.add(M.find,e.killer)
         if not ok then M.say("LayerEnemies: "..why)
@@ -2512,7 +2540,7 @@ function M.start()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration plus GUID-only owed withdrawals; never sightings or peer records.
     local saved=LayerEnemiesDB
-    M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new()
+    M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new(); M.coming=N.Coming.new()
     M.presenceShared={}; M.presenceSharedAlerts={presenceAlerts={}}
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
