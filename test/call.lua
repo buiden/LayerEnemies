@@ -169,7 +169,9 @@ test("Call: Help uses the shown event once for waypoint and full killer Find onl
     N.Main.call.current={zone=200,x=.1,y=.2,killer="Other Enemy",full=true}
     click(); eq(#p,1); eq(p[1].uiMapID,100); eq(p[1].position.x,.425); eq(p[1].position.y,.61)
     eq(#t,1); eq(t[1],true); eq(#c,1); eq(c[1],100); eq(N.Main.find.names[1],"Cedar Vale")
-    click(); eq(#p,1); eq(#N.Main.find.names,1); eq(#H.sent(),before); no(popup(N))
+    -- 1.2.1: the click sends exactly one hidden LEGW1 "on my way" line, and only once per event.
+    eq(#H.sent(),before+1); local g=H.sent()[#H.sent()]; eq(g.prefix,"LEGW1"); eq(g.kind,"GUILD"); yes(g.text:find("^G|1|100|"))
+    click(); eq(#p,1); eq(#N.Main.find.names,1); eq(#H.sent(),before+1); no(popup(N))
 end)
 test("Call: Help without coordinates prints one useful line and does not set a waypoint",function()
     local N=H.load(); bounty(nil,false); local p=waypoint(); local before=#H.log(); yes(N.CallUI.help)
@@ -410,7 +412,7 @@ test("Call review: invalid coordinates are removed as a pair",function()
             local N=H.load(); local r=record(0,"gb",true); r[field]=bad
             N.Main.callReceive(r,"Birch Moss"); yes(popup(N))
             eq(N.CallUI.event.x,nil,field); eq(N.CallUI.event.y,nil,field)
-            local points=waypoint(); N.CallUI.help:Click(); eq(#points,0); eq(#H.sent(),0)
+            local points=waypoint(); N.CallUI.help:Click(); eq(#points,0); eq(#H.sent(),1); yes(H.sent()[1].text:find("^G|1|100|"),"1.2.1: Help sends only the on-my-way line")
         end
     end
 end)
@@ -424,7 +426,7 @@ end)
 test("Call review: explicit full false is not a Find identity",function()
     local N=H.load(); local r=record(0); r.enemies[1].full=false
     N.Main.callReceive(r,"Birch Moss"); yes(popup(N)); eq(N.CallUI.event.full,false)
-    N.CallUI.help:Click(); eq(#N.Main.find.names,0); eq(#H.sent(),0)
+    N.CallUI.help:Click(); eq(#N.Main.find.names,0); eq(#H.sent(),1); yes(H.sent()[1].text:find("^G|1|"),"1.2.1: Help sends only the on-my-way line")
 end)
 test("Call review: old Help closure cannot act after a replacement render",function()
     local N=H.load(); bounty(); local click=N.CallUI.help.scripts.OnClick
@@ -434,7 +436,7 @@ test("Call review: old Help closure cannot act after a replacement render",funct
     click(); eq(#points,0); eq(#H.log(),before); eq(#N.Main.find.names,0)
     yes(popup(N)); eq(N.CallUI.event,shown)
     N.CallUI.help:Click(); eq(#points,1); eq(points[1].uiMapID,200)
-    eq(N.Main.find.names[1],"Other Enemy"); eq(#H.sent(),0)
+    eq(N.Main.find.names[1],"Other Enemy"); eq(#H.sent(),1); yes(H.sent()[1].text:find("^G|1|200|"),"1.2.1: Help sends only the on-my-way line")
 end)
 test("Call review: Help rechecks instance before the next event or timer",function()
     local N=H.load(); bounty(); local points=waypoint(); local before=#H.log()
@@ -445,13 +447,13 @@ test("Call review: waypoint uses a displayed map other than the local map",funct
     local N=H.load(); local r=record(0,"gb",true); r.zone=200
     N.Main.callReceive(r,"Birch Moss"); local points,_,can=waypoint(); N.CallUI.help:Click()
     eq(#points,1); eq(points[1].uiMapID,200); eq(can[1],200)
-    eq(points[1].position.x,.425); eq(points[1].position.y,.61); eq(#H.sent(),0)
+    eq(points[1].position.x,.425); eq(points[1].position.y,.61); eq(#H.sent(),1); yes(H.sent()[1].text:find("^G|1|200|"),"1.2.1: Help sends only the on-my-way line")
 end)
 test("Call review: Find accepts realm-qualified two-word killers",function()
     for _,suffix in ipairs({"-Stormrage","-1234"}) do
         local N=H.load(); local r=record(0); r.enemies[1].name="Cedar Vale"..suffix
         N.Main.callReceive(r,"Birch Moss"); yes(popup(N)); yes(N.CallUI.event.full)
-        N.CallUI.help:Click(); eq(#N.Main.find.names,1); eq(N.Main.find.names[1],"Cedar Vale"..suffix); eq(#H.sent(),0)
+        N.CallUI.help:Click(); eq(#N.Main.find.names,1); eq(N.Main.find.names[1],"Cedar Vale"..suffix); eq(#H.sent(),1); yes(H.sent()[1].text:find("^G|1|"),"1.2.1: Help sends only the on-my-way line")
     end
 end)
 for _,key in ipairs({"victim","killer","where"}) do

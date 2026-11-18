@@ -795,6 +795,7 @@ function M.relayIn(text,kind,sender)
     local time=now()
     if not N.Relay.allow(M.relay,sender,time) then return end
     if type(text)=="string" and text:sub(1,2)=="K|" then return N.OwnDeath.receive(text,sender,time) end
+    if type(text)=="string" and text:sub(1,2)=="G|" then return M.comingIn(text,sender) end
     if type(text)=="string" and text:sub(1,2)=="T|" then
         if not M.guildCheck(true) or M.guildWhy() then return end
         N.Watch.receive(M.watch,text,sender,time)
@@ -1214,16 +1215,17 @@ function M.setCallArt(on)
     N.CallUI.render()
     M.say(on and "LayerEnemies: Call art is on." or "LayerEnemies: Call art is off (Latin headings).")
 end
-function M.callHelp(e)
+-- showOnMap(zone,x,y): the user waypoint (super-tracked) or, when the map refuses, one chat line with the place.
+function M.showOnMap(zone,x,y)
     local placed=false
-    if e.zone and e.x and e.y and S.tab(C_Map)
-        and S.call(C_Map.CanSetUserWaypointOnMap,e.zone)==true and type(C_Map.SetUserWaypoint)=="function" then
+    if zone and x and y and S.tab(C_Map)
+        and S.call(C_Map.CanSetUserWaypointOnMap,zone)==true and type(C_Map.SetUserWaypoint)=="function" then
         local point
-        if S.tab(UiMapPoint) then point=S.call(UiMapPoint.CreateFromCoordinates,e.zone,e.x,e.y)
+        if S.tab(UiMapPoint) then point=S.call(UiMapPoint.CreateFromCoordinates,zone,x,y)
         else
             -- UiMapPoint's convenience constructor loads only on Mainline. The native struct uses a Vector2D.
-            local position=S.call(CreateVector2D,e.x,e.y)
-            if position then point={uiMapID=e.zone,position=position} end
+            local position=S.call(CreateVector2D,x,y)
+            if position then point={uiMapID=zone,position=position} end
         end
         if point then
             local ok,result=pcall(C_Map.SetUserWaypoint,point)
@@ -1232,9 +1234,45 @@ function M.callHelp(e)
         end
     end
     if not placed then
-        local position=e.x and e.y and string.format("%.1f, %.1f",e.x*100,e.y*100) or "position unavailable"
-        M.say("LayerEnemies: "..N.CallText.clean(M.zoneName(e.zone)).." - "..position..".")
+        local position=x and y and string.format("%.1f, %.1f",x*100,y*100) or "position unavailable"
+        M.say("LayerEnemies: "..N.CallText.clean(M.zoneName(zone)).." - "..position..".")
     end
+    return placed
+end
+-- comingSend(e): one hidden guild line per alert event, from the help click only. Same gates as K1.
+function M.comingSend(e)
+    if e.coming then return false end
+    e.coming=true
+    if not (M.sharing() and A.inInstance()==false and S.call(IsInGuild)==true and A.ownIdentity()) then return false end
+    local line=N.Coming.line(e.zone,e.victim)
+    if not line or not N.Coming.allow(M.coming,now()) then return false end
+    return N.Wire.send("LEGW1",line,"GUILD",nil,{prio="click"})==true
+end
+-- comingIn(text,sender): a guildmate's "on my way"; the victim gets the alert sound too.
+-- One line per helper+victim per 60 s, the sound at most once per 10 s; the rest only counts (/le net).
+-- Silent with /le call off or inside an instance.
+M.COMING_LINE,M.COMING_SOUND=60,10
+function M.comingIn(text,sender)
+    local d=N.Coming.decode(text)
+    if not d then M.lastDrop="coming invalid"; return end
+    local c=M.coming; c.heard=(c.heard or 0)+1
+    if not M.calling() or A.inInstance()~=false then c.quiet=(c.quiet or 0)+1; return end
+    local time=now(); c.lines=c.lines or {}
+    for k,at in pairs(c.lines) do if time<at or time-at>=M.COMING_LINE then c.lines[k]=nil end end
+    local key=(N.Find.fold(sender) or sender).."|"..(N.Find.fold(d.victim) or d.victim)
+    if c.lines[key] or S.count(c.lines)>=64 then c.collapsed=(c.collapsed or 0)+1; return end
+    c.lines[key]=time
+    local helper=N.CallText.clean(sender)
+    if M.isMe(d.victim) then
+        M.say("LayerEnemies: COMING: "..helper.." is on the way.")
+        if not c.soundAt or time<c.soundAt or time-c.soundAt>=M.COMING_SOUND then c.soundAt=time; M.alertSound() end
+    else
+        M.say("LayerEnemies: "..helper.." is coming to help "..N.CallText.clean(d.victim).." ("..N.CallText.clean(M.zoneName(d.zone))..").")
+    end
+end
+function M.callHelp(e)
+    M.showOnMap(e.zone,e.x,e.y)
+    M.comingSend(e)
     if e.full and e.killer then
         local ok,why=N.Find.add(M.find,e.killer)
         if not ok then M.say("LayerEnemies: "..why)
@@ -1283,6 +1321,24 @@ function M.findNotice(text)
         end
     end
 end
+-- foundPopup(row): one pop-up per tracked name per 120 s, never in instances, /le found off silences it.
+M.FOUND_GAP=120
+function M.foundPopup(row)
+    if not S.tab(LayerEnemiesDB) or LayerEnemiesDB.found==false or A.inInstance()~=false then return false end
+    local time=now(); M.foundAt=M.foundAt or {}
+    local key=N.Find.fold(row.name) or row.name
+    local last=M.foundAt[key]
+    if last and time>=last and time-last<M.FOUND_GAP then return false end
+    local shown=N.Popup.show("found",{name=row.name,level=row.level,class=row.class,zone=row.zone,
+        x=row.x,y=row.y,age=row.age,source=row.status})
+    if shown then M.foundAt[key]=time end
+    return shown
+end
+function M.setFound(on)
+    LayerEnemiesDB.found=on==true
+    if not on then N.Popup.close() end
+    M.say(on and "LayerEnemies: Found pop-up is on." or "LayerEnemies: Found pop-up is off.")
+end
 function M.findAlerts(quiet,printed)
     local st,time=M.find,now()
     if not st then return end
@@ -1294,6 +1350,7 @@ function M.findAlerts(quiet,printed)
             if row.name~=printed then
                 M.findNotice(M.findText(row,true))
             end
+            if not pcall(M.foundPopup,row) then M.error="found pop-up error" end
             if not quiet and (not st.soundAt or time-st.soundAt>=10) then
                 st.soundAt=time; M.alertSound()
             end
@@ -2422,6 +2479,8 @@ function M.net(command)
         M.say(N.HeadHunter.summary(M.hh.stats))
         local s=M.overlord.stats
         local pool=M.overlordPool() or "unknown (receiving nothing)"
+        local cm=M.coming or {}
+        M.say("On my way (session): heard="..(cm.heard or 0).." collapsed="..(cm.collapsed or 0).." quiet="..(cm.quiet or 0))
         M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused.." · pool "..pool)
         for _,line in ipairs(N.Sources.lines()) do M.say(line) end
         return
@@ -2512,7 +2571,7 @@ function M.start()
     if not S.tab(LayerEnemiesDB) then LayerEnemiesDB={} end
     -- Configuration plus GUID-only owed withdrawals; never sightings or peer records.
     local saved=LayerEnemiesDB
-    M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new()
+    M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new(); M.coming=N.Coming.new()
     M.presenceShared={}; M.presenceSharedAlerts={presenceAlerts={}}
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
@@ -2528,6 +2587,7 @@ function M.start()
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
     LayerEnemiesDB.call=saved.call~=false
     LayerEnemiesDB.callArt=saved.callArt~=false
+    LayerEnemiesDB.found=saved.found~=false
     -- the first-login line, once per character, while some network ships and no guild-only choice was made
     LayerEnemiesDB.netNotice=saved.netNotice==true or nil
     local ships=false; for key in pairs(N.Net.LIST) do if N.Net.SHIP[key]==true then ships=true end end
@@ -2591,6 +2651,7 @@ function M.start()
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
         if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
         if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
+        if command=="found on" or command=="found off" then guarded(M.setFound,command=="found on"); return end
         if command=="hop auto off" then guarded(M.setAutoHop,false); return end
         local index=command:match("^ask%s+(%d%d?)$")
         local host=command:match("^hop%s+host%s+(%d%d?)$")

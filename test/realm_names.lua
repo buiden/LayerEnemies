@@ -230,5 +230,6 @@ test("Realm names: On my way adds the shown qualified killer and saves it withou
     local U=N.CallUI; yes(U.frame and U.frame:IsShown()); eq(U.event.killer,"First Last-1234"); yes(U.event.full)
     local before=#H.sent(); U.help:Click()
     eq(N.Main.find.names[1],"First Last-1234"); eq(LayerEnemiesDB.tracked[1],"First Last-1234")
-    eq(#H.sent(),before); no(U.frame:IsShown()); no(N.Main.error)
+    -- 1.2.1: Help sends exactly the one hidden on-my-way line; the save itself sends nothing.
+    eq(#H.sent(),before+1); yes(H.sent()[#H.sent()].text:find("^G|1|100|")); no(U.frame:IsShown()); no(N.Main.error)
 end)

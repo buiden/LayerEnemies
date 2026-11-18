@@ -15,6 +15,22 @@ local function button(parent,width,label,fn)
     b.label=text(b,11); b.label:SetPoint("CENTER"); b.label:SetWidth(width-4); b.label:SetJustifyH("CENTER"); set(b.label,label)
     b:SetScript("OnClick",fn); return b
 end
+-- panel(name,width,height): the shared pop-up frame style (dark fill, thin border, under the minimap, Esc closes).
+local function panel(name,width,height)
+    local f=CreateFrame("Frame",name,UIParent)
+    f:Hide(); f:SetSize(width,height); f:SetFrameStrata("HIGH"); f:SetClampedToScreen(true); f:EnableMouse(true)
+    local anchor=MinimapCluster or Minimap
+    if anchor then f:SetPoint("TOPRIGHT",anchor,"BOTTOMRIGHT",0,-8)
+    else f:SetPoint("TOPRIGHT",UIParent,"TOPRIGHT",-12,-180) end
+    local bg=f:CreateTexture(nil,"BACKGROUND"); bg:SetAllPoints(); bg:SetColorTexture(.07,.08,.10,.96)
+    for _,edge in ipairs({{"TOPLEFT","TOPRIGHT",true},{"BOTTOMLEFT","BOTTOMRIGHT",true},{"TOPLEFT","BOTTOMLEFT",false},{"TOPRIGHT","BOTTOMRIGHT",false}}) do
+        local t=f:CreateTexture(nil,"BORDER"); t:SetColorTexture(.45,.22,.17,1)
+        t:SetPoint(edge[1]); t:SetPoint(edge[2]); if edge[3] then t:SetHeight(1) else t:SetWidth(1) end
+    end
+    if S.tab(UISpecialFrames) then UISpecialFrames[#UISpecialFrames+1]=name end
+    return f
+end
+U.text,U.button,U.panel,U.set=text,button,panel,set
 local function buttonLabel(b,id)
     local entry=T[id]
     local art=LayerEnemiesDB.callArt~=false and entry.art
@@ -51,16 +67,7 @@ function U.check()
 end
 function U.create()
     if U.frame then return end
-    local f=CreateFrame("Frame","LayerEnemiesCall",UIParent)
-    f:Hide(); U.frame=f; f:SetSize(220,290); f:SetFrameStrata("HIGH"); f:SetClampedToScreen(true); f:EnableMouse(true)
-    local anchor=MinimapCluster or Minimap
-    if anchor then f:SetPoint("TOPRIGHT",anchor,"BOTTOMRIGHT",0,-8)
-    else f:SetPoint("TOPRIGHT",UIParent,"TOPRIGHT",-12,-180) end
-    local bg=f:CreateTexture(nil,"BACKGROUND"); bg:SetAllPoints(); bg:SetColorTexture(.07,.08,.10,.96)
-    for _,edge in ipairs({{"TOPLEFT","TOPRIGHT",true},{"BOTTOMLEFT","BOTTOMRIGHT",true},{"TOPLEFT","BOTTOMLEFT",false},{"TOPRIGHT","BOTTOMRIGHT",false}}) do
-        local t=f:CreateTexture(nil,"BORDER"); t:SetColorTexture(.45,.22,.17,1)
-        t:SetPoint(edge[1]); t:SetPoint(edge[2]); if edge[3] then t:SetHeight(1) else t:SetWidth(1) end
-    end
+    local f=panel("LayerEnemiesCall",220,290); U.frame=f
     U.heading=f:CreateTexture(nil,"ARTWORK"); U.heading:SetSize(192,48); U.heading:SetPoint("TOP",f,"TOP",0,-14)
     U.latin=text(f,10); U.latin:SetWidth(196); U.latin:SetJustifyH("CENTER")
     U.rows={}
@@ -77,7 +84,6 @@ function U.create()
     end
     U.closeButton=button(f,18,"x",U.close); U.closeButton:SetSize(18,16); U.closeButton:SetPoint("TOPRIGHT",-2,-2)
     f:SetScript("OnHide",function() U.generation=U.generation+1 end)
-    if S.tab(UISpecialFrames) then UISpecialFrames[#UISpecialFrames+1]="LayerEnemiesCall" end
 end
 function U.render()
     local e=U.event
