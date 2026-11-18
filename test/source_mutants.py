@@ -44,7 +44,7 @@ MUTANTS = [
      'if not authorized or not N.Main.sharing() or N.Net.consent()~="public" or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"public")',
      'if not authorized or not N.Main.sharing() or not safe() then return false end\n    local ok,why=N.Net.allowed(net,"guild")', 'BNet queue:'),
     ('dispatch privacy recheck', 'BNet.lua', '(now-q.at>60 or not BN.allowed(q.net,q.id,q.prefix,q.text,q.prio) or not BN.who(q.id)) then', '(now-q.at>60) then', 'BNet queue:'),
-    ('cancel off-on share', 'Main.lua', 'N.OwnDeath.cancel(); N.BNet.cancel()', 'N.OwnDeath.cancel()', 'BNet queue:'),
+    ('cancel off-on share', 'Main.lua', 'N.OwnDeath.cancel(); N.BNet.cancel(nil,nil,true)', 'N.OwnDeath.cancel()', 'BNet queue:'),
     ('per-network share', 'BNet.lua', 'wanted=4', 'wanted=5', 'BNet queue:'),
     ('failed send dropped', 'BNet.lua', 'if ok then N.Sources.count(q.net,"sent") else refuse(q.net) end', 'if ok then N.Sources.count(q.net,"sent") else refuse(q.net); queue[#queue+1]=q end', 'BNet queue:'),
     ('Wire caller frame', 'BNet.lua', 'pcall(N.Wire.bnet,q.net,q.id,q.prefix,q.text,q.prio,fn)', 'pcall(fn,q.id,q.prefix,q.text)', 'BNet queue:'),

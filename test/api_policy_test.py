@@ -352,5 +352,16 @@ class ApiPolicyTests(unittest.TestCase):
         self.assertEqual((root / 'LayerEnemies.toc').read_text().count('OverlordPeer.lua'), 1)
 
 
+    def test_overlord_feed_is_pure_and_does_not_serve_or_save(self):
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        source = (root / 'OverlordFeed.lua').read_text()
+        self.check_source(source, 'OverlordFeed.lua')
+        VERIFY['check_send_policy'](source, 'OverlordFeed.lua')
+        refs = {v for k, v in VERIFY['lua_tokens'](source) if k == 'name'}
+        self.assertFalse(refs & {'_G', 'C_Timer', 'GetTime', 'SendGameData', 'SendAddonMessage',
+                                 'LayerEnemiesDB', 'LibStub', 'SetText', 'JoinChannelByName'})
+        self.assertEqual((root / 'LayerEnemies.toc').read_text().count('OverlordFeed.lua'), 1)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

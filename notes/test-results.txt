@@ -1541,11 +1541,111 @@ PASS Sources: offer uses only live guild Watch matches and never adds saved trac
 PASS Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh
 PASS Sources: readable-looking secret scalars cannot be offered
 PASS Sources: malformed secret and throwing offers store nothing and never set runtime error
+PASS Overlord feed: honest advert omits unsupported ranking page capabilities
+PASS Overlord feed: feed waits for quiet source without any capability claim
+PASS Overlord feed: empty comparison never claims equality to nonempty requester
+PASS Overlord feed: only exact donor thirteen-field K establishes an epoch
+PASS Overlord feed: solicited full then compact rows offer only tracked opposite names as unknown-time claims
+PASS Overlord feed: two sources 200 second request keep and busy state machine
+PASS Overlord feed: compact unknown no-zone stale totals and marker reset
+PASS Overlord feed: feed identities accept donor race strings then compact updates
+PASS Overlord feed: immediate share off-on cancels lease with HR X
+PASS Overlord feed: immediate guild off-on cancels lease with HR X
+PASS Overlord feed: immediate switch off-on cancels lease with HR X
+PASS Overlord feed: removed BNet friend cannot feed a prior subscriber
+PASS Overlord feed: queued subscription cancels if the route changes before dispatch
+PASS Overlord feed: campaign epochs remain source and pool scoped and unknown never guessed
+PASS Overlord feed: envelope direct addressing source lease and epoch gates
+PASS Overlord feed: parser exact 600 byte 48 row 250 row-byte and three digit bounds
+PASS Overlord feed: per source 240 rows and 14400 bytes per minute before decode
+PASS Overlord feed: 64 identities per source bounded and untracking prunes session-only state
+PASS Overlord feed: active subscription silent during share
+PASS Overlord feed: active subscription silent during guild
+PASS Overlord feed: active subscription silent during switch
+PASS Overlord feed: active subscription silent during combat
+PASS Overlord feed: active subscription silent during instance
+PASS Overlord feed: active subscription silent during pool
+PASS Overlord feed: active subscription silent during donor
+PASS Overlord feed: 5000 fuzz inputs bounded without forwarding or saved feed names
+PASS Overlord feed: real BNet friend crosses factions only after actual request dispatch
+PASS Overlord feed: NH while request waits in BNet queue preserves its answer
+PASS Overlord feed: failed request never grants a feed lease
+PASS Overlord feed: measured Find row has no Ask or Hop and feed data is not saved
+PASS Overlord feed: live feed keeps its lease beyond 900 seconds without another pull
+PASS Overlord feed: malformed owner K cannot bootstrap epoch
+PASS Overlord feed: zero totals and invalid full identities are not locations
+PASS Overlord feed: dispatch gap stale epochs routes old releases and foreign ACK are refused
+PASS Overlord feed: future epoch independent of route expiry and fresh selection
+PASS Overlord feed: old provider independent of quiet period and epoch
+PASS Overlord feed: batch row ceiling and marker byte bound are independent
+PASS Overlord feed: global feed budget survives source rotation and privacy cancellation
+PASS Overlord feed: global byte and batch-row ceilings hold across replacement sources
+PASS Overlord feed: unknown epoch silent then direct owner K opens truthful v8 subscription
 PASS Overlord FLH stack: unarmed full eight-token burst, peer first true
 PASS Overlord FLH stack: unarmed full eight-token burst, peer first false
 PASS Overlord FLH stack: armed LR reserve blocks peer reply without charging it
 PASS Overlord FLH stack: canceled click immediately returns last token to peer
 PASS Overlord FLH stack: peer reply cannot steal final rolling-minute LR slot
+PASS Overlord followup: n3 busy HA version 5
+PASS Overlord followup: n3 busy HA version 6
+PASS Overlord followup: n3 busy HA version 7
+PASS Overlord followup: n3 busy HA version 8
+PASS Overlord followup: n3 busy HA version 9
+PASS Overlord followup: n2 NH clock survives pool round trip
+PASS Overlord followup: n2 NH clock survives character round trip
+PASS Overlord followup: n1 deferred stop combat queued=false duration=1
+PASS Overlord followup: n1 deferred stop combat queued=false duration=90
+PASS Overlord followup: n1 deferred stop combat queued=true duration=1
+PASS Overlord followup: n1 deferred stop combat queued=true duration=90
+PASS Overlord followup: n1 deferred stop instance queued=false duration=1
+PASS Overlord followup: n1 deferred stop instance queued=false duration=90
+PASS Overlord followup: n1 deferred stop instance queued=true duration=1
+PASS Overlord followup: n1 deferred stop instance queued=true duration=90
+PASS Overlord followup: S2 removal invalidates cached friend active=false
+PASS Overlord followup: S2 removal invalidates cached friend active=true
+PASS Overlord followup: S1 cancellation from a fresh dispatch context queues the stop now
+PASS Overlord followup: S1 senderless cancellation offset 100
+PASS Overlord followup: S1 senderless cancellation offset 101
+PASS Overlord followup: S1 senderless cancellation offset 102
+PASS Overlord followup: S1 senderless cancellation offset 103
+PASS Overlord followup: S1 senderless cancellation offset 104
+PASS Overlord followup: S1 senderless cancellation offset 105
+PASS Overlord followup: S1 senderless cancellation offset 106
+PASS Overlord followup: S1 senderless cancellation offset 107
+PASS Overlord followup: S1 senderless cancellation offset 108
+PASS Overlord followup: S1 senderless cancellation offset 109
+PASS Overlord followup: S1 senderless cancellation offset 110
+PASS Overlord followup: S1 senderless cancellation offset 111
+PASS Overlord followup: S1 senderless cancellation offset 112
+PASS Overlord followup: S1 senderless cancellation offset 113
+PASS Overlord followup: S1 senderless cancellation offset 114
+PASS Overlord followup: S1 senderless cancellation offset 115
+PASS Overlord followup: S1 senderless cancellation offset 116
+PASS Overlord followup: S1 senderless cancellation offset 117
+PASS Overlord followup: S1 senderless cancellation offset 118
+PASS Overlord followup: S1 senderless cancellation offset 119
+PASS Overlord followup: S1 senderless cancellation offset 120
+PASS Overlord followup: S1 senderless cancellation offset 121
+PASS Overlord followup: S1 senderless cancellation offset 122
+PASS Overlord followup: S1 senderless cancellation offset 123
+PASS Overlord followup: S1 senderless cancellation offset 124
+PASS Overlord followup: S1 senderless cancellation offset 125
+PASS Overlord followup: S1 senderless cancellation offset 126
+PASS Overlord followup: S1 senderless cancellation offset 127
+PASS Overlord followup: S1 senderless cancellation offset 128
+PASS Overlord followup: S1 senderless cancellation offset 129
+PASS Overlord followup: S1 senderless cancellation offset 130
+PASS Overlord followup: M foreign guild
+PASS Overlord followup: M same guild
+PASS Overlord followup: M foreign split party
+PASS Overlord followup: M foreign joined party
+PASS Overlord followup: M isolated foreign friend
+PASS Overlord followup: M different realm namesake guild
+PASS Overlord followup: M different realm namesake party
+PASS Overlord followup: M foreign source hears no qualified whisper NH
+PASS Overlord followup: M same-name account realm change invalidates old hearing
+PASS Overlord followup: M unknown realm friend fails closed
+PASS Overlord followup: M unknown realm roster fails closed
 PASS Overlord peer: directory uses audited pool channel and two free slots
 PASS Overlord peer: real whisper owes one truthful reply; no forwarding or bypass
 PASS Overlord peer: all sends silent with share
@@ -1579,6 +1679,89 @@ PASS Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime
 PASS Overlord peer: per sender assembly cap and guild reserve
 PASS Overlord peer: whisper and R2 battle net receive GW; foreign band silent
 PASS Overlord peer: pure peer announces own truthful identity and answers targeted NH
+PASS Overlord reach: NH-free source serves and can route reply over BNET
+PASS Overlord reach: WHISPER group peer stays ordinary C2 without a feed
+PASS Overlord reach: donor refuses recent NH but accepts unknown after expiry
+PASS Overlord reach: guild and group NH lanes stay live and audible friend is not a source
+PASS Overlord reach: busy HA even for zero comparison shares NH reply gap
+PASS Overlord reach: keep at 200 then one stop on unsubscribe
+PASS Overlord reach: stop remains owed after busy HA may have created remote subscription
+PASS Overlord reach: account aliases and unreadable shared lanes cannot leak NH
+PASS Overlord reach: source names suppress owed whispers including own-realm aliases
+PASS Overlord reach: a prior NH is forgotten only after continuous quiet and queue recheck
+PASS Overlord reach: source count selection and rotation cannot skip silence
+PASS Overlord reach: departed friend cannot deliver feed before next tick
+PASS Overlord reach: stop obeys combat gate before admission and queued dispatch
+PASS Overlord reach: stop obeys instance gate before admission and queued dispatch
+PASS Overlord reach: stop obeys pool gate before admission and queued dispatch
+PASS Overlord reach: stop obeys donor gate before admission and queued dispatch
+PASS Overlord reach: unsolicited forged stop does not bypass closed privacy gates
+PASS Overlord reach: pending withdrawal records expire without retries
+PASS Overlord reach: live WHISPER source sends stop on share
+PASS Overlord reach: live WHISPER source sends stop on guild
+PASS Overlord reach: live WHISPER source sends stop on switch
+PASS Overlord reach: live WHISPER source sends stop on leave
+PASS Overlord reach: live WHISPER source sends stop on logout
+PASS Overlord reach: live BNET source sends stop on share
+PASS Overlord reach: live BNET source sends stop on guild
+PASS Overlord reach: live BNET source sends stop on switch
+PASS Overlord reach: live BNET source sends stop on leave
+PASS Overlord reach: live BNET source sends stop on logout
+PROBE isolation Élan Scout guild: selectedTicks=0 sourceNH=0 laneNH=2
+PASS Overlord revision: M excludes audible friend Élan Scout guild
+PROBE isolation Ølaf Scout guild: selectedTicks=0 sourceNH=0 laneNH=2
+PASS Overlord revision: M excludes audible friend Ølaf Scout guild
+PROBE isolation Борис Скаут guild: selectedTicks=0 sourceNH=0 laneNH=2
+PASS Overlord revision: M excludes audible friend Борис Скаут guild
+PROBE isolation Birch Scout unreadable: selectedTicks=0 sourceNH=0 laneNH=8
+PASS Overlord revision: M excludes audible friend Birch Scout unreadable
+PROBE isolation Birch Scout qualified: selectedTicks=0 sourceNH=0 laneNH=8
+PASS Overlord revision: M excludes audible friend Birch Scout qualified
+PROBE isolation Birch Scout dual: selectedTicks=0 sourceNH=0 laneNH=8
+PASS Overlord revision: M excludes audible friend Birch Scout dual
+PROBE isolation Birch Scout group: selectedTicks=0 sourceNH=0 laneNH=8
+PASS Overlord revision: M excludes audible friend Birch Scout group
+PROBE isolation Birch Scout badguild: selectedTicks=0 sourceNH=0 laneNH=2
+PASS Overlord revision: M excludes audible friend Birch Scout badguild
+PASS Overlord revision: M group-only peer stays C2 and is never asked
+PASS Overlord revision: M Unicode realm BNet alias is silent while selected
+PASS Overlord revision: clock never-sent account starts without artificial wait
+PASS Overlord revision: clock retains first-hand friend through sparse 600-second hearing
+PASS Overlord revision: clock actual NH restarts quiet on BNET
+PASS Overlord revision: clock actual NH restarts quiet on WHISPER
+PASS Overlord revision: clock actual NH restarts quiet on GUILD
+PASS Overlord revision: clock actual NH restarts quiet on PARTY
+PROBE stop BNET twice: X=1
+PASS Overlord revision: S1 exactly one stop BNET twice
+PROBE stop BNET three: X=1
+PASS Overlord revision: S1 exactly one stop BNET three
+PROBE stop BNET switch: X=1
+PASS Overlord revision: S1 exactly one stop BNET switch
+PROBE stop BNET consent: X=1
+PASS Overlord revision: S1 exactly one stop BNET consent
+PROBE stop WHISPER twice: X=1
+PASS Overlord revision: S1 exactly one stop WHISPER twice
+PROBE stop WHISPER three: X=1
+PASS Overlord revision: S1 exactly one stop WHISPER three
+PROBE stop WHISPER switch: X=1
+PASS Overlord revision: S1 exactly one stop WHISPER switch
+PROBE stop WHISPER consent: X=1
+PASS Overlord revision: S1 exactly one stop WHISPER consent
+PROBE backoff: requests=7 gaps=200,400,800,1600,1800,1800
+PASS Overlord revision: S2 silent source backs off to 1800 seconds
+PASS Overlord revision: S2 any valid reply resets backoff R
+PASS Overlord revision: S2 any valid reply resets backoff S
+PASS Overlord revision: S2 any valid reply resets backoff P
+PASS Overlord revision: S2 any valid reply resets backoff HB
+PASS Overlord revision: memory remembered friends do not bypass C2 route ceilings
+PASS Overlord revision: clock exact 300-second client dispatch is refused
+PASS Overlord revision: clock once-heard online friend stays selected for 7000 seconds
+PASS Overlord revision: M queued request loses eligibility when source joins party
+PASS Overlord revision: S3 only HR V gets a bounded busy HA
+PASS Overlord revision: S3 README states Battle.net scope reply kinds and backoff
+PASS Overlord revision: M club-only account is never a source
+PASS Overlord revision: M same-faction Battle.net friend is an eligible NH-free source
+PASS Overlord revision: clock ignores unselected account NH and rejects offline or foreign-pool friends
 PROBE rotation marked: accepted=60 attempted=60 refused=0 distinct=39 seconds=3600
 PASS Overlord peer: rotation skips a member marked offline for one hour
 PROBE rotation natural: accepted=177 attempted=180 refused=3 distinct=39 seconds=10800
@@ -2047,4 +2230,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 1988 tests passed, 0 failed, 605181 assertions
+RESULT: 2154 tests passed, 0 failed, 632868 assertions

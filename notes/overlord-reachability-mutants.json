@@ -1,0 +1,393 @@
+[
+  {
+    "failures": [
+      "FAIL Overlord reach: account aliases and unreadable shared lanes cannot leak NH: test/src_overlord_reachability.lua:123: suppress the account, not just its current spelling: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "source accounts suppress NH"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: source count selection and rotation cannot skip silence: test/src_overlord_reachability.lua:163: not equal: expected 2, got 3"
+    ],
+    "killed": true,
+    "rule": "source bound"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: source names suppress owed whispers including own-realm aliases: test/src_overlord_reachability.lua:131: canonical selected name cannot be addressed: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "source names suppress NH"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: a prior NH is forgotten only after continuous quiet and queue recheck: test/harness.lua:8: already queued NH is suppressed at dispatch: expected false, got true"
+    ],
+    "killed": true,
+    "rule": "queued NH dispatch suppression"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: NH-free source serves and can route reply over BNET: test/src_overlord_reachability.lua:62: not equal: expected 1, got 0",
+      "FAIL Overlord reach: keep at 200 then one stop on unsubscribe: test/src_overlord_reachability.lua:103: not equal: expected 1, got 0",
+      "FAIL Overlord reach: stop remains owed after busy HA may have created remote subscription: test/src_overlord_reachability.lua:114: not equal: expected 1, got 0",
+      "FAIL Overlord reach: a prior NH is forgotten only after continuous quiet and queue recheck: test/src_overlord_reachability.lua:151: not equal: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "request no fabricated ranking"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: keep at 200 then one stop on unsubscribe: test/src_overlord_reachability.lua:107: not equal: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "keep control"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: keep at 200 then one stop on unsubscribe: test/src_overlord_reachability.lua:107: not equal: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "200 second keep"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: busy HA even for zero comparison shares NH reply gap: test/harness.lua:7: no ranking profile: busy, not equality: expected true, got false"
+    ],
+    "killed": true,
+    "rule": "busy response"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: busy HA even for zero comparison shares NH reply gap: test/src_overlord_reachability.lua:95: not equal: expected 1, got 2"
+    ],
+    "killed": true,
+    "rule": "shared 150s owed gap"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: keep at 200 then one stop on unsubscribe: test/src_overlord_reachability.lua:108: not equal: expected 1, got 0",
+      "FAIL Overlord reach: stop remains owed after busy HA may have created remote subscription: test/src_overlord_reachability.lua:117: request was sent even though receive lease was unarmed: expected 1, got 0",
+      "FAIL Overlord reach: stop obeys combat gate before admission and queued dispatch: test/src_overlord_reachability.lua:218: not equal: expected 1, got 0",
+      "FAIL Overlord reach: stop obeys instance gate before admission and queued dispatch: test/src_overlord_reachability.lua:218: not equal: expected 1, got 0",
+      "FAIL Overlord reach: stop obeys pool gate before admission and queued dispatch: test/src_overlord_reachability.lua:218: not equal: expected 1, got 0",
+      "FAIL Overlord reach: stop obeys donor gate before admission and queued dispatch: test/src_overlord_reachability.lua:218: not equal: expected 1, got 0",
+      "FAIL Overlord reach: pending withdrawal records expire without retries: test/src_overlord_reachability.lua:238: not equal: expected 1, got 0",
+      "FAIL Overlord reach: live WHISPER source sends stop on share: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live WHISPER source sends stop on guild: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live WHISPER source sends stop on switch: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live WHISPER source sends stop on logout: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live BNET source sends stop on share: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live BNET source sends stop on guild: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live BNET source sends stop on switch: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live BNET source sends stop on logout: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "stop on unsubscribe"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: stop remains owed after busy HA may have created remote subscription: test/src_overlord_reachability.lua:117: request was sent even though receive lease was unarmed: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "stop after busy"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: live WHISPER source sends stop on leave: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live BNET source sends stop on leave: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "stop on source departure"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: departed friend cannot deliver feed before next tick: test/src_overlord_reachability.lua:175: current membership is required even before cancellation tick: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "friend membership at receive"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: pending withdrawal records expire without retries: test/src_overlord_reachability.lua:239: not equal: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "stop expiry"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: live WHISPER source sends stop on logout: test/src_overlord_reachability.lua:255: cancellation is immediate, not the next tick: expected nil, got birch scout",
+      "FAIL Overlord reach: live BNET source sends stop on logout: test/src_overlord_reachability.lua:255: cancellation is immediate, not the next tick: expected nil, got birch scout"
+    ],
+    "killed": true,
+    "rule": "stop on logout"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: live WHISPER source sends stop on logout: test/src_overlord_reachability.lua:260: not equal: expected nil, got birch scout",
+      "FAIL Overlord reach: live BNET source sends stop on logout: test/src_overlord_reachability.lua:260: not equal: expected nil, got birch scout"
+    ],
+    "killed": true,
+    "rule": "logout cannot reopen"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: live BNET source sends stop on share: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live BNET source sends stop on guild: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0",
+      "FAIL Overlord reach: live BNET source sends stop on switch: test/src_overlord_reachability.lua:259: one best-effort stop, including after privacy closes: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "BN stop crosses off switches"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: unsolicited forged stop does not bypass closed privacy gates: test/harness.lua:8: not equal: expected false, got true"
+    ],
+    "killed": true,
+    "rule": "stop requires an outstanding request"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: stop obeys donor gate before admission and queued dispatch: test/src_overlord_reachability.lua:225: all traffic, including withdrawals, is silent: expected 1, got 2"
+    ],
+    "killed": true,
+    "rule": "stop donor loaded silence"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: NH-free source serves and can route reply over BNET: emitted capability claim: expected false, got true",
+      "FAIL Overlord reach: WHISPER group peer stays ordinary C2 without a feed: test/src_overlord_reachability.lua:71: not equal: expected 100, got nil",
+      "FAIL Overlord reach: guild and group NH lanes stay live and audible friend is not a source: test/src_overlord_reachability.lua:85: not equal: expected 100, got nil",
+      "FAIL Overlord reach: busy HA even for zero comparison shares NH reply gap: test/src_overlord_reachability.lua:96: not equal: expected 2, got 1",
+      "FAIL Overlord reach: account aliases and unreadable shared lanes cannot leak NH: test/harness.lua:7: C2 shared lanes remain live: expected true, got false",
+      "FAIL Overlord reach: a prior NH is forgotten only after continuous quiet and queue recheck: test/src_overlord_reachability.lua:153: only unrelated guild lane still announces: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "capability suffix absent"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: live WHISPER source sends stop on switch: test/src_overlord_reachability.lua:255: cancellation is immediate, not the next tick: expected nil, got birch scout",
+      "FAIL Overlord reach: live BNET source sends stop on switch: test/src_overlord_reachability.lua:255: cancellation is immediate, not the next tick: expected nil, got birch scout"
+    ],
+    "killed": true,
+    "rule": "source switch cancellation"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: stop obeys combat gate before admission and queued dispatch: test/src_overlord_reachability.lua:218: not equal: expected 1, got 0",
+      "FAIL Overlord reach: stop obeys instance gate before admission and queued dispatch: test/src_overlord_reachability.lua:218: not equal: expected 1, got 0",
+      "FAIL Overlord reach: stop obeys pool gate before admission and queued dispatch: test/src_overlord_reachability.lua:218: not equal: expected 1, got 0",
+      "FAIL Overlord reach: stop obeys donor gate before admission and queued dispatch: test/src_overlord_reachability.lua:218: not equal: expected 1, got 0",
+      "FAIL Overlord reach: live WHISPER source sends stop on share: test/src_overlord_reachability.lua:255: cancellation is immediate, not the next tick: expected nil, got birch scout",
+      "FAIL Overlord reach: live BNET source sends stop on share: test/src_overlord_reachability.lua:255: cancellation is immediate, not the next tick: expected nil, got birch scout"
+    ],
+    "killed": true,
+    "rule": "share cancellation"
+  },
+  {
+    "failures": [
+      "FAIL Overlord reach: live WHISPER source sends stop on guild: test/src_overlord_reachability.lua:255: cancellation is immediate, not the next tick: expected nil, got birch scout",
+      "FAIL Overlord reach: live BNET source sends stop on guild: test/src_overlord_reachability.lua:255: cancellation is immediate, not the next tick: expected nil, got birch scout"
+    ],
+    "killed": true,
+    "rule": "Guild only cancellation"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: M club-only account is never a source: test/src_overlord_revision.lua:269: online club members are not Battle.net friends: expected nil, got birch scout"
+    ],
+    "killed": true,
+    "rule": "M Battle.net friend not club-only"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: M same-faction Battle.net friend is an eligible NH-free source: test/src_overlord_revision.lua:285: same-faction direct K is sufficient first-hand evidence: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "M same-faction friend remains eligible"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: M same-faction Battle.net friend is an eligible NH-free source: test/src_overlord_revision.lua:285: same-faction direct K is sufficient first-hand evidence: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "M first-hand K need not wait for NH"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: M excludes audible friend \u00c9lan Scout guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
+      "FAIL Overlord revision: M excludes audible friend \u00d8laf Scout guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
+      "FAIL Overlord revision: M excludes audible friend \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442 guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2"
+    ],
+    "killed": true,
+    "rule": "M canonical guild roster"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: M excludes audible friend Birch Scout unreadable: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8"
+    ],
+    "killed": true,
+    "rule": "M unreadable party count"
+  },
+  {
+    "failures": [
+      "FAIL Overlord followup: M foreign split party: test/src_overlord_followup.lua:176: no NH reaches a selected source: expected 0, got 15",
+      "FAIL Overlord followup: M different realm namesake party: test/src_overlord_followup.lua:178: not equal: expected true, got false"
+    ],
+    "killed": true,
+    "rule": "M realm-qualified party unit"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: M Unicode realm BNet alias is silent while selected: test/harness.lua:7: positive eligible source: expected true, got false"
+    ],
+    "killed": true,
+    "rule": "M canonical Battle.net friend"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: M excludes audible friend \u00c9lan Scout guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
+      "FAIL Overlord revision: M excludes audible friend \u00d8laf Scout guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2",
+      "FAIL Overlord revision: M excludes audible friend \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442 guild: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 2"
+    ],
+    "killed": true,
+    "rule": "M guild exclusion"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: M excludes audible friend Birch Scout qualified: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8",
+      "FAIL Overlord revision: M excludes audible friend Birch Scout group: test/src_overlord_revision.lua:77: no NH to any selected source over 900 seconds: expected 0, got 8",
+      "FAIL Overlord revision: M queued request loses eligibility when source joins party: test/src_overlord_revision.lua:237: not equal: expected nil, got birch scout"
+    ],
+    "killed": true,
+    "rule": "M group exclusion"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: M excludes audible friend \u00c9lan Scout guild: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
+      "FAIL Overlord revision: M excludes audible friend \u00d8laf Scout guild: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
+      "FAIL Overlord revision: M excludes audible friend \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442 guild: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
+      "FAIL Overlord revision: M excludes audible friend Birch Scout unreadable: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
+      "FAIL Overlord revision: M excludes audible friend Birch Scout qualified: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
+      "FAIL Overlord revision: M excludes audible friend Birch Scout dual: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
+      "FAIL Overlord revision: M excludes audible friend Birch Scout group: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
+      "FAIL Overlord revision: M excludes audible friend Birch Scout badguild: test/harness.lua:7: C2 broadcast lane remains active: expected true, got false",
+      "FAIL Overlord revision: M queued request loses eligibility when source joins party: test/src_overlord_revision.lua:239: C2 party presence is not suppressed: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "M no lane suppression"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: clock actual NH restarts quiet on BNET: test/src_overlord_revision.lua:133: no request during the restarted >300-second quiet clock: expected 2, got 3",
+      "FAIL Overlord revision: clock actual NH restarts quiet on WHISPER: test/src_overlord_revision.lua:133: no request during the restarted >300-second quiet clock: expected 2, got 3",
+      "FAIL Overlord revision: clock actual NH restarts quiet on GUILD: test/src_overlord_revision.lua:133: no request during the restarted >300-second quiet clock: expected 2, got 3",
+      "FAIL Overlord revision: clock actual NH restarts quiet on PARTY: test/src_overlord_revision.lua:133: no request during the restarted >300-second quiet clock: expected 2, got 3"
+    ],
+    "killed": true,
+    "rule": "M actual NH restarts quiet"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: clock exact 300-second client dispatch is refused: test/src_overlord_revision.lua:220: donor retains NH capability at age 300: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "clock strictly beyond 300"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: clock never-sent account starts without artificial wait: test/src_overlord_revision.lua:101: never sent NH: immediate first request: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "clock no artificial initial wait"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: clock once-heard online friend stays selected for 7000 seconds: test/src_overlord_revision.lua:226: not equal: expected 0, got 56"
+    ],
+    "killed": true,
+    "rule": "clock first-hand session retained"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: clock ignores unselected account NH and rejects offline or foreign-pool friends: test/src_overlord_revision.lua:297: offline account is not a selected source even before queue dispatch: expected nil, got birch scout"
+    ],
+    "killed": true,
+    "rule": "clock live account required"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: clock never-sent account starts without artificial wait: test/src_overlord_revision.lua:101: never sent NH: immediate first request: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "clock remember source hearing"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: S1 exactly one stop BNET twice: test/src_overlord_revision.lua:156: preserve the exact queued withdrawal through repeated off: expected R2:Forever_global_A:BR:global|720420-6|720420|Birch Scout|Alice Vale|HR|8:X:720000, got R2:Forever_global_A:BR:global|720420-7|720420|Birch Scout|Alice Vale|HR|8:X:720000",
+      "FAIL Overlord revision: S1 exactly one stop BNET three: test/src_overlord_revision.lua:156: preserve the exact queued withdrawal through repeated off: expected R2:Forever_global_A:BR:global|720420-6|720420|Birch Scout|Alice Vale|HR|8:X:720000, got R2:Forever_global_A:BR:global|720420-8|720420|Birch Scout|Alice Vale|HR|8:X:720000",
+      "FAIL Overlord revision: S1 exactly one stop BNET switch: test/src_overlord_revision.lua:156: preserve the exact queued withdrawal through repeated off: expected R2:Forever_global_A:BR:global|720420-6|720420|Birch Scout|Alice Vale|HR|8:X:720000, got R2:Forever_global_A:BR:global|720420-7|720420|Birch Scout|Alice Vale|HR|8:X:720000",
+      "FAIL Overlord revision: S1 exactly one stop BNET consent: test/src_overlord_revision.lua:156: preserve the exact queued withdrawal through repeated off: expected R2:Forever_global_A:BR:global|720420-6|720420|Birch Scout|Alice Vale|HR|8:X:720000, got R2:Forever_global_A:BR:global|720420-7|720420|Birch Scout|Alice Vale|HR|8:X:720000"
+    ],
+    "killed": true,
+    "rule": "S1 repeated stop retained"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: S2 silent source backs off to 1800 seconds: test/harness.lua:7: bounded requests with cap reached: expected true, got false"
+    ],
+    "killed": true,
+    "rule": "S2 silent source exponential backoff"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: S2 silent source backs off to 1800 seconds: test/src_overlord_revision.lua:176: silent-source exponential backoff: expected 1800, got 3200"
+    ],
+    "killed": true,
+    "rule": "S2 backoff cap"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: S2 any valid reply resets backoff R: test/src_overlord_revision.lua:190: reply restores the base 200-second interval: expected 4, got 3"
+    ],
+    "killed": true,
+    "rule": "S2 busy reply resets"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: S2 any valid reply resets backoff HB: test/src_overlord_revision.lua:190: reply restores the base 200-second interval: expected 4, got 3"
+    ],
+    "killed": true,
+    "rule": "S2 full feed resets"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: S3 only HR V gets a bounded busy HA: test/src_overlord_revision.lua:250: T reply policy: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "S3 only V receives busy"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: S3 README states Battle.net scope reply kinds and backoff: test/harness.lua:8: do not promise answers to every HR: expected false, got true"
+    ],
+    "killed": true,
+    "rule": "S3 exact README reply promise"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: memory remembered friends do not bypass C2 route ceilings: test/src_overlord_revision.lua:205: bounded session evidence: expected 200, got 201"
+    ],
+    "killed": true,
+    "rule": "session hearing cache bound"
+  },
+  {
+    "failures": [
+      "FAIL Overlord revision: memory remembered friends do not bypass C2 route ceilings: test/src_overlord_revision.lua:208: cached metadata cannot bypass the public route ceiling: expected 96, got 200"
+    ],
+    "killed": true,
+    "rule": "remembered metadata respects route ceiling"
+  }
+]

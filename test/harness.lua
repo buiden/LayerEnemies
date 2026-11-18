@@ -6,7 +6,14 @@ local function eq(a,b,msg)
 end
 local function yes(v,msg) eq(not not v,true,msg) end
 local function no(v,msg) eq(not not v,false,msg) end
-local forbidden
+local forbidden,overlordClaim
+local function checkOverlord(text)
+    checks=checks+1
+    if type(text)~="string" then return end
+    local presence=text:match("|NH|(.*)$")
+    if text:find("~lp",1,true) or text:find("~lr",1,true) or text:find("~ld",1,true)
+        or presence and (not presence:match("^LayerEnemies ") or presence:find("~",1,true)) then overlordClaim=true end
+end
 -- One literal substring selector for all current and future suites. Legacy names
 -- remain aliases so the already-gated feature mutants need no wiring migration.
 local aliases={ ["--ui-layout-only"]={"UI layout:"}, ["--hop-fanout-only"]={"Hop fanout:"},
@@ -30,7 +37,9 @@ local function test(name,fn)
         for _,part in ipairs(filters) do if name:find(part,1,true) then selected=true end end
         if not selected then return end
     end
+    overlordClaim=false
     local ok,err=pcall(fn)
+    if ok and overlordClaim then ok,err=false,"emitted capability claim: expected false, got true" end
     -- No test may reach an API that sends, invites, accepts or leaves.
     if ok and (forbidden or 0)>0 then ok,err=false,"forbidden API reached "..forbidden.." time(s)" end
     if ok then passed=passed+1; print("PASS "..name) else failed=failed+1; print("FAIL "..name..": "..tostring(err)) end
@@ -242,6 +251,7 @@ local function loadAddon(savedCallTest,beforeLoad)
         end
     end
     _G.C_BattleNet.SendGameData=function(id,prefix,text)
+        if prefix=="OverlordF" then checkOverlord(text) end
         sent[#sent+1]={target=id,prefix=prefix,text=text,kind="BN",at=clock}
         local src=_G.LayerEnemies.Sources
         if not fromWire() or not src or not (src.owns(prefix) or (prefix=="OverlordF" and src.has("overlord"))) then forbidden=forbidden+1 end
@@ -333,6 +343,7 @@ local function loadAddon(savedCallTest,beforeLoad)
         end,
         -- records every call; a route outside the allowlist counts as forbidden
         SendAddonMessage=function(prefix,text,kind,target)
+            if prefix=="OverlordF" then checkOverlord(text) end
             sent[#sent+1]={prefix=prefix,text=text,kind=kind,target=target,at=clock}
             if not (ROUTES[prefix] and ROUTES[prefix][kind]) then forbidden=forbidden+1 end
             -- the caller: the first Lua frame above this one (C frames such as pcall are skipped) must be Wire.lua
@@ -412,6 +423,19 @@ local function loadAddon(savedCallTest,beforeLoad)
     local N={}
     for _,file in ipairs(addonFiles()) do
         assert(loadfile("LayerEnemies/"..file..".lua"))("LayerEnemies",N)
+    end
+    -- Observe every actual protocol emission, including pure/overridden send spies.
+    -- Latch violations outside protected send callbacks so pcall cannot hide them.
+    if N.OverlordPeer then
+        local emit=N.OverlordPeer.emit
+        N.OverlordPeer.emit=function(st,c,...)
+            local original=c.send
+            c.send=function(ctx,text,...) checkOverlord(text);return original(ctx,text,...) end
+            local ok,a,b=pcall(emit,st,c,...)
+            c.send=original
+            if not ok then error(a) end
+            return a,b
+        end
     end
     local send=N.Wire.send
     N.Wire.send=function(prefix,text,kind,target,opts)

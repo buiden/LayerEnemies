@@ -1,0 +1,105 @@
+{
+  "run_function": "unmodified test/overlord_peer_mutants.py::run imported by test/overlord_mutants.py",
+  "selector": "Overlord (unchanged)",
+  "shards": [
+    {
+      "number": 1,
+      "returncode": 0,
+      "result": "RESULT: 9/9 mutants killed",
+      "rules": [
+        "diagnostic-pool-omitted",
+        "diagnostic-unknown-misleading",
+        "last-sender",
+        "rampage-normal-height",
+        "foreign-pool",
+        "unknown-pool",
+        "ruleset-pool",
+        "GD-payload-pool",
+        "assembly-sender"
+      ]
+    },
+    {
+      "number": 2,
+      "returncode": 0,
+      "result": "RESULT: 9/9 mutants killed",
+      "rules": [
+        "envelope-id",
+        "twenty-five-parts",
+        "own-faction",
+        "untracked-killer",
+        "120-inclusive",
+        "dedupe",
+        "guild-direct-EK",
+        "fragment-252",
+        "chunk-230"
+      ]
+    },
+    {
+      "number": 3,
+      "returncode": 0,
+      "result": "RESULT: 9/9 mutants killed",
+      "rules": [
+        "id-64",
+        "id-alphabet",
+        "part-order",
+        "packet-3600",
+        "target-address",
+        "path-four",
+        "path-repeat",
+        "integer-time",
+        "clock-skew"
+      ]
+    },
+    {
+      "number": 4,
+      "returncode": 0,
+      "result": "RESULT: 9/9 mutants killed",
+      "rules": [
+        "control-bytes",
+        "pending-cap",
+        "assembly-30",
+        "duplicate-renews-partial",
+        "duplicate-conflict",
+        "seen-ring",
+        "GW-kills",
+        "GW-members",
+        "GW-layer"
+      ]
+    },
+    {
+      "number": 5,
+      "returncode": 0,
+      "result": "RESULT: 9/9 mutants killed",
+      "rules": [
+        "GW-age",
+        "guild-name-cap",
+        "zone-ref-cap",
+        "guild-TTL",
+        "guild-cap",
+        "combat",
+        "instance",
+        "whisper",
+        "outgoing-attempt"
+      ]
+    },
+    {
+      "number": 6,
+      "returncode": 0,
+      "result": "RESULT: 9/9 mutants killed",
+      "rules": [
+        "claim-Ask",
+        "claim-hour",
+        "secret-map-name",
+        "secret-map-object",
+        "secret-map-type",
+        "secret-map-parent",
+        "EK-future",
+        "EK-age",
+        "save-received-data"
+      ]
+    }
+  ],
+  "all_expected_rules_once": true,
+  "total": 54,
+  "killed": 54
+}

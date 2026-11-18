@@ -418,7 +418,7 @@ function M.presenceStatus()
         ..", matches: "..s.matches.." (all sources), secret: "..(s.secret and "yes" or "no")
         ..", refusals: "..s.refused..".")
 end
--- Overlord is receive-only, including when the donor is installed. Never enter relay/host paths.
+-- Overlord evidence never enters relay/host paths; C2/C3 own sends are gated below.
 local function overlordZone(map)
     if not map then return nil end
     if S.secret(C_Map) then return false end
@@ -458,36 +458,90 @@ function M.overlordPool()
         return N.Overlord.pool(S.call(GetRealmName),hc,rp,pvp)
     end)
 end
+local overlordSend
 function M.overlordContext(time)
     local ok=N.Net.allowed("overlord","public")
     local me=A.ownIdentity()
     local version=S.call(function() return C_AddOns.GetAddOnMetadata("LayerEnemies","Version") end)
     local faction=S.str(S.call(UnitFactionGroup,"player"),16)
-    return {now=time or S.num(S.call(GetTime)),wall=S.num(S.call(GetServerTime)),pool=M.overlordPool(),
+    local c={now=time or S.num(S.call(GetTime)),wall=S.num(S.call(GetServerTime)),pool=M.overlordPool(),
         me=me,version=S.str(version,32),faction=faction and faction:sub(1,1),
-        allowed=M.sharing() and N.Net.consent()=="public" and N.Net.switch("overlord")
+        allowed=not M.overlordClosing and M.sharing() and N.Net.consent()=="public" and N.Net.switch("overlord")
             and ok==true and not A.inCombat() and A.inInstance()==false,
-        own=ok==true}
+        own=ok==true,online=N.BNet.who,offer=N.Sources.offer,tracked=function(name)
+            local _,_,_,watchers=N.Watch.match(M.watch,name,now())
+            return N.Find.tracked(M.find,name) or #(watchers or {})>0
+        end}
+    c.stopPaused=A.inCombat() or A.inInstance()~=false
+    c.stopQueued=function(row) return N.BNet.pending("overlord",row.text) end
+    c.stopAllowed=N.Net.SHIP.overlord==true and not A.loaded("Overlord")
+        and not c.stopPaused
+    if c.allowed and c.pool then
+        c.guild=S.call(IsInGuild)==true
+        c.group=S.call(IsInRaid)==true and "RAID" or S.call(IsInGroup)==true and "PARTY" or nil
+        c.groups=A.groupNames()
+        c.guildNames=S.call(IsInGuild)==false and {} or A.guildNames(A.peerIdentity)
+        c.friends=N.BNet.peers(c.now)
+    end
+    c.send=overlordSend -- prepare can cancel from a queued-send guard, not only the tick.
+    return c
 end
-local function overlordSend(c,text,route,target,prio,job)
+-- Only exact outstanding withdrawal bytes may cross closed privacy switches.
+-- Hardware gates and real-Overlord stand-down still apply, at every dispatch.
+function M.overlordStopping(text,route,target)
+    local st=M.overlordFeed
+    if not st then return false end
+    local c=M.overlordContext()
+    if not c.stopAllowed or not c.pool or not c.me or not c.now then return false end
+    for _,s in pairs(st.stops) do
+        if s.text==text and s.pool==c.pool and s.me==c.me and c.now>=s.at and s.safeAt and c.now-s.safeAt<=60
+            and ((route=="BNET" and s.id==target) or (route=="WHISPER" and s.name==target and not s.id)) then return true end
+    end
+    return false
+end
+overlordSend=function(c,text,route,target,prio,job)
     local P=N.OverlordPeer
-    local function guard() return P.claim(M.overlordPeer,job,M.overlordContext()) end
-    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,nil,nil,nil,guard) end
+    local function guard()
+        if route=="BNET" and job.name then
+            local who=N.BNet.who(target)
+            if not who or P.key(who.name)~=P.key(job.name) then return false end
+        end
+        local live=M.overlordContext()
+        if job.kind=="HR" and route=="BNET" then live.friends=N.BNet.peers(live.now) end
+        return P.claim(M.overlordPeer,job,live)
+    end
+    local function sent()
+        local live=M.overlordContext()
+        if job.kind=="HR" and route=="BNET" then live.friends=N.BNet.peers(live.now) end
+        P.sent(M.overlordPeer,job,live)
+    end
+    if route=="BNET" then return N.BNet.send("overlord",target,"OverlordF",text,prio,nil,nil,function(ok) if ok then sent() end end,guard) end
     local live=M.overlordContext()
     if not P.claim(M.overlordPeer,job,live,true) then return false end
     local ok,_,attempted=N.Wire.send("OverlordF",text,route,target,{net="overlord",prio=prio=="owed" and "owed" or "mesh"})
     if attempted then P.claim(M.overlordPeer,job,live) end
     N.Sources.count("overlord",ok and "sent" or "refused")
+    if ok then sent() end
     return ok,attempted
+end
+function M.overlordCancel()
+    if M.overlordFeed then
+        local c=M.overlordContext();c.send=overlordSend
+        N.OverlordFeed.cancel(M.overlordFeed,M.overlordPeer,c)
+    end
 end
 function M.overlordTick(time)
     if not M.overlordPeer then return end
     local c=M.overlordContext(time);c.send=overlordSend
-    if not c.allowed or not c.pool then N.BNet.cancel("overlord");return end
+    if not M.overlordFeed then M.overlordFeed=N.OverlordFeed.new() end
+    M.overlordPeer.feed=M.overlordFeed
+    if not c.allowed or not c.pool then N.OverlordFeed.cancel(M.overlordFeed,M.overlordPeer,c);return end
+    N.OverlordFeed.prepare(M.overlordFeed,M.overlordPeer,c)
     c.guild=S.call(IsInGuild)==true
     c.group=S.call(IsInRaid)==true and "RAID" or S.call(IsInGroup)==true and "PARTY" or nil
     if c.own then c.friends=N.BNet.peers(time);c.directory=N.Directory.members("overlord") end
     N.OverlordPeer.tick(M.overlordPeer,c)
+    N.OverlordFeed.tick(M.overlordFeed,M.overlordPeer,c)
 end
 local function overlordReceive(text,kind,sender,account)
     local Ov=N.Overlord
@@ -529,7 +583,14 @@ local function overlordReceive(text,kind,sender,account)
         local c=M.overlordContext(time);c.send=overlordSend
         if p.kind~="GW" and p.kind~="GD" then
             if Ov.seen(M.overlord,p.origin,id) then return end
-            N.OverlordPeer.receive(M.overlordPeer,p,kind,canonical,account,c)
+            if not M.overlordFeed then M.overlordFeed=N.OverlordFeed.new() end
+            M.overlordPeer.feed=M.overlordFeed
+            local r=N.OverlordPeer.receive(M.overlordPeer,p,kind,canonical,account,c)
+            N.OverlordFeed.observe(M.overlordFeed,M.overlordPeer,p,r,c)
+            if p.kind=="HB" or p.kind=="HA" then
+                c.friends=N.BNet.peers(time)
+                N.OverlordFeed.receive(M.overlordFeed,M.overlordPeer,p,r,c)
+            end
             return
         end
         -- Evidence validation below owns dedupe; invalid map reads remain retryable.
@@ -2299,7 +2360,7 @@ function M.setFindNotice(on)
 end
 function M.sharing() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.share~=false end
 function M.setShare(on)
-    if not on then N.OwnDeath.cancel(); N.BNet.cancel(); N.FLHMember.stop("share off"); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
+    if not on then N.OwnDeath.cancel(); N.BNet.cancel(nil,nil,true); M.overlordCancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end; N.FLHMember.stop("share off") end
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.share=on==true end
     N.Directory.sync()
     -- Off cancels all pending guild relays as well as our sync answers. Queued guild/own embassy lines
@@ -2552,7 +2613,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_LOGOUT","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_LOGOUT","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","BN_FRIEND_LIST_SIZE_CHANGED","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -2564,15 +2625,17 @@ local function dispatch(_,event,...)
     end
     if event=="PLAYER_LOGIN" then guarded(M.start); return end
     if not M.started then return end
-    if event=="PLAYER_LOGOUT" then
+    if event=="PLAYER_LOGOUT" then M.overlordClosing=true;guarded(M.overlordCancel);
         if N.WarBoardTrack then N.WarBoardTrack.stop(true) end
-        guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
+        N.BNet.pump(now());guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
     elseif event=="CHAT_MSG_ADDON" then guarded(M.message,...)
     elseif event=="BN_CHAT_MSG_ADDON" then
         local prefix,text,channel,id=...
         if not S.secret(prefix) and prefix=="OpenMapLoc" then guarded(M.openmapBn,...)
         elseif not S.secret(prefix) and prefix=="OverlordF" then guarded(M.overlordBn,...)
         elseif not S.secret(channel) then guarded(N.Sources.bnet,prefix,text,id) end
+    elseif event=="BN_FRIEND_LIST_SIZE_CHANGED" then
+        N.BNet.invalidatePeers();guarded(M.overlordTick,now());N.BNet.pump(now())
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
     elseif event=="PLAYER_REGEN_DISABLED" then
         if N.WarBoardTrack then N.WarBoardTrack.stop() end

@@ -3,6 +3,7 @@ local _,N=...
 local BN,A,S={},N.Adapters,N.Safe
 N.BNet=BN
 local cache,cacheAt={},nil
+function BN.invalidatePeers() cache,cacheAt={},nil end
 local function safe() return not A.inCombat() and A.inInstance()==false end
 local function copies(rows)
     local out={}
@@ -53,6 +54,8 @@ function BN.allowed(net,id,prefix,text,prio)
     if not S.str(net,32) or not S.str(prefix,16) or not S.num(id) or id<1 or id%1~=0
         or S.secret(text) or type(text)~="string" or #text<1 or #text>4096
         or not S.str(prio,16) or (prio~="owed" and prio~="own") then return false end
+    if net=="overlord" and prefix=="OverlordF" and prio=="owed"
+        and N.Main.overlordStopping(text,"BNET",id) then return true end
     if net=="warboard" and prefix=="WarBoard" and text:match("^WBF1|[HA]|") then
         if A.loaded("WarBoard") then return false end
         if N.WarBoard and N.WarBoard.handshake(id,text) then return safe() end
@@ -163,15 +166,21 @@ function BN.send(net,id,prefix,text,prio,still,tag,done,guard)
         cleanup=withdrawal(net,id,prefix,text,prio)==true}
     return true
 end
-function BN.cancel(net,tag)
+function BN.cancel(net,tag,keepStops)
     for i=#queue,1,-1 do
         local q=queue[i]
-        if not q.cleanup and (not net or q.net==net) and (not tag or q.tag==tag) then
+        local stop=keepStops and q.net=="overlord" and q.prefix=="OverlordF" and q.prio=="owed"
+            and N.Main.overlordStopping(q.text,"BNET",q.id)
+        if not q.cleanup and not stop and (not net or q.net==net) and (not tag or q.tag==tag) then
             refuse(q.net); table.remove(queue,i); complete(q,false)
         end
     end
 end
 function BN.queued() return #queue end
+function BN.pending(net,text)
+    for _,q in ipairs(queue) do if q.net==net and q.text==text then return true end end
+    return false
+end
 
 function BN.who(id,withGuid)
     if not safe() then return nil end

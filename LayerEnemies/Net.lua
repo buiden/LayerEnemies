@@ -56,7 +56,8 @@ function Net.why(key)
 end
 function Net.setConsent(level)
     if not Net.CONSENT[level] then return false end
-    if level~="public" and N.BNet then N.BNet.cancel(); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
+    if level~="public" and N.BNet then N.BNet.cancel(nil,nil,true); if N.WarBoardTrack then N.WarBoardTrack.stop() end end
+    if level~="public" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end
     if level~="public" and N.FLHMember then N.FLHMember.stop("guild only") end
     state.consent = level; save()
     if N.Directory then N.Directory.sync() end
@@ -66,9 +67,10 @@ function Net.switch(key) return state.switches[key] ~= false end
 function Net.setSwitch(key, on)
     if not Net.LIST[key] then return false end
     if on~=true and N.BNet then
-        N.BNet.cancel(key)
+        N.BNet.cancel(key,nil,true)
         if key=="warboard" and N.WarBoardTrack then N.WarBoardTrack.stop() end
     end
+    if on~=true and key=="overlord" and N.Main and N.Main.overlordCancel then N.Main.overlordCancel() end
     if key=="flh" and on~=true then N.FLHMember.stop("network off") end
     state.switches[key] = on == true; if not Net.LIST[key].session then save() end
     if N.Directory then N.Directory.sync() end

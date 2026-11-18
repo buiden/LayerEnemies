@@ -199,10 +199,10 @@ test("truthful empty V answer busy unsupported request and no invented map",func
     local N=setup();local P=N.OverlordPeer;local st=P.new();local c=ctx(N)
     local p={origin="Birch Scout",target=c.me,hops=0,kind="HR",payload="8:V:1699488000:123n4n5f:1:LK:0:0:H"}
     P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,1)
-    yes(c.out[1].text:find("|HA|8:S:1699488000:123n4n5f:1:LK:0:0",1,true))
+    yes(c.out[1].text:find("|HA|8:R:1699488000:123n4n5f:1",1,true))
     c.now=250;p.payload="8:T:1699488000:123n4n5f:1:LK:1:H"
-    P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,2);yes(c.out[2].text:find("|HA|8:R:",1,true))
-    p.kind="SR";p.payload="H:2.5.4~1:0:::F";P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,2)
+    P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,1,"unsupported HR T is silent")
+    p.kind="SR";p.payload="H:2.5.4~1:0:::F";P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,1)
     for _,o in ipairs(c.out) do eq(o.route,"WHISPER");eq(o.target,"Birch Scout");eq(o.prio,"owed") end
 end)
 
@@ -231,7 +231,7 @@ test("BNet shared queue used with eight frame cap and dispatch pool guard",funct
     end
     eq(N.BNet.queued(),6,"owed admissions capped before queue: read="..N.Main.overlord.stats.lines.." refused="..N.Main.overlord.stats.refused.." routes="..N.Safe.count(N.Main.overlordPeer.routes).." own="..tostring(c.me).." wall="..tostring(c.wall))
     for _=1,7 do H.advance(1) end;eq(#calls,6)
-    for _,x in ipairs(calls) do yes(x.text:find("|HA|8:S:",1,true));no(x.text:find("|Birch Scout|",1,true)) end
+    for _,x in ipairs(calls) do yes(x.text:find("|HA|8:R:",1,true));no(x.text:find("|Birch Scout|",1,true)) end
     local P=N.OverlordPeer;local st=N.Main.overlordPeer
     local job={key="test",gap=120,pool="global",me="Alice Vale"}
     yes(N.BNet.send("overlord",1,"OverlordF","queued","own",nil,nil,nil,function() return P.claim(st,job,N.Main.overlordContext()) end))
@@ -388,5 +388,5 @@ test("pure peer announces own truthful identity and answers targeted NH",functio
     P.tick(s,c);eq(#c.out,2);yes(c.out[1].text:find("LayerEnemies 1.1.0",1,true))
     P.receive(s,{origin="Birch Scout",target=c.me,hops=0,kind="NH",payload="2.5.4"},"WHISPER","Birch Scout",nil,c)
     eq(#c.out,3);eq(c.out[3].route,"WHISPER");eq(c.out[3].target,"Birch Scout");eq(c.out[3].prio,"owed")
-    no(c.out[3].text:find("2.5.4",1,true));no(c.out[3].text:find("~",1,true))
+    no(c.out[3].text:find("2.5.4",1,true));eq(c.out[3].text:match("~.*$"),nil)
 end)

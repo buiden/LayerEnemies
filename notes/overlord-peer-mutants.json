@@ -249,7 +249,24 @@
     "failures": [
       "FAIL Overlord peer: real whisper owes one truthful reply; no forwarding or bypass: test/harness.lua:7: not equal: expected true, got false",
       "FAIL Overlord peer: owed cap six per minute and 150 seconds per peer: test/harness.lua:7: not equal: expected true, got false",
-      "FAIL Overlord peer: pure peer announces own truthful identity and answers targeted NH: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL Overlord peer: NH and HA share a per-peer gap at admission and dispatch: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: guild alone 600 group 120 and heard guild 120: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: five live bridges two unheard friends per 120 second cycle: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: whisper greeting once a minute stops at six partners: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: directory greeting rotates through forty unanswered members: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: refused greeting does not spend candidate or global cooldown: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: queue refusal spends no peer cooldown but client attempts do: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: donor loading cancels queued owed answers and gateway bypass: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: path target loop and malformed assemblies never learn routes: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: pure peer announces own truthful identity and answers targeted NH: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Overlord peer: rotation skips a member marked offline for one hour: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: rotation survives member five going offline for three hours: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: rotation canonicalizes a home-realm-qualified member: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: self silence Alice Vale: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: self silence \u00c9lan Scout: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: self silence \u00d8laf Scout: emitted capability claim: expected false, got true",
+      "FAIL Overlord peer: self silence \u0411\u043e\u0440\u0438\u0441 \u0421\u043a\u0430\u0443\u0442: emitted capability claim: expected false, got true"
     ],
     "killed": true,
     "rule": "own identity"
@@ -387,10 +404,11 @@
   },
   {
     "failures": [
-      "FAIL Overlord peer: truthful empty V answer busy unsupported request and no invented map: test/harness.lua:7: not equal: expected true, got false"
+      "FAIL Overlord peer: truthful empty V answer busy unsupported request and no invented map: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard: test/harness.lua:7: not equal: expected true, got false"
     ],
     "killed": true,
-    "rule": "truthful empty counts"
+    "rule": "busy without a ranking profile"
   },
   {
     "failures": [

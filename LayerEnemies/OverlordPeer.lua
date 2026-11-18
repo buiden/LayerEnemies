@@ -14,8 +14,8 @@ local function selfTarget(c,route,name)
     return (route=="WHISPER" or route=="BNET") and P.key(name)==P.key(c.me)
 end
 function P.new() return {routes={},gaps={},actual={},owed={},actualOwed={},serial=0,probe=0} end
-local function ready(c,owed)
-    return c.allowed==true and (owed or c.own==true) and S.str(c.pool,16)
+local function ready(c,owed,stop)
+    return (stop and c.stopAllowed==true or not stop and c.allowed==true) and (owed or c.own==true) and S.str(c.pool,16)
         and S.str(c.me,50) and S.str(c.version,32) and (c.faction=="A" or c.faction=="H")
         and S.num(c.now) and S.num(c.wall)
 end
@@ -23,7 +23,7 @@ local function recent(list,now)
     local out={};for _,t in ipairs(list) do if now-t<60 then out[#out+1]=t end end;return out
 end
 local function due(last,now,gap) return not last or (now>=last and now-last>=gap) end
-function P.presence(c) return "LayerEnemies "..c.version end
+function P.presence(c) return "LayerEnemies "..c.version..(N.OverlordFeed and N.OverlordFeed.capability or "") end
 function P.sweep(st,now)
     for k,r in pairs(st.routes) do if now<r.at or now-r.at>=300 then st.routes[k]=nil end end
     for k,t in pairs(st.gaps) do if now>=t and now-t>=3600 then st.gaps[k]=nil end end
@@ -36,8 +36,11 @@ end
 -- Battle.net charges at dispatch, including failures.
 -- Queued Battle.net frames cannot burst across a new admission window.
 function P.claim(st,job,c,checkOnly)
-    if not ready(c,job.owed) or c.pool~=job.pool or c.me~=job.me then return false end
+    if not ready(c,job.owed,job.stop) or c.pool~=job.pool or c.me~=job.me then return false end
     if selfTarget(c,job.route,job.name) then return false end
+    if job.kind=="NH" and st.feed then N.OverlordFeed.prepare(st.feed,st,c) end
+    if job.kind=="NH" and N.OverlordFeed and N.OverlordFeed.suppressed(st,c,job.route,job.name,job.id) then return false end
+    if job.valid and not job.valid(c) then return false end
     if not due(st.actual[job.key],c.now,job.gap) then return false end
     st.actualOwed=recent(st.actualOwed,c.now)
     if job.owed and #st.actualOwed>=6 then return false end
@@ -46,8 +49,33 @@ function P.claim(st,job,c,checkOnly)
     if job.owed then st.actualOwed[#st.actualOwed+1]=c.now end
     return true
 end
-function P.emit(st,c,kind,payload,route,target,key,gap,owed)
-    if not ready(c,owed) or not due(st.gaps[key],c.now,gap) then return false end
+function P.sent(st,job,c)
+    if not ready(c,job.owed,job.stop) or c.pool~=job.pool or c.me~=job.me then return end
+    if job.kind=="NH" then
+        if not st.announced then
+            st.announced={pool=c.pool,me=c.me,names={},accounts={}}
+        end
+        local a=st.announced
+        local function stamp(map,key,cap)
+            for k,t in pairs(map) do if c.now>=t and c.now-t>300 then map[k]=nil end end
+            if key then
+                if map[key] or S.count(map)<cap then map[key]=c.now else a.unknown=c.now end
+            end
+        end
+        if job.route=="BNET" then stamp(a.accounts,job.id,200) end
+        if job.route=="BNET" or job.route=="WHISPER" then stamp(a.names,P.key(job.name),256) end
+        local audience
+        if job.route=="GUILD" then audience=c.guildNames
+        elseif job.route=="PARTY" or job.route=="RAID" then audience=c.groups end
+        if job.route=="GUILD" or job.route=="PARTY" or job.route=="RAID" then
+            if not audience then a.unknown=c.now
+            else for name in pairs(audience) do stamp(a.names,name,256) end end
+        end
+    end
+    if job.sent then job.sent(c.now,c) end
+end
+function P.emit(st,c,kind,payload,route,target,key,gap,owed,callbacks)
+    if not ready(c,owed,callbacks and callbacks.stop) or not due(st.gaps[key],c.now,gap) then return false end
     if route~="GUILD" and route~="PARTY" and route~="RAID" and route~="WHISPER" and route~="BNET" then return false end
     if kind~="NH" and kind~="HA" and kind~="HR" then return false end
     st.owed=recent(st.owed,c.now)
@@ -63,7 +91,11 @@ function P.emit(st,c,kind,payload,route,target,key,gap,owed)
     if route=="BNET" then text="R2:Forever_"..c.pool.."_"..c.faction..":BR:"..packet
     else text="BF:"..id..":1:1:"..packet;if #packet>230 or #text>255 then return false end end
     local address=route=="BNET" and target.id or target
-    local job={key=key,gap=gap,owed=owed==true,pool=c.pool,me=c.me,route=route,name=dest}
+    if kind=="NH" and N.OverlordFeed and N.OverlordFeed.suppressed(st,c,route,dest,address) then return false end
+    local job={key=key,gap=gap,owed=owed==true,pool=c.pool,me=c.me,kind=kind,route=route,id=route=="BNET" and address or nil,
+        name=dest~="*" and dest or nil,valid=callbacks and callbacks.valid,sent=callbacks and callbacks.sent,
+        stop=callbacks and callbacks.stop}
+    if job.stop then job.stop.text=text end
     flight={text=text,route=route,target=address}
     local ok,result,attempted=pcall(c.send,c,text,route,address,owed and "owed" or "own",job)
     flight=nil
@@ -77,15 +109,17 @@ end
 local function learn(st,p,route,sender,id,c)
     P.sweep(st,c.now)
     local key=P.key(p.origin)
-    local old=st.routes[key]
+    local old=st.routes[key] or st.feed and st.feed.heard[key]
+    if old and old.pool~=(p.pool or c.pool) then old=nil end
     if old and old.hops==0 and p.hops>0 and c.now-old.at<240 then return old end
-    if not old then
+    if not st.routes[key] then
         local n,pub=0,0
         for _,r in pairs(st.routes) do n=n+1;if r.route~="GUILD" then pub=pub+1 end end
         if n>=128 or (route~="GUILD" and pub>=96) then return nil end
     end
-    local r={name=p.origin,via=sender,route=route,id=id,hops=p.hops,at=c.now,
-        nh=old and old.nh,version=old and old.version}
+    local r={name=p.origin,via=sender,route=route,id=id,hops=p.hops,at=c.now,pool=p.pool or c.pool,
+        nh=old and old.nh,version=old and old.version,epoch=old and old.epoch,epochAt=old and old.epochAt,
+        announced=old and old.announced,announcePool=old and old.announcePool,announceMe=old and old.announceMe}
     st.routes[key]=r
     return r
 end
@@ -94,6 +128,10 @@ function P.receive(st,p,route,sender,id,c)
     if not r then return end
     if route=="GUILD" then st.guildHeard=c.now end
     if p.kind=="NH" and p.hops==0 then r.nh=c.now;r.version=S.str(p.payload,200) end
+    if st.feed and N.OverlordFeed then
+        N.OverlordFeed.remember(st.feed,r,c)
+        N.OverlordFeed.prepare(st.feed,st,c)
+    end
     -- Owed answers only to direct addressed peers, never to overheard/relayed requests.
     if p.hops~=0 or p.target~=c.me or (route~="WHISPER" and route~="BNET") then return r end
     local target=route=="BNET" and {id=id,name=p.origin} or sender
@@ -101,21 +139,18 @@ function P.receive(st,p,route,sender,id,c)
     if p.kind=="NH" and route=="WHISPER" then
         P.emit(st,c,"NH",P.presence(c),route,target,"reply:"..key,150,true)
     elseif p.kind=="HR" then
-        local v,op,e,nonce,seq,tail=p.payload:match("^([5-8]):([A-Z]):(%d+):(%w+):(%d+):?(.*)$")
+        local v,op,e,nonce,seq,tail=p.payload:match("^(8):([A-Z]):(%d+):(%w+):(%d+):?(.*)$")
         if not v or #p.payload>250 or #nonce>32 or #e>10 or tonumber(e)<1
             or tonumber(e)>c.wall or #seq>5 or tonumber(seq)<1 or tonumber(seq)>10000 then return r end
-        local stream,count,hash=tail:match("^([A-Z]+):(%d+):(%d+)[AH%-:]*$")
-        local empty=v=="8" and op=="V" and (stream=="LK" or stream=="LC" or stream=="LR" or stream=="LB")
-            and #count<=8 and #hash<=10
-        if op=="F" then return r end
-        local body=table.concat({v,empty and "S" or "R",e,nonce,seq},":")
-        if empty then body=body..":"..stream..":0:0" end
+        if op~="V" then return r end
+        local body=table.concat({v,"R",e,nonce,seq},":")
         P.emit(st,c,"HA",body,route,target,"reply:"..key,150,true)
     end
     -- SR: an empty map has zero pages in 2.5.4; no invented empty-map opcode.
     return r
 end
 function P.tick(st,c)
+    if st.feed and N.OverlordFeed then N.OverlordFeed.prepare(st.feed,st,c) end
     P.sweep(st,c.now)
     if not ready(c,false) then return end
     if c.guild then

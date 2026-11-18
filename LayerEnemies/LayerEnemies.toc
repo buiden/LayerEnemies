@@ -47,6 +47,7 @@ OwnDeath.lua
 CallUI.lua
 Wanted.lua
 OverlordPeer.lua
+OverlordFeed.lua
 WarBoard.lua
 WarBoardTrack.lua
 ChehulNet.lua

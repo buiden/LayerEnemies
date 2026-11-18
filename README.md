@@ -1,5 +1,91 @@
 # LayerEnemies
 
+## Unreleased - Overlord kill feed
+
+| What LE sends | To whom | Maximum rate / condition |
+|---|---|---|
+| `HR 8:V:<E>:<nonce>:1:LK:0:0:<opposite faction>`; nonce ends `f` | At most two selected Battle.net friends of either faction, via Battle.net only | Unanswered requests back off: 200, 400, 800, 1600, then 1800 s; any valid HA/HB reply resets to 200 s; first request obeys the NH clock below |
+| `HR 8:K:<E>` | The same live feed sources | Shares that 200 s gap; only after an accepted reply/feed |
+| `HR 8:X:<E>` | Each source to which a request actually went | Once per cancellation, owed priority; retained through combat/instances, no duplicate after success |
+| `HA 8:R:<E>:<nonce>:<seq>` (busy, no ranking profile) | Direct addressed protocol-8 HR V requester only | Shared NH/HA 150 s gap per peer; six owed frames/minute |
+| Own `NH`, `LayerEnemies <installed TOC version>` with **no suffix** | Non-source peers only | C2 limits below; never to a selected source's name or account, including owed replies |
+
+To be served the feed, LayerEnemies does not announce itself to the player it asks. Overlord serves peers it has not heard from, and refuses those it knows run an older protocol. LayerEnemies claims no capability it lacks; it relies on not having been heard.
+
+The owner approved this intentional use of the unknown-requester window. The
+first request itself teaches the donor a return route before dispatch, including
+its Battle.net account ID; NH is not required for the reply. See
+`notes/overlord-c3-reachability.md` for pinned source lines.
+
+Feed sources are Battle.net friends only. Guild and group members remain ordinary
+C2 peers: the feed never suppresses guild, party or raid presence. A friend in
+our guild or group is ineligible; an unreadable or incomplete roster means it
+might be there, so no friend is selected until that roster is readable. The
+same full character-plus-realm key applies to guild rows, party units and game
+accounts; realm display spaces and the home realm are normalized. Unreadable
+realm identity fails closed, and a foreign-realm namesake stays distinct,
+including Battle.net character names and whisper recipients. Targeted NH to a
+selected source's name or account is suppressed at admission and actual dispatch.
+
+A source must have been heard first-hand under Overlord over Battle.net at least
+once this session in our pool, and the game must show that exact game account
+online in Forever now. Hearing need not repeat within 300 s. Before each request
+or keep, **more than 300 s must have passed since our last NH on any route that
+could reach it** (account, whisper, guild or group). Never sent this session means
+no artificial wait. The per-account NH clock survives pool and own-character
+changes and returns. Any actual NH to that audience restarts the clock, including
+an unexpected send after selection. A source's validated campaign epoch is kept
+for the session, never guessed, and replaced only by new source evidence. The
+session hearing cache is capped at 200 identities; it is not a saved peer list.
+This session-only rule does not guarantee that a donor has forgotten a prior
+session's NH immediately after a reload; a refusal is handled by the backoff.
+
+Stops are attempted on unsubscribe, source departure/unfriending, `/le net
+overlord off`, share off, Guild only, epoch/route invalidation and logout.
+Local leases cancel immediately. Only the exact outstanding stop can cross the
+privacy/off switches; combat, instances, unknown pool/identity and real-Overlord
+stand-down still silence **all** sends, including stops. Combat/instance stops
+remain owed and are queued when safe, within 60 s after the fight/instance ends
+under available transport budgets. Local refusal or queue pruning may be retried
+only in that 60 s safe window; successful stops are never repeated. Logout pumps
+the existing queue once, subject to its
+normal budgets; delivery is not guaranteed. At logout only one Battle.net frame
+can leave, so if a feed stop and a WarBoard withdrawal are both pending, the
+stop goes and the withdrawal stays owed for that character's next login.
+Without the client's friend-list event, a removed friend is dropped within
+about 21 s and receives nothing but the stop in the meantime. The donor's subscription expires
+900 s after its last renewal, not 200 s. 200 s is the keep-alive interval.
+Battle.net uses `BN.send` and Wire's client-call boundary: eight frames/minute
+inside the shared 30/minute, one/second limit. Whispers share Wire's 20/minute
+and four/minute/target limits. Stops share the six owed frames/minute budget.
+
+The feed is useful only while the donor considers its own custom channel down
+and can serve. Silence/busy responses are normal. LE never advertises ranking
+capabilities (`~lp6`, `~lr`, `~ld` or any other suffix), never serves a ranking,
+forwards packets, fabricates kills or hosts maps. A zero comparison is an honest
+local count/hash, not a claim of page-service capability. Only addressed HR V requests get a bounded busy HA
+rather than a claim of equality, and only for protocol 8. Older protocol versions
+get nothing. HR F, K and X get no reply; neither do unknown HR kinds.
+
+Epochs stay source/pool scoped and never come from the clock: only an exact
+validated **13-field owner K** (race, sex, matching `B<E>`, level included), or
+well-formed addressed v8 `HR V LK`, can establish E. An intervening NH while a
+request waits in the queue cannot invalidate a successful receipt through stale
+context. Unsent/failed requests grant no feed lease. Full `k` rows accept donor
+race strings (`o2`, `Skyborne3`); compact `s` rows require a prior full identity.
+Only tracked opposite-faction names become relayed, time-unknown location claims,
+with no layer and no Ask/Hop. Nothing is saved. Bounds: 600 bytes/feed, 48 rows,
+250 bytes/row, 64 identities/source, 240 rows and 14,400 bytes/minute/source;
+global 480 rows and 28,800 bytes/minute survive source churn.
+
+Tests: `lua test/harness.lua --only 'Overlord'`; portable mutant runners
+`test/overlord_peer_mutants.py`, `test/overlord_feed_mutants.py`,
+`test/overlord_reachability_mutants.py`; full `python3 test/verify.py`.
+The test-side donor model is independently written from source. Every test
+emission is checked for capability claims. No donor code copied or executed.
+Native checks **not run (alpha, owner's decision)**. This section supersedes
+the previous deliberately unreachable C3 and its no-stop decision.
+
 ## Unreleased - Overlord direct peer
 
 | What LE sends | To whom | Maximum rate | Stops when |
@@ -9,11 +95,12 @@
 | Own `NH` (`R2` + `BR`) | Up to five live Battle.net friends plus two rotating unheard friends | One cycle/120 s; once/120 s per account | Any stop below |
 | Owed targeted `NH` | Direct whisper sender addressing us | Once/150 s per peer; six owed answers/minute total | Any stop below |
 | Own targeted `NH` greeting | Read-only Overlord directory members | One/minute, six live partners; same candidate no sooner than 600 s | Any stop below |
-| Empty `HA S ... :0:0` for v8 `HR V`; `HA R` for unsupported page requests | Direct addressed whisper/Battle.net requester only | One shared NH/HA 150 s gap per peer, sharing the six owed answers/minute | Any stop below |
+| `HA R` (busy: no ranking profile), including a zero-count/hash request | Direct addressed whisper/Battle.net requester only | One shared NH/HA 150 s gap per peer, sharing the six owed answers/minute | Any stop below |
 
-**All sends stop** with `/le share off`, Guild only (`/le net guild`),
+**All ordinary sends stop** with `/le share off`, Guild only (`/le net guild`),
 `/le net overlord off`, combat, instances, or an unreadable ruleset pool,
-local character or own addon version. No off-switch withdrawal is sent.
+local character or own addon version. C3 adds only the bounded stop exception
+through privacy/off switches described above; hardware/identity gates remain.
 When the real Overlord addon is loaded, **every Overlord send stops**, including
 NH replies, HA answers, greetings and feed requests on guild, group, whisper and
 Battle.net. Queued work is also refused at dispatch. LE still receives traffic.

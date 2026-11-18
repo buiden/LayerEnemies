@@ -1,5 +1,25 @@
 # Third-party provenance
 
+## Overlord kill feed (C3)
+
+Same **2.5.4** immutable pin and **All Rights Reserved / protocol only** boundary
+as C2 below. `OverlordFeed.lua` implements an independently written NH-free
+`HB 8:U` named-zone client. Selected sources hear no presence for more than
+300 seconds before the first v8 request, nor while selected. No capability
+suffix, donor code, campaign/reset table, location table, library or asset
+is copied or executed. Wire facts also checked: `Sync.lua:2803-2842`,
+`SyncRelay.lua:1285-1288,1438-1443,1832-1868,2787-2834,2933-2946`,
+`SyncLeaderboardPages.lua:277-290,874-876,1592-1635,2014-2017,2962-2969,3104-3107`
+(route learning before dispatch, unknown-requester admission, busy and feed replies).
+Source references: `SyncRelay.lua:2662-2664,2843-2851` (only the cumulative
+`~ld~lr~lp6` chain reaches 8; it claims ranking-page support that LE lacks),
+`SyncLeaderboardPages.lua:1831-1840,2297-2358,2544-2714,2941-3109` (race-bearing
+feed rows, ranking duties and subscription gate), `SyncAux.lua:1824-1896,2010-2021`
+(race wire facts and exact thirteen-field owner K). Campaign E is learned per
+direct peer from validated wire data, never guessed. See README's kill-feed
+section and `notes/overlord-c3-reachability.md` for current verification and
+limitations; `notes/overlord-c3-review.md` records the superseded fail-closed build.
+
 ## Overlord direct peer (C2)
 
 | Donor | Version / pin | License | Use |

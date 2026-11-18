@@ -1,0 +1,72 @@
+[
+  {
+    "failures": [
+      "FAIL Overlord followup: M same-name account realm change invalidates old hearing: test/src_overlord_followup.lua:196: old character identity is not new first-hand hearing: expected nil, got birch scout"
+    ],
+    "killed": true,
+    "rule": "M first-hand realm identity"
+  },
+  {
+    "failures": [
+      "FAIL Overlord followup: M foreign source hears no qualified whisper NH: test/src_overlord_followup.lua:189: full foreign identity matches selected BNet source: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "M qualified whisper identity"
+  },
+  {
+    "failures": [
+      "FAIL Overlord followup: n3 busy HA version 5: test/src_overlord_followup.lua:65: only protocol 8 gets a busy answer: expected 0, got 1",
+      "FAIL Overlord followup: n3 busy HA version 6: test/src_overlord_followup.lua:65: only protocol 8 gets a busy answer: expected 0, got 1",
+      "FAIL Overlord followup: n3 busy HA version 7: test/src_overlord_followup.lua:65: only protocol 8 gets a busy answer: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "n3 busy HA only protocol 8"
+  },
+  {
+    "failures": [
+      "FAIL Overlord followup: n2 NH clock survives pool round trip: test/src_overlord_followup.lua:86: round trip cannot forget the source's actual NH: expected 0, got 2",
+      "FAIL Overlord followup: n2 NH clock survives character round trip: test/src_overlord_followup.lua:86: round trip cannot forget the source's actual NH: expected 0, got 2"
+    ],
+    "killed": true,
+    "rule": "n2 NH ledger retained across scope changes"
+  },
+  {
+    "failures": [
+      "FAIL Overlord followup: n1 deferred stop combat queued=false duration=1: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0",
+      "FAIL Overlord followup: n1 deferred stop combat queued=false duration=90: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0",
+      "FAIL Overlord followup: n1 deferred stop combat queued=true duration=1: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0",
+      "FAIL Overlord followup: n1 deferred stop combat queued=true duration=90: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0",
+      "FAIL Overlord followup: n1 deferred stop instance queued=false duration=1: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0",
+      "FAIL Overlord followup: n1 deferred stop instance queued=false duration=90: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0",
+      "FAIL Overlord followup: n1 deferred stop instance queued=true duration=1: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0",
+      "FAIL Overlord followup: n1 deferred stop instance queued=true duration=90: test/src_overlord_followup.lua:104: exactly one after safety resumes: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "n1 preserve paused stops"
+  },
+  {
+    "failures": [
+      "FAIL Overlord followup: S2 removal invalidates cached friend active=false: test/src_overlord_followup.lua:119: event invalidates eligibility immediately: expected 0, got 1",
+      "FAIL Overlord followup: S2 removal invalidates cached friend active=true: test/src_overlord_followup.lua:119: event invalidates eligibility immediately: expected 0, got 1"
+    ],
+    "killed": true,
+    "rule": "S2 friend cache invalidation"
+  },
+  {
+    "failures": [
+      "FAIL Overlord followup: S1 cancellation from a fresh dispatch context queues the stop now: test/src_overlord_followup.lua:135: dispatch-time stop is queued, not waiting for a heartbeat: expected 1, got 0"
+    ],
+    "killed": true,
+    "rule": "S1 senderless cancellation"
+  },
+  {
+    "failures": [
+      "FAIL Overlord followup: M foreign guild: test/src_overlord_followup.lua:176: no NH reaches a selected source: expected 0, got 3",
+      "FAIL Overlord followup: M same guild: test/src_overlord_followup.lua:176: no NH reaches a selected source: expected 0, got 3",
+      "FAIL Overlord followup: M foreign split party: test/src_overlord_followup.lua:176: no NH reaches a selected source: expected 0, got 15",
+      "FAIL Overlord followup: M foreign joined party: test/src_overlord_followup.lua:176: no NH reaches a selected source: expected 0, got 15"
+    ],
+    "killed": true,
+    "rule": "M full realm identity"
+  }
+]

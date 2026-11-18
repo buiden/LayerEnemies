@@ -33,7 +33,7 @@ Pre-gate composition checks: BNet queue 29 passed/0 failed/2313 assertions; Over
 
 Intermediate merge gates: receiver mutants 54/54 and peer mutants 57/57. Full verification exposed seven shared-fixture mismatches, then four mixed-traffic reach failures: WarBoard's mock counted every shared BNet.peers read as its own scan after C2 became live. All production behavior was retained. Fixtures now use the real OverlordF prefix, forward every transport callback argument, and count the actual WarBoard scan timestamp while preserving the 60-second cadence assertion. The unchanged reach expectations pass for 12/20/25/40 accounts in both arrival modes (plus unreadable controls): 10 tests, 0 failures, 190527 assertions. No failing interim run is a completion claim.
 
-During verification the owner explicitly retargeted Part B to `44e41e8d90617325aa6df1407b180ad1671cbaa5`, adding /le quiet. It will be merged as a second --no-ff main merge onto C2, preserving the already committed 5b85455 merge. Final gates below cover that exact target.
+During verification the owner explicitly retargeted Part B to `44e41e8d90617325aa6df1407b180ad1671cbaa5`, adding /le quiet. It was merged as a second --no-ff main merge onto C2, preserving the already committed 5b85455 merge. Final gates below cover that exact target.
 
 ## C2: requested main `44e41e8d` into the already integrated C2
 
@@ -55,3 +55,50 @@ README keeps both complete unreleased sections. Generated verification notes are
 - MUTANTS: 43/43 caught; exit 0.
 
 Complete machine-readable C2 evidence: [`overlord-c2-main-gates.json`](overlord-c2-main-gates.json); regenerated per-suite mutation JSONs and verification notes are in this commit. All requested runners used foreground subprocesses with explicit 1800-second timeouts; the tool's 420-second response window expired on long jobs, but their existing foreground calls were allowed to finish, their exit-status files were read, and no duplicate runners were started. No native client checks (alpha, owner's decision).
+
+## C3: verified C2 into `fix/c3`
+
+Parents: `9fe1f672c32840a48b2ccfc7998653a6163ae5d0` (Part A follow-up) and `a67d4afd02085589374d6ac527ec78ad5e459f6f` (verified C2). Merge commit `231a48f` uses `--no-ff` and contains main `44e41e8d`.
+
+### Every conflict
+
+- `LayerEnemies/BNet.lua`
+- `LayerEnemies/LayerEnemies.toc`
+- `LayerEnemies/Main.lua`
+- `LayerEnemies/Net.lua`
+- `notes/test-results.txt`
+- `notes/verification.json`
+
+### Resolution and every production departure from the mechanical merge
+
+[`overlord-c3-production-resolution.diff`](overlord-c3-production-resolution.diff) is the complete `git diff a5cadad86675ab06e9a54438a575e3564ec29d90 231a48f -- LayerEnemies` against AUTO_MERGE, including edits outside marked conflicts.
+
+- `BNet.lua`: preserve both exact Overlord X authorization and WarBoard H/A/FBUN cleanup exceptions; ordinary privacy and hardware gates remain. Keep upstream `still/tag/done/cleanup` plus C2's `guard`. Use one `done(ok)` completion path rather than the old success-only `sent` queue field; remove that obsolete parameter's check. Extend cancellation as `cancel(net, tag, keepStops)` so WarBoard's target tag and Overlord's exact-stop retention do not share a slot. Preserve cleanup rows and exact outstanding Overlord stops independently; canceled ordinary rows still get failed completion.
+- `Main.lua`: preserve C3's live identity/realm/eligibility guard and actual successful-send accounting. Supply a success-only wrapper in `done` slot 8 and the charged-attempt guard in slot 9. Sharing off invokes both controllers; logout marks Overlord closed, cancels its subscriptions, retires WarBoard requests, then pumps. This order matters because `WarBoardTrack.stop(true)` pumps internally.
+- `Net.lua`: preserve Overlord stop retention using the third cancellation argument while retaining WarBoard withdrawal on consent/source-off; call both source controllers before updating their existing switches.
+- `LayerEnemies.toc`: retain OverlordFeed and both WarBoard modules exactly once, in dependency order.
+- No other production lines differ from the mechanical merge.
+
+The initial merge order failed the real inherited `WarBoard track: logout cancels an unsent ask without creating debt` assertion (expected 0, got 2). Overlord's pre-WarBoard pump could deliver the pending WarBoard ask at logout. Moving that pump after both cancellation paths fixes it without weakening a test: all five logout cases pass, 324 assertions. This was a merge-order repair, not a gate exemption.
+
+Mutation anchors for share/Guild-only/logout and success receipt were retargeted to the composed signatures without changing mutations' intended behavior or their test selectors. The same old-source, feed, reachability, follow-up, WarBoard and quiet expectations remain. `test/verify.py` differs from main only in generated-report descriptive text; its strict exact-once hook and no-rebinding checks are unchanged. C3's 16 API policy unit tests pass; no strict-gate repair or relaxation was needed.
+
+Full merged verification: `RESULT: 2015 tests passed, 0 failed, 570000 assertions`; exit 0. Syntax, TOC/static policy and deterministic archive/source parity PASS. Native checks: not run (alpha, owner's decision).
+
+### C3 final mutants
+
+- `overlord-mutants`: RESULT: 54/54 mutants killed (six exact-disjoint shards); exit 0.
+- `overlord-peer-mutants`: RESULT: 57/57 mutants killed; exit 0.
+- `overlord-feed-mutants`: RESULT: 63/63 mutants killed; exit 0.
+- `overlord-reachability-mutants`: RESULT: 48/48 mutants killed; exit 0.
+- `overlord-followup-mutants`: RESULT: 8/8 mutants killed; exit 0.
+- `warboard-mutants`: RESULT: 115/115 WarBoard mutants killed; exit 0.
+- `warboard-track-mutants`: RESULT: 113/113 WarBoard tracking mutants killed; exit 0.
+- `quiet-mutants`: MUTANTS: 38/38 caught; exit 0.
+- `quiet-all-mutants`: MUTANTS: 43/43 caught; exit 0.
+
+Total: 539/539 killed. Every requested suite was rerun against the merged production/test tree. Full evidence: [`overlord-c3-main-gates.json`](overlord-c3-main-gates.json).
+
+The first monolithic C3 receiver invocation did not complete within its 1800-second foreground window; its partial log is not counted as a pass. All 54 receiver rules were rerun in six disjoint nine-rule foreground invocations of the unchanged runner function, with unchanged mutations, full `Overlord` selector, syntax checks and assertion-only kill criteria. Each invocation had an explicit 1800-second timeout and exited 0. [`overlord-c3-receiver-shards.json`](overlord-c3-receiver-shards.json) records their exact inventories; a programmatic ordered-union/uniqueness check proves all 54 expected rules occur exactly once. The combined `overlord-mutants.json` contains the actual per-rule assertion failures, not reconstructed outcomes. Other suites exited 0 without sharding. No production or harness performance shortcuts were taken.
+
+Part A RED→GREEN is retained in [`overlord-followup.md`](overlord-followup.md): final tests on original `2eff0188` yielded 37 passed/23 failed/3500 assertions; current Overlord-focused suite is 211 passed/0 failed/39933 assertions. All 31 S1 offsets, foreign-realm isolation and unknown-realm controls, immediate removal, paused-stop matrix, scope round trips and protocol-version controls remain green in the final full gate.

@@ -1,0 +1,100 @@
+{
+  "tested_commit": "231a48fdf8375f4feda8561854b02c3c00794ea4",
+  "upstream": "44e41e8d90617325aa6df1407b180ad1671cbaa5",
+  "lower_branch": "a67d4afd02085589374d6ac527ec78ad5e459f6f",
+  "verify_returncode": 0,
+  "verify_line": "RESULT: 2015 tests passed, 0 failed, 570000 assertions",
+  "verification": {
+    "lua_version": "Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio",
+    "syntax_files": 105,
+    "syntax_status": "PASS",
+    "tests_passed": 2015,
+    "tests_failed": 0,
+    "assertions": 570000,
+    "fuzz_inputs": 5000,
+    "toc_and_static_checks": "PASS",
+    "archive_integrity_and_source_parity": "PASS",
+    "archive": "dist/LayerEnemies-1.1.0.zip",
+    "archive_members": 59,
+    "archive_bytes": 296068,
+    "unpacked_bytes": 1139650,
+    "media_bytes": 295308,
+    "call_assets_tests": 11,
+    "archive_sha256": "10fa69a9758088457e2eb3e5310d0ca392d73981cfd0735aac48995411f53df2",
+    "real_client_verified": false,
+    "live_remote_reports": "War Effort 1.6.x and HeadHunter as a member, the Spy family and three guild incident addons read-only, LEGW1 own sightings and relays; shown as reported, not confirmed",
+    "ask_for_invite": "Single-host hops remain one request; hop-any clicks query WHO once with UI suppressed, consider 49 rows, use at most 8 attempts/round at 1 s for 45 rounds, 10 s between clicks; retry throttled heads and re-ask unknown same-zone hosts once at +3/+10 s; guild requests stay player-sent",
+    "auto_accept_leave": "On by default, saved: accepts only the asked host invite (120 s, not grouped/instance/combat), leaves only that group 3 s after the move or 30 s without one",
+    "guild_host": "Off until turned on, then saved (guildHost boolean, ON line at login); guild members only, guild name readable and unchanged; at most one InviteUnit per request, 10 s apart, 6 per 600 s; never in combat; refused beside LayerSwap or Bulo",
+    "networks": "Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches",
+    "sends": "LayerSwap/WHISPER, LEGW1/GUILD (including K1 own-death, share switch, 1/120s and 5/30min), LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope); OverlordF NH to non-source peers, busy HA only for protocol-8 addressed HR V, and NH-free HR 8:V/8:K feed requests (two isolated live Battle.net friends of either faction; first-hand same-pool evidence once per session; strictly more than 300s after actual NH, no wait if never sent; unanswered gaps 200/400/800/1600/1800s; valid HA/HB resets to 200s) plus one HR 8:X stop per opened subscription retained through combat/instances for a 60-second safe delivery window; no feed suppression of guild/party presence; no ranking capability claim; (WHISPER/GUILD/PARTY/RAID and Battle.net as documented in README; no forwarding or CHANNEL sends)",
+    "visual_design": "Approved B implemented with fourth Find tab; native client appearance unverified"
+  },
+  "mutants": [
+    {
+      "suite": "overlord-mutants",
+      "result": "RESULT: 54/54 mutants killed (six exact-disjoint shards)",
+      "killed": 54,
+      "total": 54,
+      "returncode": 0
+    },
+    {
+      "suite": "overlord-peer-mutants",
+      "result": "RESULT: 57/57 mutants killed",
+      "killed": 57,
+      "total": 57,
+      "returncode": 0
+    },
+    {
+      "suite": "overlord-feed-mutants",
+      "result": "RESULT: 63/63 mutants killed",
+      "killed": 63,
+      "total": 63,
+      "returncode": 0
+    },
+    {
+      "suite": "overlord-reachability-mutants",
+      "result": "RESULT: 48/48 mutants killed",
+      "killed": 48,
+      "total": 48,
+      "returncode": 0
+    },
+    {
+      "suite": "overlord-followup-mutants",
+      "result": "RESULT: 8/8 mutants killed",
+      "killed": 8,
+      "total": 8,
+      "returncode": 0
+    },
+    {
+      "suite": "warboard-mutants",
+      "result": "RESULT: 115/115 WarBoard mutants killed",
+      "killed": 115,
+      "total": 115,
+      "returncode": 0
+    },
+    {
+      "suite": "warboard-track-mutants",
+      "result": "RESULT: 113/113 WarBoard tracking mutants killed",
+      "killed": 113,
+      "total": 113,
+      "returncode": 0
+    },
+    {
+      "suite": "quiet-mutants",
+      "result": "MUTANTS: 38/38 caught",
+      "killed": 38,
+      "total": 38,
+      "returncode": 0
+    },
+    {
+      "suite": "quiet-all-mutants",
+      "result": "MUTANTS: 43/43 caught",
+      "killed": 43,
+      "total": 43,
+      "returncode": 0
+    }
+  ],
+  "total_killed": 539,
+  "total_mutants": 539
+}

@@ -139,3 +139,15 @@ Run on clean clones, Lua 5.1.5, outer limit 1800 s (3600 s for reruns), inner pa
   - mut-wanted: rc 0, 1293 s (it hit the 1800 s limit under load 12-25 on the first run).
 - The first-run failures of mut-flh and mut-flh_member were the two stale anchors above;
   mut-wanted was a timeout only.
+
+## Gates, level 13 (`996babb`)
+
+- Full verify (run by hermes alone in a separate clone): RESULT: 2154 passed, 0 failed, 38 min.
+  The regenerated `test-results.txt` and `verification.json` in this commit are copied from that run.
+- mut-flh_member: rc 0, 734 s, RESULT: 91 tests passed, 0 failed.
+- First parallel run (load 12-25), rc 0: codec, crowd, find20, chehulnet, flh_batch, flh, guild_intel, kill.
+  flh_rulings and the six Overlord receiver shards hit their inner 180 s limits; no assertion failed.
+- The remaining packs are rerunning one at a time on clones of `996babb`; results go to the PR as a comment.
+- README (Overlord kill feed section): two sentences on the single Battle.net frame at logout and on
+  removed friends without the friend-list event, as hermes asked. No file under LayerEnemies/ or test/
+  differs from `996babb`.

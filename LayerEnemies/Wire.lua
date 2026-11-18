@@ -510,9 +510,10 @@ local function check(prefix, text, kind, target, opts)
         target = nil
     end
     opts = S.tab(opts) and opts or {}
+    local stopping=prefix=="OverlordF" and N.Main.overlordStopping(text,kind,target)
     if prefix=="OverlordF" then
-        if not N.OverlordPeer.dispatching(text,kind,target) or not N.Main.sharing()
-            or N.Net.consent()~="public" or not N.Main.overlordPool()
+        if not N.OverlordPeer.dispatching(text,kind,target) or (not stopping and (not N.Main.sharing()
+            or N.Net.consent()~="public")) or not N.Main.overlordPool()
             or N.Adapters.inCombat() or N.Adapters.inInstance()~=false then return nil,"network off" end
     end
     if prefix == "FLHNET2" then
@@ -529,7 +530,7 @@ local function check(prefix, text, kind, target, opts)
         if opts.net ~= route.net then return nil, "network off" end
         public = kind == "WHISPER" and not (N.Adapters and N.Adapters.guildMember(target) == true)
         local ok, why = N.Net.allowed(route.net, public and "public" or "guild")
-        if not ok then return nil, why end
+        if not ok and not stopping then return nil, why end
         if prefix=="OverlordF" and kind=="WHISPER" then public=true end
     end
     return route, tag, target, opts, public
