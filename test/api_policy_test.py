@@ -325,5 +325,32 @@ class ApiPolicyTests(unittest.TestCase):
                 self.assertEqual(path.name, 'Adapters.lua')
 
 
+    def test_composed_overlord_route_is_frozen_with_flh(self):
+        source = (Path(__file__).resolve().parents[1] / 'LayerEnemies/Wire.lua').read_text()
+        VERIFY['check_route_policy'](source)
+        anchor = 'OverlordF = { kinds = { '
+        self.assertEqual(source.count(anchor), 1)
+        for field in ('CHANNEL=true, ', 'SAY=1, ', '["GUILD"]=true, '):
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(anchor, anchor + field))
+        for old, new in (('net="overlord"', 'net="flh"'),
+                         ('and "peer" end, net="overlord"', 'and "other" end, net="overlord"')):
+            self.assertEqual(source.count(old), 1)
+            with self.assertRaises(AssertionError):
+                VERIFY['check_route_policy'](source.replace(old, new))
+
+    def test_overlord_peer_is_pure_and_uses_owned_transport(self):
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        source = (root / 'OverlordPeer.lua').read_text()
+        self.check_source(source, 'OverlordPeer.lua')
+        VERIFY['check_send_policy'](source, 'OverlordPeer.lua')
+        refs = {v for k, v in VERIFY['lua_tokens'](source) if k == 'name'}
+        self.assertFalse(refs & {'_G', 'C_Timer', 'GetTime', 'SendGameData', 'SendAddonMessage',
+                                 'LayerEnemiesDB', 'LibStub', 'SetText', 'JoinChannelByName'})
+        wire = (root / 'Wire.lua').read_text()
+        self.assertIn('N.OverlordPeer.dispatching(text,kind,target)', wire)
+        self.assertEqual((root / 'LayerEnemies.toc').read_text().count('OverlordPeer.lua'), 1)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

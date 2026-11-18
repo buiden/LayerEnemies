@@ -1280,11 +1280,11 @@ PASS Overlord: two parts join in either order reverse=false
 PASS Overlord: two parts join in either order reverse=true
 PASS Overlord: fragment frame bounds and single-part fast path
 PASS Overlord: fragment duplicate conflicts and timeout do not extend assembly life
-PASS Overlord: 33 pending evicts oldest including same-time arrivals
+PASS Overlord: sender cap preserves existing assemblies including same-time arrivals
 PASS Overlord: packet identity exact seven fields broadcast and allowed kinds
 PASS Overlord: packet path one to four no repeats and last sender
 PASS Overlord: packet age accepts 120 not 121 and skew 30 not 31
-PASS Overlord: origin id ring takes once and caps at 256
+PASS Overlord: origin id ring takes once and caps at 2000
 PASS Overlord: foreign packet pools are refused before evidence or dedupe
 PASS Overlord: unknown own pool accepts no wrapped direct or partial traffic and recovers without reload
 PASS Overlord: pool detection maps readable rules and explicit realm fallback without a PvP guess
@@ -1541,6 +1541,58 @@ PASS Sources: offer uses only live guild Watch matches and never adds saved trac
 PASS Sources: unknown observed time stays unknown and duplicate old evidence never becomes fresh
 PASS Sources: readable-looking secret scalars cannot be offered
 PASS Sources: malformed secret and throwing offers store nothing and never set runtime error
+PASS Overlord FLH stack: unarmed full eight-token burst, peer first true
+PASS Overlord FLH stack: unarmed full eight-token burst, peer first false
+PASS Overlord FLH stack: armed LR reserve blocks peer reply without charging it
+PASS Overlord FLH stack: canceled click immediately returns last token to peer
+PASS Overlord FLH stack: peer reply cannot steal final rolling-minute LR slot
+PASS Overlord peer: directory uses audited pool channel and two free slots
+PASS Overlord peer: real whisper owes one truthful reply; no forwarding or bypass
+PASS Overlord peer: all sends silent with share
+PASS Overlord peer: all sends silent with guild
+PASS Overlord peer: all sends silent with switch
+PASS Overlord peer: all sends silent with combat
+PASS Overlord peer: all sends silent with instance
+PASS Overlord peer: all sends silent with pool
+PASS Overlord peer: all sends silent with version
+PASS Overlord peer: all sends silent with identity
+PASS Overlord peer: owed cap six per minute and 150 seconds per peer
+PASS Overlord peer: NH and HA share a per-peer gap at admission and dispatch
+PASS Overlord peer: guild alone 600 group 120 and heard guild 120
+PASS Overlord peer: five live bridges two unheard friends per 120 second cycle
+PASS Overlord peer: club-only accounts and disallowed pure contexts stay silent
+PASS Overlord peer: whisper greeting once a minute stops at six partners
+PASS Overlord peer: directory greeting rotates through forty unanswered members
+PASS Overlord peer: refused greeting does not spend candidate or global cooldown
+PASS Overlord peer: queue refusal spends no peer cooldown but client attempts do
+PASS Overlord peer: truthful empty V answer busy unsupported request and no invented map
+PASS Overlord peer: claim dispatch stamps actual gap cap and changed pool
+PASS Overlord peer: BNet shared queue used with eight frame cap and dispatch pool guard
+PASS Overlord peer: donor loaded blocks every send but retains incoming evidence
+PASS Overlord peer: donor loading cancels queued owed answers and gateway bypass
+PASS Overlord peer: path target loop and malformed assemblies never learn routes
+PASS Overlord peer: route ring reserves guild and expires at 300 seconds
+PASS Overlord peer: global assembly bytes and all 64 slots preserve guild room
+PASS Overlord peer: work budgets canonical cross-route sender global and guild reserve
+PASS Overlord peer: 5000 deterministic fuzz frames bounded silent and no saved names
+PASS Overlord peer: 24 fragments, 3600 bytes, duplicate idle and total lifetime
+PASS Overlord peer: per sender assembly cap and guild reserve
+PASS Overlord peer: whisper and R2 battle net receive GW; foreign band silent
+PASS Overlord peer: pure peer announces own truthful identity and answers targeted NH
+PROBE rotation marked: accepted=60 attempted=60 refused=0 distinct=39 seconds=3600
+PASS Overlord peer: rotation skips a member marked offline for one hour
+PROBE rotation natural: accepted=177 attempted=180 refused=3 distinct=39 seconds=10800
+PASS Overlord peer: rotation survives member five going offline for three hours
+PROBE rotation qualified: accepted=60 attempted=60 refused=0 distinct=40 seconds=3600
+PASS Overlord peer: rotation canonicalizes a home-realm-qualified member
+PROBE self Alice Vale: self=0 other=1
+PASS Overlord peer: self silence Alice Vale
+PROBE self Élan Scout: self=0 other=1
+PASS Overlord peer: self silence Élan Scout
+PROBE self Ølaf Scout: self=0 other=1
+PASS Overlord peer: self silence Ølaf Scout
+PROBE self Борис Скаут: self=0 other=1
+PASS Overlord peer: self silence Борис Скаут
 PASS Quiet names: spaced home name is recorded and matched without compacting
 PASS Quiet names: foreign suffix is required and distinct namesakes stay ambiguous
 PASS Quiet names: pattern characters in a surname are invalid targets not wildcard matches
@@ -1995,4 +2047,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 1943 tests passed, 0 failed, 504686 assertions
+RESULT: 1988 tests passed, 0 failed, 605181 assertions

@@ -64,7 +64,7 @@ function BN.allowed(net,id,prefix,text,prio)
         or (net=="overlord" and prefix=="OverlordF" and N.Sources.enabled(net))
     if not authorized or not N.Main.sharing() or N.Net.consent()~="public" or not safe() then return false end
     local ok,why=N.Net.allowed(net,"public")
-    return ok or (why=="stand down" and prio=="owed")
+    return ok or (net~="overlord" and why=="stand down" and prio=="owed")
 end
 local dispatch
 function BN.dispatching(net,id,prefix,text,prio,fn)
@@ -121,7 +121,9 @@ function BN.pump(now)
                 end
                 if valid~=true then refuse(q.net); complete(q,false); break end
                 lastSend=now; times[#times+1]={at=now,net=q.net} -- spend before the client, including failures
-                local ok=deliver(q)
+                local valid,allowed=true,true
+                if q.guard then valid,allowed=pcall(q.guard) end
+                local ok=valid and allowed and deliver(q) or false
                 if ok then N.Sources.count(q.net,"sent") else refuse(q.net) end
                 complete(q,ok)
                 break -- never catch up several frames after a long pause
@@ -141,7 +143,8 @@ schedule=function()
     timer=ok and result==true
     return timer
 end
-function BN.send(net,id,prefix,text,prio,still,tag,done)
+function BN.send(net,id,prefix,text,prio,still,tag,done,guard)
+    if S.secret(guard) or (guard~=nil and type(guard)~="function") then return refuse(net) end
     if S.secret(prio) then return refuse(net) end
     if S.secret(still) or (still~=nil and type(still)~="function") then return refuse(net) end
     if S.secret(done) or (done~=nil and type(done)~="function") then return refuse(net) end
@@ -156,7 +159,7 @@ function BN.send(net,id,prefix,text,prio,still,tag,done)
     local now=S.num(S.call(GetTime))
     if not now or count>=share(net) or (prio~="owed" and normal>=52) or not schedule() then return refuse(net) end
     serial=serial+1
-    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,still=still,tag=tag,done=done,
+    queue[#queue+1]={net=net,id=id,prefix=prefix,text=text,prio=prio,seq=serial,at=now,still=still,tag=tag,done=done,guard=guard,
         cleanup=withdrawal(net,id,prefix,text,prio)==true}
     return true
 end

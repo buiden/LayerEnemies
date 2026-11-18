@@ -33,7 +33,7 @@ MUTANTS = [
     ('instance-gate', [('FLHMember.lua', 'A.inCombat() or A.inInstance()~=false', 'A.inCombat()'), ('Main.lua', 'if A.inCombat() or A.inInstance()~=false then return end', 'if A.inCombat() then return end')]),
     ('stand-down', [('FLHMember.lua', 'if A.loaded("ForeverLayerHop") then return false end', 'if false then return false end')]),
     ('owner-includes-owed-replies', [('FLHMember.lua', 'if A.loaded("ForeverLayerHop") then return false end', 'if tag~="WR" and tag~="CA" and A.loaded("ForeverLayerHop") then return false end')]),
-    ('directory-slots', [('Directory.lua', 'local limited = key=="wanted" or key=="flh"', 'local limited = key=="wanted"')]),
+    ('directory-slots', [('Directory.lua', 'local limited=key=="wanted" or key=="overlord" or key=="flh"', 'local limited=key=="wanted" or key=="overlord"')]),
     ('directory-consent', [('Directory.lua', 'if key=="flh" then want=want and N.Main.sharing() and (joined[key] or N.FLHMember.allowed("WHISPER","WP")) end', 'if key=="flh" then want=true end')]),
     ('owed-reserve', [('Wire.lua', '#recent(publicTimes,now)<PUBLIC_MINUTE-Wr.FLH_REPLIES', '#recent(publicTimes,now)<PUBLIC_MINUTE')]),
     ('public-total-cap', [('Wire.lua', 'if kind=="WHISPER" and #publicTimes>=PUBLIC_MINUTE then return false end', 'if false then return false end')]),

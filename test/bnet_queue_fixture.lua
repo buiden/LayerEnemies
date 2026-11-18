@@ -4,7 +4,16 @@ local h=...
 local yes,eq=h.yes,h.eq
 local F={}
 function F.register(N,name,prefix)
+    N.fixtureCounters=N.fixtureCounters or {}
+    if N.fixtureCounters[name] then yes(N.Sources.owns(prefix));return N.fixtureCounters[name] end
     if N.Sources.has(name) then
+        if name=="overlord" then
+            eq(prefix,"OverlordF");yes(N.OverlordPeer and N.OverlordPeer.stats)
+            N.Net.SHIP.overlord=N.shipped.overlord
+            Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
+            C_GameRules={IsGameRuleActive=function(i) return i==3 end}
+            return N.OverlordPeer.stats
+        end
         local shipped={wanted="WNTDB",warboard="WarBoard"}
         eq(prefix,shipped[name],"reuse only the real shipped source and its own prefix")
         -- loadAddon disables already-shipped transports for test isolation.
@@ -19,6 +28,7 @@ function F.register(N,name,prefix)
     end
     local counters={}
     yes(N.Sources.register{name=name,prefixes={prefix},counters=counters})
+    N.fixtureCounters[name]=counters
     return counters
 end
 function F.defaultShare(N)
@@ -27,7 +37,7 @@ function F.defaultShare(N)
 end
 function F.mixed(N,total)
     total=total or 30
-    local rows={{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WarBoard",10},
+    local rows={{"wanted","WNTDB",4},{"overlord","OverlordF",8},{"warboard","WarBoard",10},
         {"alpha","AlphaQueue"},{"beta","BetaQueue"}}
     for _,r in ipairs(rows) do r.c=F.register(N,r[1],r[2]) end
     -- Keep one alpha admission slot for the expiry test's owed replacement;
@@ -50,7 +60,7 @@ function F.fill(N,amount,prio,tag)
     if not pool then
         -- Use the configured shares too: another tick-only source must not make
         -- a queue-cap test hit the 32-source registry ceiling first.
-        pool={{"wanted","WNTDB",4},{"overlord","OLQueue",8},{"warboard","WarBoard",10}}
+        pool={{"wanted","WNTDB",4},{"overlord","OverlordF",8},{"warboard","WarBoard",10}}
         for _,r in ipairs(pool) do F.register(N,r[1],r[2]); r.used=0 end
         pools[N]=pool
     end

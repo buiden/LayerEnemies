@@ -88,6 +88,8 @@ local ROUTES = {
     LFSw = { kinds = { GUILD = true }, check = function(text) return text == Wr.LFSW_TEXT and "q" or nil end },
     WEFF1 = { kinds = { GUILD = true, PARTY = true, RAID = true, WHISPER = true }, check = weText, net = "we" },
     HeadHunter = { kinds = { WHISPER = true }, check = hhText, net = "hh" },
+    OverlordF = { kinds = { GUILD=true, PARTY=true, RAID=true, WHISPER=true },
+        check = function(text) return text:match("^BF:[%w%-]+:1:1:") and "peer" end, net="overlord" },
 }
 Wr.ROUTES = {}
 for prefix, r in pairs(ROUTES) do Wr.ROUTES[prefix] = {}; for k in pairs(r.kinds) do Wr.ROUTES[prefix][k] = true end end
@@ -508,6 +510,11 @@ local function check(prefix, text, kind, target, opts)
         target = nil
     end
     opts = S.tab(opts) and opts or {}
+    if prefix=="OverlordF" then
+        if not N.OverlordPeer.dispatching(text,kind,target) or not N.Main.sharing()
+            or N.Net.consent()~="public" or not N.Main.overlordPool()
+            or N.Adapters.inCombat() or N.Adapters.inInstance()~=false then return nil,"network off" end
+    end
     if prefix == "FLHNET2" then
         if not N.FLHMember or N.FLHMember.authorize(text,kind,target,opts)~=tag then return nil,"network off" end
         return route,tag,target,opts,kind=="WHISPER"
@@ -523,6 +530,7 @@ local function check(prefix, text, kind, target, opts)
         public = kind == "WHISPER" and not (N.Adapters and N.Adapters.guildMember(target) == true)
         local ok, why = N.Net.allowed(route.net, public and "public" or "guild")
         if not ok then return nil, why end
+        if prefix=="OverlordF" and kind=="WHISPER" then public=true end
     end
     return route, tag, target, opts, public
 end

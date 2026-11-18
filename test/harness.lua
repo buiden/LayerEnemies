@@ -64,7 +64,8 @@ local joined,leftCh,selected,chanList,chanMembers,joinNotice,joinReturn
 -- the routes the mock accepts without counting a forbidden send; WEFF1 and HeadHunter are open from 1.0 T1 (behind
 -- Net: ship constant, switch, consent, stand-down)
 local ROUTES={FLHNET2={GUILD=true,PARTY=true,RAID=true,WHISPER=true},LayerSwap={WHISPER=true},LEGW1={GUILD=true},LFSw={GUILD=true},
-    WEFF1={GUILD=true,PARTY=true,RAID=true,WHISPER=true},HeadHunter={WHISPER=true}}
+    WEFF1={GUILD=true,PARTY=true,RAID=true,WHISPER=true},HeadHunter={WHISPER=true},
+    OverlordF={GUILD=true,PARTY=true,RAID=true,WHISPER=true}}
 -- Prefixes the addon may register.
 local PREFIXES={FLHNET2=true,OverlordF=true,OpenMapLoc=true,WEFF1=true,HeadHunter=true,LayerSwap=true,LFSw=true,LEGW1=true,["[Spy]"]=true,ForeverSpy1=true,FSENT03=true,GBOUNTY=true,WALLOFSHAME=true,FTold1=true}
 -- The addon's source files, in load order, as the TOC lists them.

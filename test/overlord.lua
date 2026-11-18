@@ -10,6 +10,7 @@ end
 local function setup()
     active=H.load()
     rules(false,false,true) -- known PvP pool; never rely on an unknown-pool default
+    UnitName=function() return "Alice Vale",GetRealmName() end
     -- A receiving test must not hide a send behind the gateway's own refusal.
     active.Wire.send=function() attempts=attempts+1; error("Overlord attempted a send") end
     return active
@@ -63,7 +64,7 @@ test("fragment frame bounds and single-part fast path",function()
     local N=setup(); local Ov=N.Overlord
     local st=Ov.new()
     for _,text in ipairs({"BF::1:1:x","BF:"..string.rep("a",65)..":1:1:x","BF:a_b:1:1:x","BF:a:0:1:x",
-        "BF:a:2:1:x","BF:a:1:3:x","BF:a:1:24:x","BF:a:1:25:x","BF:a:1.5:2:x","BF:a:1:1.5:x",
+        "BF:a:2:1:x","BF:a:1:25:x","BF:a:1.5:2:x","BF:a:1:1.5:x",
         "BF:a:1:0:x","BF:a:1:1:"..string.rep("x",231),"BF:"..string.rep("a",17)..":1:1:"..string.rep("x",231),
         "BF:"..string.rep("a",18)..":1:1:"..string.rep("x",230),"not a frame"}) do
         eq(Ov.fragment(st,text,"Birch Scout",10),false,text:sub(1,70))
@@ -85,12 +86,13 @@ test("fragment duplicate conflicts and timeout do not extend assembly life",func
     eq(Ov.fragment(st,"BF:rollback:2:2:b","Birch Scout",49),nil,"clock rollback discards partial")
 end)
 
-test("33 pending evicts oldest including same-time arrivals",function()
+test("sender cap preserves existing assemblies including same-time arrivals",function()
     local N=setup(); local Ov=N.Overlord; local st=Ov.new()
-    for i=1,33 do eq(Ov.fragment(st,"BF:p"..i..":1:2:a","Birch Scout",10),nil) end
-    eq(N.Safe.count(st.pending),32)
-    eq(Ov.fragment(st,"BF:p2:2:2:b","Birch Scout",11),"ab","second oldest survived")
-    eq(Ov.fragment(st,"BF:p1:2:2:b","Birch Scout",11),nil,"oldest dropped")
+    for i=1,4 do eq(Ov.fragment(st,"BF:p"..i..":1:2:a","Birch Scout",10),nil) end
+    eq(Ov.fragment(st,"BF:p5:1:2:a","Birch Scout",10),false)
+    eq(N.Safe.count(st.pending),4)
+    eq(Ov.fragment(st,"BF:p2:2:2:b","Birch Scout",11),"ab","existing stream survived")
+    eq(Ov.fragment(st,"BF:p1:2:2:b","Birch Scout",11),"ab","oldest preserved")
     Ov.sweep(st,41); eq(next(st.pending),nil,"idle sweep")
 end)
 
@@ -123,13 +125,13 @@ test("packet age accepts 120 not 121 and skew 30 not 31",function()
     end
 end)
 
-test("origin id ring takes once and caps at 256",function()
+test("origin id ring takes once and caps at 2000",function()
     local N=setup(); local Ov=N.Overlord; local st=Ov.new()
     yes(Ov.seen,"dedupe function exists"); no(Ov.seen(st,"Birch Scout","a")); yes(Ov.seen(st,"BIRCH SCOUT","a"))
     no(Ov.seen(st,"Other Scout","a"))
-    for i=1,254 do no(Ov.seen(st,"Birch Scout","p"..i)) end
+    for i=1,1998 do no(Ov.seen(st,"Birch Scout","p"..i)) end
     yes(Ov.seen(st,"Birch Scout","a")); no(Ov.seen(st,"Birch Scout","overflow"))
-    eq(N.Safe.count(st.seen),256); no(Ov.seen(st,"Birch Scout","a"),"oldest evicted")
+    eq(N.Safe.count(st.seen),2000); no(Ov.seen(st,"Birch Scout","a"),"oldest evicted")
     hear(bf(packet())); local at=N.Main.reportedRows()[1].at
     H.clock(H.clock()+1); hear(bf(packet({payload=gw({kills=88})})))
     eq(N.Main.reportedRows()[1].kills,77); eq(N.Main.reportedRows()[1].at,at)
@@ -265,7 +267,7 @@ test("direct route matrix EK only group and no whisper or channel",function()
         hear("EK:"..ek(),route); eq(next(N.Main.find.known.entries),nil,route)
         hear(bf(packet({kind="EK",payload=ek()})),route); eq(next(N.Main.find.known.entries),nil,route)
         hear("GW:"..gw(),route); eq(#N.Main.reportedRows(),0,route)
-        if route~="GUILD" then hear(bf(packet()),route); eq(#N.Main.reportedRows(),0,route) end
+        if route~="GUILD" then hear(bf(packet()),route); eq(#N.Main.reportedRows(),route=="WHISPER" and 1 or 0,route) end
     end
     for _,route in ipairs({"PARTY","RAID"}) do
         for _,kind in ipairs({"GW","GD","EK"}) do

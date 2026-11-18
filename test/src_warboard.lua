@@ -43,13 +43,13 @@ local function setup(name)
     end
     N.BNet.peers=function() return {} end
     local queued=N.BNet.send
-    N.BNet.send=function(net,id,prefix,text,prio,still)
+    N.BNet.send=function(net,id,prefix,text,prio,still,...)
         if net=="warboard" or prefix=="WarBoard" or prefix=="WarBoardBN" then
             if net~="warboard" or prefix~="WarBoard" or not allowedFrame(N,id,text) then
                 N.badSend=N.badSend+1
             end
         end
-        return queued(net,id,prefix,text,prio,still)
+        return queued(net,id,prefix,text,prio,still,...)
     end
     local ordinary=N.Wire.send
     N.Wire.send=function(prefix,...)
@@ -75,7 +75,7 @@ end
 local function advance(n) for _=1,n do h.advance(1) end end
 local function queueOtherThirty(N)
     local fixture=assert(loadfile("test/bnet_queue_fixture.lua"))(h)
-    local rows={{"wanted","WNTDB",4},{"overlord","OLQueue",8}}
+    local rows={{"wanted","WNTDB",4},{"overlord","OverlordF",8}}
     for _,r in ipairs(rows) do fixture.register(N,r[1],r[2]) end
     local existing=#N.Sources.lines(); local count=0
     repeat count=count+1 until 12+count*math.max(1,math.floor(30/(existing+count)))>=30
@@ -162,15 +162,19 @@ for _,count in ipairs({12,20,25,40}) do
         test("hello reach over sixty minutes for "..count.." accounts"..(mixed and " with owed and shared traffic" or ""),function()
             local N=setup(); local scans,attempts,lastScan=0,0,nil
             local queued=N.BNet.send
-            N.BNet.send=function(net,id,prefix,text,prio,still)
+            N.BNet.send=function(net,id,prefix,text,prio,still,...)
                 if net=="warboard" and text:sub(6,6)=="H" then
                     attempts=attempts+1; yes(attempts<=20,"at most twenty selections per scan")
                 end
-                return queued(net,id,prefix,text,prio,still)
+                return queued(net,id,prefix,text,prio,still,...)
             end
             N.BNet.peers=function()
-                if lastScan then yes(h.clock()-lastScan>=60,"scan cadence remains sixty seconds") end
-                lastScan=h.clock(); scans=scans+1; attempts=0
+                -- The resolver is shared with C2; count WarBoard's actual scan,
+                -- not unrelated reads of the same live account list.
+                if N.WarBoard.state.scan==h.clock() and lastScan~=h.clock() then
+                    if lastScan then yes(h.clock()-lastScan>=60,"scan cadence remains sixty seconds") end
+                    lastScan=h.clock(); scans=scans+1; attempts=0
+                end
                 local rows={}
                 for i=1,count do rows[i]={id=70+i,faction="Horde"} end
                 return rows
@@ -178,7 +182,7 @@ for _,count in ipairs({12,20,25,40}) do
             local traffic={}
             if mixed then
                 local fixture=assert(loadfile("test/bnet_queue_fixture.lua"))(h)
-                traffic={{"wanted","WNTDB",4},{"overlord","OLQueue",8}}
+                traffic={{"wanted","WNTDB",4},{"overlord","OverlordF",8}}
                 for _,r in ipairs(traffic) do fixture.register(N,r[1],r[2]) end
                 -- Enough distinct registered sources to exercise the shared 30/min cap.
                 for i=1,8 do
@@ -287,13 +291,13 @@ for _,unreadable in ipairs({false,true}) do
             return r
         end
         local queued=N.BNet.send
-        N.BNet.send=function(net,id,prefix,text,prio,still)
+        N.BNet.send=function(net,id,prefix,text,prio,still,...)
             if net=="warboard" and text:sub(6,6)=="H" then
                 attempts=attempts+1
                 yes(attempts<=20,"unchanged twenty-account selection cap")
                 no(blocked(id),"unreadable accounts never enter the hello queue")
             end
-            return queued(net,id,prefix,text,prio,still)
+            return queued(net,id,prefix,text,prio,still,...)
         end
         N.BNet.peers=function()
             if lastScan then yes(h.clock()-lastScan>=60,"unchanged sixty-second scan cadence") end
@@ -775,7 +779,7 @@ end)
 test("H cannot consume owed reserve while six real A answers use it",function()
     local N=setup(); local fixture=assert(loadfile("test/bnet_queue_fixture.lua"))(h)
     local filled=0
-    for _,r in ipairs({{"wanted","WNTDB",4},{"overlord","OLQueue",8}}) do
+    for _,r in ipairs({{"wanted","WNTDB",4},{"overlord","OverlordF",8}}) do
         fixture.register(N,r[1],r[2])
         for _=1,r[3] do yes(N.BNet.send(r[1],71,r[2],"normal","own")); filled=filled+1 end
     end

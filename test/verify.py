@@ -286,18 +286,20 @@ def check_send_policy(source, filename):
 
 
 def check_route_policy(wire):
-    """Freeze existing routes; F2 adds only FLHNET2 on these four kinds."""
+    """Freeze composed FLH membership and Overlord peer routes exactly."""
     allowed = {
         'LayerSwap': {'WHISPER'}, 'LEGW1': {'GUILD'}, 'LFSw': {'GUILD'},
         'WEFF1': {'GUILD', 'PARTY', 'RAID', 'WHISPER'}, 'HeadHunter': {'WHISPER'},
         'FLHNET2': {'GUILD', 'PARTY', 'RAID', 'WHISPER'},
+        'OverlordF': {'GUILD', 'PARTY', 'RAID', 'WHISPER'},
     }
     checks = {
         'FLHNET2': 'flhText', 'LayerSwap': 'layerswapText', 'LEGW1': 'legw1Text',
         'LFSw': 'function(text) return text == Wr.LFSW_TEXT and "q" or nil end',
         'WEFF1': 'weText', 'HeadHunter': 'hhText',
+        'OverlordF': 'function(text) return text:match("^BF:[%w%-]+:1:1:") and "peer" end',
     }
-    nets = {'WEFF1': 'we', 'HeadHunter': 'hh'}
+    nets = {'WEFF1': 'we', 'HeadHunter': 'hh', 'OverlordF': 'overlord'}
     tokens = lua_tokens(wire)
     declaration = lua_tokens('local ROUTES = {')
     starts = [i for i in range(len(tokens)) if tokens[i:i + len(declaration)] == declaration]
@@ -541,7 +543,8 @@ def main():
         'networks': 'Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches',
         'sends': 'LayerSwap/WHISPER, LEGW1/GUILD (including K1 own-death, share switch, 1/120s and 5/30min), LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and '
                  'HeadHunter/WHISPER behind Net (both shipped on; /le net guild stops public scope); '
-                 'FLHNET2 HI on GUILD/PARTY/RAID, WR/CA/WP/LQ/LR on WHISPER through Wire, no hosting or channel sends',
+                 'FLHNET2 HI on GUILD/PARTY/RAID, WR/CA/WP/LQ/LR on WHISPER through Wire, no hosting or channel sends; '
+                 'OverlordF direct peer on GUILD/PARTY/RAID/WHISPER through Wire and friends through the shared BNet queue',
         'visual_design': 'Approved B implemented with fourth Find tab; native client appearance unverified',
     }
     (notes / 'verification.json').write_text(json.dumps(result, indent=2) + '\n')

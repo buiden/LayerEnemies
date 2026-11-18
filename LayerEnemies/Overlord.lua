@@ -1,4 +1,4 @@
--- Independent Overlord Forever 2.5.1 protocol reader. Protocol only, no code copied.
+-- Independent Overlord Forever 2.5.4 protocol reader. Protocol only, no code copied.
 -- Pure: caller supplies clocks, transport identity and resolved map; no client calls or sends.
 local _,N=...
 local Ov,S,F={},N.Safe,N.Find
@@ -67,51 +67,90 @@ end
 function Ov.new() return {pending={},serial=0,guilds={},seen={},ring={},cursor=0,stats={lines=0,taken=0,refused=0}} end
 function Ov.sweep(st,now)
     for key,a in pairs(st.pending) do
-        if now<a.at or now-a.at>=30 then st.pending[key]=nil end
+        if now<a.at or now-a.at>=120 or now-a.last>=30 then st.pending[key]=nil end
     end
+end
+-- Bounded work before parsing on every route. Names share a bucket across addon
+-- distributions; BNet additionally retains an account bucket across character changes.
+function Ov.admit(st,sender,now,size,route,account)
+    if not identity(sender) or not S.num(now) or not S.num(size) then return false end
+    local b=st.budget
+    if not b or now<b.at or now-b.at>=10 then b={at=now,senders={},bytes=0,public=0,frames=0}; st.budget=b end
+    local who=sender:lower()
+    local keys={who}; if account then keys[2]="bn:"..account end
+    local guild=route=="GUILD"
+    local count,pub=0,0
+    for _,r in pairs(b.senders) do count=count+1; if not r.guild then pub=pub+1 end end
+    for _,key in ipairs(keys) do
+        local r=b.senders[key]
+        if not r then
+            if count>=128 or (not guild and pub>=96) then return false end
+            r={bytes=0,n=0,guild=guild}; b.senders[key]=r;count=count+1;if not guild then pub=pub+1 end
+        end
+        if r.n>=120 or r.bytes+size>14400 then return false end
+    end
+    if b.bytes+size>128000 or (not guild and b.public+size>96000) or b.frames>=640
+        or (not guild and (b.publicFrames or 0)>=512) then return false end
+    for _,key in ipairs(keys) do local r=b.senders[key];r.n=r.n+1;r.bytes=r.bytes+size end
+    b.bytes=b.bytes+size;b.frames=b.frames+1
+    if not guild then b.public=b.public+size;b.publicFrames=(b.publicFrames or 0)+1 end
+    return true
 end
 function Ov.seen(st,origin,id)
     local _,key=identity(origin)
     if not key or not validId(id) then return true end
     key=key..":"..id
     if st.seen[key] then return true end
-    st.cursor=st.cursor%256+1
+    st.cursor=st.cursor%2000+1
     local old=st.ring[st.cursor]
     if old then st.seen[old]=nil end
     st.ring[st.cursor]=key; st.seen[key]=true
     return false
 end
 -- The second return carries the envelope id to packet(), never inferred from its contents.
-function Ov.fragment(st,text,sender,now)
+function Ov.fragment(st,text,sender,now,route)
     if not bytes(text,255) or not identity(sender) or not S.num(now) then return false end
     local id,part,count,chunk=text:match("^BF:([^:]*):([^:]*):([^:]*):(.*)$")
     part,count=uint(part,24,1),uint(count,24,1)
-    if not validId(id) or not part or not count or part>count or count>2 or #chunk>230 then return false end
+    if not validId(id) or not part or not count or part>count or #chunk>230 then return false end
     Ov.sweep(st,now)
     if count==1 then return chunk,id end
     local _,who=identity(sender)
     local key=who..":"..id
     local a=st.pending[key]
+    local n,owned,pub,totalBytes,publicBytes=0,0,0,0,0
+    for _,v in pairs(st.pending) do
+        n=n+1;totalBytes=totalBytes+v.bytes
+        if v.owner==who then owned=owned+1 end
+        if not v.guild then pub=pub+1;publicBytes=publicBytes+v.bytes end
+    end
     if not a then
-        local n,oldest,serial=0,nil,math.huge
-        for k,v in pairs(st.pending) do
-            n=n+1
-            if v.serial<serial then oldest,serial=k,v.serial end
-        end
-        if n>=32 then st.pending[oldest]=nil end
+        if n>=64 or owned>=4 or (route~="GUILD" and pub>=48) then return false end
         st.serial=st.serial+1
-        a={at=now,serial=st.serial,chunks={},count=count,got=0}; st.pending[key]=a
+        a={at=now,last=now,serial=st.serial,chunks={},count=count,got=0,bytes=0,owner=who,guild=route=="GUILD"}
+        st.pending[key]=a
     end
     if a.count~=count or (a.chunks[part] and a.chunks[part]~=chunk) then return false end
-    if not a.chunks[part] then a.chunks[part]=chunk; a.got=a.got+1 end
+    if not a.chunks[part] then
+        if a.bytes+#chunk>3600 or totalBytes+#chunk>65536 or (not a.guild and publicBytes+#chunk>49152) then
+            st.pending[key]=nil;return false
+        end
+        a.chunks[part]=chunk;a.got=a.got+1;a.bytes=a.bytes+#chunk;a.last=now
+    end
     if a.got<count then return nil end
     st.pending[key]=nil
     return table.concat(a.chunks),id
 end
-function Ov.packet(wire,id,sender,serverNow)
+local peerKinds={NH=true,HR=true,HB=true,HA=true,SR=true,LK=true,SH=true,GE=true,GP=true,ZS=true,MN=true,K=true}
+function Ov.packet(wire,id,sender,serverNow,me)
     if not bytes(wire,3600) or not validId(id) then return nil end
-    local f=fields(wire,"|",7)
-    if not f or f[2]~=id or f[4]~="*" or (f[6]~="GW" and f[6]~="GD") then return nil end
+    local f
+    if me then
+        local a,b,c,d,e,g,h=wire:match("^([^|]*)|([^|]*)|([^|]*)|([^|]*)|([^|]*)|([^|]*)|(.*)$")
+        if a then f={a,b,c,d,e,g,h} end
+    else f=fields(wire,"|",7) end
+    if not f or f[2]~=id or (f[4]~="*" and (not me or not identity(f[4]) or F.fold(f[4])~=F.fold(me)))
+        or (f[6]~="GW" and f[6]~="GD" and not (me and peerKinds[f[6]])) then return nil end
     local at=uint(f[3],9007199254740991)
     if not fresh(at,serverNow,120) then return nil end
     local path,used={},{}
@@ -119,7 +158,7 @@ function Ov.packet(wire,id,sender,serverNow)
     while true do
         local comma=f[5]:find(",",start,true)
         local name,key=identity(f[5]:sub(start,comma and comma-1 or #f[5]))
-        if not name or used[key] or #path>=4 then return nil end
+        if not name or used[key] or #path>=4 or (me and F.fold(me)==key) then return nil end
         path[#path+1]=name; used[key]=true
         if not comma then break end
         start=comma+1
@@ -127,7 +166,7 @@ function Ov.packet(wire,id,sender,serverNow)
     local origin=path[1]
     local _,key=identity(path[#path]); local _,last=identity(sender)
     if key~=last then return nil end
-    return {pool=f[1],kind=f[6],payload=f[7],origin=origin,at=at}
+    return {pool=f[1],kind=f[6],payload=f[7],origin=origin,at=at,target=f[4],hops=#path-1}
 end
 function Ov.direct(text)
     text=bytes(text,255)
