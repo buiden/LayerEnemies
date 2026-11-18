@@ -483,7 +483,7 @@ class ShardMergeTests(unittest.TestCase):
         for i in (indices if indices is not None else [i for i in range(len(self.NAMES)) if i % n == k]):
             line = ('FAIL %s: boom' % self.NAMES[i]) if i in fail else ('PASS ' + self.NAMES[i])
             failed += i in fail; passed += i not in fail
-            out.append('\x1eTEST %d\t%s\nprobe %d\n%s\n\x1eEND %d\n' % (i, self.NAMES[i], i, line, i))
+            out.append('\x1eTEST %d\t%s\nprobe %d\n%s\n\x1eEND %d 10\n' % (i, self.NAMES[i], i, line, i))
         out.append(extra + '\x1eSHARD %d/%d outside=%d\nRESULT: %d tests passed, %d failed, %d assertions\n'
                    % (k, n, outside, passed, failed, 10 * (passed + failed)))
         return subprocess.CompletedProcess([], 1 if failed or outside else 0, ''.join(out), '')
@@ -525,7 +525,7 @@ class ShardMergeTests(unittest.TestCase):
 
     def test_unfinished_test_fails(self):
         bad = self.shard_out(1, 2)
-        bad.stdout = bad.stdout.replace('\x1eEND 3\n', '')
+        bad.stdout = bad.stdout.replace('\x1eEND 3 10\n', '')
         r = self.merge(2, [self.shard_out(0, 2), bad])
         self.assertEqual(r.returncode, 1); self.assertIn('test 3 never finished', r.stdout)
 

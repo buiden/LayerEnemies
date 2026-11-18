@@ -509,7 +509,7 @@ def parse_shard(k, n, proc):
             assert current is None, 'shard %d/%d: test %s started inside test %s' % (k, n, start[1], current)
             current, buf = (int(start[1]), start[2]), []
             continue
-        end = re.match(r'\x1eEND (\d+)$', line)
+        end = re.match(r'\x1eEND (\d+) (\d+)$', line)
         if end:
             assert current and current[0] == int(end[1]), 'shard %d/%d: unmatched END %s' % (k, n, end[1])
             assert current[0] not in blocks, 'shard %d/%d: test %d ran twice' % (k, n, current[0])
