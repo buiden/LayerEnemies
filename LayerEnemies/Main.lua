@@ -653,6 +653,29 @@ end
 local NAMES_SHOWN=2
 local function classOf(token) return type(token)=="string" and token~="" and token or nil end
 local function identityKey(name) local _,key=I.name(name); return key end
+-- Find.hashes per (name, home realm) is pure, so it is cached for the session; the window redraws often and the
+-- Known store holds up to 300 names. Bounded: the cache is dropped and rebuilt past HASH_CACHE_MAX entries.
+local HASH_CACHE_MAX=2000
+local hashCache,hashCacheSize={},0
+M.hashStats={calls=0,hits=0}
+local function cachedHashes(label,home)
+    local k=label.."\0"..(home or "")
+    local v=hashCache[k]
+    if v then M.hashStats.hits=M.hashStats.hits+1; return v end
+    if hashCacheSize>=HASH_CACHE_MAX then hashCache,hashCacheSize={},0 end
+    M.hashStats.calls=M.hashStats.calls+1
+    v=N.Find.hashes(label,home); hashCache[k]=v; hashCacheSize=hashCacheSize+1
+    return v
+end
+-- Display only: a reported or donor name is clamped so a long name cannot blow up the row title. Byte-safe for
+-- UTF-8: the cut never lands inside a multibyte character.
+local NAME_SHOWN_MAX=48
+function M.displayName(label)
+    if type(label)~="string" or #label<=NAME_SHOWN_MAX then return label end
+    local cut=NAME_SHOWN_MAX-1
+    while cut>0 and label:byte(cut+1) and label:byte(cut+1)>=128 and label:byte(cut+1)<192 do cut=cut-1 end
+    return label:sub(1,cut).."…"
+end
 local function knownNames(seen,reports)
     local byHash,byKey={},{}
     local home=M.find and M.find.home or S.str(S.call(GetRealmName))
@@ -665,7 +688,7 @@ local function knownNames(seen,reports)
             return
         end
         c={label=label,class=classOf(class),level=S.num(level),live=live}; byKey[key]=c
-        for hash in pairs(N.Find.hashes(label,home)) do
+        for hash in pairs(cachedHashes(label,home)) do
             local bucket=byHash[hash]; if not bucket then bucket={}; byHash[hash]=bucket end
             bucket[#bucket+1]=c
         end
@@ -700,7 +723,7 @@ local function probable(byHash,e)
 end
 function M.probablyText(list)
     local names={}
-    for i=1,math.min(#list,NAMES_SHOWN) do names[i]=list[i].label end
+    for i=1,math.min(#list,NAMES_SHOWN) do names[i]=M.displayName(list[i].label) end
     local text="probably "..table.concat(names," or ")
     if #list>NAMES_SHOWN then text=text.." +"..(#list-NAMES_SHOWN) end
     return text
@@ -726,7 +749,7 @@ function M.namedRows(seen)
         local rest=type(r.key)=="string" and r.key:sub(-5)==":rest"
         local merged=false
         if r.named and r.record.src=="le" then
-            r.certain=true; r.title=r.name
+            r.certain=true; r.title=M.displayName(r.name)
             local live=liveByKey[identityKey(r.name)]
             if live then
                 live.alsoReported=live.alsoReported or {}
@@ -736,12 +759,12 @@ function M.namedRows(seen)
                 merged=true
             end
         elseif r.named then
-            r.title=r.name -- as the donor claims it; the source line says which network
+            r.title=M.displayName(r.name) -- as the donor claims it; the source line says which network
         elseif not rest and r.hash then
             local list=probable(byHash,r)
             if #list>0 then
                 r.probably=list; r.title=M.probablyText(list)
-                if list[1].live and #list==1 then r.probablyNote="probably the "..list[1].label.." you see" end
+                if list[1].live and #list==1 then r.probablyNote="probably the "..M.displayName(list[1].label).." you see" end
             end
         end
         if not merged then out[#out+1]=r end

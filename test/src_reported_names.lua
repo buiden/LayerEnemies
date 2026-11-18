@@ -123,3 +123,39 @@ test("Reported names: names stay in memory; nothing new is saved and nothing is 
     local sends=0; for i=before+1,#H.sent() do if H.sent()[i].prefix=="LEGW1" then sends=sends+1 end end
     eq(sends,0,"displaying names sends nothing")
 end)
+
+test("Reported names: one namedRows call per window render",function()
+    local N=setup(); spot("Zack Ly"); own(3,"Other Enemy"); we(4,"xd7","G",49)
+    N.UI.toggle(); N.UI.select("reported")
+    local real,calls=N.Main.namedRows,0
+    N.Main.namedRows=function(...) calls=calls+1; return real(...) end
+    N.UI.render(); eq(calls,1,"render built the name list once")
+    N.UI.render(); eq(calls,2)
+    N.Main.namedRows=real
+end)
+
+test("Reported names: name hashes are cached across renders with unchanged data",function()
+    local N=setup(); spot("Zack Ly"); spot("Zaht Lzy","SHAMAN",49); we(5,"xd7","G",49)
+    local K=N.Main.find.known
+    for i=1,30 do pcall(N.Known.put,K,{name="Kn"..H.abc(i%26+1)..H.abc(math.floor(i/26)+1).." Yy",zone=100,at=H.clock(),kind="seen",source="own",class="MAGE",level=50},H.clock()) end
+    local real,calls=N.Find.hashes,0
+    N.Find.hashes=function(...) calls=calls+1; return real(...) end
+    N.UI.toggle(); N.UI.select("reported")
+    local first=calls; yes(first>0,"first render hashes the known names")
+    N.UI.render(); N.UI.render()
+    eq(calls,first,"later renders with the same names hash nothing new")
+    N.Find.hashes=real
+    eq(names(N)[1],"probably Zack Ly or Zaht Lzy","results unchanged by the cache")
+end)
+
+test("Reported names: a long reported name is clamped for display only",function()
+    local N=setup()
+    local long=string.rep("Ab",40).." Cd"
+    own(6,long)
+    local rows=reported(N); eq(#rows,1)
+    yes(#rows[1].title<=50,rows[1].title); yes(rows[1].title:find("…",1,true))
+    eq(rows[1].name,long,"the record keeps the name as received")
+    eq(N.Main.displayName("Zack Ly"),"Zack Ly")
+    local u=string.rep("é",30) -- 60 bytes of two-byte characters
+    local d=N.Main.displayName(u); yes(d:sub(1,-4):match("^[\195][\169]") and not d:sub(1,-4):find("[\195]$"),"cut is on a character boundary")
+end)

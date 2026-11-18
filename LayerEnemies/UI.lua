@@ -117,8 +117,8 @@ function U.render()
     if not U.frame or not U.frame:IsShown() then return end
     local M,T=N.Main,N.Store
     local time=GetTime()
-    local seen=M.namedRows(T.rows(M.store,time,"local"))
-    local reports=M.reportedRows()
+    -- one namedRows per render: it returns both the seen copies and the reported rows
+    local seen,reports=M.namedRows(T.rows(M.store,time,"local"))
     local liveSeen=#seen
     for _,e in ipairs(T.previous(M.store,time)) do seen[#seen+1]=e end
     local friends,hints=N.ChehulNet.friendly(M.candidates())
