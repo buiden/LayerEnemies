@@ -303,7 +303,7 @@ test("rollback stays silent and tagged cancellation preserves other targets and 
 end)
 test("README send table first exact consequences and persistent debt",function()
     local f=assert(io.open("README.md")); local text=f:read("*a"); f:close()
-    local section=assert(text:find("## Unreleased - WarBoard tracking request",1,true))
+    local section=assert(text:find("## 1.2.0 - WarBoard tracking request",1,true))
     local tableAt=assert(text:find("| What LE sends |",section,true))
     local effect=assert(text:find("This asks the tracked player's WarBoard client to broadcast its position to WarBoard peers every 15 seconds, as a WarBoard hunter's client does.",1,true))
     yes(tableAt<effect)

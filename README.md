@@ -1,6 +1,52 @@
 # LayerEnemies
 
-## Unreleased - Overlord kill feed
+## 1.2.0 at a glance
+
+Everything since 1.1.0, with the sections below and the reference chapters
+holding the detail:
+
+- **Window:** text no longer overlaps; Find cards measure their real height.
+- **Hop to another layer** works like LayerSwap: one click (or `/le hop any`)
+  reads the first 49 Who results with the Who window kept hidden, then asks
+  those players for an invite with hidden addon whispers.
+- **New sources you can read without sending anything:** your Battle.net
+  communities and friends (`online (community)` / `online (friend)` in Find),
+  Forever Layer Hop hosts, Overlord rampages and killer claims, Wanted
+  sightings and kill records, and ChehulNet guildmates on other layers (shown
+  as hints). These are claims from other addons, not confirmed sightings.
+- **`/le quiet on|all|off`** hides the "No player named ..." lines caused by
+  LayerEnemies' own addon whispers (`on`, the default), by any addon (`all`),
+  or none (`off`). A name you whispered yourself stays visible for 10 seconds.
+- **WarBoard (sends):** to read WarBoard, LayerEnemies sends WarBoard's hello
+  and answer over Battle.net to eligible opposite-faction friends and community
+  members online in WoW, under its own name and version. A real WarBoard client
+  then treats you as a new peer and shares your profile, kill streak and board
+  with its Battle.net contacts.
+- **WarBoard tracking request (sends, on by default):** for a player on your
+  own Find list, LayerEnemies asks that player's WarBoard client to broadcast
+  its position every 15 seconds, and withdraws the request when you stop.
+  Those broadcasts go to the whole WarBoard network with your character's name
+  on the hunter list: **anyone running WarBoard, including the tracked player,
+  can see that you are tracking them.** `/le warboard track off` turns it off
+  for the session.
+- **Forever Layer Hop membership (sends on `FLHNET2`):** your presence to guild
+  and group, owed replies, and guest hop requests to Forever Layer Hop hosts.
+  You are never offered as a host.
+- **Overlord (sends on `OverlordF`):** your presence to guild, group,
+  Battle.net friends and Overlord directory members, owed answers, and the
+  kill feed request. To be served the feed,
+  **LayerEnemies does not announce itself to the player it asks**: it asks at
+  most two Battle.net friends, relies on not having been heard by them, and
+  claims no capability it lacks.
+- **Every send** stops with `/le share off`, Guild only or its network switch
+  (`/le net <name> off`); only an owed withdrawal (WarBoard `FBUN`, the Overlord
+  feed stop) may still go after those. Combat and instances block every send.
+  The full send tables are in the sections below and in **What is sent**.
+- **Upgrade notes:** saved settings carry over. 1.2.0 adds two saved fields:
+  the `/le quiet` mode and any WarBoard withdrawals still owed at logout.
+- Not tested in game (alpha, owner's decision).
+
+## 1.2.0 - Overlord kill feed
 
 | What LE sends | To whom | Maximum rate / condition |
 |---|---|---|
@@ -86,7 +132,7 @@ emission is checked for capability claims. No donor code copied or executed.
 Native checks **not run (alpha, owner's decision)**. This section supersedes
 the previous deliberately unreachable C3 and its no-stop decision.
 
-## Unreleased - Overlord direct peer
+## 1.2.0 - Overlord direct peer
 
 | What LE sends | To whom | Maximum rate | Stops when |
 |---|---|---|---|
@@ -156,7 +202,7 @@ Mutation reports are byte-stable, read-only unless `--write`, and run in isolate
 scratch copies. Native checks **not run (alpha, owner's decision)**.
 This section supersedes the historical receive-only send/fragment limits below.
 
-## Unreleased - quiet not-found notices, including other addons
+## 1.2.0 - quiet not-found notices, including other addons
 
 `/le quiet on|off|all` controls the client's localized **"No player named ..."**
 system line. `/le quiet` prints the current mode and what it hides.
@@ -242,7 +288,7 @@ relative to the post-hook, stable line IDs and other addons' filters are **not
 live-tested (alpha, owner's decision)**. An error delivered before the post-hook
 cannot yet be recognized as a manual whisper. No live installation was made.
 
-## Unreleased - Wanted (receive only)
+## 1.2.0 - Wanted (receive only)
 
 Reads Wanted 1.29.x (protocol audited at v1.29.2) without Wanted installed;
 **no greetings, replies, requests, relays, invites, addon-message sends,
@@ -346,7 +392,7 @@ oldest ordering, exact expiry and invalid-input isolation. Fixtures are
 constructed from the audit, Python zlib and an independent serializer, not live captures.
 **Native checks not run (alpha, owner's decision)**. This is D1 only, not D2.
 
-## Unreleased - ChehulNet hello (receive only)
+## 1.2.0 - ChehulNet hello (receive only)
 
 LE independently reads **ChehulNet v15 / LibChehulMesh v10**, as shipped in
 GuildOS v1.28.0. No donor addon is required and no code is copied. Only plain
@@ -406,12 +452,12 @@ inputs), `python3 -B test/chehulnet_mutants_test.py`,
 The mutant runner is read-only by default; pass `--write` only to replace
 `notes/chehulnet-mutants.json` with new review evidence.
 [Provenance](THIRD_PARTY.md) and [build evidence](notes/chehulnet-hello.md) pin
-the source. Target: Forever Interface 16001; package version remains 1.1.0
-until the 1.2.0 release PR. **Native checks not run (alpha, owner's decision)**:
+the source. Target: Forever Interface 16001; package version
+1.2.0. **Native checks not run (alpha, owner's decision)**:
 live traffic availability, transport name spelling, UID semantics and native
 text rendering remain unverified. If no HELLO arrives, nothing new appears.
 
-## Unreleased - WarBoard tracking request
+## 1.2.0 - WarBoard tracking request
 
 | What LE sends | To whom | How often and when it stops |
 |---|---|---|
@@ -502,7 +548,7 @@ new sound or guild relay. No donor code was copied or run. See
 [implementation and assertion migrations](notes/warboard-track.md).
 Native checks: **not run (alpha, owner's decision)**.
 
-## Unreleased - WarBoard
+## 1.2.0 - WarBoard
 
 | What LE sends | To whom | Maximum frequency |
 |---|---|---|
@@ -587,7 +633,7 @@ client or native coordinate conversion has been verified; harness geometry is
 not a screenshot claim. See [provenance](THIRD_PARTY.md) and
 [test evidence and audit rulings](notes/warboard.md).
 
-## Unreleased - source registry (no behaviour change)
+## 1.2.0 - source registry (no behaviour change)
 
 PR 0b adds extension seams, **no registered source, no new discovery scan and no
 Battle.net send**. Presence, Forever Layer Hop and Overlord keep their built
@@ -700,7 +746,7 @@ Forever Interface 16001; API declarations checked at build 70938, commit
 decision)**; a readable API identity or accepted send is not proof of live peer
 availability or transport delivery.
 
-## Unreleased - Forever Layer Hop membership
+## 1.2.0 - Forever Layer Hop membership
 
 | Send (`FLHNET2`) | Route and target | Trigger | Hard limit |
 |---|---|---|---|
@@ -729,7 +775,7 @@ Guest requests correlate the id, sender, zone and requested fingerprint. An unso
 
 The API ownership gate is unchanged: only Wire calls SendAddonMessage or party APIs; SendChatMessage remains forbidden. `test/verify.py` adds an exact route-table allow-list containing the five existing prefixes unchanged plus **FLHNET2 on GUILD/PARTY/RAID/WHISPER only**. No other API exception is added. The route gate consumes one complete literal declaration (no computed fields), freezes every private table/route alias access, and rejects both field-iteration writes and computed replacement routes. See `notes/flh-batch-hop.md`, `test/src_flh_batch.lua` and `test/flh_batch_mutants.py` for the batch-load replay, shared-ceiling assertions and portable RED/GREEN/mutation evidence; `notes/flh-membership.md` and `test/src_flh_member.lua` retain the original membership coverage (including 5,000 deterministic fuzz frames).
 
-## Unreleased - Forever Layer Hop receive-only
+## 1.2.0 - Forever Layer Hop receive-only
 
 This is the historical F1 checkpoint. F2 above supersedes its no-send/no-hop restriction, not its receive validation or fingerprint provenance rules.
 
@@ -773,7 +819,7 @@ Protocol interoperation only, no donor code copied; see [THIRD_PARTY.md](THIRD_P
 Forever transport-name spelling and native text layout remain unverified.
 
 
-WoW Forever addon 1.1.0, Interface 16001, Lua 5.1.
+WoW Forever addon 1.2.0, Interface 16001, Lua 5.1.
 
 Find a tracked enemy through your own sightings or possible War Effort hash
 matches, then hop: ask a host on that layer for an invite. Find can also show
@@ -802,7 +848,7 @@ Every network has its own switch (`/le net`, and the switches at the bottom
 of the window). Nothing of 1.0.0 has been tried on a live client yet; the
 checklist is at the end.
 
-## 1.2.0 — Unreleased - Battle.net community and friend presence
+## 1.2.0 - Battle.net community and friend presence
 
 Find now reads the Battle.net communities you already belong to and your
 Battle.net friends. It adds `online (community)` or `online (friend)`, a zone,
@@ -869,9 +915,9 @@ The target remains Forever, Interface 16001. Contracts were checked against
 `1.60.1.70938`. **Not tested in game (alpha, owner's decision).** Whether
 opposite-faction community accounts resolve to characters/zones/factions without
 a subscription, how fresh those fields are, and live chat-lockdown restrictions
-remain unknown. The TOC/package version remains 1.1.0 until the release PR.
+remain unknown. Released in 1.2.0.
 
-## Unreleased - Overlord (receive only)
+## 1.2.0 - Overlord (receive only)
 
 Independent reader of **Overlord Forever 2.5.1** (`OverlordF`), with no donor
 addon required or code copied. No new sends, replies, presence, forwarding,
