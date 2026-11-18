@@ -978,7 +978,7 @@ unchanged `python3 test/verify.py`. No native test is a gate: **not tested in ga
 native rendering remain unknown. If no guildmate/groupmate runs Overlord (or
 its messages never arrive), nothing new appears; the counter stays at zero.
 
-## Shared codecs (1.2.0 foundation, not yet connected to networks)
+## Shared codecs (1.2.0; used by WarBoard, WarBoard tracking and Wanted)
 
 `LayerEnemies/Codec.lua` provides independent, pure-Lua wire codecs through the
 addon-local `N.Codec` table. This foundation does not register a prefix, send a
@@ -1062,9 +1062,9 @@ holding the detail:
   names an enemy killer (Guild Bounty, Wall of Shame, or a guildmate's `K`
   line); on by default, `/le call off` turns it off. Your own PvP death shares
   one `K` line with your guild.
-- **Hop to another layer:** one click (or `/le hop any`) may send hidden
-  addon invite requests to up to 49 players, including players not known to
-  run a layer addon.
+- **Hop to another layer:** one click (or `/le hop any`) may send up to 8
+  hidden addon requests for an invite, including to players not known to run a
+  layer addon.
 - **Guild intelligence:** crowds are shared in up to three lines without
   repeats or inflated counts; Spy sightings heard in your group and HeadHunter
   kill records from the HeadHunter network are relayed to the guild as claims; a shared watch list tells
@@ -1390,7 +1390,10 @@ stays fixed at 1.0.0; it is not the addon's release version.
 ## What is sent
 
 Every addon message and the one party invite go through one file (Wire.lua).
-Five prefixes are allowed. Two scopes matter for your settings: guild scope
+Seven addon-message prefixes are allowed: LayerSwap, LFSw, LEGW1, WEFF1,
+HeadHunter, FLHNET2 and OverlordF. Battle.net sends use two prefixes, WarBoard
+and OverlordF, and also pass Wire.lua. The FLHNET2, OverlordF and WarBoard
+sends are listed in their 1.2.0 sections above. Two scopes matter for your settings: guild scope
 (guild, party and raid lines, and whispers to guildmates online in your roster)
 and public scope (whispers to anyone else, and the two public channels joined
 for reading). `/le net guild` turns normal public sends and both channel joins
