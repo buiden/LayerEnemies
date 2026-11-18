@@ -101,12 +101,12 @@ test("K: guild death enters Call only, never reports relay Find locations or ask
     eq(e.victim,"Birch Moss"); eq(e.killer,"Cedar Vale"); eq(e.zone,100); eq(e.x,.25); eq(e.full,true)
     eq(N.Main.find.locations["Cedar Vale"],nil); eq(#N.Main.candidates(),0); eq(next(N.Main.relay.pending),nil)
     eq(next(N.Main.store.reports),nil); eq(#H.sent(),0); no(N.Main.error)
-    N.CallUI.help:Click(); eq(#N.Main.find.names,1); eq(#H.sent(),0)
+    N.CallUI.help:Click(); eq(#N.Main.find.names,1); eq(#H.sent(),1); yes(H.sent()[1].text:find("^G|1|"),"1.2.1: Help sends only the on-my-way line")
 end)
 test("K: partial or empty killer still displays but Help never adds it to Find",function()
     for _,item in ipairs({"4365646172:MAGE:60:p",""}) do
         local N=receiver(); incoming(N,"K|1|100||||0|h|"..item); yes(popup(N))
-        eq(N.CallUI.event.full,false); N.CallUI.help:Click(); eq(#N.Main.find.names,0); eq(#H.sent(),0)
+        eq(N.CallUI.event.full,false); N.CallUI.help:Click(); eq(#N.Main.find.names,0); eq(#H.sent(),1); yes(H.sent()[1].text:find("^G|1|"),"1.2.1: Help sends only the on-my-way line")
     end
 end)
 test("K: unknown version drops silently, non-guild sender and killer equals sender refused",function()
