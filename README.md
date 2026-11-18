@@ -1,5 +1,16 @@
 # LayerEnemies
 
+## 1.2.2
+
+### Fix: raid markers and other slash commands blocked ("tried to call the protected function")
+
+Since 1.0, LayerEnemies wrote the game's global slash-command table (`SlashCmdList`)
+while registering `/le`. That tainted every later slash command, so the game blocked
+protected actions run through one, such as a `/tm` raid-marker macro (`SetRaidTarget`),
+and blamed LayerEnemies with `[ADDON_ACTION_FORBIDDEN]`. 1.2.2 registers `/le` without
+touching that table, and the release checks now fail on any write to a game global
+LayerEnemies does not own. Nothing sent, saved or shown changes.
+
 ## 1.2.1
 
 ### "On my way" and the found pop-up

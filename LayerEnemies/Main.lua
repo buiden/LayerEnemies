@@ -2623,7 +2623,6 @@ function M.start()
     N.Wire.registerSystemFilter()
     N.Wire.registerWhisperObserver()
     N.Sources.start()
-    SlashCmdList=SlashCmdList or {}
     _G.SLASH_LAYERENEMIES1="/le"
     SlashCmdList.LAYERENEMIES=function(command)
         local raw=(S.str(command,110) or ""):match("^%s*(.-)%s*$")

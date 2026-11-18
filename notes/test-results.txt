@@ -1,3 +1,4 @@
+PASS Slash taint: loading never assigns the client's SlashCmdList, other commands survive
 PASS strict frames start shown, dispatcher hidden, no UI or OnUpdate
 PASS neither source: own observation works after local NPC confirmation
 PASS Bulo present subscribes and copies timestamps without position
@@ -2244,4 +2245,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2168 tests passed, 0 failed, 634784 assertions
+RESULT: 2169 tests passed, 0 failed, 634829 assertions
