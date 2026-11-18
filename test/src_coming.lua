@@ -62,3 +62,20 @@ test("Coming: 1.2.0 relay decoder drops the G line cleanly",function()
     local ok,record,why=pcall(N.Relay.decode,line,"Oak Helper",H.clock())
     yes(ok); eq(record,nil); eq(why,"invalid")
 end)
+
+test("Coming: twenty helpers for one victim print once each per 60 s; sound once per 10 s; call off silent",function()
+    local N=H.load(); local sounds=0; PlaySound=function() sounds=sounds+1 end
+    local mine=UnitName("player"); local before=#H.log()
+    for round=1,30 do
+        for i=1,20 do H.deliver("CHAT_MSG_ADDON","LEGW1","G|1|100|"..hex(mine),"GUILD","Helper "..H.abc(i)) end
+        H.advance(2)
+    end
+    local lines=0; for i=before+1,#H.log() do if H.log()[i]:find("COMING:",1,true) then lines=lines+1 end end
+    eq(lines,20,"one line per helper inside 60 s"); yes(sounds<=6,"sound at most once per 10 s, got "..sounds)
+    yes(N.Main.coming.collapsed>0); SlashCmdList.LAYERENEMIES("net")
+    yes(table.concat(H.log(),"\n"):find("On my way (session): heard=",1,true))
+    N=H.load(); SlashCmdList.LAYERENEMIES("call off"); before=#H.log(); sounds=0
+    H.deliver("CHAT_MSG_ADDON","LEGW1","G|1|100|"..hex(mine),"GUILD","Oak Helper")
+    eq(sounds,0); for i=before+1,#H.log() do no(H.log()[i]:find("COMING:",1,true)) end
+    eq(N.Main.coming.quiet,1); PlaySound=nil
+end)

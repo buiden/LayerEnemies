@@ -1249,13 +1249,23 @@ function M.comingSend(e)
     return N.Wire.send("LEGW1",line,"GUILD",nil,{prio="click"})==true
 end
 -- comingIn(text,sender): a guildmate's "on my way"; the victim gets the alert sound too.
+-- One line per helper+victim per 60 s, the sound at most once per 10 s; the rest only counts (/le net).
+-- Silent with /le call off or inside an instance.
+M.COMING_LINE,M.COMING_SOUND=60,10
 function M.comingIn(text,sender)
     local d=N.Coming.decode(text)
     if not d then M.lastDrop="coming invalid"; return end
+    local c=M.coming; c.heard=(c.heard or 0)+1
+    if not M.calling() or A.inInstance()~=false then c.quiet=(c.quiet or 0)+1; return end
+    local time=now(); c.lines=c.lines or {}
+    for k,at in pairs(c.lines) do if time<at or time-at>=M.COMING_LINE then c.lines[k]=nil end end
+    local key=(N.Find.fold(sender) or sender).."|"..(N.Find.fold(d.victim) or d.victim)
+    if c.lines[key] or S.count(c.lines)>=64 then c.collapsed=(c.collapsed or 0)+1; return end
+    c.lines[key]=time
     local helper=N.CallText.clean(sender)
     if M.isMe(d.victim) then
         M.say("LayerEnemies: COMING: "..helper.." is on the way.")
-        M.alertSound()
+        if not c.soundAt or time<c.soundAt or time-c.soundAt>=M.COMING_SOUND then c.soundAt=time; M.alertSound() end
     else
         M.say("LayerEnemies: "..helper.." is coming to help "..N.CallText.clean(d.victim).." ("..N.CallText.clean(M.zoneName(d.zone))..").")
     end
@@ -1340,7 +1350,7 @@ function M.findAlerts(quiet,printed)
             if row.name~=printed then
                 M.findNotice(M.findText(row,true))
             end
-            M.foundPopup(row)
+            if not pcall(M.foundPopup,row) then M.error="found pop-up error" end
             if not quiet and (not st.soundAt or time-st.soundAt>=10) then
                 st.soundAt=time; M.alertSound()
             end
@@ -2469,6 +2479,8 @@ function M.net(command)
         M.say(N.HeadHunter.summary(M.hh.stats))
         local s=M.overlord.stats
         local pool=M.overlordPool() or "unknown (receiving nothing)"
+        local cm=M.coming or {}
+        M.say("On my way (session): heard="..(cm.heard or 0).." collapsed="..(cm.collapsed or 0).." quiet="..(cm.quiet or 0))
         M.say("Overlord session: lines="..s.lines.." taken="..s.taken.." refused="..s.refused.." · pool "..pool)
         for _,line in ipairs(N.Sources.lines()) do M.say(line) end
         return

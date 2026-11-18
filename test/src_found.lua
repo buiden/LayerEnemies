@@ -51,3 +51,11 @@ test("Found: a new alert type costs one TYPES entry",function()
     yes(N.Popup.show("test",{a="row one"})); eq(N.Popup.title:GetText(),"Test alert"); eq(N.Popup.rows[1]:GetText(),"row one")
     eq(N.Popup.rows[2]:GetText(),""); no(N.Popup.buttons[2]:IsShown()); N.Popup.buttons[1]:Click(); eq(ran,1)
 end)
+
+test("Found: non-string level and class render; a throwing pop-up cannot skip the alert sound",function()
+    local N=H.load(); yes(N.Popup.show("found",{name="Cedar",level=60,class=false,zone=100,age=3}))
+    eq(N.Popup.rows[1]:GetText(),"Cedar 60 false")
+    N=setup(); local sounds=0; PlaySound=function() sounds=sounds+1 end
+    N.Popup.show=function() error("boom") end
+    spot(N,"Cedar"); eq(sounds,1,"alert sound still plays"); PlaySound=nil
+end)

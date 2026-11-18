@@ -13,7 +13,7 @@ P.TYPES={
         title="Tracked enemy found",
         life=30,
         rows=function(d)
-            local who=d.name..((d.level and " "..d.level or "")..(d.class and " "..d.class or ""))
+            local who=tostring(d.name)..((d.level~=nil and " "..tostring(d.level) or "")..(d.class~=nil and " "..tostring(d.class) or ""))
             return {who,N.Main.zoneName(d.zone),ago(d.age),d.source or ""}
         end,
         buttons={
