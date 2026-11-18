@@ -978,6 +978,28 @@ unchanged `python3 test/verify.py`. No native test is a gate: **not tested in ga
 native rendering remain unknown. If no guildmate/groupmate runs Overlord (or
 its messages never arrive), nothing new appears; the counter stays at zero.
 
+## 1.2.0 - Hop to another layer: up to 49 players per click
+
+**Hop to another layer** asks up to **49 players per click**, with
+**10 seconds between clicks**. One zone WHO query supplies the names; a hidden
+**Who window is suppressed** while our query is handled. A Who window already
+open when you click Hop is left registered and shows the hop's query result,
+just as it does with LayerSwap. Known hosts go first,
+then same-zone names, then the remaining WHO rows. These are real hidden
+invite requests, including to players not known to run a layer addon.
+
+The click owns at most **45 rounds**, **1 second apart**, **8 attempts per
+round**. Its dedicated Wire allowance permits 8 initially, then about 1 per
+second (60 per minute). A fan-out throttle retains the head for the next
+round and pauses ordinary LayerSwap whispers for 30 seconds. A client throttle
+on a named hop or reply stops this click's fan-out; a new click is needed after
+the prefix pause.
+Same-zone hosts that answer with an unknown layer may be re-asked once without
+an exclusion after the queue finishes (+3 seconds, or +10 if a known
+alternative-layer host is still being given time). No additional WHO query
+starts automatically. Existing Hop, Hop via <name>, Ask guild and auto
+accept/leave behavior are unchanged. No saved field or version bump.
+
 ## Shared codecs (1.2.0; used by WarBoard, WarBoard tracking and Wanted)
 
 `LayerEnemies/Codec.lua` provides independent, pure-Lua wire codecs through the
@@ -1172,25 +1194,13 @@ decision)**. Client acceptance is not a delivery acknowledgement.
 
 ## 1.1.0 - Hop to another layer
 
-**Hop to another layer** now asks up to **49 players per click**, with
-**10 seconds between clicks**. One zone WHO query supplies the names; a hidden
-**Who window is suppressed** while our query is handled. A Who window already
-open when you click Hop is left registered and shows the hop's query result,
-just as it does with LayerSwap. Known hosts go first,
-then same-zone names, then the remaining WHO rows. These are real hidden
-invite requests, including to players not known to run a layer addon.
-
-The click owns at most **45 rounds**, **1 second apart**, **8 attempts per
-round**. Its dedicated Wire allowance permits 8 initially, then about 1 per
-second (60 per minute). A fan-out throttle retains the head for the next
-round and pauses ordinary LayerSwap whispers for 30 seconds. A client throttle
-on a named hop or reply stops this click's fan-out; a new click is needed after
-the prefix pause.
-Same-zone hosts that answer with an unknown layer may be re-asked once without
-an exclusion after the queue finishes (+3 seconds, or +10 if a known
-alternative-layer host is still being given time). No additional WHO query
-starts automatically. Existing Hop, Hop via <name>, Ask guild and auto
-accept/leave behavior are unchanged. No saved field or version bump.
+**Changed rule:** "one hop request to one host ... No retry, no fan-out"
+previously applied to every hop. One **Hop to another layer** click may now
+send up to **8 requests to players not known to run any layer addon**.
+There is still no retry, timer-started search, automatic second round or
+request without a click. Existing Hop, Hop via <name> and Ask guild actions
+keep their single-target / player-sent behavior. This bounded exception is
+reviewed on its own, independently of other feature changes.
 
 ## 1.1.0 - guild death calls and own-death sharing
 
