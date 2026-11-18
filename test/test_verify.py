@@ -434,5 +434,44 @@ class WhisperHookPolicyTests(unittest.TestCase):
                     self.check(self.MODERN + '; ' + self.LEGACY + '; ' + source)
 
 
+class GlobalWriteTests(unittest.TestCase):
+    """Taint guard: only owned globals are assigned (SlashCmdList=... tainted every slash command)."""
+    PLANTED = ['SlashCmdList=SlashCmdList or {}', '_G.SlashCmdList={}', '_G["UISpecialFrames"]={}',
+               'local k="X"; _G[k]=1', 'local g=_G; local a=1; g.ChatFrame1=nil', 'GameTooltip.LEx=1',
+               'StaticPopupDialogs.LAYERENEMIES_X={}', 'SlashCmdList.OTHER=print', 'UISpecialFrames[1]="x"',
+               'TargetFrame.unit="x"', 'rawset(_G, "SlashCmdList", {})', 'setfenv(1, {})', 'local f=pairs; f(_G)']
+    ALLOWED = ['LayerEnemiesDB={}', '_G.LayerEnemiesFoo=1', 'local t={}; t.x=1', 'LayerEnemiesDB.found=true',
+               'local f=CreateFrame("Frame"); f.x=1', 'local x=_G.C_Timer', 'local y=_G["GameTooltip"]']
+
+    def run_check(self, code, name='Main.lua'):
+        with tempfile.TemporaryDirectory(prefix='le-globals-') as d:
+            path = Path(d) / name
+            path.write_text('local _,N=...\n' + code + '\n')
+            verify.check_global_writes(path)
+
+    def test_planted_foreign_writes_fail(self):
+        for code in self.PLANTED:
+            with self.subTest(code=code), self.assertRaises(AssertionError):
+                self.run_check(code)
+
+    def test_owned_and_local_writes_pass(self):
+        for code in self.ALLOWED:
+            with self.subTest(code=code):
+                self.run_check(code)
+
+    def test_foreign_table_exceptions_are_per_file(self):
+        self.run_check('SlashCmdList.LAYERENEMIES=print', 'Main.lua')
+        with self.assertRaises(AssertionError):
+            self.run_check('SlashCmdList.LAYERENEMIES=print', 'UI.lua')
+        self.run_check('UISpecialFrames[#UISpecialFrames+1]="LayerEnemiesX"', 'CallUI.lua')
+        with self.assertRaises(AssertionError):
+            self.run_check('UISpecialFrames[#UISpecialFrames+1]="LayerEnemiesX"', 'Main.lua')
+
+    def test_shipped_files_pass(self):
+        for path in sorted((verify.ROOT / 'LayerEnemies').glob('*.lua')):
+            with self.subTest(file=path.name):
+                verify.check_global_writes(path)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -406,6 +406,65 @@ def check_route_policy(wire):
         assert word not in ('ROUTES', 'kinds', 'route', 'check') or i in covered, 'route table mutation or escape'
 
 
+# Taint guard: addon code may assign only globals it owns. Assigning a Blizzard global (for example
+# `SlashCmdList=SlashCmdList or {}`) taints it, and every protected call Blizzard later makes through it
+# (raid markers from macros) is blocked and blamed on this addon. Read from the real compiler's bytecode:
+# every SETGLOBAL, and every SETTABLE into a table loaded directly from a global (covers _G.x=, _G[k]=).
+OWNED_GLOBALS = {'LayerEnemies', 'LayerEnemiesDB', 'LE', 'SLASH_LAYERENEMIES1'}
+FOREIGN_TABLE_WRITES = {('Main.lua', 'SlashCmdList', '"LAYERENEMIES"'),
+                        ('CallUI.lua', 'UISpecialFrames', 'register')}  # append our panel name: the standard method
+NO_A_WRITE = {'SETGLOBAL', 'SETUPVAL', 'SETTABLE', 'SETLIST', 'JMP', 'EQ', 'LT', 'LE', 'TEST', 'RETURN',
+              'TAILCALL', 'FORLOOP', 'TFORLOOP', 'CLOSE'}
+
+
+def owned_global(name):
+    return name in OWNED_GLOBALS or name.startswith('LayerEnemies')
+
+
+def global_writes(path):
+    """[(kind, global, key)] for every write to a global, or into a table read straight from one."""
+    listing = subprocess.run([str(LUAC), '-l', '-p', str(path)], capture_output=True, text=True, check=True).stdout
+    out, reg = [], {}
+    for line in listing.splitlines():
+        m = re.match(r'\s*\d+\s+\[\d+\]\s+([A-Z]+)\s+(-?\d+)(?:\s+(-?\d+))?(?:\s+(-?\d+))?\s*(?:;\s*(.*))?$', line)
+        if not m:
+            if re.match(r'\s*(main|function) <', line):
+                reg = {}
+            continue
+        op, a, comment = m[1], int(m[2]), (m[5] or '').strip()
+        if op == 'SETGLOBAL':
+            out.append(('global', comment, None))
+        elif op == 'SETTABLE' and a in reg:
+            key = comment.split()[0] if comment and m[3] and int(m[3]) < 0 else 'register'
+            out.append(('field', reg[a], key))
+        if op == 'GETGLOBAL':
+            reg[a] = comment
+        elif op not in NO_A_WRITE:
+            reg.pop(a, None)
+            if op in ('CALL', 'LOADNIL', 'VARARG', 'TFORLOOP'):
+                reg = {r: g for r, g in reg.items() if r < a}
+    return out
+
+
+def check_global_writes(path):
+    bad = []
+    for kind, name, key in global_writes(path):
+        if kind == 'global' and not owned_global(name):
+            bad.append(name + '=')
+        elif kind == 'field' and not owned_global(name):
+            if name == '_G' and key != 'register' and owned_global(key.strip('"')):
+                continue
+            if (path.name, name, key) not in FOREIGN_TABLE_WRITES:
+                bad.append('%s[%s]=' % (name, key))
+    source = path.read_text()
+    for word in ('rawset', 'setfenv', 'getfenv'):
+        if re.search(r'\b' + word + r'\b', source):
+            bad.append(word)
+    if re.search(r'\b_G\b(?!\s*[.\[])', source):
+        bad.append('bare _G')
+    assert not bad, 'Global write outside the owned list in %s: %s' % (path.name, ', '.join(sorted(set(bad))))
+
+
 def main():
     notes = ROOT / 'notes'
     notes.mkdir(exist_ok=True)
@@ -421,6 +480,8 @@ def main():
     addon_text = '\n'.join(p.read_text() for p in (ROOT / 'LayerEnemies').glob('*.lua'))
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
         check_api_policy(file.read_text(), file.name)
+    for file in sorted((ROOT / 'LayerEnemies').glob('*.lua')):
+        check_global_writes(file)
     for forbidden in ('COMBAT_LOG_EVENT_UNFILTERED', 'JoinTemporaryChannel', 'JoinPermanentChannel',
                       'RunMacroText', 'UninviteUnit', 'ConfirmInviteUnit', 'ConfirmLeaveParty',
                       'ConvertToRaid', 'DeclineGroup', 'RequestInviteFromUnit'):
