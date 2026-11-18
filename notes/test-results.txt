@@ -1396,6 +1396,13 @@ PASS Codec: independent Python serializer vectors and audit network payloads
 PASS Codec: logical references cannot evade string, depth or table bounds
 PASS Codec: RFC bit-level malformed trees and degenerate valid alphabets
 PASS Codec: AceComm invalid reserved frames abandon only their sender stream
+PASS Coming: help click sends one G line on LEGW1 GUILD naming victim and zone
+PASS Coming: codec round trip and malformed lines refused
+PASS Coming: one per event, 10 s gap and six per 600 s
+PASS Coming: share off, instance and no guild send nothing
+PASS Coming: receivers print one line; the victim gets COMING and the sound
+PASS Coming: 1.2.0 relay decoder drops the G line cleanly
+PASS Coming: twenty helpers for one victim print once each per 60 s; sound once per 10 s; call off silent
 PASS FLH batch: ordinary whisper then offer at half a second accepts
 PASS FLH batch: unsent queries pace without spending the reserved token
 PASS FLH batch: ordinary and owed traffic cannot steal the reserved LR
@@ -1533,6 +1540,13 @@ PASS FLH member: R2 LI cannot arm without the selected host successful LR and id
 PASS FLH member: R2 LI missing or invalid leader never accepts anyone
 PASS FLH member: R2 bare LI is only an acknowledgement and cannot undo a handoff
 PASS FLH member: R2 decline after LI cancels leader authority too
+PASS Found: a tracked own sighting opens one pop-up with name zone age source and no send
+PASS Found: Show on map uses the shared waypoint code; Dismiss closes
+PASS Found: auto-closes after 30 s
+PASS Found: one per tracked name per 120 s, then again
+PASS Found: never in an instance; /le found off silences and saves one boolean
+PASS Found: a new alert type costs one TYPES entry
+PASS Found: non-string level and class render; a throwing pop-up cannot skip the alert sound
 PASS Stack: source mutant evidence rerun is byte and mtime stable
 PASS Stack: presence mutant evidence rerun is byte and mtime stable
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
@@ -2230,4 +2244,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2154 tests passed, 0 failed, 632868 assertions
+RESULT: 2168 tests passed, 0 failed, 634784 assertions
