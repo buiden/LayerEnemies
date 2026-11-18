@@ -645,9 +645,112 @@ function M.overlordText(g)
     return "guild "..g.guild..": "..g.kills.." kills by "..g.members.." in "..(g.zoneName or "place unknown")
         ..", "..(g.layer and ("layer "..g.layer) or "layer unknown").." (Overlord claim)"
 end
+-- 1.2.3 names in Reported, display only and computed on every call: nothing here is stored or saved.
+-- A guildmate's own LayerEnemies sighting (src "le") carries the real name: it is certain, and when that player is
+-- one of our live "Seen by you" rows the report merges into the row ("also reported by"). Donor names (HeadHunter,
+-- Spy family) are shown as claimed. A hash-only enemy (War Effort, or a report without a name) is matched against
+-- every name known this session; a match is a guess, so it reads "probably <Name>" and never merges.
+local NAMES_SHOWN=2
+local function classOf(token) return type(token)=="string" and token~="" and token or nil end
+local function identityKey(name) local _,key=I.name(name); return key end
+local function knownNames(seen,reports)
+    local byHash,byKey={},{}
+    local home=M.find and M.find.home or S.str(S.call(GetRealmName))
+    local function add(label,class,level,live)
+        label=S.str(label,100); if not label then return end
+        local key=N.Find.fold(label); if not key or key=="" then return end
+        local c=byKey[key]
+        if c then
+            c.class=c.class or classOf(class); c.level=c.level or S.num(level); c.live=c.live or live
+            return
+        end
+        c={label=label,class=classOf(class),level=S.num(level),live=live}; byKey[key]=c
+        for hash in pairs(N.Find.hashes(label,home)) do
+            local bucket=byHash[hash]; if not bucket then bucket={}; byHash[hash]=bucket end
+            bucket[#bucket+1]=c
+        end
+    end
+    for _,e in ipairs(seen) do add(e.displayName or e.name,e.class,e.level,true) end
+    for _,e in ipairs(T.previous(M.store,now())) do add(e.displayName or e.name,e.class,e.level,false) end
+    if M.find then
+        for _,name in ipairs(M.find.names or {}) do add(name) end
+        for _,p in pairs(M.find.known and M.find.known.entries or {}) do
+            for _,slot in ipairs({"own","seen","reported"}) do local e=p[slot]; if S.tab(e) then add(e.name,e.class,e.level,false) end end
+        end
+    end
+    for _,r in ipairs(reports) do if r.named then add(r.name,r.class,r.level,false) end end
+    return byHash
+end
+-- Candidates for one hash: a different known class rules a name out; level only breaks a remaining tie.
+local function probable(byHash,e)
+    local all=byHash[e.hash] or {}
+    local out={}
+    for _,c in ipairs(all) do if not (e.class and c.class and e.class~=c.class) then out[#out+1]=c end end
+    if #out>1 and e.level then
+        -- only a known, different level drops a name, and only when some name has the reported level
+        local keep,match={},false
+        for _,c in ipairs(out) do
+            if c.level==e.level then match=true end
+            if c.level==nil or c.level==e.level then keep[#keep+1]=c end
+        end
+        if match then out=keep end
+    end
+    table.sort(out,function(a,b) if a.live~=b.live then return a.live==true end; return N.Find.fold(a.label)<N.Find.fold(b.label) end)
+    return out
+end
+function M.probablyText(list)
+    local names={}
+    for i=1,math.min(#list,NAMES_SHOWN) do names[i]=list[i].label end
+    local text="probably "..table.concat(names," or ")
+    if #list>NAMES_SHOWN then text=text.." +"..(#list-NAMES_SHOWN) end
+    return text
+end
+-- namedRows(seen) -> seen rows (copies, with alsoReported) and reported rows (titles, probable names, merges done)
+function M.namedRows(seen)
+    local time=now()
+    seen=seen or T.rows(M.store,time,"local")
+    local raw=T.rows(M.store,time,"reported")
+    local liveByKey,copies={},{}
+    for i,e in ipairs(seen) do
+        local c={}; for k,v in pairs(e) do c[k]=v end
+        copies[i]=c
+        local key=identityKey(e.displayName or e.name); if key then liveByKey[key]=c end
+    end
+    for _,r in ipairs(raw) do
+        local rest=type(r.key)=="string" and r.key:sub(-5)==":rest"
+        r.named=not rest and r.name~=nil and r.name~="Unknown" and r.record and r.record.src~="guild" or nil
+    end
+    local byHash=knownNames(seen,raw)
+    local out={}
+    for _,r in ipairs(raw) do
+        local rest=type(r.key)=="string" and r.key:sub(-5)==":rest"
+        local merged=false
+        if r.named and r.record.src=="le" then
+            r.certain=true; r.title=r.name
+            local live=liveByKey[identityKey(r.name)]
+            if live then
+                live.alsoReported=live.alsoReported or {}
+                local list=live.alsoReported
+                local dup=false; for _,who in ipairs(list) do if who==r.reporter then dup=true end end
+                if not dup then list[#list+1]=r.reporter end
+                merged=true
+            end
+        elseif r.named then
+            r.title=r.name -- as the donor claims it; the source line says which network
+        elseif not rest and r.hash then
+            local list=probable(byHash,r)
+            if #list>0 then
+                r.probably=list; r.title=M.probablyText(list)
+                if list[1].live and #list==1 then r.probablyNote="probably the "..list[1].label.." you see" end
+            end
+        end
+        if not merged then out[#out+1]=r end
+    end
+    for _,g in ipairs(N.Overlord.rows(M.overlord,time)) do out[#out+1]=g end
+    return copies,out
+end
 function M.reportedRows()
-    local rows=T.rows(M.store,now(),"reported")
-    for _,g in ipairs(N.Overlord.rows(M.overlord,now())) do rows[#rows+1]=g end
+    local _,rows=M.namedRows()
     return rows
 end
 -- OpenMap places are private, session-only Find data: no alerts, reports, peers or outgoing work.
@@ -2516,7 +2619,12 @@ function M.text(command)
     if not L.key(M.store.bulo) then say(I.HINT) end
     local kind=command=="reports" and "reported" or command=="unclassified" and "unclassified" or "local"
     say(kind=="reported" and "Reported, not confirmed (War Effort; age as the reporter's clock gives it):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
-    local rows=kind=="reported" and M.reportedRows() or T.rows(M.store,now(),kind)
+    local rows
+    if kind=="unclassified" then rows=T.rows(M.store,now(),kind)
+    else
+        local seen,reports=M.namedRows()
+        rows=kind=="reported" and reports or seen
+    end
     local previous=kind=="local" and T.previous(M.store,now()) or {}
     if #rows==0 and #previous==0 then say(kind=="reported" and "No live reports for your zone." or "No eligible observations.") end
     local numbers,records,shown={},{},{}
@@ -2533,7 +2641,9 @@ function M.text(command)
         if e.reporter then
             extra=" | reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " | relayed" or "")..(e.positionKind and (" | "..e.positionKind) or "")..(e.untimed and " | time of receipt (no timestamp)" or "")..(e.age and e.age>0 and (" | claimed "..e.age.." s old") or "").." | "..(e.relation=="same" and "same server key as yours" or e.relation=="other" and ("other server key "..tostring(e.reportLayer)) or "layer unknown")
         end
-        say((e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or "")..(not e.reporter and e.layer==nil and " | layer unknown when seen" or ""))
+        if e.alsoReported then extra=extra.." | also reported by "..table.concat(e.alsoReported,", ") end
+        if e.probablyNote then extra=extra.." | "..e.probablyNote end
+        say((e.title or e.name or "Unknown").." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | zone "..tostring(e.zone).." | "..(e.reporter and "received " or "seen ")..when.." ago | "..e.source.." | "..e.confidence..extra..(e.possible and (" | "..e.possible) or "")..(not e.reporter and e.layer==nil and " | layer unknown when seen" or ""))
         end
     end
     for _,e in ipairs(previous) do
@@ -2542,7 +2652,8 @@ function M.text(command)
     if kind=="reported" then M.hopList={at=now(),records=records,shown=shown} end
     if kind=="reported" and #rows>0 then say("To go there, ask a reporter for an invite: /le hosts") end
     if kind=="local" then
-        local reported=#T.rows(M.store,now(),"reported")
+        local _,shownReports=M.namedRows()
+        local reported=#shownReports
         if reported>0 then say("Reported, not confirmed: "..reported.." more in /le reports") end
     end
     say("Only players seen by you or reported by other players' addons.")

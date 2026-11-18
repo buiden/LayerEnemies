@@ -117,10 +117,10 @@ function U.render()
     if not U.frame or not U.frame:IsShown() then return end
     local M,T=N.Main,N.Store
     local time=GetTime()
-    local seen=T.rows(M.store,time,"local")
+    local seen=M.namedRows(T.rows(M.store,time,"local"))
+    local reports=M.reportedRows()
     local liveSeen=#seen
     for _,e in ipairs(T.previous(M.store,time)) do seen[#seen+1]=e end
-    local reports=M.reportedRows()
     local friends,hints=N.ChehulNet.friendly(M.candidates())
     local friendlyRows={}
     for _,row in ipairs(friends) do friendlyRows[#friendlyRows+1]=row end
@@ -208,10 +208,12 @@ function U.render()
         local text
         if U.tab=="local" then
             text=className(e.class).." · "..M.zoneName(e.zone)..(index>liveSeen and " · previous zone" or e.layer==nil and " · layer unknown" or "")
+            if e.alsoReported then text=text.."\nalso reported by "..table.concat(e.alsoReported,", ") end
         elseif U.tab=="reported" and e.guild then
             text=M.overlordText(e)
         elseif U.tab=="reported" then
             text="reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or "")
+            if e.probablyNote then text=text.."\n"..e.probablyNote end
         elseif U.tab=="friendly" then
             text=e.chehulHint and e.chehulText or table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.flhKey and M.hostPlace(e) or (e.layer and "layer "..e.layer or "layer not known"))
             if e.chehulText and not e.chehulHint then text=text.."\n"..e.chehulText end
@@ -295,8 +297,9 @@ function U.render()
             r.title:SetText("guild "..e.guild)
             askState(r,nil)
         elseif U.tab=="reported" then
-            r.title:SetText("Unknown "..className(e.class))
-            hopState(r,e.record)
+            r.title:SetText(e.title or ("Unknown "..className(e.class)))
+            -- never offer a hop to a report on our own layer
+            if e.relation=="same" then askState(r,nil) else hopState(r,e.record) end
         elseif U.tab=="friendly" then
             local p=not e.chehulHint and not e.unknownOwn and M.hostPreview(e)
             if e.chehulHint then askState(r,nil)
