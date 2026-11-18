@@ -1311,6 +1311,24 @@ function M.findNotice(text)
         end
     end
 end
+-- foundPopup(row): one pop-up per tracked name per 120 s, never in instances, /le found off silences it.
+M.FOUND_GAP=120
+function M.foundPopup(row)
+    if not S.tab(LayerEnemiesDB) or LayerEnemiesDB.found==false or A.inInstance()~=false then return false end
+    local time=now(); M.foundAt=M.foundAt or {}
+    local key=N.Find.fold(row.name) or row.name
+    local last=M.foundAt[key]
+    if last and time>=last and time-last<M.FOUND_GAP then return false end
+    local shown=N.Popup.show("found",{name=row.name,level=row.level,class=row.class,zone=row.zone,
+        x=row.x,y=row.y,age=row.age,source=row.status})
+    if shown then M.foundAt[key]=time end
+    return shown
+end
+function M.setFound(on)
+    LayerEnemiesDB.found=on==true
+    if not on then N.Popup.close() end
+    M.say(on and "LayerEnemies: Found pop-up is on." or "LayerEnemies: Found pop-up is off.")
+end
 function M.findAlerts(quiet,printed)
     local st,time=M.find,now()
     if not st then return end
@@ -1322,6 +1340,7 @@ function M.findAlerts(quiet,printed)
             if row.name~=printed then
                 M.findNotice(M.findText(row,true))
             end
+            M.foundPopup(row)
             if not quiet and (not st.soundAt or time-st.soundAt>=10) then
                 st.soundAt=time; M.alertSound()
             end
@@ -2556,6 +2575,7 @@ function M.start()
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
     LayerEnemiesDB.call=saved.call~=false
     LayerEnemiesDB.callArt=saved.callArt~=false
+    LayerEnemiesDB.found=saved.found~=false
     -- the first-login line, once per character, while some network ships and no guild-only choice was made
     LayerEnemiesDB.netNotice=saved.netNotice==true or nil
     local ships=false; for key in pairs(N.Net.LIST) do if N.Net.SHIP[key]==true then ships=true end end
@@ -2619,6 +2639,7 @@ function M.start()
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
         if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
         if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
+        if command=="found on" or command=="found off" then guarded(M.setFound,command=="found on"); return end
         if command=="hop auto off" then guarded(M.setAutoHop,false); return end
         local index=command:match("^ask%s+(%d%d?)$")
         local host=command:match("^hop%s+host%s+(%d%d?)$")
