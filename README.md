@@ -49,7 +49,11 @@ remain owed and are queued when safe, within 60 s after the fight/instance ends
 under available transport budgets. Local refusal or queue pruning may be retried
 only in that 60 s safe window; successful stops are never repeated. Logout pumps
 the existing queue once, subject to its
-normal budgets; delivery is not guaranteed. The donor's subscription expires
+normal budgets; delivery is not guaranteed. At logout only one Battle.net frame
+can leave, so if a feed stop and a WarBoard withdrawal are both pending, the
+stop goes and the withdrawal stays owed for that character's next login.
+Without the client's friend-list event, a removed friend is dropped within
+about 21 s and receives nothing but the stop in the meantime. The donor's subscription expires
 900 s after its last renewal, not 200 s. 200 s is the keep-alive interval.
 Battle.net uses `BN.send` and Wire's client-call boundary: eight frames/minute
 inside the shared 30/minute, one/second limit. Whispers share Wire's 20/minute

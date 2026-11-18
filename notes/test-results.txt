@@ -1267,6 +1267,7 @@ PASS FLH: host projection is zone scoped fresh and visible with own layer unknow
 PASS FLH: same identity merges independent provenance without changing LayerSwap fields
 PASS FLH: claim never promotes a listed nonhost or changes hop-any priority
 PASS FLH: 100 fresh claims cannot evict a known-layer host or invalidate Hop via
+PASS FLH: fresh claims cannot displace an older known-layer nonhost
 PASS FLH: wire ingestion cannot persist names or silently refresh malformed hosts
 PASS FLH: seeded byte and structured fuzz is bounded silent and never sends
 PASS FLH: readable-looking secret strings are refused before any use
@@ -1395,6 +1396,143 @@ PASS Codec: independent Python serializer vectors and audit network payloads
 PASS Codec: logical references cannot evade string, depth or table bounds
 PASS Codec: RFC bit-level malformed trees and degenerate valid alphabets
 PASS Codec: AceComm invalid reserved frames abandon only their sender stream
+PASS FLH batch: ordinary whisper then offer at half a second accepts
+PASS FLH batch: unsent queries pace without spending the reserved token
+PASS FLH batch: ordinary and owed traffic cannot steal the reserved LR
+PASS FLH batch: reserve expires at the original window without a tick
+PASS FLH batch: refused LR keeps selection and waits for actual budget room
+PASS FLH batch: successful retry never extends invite authority at 89
+PASS FLH batch: successful retry never extends invite authority at 90
+PASS FLH batch: third LR refusal ends the click with one exact chat line and row note
+PASS FLH batch: pending LR at expiry prints once and never sends after ninety seconds
+PASS FLH batch: a full burst paces all queries within the original click window
+PASS FLH batch: the last rolling-minute slot belongs to LR
+PASS FLH batch: LR success and explicit stop release shared capacity immediately
+PASS FLH batch: a refused selection cannot be redirected by another queried host
+PASS FLH batch: retry and paced query cancellation on stop
+PASS FLH batch: retry and paced query cancellation on share
+PASS FLH batch: retry and paced query cancellation on consent
+PASS FLH batch: retry and paced query cancellation on network
+PASS FLH batch: retry and paced query cancellation on combat
+PASS FLH batch: retry and paced query cancellation on instance
+PASS FLH batch: retry and paced query cancellation on zone
+PASS FLH batch: retry and paced query cancellation on donor
+PASS FLH batch: retry and paced query cancellation on rollback
+PASS FLH batch: an offline head cannot block the paced batch
+PASS FLH batch: paced discovery still caps the whole click at seven queries
+PASS FLH batch: stop inside LQ 2 preserves attempted cooldown result 0
+PASS FLH batch: stop inside LQ 2 preserves attempted cooldown result 3
+PASS FLH batch: stop inside LQ 6 preserves attempted cooldown result 0
+PASS FLH batch: stop inside LQ 6 preserves attempted cooldown result 3
+PASS FLH batch: recursive tick inside LQ 1 cannot consume remaining targets
+PASS FLH batch: recursive tick inside LQ 6 cannot consume remaining targets
+PASS FLH batch: join then leave between ticks revokes offer click
+PASS FLH batch: join then leave between ticks revokes paced click
+PASS FLH batch: join then leave between ticks revokes retry click
+PASS FLH batch: join then leave between ticks revokes selected click
+PASS FLH batch: paced query revalidates current host other layer
+PASS FLH batch: paced query revalidates current host own layer
+PASS FLH batch: paced query revalidates current host same layer new spelling
+PASS FLH batch: paced query revalidates current host withdrawn
+FLH_REPLAY strangers delay=0.2 accepted=12/12
+PASS FLH batch replay: twelve WP plus CQ clicks with offer at 0.2
+FLH_REPLAY strangers delay=1 accepted=12/12
+PASS FLH batch replay: twelve WP plus CQ clicks with offer at 1
+FLH_REPLAY offset-sweep strangers=true accepted=120/120
+PASS FLH batch replay: 120 offset clicks with strangers
+FLH_REPLAY offset-sweep strangers=false accepted=120/120
+PASS FLH batch replay: 120 offset clicks own probes control
+PASS FLH member: builders carry our identity and only our fingerprint
+PASS FLH member: owed replies share six per minute and one per sender per sixty seconds
+PASS FLH member: unsolicited wrong-route self and peer-exchange traffic owes nothing
+PASS FLH member: share refuses even owed whispers
+PASS FLH member: guild refuses even owed whispers
+PASS FLH member: switch refuses even owed whispers
+PASS FLH member: combat refuses even owed whispers
+PASS FLH member: instance refuses even owed whispers
+PASS FLH member: identity refuses even owed whispers
+PASS FLH member: realm refuses even owed whispers
+PASS FLH member: ignored refuses even owed whispers
+PASS FLH member: guild and group presence is change-driven and capped per route
+PASS FLH member: directory joins read only and probes four per minute only while Friendly is open
+PASS FLH member: one directory name waits six hundred seconds and stale snapshots do not probe
+PASS FLH member: directory refused for guild
+PASS FLH member: directory refused for share
+PASS FLH member: directory refused for switch
+PASS FLH member: directory refused for combat
+PASS FLH member: directory refused for instance
+PASS FLH member: directory refused for donor
+PASS FLH member: directory refused for slots
+PASS FLH member: existing fanout sends all forty nine on its original cadence beside owed replies
+PASS FLH member: named guest click correlates one offer and arms only its asked host
+PASS FLH member: explicit FLH batch leaves a selection slot inside the unchanged hop cap
+PASS FLH member: timed-out row is measured and late offers cannot send
+PASS FLH member: pending guest is revoked by share
+PASS FLH member: pending guest is revoked by guild
+PASS FLH member: pending guest is revoked by switch
+PASS FLH member: pending guest is revoked by combat
+PASS FLH member: pending guest is revoked by instance
+PASS FLH member: pending guest is revoked by zone
+PASS FLH member: pending guest is revoked by fingerprint
+PASS FLH member: pending guest is revoked by stop
+PASS FLH member: stale previews and unknown fingerprints never redirect a click
+PASS FLH member: an LR client throttle waits for the pause then retries the same selection
+PASS FLH member: session switch and all received names never enter SavedVariables
+PASS FLH member: unreadable live APIs nil are silent
+PASS FLH member: unreadable live APIs secret are silent
+PASS FLH member: unreadable live APIs throw are silent
+PASS FLH member: share and network off-on revoke already selected guests
+PASS FLH member: selected guest uses unchanged confirmed-move and failure leave rules
+PASS FLH member: deterministic five thousand malformed and structured frames respect every send kind
+PASS FLH member: a guest query excludes every other hop path until stopped
+PASS FLH member: prefix isolation still shares the public per-person cap
+PASS FLH member: no channel send or hosting authority can be manufactured inside dispatch
+PASS FLH member: party and raid share one group presence lane with no guildless copy
+PASS FLH member: other public traffic leaves six owed slots before probes stop
+PASS FLH member: client refusal spends reply and probe budgets without queue or retry
+PASS FLH member: duplicate reentrant dispatch cannot spend one authority twice
+PASS FLH member: forged selection target and changed offer keys are never sent
+PASS FLH member: Wire route grammar independently refuses host and peer-exchange packets
+PASS FLH member: private owed dispatch cannot be redirected to someone else
+PASS FLH member: a freshly known new zone still revokes an open old-zone offer
+PASS FLH member: merged home-realm spelling keeps the shown host and sends canonically
+PASS FLH member: failed presence is spent until our fingerprint changes
+PASS FLH member: owner thirty-minute stand-down
+PASS FLH member: owner thirty-minute no-donor control
+PASS FLH member: owner load blocks new guest queries and revokes an outstanding offer
+PASS FLH member: owner loading at dispatch blocks owed replies at the final gate
+PASS FLH member: probe rotation reaches forty names under a shared two-slot budget
+PASS FLH member: probe gate refusal from a transport pause does not charge the name
+PASS FLH member: probe gate refusal rotates past a full target without charging its name
+PASS FLH member: R2 eight ordinary plus six owed replies never exceeds eight at once
+PASS FLH member: R2 forty ordinary in fifty nine seconds leaves no reply room
+PASS FLH member: R2 replies charge the shared bucket before ordinary traffic
+PASS FLH member: R2 HI spends the overall burst
+PASS FLH member: R2 WR spends the overall burst
+PASS FLH member: R2 CA spends the overall burst
+PASS FLH member: R2 WP spends the overall burst
+PASS FLH member: R2 LQ spends the overall burst
+PASS FLH member: R2 LR spends the overall burst
+PASS FLH member: R2 probes leave six shared burst slots for owed replies
+PASS FLH member: R2 probes leave six shared minute slots for owed replies
+PASS FLH member: R2 directory stays joined through twenty combat periods
+PASS FLH member: R2 privacy leave waits until after combat
+PASS FLH member: R2 directory stays joined through twenty instance periods
+PASS FLH member: R2 privacy leave waits until after instance
+PASS FLH member: R2 host status LD|%d cancels and prints once
+PASS FLH member: R2 host status LA|%d cancels and prints once
+PASS FLH member: R2 host status HQ|%d|2 cancels and prints once
+PASS FLH member: R2 host status LN|%d cancels and prints once
+PASS FLH member: R2 host status LN|%d|busy cancels and prints once
+PASS FLH member: R2 only the selected host and matching status can cancel
+PASS FLH member: R2 LI transfers authority only to its named whole leader
+PASS FLH member: R2 LI retains the original ninety second window at 89
+PASS FLH member: R2 LI retains the original ninety second window at 90
+PASS FLH member: R2 LI retains the original ninety second window at 91
+PASS FLH member: R2 LI cannot arm without the selected host successful LR and id
+PASS FLH member: R2 LI missing or invalid leader never accepts anyone
+PASS FLH member: R2 bare LI is only an acknowledgement and cannot undo a handoff
+PASS FLH member: R2 decline after LI cancels leader authority too
 PASS Stack: source mutant evidence rerun is byte and mtime stable
 PASS Stack: presence mutant evidence rerun is byte and mtime stable
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
@@ -1443,6 +1581,11 @@ PASS Overlord feed: batch row ceiling and marker byte bound are independent
 PASS Overlord feed: global feed budget survives source rotation and privacy cancellation
 PASS Overlord feed: global byte and batch-row ceilings hold across replacement sources
 PASS Overlord feed: unknown epoch silent then direct owner K opens truthful v8 subscription
+PASS Overlord FLH stack: unarmed full eight-token burst, peer first true
+PASS Overlord FLH stack: unarmed full eight-token burst, peer first false
+PASS Overlord FLH stack: armed LR reserve blocks peer reply without charging it
+PASS Overlord FLH stack: canceled click immediately returns last token to peer
+PASS Overlord FLH stack: peer reply cannot steal final rolling-minute LR slot
 PASS Overlord followup: n3 busy HA version 5
 PASS Overlord followup: n3 busy HA version 6
 PASS Overlord followup: n3 busy HA version 7
@@ -2087,4 +2230,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2015 tests passed, 0 failed, 570000 assertions
+RESULT: 2154 tests passed, 0 failed, 632868 assertions
