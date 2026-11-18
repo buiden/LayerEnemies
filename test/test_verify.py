@@ -1,5 +1,6 @@
 """Source ownership and TOC coverage regressions; planted sends stay dormant."""
 import importlib.util
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -471,6 +472,75 @@ class GlobalWriteTests(unittest.TestCase):
         for path in sorted((verify.ROOT / 'LayerEnemies').glob('*.lua')):
             with self.subTest(file=path.name):
                 verify.check_global_writes(path)
+
+
+class ShardMergeTests(unittest.TestCase):
+    """verify --jobs N: shards must cover harness --list exactly once, in serial order."""
+    NAMES = ['alpha', 'beta', 'gamma', 'delta', 'eps']
+
+    def shard_out(self, k, n, indices=None, fail=(), outside=0, extra=''):
+        out, passed, failed = [], 0, 0
+        for i in (indices if indices is not None else [i for i in range(len(self.NAMES)) if i % n == k]):
+            line = ('FAIL %s: boom' % self.NAMES[i]) if i in fail else ('PASS ' + self.NAMES[i])
+            failed += i in fail; passed += i not in fail
+            out.append('\x1eTEST %d\t%s\nprobe %d\n%s\n\x1eEND %d 10\n' % (i, self.NAMES[i], i, line, i))
+        out.append(extra + '\x1eSHARD %d/%d outside=%d\nRESULT: %d tests passed, %d failed, %d assertions\n'
+                   % (k, n, outside, passed, failed, 10 * (passed + failed)))
+        return subprocess.CompletedProcess([], 1 if failed or outside else 0, ''.join(out), '')
+
+    def merge(self, n, shards):
+        listing = ''.join('\x1eTEST %d\t%s\n' % (i, x) for i, x in enumerate(self.NAMES)) + '\x1eCOUNT 5\n'
+
+        def fake(args, **kwargs):
+            if args[-1] == '--list':
+                return subprocess.CompletedProcess(args, 0, listing, '')
+            if '--shard' in args:
+                k = int(args[-1].split('/')[0])
+                return shards[k]
+            return subprocess.CompletedProcess(args, 0, '', '')
+        with patch.object(subprocess, 'run', fake):
+            return verify.run_parallel(n)
+
+    def test_merge_rebuilds_serial_output(self):
+        r = self.merge(2, [self.shard_out(0, 2), self.shard_out(1, 2)])
+        self.assertEqual(r.returncode, 0, r.stdout)
+        serial = ''.join('probe %d\nPASS %s\n' % (i, x) for i, x in enumerate(self.NAMES))
+        self.assertEqual(r.stdout, serial + 'RESULT: 5 tests passed, 0 failed, 50 assertions\n')
+
+    def test_lost_test_fails(self):
+        r = self.merge(2, [self.shard_out(0, 2, [0, 2]), self.shard_out(1, 2)])
+        self.assertEqual(r.returncode, 1); self.assertIn("missing ['eps']", r.stdout)
+
+    def test_test_from_another_shard_fails(self):
+        r = self.merge(2, [self.shard_out(0, 2, [0, 1, 2, 4]), self.shard_out(1, 2, [3])])
+        self.assertEqual(r.returncode, 1); self.assertIn('ran a test of another shard', r.stdout)
+
+    def test_doubled_test_fails(self):
+        r = self.merge(2, [self.shard_out(0, 2, [0, 2, 4, 4]), self.shard_out(1, 2)])
+        self.assertEqual(r.returncode, 1); self.assertIn('test 4 ran twice', r.stdout)
+
+    def test_output_outside_a_test_fails(self):
+        r = self.merge(2, [self.shard_out(0, 2, outside=1), self.shard_out(1, 2)])
+        self.assertEqual(r.returncode, 1); self.assertIn('outside any test', r.stdout)
+
+    def test_unfinished_test_fails(self):
+        bad = self.shard_out(1, 2)
+        bad.stdout = bad.stdout.replace('\x1eEND 3 10\n', '')
+        r = self.merge(2, [self.shard_out(0, 2), bad])
+        self.assertEqual(r.returncode, 1); self.assertIn('test 3 never finished', r.stdout)
+
+    def test_failures_are_grouped_by_shard_and_counted(self):
+        r = self.merge(2, [self.shard_out(0, 2), self.shard_out(1, 2, fail=(3,))])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn('RESULT: 4 tests passed, 1 failed, 50 assertions', r.stdout)
+        self.assertIn('== shard 1/2 (rc 1, 1 failed)\nprobe 3\nFAIL delta: boom', r.stdout)
+
+    def test_jobs_argument(self):
+        self.assertEqual(verify.parse_jobs(['--jobs', '1']), 1)
+        self.assertEqual(verify.parse_jobs([]), max(1, min(os.cpu_count() or 1, 8)))
+        for bad in (['--jobs', '0'], ['--jobs'], ['-j', '2'], ['--jobs', 'x']):
+            with self.assertRaises(SystemExit):
+                verify.parse_jobs(bad)
 
 
 if __name__ == '__main__':

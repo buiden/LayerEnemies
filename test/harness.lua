@@ -23,6 +23,31 @@ local aliases={ ["--ui-layout-only"]={"UI layout:"}, ["--hop-fanout-only"]={"Hop
     ["--kills-only"]={"Kills"}, ["--kills-round2-only"]={"Kills R2"},
     ["--guild-intel-only"]={"Round1 ","Round2 ","Known ","PartyTargets ","Realm names:"} }
 local filters
+-- --shard K/N runs the tests whose stable 0-based index i has i % N == K, framing each test's output with
+-- "\30TEST i\tname" / "\30END i" lines for test/verify.py to merge; --list prints every index and name without
+-- running any test. Output printed outside a test is counted and reported, since it cannot be placed in order.
+local shardK,shardN,listOnly,orderMode
+local deferred={}
+if arg and arg[1]=="--list" then
+    if arg[2] then error("unexpected harness argument") end
+    listOnly=true; arg={}
+elseif arg and arg[1]=="--order" then
+    -- leak detector: every test is collected, then run after the whole file in reverse or a seeded shuffle
+    local mode=tostring(arg[2] or "")
+    local seed=mode:match("^seed:(%d+)$")
+    if not (mode=="reverse" or seed) or arg[3] then error("usage: lua test/harness.lua --order reverse|seed:N") end
+    orderMode={reverse=mode=="reverse",seed=tonumber(seed)}; arg={}
+elseif arg and arg[1]=="--shard" then
+    local k,n=tostring(arg[2] or ""):match("^(%d+)/(%d+)$")
+    k,n=tonumber(k),tonumber(n)
+    if not (k and n and n>=1 and k<n) or arg[3] then error("usage: lua test/harness.lua --shard K/N") end
+    shardK,shardN=k,n; arg={}
+end
+local testIndex,inTest,outside=-1,false,0
+if shardN then
+    local rawPrint=print
+    print=function(...) if not inTest then outside=outside+1 end; return rawPrint(...) end
+end
 if arg and arg[1] then
     local value=arg[1]:match("^%-%-only=(.*)$")
     if arg[1]=="--only" then value=arg[2] end
@@ -31,18 +56,62 @@ if arg and arg[1] then
     else error("usage: lua test/harness.lua [--only <substring>]") end
     if arg[(arg[1]=="--only") and 3 or 2] then error("unexpected harness argument") end
 end
+local runTest,runTestBody
 local function test(name,fn)
+    testIndex=testIndex+1
+    if listOnly then io.write("\30TEST ",testIndex,"\t",name,"\n"); return end
+    if shardN and testIndex%shardN~=shardK then return end
     if filters then
         local selected=false
         for _,part in ipairs(filters) do if name:find(part,1,true) then selected=true end end
         if not selected then return end
     end
+    if orderMode then deferred[#deferred+1]={testIndex,name,fn}; return end
+    return runTest(name,fn)
+end
+-- Every test leaves the global environment as it found it: all globals, and one level into table globals
+-- (client namespaces such as C_BattleNet or Enum), are restored after each test. A test therefore depends
+-- only on the file's top-level setup and its own code, never on which tests ran before it.
+local function snapshotGlobals()
+    local s={}
+    for k,v in next,_G do
+        local fields
+        if type(v)=="table" and v~=_G then fields={}; for k2,v2 in next,v do fields[k2]=v2 end end
+        s[k]={v,fields}
+    end
+    return s
+end
+local function restoreGlobals(s)
+    for k in next,_G do if s[k]==nil then rawset(_G,k,nil) end end
+    for k,e in next,s do
+        rawset(_G,k,e[1])
+        local t,fields=e[1],e[2]
+        if fields then
+            for k2 in next,t do if fields[k2]==nil then rawset(t,k2,nil) end end
+            for k2,v2 in next,fields do if rawget(t,k2)~=v2 then rawset(t,k2,v2) end end
+        end
+    end
+end
+runTest=function(name,fn)
+    local saved=snapshotGlobals()
+    local result={pcall(runTestBody,name,fn)}
+    restoreGlobals(saved)
+    if not result[1] then error(result[2],0) end
+end
+runTestBody=function(name,fn)
     overlordClaim=false
+    -- Realm mocks start every test the same way, so no test inherits a realm from the one before it.
+    _G.GetRealmName=function() return "Test Realm" end; _G.GetNormalizedRealmName=nil
+    -- and the same random stream (seed 1 is the C library's start state), so jitter never depends on earlier tests
+    math.randomseed(1)
+    local checksBefore=checks
+    if shardN then io.write("\30TEST ",testIndex,"\t",name,"\n"); inTest=true end
     local ok,err=pcall(fn)
     if ok and overlordClaim then ok,err=false,"emitted capability claim: expected false, got true" end
     -- No test may reach an API that sends, invites, accepts or leaves.
     if ok and (forbidden or 0)>0 then ok,err=false,"forbidden API reached "..forbidden.." time(s)" end
     if ok then passed=passed+1; print("PASS "..name) else failed=failed+1; print("FAIL "..name..": "..tostring(err)) end
+    if shardN then inTest=false; io.write("\30END ",testIndex," ",checks-checksBefore,"\n") end
 end
 -- letters-only suffix for generated player names (names never carry digits; 1.0 T2 name rule)
 local function abc(i) local s=""; repeat local r=(i-1)%26; s=string.char(97+r)..s; i=math.floor((i-1)/26) until i==0; return s end
@@ -5081,7 +5150,7 @@ end)
 local function spyRows(N,src) local out={}; for _,r in ipairs(N.Store.rows(N.Main.store,clock,"reported")) do if r.record.src==src then out[#out+1]=r end end; return out end
 local function spyIn(prefix,text,kind,from) deliver("CHAT_MSG_ADDON",prefix,text,kind,from); drain() end
 test("1.0 C1: a [Spy] line: the enemy as First Last, observer position, map to zone, class and level checked",function()
-    local N=loadAddon(); establish(N)
+    local N=loadAddon(); establish(N); GetNormalizedRealmName=function() return "7102" end -- home realm 7102: "-7102" is our own realm
     spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.42|0.61|Some Guild|101","GUILD","Spyuser")
     local rows=spyRows(N,"spy"); eq(#rows,1); local r=rows[1].record
     eq(r.kind,"seen"); eq(r.origin,"Spyuser"); eq(r.hand,"first"); eq(r.at,clock,"Spy carries no age: heard now"); eq(r.zone,100); eq(r.pos,"observer"); eq(r.x,.42); eq(r.y,.61)
@@ -5581,7 +5650,7 @@ end)
 
 -- مانع on C1 e0d9513 and C2 7a094b2 (r040c/7a0)
 test("7a0 C1/C2: one row per enemy whatever the spelling: First-Last and First-Last-7102 fold to one key",function()
-    local N=loadAddon(); establish(N)
+    local N=loadAddon(); establish(N); GetNormalizedRealmName=function() return "7102" end -- home realm 7102: "-7102" is our own realm
     spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","GUILD","Spyuser"); advance(1)
     spyIn("[Spy]","1.3.8|Kora-Reed-7102|ROGUE|60|Orc|Ashenvale||0.5|0.6||100","GUILD","Spyuser")
     local rows=spyRows(N,"spy"); eq(#rows,1); eq(rows[1].record.rid,N.Hash.hash3("kora reed")); eq(rows[1].record.enemies[1].hash,N.Hash.hash3("kora reed"))
@@ -5605,7 +5674,7 @@ test("7a0 C1: the zone-name table is kept only when both lookups gave data; othe
     eq(N.Adapters.zoneByName("Mulgore"),400,"the continent lookup counted too")
 end)
 test("7a0 C1: the sender in Spy spelling: our own line is refused, and the rate bucket is the folded name",function()
-    local N=loadAddon(); establish(N); local realUnitName=UnitName
+    local N=loadAddon(); establish(N); local realUnitName=UnitName; GetNormalizedRealmName=function() return "7102" end -- home realm 7102: "-7102" is our own realm
     _G.UnitName=function(u) if u=="player" then return "Lo Cal","Test Realm" end; return realUnitName(u) end
     for _,s in ipairs({"Lo-Cal","Lo-Cal-7102"}) do
         spyIn("[Spy]","1.3.8|Kora-Reed|ROGUE|60|Orc|Ashenvale||0.4|0.6||100","GUILD",s); eq(#spyRows(N,"spy"),0,s)
@@ -7987,5 +8056,20 @@ for file in suites:lines() do
 end
 suites:close(); table.sort(files)
 for _,file in ipairs(files) do assert(loadfile(file))(sourceHarness) end
+if listOnly then io.write("\30COUNT ",testIndex+1,"\n"); os.exit(0) end
+if orderMode then
+    local order={}
+    for i=1,#deferred do order[i]=deferred[i] end
+    if orderMode.reverse then
+        for i=1,math.floor(#order/2) do order[i],order[#order+1-i]=order[#order+1-i],order[i] end
+    else
+        -- fixed-seed Fisher-Yates with its own generator, independent of math.random
+        local x=orderMode.seed%2147483647; if x==0 then x=1 end
+        for i=#order,2,-1 do x=(x*16807)%2147483647; local j=x%i+1; order[i],order[j]=order[j],order[i] end
+    end
+    for _,t in ipairs(order) do runTest(t[2],t[3]) end
+end
+local strayOutput=outside
+if shardN then io.write("\30SHARD ",shardK,"/",shardN," outside=",strayOutput,"\n") end
 print(string.format("RESULT: %d tests passed, %d failed, %d assertions",passed,failed,checks))
-if failed>0 or (filters and passed==0) then os.exit(1) end
+if failed>0 or (filters and passed==0) or strayOutput>0 then os.exit(1) end
