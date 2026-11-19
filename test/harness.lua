@@ -1275,7 +1275,7 @@ test("we reports never enter LayerEnemiesDB (مانع T3 S4)",function()
         end
     end
     scan(LayerEnemiesDB,"LayerEnemiesDB",0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
@@ -2173,7 +2173,7 @@ test("hop state clears on zone change and reload",function()
     grouped=false; N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); yes(hopNow(N,rec(N)))
     N=loadAddon(); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
     deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); eq(lines("on their layer"),0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("hop acts on the shown candidate only (مانع T5 F1)",function()
     -- shown "Ask Scout (chat)"; an LFSw host line arrives before the click: nothing is sent, nothing drafted
@@ -3551,7 +3551,7 @@ test("0.4 host saved: on survives a reload and is active; one login line; no H a
     lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(#sent,1)
     establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); advance(61); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,1)
     slash("host"); yes(logged("Hosting for your guild: on (saved) · 1 invite in the last 10 minutes"))
-    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end
+    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end
     eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("0.4 host saved: off persists; a bad saved value is off",function()
@@ -3695,7 +3695,7 @@ test("0.4 T8: Auto accept and leave: on by default, saved, /le hop auto and the 
     N=loadAddon(); BULO=nil; establish(N); local U=N.UI; U.toggle(); U.select("friendly")
     yes(U.auto:IsShown()); eq(U.auto.label.text,"Auto: on"); U.auto:Click(); drain(); no(N.Main.autoHop()); eq(U.auto.label.text,"Auto: off")
     U.select("reported"); no(U.auto:IsShown())
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end
     eq(forbidden,0)
 end)
 

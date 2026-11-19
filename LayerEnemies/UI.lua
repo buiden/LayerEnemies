@@ -211,6 +211,8 @@ function U.render()
             if e.alsoReported then text=text.."\nalso reported by "..table.concat(e.alsoReported,", ") end
         elseif U.tab=="reported" and e.guild then
             text=M.overlordText(e)
+        elseif U.tab=="reported" and e.friendShare then
+            text=e.sourceText.." · "..e.zone
         elseif U.tab=="reported" then
             text="reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or "")
             if e.probablyNote then text=text.."\n"..e.probablyNote end
@@ -296,6 +298,9 @@ function U.render()
         elseif U.tab=="reported" and e.guild then
             r.title:SetText("guild "..e.guild)
             askState(r,nil)
+        elseif U.tab=="reported" and e.friendShare then
+            r.title:SetText(e.title)
+            askState(r,nil) -- zone only: no layer, so no Hop
         elseif U.tab=="reported" then
             r.title:SetText(e.title or ("Unknown "..className(e.class)))
             -- never offer a hop to a report on our own layer

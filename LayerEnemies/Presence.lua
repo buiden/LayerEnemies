@@ -15,7 +15,11 @@ local function accept(member,route)
         local presence=S.num(member.presence)
         if presence~=1 and presence~=4 and presence~=5 then return nil end
     end
-    return {zone=zone,route=route,faction=faction,guid=guid}
+    local class=S.str(member.class,16)
+    local level=S.num(member.level)
+    if not (N.FriendShare and N.FriendShare.classOk(class)) then class=nil end
+    if not (N.FriendShare and N.FriendShare.level(level)) then level=nil end
+    return {zone=zone,route=route,faction=faction,guid=guid,class=class,level=level}
 end
 function P.accept(member,route)
     local ok,record=pcall(accept,member,route)
@@ -33,6 +37,8 @@ function P.forget(records,source)
 end
 function P.sweep(st,now)
     for name,r in pairs(st.presence) do
-        if now-r.at>=P.TTL or now<r.at then st.presence[name]=nil end
+        -- a guildmate's shared friend (source "g:") lives as long as FriendShare keeps it
+        local ttl=type(r.source)=="string" and r.source:sub(1,2)=="g:" and N.FriendShare and N.FriendShare.TTL or P.TTL
+        if now-r.at>=ttl or now<r.at then st.presence[name]=nil end
     end
 end

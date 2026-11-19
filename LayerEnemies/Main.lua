@@ -118,7 +118,7 @@ function M.poll()
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
-    M.groupCheck(); M.inviteTick(); M.watchTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
+    M.groupCheck(); M.inviteTick(); M.watchTick(); M.friendShareTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
     N.Directory.sync()
     N.Find.home(M.find,M.homeRealm())
     N.Known.prune(M.find.known,time)
@@ -302,7 +302,7 @@ function M.message(prefix,text,kind,sender,target,zoneChannelID,localID,channelN
 end
 -- Presence is never a sighting, reporter, host or outgoing work item.
 local function presenceSafe()
-    return M.find and #M.find.names>0 and not A.inCombat() and A.inInstance()==false
+    return M.find and (#M.find.names>0 or M.friendSendable()) and not A.inCombat() and A.inInstance()==false
 end
 local function presenceRefusal(stats,reason)
     if reason=="secret" then stats.refused=stats.refused+1; stats.secret=true
@@ -335,6 +335,13 @@ local function presenceMember(job,member,route,source)
     if not record or N.OpenMap.faction(record.faction,S.call(UnitFactionGroup,"player"))~="opposite" then return end
     if route=="community" then job.stats.opposite=job.stats.opposite+1 end
     local _,me=A.ownIdentity()
+    local own=S.str(S.call(UnitGUID,"player"),120)
+    if job.share and not (own and record.guid==own) then
+        local display,key=I.name(sender)
+        if key and key~=me then
+            job.share[key]={name=display,zone=record.zone,faction=record.faction,class=record.class,level=record.level,guid=record.guid}
+        end
+    end
     local name=N.OpenMap.match(M.find,sender,me,true)
     local shared
     if not name then
@@ -344,7 +351,6 @@ local function presenceMember(job,member,route,source)
         if not senders or #senders==0 or not N.OpenMap.match({names={sender}},sender,me) then return end
         name,shared=sender,hash
     end
-    local own=S.str(S.call(UnitGUID,"player"),120)
     if own and record.guid==own then return end
     record.source=source
     local alerts,key=M.find,name
@@ -387,6 +393,8 @@ local function presenceStep(job)
     presenceRefusal(job.stats,why)
     for _,member in ipairs(friends or {}) do presenceMember(job,member,"friend","f:"..member.index) end
     M.presenceJob=nil
+    -- a complete scan: what we see now goes to the guild (changes, or everything every 5 minutes)
+    if job.share then M.friendShareFlush(job.share) end
     if N.UI then N.UI.refresh() end
 end
 function M.presenceScan(force)
@@ -400,7 +408,7 @@ function M.presenceScan(force)
     local stats={clubs=0,members=0,resolved=0,zones=0,opposite=0,matches=0,refused=0,secret=false}
     M.presenceStats=stats
     local clubs,why=A.clubs(); presenceRefusal(stats,why)
-    local job={clubs=clubs or {},club=1,stats=stats}
+    local job={clubs=clubs or {},club=1,stats=stats,share=M.friendSendable() and {} or nil}
     M.presenceJob=job
     if not after(.001,function() presenceStep(job) end) then M.presenceJob=nil; return end
     return true
@@ -702,6 +710,7 @@ local function knownNames(seen,reports)
         end
     end
     for _,r in ipairs(reports) do if r.named then add(r.name,r.class,r.level,false) end end
+    if M.friendIn then for _,r in pairs(M.friendIn.items) do add(r.name,r.class,r.level,false) end end
     return byHash
 end
 -- Candidates for one hash: a different known class rules a name out; level only breaks a remaining tie.
@@ -770,6 +779,13 @@ function M.namedRows(seen)
         if not merged then out[#out+1]=r end
     end
     for _,g in ipairs(N.Overlord.rows(M.overlord,time)) do out[#out+1]=g end
+    -- 1.2.4: a guildmate's Battle.net friend or community member is a certain name, zone only, no Hop
+    if M.friendIn then
+        for _,r in ipairs(N.FriendShare.rows(M.friendIn,time)) do
+            out[#out+1]={friendShare=true,certain=true,name=r.name,title=M.displayName(r.name),class=r.class,level=r.level,
+                zone=r.zone,reporter=r.sender,at=r.at,guid=r.guid,sourceText="Battle.net friend of "..r.sender}
+        end
+    end
     return copies,out
 end
 function M.reportedRows()
@@ -925,7 +941,12 @@ function M.relayIn(text,kind,sender)
     if type(text)=="string" and text:sub(1,2)=="T|" then
         if not M.guildCheck(true) or M.guildWhy() then return end
         N.Watch.receive(M.watch,text,sender,time)
+        M.friendAnswer()
         return
+    end
+    if type(text)=="string" and text:sub(1,2)=="P|" then
+        if not M.guildCheck(true) or M.guildWhy() then return end
+        return M.friendShareIn(text,sender)
     end
     local control=N.Relay.control(text)
     if control then return M.hostControl(control,sender,time) end
@@ -1252,6 +1273,111 @@ function M.homeRealm()
     return S.str(S.call(GetNormalizedRealmName)) or S.str(S.call(GetRealmName)) or ""
 end
 I.home=M.homeRealm
+-- 1.2.4 friend and community presence share (FriendShare.lua). Sent to the guild only, never in an instance,
+-- only with sharing on and /le share friends on (the default). Low priority: own sightings and hops keep their
+-- reserve. Nothing is saved except the switch.
+function M.sharingFriends() return not S.tab(LayerEnemiesDB) or LayerEnemiesDB.shareFriends~=false end
+-- Not in the first 30 s after login: friend, community and roster data are not settled yet.
+M.FRIEND_SETTLE=30
+function M.friendSendable()
+    local time=now()
+    return M.friendStartAt~=nil and time>=M.friendStartAt and time-M.friendStartAt>=M.FRIEND_SETTLE
+        and M.sharing() and M.sharingFriends() and S.call(IsInGuild)==true and not M.guildWhy() and A.inInstance()==false
+end
+function M.friendShareFlush(current)
+    if not M.friendOut or not M.friendSendable() then return end
+    -- a new scan never drops what waits: changes go first, the refresh carries on with the stalest entries
+    N.FriendShare.plan(M.friendOut,current,now())
+    M.friendShareTick()
+end
+-- Sends waiting entries as the LEGW1 budget allows, one packed line at a time; refreshes every 5 minutes even
+-- without an event.
+function M.friendShareTick()
+    local out=M.friendOut
+    if not out then return end
+    if not M.friendSendable() then N.FriendShare.clear(out); return end
+    local time=now()
+    while N.FriendShare.pending(out) do
+        local line,keys=N.FriendShare.nextLine(out,0)
+        if not line then break end
+        if not N.Relay.spend(time,true) then out.stats.refused=out.stats.refused+1; break end
+        local ok=N.Wire.send("LEGW1",line,"GUILD",nil,{prio="presence",queue=false})
+        if not ok then out.stats.refused=out.stats.refused+1; break end
+        N.FriendShare.done(out,keys,time); out.stats.lines=out.stats.lines+1
+    end
+    if (not out.fullAt or time<out.fullAt or time-out.fullAt>=N.FriendShare.REFRESH) and not M.presenceJob then M.presenceScan(true) end
+end
+-- A friend or community change rescans soon (at most every CHANGE_GAP seconds), so the guild hears it at once.
+function M.friendChanged()
+    if M.friendChangeDue or not M.friendSendable() then return end
+    local time=now()
+    local wait=M.presenceAt and time>=M.presenceAt and math.max(0,M.presenceAt+N.FriendShare.CHANGE_GAP-time) or 0
+    M.friendChangeDue=true
+    local function go() M.friendChangeDue=nil; guarded(M.presenceScan,true) end
+    if not after(wait,go) then go() end
+end
+-- A guild watch list naming one of ours is answered at once (at most every ANSWER_GAP per name).
+function M.friendAnswer()
+    local out=M.friendOut
+    if not out or not M.friendSendable() then return end
+    local keys={}
+    for key,e in pairs(out.cur) do
+        local _,_,_,senders=N.Watch.match(M.watch,e.name,now())
+        if senders and #senders>0 then keys[key]=true end
+    end
+    if N.FriendShare.answer(out,keys,now())>0 then M.friendShareTick() end
+end
+-- One guildmate's presence (as their client sees it) applied to our Find for names we track.
+local function friendApply(r)
+    local _,me=A.ownIdentity()
+    local name=N.OpenMap.match(M.find,r.name,me,true)
+    if not name then return end
+    local old=M.find.presence[name]
+    -- our own Battle.net view wins over a guildmate's
+    local shared=old and type(old.source)=="string" and old.source:sub(1,2)=="g:"
+    if old and not shared and now()-old.at<N.Presence.TTL then return end
+    -- between guildmates the newest evidence wins
+    if shared and old.at and old.at>r.at then return end
+    local fresh=not old or old.zone~=r.zone
+    N.Presence.note(M.find,name,{zone=r.zone,route="friend of "..r.sender,faction=r.faction,guid=r.guid,source="g:"..r.senderKey},r.at)
+    if fresh and N.Find.alert(M.find,{name=name},now(),true) then
+        local text=name.." — "..M.presenceText({zone=r.zone,route="friend of "..r.sender,age=now()-r.at})
+        M.findNotice(text)
+    end
+end
+function M.friendShareApply()
+    for _,r in ipairs(N.FriendShare.rows(M.friendIn,now())) do friendApply(r) end
+end
+function M.friendShareIn(text,sender)
+    local display,senderKey=I.name(sender)
+    if not senderKey then return end -- relayIn already dropped our own echo and ignored senders
+    local msg,why=N.FriendShare.decode(text)
+    if not msg then M.lastDrop="friend share "..tostring(why); return end
+    local time=now()
+    local _,me=A.ownIdentity()
+    for _,e in ipairs(msg.entries) do
+        local name,nameKey=I.name(e.name)
+        if nameKey and nameKey~=me then
+            local r=N.FriendShare.put(M.friendIn,display,senderKey,nameKey,e,time-msg.age)
+            if r then r.name=name; friendApply(r)
+            else
+                -- withdrawn: only this guildmate's projection leaves Find
+                for tracked,old in pairs(M.find.presence) do
+                    if old.source=="g:"..senderKey and N.OpenMap.match({names={tracked}},name,me) then M.find.presence[tracked]=nil end
+                end
+            end
+        end
+    end
+    M.lastDrop="friend share"
+    if N.UI then N.UI.refresh() end
+end
+function M.setShareFriends(on)
+    if S.tab(LayerEnemiesDB) then LayerEnemiesDB.shareFriends=on==true end
+    if not on and M.friendOut then N.FriendShare.clear(M.friendOut) end
+    M.say(on and "LayerEnemies: sharing your Battle.net friends and community members (opposite faction, online) with the guild: on."
+        or "LayerEnemies: sharing your Battle.net friends and community members with the guild: off.")
+    if on then M.friendShareTick() end
+end
 function M.zoneName(zone)
     local info=S.tab(C_Map) and S.call(C_Map.GetMapInfo,zone)
     return S.tab(info) and S.str(info.name) or ("zone "..tostring(zone or "unknown"))
@@ -1496,6 +1622,7 @@ function M.track(name,remove)
         end
     else N.Find.remove(M.find) end
     M.watchSync()
+    if name and not remove and M.friendIn then M.friendShareApply() end
     LayerEnemiesDB.tracked=M.find.names
     if #M.find.names==0 then M.say("LayerEnemies: tracked names cleared.") end
     local printed
@@ -2636,6 +2763,7 @@ function M.text(command)
     say(N.Net.consent()=="public" and "Networks: public (/le net guild for guild only)" or "Networks: guild only (/le net public to open)")
     netLines(say)
     say(M.sharing() and "Sharing your sightings: on (/le share off)" or "Sharing your sightings: off (/le share on)")
+    say("Sharing Battle.net friends and community members with the guild: "..(M.sharingFriends() and "on (/le share friends off)" or "off (/le share friends on)"))
     if M.error then say("Runtime status: "..M.error) end
     say("Your server key: "..(L.key(M.store.bulo) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
         .." - zone-scoped; an equal key is not proof of the same layer")
@@ -2654,6 +2782,8 @@ function M.text(command)
     for _,e in ipairs(rows) do
         local when=ago(now()-e.at)
         if e.guild then say(M.overlordText(e).." | "..when.." ago")
+        elseif e.friendShare then
+            say(e.title.." | "..(e.class or "Unknown class").." | "..tostring(e.level or "?").." | "..e.zone.." | "..e.sourceText.." | "..when.." ago")
         else
         local extra=""
         if kind=="reported" and e.record and not numbers[e.record] then
@@ -2707,6 +2837,7 @@ function M.start()
     local saved=LayerEnemiesDB
     M.find=N.Find.new(saved.tracked,M.homeRealm()); M.call=N.Call.new(); M.coming=N.Coming.new()
     M.presenceShared={}; M.presenceSharedAlerts={presenceAlerts={}}
+    M.friendOut=N.FriendShare.newOut(); M.friendIn=N.FriendShare.newIn(); M.friendStartAt=now()
     -- guildHost: a boolean setting only (hosting for your guild, owner decision 0.4.0); anything else is off
     LayerEnemiesDB={options={},tracked=M.find.names,position=N.UI.position(saved.position),guildHost=saved.guildHost==true}
     M.host.want=LayerEnemiesDB.guildHost
@@ -2716,6 +2847,8 @@ function M.start()
     LayerEnemiesDB.share=saved.share~=false
     LayerEnemiesDB.quietWhispers=N.Wire.quietMode(saved.quietWhispers)
     LayerEnemiesDB.findShare=saved.findShare~=false
+    -- 1.2.4: sharing Battle.net friends and community members with the guild; only a saved false turns it off
+    LayerEnemiesDB.shareFriends=saved.shareFriends~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
     if N.WarBoardTrack then LayerEnemiesDB.warboardOwed=N.WarBoardTrack.load(saved.warboardOwed) end
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
@@ -2782,6 +2915,7 @@ function M.start()
         if command=="net" or command:match("^net%s") then guarded(M.net,command); return end
         if command=="quiet" or command:match("^quiet%s") then guarded(M.quiet,command); return end
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
+        if command=="share friends on" or command=="share friends off" then guarded(M.setShareFriends,command=="share friends on"); return end
         if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
         if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
         if command=="found on" or command=="found off" then guarded(M.setFound,command=="found on"); return end
@@ -2807,7 +2941,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_LOGOUT","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","BN_FRIEND_LIST_SIZE_CHANGED","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_LOGOUT","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","BN_FRIEND_LIST_SIZE_CHANGED","BN_FRIEND_INFO_CHANGED","BN_FRIEND_ACCOUNT_ONLINE","BN_FRIEND_ACCOUNT_OFFLINE","CLUB_MEMBER_PRESENCE_UPDATED","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -2829,7 +2963,9 @@ local function dispatch(_,event,...)
         elseif not S.secret(prefix) and prefix=="OverlordF" then guarded(M.overlordBn,...)
         elseif not S.secret(channel) then guarded(N.Sources.bnet,prefix,text,id) end
     elseif event=="BN_FRIEND_LIST_SIZE_CHANGED" then
-        N.BNet.invalidatePeers();guarded(M.overlordTick,now());N.BNet.pump(now())
+        N.BNet.invalidatePeers();guarded(M.overlordTick,now());N.BNet.pump(now());guarded(M.friendChanged)
+    elseif event=="BN_FRIEND_INFO_CHANGED" or event=="BN_FRIEND_ACCOUNT_ONLINE" or event=="BN_FRIEND_ACCOUNT_OFFLINE"
+        or event=="CLUB_MEMBER_PRESENCE_UPDATED" then guarded(M.friendChanged)
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
     elseif event=="PLAYER_REGEN_DISABLED" then
         if N.WarBoardTrack then N.WarBoardTrack.stop() end

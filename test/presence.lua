@@ -446,6 +446,8 @@ test("Presence: pure bounds and adapter field allowlists",function()
     base.zone="z"; base.faction=nil; eq(N.Presence.accept(base,"community"),nil)
     base.faction="Horde"; eq(N.Presence.accept(base,"who"),nil)
     setmetatable(data.member,{__index=function(_,k) error("not permitted: "..k) end})
+    -- 1.2.4: the class token and level are read too (they travel with the guild friend share)
+    data.game.classFilename="WARRIOR"; data.game.characterLevel=60
     setmetatable(data.game,{__index=function(_,k) error("not permitted game field: "..k) end})
     scan(N); yes(row(N).presence,"reads only allowed community fields")
     local copied=row(N).presence; copied.zone="changed"; eq(row(N).presence.zone,"Stranglethorn Vale","projection does not alias memory")
