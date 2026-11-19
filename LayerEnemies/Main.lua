@@ -2764,6 +2764,7 @@ function M.text(command)
     netLines(say)
     say(M.sharing() and "Sharing your sightings: on (/le share off)" or "Sharing your sightings: off (/le share on)")
     say("Sharing Battle.net friends and community members with the guild: "..(M.sharingFriends() and "on (/le share friends off)" or "off (/le share friends on)"))
+    say("Hop bar: "..((S.tab(LayerEnemiesDB) and S.tab(LayerEnemiesDB.bar) and LayerEnemiesDB.bar.shown) and "on (/le bar off)" or "off (/le bar on)"))
     if M.error then say("Runtime status: "..M.error) end
     say("Your server key: "..(L.key(M.store.bulo) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
         .." - zone-scoped; an equal key is not proof of the same layer")
@@ -2850,6 +2851,8 @@ function M.start()
     -- 1.2.4: sharing Battle.net friends and community members with the guild; only a saved false turns it off
     LayerEnemiesDB.shareFriends=saved.shareFriends~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
+    -- 1.2.5 hop bar: shown (default on), one-line mode and position
+    LayerEnemiesDB.bar=N.HopBar.load(saved.bar)
     if N.WarBoardTrack then LayerEnemiesDB.warboardOwed=N.WarBoardTrack.load(saved.warboardOwed) end
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
     LayerEnemiesDB.call=saved.call~=false
@@ -2916,6 +2919,7 @@ function M.start()
         if command=="quiet" or command:match("^quiet%s") then guarded(M.quiet,command); return end
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
         if command=="share friends on" or command=="share friends off" then guarded(M.setShareFriends,command=="share friends on"); return end
+        if words=="bar" or words:match("^bar ") then guarded(N.HopBar.command,words:match("^bar (%S+)$")); return end
         if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
         if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
         if command=="found on" or command=="found off" then guarded(M.setFound,command=="found on"); return end
@@ -2935,6 +2939,7 @@ function M.start()
         else guarded(M.text,command) end
     end
     N.UI.create()
+    guarded(N.HopBar.start)
     if M.host.want then M.hostResume(true) end
     heartbeat()
 end

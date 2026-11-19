@@ -233,6 +233,7 @@ function methods:SetClampedToScreen(value) self.clamped=value end
 function methods:EnableMouse() end
 function methods:EnableMouseWheel() end
 function methods:RegisterForDrag() end
+function methods:RegisterForClicks(...) self.clicks={...} end
 function methods:StartMoving() self.moving=true end
 function methods:StopMovingOrSizing() self.moving=false end
 function methods:SetAutoFocus() end
@@ -255,7 +256,7 @@ function methods:RegisterEvent(event)
     self.events[event]=true
 end
 function methods:SetScript(key,fn)
-    local allowed={OnEvent=true,OnUpdate=true,OnClick=true,OnDragStart=true,OnDragStop=true,OnMouseWheel=true,OnEnterPressed=true,OnEscapePressed=true,OnShow=true,OnHide=true,OnEnter=true,OnLeave=true}
+    local allowed={OnEvent=true,OnUpdate=true,OnClick=true,OnDragStart=true,OnDragStop=true,OnMouseDown=true,OnMouseWheel=true,OnEnterPressed=true,OnEscapePressed=true,OnShow=true,OnHide=true,OnEnter=true,OnLeave=true}
     if not allowed[key] then error("unknown script: "..key) end
     self.scripts[key]=fn
 end
@@ -574,7 +575,7 @@ test("Slash taint: loading never assigns the client's SlashCmdList, other comman
 end)
 test("strict frames start shown, dispatcher hidden, no UI or OnUpdate",function()
     local N=loadAddon()
-    eq(#frames,20); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 20: the dispatcher, hidden window and controls, including the Call toggle and Hop to another layer; popup is lazy
+    eq(#frames,21); no(frames[1]:IsShown()); eq(frames[1].scripts.OnUpdate,nil) -- 21: the dispatcher, hidden window and controls, including the Call toggle and Hop to another layer, and the 1.2.5 hop bar (shown by default); popup is lazy
     local f=CreateFrame("Frame"); yes(f:IsShown()); no(pcall(function() f:InventedMethod() end))
     eq(N.Main.statusBulo,"not installed"); eq(N.Main.statusWE,"not installed / listening on guild, party and raid (reported, not confirmed)")
 end)
@@ -874,13 +875,13 @@ test("headless map candidates only for shown zone, never fake enemy coordinates"
     eq(#N.Store.mapCandidates(N.Main.store,clock,200),0)
     local candidates=N.Store.mapCandidates(N.Main.store,clock,100)
     eq(#candidates,1); eq(candidates[1].x,.25); eq(candidates[1].positionKind,"approximate observer position")
-    eq(#frames,20)
+    eq(#frames,21)
 end)
 test("SavedVariables contain options only; no sightings survive reload",function()
     local N=loadAddon(); establish(N)
     units.target=player("PrivateName","Horde"); advance(1); deliver("PLAYER_TARGET_CHANGED"); drain()
     eq(LayerEnemiesDB.sightings,nil); eq(LayerEnemiesDB.localSeen,nil); yes(LayerEnemiesDB.options)
-    N.Main.start(); eq(#frames,20)
+    N.Main.start(); eq(#frames,21)
     N=loadAddon(); eq(N.Safe.count(N.Main.store.localSeen),0)
 end)
 test("heartbeat is five seconds idle, two while map shown",function()
@@ -1275,7 +1276,7 @@ test("we reports never enter LayerEnemiesDB (مانع T3 S4)",function()
         end
     end
     scan(LayerEnemiesDB,"LayerEnemiesDB",0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or (k=="bar" and type(LayerEnemiesDB.bar)=="table") or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("candidates: every source absent",function()
     local N=loadAddon(); establish(N)
@@ -1579,7 +1580,7 @@ test("addon never chats, invites, accepts, leaves or joins; sends only through W
     -- the only registered events are passive
     -- 0.4.0 Task 8: PARTY_INVITE_REQUEST is read (auto-accept of the asked host only); no other invite event
     for event in pairs(frames[1].events) do no(event:find("PARTY_INVITE",1,true) and event~="PARTY_INVITE_REQUEST",event) end
-    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,20)
+    yes(frames[1].events.GROUP_ROSTER_UPDATE); eq(frames[1].scripts.OnUpdate,nil); eq(#frames,21)
     eq(LayerEnemiesDB.asked,nil); eq(LayerEnemiesDB.invite,nil)
 end)
 test("Find fold: Latin and Cyrillic tables, exclusions and unchanged UTF-8",function()
@@ -2173,7 +2174,7 @@ test("hop state clears on zone change and reload",function()
     grouped=false; N=loadAddon(); friends(N,{Bob=there({host=true})}); advance(1); yes(hopNow(N,rec(N)))
     N=loadAddon(); eq(N.Main.hop.pending,nil); eq(N.Main.invite.pending,nil)
     deliver("CHAT_MSG_ADDON","LayerSwap","same","WHISPER","Bob"); eq(lines("on their layer"),0)
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or (k=="bar" and type(LayerEnemiesDB.bar)=="table") or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end; eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("hop acts on the shown candidate only (مانع T5 F1)",function()
     -- shown "Ask Scout (chat)"; an LFSw host line arrives before the click: nothing is sent, nothing drafted
@@ -3551,7 +3552,7 @@ test("0.4 host saved: on survives a reload and is active; one login line; no H a
     lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,0); eq(#sent,1)
     establish(N); deliver("GUILD_ROSTER_UPDATE",true); drain(); advance(61); lsw("inv layer <LS 100 want 7086-0>","Bob"); eq(#invites,1)
     slash("host"); yes(logged("Hosting for your guild: on (saved) · 1 invite in the last 10 minutes"))
-    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end
+    for k,v in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or (k=="bar" and type(LayerEnemiesDB.bar)=="table") or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end
     eq(type(LayerEnemiesDB.guildHost),"boolean")
 end)
 test("0.4 host saved: off persists; a bad saved value is off",function()
@@ -3695,7 +3696,7 @@ test("0.4 T8: Auto accept and leave: on by default, saved, /le hop auto and the 
     N=loadAddon(); BULO=nil; establish(N); local U=N.UI; U.toggle(); U.select("friendly")
     yes(U.auto:IsShown()); eq(U.auto.label.text,"Auto: on"); U.auto:Click(); drain(); no(N.Main.autoHop()); eq(U.auto.label.text,"Auto: off")
     U.select("reported"); no(U.auto:IsShown())
-    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end
+    for k in pairs(LayerEnemiesDB) do yes(k=="options" or k=="tracked" or k=="position" or k=="guildHost" or k=="autoHop" or k=="consent" or k=="nets" or k=="share" or k=="call" or k=="callArt" or (k=="found" and type(LayerEnemiesDB.found)=="boolean") or k=="netNotice" or k=="findShare" or k=="shareFriends" or (k=="bar" and type(LayerEnemiesDB.bar)=="table") or k=="findNotice" or k=="quietWhispers" or (k=="warboardOwed" and type(LayerEnemiesDB[k])=="table" and #LayerEnemiesDB[k]<=40),k) end
     eq(forbidden,0)
 end)
 
@@ -8037,6 +8038,9 @@ assert(loadfile("test/stack_integration.lua"))({test=test,eq=eq,yes=yes,no=no,lo
 -- sorted filenames and strict basename validation (including leading underscores).
 local sourceHarness={test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret=secret,
     hopLoad=anyFixture,hopClick=anyClick,group=function(v) grouped=v end,
+    -- run any click handler as an explicit click (the stack a who search must come from)
+    clickWith=function(fn,...) clickStack=true; local ok,err=pcall(fn,...); clickStack=false; assert(ok,err) end,
+    whoCalls=function() return whoCalls end,
     accepts=function() return #accepts end,leaves=function() return #leaves end,result=function(v) sendResult=v end,
     channels=function() return chanList end,channelMembers=function(name,list) chanMembers[name]=list end,
     joined=function() return joined end,left=function() return leftCh end,
