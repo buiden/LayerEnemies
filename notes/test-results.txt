@@ -1548,6 +1548,19 @@ PASS Found: one per tracked name per 120 s, then again
 PASS Found: never in an instance; /le found off silences and saves one boolean
 PASS Found: a new alert type costs one TYPES entry
 PASS Found: non-string level and class render; a throwing pop-up cannot skip the alert sound
+PASS Friend share: wire entry round trip, withdrawal and refusals
+PASS Friend share: an older client ignores P lines cleanly (the 1.2.3 receive path)
+PASS Friend share: every online opposite-faction friend goes to the guild with name, zone, faction, class, level and GUID
+PASS Friend share: entries are batched into as few lines as fit, each at most 255 bytes
+PASS Friend share: on change at once (zone, offline), everything again every 5 minutes
+PASS Friend share: a burst stays inside the LEGW1 budget and never starves our own lines
+PASS Friend share: off with sharing off, with /le share friends off, in an instance, and in the first 30 s
+PASS Friend share: only the switch is saved; no friend, zone or guildmate name in SavedVariables
+PASS Friend share: a guildmate's friend shows in Find and as a certain Reported row without Hop
+PASS Friend share: received entries expire, a newly tracked name resolves at once, our own view wins
+PASS Friend share: our own echo and our own character are ignored; a full sender is capped
+PASS Friend share: a guild watch list naming one of ours is answered at once, then rate limited
+PASS Friend share: lines still waiting stop when sharing is turned off
 PASS Stack: source mutant evidence rerun is byte and mtime stable
 PASS Stack: presence mutant evidence rerun is byte and mtime stable
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
@@ -2259,4 +2272,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2183 tests passed, 0 failed, 635758 assertions
+RESULT: 2196 tests passed, 0 failed, 636648 assertions
