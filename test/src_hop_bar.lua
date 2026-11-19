@@ -119,3 +119,43 @@ test("Hop bar: a click acts only on what the bar showed (a round started since t
     eq(calls,0,"no second hop"); eq(stops,0,"and no stop of a round it did not show"); yes(N.Main.hopAnyState.round)
     eq(bar(N).round,N.Main.hopAnyState.round,"the click repaints")
 end)
+
+test("Hop bar: a right-button press during a left drag does not turn the drag's release into a click",function()
+    local N=H.hopLoad(); local f=bar(N)
+    local calls=0; N.Main.hopAny=function() calls=calls+1 end
+    f.scripts.OnMouseDown(f,"LeftButton"); f.scripts.OnDragStart(f)
+    f.scripts.OnMouseDown(f,"RightButton")
+    f.scripts.OnDragStop(f); f.scripts.OnClick(f,"LeftButton")
+    eq(calls,0,"no hop from the drag")
+    -- a left press during the drag (a second button chord) does not clear it either
+    f.scripts.OnMouseDown(f,"LeftButton"); f.scripts.OnDragStart(f); f.scripts.OnMouseDown(f,"LeftButton")
+    f.scripts.OnDragStop(f); f.scripts.OnClick(f,"LeftButton"); eq(calls,0)
+    click(N,"LeftButton"); eq(calls,1,"the next real click still hops")
+    -- a drag released off the bar leaves the flag; a right-click is still a right-click
+    N.UI.create(); f.scripts.OnMouseDown(f,"LeftButton"); f.scripts.OnDragStart(f); f.scripts.OnDragStop(f)
+    no(N.UI.frame:IsShown()); click(N,"RightButton"); yes(N.UI.frame:IsShown(),"right-click opens the window")
+    click(N,"LeftButton"); eq(calls,2)
+end)
+
+local function dump(v,seen,depth)
+    if type(v)~="table" then return type(v)=="function" and "fn" or tostring(v) end
+    if seen[v] or depth>6 then return "<ref>" end; seen[v]=true
+    local keys={} for k in pairs(v) do keys[#keys+1]=k end
+    table.sort(keys,function(a,b) return tostring(a)<tostring(b) end)
+    local out={} for _,k in ipairs(keys) do out[#out+1]=tostring(k).."="..dump(v[k],seen,depth+1) end
+    seen[v]=nil
+    return "{"..table.concat(out,",").."}"
+end
+test("Hop bar: the 1 s refresh only reads (an expired ask is not cleared by the display)",function()
+    local N=H.hopLoad(); local M=N.Main
+    M.invite.pending={name="Seeker A",short="seeker a",at=H.clock()-500}
+    M.hop.pending={name="Seeker B",short="seeker b",at=H.clock()-500}
+    local function state() return dump({M.invite,M.hop,M.hopAnyState,M.store,M.auto,LayerEnemiesDB},{},0) end
+    local before=state()
+    for _=1,3 do N.HopBar.refresh() end
+    local _,status=lines(N)
+    eq(state(),before,"no state changed by the bar's ticks")
+    yes(M.invite.pending,"the expired ask is still there for its owner to clear"); yes(M.hop.pending)
+    eq(status,"Hop ready","and it does not hold the hop back")
+    M.asking(); eq(M.invite.pending,nil,"the owner's own check still clears it")
+end)

@@ -504,7 +504,7 @@ do
             return "Hopping: asking "..(r.sent or 0).."...",r
         end
         if N.Adapters.inCombat() then return "In combat" end
-        local c=M.hopAnyContext()
+        local c=M.hopAnyContext(true) -- read only: the 1 s refresh must not change any state
         if N.Wire.hopBlocked(c.now) then return "Whispers paused" end
         local ok,why=N.HopAny.check(st,c)
         if ok then return "Hop ready" end
@@ -578,13 +578,14 @@ do
             local fs=f:CreateFontString(nil,"OVERLAY"); fs:SetFont("Fonts\\FRIZQT__.TTF",11,""); fs:SetJustifyH("LEFT")
             fs:SetWordWrap(false); fs:SetTextColor(.92,.92,.92); f[key]=fs
         end
-        f.round,f.moved=false,false
-        -- the end of a drag is not a click; a press starts clean
-        f:SetScript("OnMouseDown",function(self) self.moved=false end)
-        f:SetScript("OnDragStart",function(self) self.moved=true; self:StartMoving() end)
-        f:SetScript("OnDragStop",function(self) self:StopMovingOrSizing(); savePosition(self) end)
+        f.round,f.moved,f.dragging=false,false,false
+        -- the end of a drag is not a click; a new left press starts clean (a right press during a drag does not)
+        f:SetScript("OnMouseDown",function(self,button) if button=="LeftButton" and not self.dragging then self.moved=false end end)
+        f:SetScript("OnDragStart",function(self) self.moved=true; self.dragging=true; self:StartMoving() end)
+        f:SetScript("OnDragStop",function(self) self.dragging=false; self:StopMovingOrSizing(); savePosition(self) end)
         f:SetScript("OnClick",function(self,button)
-            if self.moved then self.moved=false; return end
+            -- a drag is a left-button drag: its end swallows only a left click, never a right one
+            if self.moved and button~="RightButton" then self.moved=false; return end
             if button=="RightButton" then
                 if S.call(_G.IsShiftKeyDown)==true then
                     B.setShown(false)

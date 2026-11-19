@@ -1093,12 +1093,16 @@ function M.hostStatus()
     M.say("LayerEnemies: Hosting for your guild: "..state)
 end
 -- An ask of ours still open (120 s): older ones are cleared here, so hosting does not stay busy after a hop.
-function M.asking()
+-- peek: the same answer without clearing an expired ask (for displays that only read)
+function M.asking(peek)
     local time=now()
     local function open(p) return S.tab(p) and S.num(p.at) and time>=p.at and time-p.at<=N.Hop.REPLY end
-    if M.hop.pending and not open(M.hop.pending) then N.Hop.clear(M.hop) end
-    if M.invite.pending and not open(M.invite.pending) and not (M.auto and M.auto.group) then M.invite.pending=nil end
-    return M.hop.pending~=nil or M.invite.pending~=nil or N.FLHMember.pending() or (M.hopAnyState and M.hopAnyState.round~=nil)
+    local hop,invite=M.hop.pending,M.invite.pending
+    if hop and not open(hop) then if peek then hop=nil else N.Hop.clear(M.hop); hop=M.hop.pending end end
+    if invite and not open(invite) and not (M.auto and M.auto.group) then
+        invite=nil; if not peek then M.invite.pending=nil end
+    end
+    return hop~=nil or invite~=nil or N.FLHMember.pending() or (M.hopAnyState and M.hopAnyState.round~=nil)
 end
 -- Our own state for GuildHost.decide; member is read only after the early checks pass.
 function M.hostOwn()
@@ -1737,14 +1741,14 @@ function M.hopAnyPreview()
     local ok,why=N.HopAny.check(M.hopAnyState,M.hopAnyContext())
     return {label="Hop to another layer",enabled=ok,reason=why}
 end
-function M.hopAnyContext()
+function M.hopAnyContext(peek)
     local c=M.hopContext()
     local info=S.tab(C_Map) and S.call(C_Map.GetMapInfo,c.zone)
     c.zoneName=S.tab(info) and S.str(info.name,120) or nil
     c.self=select(2,A.ownIdentity())
     c.guildOnly=N.Net.consent()~="public"
     c.instance,c.combat=A.inInstance(),A.inCombat()
-    c.asking=M.asking() or (M.auto and M.auto.group~=nil)
+    c.asking=M.asking(peek) or (M.auto and M.auto.group~=nil)
     c.term=A.whoTerm(c.zoneName)
     c.line=N.Hop.lineNot(c.zone,c.own.server,c.x,c.y)
     return c
