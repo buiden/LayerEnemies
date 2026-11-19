@@ -12,7 +12,7 @@ local function allowedFrame(N,id,text)
     local me=N.Adapters.warboardSelf(); local d=e.d
     if not peer or not peer.confirmed or not who or not me or not d or who.guid~=d.targetGuid
         or d.hunterGuid~=me.guid or d.hunterName~=me.name or d.hunterFaction~="Alliance" or d.faction~="Alliance"
-        or e.av~="LayerEnemies/1.2.2" or e.senderName~=me.name or e.rs~="pvp" or e.v~=5 then return false end
+        or e.av~="LayerEnemies/1.2.3" or e.senderName~=me.name or e.rs~="pvp" or e.v~=5 then return false end
     return e.t=="FBUN" or (N.WarBoardTrack.on and N.Find.tracked(N.Main.find,N.OpenMap.bnName(who.name,who.realm)))
 end
 local function checkSends()
@@ -36,7 +36,7 @@ local function setup(name)
     yes(N.shipped.warboard,"source ships on"); N.Net.SHIP.warboard=true
     _G.WOW_PROJECT_ID=42
     _G.GetRealmName=function() return "PvP 123" end
-    C_AddOns.GetAddOnMetadata=function(addon,key) eq(addon,"LayerEnemies"); eq(key,"Version"); return "1.2.2" end
+    C_AddOns.GetAddOnMetadata=function(addon,key) eq(addon,"LayerEnemies"); eq(key,"Version"); return "1.2.3" end
     C_BattleNet.GetGameAccountInfoByID=function(id)
         return {gameAccountID=id,characterName="Enemy Player",realmName="123",factionName="Horde",clientProgram="WoW",
             isOnline=true,wowProjectID=42,isInCurrentRegion=true}
@@ -97,7 +97,7 @@ test("compatible H answers once through shared queue; A never answered",function
     local N=setup()
     yes(N.Sources.owns("WarBoard")); yes(N.Sources.owns("WarBoardBN"))
     inbound(hello()); eq(#sends(),0,"not an immediate client call")
-    advance(1); eq(#sends("A"),1); eq(sends()[1].text,"WBF1|A|5|pvp|LayerEnemies/1.2.2|0")
+    advance(1); eq(#sends("A"),1); eq(sends()[1].text,"WBF1|A|5|pvp|LayerEnemies/1.2.3|0")
     inbound(hello("A")); advance(2); eq(#sends(),1)
     yes(N.WarBoard.state.peers[71])
 end)
@@ -802,7 +802,7 @@ test("H cannot consume owed reserve while six real A answers use it",function()
         fixture.register(N,name,prefix); yes(N.BNet.send(name,71,prefix,"owed","owed"))
     end
     eq(N.BNet.queued(),60)
-    no(N.BNet.send("warboard",99,"WarBoard","WBF1|A|5|pvp|LayerEnemies/1.2.2|0","owed"))
+    no(N.BNet.send("warboard",99,"WarBoard","WBF1|A|5|pvp|LayerEnemies/1.2.3|0","owed"))
     advance(6); eq(#sends("A"),6); eq(#sends("H"),0)
     advance(2); eq(#h.sent(),8)
     for _,r in ipairs(h.sent()) do no(r.text=="normal","all owed work precedes normal work") end

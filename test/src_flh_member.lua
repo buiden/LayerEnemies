@@ -8,7 +8,7 @@ local function member()
     local N=H.load(); H.establish(N); H.clock(math.ceil(H.clock())); N.Net.SHIP.flh=true
     yes(N.FLHMember,"membership runtime missing")
     local meta=C_AddOns.GetAddOnMetadata
-    C_AddOns.GetAddOnMetadata=function(name,key) if name=="LayerEnemies" and key=="Version" then return "1.2.2" end; return meta(name,key) end
+    C_AddOns.GetAddOnMetadata=function(name,key) if name=="LayerEnemies" and key=="Version" then return "1.2.3" end; return meta(name,key) end
     return N
 end
 local function lines()
@@ -19,14 +19,14 @@ end
 test("FLH member: builders carry our identity and only our fingerprint",function()
     local N=H.load(); local F=N.FLH
     yes(F.hi,"membership builders missing")
-    local own={map=100,key="7",realm="TestRealm",version="LayerEnemies 1.2.2"}
+    local own={map=100,key="7",realm="TestRealm",version="LayerEnemies 1.2.3"}
     local expected={
-        {F.hi(own),"HI|100|7|0|LayerEnemies 1.2.2|TestRealm|BUILD=LayerEnemies 1.2.2"},
-        {F.wr(42,own),"WR|42|TestRealm|LayerEnemies 1.2.2|100|7|0|BUILD=LayerEnemies 1.2.2"},
-        {F.ca(42,own),"CA|42|100|7|0|LayerEnemies 1.2.2|TestRealm|BUILD=LayerEnemies 1.2.2"},
-        {F.wp(42,own),"WP|42|TestRealm|LayerEnemies 1.2.2|100|7|0|BUILD=LayerEnemies 1.2.2|AUTO=1"},
-        {F.lq(42,own,"8"),"LQ|42|100|8|7||BUILD=LayerEnemies 1.2.2"},
-        {F.lr(42,own,"8"),"LR|42|100|8|LayerEnemies 1.2.2|BUILD=LayerEnemies 1.2.2"},
+        {F.hi(own),"HI|100|7|0|LayerEnemies 1.2.3|TestRealm|BUILD=LayerEnemies 1.2.3"},
+        {F.wr(42,own),"WR|42|TestRealm|LayerEnemies 1.2.3|100|7|0|BUILD=LayerEnemies 1.2.3"},
+        {F.ca(42,own),"CA|42|100|7|0|LayerEnemies 1.2.3|TestRealm|BUILD=LayerEnemies 1.2.3"},
+        {F.wp(42,own),"WP|42|TestRealm|LayerEnemies 1.2.3|100|7|0|BUILD=LayerEnemies 1.2.3|AUTO=1"},
+        {F.lq(42,own,"8"),"LQ|42|100|8|7||BUILD=LayerEnemies 1.2.3"},
+        {F.lr(42,own,"8"),"LR|42|100|8|LayerEnemies 1.2.3|BUILD=LayerEnemies 1.2.3"},
     }
     for _,v in ipairs(expected) do eq(v[1],v[2]); yes(F.decode(v[1])); yes(#v[1]<=255) end
     for _,bad in ipairs({H.secret,{}, {map=100,key="0",realm="TestRealm",version=own.version},
@@ -43,7 +43,7 @@ test("FLH member: owed replies share six per minute and one per sender per sixty
     receive(wp); eq(#lines(),1)
     local r=lines()[1]; eq(r.kind,"WHISPER"); eq(r.target,"Cedar Vale")
     local m=N.FLH.decode(r.text); eq(m.cmd,"WR"); eq(m.id,42); eq(m.map,100); eq(m.key,"7"); eq(m.host,0)
-    eq(m.realm,"Test Realm"); eq(m.version,"LayerEnemies 1.2.2")
+    eq(m.realm,"Test Realm"); eq(m.version,"LayerEnemies 1.2.3")
     receive(wp); receive(cq,"WHISPER","CEDAR VALE-TestRealm"); eq(#lines(),1)
     for i=1,6 do receive(i%2==0 and wp or cq,"WHISPER","Peer"..H.abc(i)) end
     eq(#lines(),6)
@@ -155,7 +155,7 @@ end
 
 test("FLH member: existing fanout sends all forty nine on its original cadence beside owed replies",function()
     local N=H.hopLoad(); N.Net.SHIP.flh=true
-    C_AddOns.GetAddOnMetadata=function() return "1.2.2" end
+    C_AddOns.GetAddOnMetadata=function() return "1.2.3" end
     directory(N,8); open(N); H.hopClick(N); H.deliver("WHO_LIST_UPDATE")
     local function hopCount() local n=0; for _,v in ipairs(H.sent()) do if v.prefix=="LayerSwap" then n=n+1 end end; return n end
     eq(hopCount(),8)
@@ -322,7 +322,7 @@ test("FLH member: deterministic five thousand malformed and structured frames re
     yes(#lines()<=6)
     for _,v in ipairs(lines()) do
         local m=N.FLH.decode(v.text); yes(m); yes(m.cmd=="WR" or m.cmd=="CA")
-        eq(v.kind,"WHISPER"); eq(m.host,0); eq(m.version,"LayerEnemies 1.2.2")
+        eq(v.kind,"WHISPER"); eq(m.host,0); eq(m.version,"LayerEnemies 1.2.3")
     end
     eq(LayerEnemiesDB.nets.flh,nil); eq(N.Wire.queued(),0)
 end)
@@ -344,7 +344,7 @@ end)
 
 test("FLH member: no channel send or hosting authority can be manufactured inside dispatch",function()
     local N=member(); local original=N.Wire.send
-    for _,replacement in ipairs({"LO|42|100|7|0|0","HI|100|7|1|LayerEnemies 1.2.2|Test Realm","PX|42","PR|42","PI|42"}) do
+    for _,replacement in ipairs({"LO|42|100|7|0|0","HI|100|7|1|LayerEnemies 1.2.3|Test Realm","PX|42","PR|42","PI|42"}) do
         N.Wire.send=function(prefix,text,dist,target,opts) return original(prefix,replacement,dist,target,opts) end
         receive(wp,"WHISPER","Forged "..H.abc(#replacement))
     end

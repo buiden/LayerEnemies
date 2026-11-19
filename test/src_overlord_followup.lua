@@ -8,7 +8,7 @@ local function fixture(o)
     local N=H.load();N.Net.SHIP.overlord=true;WOW_PROJECT_ID=42
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
-    C_AddOns.GetAddOnMetadata=function() return "1.2.2" end
+    C_AddOns.GetAddOnMetadata=function() return "1.2.3" end
     GetNumDisplayChannels=function() return 0 end
     local state={friend=true,party=o.party,guild=o.guild,realm=o.realm or "Test Realm",me="Alice Vale"}
     IsInGroup=function() return state.party~=nil end;IsInRaid=function() return false end
@@ -58,7 +58,7 @@ local function advance(n) for _=1,n do H.advance(1) end end
 for version=5,9 do
     test("n3 busy HA version "..version,function()
         local N=H.load();local P=N.OverlordPeer;local peer=P.new();local out={}
-        local c={now=100,wall=1800000000,me="Alice Vale",version="1.2.2",pool="global",faction="A",allowed=true,own=true,
+        local c={now=100,wall=1800000000,me="Alice Vale",version="1.2.3",pool="global",faction="A",allowed=true,own=true,
             send=function(_,text) out[#out+1]=text;return true end}
         P.receive(peer,{origin="Birch Scout",hops=0,target=c.me,kind="HR",
             payload=version..":V:1799999900:123n4n5f:1:LK:0:0:H"},"WHISPER","Birch Scout",nil,c)

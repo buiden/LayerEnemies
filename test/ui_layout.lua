@@ -199,7 +199,9 @@ test("UI layout: Overlord guild claims measure complete text and never inherit r
     local N=H.load(); local U,M=N.UI,N.Main
     local guild={guild="Enemy Guild",kills=9999,members=999,layer=99999999,zoneName=string.rep(longZone.." ",16),at=H.clock()}
     local report={reporter="Birch Moss",class="MAGE",hand="first",record={}}
-    local rows={guild,report}; M.reportedRows=function() return rows end
+    -- the window takes its reported rows from the single namedRows call per render (1.2.3)
+    local rows={guild,report}; local named=M.namedRows
+    M.namedRows=function(seen) local copies=named(seen); return copies,rows end
     M.hopPreview=function() return {label="Ask Birch Moss",enabled=true} end
     U.toggle(); U.select("reported"); rowFits(U.pool[1],U); header(U,false)
     local card=U.pool[1]; yes(card.sub:GetStringHeight()>140,"exercises fixed-height overflow")

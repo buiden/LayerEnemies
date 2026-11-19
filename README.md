@@ -1,5 +1,19 @@
 # LayerEnemies
 
+## 1.2.3
+
+### Names in the Reported tab
+
+**No send change.** A guildmate's LayerEnemies sighting has always carried the enemy's name;
+the Reported tab now shows it (for example "Zack Ly"), and when it is a player you see
+yourself the report joins that "Seen by you" row as "also reported by …" instead of being
+listed twice. War Effort sends only a short code per name, and different names can share
+a code, so a match is a guess: such a row reads "probably Zack Ly" (or "probably Zack Ly or
+Zak Lee", then "+N"), tried against the names known this session, with class and level as
+tie-breakers, and it is never merged. With no match it stays "Unknown <class>". A report
+on your own layer no longer shows a Hop button. Names stay in memory only; nothing new is
+saved.
+
 ## 1.2.2
 
 ### Fix: raid markers and other slash commands blocked ("tried to call the protected function")
