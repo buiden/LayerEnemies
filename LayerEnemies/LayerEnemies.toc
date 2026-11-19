@@ -38,6 +38,7 @@ Known.lua
 Find.lua
 Watch.lua
 OpenMap.lua
+FriendShare.lua
 Presence.lua
 BNet.lua
 Overlord.lua

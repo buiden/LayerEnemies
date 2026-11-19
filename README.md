@@ -1,5 +1,29 @@
 # LayerEnemies
 
+## 1.2.4
+
+### Battle.net friends and community members shared with the guild
+
+**New send (reverses 1.2.0's "presence sends nothing").** Every opposite-faction Battle.net
+friend or Battle.net community member your client sees online in WoW with a zone is sent to
+your guild on the LayerEnemies guild channel (`LEGW1`, `P` lines): the character's name with
+realm, faction, zone, class, level and GUID when the client gives them. Nothing else about the
+account is read or sent: no account name, BattleTag or note. Guildmates tracking a name see
+`online (friend of <you>): <zone> · N s ago` in Find, and every shared character appears in
+their Reported tab as a certain name, "Battle.net friend of <you>", zone only (no layer, so no
+Hop).
+
+- When: on a change (came online, changed zone, went offline), at most every 15 seconds,
+  and everything again every 5 minutes; a guildmate's watch list naming one of them is
+  answered at once (at most every 30 seconds per name). Not in the first 30 seconds after
+  login.
+- How much: as many entries per line as fit in 255 bytes. Lines wait their turn behind our
+  own sightings, hops and answers, inside the existing guild channel budget.
+- Off: `/le share friends off` (on by default), `/le share off`, inside an instance, outside a
+  guild. The switch is the only thing saved; everything received is session memory and is gone
+  15 minutes after its last refresh.
+- Older LayerEnemies versions ignore these lines.
+
 ## 1.2.3
 
 ### Names in the Reported tab
@@ -904,7 +928,8 @@ and the age of our read. Presence text uses its measured height, so a one-line
 presence-only card is as compact as a normal one-line card and wrapped zones
 still fit without overlapping. Mixed Find cards also measure the complete
 claim text before placing presence; assumed per-claim boxes do not add empty
-space. It joins nothing and sends nothing: no new addon
+space. (1.2.4 changes this: see "Battle.net friends and community members shared with the
+guild".) It joins nothing and sends nothing: no new addon
 messages, chat, Battle.net data, presence subscriptions, or `/who` by name.
 There is no per-community Watch button. No donor addon or donor code is used.
 

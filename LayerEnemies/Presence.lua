@@ -15,7 +15,11 @@ local function accept(member,route)
         local presence=S.num(member.presence)
         if presence~=1 and presence~=4 and presence~=5 then return nil end
     end
-    return {zone=zone,route=route,faction=faction,guid=guid}
+    local class=S.str(member.class,16)
+    local level=S.num(member.level)
+    if not (N.FriendShare and N.FriendShare.classOk(class)) then class=nil end
+    if not (N.FriendShare and N.FriendShare.level(level)) then level=nil end
+    return {zone=zone,route=route,faction=faction,guid=guid,class=class,level=level}
 end
 function P.accept(member,route)
     local ok,record=pcall(accept,member,route)

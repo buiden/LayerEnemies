@@ -142,7 +142,7 @@ for _,stand in ipairs({false,true}) do
         yes(text:find("kills read=2 fresh=1 relayed=0",1,true))
         local before=N.HeadHunter.summary(stats); N.Main.boundary(200); eq(N.HeadHunter.summary(stats),before)
         local allowed={options=true,tracked=true,position=true,guildHost=true,consent=true,nets=true,share=true,call=true,callArt=true,
-            netNotice=true,autoHop=true,weReportId=true,findShare=true,findNotice=true,found=type(LayerEnemiesDB.found)=="boolean",quietWhispers=true,warboardOwed=type(LayerEnemiesDB.warboardOwed)=="table" and #LayerEnemiesDB.warboardOwed<=40}
+            netNotice=true,autoHop=true,weReportId=true,findShare=true,shareFriends=true,findNotice=true,found=type(LayerEnemiesDB.found)=="boolean",quietWhispers=true,warboardOwed=type(LayerEnemiesDB.warboardOwed)=="table" and #LayerEnemiesDB.warboardOwed<=40}
         for k in pairs(LayerEnemiesDB) do yes(allowed[k],"no new SavedVariables field: "..k) end
         local function walk(v)
             if type(v)~="table" then return end

@@ -166,9 +166,11 @@ function A.clubMember(clubId,memberId)
         local realm=S.str(v(game.realmName),60) or S.str(v(game.realmDisplayName),60)
         local zone,faction=S.str(v(game.areaName),120),S.str(v(game.factionName),16)
         local guid=S.str(v(game.playerGuid),120)
+        -- 1.2.4: class token and level travel with the guild friend share
+        local class,level=S.str(v(game.classFilename),16),S.num(v(game.characterLevel))
         -- Keep safe partial character data for stage counts; Presence.accept
         -- still requires every display field before any row can be admitted.
-        return {name=name,realm=realm,zone=zone,faction=faction,presence=presence,guid=guid}
+        return {name=name,realm=realm,zone=zone,faction=faction,presence=presence,guid=guid,class=class,level=level}
     end)
 end
 function A.bnFriends()
@@ -192,8 +194,9 @@ function A.bnFriends()
                 local name,realm=S.str(read(game.characterName),100),S.str(read(game.realmName),60)
                 local zone,faction=S.str(read(game.areaName),120),S.str(read(game.factionName),16)
                 local guid=S.str(read(game.playerGuid),120)
+                local class,level=S.str(read(game.classFilename),16),S.num(read(game.characterLevel))
                 if not name or not realm or not zone or (faction~="Horde" and faction~="Alliance") then return nil end
-                return {name=name,realm=realm,zone=zone,faction=faction,guid=guid}
+                return {name=name,realm=realm,zone=zone,faction=faction,guid=guid,class=class,level=level}
             end)
             if reason=="secret" then refused=refused+1 end
             -- Preserve the visited slot even when offline or unreadable, so its
