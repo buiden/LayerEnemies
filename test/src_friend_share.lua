@@ -434,3 +434,73 @@ test("Friend share: a watch answer goes in front of changes already waiting; onl
     eq(FS.entry({name="A",zone="B",guid="Creature-0-1-2-3-AA"}),"A:B::::","a non-player GUID is not sent")
     eq(FS.entry({name="A",zone="B",guid="Player-1-0A"}),"A:B::::1-0A")
 end)
+
+-- Review of PR #45 (MUST): an escaped "." must come back as a "."; the escape is exact for every byte.
+test("Friend share: periods survive the wire in names and zones; escape then unescape is exact for every byte",function()
+    local N=H.load(); local FS=N.FriendShare
+    local line=FS.lines({{name="J.R Cc-TestRealm",zone="Dr. Weavil's Island",faction="Horde"},
+        {name="A.B. C-Area 52",zone="St. Mary . Grove.",faction="Alliance"}},0)[1]
+    local msg=FS.decode(line); yes(msg,line)
+    eq(msg.entries[1].name,"J.R Cc-TestRealm"); eq(msg.entries[1].zone,"Dr. Weavil's Island")
+    eq(msg.entries[2].name,"A.B. C-Area 52"); eq(msg.entries[2].zone,"St. Mary . Grove.")
+    for b=1,255 do
+        local c=string.char(b)
+        for _,text in ipairs({c,"a"..c.."b",c..c,". "..c.." ."}) do eq(FS.unesc(FS.esc(text)),text,"byte "..b) end
+    end
+    math.randomseed(7)
+    for _=1,2000 do
+        local t={} for i=1,math.random(1,40) do t[i]=string.char(math.random(1,255)) end
+        local text=table.concat(t); eq(FS.unesc(FS.esc(text)),text)
+    end
+    -- valid UTF-8 text survives the whole line round trip
+    for _,text in ipairs({"Zoë.Mal'Ganis","Ünter.Wald-Kel'Thuzad","日本.語","x/2E.y"}) do
+        local back=FS.decode(FS.lines({{name=text,zone=text,faction="Horde"}},0)[1]).entries[1]
+        eq(back.name,text); eq(back.zone,text)
+    end
+end)
+
+test("Friend share: 39 watched friends and a watch line every 30 s do not starve the refresh (all 200 go out)",function()
+    -- the reviewer's case: ticks every second, an own sighting every 20 s, the first 39 names watched
+    local friends={}
+    for i=1,200 do friends[i]=game({characterName="Fr"..H.abc(i%26+1)..H.abc(math.floor(i/26)+1).." Vale",playerGuid="Player-1-"..string.format("%08X",i)}) end
+    local N=ready(friends); local before=#H.sent()
+    N.Main.presenceScan(true); for _=1,2000 do if not N.Main.presenceJob then break end; H.advance(.001) end
+    local hs={} for i=1,39 do hs[i]=N.Watch.hash(friends[i].gameAccountInfo.characterName) end
+    local wire="T|1|ac|1|1|"..table.concat(hs)
+    local ownOk=0
+    for step=1,1200 do
+        H.advance(1); N.Main.friendShareTick()
+        for _=1,50 do if not N.Main.presenceJob then break end; H.advance(.001) end
+        if step%20==0 then
+            local own=N.Relay.ownLine({rid=step,zone=100,count=1,enemies={{displayName="Zack Ly",class="SHAMAN",level=49}}})
+            if N.Relay.spend(H.clock(),false) and N.Wire.send("LEGW1",own,"GUILD",nil,{prio="own",queue=false}) then ownOk=ownOk+1 end
+        end
+        if step%30==0 then N.Main.relayIn(wire,"GUILD","Selina Gomez") end
+    end
+    local seen,n={},0
+    for _,e in ipairs(entries(N,pLines(before))) do if not seen[e.name] then seen[e.name]=true; n=n+1 end end
+    eq(n,200,"every friend sent despite the watch traffic")
+    eq(ownOk,60,"our own sightings still all go")
+end)
+
+test("Friend share: a watch answer comes once per newly watched name, takes at most every other place, and old keys are forgotten",function()
+    local N=H.load(); local FS=N.FriendShare; local out=FS.newOut()
+    local cur={}
+    for i=1,40 do cur[string.format("k%02d",i)]={name=string.format("N%02d",i),zone="Z",faction="Horde"} end
+    FS.plan(out,cur,100)
+    local keys={}; for i=1,20 do keys[string.format("k%02d",i)]=true end
+    eq(FS.answer(out,keys,100),20); eq(FS.answer(out,keys,200),0,"the same names again: no answer, even after the gap")
+    local line,sentKeys=FS.nextLine(out,0)
+    local answered=0; for _,k in ipairs(sentKeys) do if out.answers[k] then answered=answered+1 end end
+    local a,r=0,0; for _,k in ipairs(sentKeys) do if keys[k] then a=a+1 else r=r+1 end end
+    yes(a<=r+1 and r>0,"answers "..a..", others "..r)
+    keys.k21=true; eq(FS.answer(out,keys,201),1,"a newly named one is answered")
+    -- bookkeeping for a key that left and is no longer waiting is dropped at the next refresh
+    FS.done(out,sentKeys,201); while FS.pending(out) do local _,k2=FS.nextLine(out,0); FS.done(out,k2,202) end
+    eq(next(out.answers),nil,"once sent, an answered key is an ordinary key again")
+    local cur2={}; for k,e in pairs(cur) do if k~="k01" then cur2[k]=e end end
+    FS.plan(out,cur2,210); while FS.pending(out) do local _,k2=FS.nextLine(out,0); FS.done(out,k2,211) end
+    FS.plan(out,cur2,600)
+    eq(out.lastAt.k01,nil); eq(out.names.k01,nil); eq(out.answered.k01,nil); eq(out.watched.k01,nil)
+    yes(out.lastAt.k02,"online keys keep theirs")
+end)

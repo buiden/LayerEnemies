@@ -14,8 +14,9 @@ their Reported tab as a certain name, "Battle.net friend of <you>", zone only (n
 Hop).
 
 - When: on a change (came online, changed zone, went offline), at most every 15 seconds,
-  and everything again every 5 minutes; a guildmate's watch list naming one of them is
-  answered at once (at most every 30 seconds per name). Not in the first 30 seconds after
+  and everything again every 5 minutes; when a guildmate's watch list newly names one of
+  them, it is answered at once (at most every 30 seconds per name; answers take at most every
+  other place in a line, so the refresh always moves on). Not in the first 30 seconds after
   login. Answers go first, then changes, then the refresh, oldest-sent first: when the budget
   cannot send everything within 5 minutes, the next refresh carries on where the last one
   stopped, so every character is sent again within as many 5-minute rounds as the list needs.

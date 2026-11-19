@@ -27,7 +27,11 @@ local function esc(s)
 end
 local function unesc(t)
     if t:find("[^%w%-%./]") or t:gsub("/%x%x",""):find("/") then return nil end
-    return (t:gsub("/(%x%x)",function(h) return string.char(tonumber(h,16)) end):gsub("%.",function() return " " end))
+    -- one left-to-right pass: "." is a space, "/XX" a byte (an escaped "." stays a ".")
+    return (t:gsub("([%./])(%x?%x?)",function(c,h)
+        if c=="." then return " "..h end
+        return string.char(tonumber(h,16))
+    end))
 end
 FS.esc,FS.unesc=esc,unesc
 -- Well-formed UTF-8 (no overlong forms, no surrogates, nothing above U+10FFFF).
@@ -129,7 +133,7 @@ end
 --   due: set of keys owed by a refresh; sent stalest first (never-sent first), so a refresh that the budget cannot
 --   finish carries on where it stopped instead of starting again at "A".
 function FS.newOut()
-    return {cur={},names={},sent={},lastAt={},urgent={},due={},fullAt=nil,answered={},
+    return {cur={},names={},sent={},lastAt={},urgent={},due={},fullAt=nil,answered={},watched={},answers={},
         stats={lines=0,entries=0,refused=0}}
 end
 local function same(a,b)
@@ -167,6 +171,11 @@ function FS.plan(out,current,now)
     if full then
         for key in pairs(current) do if not urgentIndex(out,key) then out.due[key]=true end end
         out.fullAt=now
+        -- forget bookkeeping for keys that are neither online nor waiting
+        local waiting={}; for _,k in ipairs(out.urgent) do waiting[k]=true end
+        for _,map in ipairs({out.lastAt,out.names,out.answered,out.watched,out.answers}) do
+            for k in pairs(map) do if not current[k] and not waiting[k] and not out.due[k] then map[k]=nil end end
+        end
     end
     return full
 end
@@ -174,8 +183,9 @@ function FS.pending(out) return out.urgent[1]~=nil or next(out.due)~=nil end
 -- nextLine(out, age) -> line, keys: urgent keys first in order, then due keys stalest first, packed into one line.
 -- Keys whose entry cannot be written are dropped.
 function FS.nextLine(out,age)
-    local order={}
-    for _,k in ipairs(out.urgent) do order[#order+1]=k end
+    -- watch answers take at most every other place, so changes and the refresh always move on
+    local order,answers,rest={},{},{}
+    for _,k in ipairs(out.urgent) do if out.answers[k] then answers[#answers+1]=k else rest[#rest+1]=k end end
     local due={}
     for k in pairs(out.due) do due[#due+1]=k end
     table.sort(due,function(a,b)
@@ -183,7 +193,11 @@ function FS.nextLine(out,age)
         if x~=y then return x<y end
         return a<b
     end)
-    for _,k in ipairs(due) do order[#order+1]=k end
+    for _,k in ipairs(due) do rest[#rest+1]=k end
+    for i=1,math.max(#answers,#rest) do
+        if answers[i] then order[#order+1]=answers[i] end
+        if rest[i] then order[#order+1]=rest[i] end
+    end
     local head=headOf(age)
     local items,keys,used={},{},#head
     for _,k in ipairs(order) do
@@ -203,7 +217,7 @@ end
 function FS.done(out,keys,now)
     for _,k in ipairs(keys) do
         local i=urgentIndex(out,k); if i then table.remove(out.urgent,i) end
-        out.due[k]=nil
+        out.due[k]=nil; out.answers[k]=nil
         if now then
             out.lastAt[k]=now; out.sent[k]=out.cur[k]
             out.stats.entries=out.stats.entries+1
@@ -215,16 +229,19 @@ end
 function FS.clear(out)
     out.urgent,out.due,out.sent,out.lastAt,out.fullAt={},{},{},{},nil
 end
--- answer(out, keys, now) -> count: current entries a guild watch list names go to the front, at most every
--- ANSWER_GAP per name.
+-- answer(out, keys, now) -> count: current entries the guild's watch lists name go to the front, but only when a
+-- watch list newly names them (a repeated T for the same names answers nothing), and at most every ANSWER_GAP.
 function FS.answer(out,keys,now)
     local list={}
     for key in pairs(keys) do
         local at=out.answered[key]
-        if out.cur[key] and (not at or now<at or now-at>=FS.ANSWER_GAP) then out.answered[key]=now; list[#list+1]=key end
+        if out.cur[key] and not out.watched[key] and (not at or now<at or now-at>=FS.ANSWER_GAP) then
+            out.answered[key]=now; list[#list+1]=key
+        end
     end
+    out.watched={}; for key in pairs(keys) do out.watched[key]=true end
     table.sort(list,function(a,b) return a>b end)
-    for _,key in ipairs(list) do pushUrgent(out,key,true) end
+    for _,key in ipairs(list) do pushUrgent(out,key,true); out.answers[key]=true end
     return #list
 end
 
