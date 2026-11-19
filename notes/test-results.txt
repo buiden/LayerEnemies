@@ -1561,6 +1561,16 @@ PASS Friend share: received entries expire, a newly tracked name resolves at onc
 PASS Friend share: our own echo and our own character are ignored; a full sender is capped
 PASS Friend share: a guild watch list naming one of ours is answered at once, then rate limited
 PASS Friend share: lines still waiting stop when sharing is turned off
+OBS 200 friends: 203 lines, 812 entries, 203.0 per 5 min, rounds 1, worst gap 300 s, 4.00 per line
+PASS Friend share: 200 friends over 20 minutes all go out, each again within the refresh rounds the budget needs
+OBS 400 entries: 241 lines, 150.6 entries per 5 min, rounds 3, worst gap 800 s
+PASS Friend share: 400 entries, more than one refresh can carry: each refresh carries on where the last stopped
+PASS Friend share: a change for the last name goes out in the next line, ahead of a big backlog, and a refresh keeps it
+PASS Friend share: a watch answer jumps the backlog
+PASS Friend share: a withdrawal waits through a refresh; nothing waiting is dropped by a new scan
+PASS Friend share: the newest guildmate evidence wins in Find, which keeps it for 15 minutes
+PASS Friend share: the cached row list follows every store, withdrawal and expiry
+PASS Friend share: a watch answer goes in front of changes already waiting; only a player GUID is sent
 PASS Stack: source mutant evidence rerun is byte and mtime stable
 PASS Stack: presence mutant evidence rerun is byte and mtime stable
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
@@ -2272,4 +2282,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2196 tests passed, 0 failed, 636648 assertions
+RESULT: 2204 tests passed, 0 failed, 637024 assertions
