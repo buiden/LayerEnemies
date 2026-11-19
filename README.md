@@ -1,5 +1,25 @@
 # LayerEnemies
 
+## 1.2.5
+
+### Hop bar
+
+A small movable bar with your layer and the hop status, so a hop is one click away without
+opening the window. **No new send:** a left-click is the window's "Hop to another layer"
+button, with the same checks and limits (one click every 10 seconds, not in combat, not in an
+instance, not in guild-only mode, not in a group).
+
+- Line 1: `Layer <key>` (the same key as YOUR LAYER in the window), `Detecting...` while the key
+  is unknown, or the instance name inside an instance.
+- Line 2: `Hop ready`, `Hopping: asking N...`, `Wait Ns`, `In combat`, or a short reason when a
+  hop is not possible.
+- Left-click hops (or stops an open hop); right-click opens the LayerEnemies window;
+  Shift+right-click hides the bar; left-drag moves it (a drag is never a click). No tooltip.
+- `/le bar on|off|oneline` (on by default; `oneline` switches between one and two lines). Saved:
+  shown or hidden, one-line mode and the position.
+- Plain frames only, never protected; it stays on screen in combat and shows `In combat`.
+- Modelled on LayerSwap's mini bar (behaviour and look); our own code and logo.
+
 ## 1.2.4
 
 ### Battle.net friends and community members shared with the guild

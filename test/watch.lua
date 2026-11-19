@@ -332,7 +332,7 @@ test("watch 23: only the two switches are saved, never held lists or notice hist
     list(N,"Birch Scout","aa",{"Watch a"}); sight(N,"Watch a"); pump(N,101)
     eq(snapshot(LayerEnemiesDB),before)
     local allowed={options=true,tracked=true,position=true,guildHost=true,consent=true,nets=true,share=true,call=true,callArt=true,
-        netNotice=true,autoHop=true,weReportId=true,findShare=true,shareFriends=true,findNotice=true,found=type(LayerEnemiesDB.found)=="boolean",quietWhispers=true,warboardOwed=type(LayerEnemiesDB.warboardOwed)=="table" and #LayerEnemiesDB.warboardOwed<=40}
+        netNotice=true,autoHop=true,weReportId=true,findShare=true,shareFriends=true,bar=type(LayerEnemiesDB.bar)=="table",findNotice=true,found=type(LayerEnemiesDB.found)=="boolean",quietWhispers=true,warboardOwed=type(LayerEnemiesDB.warboardOwed)=="table" and #LayerEnemiesDB.warboardOwed<=40}
     for key in pairs(LayerEnemiesDB) do yes(allowed[key],"configuration only") end
     SlashCmdList.LAYERENEMIES("find share off"); SlashCmdList.LAYERENEMIES("find notice off")
     local saved=LayerEnemiesDB; N=H.load(saved)

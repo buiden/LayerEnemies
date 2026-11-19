@@ -1093,12 +1093,16 @@ function M.hostStatus()
     M.say("LayerEnemies: Hosting for your guild: "..state)
 end
 -- An ask of ours still open (120 s): older ones are cleared here, so hosting does not stay busy after a hop.
-function M.asking()
+-- peek: the same answer without clearing an expired ask (for displays that only read)
+function M.asking(peek)
     local time=now()
     local function open(p) return S.tab(p) and S.num(p.at) and time>=p.at and time-p.at<=N.Hop.REPLY end
-    if M.hop.pending and not open(M.hop.pending) then N.Hop.clear(M.hop) end
-    if M.invite.pending and not open(M.invite.pending) and not (M.auto and M.auto.group) then M.invite.pending=nil end
-    return M.hop.pending~=nil or M.invite.pending~=nil or N.FLHMember.pending() or (M.hopAnyState and M.hopAnyState.round~=nil)
+    local hop,invite=M.hop.pending,M.invite.pending
+    if hop and not open(hop) then if peek then hop=nil else N.Hop.clear(M.hop); hop=M.hop.pending end end
+    if invite and not open(invite) and not (M.auto and M.auto.group) then
+        invite=nil; if not peek then M.invite.pending=nil end
+    end
+    return hop~=nil or invite~=nil or N.FLHMember.pending() or (M.hopAnyState and M.hopAnyState.round~=nil)
 end
 -- Our own state for GuildHost.decide; member is read only after the early checks pass.
 function M.hostOwn()
@@ -1737,14 +1741,14 @@ function M.hopAnyPreview()
     local ok,why=N.HopAny.check(M.hopAnyState,M.hopAnyContext())
     return {label="Hop to another layer",enabled=ok,reason=why}
 end
-function M.hopAnyContext()
+function M.hopAnyContext(peek)
     local c=M.hopContext()
     local info=S.tab(C_Map) and S.call(C_Map.GetMapInfo,c.zone)
     c.zoneName=S.tab(info) and S.str(info.name,120) or nil
     c.self=select(2,A.ownIdentity())
     c.guildOnly=N.Net.consent()~="public"
     c.instance,c.combat=A.inInstance(),A.inCombat()
-    c.asking=M.asking() or (M.auto and M.auto.group~=nil)
+    c.asking=M.asking(peek) or (M.auto and M.auto.group~=nil)
     c.term=A.whoTerm(c.zoneName)
     c.line=N.Hop.lineNot(c.zone,c.own.server,c.x,c.y)
     return c
@@ -2764,6 +2768,7 @@ function M.text(command)
     netLines(say)
     say(M.sharing() and "Sharing your sightings: on (/le share off)" or "Sharing your sightings: off (/le share on)")
     say("Sharing Battle.net friends and community members with the guild: "..(M.sharingFriends() and "on (/le share friends off)" or "off (/le share friends on)"))
+    say("Hop bar: "..((S.tab(LayerEnemiesDB) and S.tab(LayerEnemiesDB.bar) and LayerEnemiesDB.bar.shown) and "on (/le bar off)" or "off (/le bar on)"))
     if M.error then say("Runtime status: "..M.error) end
     say("Your server key: "..(L.key(M.store.bulo) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
         .." - zone-scoped; an equal key is not proof of the same layer")
@@ -2850,6 +2855,8 @@ function M.start()
     -- 1.2.4: sharing Battle.net friends and community members with the guild; only a saved false turns it off
     LayerEnemiesDB.shareFriends=saved.shareFriends~=false
     LayerEnemiesDB.findNotice=saved.findNotice~=false
+    -- 1.2.5 hop bar: shown (default on), one-line mode and position
+    LayerEnemiesDB.bar=N.HopBar.load(saved.bar)
     if N.WarBoardTrack then LayerEnemiesDB.warboardOwed=N.WarBoardTrack.load(saved.warboardOwed) end
     M.watch=N.Watch.new(M.find,now(),LayerEnemiesDB.findShare)
     LayerEnemiesDB.call=saved.call~=false
@@ -2916,6 +2923,7 @@ function M.start()
         if command=="quiet" or command:match("^quiet%s") then guarded(M.quiet,command); return end
         if command=="share on" or command=="share off" then guarded(M.setShare,command=="share on"); return end
         if command=="share friends on" or command=="share friends off" then guarded(M.setShareFriends,command=="share friends on"); return end
+        if words=="bar" or words:match("^bar ") then guarded(N.HopBar.command,words:match("^bar (%S+)$")); return end
         if command=="call on" or command=="call off" then guarded(M.setCall,command=="call on"); return end
         if command=="call art on" or command=="call art off" then guarded(M.setCallArt,command=="call art on"); return end
         if command=="found on" or command=="found off" then guarded(M.setFound,command=="found on"); return end
@@ -2935,6 +2943,7 @@ function M.start()
         else guarded(M.text,command) end
     end
     N.UI.create()
+    guarded(N.HopBar.start)
     if M.host.want then M.hostResume(true) end
     heartbeat()
 end

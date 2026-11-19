@@ -1574,6 +1574,16 @@ PASS Friend share: a watch answer goes in front of changes already waiting; only
 PASS Friend share: periods survive the wire in names and zones; escape then unescape is exact for every byte
 PASS Friend share: 39 watched friends and a watch line every 30 s do not starve the refresh (all 200 go out)
 PASS Friend share: a watch answer comes once per newly watched name, takes at most every other place, and old keys are forgotten
+PASS Hop bar: on by default, a plain clamped movable button, saved settings checked
+PASS Hop bar: line one is your layer from the window's source, Detecting... or the instance name
+PASS Hop bar: left-click runs the window's hop, with its gates and its 10 s gap; the status follows
+PASS Hop bar: the end of a drag is not a click, and a drag ending off the bar does not eat the next click
+PASS Hop bar: right-click opens the window; Shift+right-click hides the bar and says how to bring it back
+PASS Hop bar: /le bar on, off and oneline; one-line mode puts both on one line
+PASS Hop bar: the 1 s refresh sends nothing and stops while hidden
+PASS Hop bar: a click acts only on what the bar showed (a round started since the last paint is left alone)
+PASS Hop bar: a right-button press during a left drag does not turn the drag's release into a click
+PASS Hop bar: the 1 s refresh only reads (an expired ask is not cleared by the display)
 PASS Stack: source mutant evidence rerun is byte and mtime stable
 PASS Stack: presence mutant evidence rerun is byte and mtime stable
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
@@ -2285,4 +2295,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2207 tests passed, 0 failed, 640399 assertions
+RESULT: 2217 tests passed, 0 failed, 648033 assertions

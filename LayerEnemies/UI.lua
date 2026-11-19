@@ -457,3 +457,174 @@ function U.toggle()
     U.create()
     if U.frame:IsShown() then U.frame:Hide() else U.frame:Show() end
 end
+do
+    -- ---------------------------------------------------------------------------------------------------------------
+    -- 1.2.5 hop bar, N.HopBar (owner's request, 2026-11-19): a small movable bar with your layer and the hop status; a left-click
+    -- hops like the window's "Hop to another layer" button. Behaviour modelled on LayerSwap's mini bar; our own code and
+    -- look, no LayerSwap lines or media. Plain frames only (never protected or secure); nothing is sent from here.
+    local B={}
+    N.HopBar=B
+    B.ALPHA=.55
+    B.DEFAULT={point="TOP",relative="TOP",x=0,y=-160}
+    local GREEN={.71,.94,.54}
+
+    -- load(raw) -> the saved settings, checked: shown (default on), oneline (default off), position (or nil).
+    function B.load(raw)
+        local t=S.tab(raw) and raw or {}
+        return {shown=t.shown~=false,oneline=t.oneline==true,position=N.UI.position(t.position)}
+    end
+    local function saved()
+        if not S.tab(LayerEnemiesDB) then return B.load(nil) end
+        if not S.tab(LayerEnemiesDB.bar) then LayerEnemiesDB.bar=B.load(nil) end
+        return LayerEnemiesDB.bar
+    end
+
+    -- Line 1: the instance name inside an instance, else "Layer <key>" from the same source as the window's YOUR LAYER.
+    function B.layerText()
+        local M=N.Main
+        if N.Adapters.inInstance()==true then
+            local name=S.str((S.call(_G.GetInstanceInfo)),80)
+            return name or "Instance"
+        end
+        local key=M.store and N.Layer.key(M.store.bulo)
+        return key and ("Layer "..key) or "Detecting..."
+    end
+    local SHORT={
+        {"^guild%-only","Guild-only mode"},{"^leave your current group","In a group"},{"^not available in an instance","In an instance"},
+        {"^your live zone","Zone unknown"},{"ambiguous key cannot be used","Layer unknown"},{"^your own name","Name unreadable"},{"position is not readable","Position unknown"},
+    }
+    -- Line 2: the hop status from the same state and gates as the window's button. round: the open round, if any.
+    function B.statusText()
+        local M=N.Main
+        local st=M.hopAnyState
+        if not st then return "Hop not ready" end
+        local r=st.round
+        if r then
+            if r.phase=="who" then return "Hopping: searching...",r end
+            return "Hopping: asking "..(r.sent or 0).."...",r
+        end
+        if N.Adapters.inCombat() then return "In combat" end
+        local c=M.hopAnyContext(true) -- read only: the 1 s refresh must not change any state
+        if N.Wire.hopBlocked(c.now) then return "Whispers paused" end
+        local ok,why=N.HopAny.check(st,c)
+        if ok then return "Hop ready" end
+        local wait=0
+        if st.lastClick then wait=math.max(wait,N.HopAny.CLICK-(c.now-st.lastClick)) end
+        if c.invite and c.invite.lastAsk then wait=math.max(wait,N.Invite.GLOBAL_COOLDOWN-(c.now-c.invite.lastAsk)) end
+        if wait>0 and (why or ""):find("10 s") then return "Wait "..math.ceil(wait).."s" end
+        for _,s in ipairs(SHORT) do if (why or ""):find(s[1]) then return s[2] end end
+        return "Hop not ready"
+    end
+
+    -- Left-click: the window button's action, on the painted round only (a round that started or ended since the last
+    -- paint is not acted on). Gates, limits and the chat line on refusal are the window's own (Main.hopAny).
+    function B.hop()
+        local M=N.Main
+        local shown=B.frame and B.frame.round
+        if shown then
+            if M.hopAnyState.round==shown then M.hopAnyStop() end
+        elseif not M.hopAnyState.round then M.hopAny() end
+        B.refresh()
+    end
+
+    function B.refresh()
+        local f=B.frame
+        if not f or not f:IsShown() then return end
+        local layer=B.layerText()
+        local status,round=B.statusText()
+        f.round=round or false
+        local one=saved().oneline
+        f.text:SetText(one and (layer.."   "..status) or layer)
+        f.status:SetText(one and "" or status)
+        f.status:SetShown(not one)
+        f.text:ClearAllPoints(); f.status:ClearAllPoints()
+        if one then
+            f.text:SetPoint("LEFT",f,"LEFT",28,0); f:SetHeight(22)
+            f:SetWidth(math.ceil(f.text:GetStringWidth() or 0)+36)
+        else
+            f.text:SetPoint("TOPLEFT",f,"TOPLEFT",36,-5); f.status:SetPoint("BOTTOMLEFT",f,"BOTTOMLEFT",36,5); f:SetHeight(34)
+            f:SetWidth(math.ceil(math.max(f.text:GetStringWidth() or 0,f.status:GetStringWidth() or 0))+46)
+        end
+        f.logo:SetSize(one and 18 or 26,one and 18 or 26)
+        f.text:SetTextColor(unpack(round and GREEN or {.92,.92,.92}))
+    end
+    local function savePosition(f)
+        local point,_,relative,x,y=f:GetPoint(1)
+        saved().position=N.UI.position({point=point,relative=relative,x=x,y=y})
+    end
+    local function tick(generation)
+        if not B.frame or not B.frame:IsShown() or generation~=B.generation then return end
+        B.refresh()
+        -- without a timer the bar still updates on every click
+        local timer=_G.C_Timer
+        if S.tab(timer) and type(timer.After)=="function" then pcall(timer.After,1,function() tick(generation) end) end
+    end
+    function B.create()
+        if B.frame then return B.frame end
+        local f=CreateFrame("Button","LayerEnemiesHopBar",UIParent)
+        f:Hide()
+        B.frame=f
+        f:SetFrameStrata("MEDIUM"); f:SetClampedToScreen(true); f:SetMovable(true); f:EnableMouse(true)
+        f:RegisterForDrag("LeftButton"); f:RegisterForClicks("LeftButtonUp","RightButtonUp")
+        local p=saved().position or B.DEFAULT
+        f:SetPoint(p.point,UIParent,p.relative,p.x,p.y)
+        f.bg=f:CreateTexture(nil,"BACKGROUND"); f.bg:SetAllPoints(); f.bg:SetColorTexture(0,0,0,B.ALPHA)
+        -- our logo: "LE" on a green square
+        f.logo=f:CreateTexture(nil,"ARTWORK"); f.logo:SetPoint("LEFT",f,"LEFT",4,0); f.logo:SetSize(26,26)
+        f.logo:SetColorTexture(.137,.227,.11,1)
+        f.logoText=f:CreateFontString(nil,"OVERLAY"); f.logoText:SetFont("Fonts\\FRIZQT__.TTF",11,"OUTLINE")
+        f.logoText:SetPoint("CENTER",f.logo,"CENTER"); f.logoText:SetTextColor(unpack(GREEN)); f.logoText:SetText("LE")
+        for _,key in ipairs({"text","status"}) do
+            local fs=f:CreateFontString(nil,"OVERLAY"); fs:SetFont("Fonts\\FRIZQT__.TTF",11,""); fs:SetJustifyH("LEFT")
+            fs:SetWordWrap(false); fs:SetTextColor(.92,.92,.92); f[key]=fs
+        end
+        f.round,f.moved,f.dragging=false,false,false
+        -- the end of a drag is not a click; a new left press starts clean (a right press during a drag does not)
+        f:SetScript("OnMouseDown",function(self,button) if button=="LeftButton" and not self.dragging then self.moved=false end end)
+        f:SetScript("OnDragStart",function(self) self.moved=true; self.dragging=true; self:StartMoving() end)
+        f:SetScript("OnDragStop",function(self) self.dragging=false; self:StopMovingOrSizing(); savePosition(self) end)
+        f:SetScript("OnClick",function(self,button)
+            -- a drag is a left-button drag: its end swallows only a left click, never a right one
+            if self.moved and button~="RightButton" then self.moved=false; return end
+            if button=="RightButton" then
+                if S.call(_G.IsShiftKeyDown)==true then
+                    B.setShown(false)
+                    N.Main.say("LayerEnemies: hop bar hidden. /le bar on brings it back (/le bar oneline: one line).")
+                else N.UI.toggle() end
+                return
+            end
+            B.hop()
+        end)
+        -- no tooltip: the bar is on screen all the time
+        f:SetScript("OnShow",function()
+            B.generation=(B.generation or 0)+1
+            tick(B.generation)
+        end)
+        f:SetScript("OnHide",function() B.generation=(B.generation or 0)+1 end)
+        return f
+    end
+    -- Called once the saved settings are loaded.
+    function B.start()
+        if saved().shown then B.create():Show() end
+    end
+    function B.setShown(on)
+        saved().shown=on==true
+        if on then B.create():Show() elseif B.frame then B.frame:Hide() end
+    end
+    function B.setOneLine(on)
+        saved().oneline=on==true
+        B.refresh()
+    end
+    -- /le bar on|off|oneline (oneline switches between one and two lines)
+    function B.command(word)
+        if word=="on" then B.setShown(true); N.Main.say("LayerEnemies: hop bar on (/le bar off hides it).")
+        elseif word=="off" then B.setShown(false); N.Main.say("LayerEnemies: hop bar off (/le bar on shows it).")
+        elseif word=="oneline" then
+            B.setOneLine(not saved().oneline)
+            N.Main.say("LayerEnemies: hop bar "..(saved().oneline and "on one line" or "on two lines").." (/le bar oneline switches).")
+        else
+            N.Main.say("LayerEnemies: hop bar "..(saved().shown and "on" or "off")..". /le bar on|off|oneline. Left-click hops, "
+                .."right-click opens the window, Shift+right-click hides the bar, left-drag moves it.")
+        end
+    end
+end

@@ -6,7 +6,7 @@ local eq,yes,no=H.eq,H.yes,H.no
 local function test(n,f) H.test("Overlord reach: "..n,f) end
 local function honest(text)
     local presence=text:match("|NH|(.*)$")
-    if presence then eq(presence,"LayerEnemies 1.2.4","every send has no capability suffix") end
+    if presence then eq(presence,"LayerEnemies 1.2.5","every send has no capability suffix") end
 end
 local function donor()
     local d={routes={},caps={},served=0,refused=0,keeps=0,stops=0,subs={}}
@@ -30,7 +30,7 @@ end
 local function fixture(route)
     local N=H.load();local P,Q=N.OverlordPeer,N.OverlordFeed
     local peer,st=P.new(),Q.new();peer.feed=st
-    local c={now=100,wall=1800000000,me="Alice Vale",version="1.2.4",pool="global",faction="A",
+    local c={now=100,wall=1800000000,me="Alice Vale",version="1.2.5",pool="global",faction="A",
         allowed=true,own=true,stopAllowed=true,groups={},guild=true,guildNames={},
         friends={},out={},tracked=function() return true end,offer=function() end}
     route=route or "BNET"
@@ -73,7 +73,7 @@ end)
 test("donor refuses recent NH but accepts unknown after expiry",function()
     local d=donor();local base="global|id|1800000000|Birch Scout|Alice Vale|"
     d:hear(base.."HR|8:V:1799999900:1800000000n100n1f:1:LK:0:0:H","BNET",71,0);eq(d.served,1)
-    d:hear(base.."NH|LayerEnemies 1.2.4","BNET",71,10)
+    d:hear(base.."NH|LayerEnemies 1.2.5","BNET",71,10)
     d:hear(base.."HR|8:V:1799999900:1800000000n100n2f:1:LK:0:0:H","BNET",71,310);eq(d.refused,1)
     d:hear(base.."HR|8:V:1799999900:1800000000n100n3f:1:LK:0:0:H","BNET",71,311);eq(d.served,2)
 end)
@@ -144,7 +144,7 @@ test("a prior NH is forgotten only after continuous quiet and queue recheck",fun
     local send=c.send;c.send=function(_,_,_,_,_,job) queued=job;return true end
     P.emit(peer,c,"NH",P.presence(c),"BNET",{id=71,name="Birch Scout"},"bn:71",120,false)
     c.send=send;peer.feed=st
-    d:hear("global|prior|1800000000|Birch Scout|Alice Vale|NH|LayerEnemies 1.2.4","BNET",71,c.now)
+    d:hear("global|prior|1800000000|Birch Scout|Alice Vale|NH|LayerEnemies 1.2.5","BNET",71,c.now)
     P.sent(peer,queued,c)
     hear(100);no(P.claim(peer,queued,c),"already queued NH is suppressed at dispatch")
     hear(250);hear(400);Q.tick(st,peer,c);eq(#requests(c),0)
@@ -179,7 +179,7 @@ local function live(route)
     local N=H.load();N.Net.SHIP.overlord=true
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
-    C_AddOns.GetAddOnMetadata=function() return "1.2.4" end
+    C_AddOns.GetAddOnMetadata=function() return "1.2.5" end
     UnitName=function(unit) return unit=="party1" and "Birch Scout" or "Alice Vale",GetRealmName() end
     UnitFactionGroup=function() return "Alliance" end
     IsInGroup=function() return false end;IsInRaid=function() return false end;IsInGuild=function() return false end
