@@ -48,18 +48,25 @@ test("Friend share: wire entry round trip, withdrawal and refusals",function()
     local lines=FS.lines({{name="Cedar Vale-TestRealm",zone="Stranglethorn Vale",faction="Horde",class="ROGUE",level=58,guid="Player-1-0A1B2C3D"},
         {name="Gone Friend-TestRealm"}},12)
     eq(#lines,1)
-    eq(lines[1],"P|1|12|"..hex("Cedar Vale-TestRealm")..":"..hex("Stranglethorn Vale")..":H:ROGUE:58:Player-1-0A1B2C3D,"
-        ..hex("Gone Friend-TestRealm")..":::::")
+    eq(lines[1],"P|1|12|Cedar.Vale-TestRealm:Stranglethorn.Vale:H:4:58:1-0A1B2C3D,Gone.Friend-TestRealm:::::")
     local msg=FS.decode(lines[1]); eq(msg.age,12)
     local e=msg.entries[1]
     eq(e.name,"Cedar Vale-TestRealm"); eq(e.zone,"Stranglethorn Vale"); eq(e.faction,"Horde"); eq(e.class,"ROGUE"); eq(e.level,58)
     eq(e.guid,"Player-1-0A1B2C3D"); eq(msg.entries[2].zone,nil,"empty zone = offline")
-    for _,bad in ipairs({"P|2|0|"..hex("A")..":"..hex("B")..":H::::","P|1|0|","P|1|901|"..hex("A")..":"..hex("B").."::::",
-        "P|1|0|"..hex("A")..":"..hex("B")..":X::::","P|1|0|"..hex("A")..":"..hex("B")..":H:NOTACLASS:::",
-        "P|1|0|"..hex("A")..":"..hex("B")..":H::0::","P|1|0|"..hex("A").."::H::::","P|1|0|"..hex("A|B")..":"..hex("Z").."::::",
-        "P|1|0|zz:"..hex("Z").."::::","P|1|0|"..hex("A")..":"..hex("B")..":H:::bad guid!"}) do
+    -- escapes: apostrophe, colon and non-ASCII names and zones survive the trip
+    local odd=FS.lines({{name="Zoë Mal'Ganis-Area 52",zone="Dire Maul: North",faction="Alliance",class="EVOKER",level=70,guid="Player-3676-0ABCDEF0"}},0)[1]
+    eq(odd,"P|1|0|Zo/C3/AB.Mal/27Ganis-Area.52:Dire.Maul/3A.North:A:13:70:3676-0ABCDEF0")
+    local back=FS.decode(odd).entries[1]
+    eq(back.name,"Zoë Mal'Ganis-Area 52"); eq(back.zone,"Dire Maul: North"); eq(back.class,"EVOKER"); eq(back.guid,"Player-3676-0ABCDEF0")
+    for _,bad in ipairs({"P|2|0|A:B:H:::","P|1|0|","P|1|901|A:B::::","P|1|0|A:B:X:::","P|1|0|A:B:H:14::",
+        "P|1|0|A:B:H:0::","P|1|0|A:B:H:04::","P|1|0|A:B:H::0:","P|1|0|A:B:H::060:","P|1|0|A::H:::","P|1|0|A/7CB:Z::::",
+        "P|1|0|A/zz:Z::::","P|1|0|A/4:Z::::","P|1|0|A_B:Z::::","P|1|0|A:B:H:::bad.guid","P|1|0|A:B:H:::Creature-1-AA","P|1|0|A:B:H:::1-ZZ",
+        -- invalid UTF-8 (a lone continuation byte, an overlong form, a surrogate) and control bytes, in name or zone
+        "P|1|0|B/FF/FE.Zz:Azshara:H:::","P|1|0|Cc:Az/FF/FE:H:::","P|1|0|A:/C0/AF:H:::","P|1|0|A:/ED/A0/80:H:::",
+        "P|1|0|A/0A:B:H:::","P|1|0|A:B/00:H:::","P|1|0|A:/7Cc/FF:H:::"}) do
         eq(FS.decode(bad),nil,bad)
     end
+    yes(FS.decode("P|1|0|A:B:H:::"),"bare entry")
     yes(N.Wire.send("LEGW1",lines[1],"GUILD",nil,{prio="presence"}),"Wire knows the P grammar")
     no(N.Wire.send("LEGW1","P|1|0|zz","GUILD",nil,{prio="presence"}),"and refuses a malformed P line")
 end)
@@ -69,7 +76,9 @@ test("Friend share: an older client ignores P lines cleanly (the 1.2.3 receive p
     -- Relay.decode is unchanged in 1.2.4, so this is the old client's exact outcome.
     local N=H.load(); local line=N.FriendShare.lines({{name="Cedar Vale-TestRealm",zone="Duskwood",faction="Horde"}},0)[1]
     local record,why=N.Relay.decode(line,"Selina Gomez",H.clock()); eq(record,nil); eq(why,"invalid")
-    yes(line:find("^[%w|%.:,%-]+$"),"only characters every LEGW1 reader accepts")
+    yes(line:find("^[%w|%.:,%-/]+$"),"only characters every LEGW1 reader accepts")
+    local odd=N.FriendShare.lines({{name="Zoë Mal'Ganis-Area 52",zone="Dire Maul: North",faction="Horde"}},0)[1]
+    yes(odd:find("^[%w|%.:,%-/]+$"),odd); eq(select(2,N.Relay.decode(odd,"Selina Gomez",H.clock())),"invalid")
 end)
 
 test("Friend share: every online opposite-faction friend goes to the guild with name, zone, faction, class, level and GUID",function()
@@ -123,14 +132,14 @@ test("Friend share: a burst stays inside the LEGW1 budget and never starves our 
     local N=ready(friends); local before=#H.sent(); scan(N)
     local first=#pLines(before)
     yes(first>0 and first<=3,"a burst leaves the reserve: "..first.." lines at once")
-    yes(#N.Main.friendOut.queue>0,"the rest waits")
+    yes(N.FriendShare.pending(N.Main.friendOut),"the rest waits")
     -- our own line still has room right after the burst
     local own=N.Relay.ownLine({rid=5,zone=100,count=1,enemies={{displayName="Zack Ly",class="SHAMAN",level=49}}})
     N.Relay.spend(H.clock(),false)
     yes(N.Wire.send("LEGW1",own,"GUILD",nil,{prio="own",queue=false}),"own sighting not starved")
     -- the queue drains over time; every entry eventually goes
     for _=1,40 do H.advance(5); N.Main.friendShareTick() end
-    eq(#N.Main.friendOut.queue,0)
+    no(N.FriendShare.pending(N.Main.friendOut))
     local seen={}; for _,e in ipairs(entries(N,pLines(before))) do seen[e.name]=true end
     local n=0; for _ in pairs(seen) do n=n+1 end; eq(n,60)
     local used,cap=N.Wire.guildMinute(H.clock()); yes(used<=cap)
@@ -226,9 +235,202 @@ test("Friend share: lines still waiting stop when sharing is turned off",functio
     local friends={}
     for i=1,30 do friends[i]=game({characterName="Fr"..H.abc(i%26+1)..H.abc(math.floor(i/26)+1).." Vale",playerGuid="Player-1-"..string.format("%08X",i)}) end
     local N=ready(friends); scan(N)
-    yes(#N.Main.friendOut.queue>0,"some lines wait")
+    yes(N.FriendShare.pending(N.Main.friendOut),"some lines wait")
     SlashCmdList.LAYERENEMIES("share off")
     local before=#H.sent()
     for _=1,20 do H.advance(5); N.Main.friendShareTick() end
     eq(#pLines(before),0,"nothing more after share off")
+    no(N.FriendShare.pending(N.Main.friendOut),"and nothing waits to go out later")
+end)
+
+-- Review round 1 (MUST): a refresh never discards what waits, and a big list is sent in full over time.
+local function many(n)
+    local friends={}
+    for i=1,n do
+        friends[i]=game({characterName=H.abc(i%26+1):upper()..H.abc(math.floor(i/26)%26+1)..H.abc(i%7+1).."ris Vale",
+            playerGuid="Player-1-"..string.format("%08X",i),areaName=(i%3==0) and "Orgrimmar" or "Stranglethorn Vale"})
+    end
+    return friends
+end
+local function run(N,seconds,step,onStep)
+    local t=0
+    while t<seconds do
+        H.advance(step); t=t+step
+        N.Main.friendShareTick()
+        for _=1,500 do if not N.Main.presenceJob then break end; H.advance(.001) end
+        if onStep then onStep(t) end
+    end
+end
+local function sendTimes(N,from)
+    local at={}
+    for i=(from or 0)+1,#H.sent() do
+        local s=H.sent()[i]
+        if s.prefix=="LEGW1" and s.text:sub(1,2)=="P|" then
+            for _,e in ipairs(N.FriendShare.decode(s.text).entries) do
+                at[e.name]=at[e.name] or {}; table.insert(at[e.name],s.at or H.clock())
+            end
+        end
+    end
+    return at
+end
+
+local function bigList(total,minutes)
+    local N=ready(many(total)); local before=#H.sent()
+    local stamps={}
+    local function stamp() for i=#stamps+before+1,#H.sent() do stamps[#stamps+1]=H.clock() end end
+    scan(N); stamp()
+    run(N,minutes*60,5,stamp)
+    -- send time of every line, from the stamps taken as lines appeared
+    local at={}
+    local lines,times={},{}
+    for i=before+1,#H.sent() do
+        local s=H.sent()[i]
+        if s.prefix=="LEGW1" and s.text:sub(1,2)=="P|" then lines[#lines+1]=s; times[#times+1]=stamps[i-before] end
+    end
+    local entriesSent=0
+    for k,s in ipairs(lines) do
+        for _,e in ipairs(N.FriendShare.decode(s.text).entries) do
+            at[e.name]=at[e.name] or {}; table.insert(at[e.name],times[k]); entriesSent=entriesSent+1
+        end
+    end
+    local distinct=0; for _ in pairs(at) do distinct=distinct+1 end
+    eq(distinct,total,"every one of "..total.." names sent at least once")
+    -- capacity: entries sent per 5 minutes; a name waits at most the rounds needed to get through all 200
+    local perRefresh=entriesSent/(minutes*60/300)
+    local rounds=math.ceil(total/perRefresh)
+    local worst=0
+    for name,list in pairs(at) do
+        for i=2,#list do worst=math.max(worst,list[i]-list[i-1]) end
+    end
+    print(string.format("OBS "..total.." friends: %d lines, %d entries, %.1f per 5 min, rounds %d, worst gap %d s, %.2f per line",#lines,entriesSent,perRefresh,rounds,worst,entriesSent/#lines))
+    yes(worst<=rounds*300+30,"worst gap "..worst.." s, capacity "..perRefresh.." per 5 min, rounds "..rounds)
+    yes(entriesSent/#lines>=4,"at least 4 entries per line with typical names: "..string.format("%.2f",entriesSent/#lines))
+    local used,cap=N.Wire.guildMinute(H.clock()); yes(used<=cap)
+end
+test("Friend share: 200 friends over 20 minutes all go out, each again within the refresh rounds the budget needs",function()
+    bigList(200,20)
+end)
+
+test("Friend share: 400 entries, more than one refresh can carry: each refresh carries on where the last stopped",function()
+    -- The client reads at most 200 Battle.net friends; communities can add more. Sender queue alone, budget fixed at
+    -- one line per 10 s (30 lines per 5 minutes), a scan every 60 s and a refresh every 300 s, for 40 minutes.
+    local N=H.load(); local FS=N.FriendShare; local out=FS.newOut()
+    local cur={}
+    for i=1,400 do cur[string.format("k%03d",i)]={name=string.format("Name%03d Vale-TestRealm",i),zone="Stranglethorn Vale",faction="Horde"} end
+    local at,lines,entries={},0,0
+    for t=0,2400,10 do
+        if t%60==0 then FS.plan(out,cur,t) end
+        local line,keys=FS.nextLine(out,0)
+        if line then
+            FS.done(out,keys,t); lines=lines+1
+            for _,k in ipairs(keys) do at[k]=at[k] or {}; table.insert(at[k],t); entries=entries+1 end
+        end
+    end
+    local distinct,worst=0,0
+    for _,list in pairs(at) do distinct=distinct+1; for i=2,#list do worst=math.max(worst,list[i]-list[i-1]) end end
+    local perRefresh=entries/(2400/300); local rounds=math.ceil(400/perRefresh)
+    print(string.format("OBS 400 entries: %d lines, %.1f entries per 5 min, rounds %d, worst gap %d s",lines,perRefresh,rounds,worst))
+    eq(distinct,400,"every entry sent")
+    yes(rounds>=2,"the budget really is short of one refresh")
+    yes(worst<=rounds*300+60,"each entry again within "..rounds.." refresh rounds: worst "..worst.." s")
+    -- the old behaviour, restarting at "A" each refresh, would never reach the tail
+    yes(at["k400"] and #at["k400"]>=2,"the tail is sent again, not only once")
+end)
+
+test("Friend share: a change for the last name goes out in the next line, ahead of a big backlog, and a refresh keeps it",function()
+    local friends=many(200)
+    local N=ready(friends); scan(N)
+    run(N,60,5)
+    yes(N.FriendShare.pending(N.Main.friendOut),"a backlog waits")
+    -- the alphabetically last name changes zone
+    local last,lastName=nil,nil
+    for _,f in ipairs(friends) do local n=f.gameAccountInfo.characterName if not lastName or n>lastName then last,lastName=f,n end end
+    last.gameAccountInfo.areaName="Duskwood"
+    H.deliver("BN_FRIEND_INFO_CHANGED"); H.advance(16); H.drain()
+    for _=1,500 do if not N.Main.presenceJob then break end; H.advance(.001) end
+    -- a refresh lands before the budget allows another line: the change must survive it
+    N.Main.friendOut.fullAt=H.clock()-301; N.Main.presenceScan(true)
+    for _=1,500 do if not N.Main.presenceJob then break end; H.advance(.001) end
+    eq(N.Main.friendOut.urgent[1]~=nil,true,"the change still waits at the front after the refresh")
+    local before=#H.sent()
+    for _=1,10 do if #pLines(before)>0 then break end; H.advance(2); N.Main.friendShareTick() end
+    local first=pLines(before)[1]; yes(first,"a line within one budget tick")
+    local got
+    for _,e in ipairs(N.FriendShare.decode(first.text).entries) do if e.name==lastName.."-TestRealm" then got=e end end
+    yes(got,"the changed tail name is in that first line"); eq(got and got.zone,"Duskwood")
+end)
+
+test("Friend share: a watch answer jumps the backlog",function()
+    local friends=many(200)
+    local N=ready(friends); scan(N); run(N,30,5)
+    yes(N.FriendShare.pending(N.Main.friendOut))
+    local name=friends[199].gameAccountInfo.characterName
+    H.advance(10)
+    H.deliver("CHAT_MSG_ADDON","LEGW1","T|1|ac|1|1|"..N.Watch.hash(name),"GUILD","Selina Gomez"); H.drain()
+    local before=#H.sent()
+    for _=1,10 do if #pLines(before)>0 then break end; H.advance(2); N.Main.friendShareTick() end
+    -- the answer may already have left with the T line's own tick; look at the lines since the T line
+    local found=false
+    for _,s in ipairs(pLines(before-3)) do
+        for _,e in ipairs(N.FriendShare.decode(s.text).entries) do if e.name==name.."-TestRealm" then found=true end end
+    end
+    yes(found,"the watched name is answered at once")
+end)
+
+test("Friend share: a withdrawal waits through a refresh; nothing waiting is dropped by a new scan",function()
+    local N=H.load(); local FS=N.FriendShare; local out=FS.newOut()
+    local cur={}
+    for i=1,50 do cur["k"..i]={name="N"..i,zone="Z",faction="Horde"} end
+    FS.plan(out,cur,100)
+    local line,keys=FS.nextLine(out,0); FS.done(out,keys,100)
+    -- k1 (sent) goes offline; a refresh scan follows before anything else is sent
+    local cur2={}; for k,e in pairs(cur) do if k~="k1" then cur2[k]=e end end
+    FS.plan(out,cur2,110); FS.plan(out,cur2,500)
+    eq(out.urgent[1],"k1","withdrawal still first")
+    line=FS.nextLine(out,0); yes(line:find("N1:::::",1,true),line)
+    local waiting=0; for _ in pairs(out.due) do waiting=waiting+1 end
+    eq(waiting,49,"the refresh owes every online key once; none is dropped or doubled")
+end)
+
+test("Friend share: the newest guildmate evidence wins in Find, which keeps it for 15 minutes",function()
+    local N=H.load({tracked={"Birch Moss"}}); H.establish(N)
+    local fresh=N.FriendShare.lines({{name="Birch Moss-TestRealm",zone="Azshara",faction="Horde"}},0)[1]
+    local old=N.FriendShare.lines({{name="Birch Moss-TestRealm",zone="Duskwood",faction="Horde"}},100)[1]
+    H.deliver("CHAT_MSG_ADDON","LEGW1",fresh,"GUILD","Selina Gomez"); H.drain()
+    H.deliver("CHAT_MSG_ADDON","LEGW1",old,"GUILD","Other Scout"); H.drain()
+    eq(N.Main.findRows()[1].presence.zone,"Azshara","older evidence does not overwrite newer")
+    N.Main.friendShareApply()
+    eq(N.Main.findRows()[1].presence.zone,"Azshara","nor on re-apply")
+    H.advance(661); N.Presence.sweep(N.Main.find,H.clock())
+    yes(N.Main.findRows()[1].presence,"still in Find after 661 s")
+    H.advance(240); N.Presence.sweep(N.Main.find,H.clock())
+    eq(N.Main.findRows()[1].presence,nil,"gone after 15 minutes")
+end)
+
+test("Friend share: the cached row list follows every store, withdrawal and expiry",function()
+    local N=H.load(); local FS=N.FriendShare; local inn=FS.newIn()
+    FS.put(inn,"S","s","a",{name="A",zone="Z"},100)
+    local r1=FS.rows(inn,110); eq(#r1,1); yes(FS.rows(inn,120)==r1,"same list while nothing changes")
+    FS.put(inn,"S","s","b",{name="B",zone="Z"},115)
+    local r2=FS.rows(inn,120); eq(#r2,2); eq(r2[1].name,"B","newest first")
+    FS.put(inn,"S","s","a",{name="A"},121); eq(#FS.rows(inn,122),1,"withdrawal")
+    eq(#FS.rows(inn,115+FS.TTL-1),1); eq(#FS.rows(inn,115+FS.TTL),0,"expired at TTL")
+    FS.put(inn,"S","s","c",{name="C",zone="Z"},2000); eq(#FS.rows(inn,2001),1)
+    eq(#FS.rows(inn,1990),0,"a clock that steps back drops what is now in the future")
+end)
+
+test("Friend share: a watch answer goes in front of changes already waiting; only a player GUID is sent",function()
+    local N=H.load(); local FS=N.FriendShare; local out=FS.newOut()
+    local cur={}
+    for i=1,30 do cur[string.format("k%02d",i)]={name=string.format("N%02d",i),zone="Z",faction="Horde"} end
+    FS.plan(out,cur,100)
+    while FS.pending(out) do local _,keys=FS.nextLine(out,0); FS.done(out,keys,100) end
+    local cur2={}; for k,e in pairs(cur) do cur2[k]={name=e.name,zone="Duskwood",faction="Horde"} end
+    FS.plan(out,cur2,120)
+    eq(#out.urgent,30,"thirty changes wait")
+    eq(FS.answer(out,{k30=true},121),1)
+    local line=FS.nextLine(out,0)
+    yes(line:find("^P|1|0|N30:"),"the answer leads the next line: "..line)
+    eq(FS.entry({name="A",zone="B",guid="Creature-0-1-2-3-AA"}),"A:B::::","a non-player GUID is not sent")
+    eq(FS.entry({name="A",zone="B",guid="Player-1-0A"}),"A:B::::1-0A")
 end)

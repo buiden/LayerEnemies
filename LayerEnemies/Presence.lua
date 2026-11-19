@@ -37,6 +37,8 @@ function P.forget(records,source)
 end
 function P.sweep(st,now)
     for name,r in pairs(st.presence) do
-        if now-r.at>=P.TTL or now<r.at then st.presence[name]=nil end
+        -- a guildmate's shared friend (source "g:") lives as long as FriendShare keeps it
+        local ttl=type(r.source)=="string" and r.source:sub(1,2)=="g:" and N.FriendShare and N.FriendShare.TTL or P.TTL
+        if now-r.at>=ttl or now<r.at then st.presence[name]=nil end
     end
 end

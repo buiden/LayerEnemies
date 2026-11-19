@@ -1284,30 +1284,26 @@ function M.friendSendable()
     return M.friendStartAt~=nil and time>=M.friendStartAt and time-M.friendStartAt>=M.FRIEND_SETTLE
         and M.sharing() and M.sharingFriends() and S.call(IsInGuild)==true and not M.guildWhy() and A.inInstance()==false
 end
-local function friendQueue(entries)
-    local out=M.friendOut
-    for _,line in ipairs(N.FriendShare.lines(entries,0)) do out.queue[#out.queue+1]=line end
-    out.stats.entries=out.stats.entries+#entries
-    M.friendShareTick()
-end
 function M.friendShareFlush(current)
     if not M.friendOut or not M.friendSendable() then return end
-    local list,full=N.FriendShare.plan(M.friendOut,current,now())
-    -- a newer picture replaces lines still waiting
-    if full then M.friendOut.queue={} end
-    if #list>0 then friendQueue(list) end
+    -- a new scan never drops what waits: changes go first, the refresh carries on with the stalest entries
+    N.FriendShare.plan(M.friendOut,current,now())
+    M.friendShareTick()
 end
--- Drains waiting lines as the LEGW1 budget allows; refreshes every 5 minutes even without an event.
+-- Sends waiting entries as the LEGW1 budget allows, one packed line at a time; refreshes every 5 minutes even
+-- without an event.
 function M.friendShareTick()
     local out=M.friendOut
     if not out then return end
-    if not M.friendSendable() then out.queue={}; return end
+    if not M.friendSendable() then N.FriendShare.clear(out); return end
     local time=now()
-    while out.queue[1] do
+    while N.FriendShare.pending(out) do
+        local line,keys=N.FriendShare.nextLine(out,0)
+        if not line then break end
         if not N.Relay.spend(time,true) then out.stats.refused=out.stats.refused+1; break end
-        local ok=N.Wire.send("LEGW1",out.queue[1],"GUILD",nil,{prio="presence",queue=false})
+        local ok=N.Wire.send("LEGW1",line,"GUILD",nil,{prio="presence",queue=false})
         if not ok then out.stats.refused=out.stats.refused+1; break end
-        table.remove(out.queue,1); out.stats.lines=out.stats.lines+1
+        N.FriendShare.done(out,keys,time); out.stats.lines=out.stats.lines+1
     end
     if (not out.fullAt or time<out.fullAt or time-out.fullAt>=N.FriendShare.REFRESH) and not M.presenceJob then M.presenceScan(true) end
 end
@@ -1325,12 +1321,11 @@ function M.friendAnswer()
     local out=M.friendOut
     if not out or not M.friendSendable() then return end
     local keys={}
-    for key,e in pairs(out.sent) do
+    for key,e in pairs(out.cur) do
         local _,_,_,senders=N.Watch.match(M.watch,e.name,now())
         if senders and #senders>0 then keys[key]=true end
     end
-    local list=N.FriendShare.answer(out,keys,now())
-    if #list>0 then friendQueue(list) end
+    if N.FriendShare.answer(out,keys,now())>0 then M.friendShareTick() end
 end
 -- One guildmate's presence (as their client sees it) applied to our Find for names we track.
 local function friendApply(r)
@@ -1339,7 +1334,10 @@ local function friendApply(r)
     if not name then return end
     local old=M.find.presence[name]
     -- our own Battle.net view wins over a guildmate's
-    if old and not (type(old.source)=="string" and old.source:sub(1,2)=="g:") and now()-old.at<N.Presence.TTL then return end
+    local shared=old and type(old.source)=="string" and old.source:sub(1,2)=="g:"
+    if old and not shared and now()-old.at<N.Presence.TTL then return end
+    -- between guildmates the newest evidence wins
+    if shared and old.at and old.at>r.at then return end
     local fresh=not old or old.zone~=r.zone
     N.Presence.note(M.find,name,{zone=r.zone,route="friend of "..r.sender,faction=r.faction,guid=r.guid,source="g:"..r.senderKey},r.at)
     if fresh and N.Find.alert(M.find,{name=name},now(),true) then
@@ -1375,7 +1373,7 @@ function M.friendShareIn(text,sender)
 end
 function M.setShareFriends(on)
     if S.tab(LayerEnemiesDB) then LayerEnemiesDB.shareFriends=on==true end
-    if not on and M.friendOut then M.friendOut.queue={}; M.friendOut.sent={}; M.friendOut.fullAt=nil end
+    if not on and M.friendOut then N.FriendShare.clear(M.friendOut) end
     M.say(on and "LayerEnemies: sharing your Battle.net friends and community members (opposite faction, online) with the guild: on."
         or "LayerEnemies: sharing your Battle.net friends and community members with the guild: off.")
     if on then M.friendShareTick() end

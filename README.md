@@ -16,9 +16,12 @@ Hop).
 - When: on a change (came online, changed zone, went offline), at most every 15 seconds,
   and everything again every 5 minutes; a guildmate's watch list naming one of them is
   answered at once (at most every 30 seconds per name). Not in the first 30 seconds after
-  login.
-- How much: as many entries per line as fit in 255 bytes. Lines wait their turn behind our
-  own sightings, hops and answers, inside the existing guild channel budget.
+  login. Answers go first, then changes, then the refresh, oldest-sent first: when the budget
+  cannot send everything within 5 minutes, the next refresh carries on where the last one
+  stopped, so every character is sent again within as many 5-minute rounds as the list needs.
+- How much: as many entries per line as fit in 255 bytes (about four with typical names).
+  Lines wait their turn behind our own sightings, hops and answers, inside the existing guild
+  channel budget.
 - Off: `/le share friends off` (on by default), `/le share off`, inside an instance, outside a
   guild. The switch is the only thing saved; everything received is session memory and is gone
   15 minutes after its last refresh.
