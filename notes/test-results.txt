@@ -1582,6 +1582,8 @@ PASS Hop bar: right-click opens the window; Shift+right-click hides the bar and 
 PASS Hop bar: /le bar on, off and oneline; one-line mode puts both on one line
 PASS Hop bar: the 1 s refresh sends nothing and stops while hidden
 PASS Hop bar: a click acts only on what the bar showed (a round started since the last paint is left alone)
+PASS Hop bar: a right-button press during a left drag does not turn the drag's release into a click
+PASS Hop bar: the 1 s refresh only reads (an expired ask is not cleared by the display)
 PASS Stack: source mutant evidence rerun is byte and mtime stable
 PASS Stack: presence mutant evidence rerun is byte and mtime stable
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
@@ -2293,4 +2295,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2215 tests passed, 0 failed, 647932 assertions
+RESULT: 2217 tests passed, 0 failed, 648033 assertions
