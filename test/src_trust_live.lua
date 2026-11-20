@@ -14,6 +14,7 @@ end
 local function triggerPrivate(N)
     H.roster({{"Birch Scout-TestRealm",true}}); H.deliver("GUILD_ROSTER_UPDATE")
     H.units().party1={name="Birch Scout",leader=true}; H.group(true); H.deliver("GROUP_ROSTER_UPDATE")
+    H.advance(1); npc(3,"7086-7"); H.units().target=nil
     H.deliver("CHAT_MSG_ADDON","LEGW1","H|1|9000|100","GUILD","Birch Scout"); H.drain()
     H.advance(59); H.eq(N.Trust.state(N.Main.store,H.clock()),"known")
     H.advance(1); N.Main.poll(); H.eq(N.Trust.state(N.Main.store,H.clock()),"blind")
@@ -26,7 +27,10 @@ local function triggerConstant(N,rotate)
         H.yes(host); H.yes(N.Main.hopHostTo(host,N.Main.hostPreview(host)))
         H.deliver("PARTY_INVITE_REQUEST",name); H.eq(H.accepts(),i)
         H.units().party1={name=name,leader=true}; H.group(true); H.deliver("GROUP_ROSTER_UPDATE")
-        if rotate then npc(i*2+3,"7086-"..(7+i)); npc(i*2+4,"7086-"..(7+i)) end
+        H.advance(1)
+        if rotate then npc(i*2+3,"7086-"..(7+i)); npc(i*2+4,"7086-"..(7+i))
+        else npc(i*2+3,"7086-7") end
+        H.units().target=nil
         H.advance(N.Main.AUTO_FAIL+.2); H.eq(H.leaves(),i)
         H.eq(N.Trust.state(N.Main.store,H.clock()),i==3 and not rotate and "blind" or "known")
         H.group(false); H.units().party1=nil; H.deliver("GROUP_ROSTER_UPDATE"); H.advance(11)

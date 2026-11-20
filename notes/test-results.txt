@@ -2094,14 +2094,37 @@ PASS Trust: outdoor group mismatch at 59/60 and continuity
 PASS Trust boundary: late LayerSwap answers carry no layer display
 PASS Trust boundary: unknown Wanted bridge status hides keys keeps counts
 PASS Trust boundary: blind Wanted bridge status hides keys keeps counts
-PASS Trust boundary: unknown relays names but not a remote layer on R
-PASS Trust boundary: blind relays names but not a remote layer on R
+PASS Trust boundary: unknown relays names and the sender layer on R
+PASS Trust boundary: blind relays names and the sender layer on R
 PASS Trust boundary: same confirmed key refresh on one later NPC read
 PASS Trust boundary: queued War Effort own sync cannot leak its cached layer
 PASS Trust boundary: active hop fanout stops before another layered send
 PASS Trust boundary: unknown hides existing source shard details
 PASS Trust boundary: blind hides existing source shard details
 PASS Trust boundary: blind new Wanted and WarBoard claims discard shard only
+PASS Trust corroboration: Bulo plus NPC at 0
+PASS Trust corroboration: Bulo plus NPC at 10
+PASS Trust corroboration: Bulo plus NPC at 10.1
+PASS Trust fresh group: O claim age 1
+PASS Trust fresh group: O claim age 2
+PASS Trust fresh group: O claim age 22
+PASS Trust fresh group: K claim age 1
+PASS Trust fresh group: K claim age 2
+PASS Trust fresh group: K claim age 22
+PASS Trust fresh hop: old own
+PASS Trust fresh hop: Bulo only
+PASS Trust fresh hop: equal own
+PASS Trust fresh hop: fresh
+PASS Trust fresh group: old peer
+PASS Trust fresh group: old own
+PASS Trust fresh group: Bulo only
+PASS Trust fresh group: equal peer
+PASS Trust fresh group: equal own
+PASS Trust fresh group: fresh
+PASS Trust guards: NPC freshness is post-join, current, bounded and monotonic
+PASS Trust guards: peer claim must follow join and precede current time
+PASS Trust guards: coalescing never merges separate changes or clock rollback
+PASS Trust guards: outgoing WE projection preserves all nonlayer bytes
 PASS Trust live: real same-prefix suffix moves are not constant-ID hops
 PASS Trust live: manual hides own UI and sends layer-free O C H K
 PASS Trust live: zero hides own UI and sends layer-free O C H K
@@ -2109,6 +2132,25 @@ PASS Trust live: unparseable hides own UI and sends layer-free O C H K
 PASS Trust live: churn hides own UI and sends layer-free O C H K
 PASS Trust live: constant hides own UI and sends layer-free O C H K
 PASS Trust live: private hides own UI and sends layer-free O C H K
+PASS Trust notice: automatic blind prints locally once with reason
+PASS Trust notice: automatic expiry recovery prints once
+PASS Trust notice: rapid automatic transitions defer one local line
+PASS Trust notice: manual override cancels a pending automatic notice
+PASS Trust notice: manual controls keep only their existing feedback
+PASS Trust held popup: known
+PASS Trust held popup: unknown
+PASS Trust held popup: blind
+PASS Trust held popup: automatic
+PASS Trust held popup: group event
+PASS Trust round2: negotiated embassy queued own C known
+PASS Trust round2: negotiated embassy queued own C unknown
+PASS Trust round2: negotiated embassy queued own C blind
+PASS Trust round2: negotiated embassy queued remote C known
+PASS Trust round2: negotiated embassy queued remote C unknown
+PASS Trust round2: negotiated embassy queued remote C blind
+PASS Trust round2: queued own embassy H known
+PASS Trust round2: queued own embassy H unknown
+PASS Trust round2: queued own embassy H blind
 PASS Trust surfaces: blind host fallback parser rejects extra coordinates
 PASS Trust surfaces: blind guild host invites unconstrained asks without layer replies
 PASS Trust surfaces: unknown hides Friendly FLH ChehulNet and layer command
@@ -2503,4 +2545,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2425 tests passed, 0 failed, 662888 assertions
+RESULT: 2467 tests passed, 0 failed, 665279 assertions

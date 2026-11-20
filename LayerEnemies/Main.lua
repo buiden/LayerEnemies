@@ -14,6 +14,8 @@ local function groupTransition()
         if M.groupState~=nil and grouped~=M.groupState then
             M.groupChangedAt=S.num(S.call(GetTime)); N.Trust.excuse(M.store,M.groupChangedAt)
         end
+        if grouped and M.groupState~=true then M.groupJoinedAt=S.num(S.call(GetTime))
+        elseif not grouped then M.groupJoinedAt=nil end
         M.groupState=grouped
     end
 end
@@ -88,9 +90,10 @@ function M.boundary(zone,zoneChange)
     if M.find then N.Find.boundary(M.find) end
 end
 -- Both own namespaces can change, even when Bulo currently supplies the server key.
-function M.keyChanged(time)
+function M.keyChanged(time,key,source)
     groupTransition()
     if recent(M.groupChangedAt,time) then M.boundary(M.store.zone); return true end
+    if N.Trust.change(M.store,time,key,source)==false then return false end
     -- First learning after a boundary never calls this. Every later confirmed
     -- change outside the group window counts, even just after that boundary.
     for i=#M.keyChanges,1,-1 do
@@ -98,7 +101,6 @@ function M.keyChanged(time)
     end
     if #M.keyChanges>=M.CHURN_CAP then table.remove(M.keyChanges,1) end
     M.keyChanges[#M.keyChanges+1]=time
-    N.Trust.change(M.store,time)
     return false
 end
 function M.applyLayer(id,source)
@@ -111,7 +113,7 @@ function M.applyLayer(id,source)
     end
     local uid=M.npcs.current
     if lastConfirmedKey~=nil and lastConfirmedKey~=id then
-        if M.keyChanged(time) then
+        if M.keyChanged(time,id,source) then
             if source=="local NPC server id" then
                 -- The confirming readings belong to the new side of this crossing.
                 M.npcs.current=uid; M.npcs.last=time
@@ -141,19 +143,26 @@ function M.trustClaim(name,key,zone,time)
     M.trustClaims[who]={key=L.key(key),zone=zone,at=time}
     M.trustGroup()
 end
+function M.trustRefresh()
+    local notice=N.Trust.notice(M.store,now())
+    if notice then M.say(notice) end
+    N.Popup.refresh()
+end
 function M.trustGroup()
+    groupTransition()
     local time=now()
     local party=A.party()
-    local peer,claim
+    local peer,claim,claimAt
     if S.call(IsInGroup)==true and A.inInstance()==false and party then
         for _,name in ipairs(party.members or {}) do
             local who=I.key(name); local c=who and M.trustClaims[who]
-            if c and time>=c.at and time-c.at<N.Trust.EXPIRE and c.zone==M.store.zone
+            if c and M.groupJoinedAt and c.at>M.groupJoinedAt and time>=c.at and time-c.at<N.Trust.EXPIRE and c.zone==M.store.zone
                 and A.guildMember(name)==true and c.key and c.key~=L.key(N.Trust.own(M.store,time))
-                and (not peer or who<peer) then peer,claim=who,c.key end
+                and (not peer or who<peer) then peer,claim,claimAt=who,c.key,c.at end
         end
     end
-    N.Trust.group(M.store,time,peer,claim,peer~=nil)
+    N.Trust.group(M.store,time,peer,claim,peer~=nil,M.groupJoinedAt,claimAt)
+    M.trustRefresh()
 end
 function M.poll()
     if not M.started then return end
@@ -210,6 +219,7 @@ function M.poll()
     N.Overlord.rows(M.overlord,time)
     N.Sources.tick(time)
     M.findAlerts()
+    M.trustRefresh()
     N.CallUI.check()
     if N.UI then N.UI.refresh() end
 end
@@ -257,12 +267,13 @@ function M.observe(unit)
         end
         if value then
             if raw and lastConfirmedKey and M.layerSource~="unknown" and M.layerSource~="local NPC server id" and previous and previous~=raw then
-                if M.keyChanged(time) then M.npcs.current=value; M.npcs.last=time end
+                if M.keyChanged(time,raw,"local NPC server id") then M.npcs.current=value; M.npcs.last=time end
             end
             if raw then lastConfirmedNPC=raw end
             M.store.zoneUID=value
             if raw and (M.layerSource=="unknown" or M.layerSource=="local NPC server id") then M.applyLayer(raw,"local NPC server id") end
         end
+        if M.npcs.current and M.npcs.raw==observedKey then N.Trust.npc(M.store,time,observedKey) end
         return
     end
     local e=A.unit(unit)
@@ -1007,7 +1018,7 @@ function M.offerRelay(record)
     end
 end
 function M.relayContext()
-    return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100),watch=M.watch,hideLayer=not N.Trust.own(M.store,now())}
+    return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100),watch=M.watch}
 end
 function M.relayTick()
     if not M.sharing() then N.Relay.clear(M.relay); return end
@@ -1043,7 +1054,7 @@ function M.relayIn(text,kind,sender)
     local record,why
     if own then record,why=N.Relay.decodeOwn(text,sender,time) else record,why=N.Relay.decode(text,sender,time) end
     if not record then M.lastDrop="relay "..tostring(why); return end
-    if own then M.trustClaim(sender,record.layer.value,record.zone,time) end
+    if own then M.trustClaim(sender,record.layer.value,record.zone,record.at) end
     if N.Record.isKill(record) and not M.validKill(record) then M.lastDrop="invalid killer"; return end
     if not own then N.Relay.heard(M.relay,record,time) end
     if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
@@ -1683,8 +1694,17 @@ function M.foundPopup(row)
     local key=N.Find.fold(row.name) or row.name
     local last=M.foundAt[key]
     if last and time>=last and time-last<M.FOUND_GAP then return false end
+    -- Reuse the already projected row until own trust changes; opening alerts must not rescan Find.
+    local shownKey,status=N.Trust.own(M.store,time),row.status
     local shown=N.Popup.show("found",{name=row.name,level=row.level,class=row.class,zone=row.zone,
-        x=row.x,y=row.y,age=row.age,source=row.status})
+        x=row.x,y=row.y,age=row.age,source=row.status,status=function()
+            local key=N.Trust.own(M.store,now())
+            if key~=shownKey then
+                shownKey,status=key,""
+                for _,live in ipairs(M.findRows()) do if live.name==row.name then status=live.status; break end end
+            end
+            return status
+        end})
     if shown then M.foundAt[key]=time end
     return shown
 end
@@ -2233,14 +2253,16 @@ function M.autoTick()
     local key=L.key(N.Trust.own(M.store,now()))
     local moved=g.any and key and key~=g.from or (not g.any and key and key==L.key(g.target) and key~=g.joinKey)
     if moved then
-        N.Trust.hop(M.store,g.short,g.trustBefore,N.Trust.own(M.store,time),true)
+        N.Trust.hop(M.store,g.short,g.trustBefore,N.Trust.own(M.store,time),true,time,g.joinedAt)
+        M.trustRefresh()
         g.leaveAt=time+M.AUTO_LEAVE
         M.say("LayerEnemies: moved to layer "..key..", leaving the group")
         after(M.AUTO_LEAVE+0.05,function() guarded(M.autoTick) end)
         return
     end
     if time-g.joinedAt>=M.AUTO_FAIL then
-        N.Trust.hop(M.store,g.short,g.trustBefore,N.Trust.own(M.store,time),true)
+        N.Trust.hop(M.store,g.short,g.trustBefore,N.Trust.own(M.store,time),true,time,g.joinedAt)
+        M.trustRefresh()
         if g.any then N.HopAny.failed(M.hopAnyState,g.short,time) end
         N.Wire.leave(time); M.auto.group=nil; M.hopDone()
         M.say("LayerEnemies: hop failed: "..g.host.." could not move you")
@@ -2581,7 +2603,7 @@ function M.embassyForward(origin,msg,text,time,guildmate)
             local t=now()
             if guildmate and not publicMate(origin,t) then return false end
             if not guildmate and not M.sharing() then return false end
-            return embassyOn() and N.WeEmb.seat(M.emb,key,target,t,embCtx(t))
+            return embassyOn() and N.WeEmb.seat(M.emb,key,target,t,embCtx(t)), N.Trust.we(M.store,o.text,t,not guildmate)
         end
         N.Wire.send("WEFF1",o.text,"WHISPER",o.target,{net="we",prio="embassy",queue=true,still=still})
     end
@@ -3021,6 +3043,7 @@ function M.start()
         if command=="presence" then M.presenceStatus(); return end
         if command:match("^blind") then
             if N.Trust.manual(M.store,command:match("^blind (%a+)$")) then
+                N.Trust.notice(M.store,now(),true)
                 M.say("LayerEnemies: layer trust "..N.Trust.state(M.store,now()).." (session only).")
                 M.poll()
             else M.say("LayerEnemies: /le blind on|off|auto") end

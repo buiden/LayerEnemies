@@ -1951,18 +1951,28 @@ in-game measurements:
   after a success (zero counts as a failure).
 - 3 confirmed key changes within 600 seconds, excluding changes within 10
   seconds after world entry, shard transfer, a zone change, or joining/leaving
-  a group. Diagnostic change counts are separate from this exclusion.
+  a group. A Bulo change and NPC corroboration of the same full key within
+  10 seconds count once. Diagnostic change counts are separate from the
+  event exclusion.
 - 3 consecutive accepted, formed hops to 3 distinct hosts without a changed
-  own key.
+  own key, each confirmed by a new NPC read after that group formed.
 - 60 continuous seconds outdoors in a group with a verified LE guildmate
-  whose fresh, same-zone claim differs from ours. Claims use existing guild
-  O/K/H messages, not a new request. Peer claims can themselves be wrong.
+  whose fresh, same-zone claim differs from ours. Both the peer claim and
+  our own NPC confirmation must be newer than the group join. Claims use
+  existing guild O/K/H messages, not a new request. Peer claims can be wrong.
 
 `/le blind on` hides IDs immediately. `/le blind off` clears blindness and
 starts detection again; `/le blind auto` also returns to automatic detection.
 These commands change no SavedVariables. A plausible constant or private ID
 cannot be distinguished from a real layer by a solo client that never meets
 one of the contradiction triggers. Use `/le blind on` in that case.
+Automatic blindness prints one local chat line with its reason and the
+`/le blind off` override. A return from unknown to readable prints one local
+recovery line; blind itself remains sticky as described above. Notifications
+are once per transition, at most one per 10 seconds, never sent to others.
+Manual on/off/auto retain their existing feedback without a second notice.
+An open found pop-up reprojects its status when trust changes, without
+resetting its close timer or map button.
 
 In unknown or blind, numeric own-layer headers, relation labels, Friendly
 layer details, ChehulNet relation/count text, FLH claimed keys, and raw
@@ -1975,11 +1985,11 @@ An already-running layered hop fanout stops when trust becomes unreadable.
 Names, zones, positions, counts, Find alerts and the found pop-up, death Calls,
 friend/community sharing, and own-death reporting still work. Incoming layer
 claims are treated as unknown locally in blind. Own O/K use the existing empty
-layer field; own WE C/H and queued own sync replies use zero. Guild R relays
-omit their layer while trust is unknown or blind. FLH presence/probes and LE
-host H advertisements stop. Rebuilt remote War Effort reports preserve the
-sender's claim; that is not our own identity. No wire fields, routes, budgets,
-SavedVariables or version numbers are added or changed.
+layer field; own WE C/H and queued own sync replies use zero. Queued own
+embassy C/H are checked again when sent. Rebuilt remote reports, including
+Guild R relays, retain the sender's layer claim, not our own layer. FLH
+presence/probes and LE host H advertisements stop. No wire fields, routes,
+budgets, SavedVariables or version numbers are added or changed.
 
 Blind LE hosts remain active for guildmates: they invite on the existing
 unconstrained `inv layer <LS zone x,y>` ask, including guild chat and LayerSwap

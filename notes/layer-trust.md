@@ -1,5 +1,7 @@
 # Layer trust implementation evidence
 
+Round-2 corrections and final evidence: [layer-trust-round2.md](layer-trust-round2.md).
+
 Scope: layer plan PR 2, on PR 1. No version or SavedVariables migration. All
 client behavior below is mock-tested, not native certification.
 
@@ -20,7 +22,8 @@ client behavior below is mock-tested, not native certification.
   callers omit their key when untrusted, remote rebuilds keep sender claims.
 - The delayed own K contract intentionally changes from PR 1: preserve its
   death-time key only while current trust is known; unknown/blind sends it
-  empty. Cached own WE sync and guild R work are checked again at send time.
+  empty. Cached own WE sync and embassy C/H are checked again at send time.
+  Remote R forwards retain the sender claim (round-2 correction).
 - Hop contradiction compares full before/after IDs. A real suffix move with
   an unchanged server prefix must not count as a constant-ID hop.
 

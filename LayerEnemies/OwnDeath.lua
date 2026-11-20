@@ -87,7 +87,7 @@ end
 function D.receive(text,sender,time)
     local r=D.decode(text)
     if not r or N.Adapters.guildMember(sender)~=true then return end
-    N.Main.trustClaim(sender,r.layer,r.zone,time)
+    N.Main.trustClaim(sender,r.layer,r.zone,time-r.age)
     if N.Trust.state(N.Main.store,time)=="blind" then r.layer=nil end
     local enemy=r.enemies[1]
     if enemy and key(enemy.name)==key(sender) then return end

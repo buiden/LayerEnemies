@@ -55,31 +55,35 @@ H.test("Trust: churn 2/3 and 600-second window with ten-second excuses",function
 end)
 H.test("Trust: three distinct accepted formed unchanged hops in a row",function()
     local N,s=fresh(); local T=N.Trust
-    T.hop(s,"one","7086","7086",true); T.hop(s,"two","7086","7086",true)
-    H.eq(T.state(s,0),"unknown"); T.hop(s,"two","7086","7086",true); H.eq(T.state(s,0),"unknown")
-    T.hop(s,"three","7086","7086",true); H.eq(T.state(s,0),"unknown","repeated host breaks distinct triple")
-    T.hop(s,"four","7086","7086",true); H.eq(T.state(s,0),"blind")
+    local function hop(store,host,before,after,formed)
+        T.read(store,0,after,7); T.npc(store,0,after)
+        T.hop(store,host,before,after,formed,0,-1)
+    end
+    hop(s,"one","7086","7086",true); hop(s,"two","7086","7086",true)
+    H.eq(T.state(s,0),"known"); hop(s,"two","7086","7086",true); H.eq(T.state(s,0),"known")
+    hop(s,"three","7086","7086",true); H.eq(T.state(s,0),"known","repeated host breaks distinct triple")
+    hop(s,"four","7086","7086",true); H.eq(T.state(s,0),"blind")
     for _,case in ipairs({"moved","not formed","unknown","suffix"}) do
-        s=N.Store.new(0); T.hop(s,"one","7086","7086",true); T.hop(s,"two","7086","7086",true)
+        s=N.Store.new(0); hop(s,"one","7086","7086",true); hop(s,"two","7086","7086",true)
         local after=case~="unknown" and "9000" or nil
         if case=="not formed" then after="7086" end
         if case=="suffix" then after="7086-9" end
-        T.hop(s,"break",case=="suffix" and "7086-7" or "7086",after,case~="not formed")
-        T.hop(s,"three","7086","7086",true); H.eq(T.state(s,0),"unknown",case)
+        hop(s,"break",case=="suffix" and "7086-7" or "7086",after,case~="not formed")
+        hop(s,"three","7086","7086",true); H.eq(T.state(s,0),"known",case)
     end
 end)
 H.test("Trust: outdoor group mismatch at 59/60 and continuity",function()
     local N,s=fresh(); local T=N.Trust
-    T.read(s,0,"7086-7",7)
-    T.group(s,0,"peer","9000",true); T.group(s,59,"peer","9000",true); H.eq(T.state(s,59),"known")
-    T.group(s,60,"peer","9000",true); H.eq(T.state(s,60),"blind")
-    s=N.Store.new(0); T.read(s,0,"7086-7",7)
-    T.group(s,0,"peer","7086",true); T.group(s,60,"peer","7086",true)
+    T.read(s,0,"7086-7",7); T.npc(s,0,"7086-7")
+    T.group(s,0,"peer","9000",true,-1,0); T.group(s,59,"peer","9000",true,-1,0); H.eq(T.state(s,59),"known")
+    T.group(s,60,"peer","9000",true,-1,0); H.eq(T.state(s,60),"blind")
+    s=N.Store.new(0); T.read(s,0,"7086-7",7); T.npc(s,0,"7086-7")
+    T.group(s,0,"peer","7086",true,-1,0); T.group(s,60,"peer","7086",true,-1,0)
     H.eq(T.state(s,60),"known","matching peer never contradicts")
     for _,case in ipairs({"indoor","same","peer changed","unknown"}) do
-        s=N.Store.new(0); T.read(s,0,"7086-7",7); T.group(s,0,"peer","9000",true)
+        s=N.Store.new(0); T.read(s,0,"7086-7",7); T.npc(s,0,"7086-7"); T.group(s,0,"peer","9000",true,-1,0)
         local claim=case~="unknown" and (case=="same" and "7086" or "9000") or nil
-        T.group(s,59,case=="peer changed" and "other" or "peer",claim,case~="indoor")
-        T.group(s,60,"peer","9000",true); H.eq(T.state(s,60),"known",case)
+        T.group(s,59,case=="peer changed" and "other" or "peer",claim,case~="indoor",-1,0)
+        T.group(s,60,"peer","9000",true,-1,0); H.eq(T.state(s,60),"known",case)
     end
 end)

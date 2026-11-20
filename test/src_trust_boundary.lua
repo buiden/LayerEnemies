@@ -27,7 +27,7 @@ for _,mode in ipairs({"unknown","blind"}) do
 end
 
 for _,mode in ipairs({"unknown","blind"}) do
-    test("Trust boundary: "..mode.." relays names but not a remote layer on R",function()
+    test("Trust boundary: "..mode.." relays names and the sender layer on R",function()
         local N=H.load(); H.establish(N); H.clock(120)
         H.deliver("CHAT_MSG_ADDON","WEFF1","H|1.6.6|100|9000|1|19","PARTY","Birch Scout")
         H.deliver("CHAT_MSG_ADDON","WEFF1","C|42|100|0.200|0.300|9000|1|100","PARTY","Birch Scout")
@@ -39,7 +39,7 @@ for _,mode in ipairs({"unknown","blind"}) do
         local count=0
         for _,s in ipairs(H.sent()) do if s.prefix=="LEGW1" and s.text:sub(1,2)=="R|" then
             local r=N.Relay.decode(s.text,"Carrier Cedar",H.clock()); yes(r)
-            eq(r.layer.ns,"unknown"); eq(r.count,1); eq(r.x,.2); count=count+1
+            eq(r.layer.ns,"server"); eq(r.layer.value,"9000"); eq(r.count,1); eq(r.x,.2); count=count+1
         end end
         eq(count,1); no(N.Main.error)
     end)
