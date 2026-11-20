@@ -3637,14 +3637,14 @@ test("0.4 T8: no move within 30 s of joining: leave and say the hop failed",func
     advance(29); drain(); eq(#leaves,0); advance(1.2); drain(); eq(#leaves,1)
     yes(logged("LayerEnemies: hop failed: Bob could not move you")); eq(forbidden,0)
 end)
-test("0.4 T8: another inviter, a late invite, grouped, instance or combat: nothing is accepted",function()
+test("0.4 T8: another inviter, a late invite, grouped or instance: nothing is accepted; combat is allowed",function()
     local N=loadAddon(); BULO=nil; establish(N); askBob(N)
     inviteFrom("Mallory"); inviteFrom("Bob-OtherRealm"); inviteFrom("bobby"); eq(#accepts,0); yes(popup.shown,"left to the player")
     N=loadAddon(); BULO=nil; establish(N); askBob(N); advance(121); inviteFrom("Bob"); eq(#accepts,0)
     N=loadAddon(); BULO=nil; establish(N); askBob(N); grouped=true; inviteFrom("Bob"); eq(#accepts,0); grouped=false
     N=loadAddon(); BULO=nil; establish(N); askBob(N); inInstance=true; inviteFrom("Bob"); eq(#accepts,0); inInstance=false
-    N=loadAddon(); BULO=nil; establish(N); askBob(N); combat=true; inviteFrom("Bob"); eq(#accepts,0); combat=false
-    N=loadAddon(); BULO=nil; establish(N); askBob(N); InCombatLockdown=function() return secret end; inviteFrom("Bob"); eq(#accepts,0)
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); combat=true; inviteFrom("Bob"); eq(#accepts,1); combat=false
+    N=loadAddon(); BULO=nil; establish(N); askBob(N); InCombatLockdown=function() return secret end; inviteFrom("Bob"); eq(#accepts,1)
     -- no ask at all, or a manual /le ask whisper: nothing
     N=loadAddon(); BULO=nil; establish(N); inviteFrom("Bob"); eq(#accepts,0)
     N=loadAddon(); BULO=nil; establish(N); friends(N,{Bob=there({key="8000"})}); chatBox(); advance(1); yes(LE.AskInvite("Bob")); inviteFrom("Bob"); eq(#accepts,0)
@@ -3839,10 +3839,10 @@ test("1.0 T1: network off sends nothing and registers no timer; the real addon l
     eq(sent and #sent or 0,0); eq(forbidden,0)
 end)
 
-test("1.0 T1: callers carry their priority: a hop click and Find hosts go in an instance, host and relay lines do not",function()
+test("1.0 T1: Find hosts retains click priority in an instance, but hops and relay lines refuse",function()
     local N=loadAddon(); establish(N); friends(N,{Bob=there({key="8000",host=true})}); advance(1); inInstance=true
-    yes(hopNow(N,rec(N))); eq(#sent,1); eq(sent[1].prefix,"LayerSwap")
-    slash("hosts find"); eq(#sent,3,"Q and F|1 are clicks")
+    no(hopNow(N,rec(N))); eq(#sent,0,"hop guard refuses even an explicit click")
+    slash("hosts find"); eq(#sent,2,"Q and F|1 remain discovery clicks")
     eq(select(2,N.Wire.send("LEGW1","R|1","GUILD",nil,{prio="forward"})),"instance")
 end)
 
@@ -4231,16 +4231,16 @@ test("0.4 T8 B2: the hop group ends: tracking stops at once; a later group of th
     grouped=false; units.party1=nil; deliver("GROUP_ROSTER_UPDATE"); drain(); eq(N.Main.auto.group,nil)
     advance(2); joinParty("Bob"); advance(40); drain(); eq(#leaves,0)
 end)
-test("0.4 T8: never auto-leave inside an instance; in combat the leave waits for combat to end",function()
+test("0.4 T8: never auto-leave inside an instance; combat does not delay the leave",function()
     local N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob")
     inInstance=true; advance(31); drain(); eq(#leaves,0); eq(N.Main.auto.group,nil,"tracking stopped"); inInstance=false
     advance(30); drain(); eq(#leaves,0)
     N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); moveTo("8000")
-    combat=true; advance(3.1); drain(); eq(#leaves,0,"in combat"); advance(20); drain(); eq(#leaves,0)
-    combat=false; advance(1.1); drain(); eq(#leaves,1,"after combat")
-    -- the 30 s failure also waits
+    combat=true; advance(3.1); drain(); eq(#leaves,1,"in combat"); advance(20); drain(); eq(#leaves,1)
+    combat=false; advance(1.1); drain(); eq(#leaves,1,"no duplicate after combat")
+    -- the 30 s failure also leaves in combat
     N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob")
-    combat=true; advance(31); drain(); eq(#leaves,0); combat=false; advance(1.1); drain(); eq(#leaves,1); yes(logged("hop failed"))
+    combat=true; advance(31); drain(); eq(#leaves,1); combat=false; advance(1.1); drain(); eq(#leaves,1); yes(logged("hop failed"))
 end)
 test("0.4 L2: a finished or expired hop no longer counts as asking for the guild host",function()
     local N=loadAddon(); BULO=nil; establish(N); askBob(N); yes(N.Main.hostOwn().asking)
@@ -7520,14 +7520,16 @@ local anyGuards={
     cooldown=function(N) N.Main.invite.lastAsk=clock end,
 }
 for label,setup in pairs(anyGuards) do
-    test("hop-any click guard "..label.." sends and searches nothing",function()
+    local allowed=label=="combat" or label=="combatUnknown"
+    test("hop-any click guard "..label..(allowed and " permits searching" or " sends and searches nothing"),function()
         local N=anyFixture(); setup(N); local before=#log
-        anyClick(N); eq(#whoCalls,0); eq(#sent,0); yes(#log>before)
-        deliver("WHO_LIST_UPDATE"); advance(600); eq(#sent,0); eq(#whoCalls,0)
+        anyClick(N); eq(#whoCalls,allowed and 1 or 0); eq(#sent,0); yes(#log>before)
+        if allowed then yes(N.Main.hopAnyState.round); N.Main.hopAnyStop() end
+        deliver("WHO_LIST_UPDATE"); advance(600); eq(#sent,0); eq(#whoCalls,allowed and 1 or 0)
     end)
 end
 for _,kind in ipairs({"group","combat","instance","zone","guild","stop"}) do
-    test("hop-any stop on "..kind.." cannot resume from events or timers",function()
+    test(kind=="combat" and "hop-any combat transition does not stop the round" or ("hop-any stop on "..kind.." cannot resume from events or timers"),function()
         local N=anyFixture(); anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,8)
         if kind=="group" then grouped=true; deliver("GROUP_ROSTER_UPDATE")
         elseif kind=="combat" then combat=true; deliver("PLAYER_REGEN_DISABLED")
@@ -7538,7 +7540,7 @@ for _,kind in ipairs({"group","combat","instance","zone","guild","stop"}) do
         advance(1); eq(#sent,8)
         grouped,combat,inInstance,map=false,false,false,100; N.Main.setConsent("public")
         for _=1,600 do advance(1); deliver("WHO_LIST_UPDATE") end
-        eq(#sent,8); eq(#whoCalls,1)
+        eq(#sent,kind=="combat" and 49 or 8); eq(#whoCalls,1)
     end)
 end
 for _,result in ipairs({3,4,"error"}) do
@@ -7616,7 +7618,7 @@ for _,change in ipairs({"zone","instance","raid","leader","otherLeader","combat"
         elseif change=="leader" then leader=true
         elseif change=="otherLeader" then units.party1.leader=false
         else combat=true end
-        advance(4); eq(#leaves,0)
+        advance(4); eq(#leaves,change=="combat" and 1 or 0)
         if change=="combat" then combat=false; advance(1); eq(#leaves,1) end
     end)
 end

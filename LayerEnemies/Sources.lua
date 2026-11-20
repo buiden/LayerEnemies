@@ -76,8 +76,13 @@ function Src.tick(now)
     now=S.num(now)
     if not now or (last and now-last<1) then return end
     last=now
-    if N.Adapters.inCombat() or N.Adapters.inInstance()~=false then
+    local combat=N.Adapters.inCombat()
+    local instance=N.Adapters.inInstance()~=false
+    if combat or instance then
         if N.WarBoardTrack then N.WarBoardTrack.stop() end
+        -- Only FLH click-owned guest work may progress here; F.allowed keeps
+        -- its presence, probes and replies paused. Other sources stay paused.
+        if combat and not instance and Src.enabled("flh") then call(sources.flh,"tick",now) end
         return
     end
     for _,r in ipairs(order) do

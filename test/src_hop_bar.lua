@@ -57,8 +57,9 @@ test("Hop bar: left-click runs the window's hop, with its gates and its 10 s gap
     click(N,"LeftButton"); eq(calls,2,"the click reaches Main.hopAny"); no(N.Main.hopAnyState.round,"which refuses inside 10 s")
     eq(#H.whoCalls(),1)
     H.advance(11); _,status=lines(N); eq(status,"Hop ready")
-    H.combat(true); _,status=lines(N); eq(status,"In combat"); yes(bar(N):IsShown(),"still shown in combat")
-    click(N,"LeftButton"); no(N.Main.hopAnyState.round); eq(#H.whoCalls(),1); H.combat(false)
+    H.combat(true); _,status=lines(N); eq(status,"Hop ready"); yes(bar(N):IsShown(),"still shown in combat")
+    click(N,"LeftButton"); yes(N.Main.hopAnyState.round); eq(#H.whoCalls(),2); H.combat(false)
+    N.Main.hopAnyStop(); H.advance(11)
     N.Main.setConsent("guild"); _,status=lines(N); eq(status,"Guild-only mode")
 end)
 

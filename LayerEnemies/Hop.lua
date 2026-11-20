@@ -121,11 +121,12 @@ function Hp.hostCandidate(c)
 end
 
 -- request(st, record, candidate, ctx) -> ok, message[, line]
--- ctx: now, grouped, own = {zone, server, ambiguous}, invite (Invite state, for the shared cooldowns and the join
+-- ctx: now, grouped, instance (true for inside/unreadable), own = {zone, server, ambiguous}, invite (shared cooldowns and join
 -- watch), x, y (own position or nil). An addon candidate gets the whisper through Wire; a War Effort reporter
 -- without a host addon gets nothing sent: the caller opens the prefilled chat whisper instead.
 -- The preconditions, each with its own message; nothing is reserved or sent. zoneName: optional uiMapID -> text.
 function Hp.check(record, candidate, ctx)
+    if ctx.instance then return false, "not available in an instance or with instance state unreadable." end
     if ctx.grouped then return false, "leave your current group first; an invite cannot reach you while grouped." end
     if not S.tab(record) then return false, "nothing to hop to." end
     -- a candidate that is a Bulo/LayerSwap row seen while our own layer is unknown: the hint, nothing drafted

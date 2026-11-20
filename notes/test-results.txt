@@ -265,7 +265,7 @@ PASS 0.4 host saved: the window line and toggle
 PASS 0.4 T8: the asked host's invite is accepted, the popup hidden as accepted; the move then leaves after 3 s
 PASS 0.4 T8: Wire keeps its own limits on accept and leave (10 s each)
 PASS 0.4 T8: no move within 30 s of joining: leave and say the hop failed
-PASS 0.4 T8: another inviter, a late invite, grouped, instance or combat: nothing is accepted
+PASS 0.4 T8: another inviter, a late invite, grouped or instance: nothing is accepted; combat is allowed
 PASS 0.4 T8: a group not joined through our hop is never left; leader changes, raid or our lead stop the leave
 PASS 0.4 T8: the guild ask accepts an online guild member's invite only
 PASS 0.4 T8: hostOwn carries our own name key (it was dropped by an and-expression in 7.3)
@@ -278,7 +278,7 @@ PASS 1.0 T1: throttled by the client: dropped, never retried, that prefix pauses
 PASS 1.0 T1: the queue: over budget a queued line waits; full, the oldest forward goes and a click stays; priority order
 PASS 1.0 T1: in combat every rate halves; in an instance only clicks go
 PASS 1.0 T1: network off sends nothing and registers no timer; the real addon loaded stands its prefix down
-PASS 1.0 T1: callers carry their priority: a hop click and Find hosts go in an instance, host and relay lines do not
+PASS 1.0 T1: Find hosts retains click priority in an instance, but hops and relay lines refuse
 PASS 1.0 T2: a wrapped, enveloped, relayed or synced record is never first-hand
 PASS 1.0 T2: at is the origin's time, never the time we heard it
 PASS 1.0 T2: positions are labelled: enemy, observer, victim or none
@@ -306,7 +306,7 @@ PASS 0.4 T8 B1: a drafted whisper arms auto-accept only once we see it go out to
 PASS 0.4 T8 B1: the guild ask arms on our own /g line; then only an answerer or a listed host is accepted
 PASS 0.4 T8 B1: a request whose line cannot be built leaves nothing armed
 PASS 0.4 T8 B2: the hop group ends: tracking stops at once; a later group of the same host is never left
-PASS 0.4 T8: never auto-leave inside an instance; in combat the leave waits for combat to end
+PASS 0.4 T8: never auto-leave inside an instance; combat does not delay the leave
 PASS 0.4 L2: a finished or expired hop no longer counts as asking for the guild host
 PASS 0.4 L1: isMe uses the one name rule; letters refuse a no-break space, zero-width and invalid bytes
 PASS 1.0 T1-1: in combat the minute caps halve too: GUILD 10, public 10, one player 2, all 20
@@ -632,7 +632,7 @@ PASS hop-any click guard groupUnknown sends and searches nothing
 PASS hop-any click guard guild sends and searches nothing
 PASS hop-any click guard instanceUnknown sends and searches nothing
 PASS hop-any click guard ambiguous sends and searches nothing
-PASS hop-any click guard combatUnknown sends and searches nothing
+PASS hop-any click guard combatUnknown permits searching
 PASS hop-any click guard hop sends and searches nothing
 PASS hop-any click guard tagSecret sends and searches nothing
 PASS hop-any click guard sendWho sends and searches nothing
@@ -642,7 +642,7 @@ PASS hop-any click guard instance sends and searches nothing
 PASS hop-any click guard layer sends and searches nothing
 PASS hop-any click guard cooldown sends and searches nothing
 PASS hop-any click guard readWho sends and searches nothing
-PASS hop-any click guard combat sends and searches nothing
+PASS hop-any click guard combat permits searching
 PASS hop-any click guard countWho sends and searches nothing
 PASS hop-any click guard groupSecret sends and searches nothing
 PASS hop-any click guard zoneName sends and searches nothing
@@ -651,7 +651,7 @@ PASS hop-any click guard enum sends and searches nothing
 PASS hop-any click guard grouped sends and searches nothing
 PASS hop-any click guard tag sends and searches nothing
 PASS hop-any stop on group cannot resume from events or timers
-PASS hop-any stop on combat cannot resume from events or timers
+PASS hop-any combat transition does not stop the round
 PASS hop-any stop on instance cannot resume from events or timers
 PASS hop-any stop on zone cannot resume from events or timers
 PASS hop-any stop on guild cannot resume from events or timers
@@ -1421,7 +1421,7 @@ PASS FLH batch: retry and paced query cancellation on stop
 PASS FLH batch: retry and paced query cancellation on share
 PASS FLH batch: retry and paced query cancellation on consent
 PASS FLH batch: retry and paced query cancellation on network
-PASS FLH batch: retry and paced query cancellation on combat
+PASS FLH batch: retry and paced queries survive combat
 PASS FLH batch: retry and paced query cancellation on instance
 PASS FLH batch: retry and paced query cancellation on zone
 PASS FLH batch: retry and paced query cancellation on donor
@@ -1478,7 +1478,7 @@ PASS FLH member: timed-out row is measured and late offers cannot send
 PASS FLH member: pending guest is revoked by share
 PASS FLH member: pending guest is revoked by guild
 PASS FLH member: pending guest is revoked by switch
-PASS FLH member: pending guest is revoked by combat
+PASS FLH member: pending guest survives combat
 PASS FLH member: pending guest is revoked by instance
 PASS FLH member: pending guest is revoked by zone
 PASS FLH member: pending guest is revoked by fingerprint
@@ -1584,6 +1584,22 @@ PASS Hop bar: the 1 s refresh sends nothing and stops while hidden
 PASS Hop bar: a click acts only on what the bar showed (a round started since the last paint is left alone)
 PASS Hop bar: a right-button press during a left drag does not turn the drag's release into a click
 PASS Hop bar: the 1 s refresh only reads (an expired ask is not cleared by the display)
+PASS Hop combat: FLH guest batch paces in combat, reserves cost two for LR and keeps membership silent
+PASS Hop combat: FLH click survives combat starting before its offer
+PASS Hop combat: slash starts in combat and still uses the doubled Wire cost
+PASS Hop combat: bar starts in combat and still uses the doubled Wire cost
+PASS Hop combat: combat-start event and later pumps retain the clicked round
+PASS Hop combat: instance still refuses host requests
+PASS Hop combat: instance still refuses report requests
+PASS Hop combat: instance still refuses slash requests
+PASS Hop combat: instance still refuses bar requests
+PASS Hop combat: instance still refuses flh requests
+PASS Hop combat: guild host still refuses combat requests, but invites after combat
+PASS Hop combat: manual host request accepts only its asked host in combat
+PASS Hop combat: manual report request accepts only its asked host in combat
+PASS Hop combat: asked hop-any invite is accepted and a second hop works without combat ending
+PASS Hop combat: leave after a move does not wait for combat end
+PASS Hop combat: leave after failure does not wait for combat end
 PASS Stack: source mutant evidence rerun is byte and mtime stable
 PASS Stack: presence mutant evidence rerun is byte and mtime stable
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
@@ -2295,4 +2311,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2217 tests passed, 0 failed, 648033 assertions
+RESULT: 2233 tests passed, 0 failed, 649130 assertions

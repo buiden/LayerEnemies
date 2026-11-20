@@ -503,7 +503,6 @@ do
             if r.phase=="who" then return "Hopping: searching...",r end
             return "Hopping: asking "..(r.sent or 0).."...",r
         end
-        if N.Adapters.inCombat() then return "In combat" end
         local c=M.hopAnyContext(true) -- read only: the 1 s refresh must not change any state
         if N.Wire.hopBlocked(c.now) then return "Whispers paused" end
         local ok,why=N.HopAny.check(st,c)

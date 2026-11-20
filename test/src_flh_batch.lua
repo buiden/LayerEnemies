@@ -211,7 +211,7 @@ test("FLH batch: a refused selection cannot be redirected by another queried hos
 end)
 
 for _,mode in ipairs({"stop","share","consent","network","combat","instance","zone","donor","rollback"}) do
-    test("FLH batch: retry and paced query cancellation on "..mode,function()
+    test(mode=="combat" and "FLH batch: retry and paced queries survive combat" or ("FLH batch: retry and paced query cancellation on "..mode),function()
         for _,retry in ipairs({false,true}) do
             local N=member(); hosts(N); local at=H.clock()
             if retry then limitHost(N,"Host a") else ordinary(N,2) end
@@ -228,8 +228,10 @@ for _,mode in ipairs({"stop","share","consent","network","combat","instance","zo
             elseif mode=="donor" then H.loaded().ForeverLayerHop=true
             else H.clock(at-1); N.FLHMember.tick(H.clock()) end
             H.clock(at+60); N.FLHMember.tick(H.clock()); offer(N,q)
-            eq(#lines("LQ"),before); eq(#lines("LR"),0); no(N.FLHMember.pending())
-            H.deliver("PARTY_INVITE_REQUEST",q.target); eq(H.accepts(),0); ceilings(); no(N.Main.error)
+            if mode=="combat" then
+                yes(#lines("LQ")>=before); eq(#lines("LR"),1); yes(N.FLHMember.pending())
+            else eq(#lines("LQ"),before); eq(#lines("LR"),0); no(N.FLHMember.pending()) end
+            H.deliver("PARTY_INVITE_REQUEST",q.target); eq(H.accepts(),mode=="combat" and 1 or 0); ceilings(); no(N.Main.error)
         end
     end)
 end

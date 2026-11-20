@@ -12,7 +12,6 @@ function H.check(st,c)
     if c.guildOnly then return false,"guild-only mode: this asks players outside your guild." end
     if c.grouped then return false,"leave your current group first; group state must be readable." end
     if c.instance~=false then return false,"not available in an instance or with instance state unreadable." end
-    if c.combat then return false,"not available in combat or with combat state unreadable." end
     if not c.zone or not c.zoneName or c.zone~=c.own.zone then return false,"your live zone is not known." end
     if not L.key(c.own.server) or c.own.ambiguous then return false,I.HINT.." An ambiguous key cannot be used." end
     if not c.self then return false,"your own name is not readable." end

@@ -392,7 +392,7 @@ for _,exit in ipairs({"result","no rows","timeout","stop","slash stop","combat",
             if exit=="timeout" then ticks(5)
             elseif exit=="stop" then N.Main.hopAnyStop()
             elseif exit=="slash stop" then SlashCmdList.LAYERENEMIES("hop stop")
-            elseif exit=="combat" then T.deliver("PLAYER_REGEN_DISABLED")
+            elseif exit=="combat" then T.deliver("PLAYER_REGEN_DISABLED"); eq(N.Main.hopAnyState.round,round)
             elseif exit=="zone" then T.map(200); T.deliver("ZONE_CHANGED_NEW_AREA")
             elseif exit=="world" then T.instance(true); T.deliver("PLAYER_ENTERING_WORLD")
             elseif exit=="group" then T.group(true); T.deliver("GROUP_ROSTER_UPDATE")
@@ -402,10 +402,11 @@ for _,exit in ipairs({"result","no rows","timeout","stop","slash stop","combat",
             elseif exit=="subzone" then
                 T.map(101); T.deliver("ZONE_CHANGED"); eq(N.Main.hopAnyState.round,round)
             end
-            local result=exit=="result" or exit=="no rows" or exit=="subzone"
+            local result=exit=="result" or exit=="no rows" or exit=="subzone" or exit=="combat"
             if result then
                 if exit=="no rows" then T.rows({}) end
                 T.deliver("WHO_LIST_UPDATE"); T.drain(); restored(fs)
+                if exit=="combat" then eq(#T.sent(),8,"combat event retains the live search") end
             elseif exit~="error" and exit~="reload" then
                 registrations(fs,false) -- late guard owns only the registration, never the script
                 if release=="late" then T.deliver("WHO_LIST_UPDATE")
