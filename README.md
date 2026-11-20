@@ -4,15 +4,15 @@
 
 ### Hop in combat (escape a gank)
 
-You can now hop **while in combat**: `/le hop`, the hop bar, a hop-any round and a ForeverLayerHop
-(FLH) guest request all work in combat. You can accept the invite and leave the group in combat too.
+You can now hop **while in combat**: the hop bar, `/le hop any`, `/le hop N`, `/le hop host N` and
+`/le hop flh` (a ForeverLayerHop guest request) all work in combat. You can accept the invite and leave the group in combat too.
 Combat starting no longer cancels a hop you clicked, and leaving the group no longer waits for combat
 to end. The hop bar no longer shows `In combat`.
 
 - **The host side is still guarded:** a guild host never invites while he is in combat.
 - **Still no hop in instances.** This release also adds the missing instance guard to named-host and
   report hops (`/le hop N`, `/le hop host N`), so every hop path now refuses inside an instance.
-- In combat every send costs double and every per-minute cap is halved, so a hop-any round runs at
+- In combat every send costs double and Wire's per-minute caps are halved, so a hop-any round runs at
   half pace. FLH presence and probes stay paused in combat; only your own clicked guest request and
   its answer go out. No limit was raised and nothing is sent to chat.
 - Whether the game lets you accept a group invite in combat could not be checked offline.
