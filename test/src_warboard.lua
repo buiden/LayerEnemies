@@ -721,7 +721,7 @@ test("safe fields clocks and conversions fail closed, source input cannot change
         inbound(v); h.deliver("CHAT_MSG_ADDON","WarBoard",v,"GUILD","Enemy Player")
     end
     for _,change in ipairs({{sentAt=h.wall()-121},{sentAt=h.wall()+121},{worldX=100000001},{worldY=-100000001},
-        {instanceID=100001},{rank=15},{approximate=1},{subZone=string.rep("a",101)},{shard=string.rep("a",21)},
+        {instanceID=100001},{rank=15},{approximate=1},{subZone=string.rep("a",101)},
         {roster={[101]={guid="g",name="n"}}}}) do
         local d=position(); for k,v in pairs(change) do d[k]=v end
         data(N,"FBLP",d); no(row(N).reported)

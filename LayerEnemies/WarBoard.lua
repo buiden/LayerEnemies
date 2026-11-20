@@ -363,7 +363,6 @@ local function location(st,t,d,e,ctx,carrier,bridge,cached,account)
         ev=event(d.targetName,d.targetGuid,d.faction,ctx,carrier,"self",bridge)
         if not ev then return false end
         ev.at=at; ev.zone=d.zone; ev.shard=d.shard~=nil and shardText(d.shard,20,false) or nil
-        if d.shard~=nil and not ev.shard then return false end
         ev.pos="enemy"
         ev.note=(ev.kind=="self" and "own position; " or "reported position; ")..d.zone..(d.subZone and d.subZone~="" and ("; "..d.subZone) or "")
             ..(d.approximate and "; approximate coordinates; zone labels are current" or "")

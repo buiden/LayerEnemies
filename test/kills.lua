@@ -237,11 +237,14 @@ end)
 test("Kills relay: malformed kill wire cannot smuggle counts, hashes, extra enemies or layer",function()
     local N=setup(true); local text=N.Relay.encode(assert(decode(N)[1]),H.clock()); yes(text)
     local fields={}; for v in (text.."|"):gmatch("([^|]*)|") do fields[#fields+1]=v end
-    for _,change in ipairs({{3,"we"},{10,"1"},{11,"s"},{12,"12345"},{14,"AbC::"},
+    for _,change in ipairs({{3,"we"},{10,"1"},{11,"s"},{14,"AbC::"},
         {14,fields[14]..","..fields[14]},{14,""}}) do
         local copy={}; for i,v in ipairs(fields) do copy[i]=v end; copy[change[1]]=change[2]
         eq(N.Relay.decode(table.concat(copy,"|"),"Guild Carrier",H.clock()),nil)
     end
+    fields[12]="12345"
+    local unknown=N.Relay.decode(table.concat(fields,"|"),"Guild Carrier",H.clock())
+    yes(unknown); eq(unknown.layer.ns,"unknown"); eq(unknown.layer.value,nil)
 end)
 
 test("Kills relay: guild copy during wait cancels our send",function()

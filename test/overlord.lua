@@ -298,12 +298,13 @@ end)
 
 test("GW bounds faction timestamp and unknown places",function()
     local N=setup(); local Ov=N.Overlord; local wall=GetServerTime()
-    for _,o in ipairs({{kills=10000},{members=1000},{layer=100000000},{layer=-1},{kills=49},{members=4},
+    for _,o in ipairs({{kills=10000},{members=1000},{kills=49},{members=4},
         {ts=wall-301},{ts=wall+31},{ts=wall+.5},{faction="X"},{guild=""},{guild=string.rep("a",25)},
         {guild=" Bad"},{guild="Bad "},{guild="Bad  Name"},{guild="Bad%Name"},{guild="Bad,Name"},
         {zone="##1434"},{zone="#abc"},{zone=string.rep("a",41)},{zone="front:bad"}}) do
         eq(Ov.gw(gw(o),wall),nil,tostring(o.guild or o.zone or o.ts or o.kills or o.members or o.layer))
     end
+    for _,layer in ipairs({100000000,-1}) do local r=Ov.gw(gw({layer=layer}),wall); yes(r); eq(r.layer,nil) end
     yes(Ov.gw(gw({kills=9999,members=999,layer=99999999,ts=wall-300}),wall))
     hear(bf(packet({payload=gw({faction="A"})}))); eq(#N.Main.reportedRows(),0,"own faction")
     for _,ref in ipairs({"@front7","capture-zone","#9999",""}) do

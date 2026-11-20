@@ -72,7 +72,7 @@ local function P(f)
     end
     local layer
     if #f == 7 and f[7] ~= "" then
-        layer = b36(f[7]); if not layer or layer < 1 then return nil end
+        layer = b36(f[7]); if not layer or layer < 1 then layer=nil end
     end
     return { type = "P", map = map, t = t, x = x, y = y, count = enemies, enemies = named, layer = layer }
 end

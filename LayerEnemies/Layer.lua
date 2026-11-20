@@ -1,15 +1,17 @@
 local _, N = ...
 local L, S = {}, N.Safe
 N.Layer = L
+L.EXPIRE = 300
 function L.bulo(id)
     id = S.str(id,32)
-    if id and id:match("^%d+%-%d+$") then return id:match("^(%d+)"), id end
+    if id and id:match("^%d+%-%d+$") and L.key(id) then return L.key(id), id end
 end
 function L.npc(guid)
     guid = S.str(guid,120)
     if not guid then return nil end
     local kind,server,instance,zone,npc,spawn = guid:match("^(%a+)%-0%-(%d+)%-(%d+)%-(%d+)%-(%d+)%-(%x+)$")
     if kind ~= "Creature" and kind ~= "Vehicle" then return nil end
+    if not L.key(server) then return nil end
     zone,npc = tonumber(zone),tonumber(npc)
     if not zone or zone < 1 or zone > 99999999 or not npc or npc < 1 then return nil end
     return zone,npc,server .. "-" .. tostring(zone)
@@ -23,7 +25,8 @@ function L.key(id)
         id=string.format("%.0f",id)
     end
     if type(id)~="string" or #id>32 then return nil end
-    return id:match("^(%d+)%-%d+$") or id:match("^%d+$")
+    local key=id:match("^(%d+)%-%d+$") or id:match("^%d+$")
+    return key and tonumber(key)>0 and key or nil
 end
 function L.same(a,b)
     a,b=L.key(a),L.key(b)
@@ -34,6 +37,14 @@ function L.new() return { votes={}, current=nil, last=nil, raw=nil, ambigAt=nil 
 -- ambiguity window stay: they belong to the zone epoch, which only forget() ends (zone change).
 function L.reset(t) S.clear(t.votes); t.current=nil; t.last=nil end
 function L.forget(t) L.reset(t); t.raw=nil; t.ambigAt=nil end
+-- Expiry is not a crossing: keep ambiguity, but never expose an expired raw key.
+function L.expire(t,now)
+    if t.last and now-t.last>=L.EXPIRE then
+        L.reset(t); t.raw=nil
+        return true
+    end
+    return false
+end
 L.AMBIGUOUS=1800
 -- Our own server key: the server part of the last confirmed raw id (two NPC readings agreeing exactly).
 function L.server(t)
@@ -51,9 +62,10 @@ function L.ambiguous(t,now)
 end
 -- Five recent readings, distinct NPC kinds, never unbounded GUID history.
 function L.observe(t,guid,now)
+    L.expire(t,now)
     local zone,npc,raw = L.npc(guid)
     if not zone then return nil end
-    if t.last and now-t.last > 300 then L.reset(t) end
+    t.last=now
     for i=#t.votes,1,-1 do
         if t.votes[i].npc==npc or now-t.votes[i].at>15 then table.remove(t.votes,i) end
     end

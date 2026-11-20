@@ -1858,20 +1858,24 @@ copies and unreadable or same-faction sightings are not carried. These plain
 name/class/level/zone/time copies have no layer or position, are never shared,
 and never feed map candidates, hop or ask. Find now independently retains
 the original named sighting in its session cache; these display-only copies
-are not replayed into it. World entry, shard transfer,
-a real layer change, an NPC zoneUID change or an unreadable zone clears them.
-Learning your layer in the new zone keeps them until their original expiry.
+are not replayed into it. World entry, shard transfer, or a confirmed key
+change within ten seconds of joining or leaving a group clears them. An
+unexplained key rotation or unreadable zone does not. Learning your layer in
+the new zone keeps them until their original expiry.
 They are not saved.
 
-Active identifiers are scoped to the current zone. Real zone changes, world
-entry, transfer events, and exact Bulo ID changes wipe the observation epoch,
-identities, reports and pending fragments; only real zone crossings keep the
-separate display-only previous-zone copies above. Entries with timestamps at or
-before the new epoch are rejected. Captured carried-over units remain
-quarantined until their old unit token disappears or changes; this can miss
-sightings, but avoids attaching old observations to a new layer. Fresh
-reacquisition is covered by tests. Full raw-ID changes are deliberately
-treated conservatively for the observation epoch.
+Active identifiers are scoped to the current zone. Readable zone changes,
+world entry, shard transfer, and confirmed key changes within ten seconds of
+a group join or leave wipe the observation epoch, identities, reports and
+pending fragments. Only real zone crossings keep the separate display-only
+previous-zone copies above. Other Bulo/NPC ID changes update the key without
+wiping observations, pending sharing or pending own-death work. An unreadable
+map suspends zone-dependent output rather than proving a crossing; a donor
+ID-change notification alone is not a client transfer event.
+Entries with timestamps at or before a new epoch are rejected. Captured
+carried-over units remain quarantined until their old unit token disappears
+or changes; this can miss sightings, but avoids attaching old observations
+to a new layer. Fresh reacquisition is covered by tests.
 
 Only direct events capture approximate observer coordinates. Bulo copies
 carry no coordinates: the player might have moved since their timestamp.
@@ -1884,7 +1888,17 @@ before the "-" in an ID such as 7086-7. Bulo Layer Forever and LayerSwap both
 use that number. One helper produces and compares it for every source, so
 7086-7 and 7086-55 have the same server key and 7086 and 7102 do not. An equal
 server key is the best evidence available, not proof of the same layer.
-Unreadable or malformed IDs have no key and never compare equal.
+Unreadable, malformed or zero IDs have no key and never compare equal.
+This includes numeric `0`, `"0"`, `"0-0"` and `"0-0-0"`. Each independent
+reader keeps its existing namespace; zero does not become a layer in another
+network. Without a valid read for 300 seconds, the poll tick expires your own
+key; a later NPC key needs fresh confirmation. Expiry alone is not a transfer.
+
+Incoming O/K/R, War Effort C/H, HeadHunter P, Overlord GW, WarBoard FBLP and
+Wanted records retain their other valid fields when a separable layer value
+is malformed, treating just that layer as unknown. Malformed identity-layer
+records (WarBoard SHRD and Wanted bridge counts) still drop, as do records
+malformed elsewhere. Outgoing line shapes and routes are unchanged.
 
 Your own key comes only from a confirmed reading (Bulo's full ID or two
 agreeing NPC kinds). When NPC readings show a new full ID with the same server
@@ -1893,6 +1907,7 @@ minutes (a Bulo ID change does not start this window). While it is
 ambiguous, a report on an equal key shows the relation as unknown (a
 different key still reads "other"), and Find, `/le hosts` and the layer
 check say "probably" where they would otherwise say "on your layer".
+Guild hosting gives no answer or invitation while your key is ambiguous.
 
 The number after the "-" (the zoneUID) is never used as a server-layer key.
 The receive-only ChehulNet exception compares that GUID-field-5 reading only

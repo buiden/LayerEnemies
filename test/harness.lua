@@ -544,6 +544,14 @@ local function establish(N)
     units.mouseover={guid=npc(2),player=false}; deliver("UPDATE_MOUSEOVER_UNIT"); drain(); advance(.1)
     eq(N.Main.store.bulo,"7086-7"); eq(N.Main.store.zoneUID,7)
 end
+-- Long-lived transport tests need actual fresh readings after own-key expiry.
+local function readLayer(N,uid)
+    for n=1,2 do
+        units.target={guid=npc(n,uid),player=false}
+        deliver("PLAYER_TARGET_CHANGED"); drain()
+    end
+    eq(N.Main.store.zoneUID,uid or 7)
+end
 -- War Effort 1.6.6 vectors (study/wareffort-vectors.json, copied as literals). Server time 720100 -> stamp 100.
 local VH="H|1.6.6|100|7086|1|19|0|123|100|456|H|60|1|42|1"
 local VC="C|42|100|0.400|0.500|7086|4|100|12||4f4c594d505553:4"
@@ -610,13 +618,13 @@ test("Bulo unsafe/no event bus uses polling",function()
     advance(5); no(N.Main.bus); eq(N.Main.store.bulo,"7086-7")
     b.current="7087-9"; advance(5); eq(N.Main.store.bulo,"7087-9"); no(N.Main.error)
 end)
-test("Bulo layer and raw changes wipe all previous sightings",function()
+test("Bulo layer and raw changes retain previous sightings without a real boundary",function()
     local N=loadAddon(); local b=fakeBulo("7086-7"); N.Main.poll(); advance(1)
     b.Radar.seen.a={at=clock,hostile=true,src="target"}; N.Main.poll(); yes(N.Main.store.localSeen.a)
     advance(1); b.current="7086-8"; b:Fire("LFS_RAW",b.current); drain()
-    eq(N.Main.store.localSeen.a,nil); eq(N.Main.store.bulo,"7086-8")
+    yes(N.Main.store.localSeen.a); eq(N.Main.store.bulo,"7086-8")
     advance(1); b.current="8000-2"; b:Fire("LFS_LAYER",b.current); drain()
-    eq(N.Main.store.bulo,"8000-2"); eq(N.Safe.count(N.Main.store.localSeen),0)
+    eq(N.Main.store.bulo,"8000-2"); eq(N.Safe.count(N.Main.store.localSeen),1)
 end)
 test("transfer epoch rejects old Bulo and carried unit observations",function()
     local N=loadAddon(); local b=fakeBulo("7086-7"); N.Main.poll(); advance(1)
@@ -725,11 +733,12 @@ test("decoder rejects hostile malformed and oversized messages",function()
     local N=loadAddon()
     local many={}; for i=1,19 do many[i]="abc:H:60" end
     local bad={"",string.rep("A",256),"C|1|100|nan|0|7|1|100","C|1|100|1.01|0|7|1|100","C|0|100|0|0|7|1|100","C|1|100|0|0|7|201|100",
-        "C|1|0|0|0|7|1|100","C|1|100|0|0|-1|1|100","C|1|100|0|0|7","E|1|2|1|abc:H:60|100","E|1|1|1|abcd:H:60|100","E|1|1|1|abc:Z:60|100",
+        "C|1|0|0|0|7|1|100","C|1|100|0|0|7","E|1|2|1|abc:H:60|100","E|1|1|1|abcd:H:60|100","E|1|1|1|abc:Z:60|100",
         "E|1|1|1|abc:H:0|100","E|1|1|1|abc:H:60,|100","E|1|1|1||100","E|1|1|1","E|1|1|1|"..table.concat(many,",").."|100",
         "H|bad|100|7|1","H|1.6.6|100|7","C|1|100|0|0|7|1|100\n","C|1|100|0|0|7|1|100 ","C|1|100|0|0|7|1|1\0001"}
     for _,text in ipairs(bad) do local m,why=N.Protocol.decode(text); eq(m,nil,text); eq(why,"invalid",text) end
     eq(N.Protocol.decode(secret),nil); eq(N.Protocol.decode({}),nil)
+    eq(N.Protocol.decode("C|1|100|0|0|-1|1|100").layer,0,"bad layer is separable")
     -- optional fields that are unreadable become unknown instead of failing the message
     local c=N.Protocol.decode("C|1|100|0|0|7|1|3600|46|4:2"); yes(c); eq(c.stamp,nil); eq(c.spread,nil); eq(c.sync,false)
 end)
@@ -2373,9 +2382,10 @@ test("hh rejects 6-field P and version 2",function()
     local bad={"1AP:13k;tro8w0;dw;6y;a1;Kora/P/31;4;x","1AP:13k;tro8w0;dw;6y","1AP:13K;tro8w0;dw;6y;a1","1AP:13k;tro8w0zzzzz;dw;6y;a1",
         "1AP:13k;tro8w0;rs;6y;a1","1AP:13k;tro8w0;dw;6y;"..table.concat(ids,","),"1AP:13k;tro8w0;dw;6y;a1;A b/P/1,B c/P/1,C d/P/1,D e/P/1;4",
         "1AP:13k;tro8w0;dw;6y;a1;Ko|ra/P/31;4","1AP:13k;tro8w0;dw;6y;a1;Kora/P/101;4","1AP:13k;tro8w0;dw;6y;a1;Kora/P/1a;4","1AP:13k;tro8w0;dw;6y;a1;Kora/Z/31;4",
-        "1AP:13k;tro8w0;dw;6y;a1;Kora/P;4","1AP:13k;tro8w0;dw;6y;a1;;0","1AP:0;tro8w0;dw;6y;a1","1AP:13k;tro8w0;dw;6y;a-1","1XP:13k;tro8w0;dw;6y;a1",
+        "1AP:13k;tro8w0;dw;6y;a1;Kora/P;4","1AP:0;tro8w0;dw;6y;a1","1AP:13k;tro8w0;dw;6y;a-1","1XP:13k;tro8w0;dw;6y;a1",
         "1AP:","1AP13k;tro8w0;dw;6y;a1","1aP:13k;tro8w0;dw;6y;a1","1AP:13k;tro8w0;dw;6y;a1"..string.rep("~",250)}
     for _,text in ipairs(bad) do eq(#hh(N,text),0,text) end
+    local unknown=hh(N,"1AP:13k;tro8w0;dw;6y;a1;;0"); eq(#unknown,1); eq(unknown[1].layer.ns,"unknown")
     eq(#hh(N,"1AP:13k;tro8w0;dw;6y;a1"..string.rep(",b",120)),0); eq(#hh(N,secret),0); eq(#hh(N,{}),0)
 end)
 test("hh unwraps E and keeps author as origin",function()
@@ -6689,13 +6699,13 @@ test("seen unknown 01b: Find says layer unknown for an own sighting made before 
     advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
     row=N.Main.findRows()[1]; yes(row.same,"fresh known-layer sighting"); eq(row.status,"is on YOUR layer"); no(N.Main.error)
 end)
-test("seen unknown 06: a real layer or raw-id change still wipes kept pre-layer rows",function()
+test("seen unknown 06: an unexplained layer or raw-id change retains kept pre-layer rows",function()
     for _,id in ipairs({"7086-8","8000-7"}) do
         local N=loadAddon(); advance(1); seeFoe("Aster Vale","Player-1-901"); units.target=nil
         advance(1); establish(N); eq(#N.Store.rows(N.Main.store,clock,"local"),1)
         local b=fakeBulo(id); N.Main.poll()
-        eq(N.Main.store.bulo,id); eq(next(N.Main.store.localSeen),nil)
-        eq(#N.Store.rows(N.Main.store,clock,"local"),0); no(N.Main.error)
+        eq(N.Main.store.bulo,id); yes(next(N.Main.store.localSeen))
+        eq(#N.Store.rows(N.Main.store,clock,"local"),1); no(N.Main.error)
     end
 end)
 test("seen unknown 07: shard transfer still wipes unknown and kept sightings",function()
@@ -6815,7 +6825,7 @@ test("previous zone 14: only opposite-faction own-source current-epoch rows are 
     yes(type(N.Store.previous)=="function","previous-zone reader exists")
     local rows=N.Store.previous(t,clock); eq(#rows,1); eq(rows[1].key,"Own"); eq(rows[1].at,at)
 end)
-test("previous zone 15: non-zone boundaries clear carry-over even when the map also changes",function()
+test("previous zone 15: only real boundaries clear carry-over, zone crossings replace it",function()
     for _,event in ipairs({"SHARD_TRANSFER","PLAYER_ENTERING_WORLD","layer","npc","Bulo transfer","unreadable"}) do
         local N=loadAddon(); establish(N); advance(1)
         seeFoe("Aster Vale","Player-1-901"); units.target=nil
@@ -6825,7 +6835,7 @@ test("previous zone 15: non-zone boundaries clear carry-over even when the map a
         advance(1); seeFoe("Briar Stone","Player-1-902"); units.target=nil
         if event=="layer" then
             units.mouseover=nil; deliver("UPDATE_MOUSEOVER_UNIT"); drain()
-            establish(N) -- learning preserves the carry; a subsequent real layer change clears it
+            establish(N) -- learning and an unexplained rotation both preserve carry
             eq(#N.Store.previous(N.Main.store,clock),1)
             advance(1); N.Main.applyLayer("8000-7","test layer")
         elseif event=="npc" then
@@ -6837,7 +6847,8 @@ test("previous zone 15: non-zone boundaries clear carry-over even when the map a
             local b=fakeBulo(nil); N.Main.poll(); map=100; b:Fire("LFS_TRANSFER"); drain()
         elseif event=="unreadable" then map=nil; deliver("ZONE_CHANGED"); drain()
         else map=100; deliver(event); drain() end
-        eq(#N.Store.previous(N.Main.store,clock),0,event); eq(#N.Main.store.prev,0,event)
+        local expected=(event=="SHARD_TRANSFER" or event=="PLAYER_ENTERING_WORLD") and 0 or 1
+        eq(#N.Store.previous(N.Main.store,clock),expected,event); eq(#N.Main.store.prev,expected,event)
         no(N.Main.error)
     end
 end)
@@ -7945,7 +7956,7 @@ test("hop-any unreadable ignore policy at dispatch fails closed without cooldown
 end)
 
 assert(loadfile("test/hop_fanout.lua"))({test=test,eq=eq,yes=yes,no=no,load=anyFixture,click=anyClick,reply=anyReply,
-    rows=function(v) whoRows=v end,abc=abc,secret=secret,advance=advance,deliver=deliver,drain=drain,
+    rows=function(v) whoRows=v end,abc=abc,secret=secret,advance=advance,deliver=deliver,drain=drain,readLayer=readLayer,
     time=function(v) if v then clock=v end; return clock end,sent=function() return sent end,
     result=function(v) sendResult=v end,loaded=function(k,v) loaded[k]=v end,
     accepts=function() return accepts end,frames=function() return frames end,
@@ -8046,7 +8057,7 @@ local sourceHarness={test=test,eq=eq,yes=yes,no=no,load=loadAddon,abc=abc,secret
     accepts=function() return #accepts end,leaves=function() return #leaves end,result=function(v) sendResult=v end,
     channels=function() return chanList end,channelMembers=function(name,list) chanMembers[name]=list end,
     joined=function() return joined end,left=function() return leftCh end,
-    advance=advance,deliver=deliver,drain=drain,establish=establish,player=player,
+    advance=advance,deliver=deliver,drain=drain,establish=establish,player=player,readLayer=readLayer,
     clock=function(v) if v then clock=v end; return clock end,
     time=function(v) if v then clock=v end; return clock end,
     wall=function(v) if v then wall=v end; return wall end,

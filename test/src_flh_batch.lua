@@ -363,7 +363,7 @@ local function replay(strangers,offset,delay)
             receive("WP|"..s.."|1234|0.1.3|100|8|1","Stranger "..H.abc(s/10))
             receive("CQ|"..s.."|100|8|1|0.1.3|1234","Asker "..H.abc(s/10))
         end
-        if s%60==0 then hosts(N); N.Main.store.zoneUID=100+s/60 end
+        if s%60==0 then hosts(N); H.readLayer(N); N.Main.store.zoneUID=100+s/60 end
         if s%300==30+offset then
             local before=#lines("LQ")
             SlashCmdList.LAYERENEMIES("hop flh"); clicks=clicks+1

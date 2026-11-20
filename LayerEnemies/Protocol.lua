@@ -37,7 +37,7 @@ local decodeInner
 local function C(f)
     if #f < 7 then return nil end
     local r = { type = "C", rid = int(f[2], 1, 65535), map = int(f[3], 1, 999999), x = coord(f[4]), y = coord(f[5]),
-        layer = int(f[6], 0, 99999999), count = int(f[7], 1, 200) }                               -- War Effort's MAX_COUNT
+        layer = int(f[6], 0, 99999999) or 0, count = int(f[7], 1, 200) }                               -- War Effort's MAX_COUNT
     if not (r.rid and r.map and r.x and r.y and r.layer and r.count) then return nil end
     r.stamp = int(f[8], 0, 3599)                                 -- invalid or absent: no stamp (age 0)
     r.spread = int(f[9], 0, 45)                                   -- invalid: unknown
@@ -62,7 +62,7 @@ local function E(f)
 end
 local function H(f)
     if #f < 5 or #f[2] > 20 or not f[2]:match("^%d+%.%d+%.%d+$") then return nil end
-    local r = { type = "H", version = f[2], map = int(f[3], 0, 999999), layer = int(f[4], 0, 99999999), sharing = int(f[5], 0, 1) }
+    local r = { type = "H", version = f[2], map = int(f[3], 0, 999999), layer = int(f[4], 0, 99999999) or 0, sharing = int(f[5], 0, 1) }
     if not (r.map and r.layer and r.sharing) then return nil end
     if f[6] == nil or f[6] == "" then r.minor = 0 else r.minor = int(f[6], 0, 999) end   -- invalid: unknown (nil)
     r.stamp = int(f[9], 0, 3599)
@@ -143,9 +143,14 @@ end
 -- "invalid" otherwise.
 function P.decode(text)
     if S.secret(text) or type(text) ~= "string" or #text < 1 or #text > 255 then return nil, "invalid" end
-    if text:find("[^%w|%.:,%-?]") then return nil, "invalid" end
     local f = split(text)
     local t = f[1]
+    local offset=(t=="G" or t=="X" or t=="W") and 3 or 0
+    local inner=f[1+offset]
+    local layerIndex=inner=="C" and 6+offset or inner=="H" and 4+offset or nil
+    for i,v in ipairs(f) do
+        if i~=layerIndex and v:find("[^%w%.:,%-?]") then return nil, "invalid" end
+    end
     local msg
     if t == "C" or t == "E" or t == "H" then msg = decodeInner(f)
     elseif t == "Q" then msg = Q()

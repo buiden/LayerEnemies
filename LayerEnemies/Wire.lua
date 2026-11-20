@@ -43,7 +43,7 @@ local function layerswapText(text)
     return nil
 end
 local function legw1Text(text)
-    if text:sub(1, 2) == "K|" then return N.OwnDeath.decode(text) and "K" or nil end
+    if text:sub(1, 2) == "K|" then return N.OwnDeath.decode(text,true) and "K" or nil end
     -- 1.2.1 "on my way" (Coming.lua): its whole grammar, nothing else after "G|"
     if text:sub(1, 2) == "G|" then return N.Coming.decode(text) and "G" or nil end
     -- our own sighting line (lane A1): its whole grammar, nothing else after "O|"

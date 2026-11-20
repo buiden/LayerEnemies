@@ -200,16 +200,16 @@ function Ov.ek(payload)
     return killer(f[1],f[2],f[5],f[4],f[6])
 end
 function Ov.gw(payload,serverNow)
-    payload=bytes(payload,200)
-    local f=payload and fields(payload,":",8)
+    if S.secret(payload) or type(payload)~="string" or #payload>200 then return nil end
+    local f=fields(payload,":",8)
     if not f or f[1]~="1" or (f[3]~="H" and f[3]~="A") then return nil end
+    for i,v in ipairs(f) do if i~=7 and v:find("%c") then return nil end end
     local guild=S.str(f[2],24)
     if not guild or guild:match("^%s") or guild:match("%s$") or guild:find("%s%s") or guild:find("[,%%]") then return nil end
     local kills,members=uint(f[4],9999,50),uint(f[5],999,5)
     local map
     if f[6]~="" then map=zone(f[6]); if map==false then return nil end end
-    local layer=f[7]~="" and uint(f[7],99999999) or nil
-    if f[7]~="" and not layer then return nil end
+    local layer=uint(f[7],99999999,1)
     local ts=uint(f[8],9007199254740991)
     if not kills or not members or not fresh(ts,serverNow,300) then return nil end
     return {guild=guild,faction=f[3],kills=kills,members=members,map=map,layer=layer,ts=ts}

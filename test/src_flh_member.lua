@@ -115,7 +115,7 @@ test("FLH member: directory joins read only and probes four per minute only whil
     local N=member(); local names=directory(N,6)
     for _=1,60 do H.advance(60) end
     eq(#countCmd(N,"WP"),0,"closed window stays silent for an hour")
-    open(N)
+    H.readLayer(N); open(N)
     local at=H.clock()
     for _=1,60 do H.advance(1) end
     local out=countCmd(N,"WP"); eq(#out,4)
@@ -129,7 +129,7 @@ end)
 test("FLH member: one directory name waits six hundred seconds and stale snapshots do not probe",function()
     local N=member(); directory(N,1); open(N); H.advance(1)
     eq(#countCmd(N,"WP"),1); local first=H.clock()
-    for _=1,599 do H.advance(1) end
+    for i=1,599 do if i%180==0 then H.readLayer(N) end; H.advance(1) end
     eq(#countCmd(N,"WP"),1)
     H.advance(1); eq(#countCmd(N,"WP"),2)
     N.UI.frame:Hide(); H.advance(1); N.UI.frame:Show()
@@ -511,7 +511,7 @@ test("FLH member: probe rotation reaches forty names under a shared two-slot bud
     for minute=1,21 do
         -- Twelve real public sends leave only two probe slots after the six owed
         -- reply slots are reserved. Keep the real directory snapshot fresh.
-        N.UI.frame:Hide(); N.Directory.refresh("flh"); H.advance(3)
+        N.UI.frame:Hide(); H.readLayer(N); N.Directory.refresh("flh"); H.advance(3)
         for i=1,12 do
             yes(N.Wire.send("HeadHunter","1AH:own","WHISPER","Load "..H.abc(i),{net="hh",prio="own"}))
             H.clock(H.clock()+3)
