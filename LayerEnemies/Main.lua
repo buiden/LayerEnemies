@@ -6,7 +6,7 @@ M.GROUP_CHANGE_WINDOW,M.CHURN_WINDOW,M.CHURN_CAP=10,600,3
 -- Bounded session-only evidence; PR 2 consumes it, no blind behavior here.
 M.keyChanges={}
 -- Change-detection history only; expiry must never expose this as current data.
-local lastConfirmedKey
+local lastConfirmedKey,lastConfirmedNPC
 local function recent(at,time) return at and time>=at and time-at<=M.GROUP_CHANGE_WINDOW end
 local function groupTransition()
     local grouped=S.call(IsInGroup)
@@ -49,7 +49,7 @@ function M.releaseUnit(unit)
 end
 function M.boundary(zone,zoneChange)
     M.boundaryAt=now(); M.layerKnown=nil; M.layerReadAt=nil
-    lastConfirmedKey=nil
+    lastConfirmedKey,lastConfirmedNPC=nil,nil
     local prev={}
     if zoneChange==true and zone~=nil and M.store.zone~=nil and zone~=M.store.zone then prev=T.carry(M.store,now()) end
     N.OwnDeath.cancel()
@@ -218,12 +218,13 @@ function M.observe(unit)
     if not guid or M.staleGUIDs[guid] then return end
     local npc=L.npc(guid)
     if npc and S.call(UnitPlayerControlled,unit)==false then
-        local previous=M.npcs.raw
+        local previous=lastConfirmedNPC or lastConfirmedKey
         local value,old,raw=L.observe(M.npcs,guid,time)
         if value then
             if raw and M.store.bulo and M.layerSource~="local NPC server id" and previous and previous~=raw then
                 if M.keyChanged(time) then M.npcs.current=value; M.npcs.last=time end
             end
+            if raw then lastConfirmedNPC=raw end
             M.store.zoneUID=value
             if raw and (not M.store.bulo or M.layerSource=="local NPC server id") then M.applyLayer(raw,"local NPC server id") end
         end
