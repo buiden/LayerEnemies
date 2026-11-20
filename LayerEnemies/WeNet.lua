@@ -45,7 +45,7 @@ function Wn.request(st, sender, continent, maxAge, now, continentOf, rand)
     return true
 end
 -- nextAnswer(st, now) -> name, text (one message, every 5 s at most) or nil
-function Wn.nextAnswer(st, now)
+function Wn.nextAnswer(st, now, hideLayer)
     for i = #st.waiting, 1, -1 do
         local j = st.waiting[i]
         if not j.started and now - j.at > Wn.QUEUED then table.remove(st.waiting, i) end
@@ -65,7 +65,8 @@ function Wn.nextAnswer(st, now)
                 job.parts = N.WeOut.enemies(r.rid, r.enemies, r.server)
                 job.part = 1
                 st.lastSent = now
-                return job.name, N.WeOut.cluster(r.rid, r.map, r.x, r.y, r.layer, r.count, r.server, job.i, #job.recs)
+                local layer=r.layer; if hideLayer then layer=nil end
+                return job.name, N.WeOut.cluster(r.rid, r.map, r.x, r.y, layer, r.count, r.server, job.i, #job.recs)
             end
         else
             local e = job.parts[job.part]
@@ -75,7 +76,7 @@ function Wn.nextAnswer(st, now)
         end
     end
     for i, j in ipairs(st.waiting) do if j == job then table.remove(st.waiting, i); break end end
-    return Wn.nextAnswer(st, now)
+    return Wn.nextAnswer(st, now, hideLayer)
 end
 -- join(st, sender, now) -> true when this requester may get a K now (one per 60 s)
 function Wn.join(st, sender, now)

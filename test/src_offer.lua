@@ -17,7 +17,7 @@ test("Sources: offer admits tracked evidence through Find without Ask layer or s
         local row=N.Find.rows(N.Main.find,h.clock(),100)[1]
         eq(row.source,"probe"); eq(row.zone,100); eq(row.x,.2); eq(row.y,.4); eq(row.kind,"claim")
         eq(row.pos,kind=="self" and "enemy" or "observer"); no(row.canAsk); no(row.layer); no(row.same)
-        yes(row.status:find(kind,1,true)); yes(row.status:find("123",1,true))
+        yes(row.status:find(kind,1,true)); no(row.status:find("123",1,true))
         local known=N.Known.get(N.Main.find.known,"Enemy Player",h.clock()).reported
         eq(known.observedAt,h.clock()-3); eq(known.got,h.clock()); eq(known.evidenceKind,kind)
         eq(known.guid,"Player-1-111"); eq(known.faction,"Horde"); eq(known.shard,"123")

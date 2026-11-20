@@ -1,0 +1,289 @@
+[
+  {
+    "rule": "blind-reader",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: invalid keys, clock rollback and manual usage fail closed: test/src_trust.lua:12: not equal: expected blind, got known",
+      "FAIL Trust: Bulo boundary admission and immutable local masking: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Trust: reader expiry and sticky manual state: test/src_trust.lua:30: not equal: expected blind, got known",
+      "FAIL Trust: parse thresholds 19/20 cold and 9/10 after success: test/src_trust.lua:38: not equal: expected blind, got unknown",
+      "FAIL Trust: churn 2/3 and 600-second window with ten-second excuses: test/src_trust.lua:48: not equal: expected blind, got unknown",
+      "FAIL Trust: three distinct accepted formed unchanged hops in a row: test/src_trust.lua:61: not equal: expected blind, got unknown",
+      "FAIL Trust: outdoor group mismatch at 59/60 and continuity: test/src_trust.lua:75: not equal: expected blind, got known",
+      "FAIL Trust boundary: late LayerSwap answers carry no layer display: test/harness.lua:8: 46: expected false, got true",
+      "FAIL Trust boundary: blind relays names but not a remote layer on R: test/src_trust_boundary.lua:42: not equal: expected unknown, got server",
+      "FAIL Trust boundary: queued War Effort own sync cannot leak its cached layer: test/src_trust_boundary.lua:64: not equal: expected 0, got 7086",
+      "FAIL Trust boundary: active hop fanout stops before another layered send: test/src_trust_boundary.lua:73: not equal: expected nil, got table: 0xADDR",
+      "FAIL Trust boundary: blind hides existing source shard details: test/harness.lua:8: 115: expected false, got true",
+      "FAIL Trust boundary: blind new Wanted and WarBoard claims discard shard only: test/src_trust_boundary.lua:98: not equal: expected nil, got 998877",
+      "FAIL Trust live: manual hides own UI and sends layer-free O C H K: test/src_trust_live.lua:54: not equal: expected blind, got known",
+      "FAIL Trust live: zero hides own UI and sends layer-free O C H K: test/src_trust_live.lua:54: not equal: expected blind, got unknown",
+      "FAIL Trust live: unparseable hides own UI and sends layer-free O C H K: test/src_trust_live.lua:54: not equal: expected blind, got unknown",
+      "FAIL Trust live: churn hides own UI and sends layer-free O C H K: test/src_trust_live.lua:54: not equal: expected blind, got known",
+      "FAIL Trust live: constant hides own UI and sends layer-free O C H K: test/src_trust_live.lua:31: not equal: expected blind, got known",
+      "FAIL Trust live: private hides own UI and sends layer-free O C H K: test/src_trust_live.lua:19: not equal: expected blind, got known",
+      "FAIL Trust surfaces: blind guild host invites unconstrained asks without layer replies: test/src_trust_surfaces.lua:25: not equal: expected 0, got 1",
+      "FAIL Trust surfaces: blind hides Friendly FLH ChehulNet and layer command: test/harness.lua:8: 26: expected false, got true",
+      "FAIL Trust surfaces: blind O receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got server",
+      "FAIL Trust surfaces: blind R receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got server",
+      "FAIL Trust surfaces: blind WE receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got server",
+      "FAIL Trust surfaces: blind HH receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got zoneuid",
+      "FAIL Trust surfaces: blind host and Overlord readers retain names not keys: test/src_trust_surfaces.lua:90: not equal: expected nil, got 9000",
+      "FAIL Trust surfaces: Bulo source feeds Trust but never overrides blindness: test/src_trust_surfaces.lua:99: not equal: expected nil, got 9999-99"
+    ]
+  },
+  {
+    "rule": "expiry-late",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: reader expiry and sticky manual state: test/src_trust.lua:28: not equal: expected unknown, got known"
+    ]
+  },
+  {
+    "rule": "expiry-early",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: reader expiry and sticky manual state: test/src_trust.lua:27: not equal: expected 7086-7, got nil",
+      "FAIL Trust boundary: same confirmed key refresh on one later NPC read: test/src_trust_boundary.lua:51: not equal: expected 7086-7, got nil"
+    ]
+  },
+  {
+    "rule": "clock-rollback",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: invalid keys, clock rollback and manual usage fail closed: test/src_trust.lua:9: not equal: expected nil, got 7086-7"
+    ]
+  },
+  {
+    "rule": "own-state-gate",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: invalid keys, clock rollback and manual usage fail closed: test/src_trust.lua:9: not equal: expected nil, got 7086-7",
+      "FAIL Trust: reader expiry and sticky manual state: test/src_trust.lua:28: not equal: expected nil, got 7086-7",
+      "FAIL Trust boundary: late LayerSwap answers carry no layer display: test/harness.lua:8: 46: expected false, got true",
+      "FAIL Trust boundary: blind relays names but not a remote layer on R: test/src_trust_boundary.lua:42: not equal: expected unknown, got server",
+      "FAIL Trust boundary: queued War Effort own sync cannot leak its cached layer: test/src_trust_boundary.lua:64: not equal: expected 0, got 7086",
+      "FAIL Trust boundary: active hop fanout stops before another layered send: test/src_trust_boundary.lua:73: not equal: expected nil, got table: 0xADDR",
+      "FAIL Trust boundary: blind hides existing source shard details: test/harness.lua:8: 115: expected false, got true",
+      "FAIL Trust live: manual hides own UI and sends layer-free O C H K: test/src_trust_live.lua:57: not equal: expected nil, got 7086-7",
+      "FAIL Trust live: churn hides own UI and sends layer-free O C H K: test/src_trust_live.lua:57: not equal: expected nil, got 8003-11",
+      "FAIL Trust live: constant hides own UI and sends layer-free O C H K: test/src_trust_live.lua:57: not equal: expected nil, got 7086-7",
+      "FAIL Trust live: private hides own UI and sends layer-free O C H K: test/src_trust_live.lua:57: not equal: expected nil, got 7086-7",
+      "FAIL Trust surfaces: blind hides Friendly FLH ChehulNet and layer command: test/src_trust_surfaces.lua:50: not equal: expected 2, got 3",
+      "FAIL Trust surfaces: Bulo source feeds Trust but never overrides blindness: test/src_trust_surfaces.lua:99: not equal: expected nil, got 9999-99"
+    ]
+  },
+  {
+    "rule": "bulo-boundary",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: Bulo boundary admission and immutable local masking: test/src_trust.lua:16: not equal: expected nil, got 7086-7"
+    ]
+  },
+  {
+    "rule": "mask-in-blind",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: Bulo boundary admission and immutable local masking: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Trust surfaces: blind O receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got server",
+      "FAIL Trust surfaces: blind R receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got server",
+      "FAIL Trust surfaces: blind WE receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got server",
+      "FAIL Trust surfaces: blind HH receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got zoneuid"
+    ]
+  },
+  {
+    "rule": "mask-copy",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: Bulo boundary admission and immutable local masking: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "manual-on",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: invalid keys, clock rollback and manual usage fail closed: test/src_trust.lua:12: not equal: expected blind, got known",
+      "FAIL Trust: Bulo boundary admission and immutable local masking: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Trust: reader expiry and sticky manual state: test/src_trust.lua:30: not equal: expected blind, got known",
+      "FAIL Trust boundary: late LayerSwap answers carry no layer display: test/harness.lua:8: 46: expected false, got true",
+      "FAIL Trust boundary: blind relays names but not a remote layer on R: test/src_trust_boundary.lua:42: not equal: expected unknown, got server",
+      "FAIL Trust boundary: queued War Effort own sync cannot leak its cached layer: test/src_trust_boundary.lua:64: not equal: expected 0, got 7086",
+      "FAIL Trust boundary: active hop fanout stops before another layered send: test/src_trust_boundary.lua:73: not equal: expected nil, got table: 0xADDR",
+      "FAIL Trust boundary: blind hides existing source shard details: test/harness.lua:8: 115: expected false, got true",
+      "FAIL Trust boundary: blind new Wanted and WarBoard claims discard shard only: test/src_trust_boundary.lua:98: not equal: expected nil, got 998877",
+      "FAIL Trust live: manual hides own UI and sends layer-free O C H K: test/src_trust_live.lua:54: not equal: expected blind, got known",
+      "FAIL Trust surfaces: blind guild host invites unconstrained asks without layer replies: test/src_trust_surfaces.lua:25: not equal: expected 0, got 1",
+      "FAIL Trust surfaces: blind hides Friendly FLH ChehulNet and layer command: test/harness.lua:8: 26: expected false, got true",
+      "FAIL Trust surfaces: blind O receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got server",
+      "FAIL Trust surfaces: blind R receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got server",
+      "FAIL Trust surfaces: blind WE receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got server",
+      "FAIL Trust surfaces: blind HH receipt retains names/count/position, layer unknown: test/src_trust_surfaces.lua:69: not equal: expected unknown, got zoneuid",
+      "FAIL Trust surfaces: blind host and Overlord readers retain names not keys: test/src_trust_surfaces.lua:90: not equal: expected nil, got 9000",
+      "FAIL Trust surfaces: Bulo source feeds Trust but never overrides blindness: test/src_trust_surfaces.lua:99: not equal: expected nil, got 9999-99"
+    ]
+  },
+  {
+    "rule": "manual-off",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: invalid keys, clock rollback and manual usage fail closed: test/src_trust.lua:12: not equal: expected known, got blind",
+      "FAIL Trust: reader expiry and sticky manual state: test/src_trust.lua:32: not equal: expected 9000-9, got nil"
+    ]
+  },
+  {
+    "rule": "cold-early",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: parse thresholds 19/20 cold and 9/10 after success: test/src_trust.lua:37: not equal: expected unknown, got blind"
+    ]
+  },
+  {
+    "rule": "cold-late",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: parse thresholds 19/20 cold and 9/10 after success: test/src_trust.lua:38: not equal: expected blind, got unknown",
+      "FAIL Trust live: zero hides own UI and sends layer-free O C H K: test/src_trust_live.lua:54: not equal: expected blind, got unknown",
+      "FAIL Trust live: unparseable hides own UI and sends layer-free O C H K: test/src_trust_live.lua:54: not equal: expected blind, got unknown"
+    ]
+  },
+  {
+    "rule": "streak-early",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: parse thresholds 19/20 cold and 9/10 after success: test/src_trust.lua:40: not equal: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "streak-late",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: parse thresholds 19/20 cold and 9/10 after success: test/src_trust.lua:43: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "success-reset",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: parse thresholds 19/20 cold and 9/10 after success: test/src_trust.lua:42: not equal: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "churn-early",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: churn 2/3 and 600-second window with ten-second excuses: test/src_trust.lua:47: not equal: expected unknown, got blind"
+    ]
+  },
+  {
+    "rule": "churn-late",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: churn 2/3 and 600-second window with ten-second excuses: test/src_trust.lua:48: not equal: expected blind, got unknown",
+      "FAIL Trust live: churn hides own UI and sends layer-free O C H K: test/src_trust_live.lua:54: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "churn-window",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: churn 2/3 and 600-second window with ten-second excuses: test/src_trust.lua:50: not equal: expected unknown, got blind"
+    ]
+  },
+  {
+    "rule": "excuse-edge",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: churn 2/3 and 600-second window with ten-second excuses: test/src_trust.lua:52: not equal: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "no-excuse",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: churn 2/3 and 600-second window with ten-second excuses: test/src_trust.lua:52: not equal: expected 0, got 2"
+    ]
+  },
+  {
+    "rule": "hop-early",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: three distinct accepted formed unchanged hops in a row: test/src_trust.lua:59: not equal: expected unknown, got blind",
+      "FAIL Trust live: constant hides own UI and sends layer-free O C H K: test/src_trust_live.lua:31: not equal: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "hop-late",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: three distinct accepted formed unchanged hops in a row: test/src_trust.lua:61: not equal: expected blind, got unknown",
+      "FAIL Trust live: constant hides own UI and sends layer-free O C H K: test/src_trust_live.lua:31: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "hop-formed",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: three distinct accepted formed unchanged hops in a row: test/src_trust.lua:68: not formed: expected unknown, got blind"
+    ]
+  },
+  {
+    "rule": "hop-full-key",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: three distinct accepted formed unchanged hops in a row: test/src_trust.lua:68: suffix: expected unknown, got blind",
+      "FAIL Trust live: real same-prefix suffix moves are not constant-ID hops: test/src_trust_live.lua:31: not equal: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "hop-movement",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: three distinct accepted formed unchanged hops in a row: test/src_trust.lua:68: moved: expected unknown, got blind",
+      "FAIL Trust live: real same-prefix suffix moves are not constant-ID hops: test/src_trust_live.lua:31: not equal: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "hop-distinct",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: three distinct accepted formed unchanged hops in a row: test/src_trust.lua:59: not equal: expected unknown, got blind"
+    ]
+  },
+  {
+    "rule": "group-early",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: outdoor group mismatch at 59/60 and continuity: test/src_trust.lua:74: not equal: expected known, got blind",
+      "FAIL Trust live: private hides own UI and sends layer-free O C H K: test/src_trust_live.lua:18: not equal: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "group-late",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: outdoor group mismatch at 59/60 and continuity: test/src_trust.lua:75: not equal: expected blind, got known",
+      "FAIL Trust live: private hides own UI and sends layer-free O C H K: test/src_trust_live.lua:19: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "group-outdoors",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: outdoor group mismatch at 59/60 and continuity: test/src_trust.lua:83: indoor: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "group-same",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: outdoor group mismatch at 59/60 and continuity: test/src_trust.lua:78: matching peer never contradicts: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "group-continuity",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust: outdoor group mismatch at 59/60 and continuity: test/src_trust.lua:83: peer changed: expected known, got blind"
+    ]
+  }
+]

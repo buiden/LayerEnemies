@@ -847,7 +847,7 @@ test("we report ids: newer only, caps",function()
     eq(N.Safe.count(v.latest),512)
 end)
 test("reported reducer output stays separate with possible hash identities",function()
-    local N=loadAddon(); local t=N.Store.new(0); t.zone=100; t.bulo="7086-7"; t.zoneUID=7
+    local N=loadAddon(); local t=N.Store.new(0); t.zone=100; N.Trust.read(t,100,"7086-7",7)
     yes(N.Store.observe(t,{key="Player-1-1",at=100,name="Enemy",realm="Test Realm",class="MAGE",faction="opposite",source="own target"},100))
     local hash=N.Hash.player("Enemy","Test Realm")
     local report=N.Record.new({src="we",kind="group",origin="Reporter",via="Reporter",route="GUILD",rid="1",zone=100,x=.4,y=.5,count=1,
@@ -1781,7 +1781,7 @@ test("Find match, no match, collisions, expiry, own sighting and alerts",functio
     no(F.rows(st,912,100)[1].at)
     F.own(st,{name="Alice",faction="same",source="own target"},100,913); no(st.locations.Alice)
     F.own(st,{name="Alice",faction="opposite",source="own target"},100,913)
-    r=F.rows(st,913,100)[1]; yes(r.own); no(r.same); no(r.canAsk); eq(r.status,"seen by you, layer unknown")
+    r=F.rows(st,913,100)[1]; yes(r.own); no(r.same); no(r.canAsk); eq(r.status,"seen by you")
     F.own(st,{name="Alice",faction="opposite",source="own target",layer="7086-7"},100,913)
     r=F.rows(st,913,100,nil,"7086-7")[1]; yes(r.own); yes(r.same); no(r.canAsk); eq(r.status,"is on YOUR layer")
     F.boundary(st); yes(st.locations.Alice); no(F.rows(st,913,100,nil,"7086-7")[1].same); eq(#st.names,2)
@@ -2945,7 +2945,7 @@ test("0.3.1 T3: hosts are listed while our own layer is unknown; nothing is sent
     local N=loadAddon(); chatBox(); guildLine("L 8000|100|h","Bob")
     eq(N.Main.store.bulo,nil,"own layer unknown")
     slash("hosts")
-    yes(logged("1. Bob | layer 8000 | Bulo | host"),"host listed"); yes(logged(HINT),"hint in /le hosts")
+    yes(logged("1. Bob |  | Bulo | host"),"host listed without layer"); yes(logged(HINT),"hint in /le hosts")
     eq(#log>0 and log[#log]:find("mouse over",1,true),nil)
     local before=#log
     slash("hop host 1"); eq(#sent,0); eq(#opened,0); yes(log[#log]:find(HINT,1,true),"hop host refuses with the hint"); yes(#log>before)
@@ -3237,13 +3237,14 @@ local function ownState(over)
     return o
 end
 local function req(text,name) local r=assert(N_G.parse(text),text); r.name=name or "Bob"; return r end
-test("0.4 T7.1: parse accepts only the full want/not grammar",function()
+test("0.4 T7.1: parse accepts full want/not and unconstrained grammar",function()
     local N=loadAddon(); local G=gh(N); N_G=G
     local r=G.parse("inv layer <LS 100 want 8000-12 25.0,75.0>"); eq(r.zone,100); eq(r.want,"8000-12"); eq(r.x,25); eq(r.y,75); eq(r.nots,nil)
     r=G.parse("inv layer <LS 1429 want 7086-0>"); eq(r.zone,1429); eq(r.want,"7086-0"); eq(r.x,nil)
     r=G.parse("inv layer <LS 100 not 7086-3>"); eq(r.want,nil); eq(#r.nots,1); eq(r.nots[1],"7086-3")
     r=G.parse("inv layer <LS 100 not 7086-3 not 8000-1 not 9000-2 48.2,42.5>"); eq(#r.nots,3); eq(r.nots[3],"9000-2"); eq(r.x,48.2)
-    for _,bad in ipairs({"inv layer <LS 100>","inv layer <LS 100 25.0,75.0>","inv layer <LS 100 want 8000-12> extra","x inv layer <LS 100 want 8000-1>",
+    r=G.parse("inv layer <LS 100 25.0,75.0>"); yes(r.blind); eq(r.zone,100); eq(r.want,nil); eq(r.nots,nil)
+    for _,bad in ipairs({"inv layer <LS 100>","inv layer <LS 100 want 8000-12> extra","x inv layer <LS 100 want 8000-1>",
         "inv layer <LS 100 want 8000>","inv layer <LS 100 want 8000-1 not 7000-1>","inv layer <LS 100 not 7000-1 want 8000-1>",
         "inv layer <LS abc want 8000-1>","inv layer <LS 100  want 8000-1>","inv layer <LS 100 want 8000-1 25.0>","inv layer <LS 100 want 8000-1 a,b>",
         "inv layer <LS 1234567890 want 8000-1>","inv layer <LS 100 want 8000-1>"..string.rep(" ",200),"",5,nil,secret,
@@ -6554,7 +6555,7 @@ test("seen unknown 01: a targeted enemy is listed and labelled before the layer 
     yes(line); yes(line:match(" | layer unknown when seen$")); no(N.Main.error)
     N.UI.toggle(); eq(N.UI.tabs["local"].label.text,"Seen by you (1)")
     yes(N.UI.pool[1].sub.text:find("layer unknown",1,true))
-    eq(N.UI.layer.text,"?")
+    eq(N.UI.layer.text,""); no(N.UI.layer:IsShown())
     yes(N.UI.meta.text:find("layer unknown: mouse over or target two different kinds of NPC within 15 s",1,true))
 end)
 test("seen unknown 02: learning the layer preserves nil-layer rows but clears reports and identities",function()
@@ -6685,14 +6686,14 @@ test("seen unknown 01b: Find says layer unknown for an own sighting made before 
     seeFoe("Aster Vale","Player-1-901"); units.target=nil
     local row=N.Main.findRows()[1]
     yes(row.own,"own row"); no(row.same,"no same-layer claim without a known layer"); no(row.canAsk)
-    eq(row.status,"seen by you, layer unknown")
+    eq(row.status,"seen by you")
     local text=N.Main.findText(row)
-    yes(text:find("seen by you, layer unknown",1,true),"slash find text: "..text); no(text:find("YOUR layer",1,true)); no(text:find("already on your layer",1,true))
+    yes(text:find("seen by you",1,true),"slash find text: "..text); no(text:find("layer",1,true)); no(text:find("YOUR layer",1,true)); no(text:find("already on your layer",1,true))
     N.UI.toggle(); N.UI.tabs.find:Click(); eq(N.UI.tab,"find")
     local shown=N.UI.pool[1]; yes(shown,"Find row exists"); yes(shown:IsShown(),"Find row is visible")
     eq(shown.tracked,"Aster Vale"); eq(shown.title.text,"Aster Vale")
     local sub=shown.sub.text; yes(sub,"Find row text exists")
-    yes(sub:find("seen by you, layer unknown",1,true)); no(sub:find("YOUR layer",1,true)); no(sub:find("already on your layer",1,true))
+    yes(sub:find("seen by you",1,true)); no(sub:find("layer",1,true)); no(sub:find("YOUR layer",1,true)); no(sub:find("already on your layer",1,true))
     no(shown.ask:IsShown(),"own unknown-layer sighting has no Ask button")
     -- learning the layer later does not upgrade the old sighting into a same-layer claim
     advance(1); establish(N); no(N.Main.findRows()[1].same); eq(N.Main.findRows()[1].status,"seen by you, layer unknown")
@@ -7259,7 +7260,7 @@ test("OpenMap tiers 5 arrival order is commutative and only the sighting alerts"
 end)
 test("OpenMap tiers 6 known layer belongs only to the sighting",function()
     local N=omReady(); establish(N); clock=100; sight(N,100,90,false)
-    local function rows() return N.Find.rows(N.Main.find,clock,100,function() return true end) end
+    local function rows() return N.Find.rows(N.Main.find,clock,100,function() return true end,N.Trust.own(N.Main.store,clock)) end
     local before=withoutPlace(rows()[1]); om(); local row=rows()[1]
     eq(withoutPlace(row),before); yes(row.same); eq(row.canAsk,false)
     yes(row.place); eq(row.place.same,nil); eq(row.place.layer,nil); eq(row.place.zone,nil)
@@ -7640,9 +7641,9 @@ test("hop-any no-answer table lasts six hours and a second round reaches differe
     eq(#sent,49); eq(N.Safe.count(N.Main.hopAnyState.quiet),49)
     anyClick(N); deliver("WHO_LIST_UPDATE"); for _=1,10 do advance(1) end
     eq(#sent,49); local seen={}; for _,v in ipairs(sent) do no(seen[v.target]); seen[v.target]=true end
-    local first=sent[1].at; clock=first+21600-1
+    local first=sent[1].at; clock=first+21600-1; N.Trust.read(N.Main.store,clock,"7086-7",7)
     anyClick(N); deliver("WHO_LIST_UPDATE"); eq(#sent,49)
-    clock=first+21600+10
+    clock=first+21600+10; N.Trust.read(N.Main.store,clock,"7086-7",7)
     anyClick(N); deliver("WHO_LIST_UPDATE"); eq(sent[50].target,"Seeker a")
     no(LayerEnemiesDB.quiet); no(LayerEnemiesDB.hopAnyState)
     N=loadAddon(); eq(N.Safe.count(N.Main.hopAnyState.quiet),0)

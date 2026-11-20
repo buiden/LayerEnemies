@@ -13,6 +13,28 @@ verify = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verify)
 
 
+class TrustReaderTests(unittest.TestCase):
+    def test_direct_reads_are_refused(self):
+        for source in ('local x=M.store.bulo', 'local x=t.zoneUID',
+                       'local x=store["bulo"]', 'local x=L.server(npcs)',
+                       'local x=N.Layer.server(npcs)', 'if M.store.bulo==nil then end'):
+            with self.subTest(source=source), self.assertRaises(AssertionError):
+                verify.check_trust_reader('Main.lua', source)
+
+    def test_writes_and_other_bulo_tables_are_not_readers(self):
+        for source in ('M.store.zoneUID=nil', 'M.store.bulo=value',
+                       'local x=env.bulo; local y=lists.bulo',
+                       'local x=N.Trust.own(M.store,now)',
+                       '-- M.store.bulo\nlocal s="L.server(npcs)"'):
+            verify.check_trust_reader('Main.lua', source)
+        verify.check_trust_reader('Trust.lua', 'return store.bulo,store.zoneUID')
+        verify.check_trust_reader('Layer.lua', 'return L.server(npcs)')
+
+    def test_shipped_tree(self):
+        for path in (verify.ROOT / 'LayerEnemies').glob('*.lua'):
+            verify.check_trust_reader(path.name, path.read_text())
+
+
 class StaticChecksComplete(Exception):
     pass
 

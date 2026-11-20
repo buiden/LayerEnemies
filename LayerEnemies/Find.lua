@@ -243,14 +243,19 @@ local function project(st,loc,now,zone,sameSpotter,ownKey)
     row.age=now-loc.at
     row.lastKnown=loc.cached and row.age>=F.TTL or nil
     row.travel=loc.zone~=zone
-    local spot=not loc.own and loc.kind~="claim" and sameSpotter and sameSpotter(loc.spotter,loc.zone)
+    local spot=ownKey~=nil and not loc.own and loc.kind~="claim" and sameSpotter and sameSpotter(loc.spotter,loc.zone)
     row.same=not row.travel and not row.lastKnown and ((loc.own and ownKey~=nil and loc.ownKey==ownKey and loc.epoch==st.epoch) or spot==true)
     row.probably=not row.travel and not row.lastKnown and spot=="probably"
-    row.status=loc.own and (row.same and "is on YOUR layer" or not loc.layerKnown and "seen by you, layer unknown" or "seen by you")
+    row.status=loc.own and (row.same and "is on YOUR layer" or ownKey and not loc.layerKnown and "seen by you, layer unknown" or "seen by you")
         or loc.kind=="claim" and loc.detail
         or loc.source=="death" and "named as killer (claim)"
         or loc.relayed and "possible match, seen in a relayed report"
         or "possible match, seen by "..(loc.spotter or "unknown")
+    if not ownKey then
+        row.layer,row.shard,row.same,row.probably=nil,nil,false,false
+        if row.detail then row.detail=row.detail:gsub(" [^ ]+ shard .- %(source key%)","") end
+        if row.status then row.status=row.status:gsub(" [^ ]+ shard .- %(source key%)","") end
+    end
     if row.realmUnknown then row.status=row.status.." · realm not confirmed" end
     if row.lastKnown then row.status="last known: "..row.status end
     row.canAsk=not row.same and not row.travel and not row.lastKnown and not loc.own

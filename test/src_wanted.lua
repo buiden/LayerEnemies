@@ -229,6 +229,7 @@ test("Wanted: Battle.net summaries are anonymous diagnostics never named evidenc
     N.BNet.who=function(id) calls=calls+1; return {name="Other Peer",realm="Test Realm",faction="Horde"} end
     local raw=bytes("635413ca16f211aa923213ca658914ca0932d435d03513ca63070102")
     h.deliver("BN_CHAT_MSG_ADDON","WNTDB",raw,"WHISPER",71)
+    N.Trust.read(N.Main.store,h.clock(),"7086-7",7) -- known-mode source-key diagnostic
     N.Main.net("net wanted"); local text=table.concat(h.log(),"\n")
     yes(text:find("map 1424 / layer 1-0-6: 3",1,true),"anonymous audit L summary in diagnostics")
     eq(calls,1); empty(N); eq(#h.sent(),0)

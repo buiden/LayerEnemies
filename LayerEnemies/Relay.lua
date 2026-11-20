@@ -347,7 +347,7 @@ function Rl.tick(st, now, ctx)
             st.pending[key] = nil
             local text, ok, why = nil, false, "not here"
             if ctx.inGuild == true and ctx.inInstance == false and ctx.guild == p.guild then
-                text = Rl.encode(p.record, now); why = "does not fit"
+                text = Rl.encode(N.Trust.record(nil,p.record,now,ctx.hideLayer), now); why = "does not fit"
             end
             local kill = N.Record.isKill(p.record)
             if text and kill and not killSpend(st, p.record, now) then text, why = nil, "kill budget" end

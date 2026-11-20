@@ -8,6 +8,7 @@
 Safe.lua
 Hash.lua
 Layer.lua
+Trust.lua
 Record.lua
 Net.lua
 Wire.lua

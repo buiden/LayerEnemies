@@ -1877,7 +1877,8 @@ key differs or expires, Find says "seen by you", not "on your layer". Sharing
 keeps the names but omits the layer (empty O field, zero C field) if any own
 sighting in that report lacks the current full key. A later Bulo copy cannot
 rewrite that own-sighting key. Fresh own reacquisition can establish a new
-one. Pending K lines still keep the key captured at death, not the current key.
+one. Pending K lines keep the key captured at death rather than the current
+key, but omit it if trust is unknown or blind at send time.
 Entries with timestamps at or before a new epoch are rejected. Captured
 carried-over units remain quarantined until their old unit token disappears
 or changes; this can miss sightings, but avoids attaching old observations
@@ -1934,6 +1935,63 @@ War Effort 1.6.x sends its own layer field;
 it is treated as a server key only when the reporter's hello announced a
 version that uses one (minor 13 to 19) and the value is not 0. Otherwise the
 report's layer is unknown.
+
+## Layer trust and hidden IDs
+
+Layer trust is session-only, never saved. `Trust.own(store, now)` is the
+single current-own-key reader. `known` means a valid confirmed reading less
+than 300 seconds old; `unknown` means no current reading. A matching NPC read
+refreshes an already confirmed key. `blind` means IDs are not trustworthy,
+and stays set across valid reads and transfers until logout or a manual reset.
+
+The automatic thresholds in `Trust.lua` are architectural guesses, not
+in-game measurements:
+
+- 20 creature GUID reads with no parse success, or 10 consecutive failures
+  after a success (zero counts as a failure).
+- 3 confirmed key changes within 600 seconds, excluding changes within 10
+  seconds after world entry, shard transfer, a zone change, or joining/leaving
+  a group. Diagnostic change counts are separate from this exclusion.
+- 3 consecutive accepted, formed hops to 3 distinct hosts without a changed
+  own key.
+- 60 continuous seconds outdoors in a group with a verified LE guildmate
+  whose fresh, same-zone claim differs from ours. Claims use existing guild
+  O/K/H messages, not a new request. Peer claims can themselves be wrong.
+
+`/le blind on` hides IDs immediately. `/le blind off` clears blindness and
+starts detection again; `/le blind auto` also returns to automatic detection.
+These commands change no SavedVariables. A plausible constant or private ID
+cannot be distinguished from a real layer by a solo client that never meets
+one of the contradiction triggers. Use `/le blind on` in that case.
+
+In unknown or blind, numeric own-layer headers, relation labels, Friendly
+layer details, ChehulNet relation/count text, FLH claimed keys, and raw
+Wanted/WarBoard/Overlord keys are hidden, not greyed. `/le layer` prints only
+`layer IDs are not readable on this client`. In blind the hop bar says
+`layer hidden`; the existing click handler still refuses an untrusted key.
+Blind guest hopping and its new result texts are a later change, not built here.
+An already-running layered hop fanout stops when trust becomes unreadable.
+
+Names, zones, positions, counts, Find alerts and the found pop-up, death Calls,
+friend/community sharing, and own-death reporting still work. Incoming layer
+claims are treated as unknown locally in blind. Own O/K use the existing empty
+layer field; own WE C/H and queued own sync replies use zero. Guild R relays
+omit their layer while trust is unknown or blind. FLH presence/probes and LE
+host H advertisements stop. Rebuilt remote War Effort reports preserve the
+sender's claim; that is not our own identity. No wire fields, routes, budgets,
+SavedVariables or version numbers are added or changed.
+
+Blind LE hosts remain active for guildmates: they invite on the existing
+unconstrained `inv layer <LS zone x,y>` ask, including guild chat and LayerSwap
+whispers. Layer-constrained asks get no answer; no `same` or layer-valued reply
+is sent. Existing guild, consent, cooldown, combat and instance gates remain.
+The wire cannot distinguish LE users from other users of that same ask shape.
+
+Bulo authority also keeps separate confirmed NPC history: a group crossing
+cannot hide behind Bulo's still-readable old key after NPC evidence expires.
+Mocks assert the real Find text and emitted O line at that boundary.
+
+Not tested in game (alpha, owner's decision).
 
 ## War Effort network
 

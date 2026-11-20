@@ -87,6 +87,8 @@ end
 function D.receive(text,sender,time)
     local r=D.decode(text)
     if not r or N.Adapters.guildMember(sender)~=true then return end
+    N.Main.trustClaim(sender,r.layer,r.zone,time)
+    if N.Trust.state(N.Main.store,time)=="blind" then r.layer=nil end
     local enemy=r.enemies[1]
     if enemy and key(enemy.name)==key(sender) then return end
     r.src,r.kind,r.origin,r.route="le","death",sender,"GUILD"
@@ -297,6 +299,7 @@ local function attempt(p)
     if not hit then return end
     if hit.enemy and N.Main.isMe(hit.enemy.name) then D.cancel(); return end
     p.conf,p.enemies,p.age=hit.conf,hit.enemy and {hit.enemy} or {},math.floor(time-p.at)
+    if not N.Trust.own(N.Main.store,time) then p.layer=nil end
     local line=D.line(p)
     D.cancel() -- one attempt, no budget backlog or replay after a client refusal
     if line then
@@ -330,7 +333,7 @@ function D.dead()
         if not time or not zone then return end
         local store=N.Main.store
         local p={at=time,zone=zone,x=x,y=y,guild=S.str(S.call(GetGuildInfo,"player"),100),
-            layer=zone==store.zone and not store.ambiguous(time) and N.Layer.key(store.bulo) or nil}
+            layer=zone==store.zone and not store.ambiguous(time) and N.Layer.key(N.Trust.own(store,time)) or nil}
         pending=p
         if not S.tab(C_Timer) or type(C_Timer.After)~="function" then D.cancel(); return end
         for _,delay in ipairs({0.3,1,2}) do

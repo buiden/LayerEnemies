@@ -87,12 +87,12 @@ test("FLH member: guild and group presence is change-driven and capped per route
     F.tick(H.clock()); eq(#lines(),2); eq(lines()[1].kind,"GUILD"); eq(lines()[2].kind,"PARTY")
     for _,s in ipairs(lines()) do local m=N.FLH.decode(s.text); eq(m.cmd,"HI"); eq(m.host,0); eq(m.key,"7") end
     H.clock(H.clock()+120); F.tick(H.clock()); eq(#lines(),2,"no periodic presence when unchanged")
-    N.Main.store.zoneUID=9; F.tick(H.clock()); eq(#lines(),4)
-    N.Main.store.zoneUID=10; H.clock(H.clock()+119.99); F.tick(H.clock()); eq(#lines(),4)
+    N.Trust.read(N.Main.store,H.clock(),"7086-7",9); F.tick(H.clock()); eq(#lines(),4)
+    N.Trust.read(N.Main.store,H.clock(),"7086-7",10); H.clock(H.clock()+119.99); F.tick(H.clock()); eq(#lines(),4)
     H.clock(H.clock()+.01); F.tick(H.clock()); eq(#lines(),6)
-    H.clock(H.clock()+120); N.Main.setConsent("guild"); N.Main.store.zoneUID=11; F.tick(H.clock())
+    H.clock(H.clock()+120); N.Main.setConsent("guild"); N.Trust.read(N.Main.store,H.clock(),"7086-7",11); F.tick(H.clock())
     eq(#lines(),7); eq(lines()[7].kind,"GUILD","group is beyond guild consent")
-    H.loaded().ForeverLayerHop=true; H.clock(H.clock()+120); N.Main.store.zoneUID=12; F.tick(H.clock()); eq(#lines(),7)
+    H.loaded().ForeverLayerHop=true; H.clock(H.clock()+120); N.Trust.read(N.Main.store,H.clock(),"7086-7",12); F.tick(H.clock()); eq(#lines(),7)
     N.Main.setConsent("public"); receive(wp); receive(cq); eq(#lines(),7,"the real addon owns even owed replies")
 end)
 

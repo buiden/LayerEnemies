@@ -99,7 +99,7 @@ test("Known A14: both guild death formats cache killer claims in another zone",f
 end)
 
 test("Known guild O: first-hand server claim uses origin age and observer coordinates",function()
-    local N=H.load(); H.advance(100); guild(N,"Cedar Vale",100,90); N.Main.track("Cedar Vale")
+    local N=H.load(); H.establish(N); H.advance(100); guild(N,"Cedar Vale",100,90); N.Main.track("Cedar Vale")
     local r=row(N); yes(r.seen); eq(r.reported,nil); eq(r.seen.source,"guild"); eq(r.age,90)
     eq(r.seen.kind,"seen"); eq(r.seen.layer,"7085"); eq(r.seen.ns,"server"); eq(r.seen.pos,"observer")
     eq(r.seen.x,.4); eq(r.seen.y,.5); yes(r.canAsk)

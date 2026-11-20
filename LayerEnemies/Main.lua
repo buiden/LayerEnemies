@@ -11,7 +11,9 @@ local function recent(at,time) return at and time>=at and time-at<=M.GROUP_CHANG
 local function groupTransition()
     local grouped=S.call(IsInGroup)
     if type(grouped)=="boolean" then
-        if M.groupState~=nil and grouped~=M.groupState then M.groupChangedAt=S.num(S.call(GetTime)) end
+        if M.groupState~=nil and grouped~=M.groupState then
+            M.groupChangedAt=S.num(S.call(GetTime)); N.Trust.excuse(M.store,M.groupChangedAt)
+        end
         M.groupState=grouped
     end
 end
@@ -49,13 +51,15 @@ function M.releaseUnit(unit)
 end
 function M.boundary(zone,zoneChange)
     M.boundaryAt=now(); M.layerKnown=nil; M.layerReadAt=nil
+    local previousKey=lastConfirmedKey
     lastConfirmedKey,lastConfirmedNPC=nil,nil
+    N.Trust.excuse(M.store,now())
     local prev={}
     if zoneChange==true and zone~=nil and M.store.zone~=nil and zone~=M.store.zone then prev=T.carry(M.store,now()) end
     N.OwnDeath.cancel()
     N.CallUI.check()
     captureStale()
-    M.blockedBulo=M.store.bulo
+    M.blockedBulo=previousKey
     -- A readable zone that differs from the last readable one ends the zone epoch (own raw id and ambiguity);
     -- otherwise only the votes start again. An unreadable map (a loading screen) is no evidence of a zone change.
     -- Nothing of this is saved: /reload starts without the raw id and without the ambiguity window.
@@ -94,6 +98,7 @@ function M.keyChanged(time)
     end
     if #M.keyChanges>=M.CHURN_CAP then table.remove(M.keyChanges,1) end
     M.keyChanges[#M.keyChanges+1]=time
+    N.Trust.change(M.store,time)
     return false
 end
 function M.applyLayer(id,source)
@@ -101,7 +106,9 @@ function M.applyLayer(id,source)
     local time=now()
     groupTransition()
     M.layerReadAt=time
-    if id==M.store.bulo then M.layerSource=source; return end
+    if id==lastConfirmedKey and M.layerSource~="unknown" then
+        N.Trust.read(M.store,time,id,M.npcs.current); M.layerSource=source; return
+    end
     local uid=M.npcs.current
     if lastConfirmedKey~=nil and lastConfirmedKey~=id then
         if M.keyChanged(time) then
@@ -114,7 +121,7 @@ function M.applyLayer(id,source)
         T.learn(M.store,time,id,uid)
         N.Reports.clearPending(M.receiver)
     end
-    M.store.bulo=id; M.store.zoneUID=uid; M.layerSource=source
+    N.Trust.read(M.store,time,id,uid); M.layerSource=source
     lastConfirmedKey=id
     M.layerKnown=true; M.layerReadAt=time
     if M.auto and M.auto.group then guarded(M.autoTick) end
@@ -125,6 +132,29 @@ function M.zoneCheck(zone)
     if zone and zone~=M.zoneSeen then M.boundary(zone,true)
     elseif zone~=M.store.zone then M.store.zone=zone end
 end
+-- Claims are bounded, guild-only and session-only; never a new wire exchange.
+M.trustClaims={}
+function M.trustClaim(name,key,zone,time)
+    local who=I.key(name)
+    if not who or A.guildMember(name)~=true then return end
+    if not M.trustClaims[who] and S.count(M.trustClaims)>=N.Hosts.MAX then return end
+    M.trustClaims[who]={key=L.key(key),zone=zone,at=time}
+    M.trustGroup()
+end
+function M.trustGroup()
+    local time=now()
+    local party=A.party()
+    local peer,claim
+    if S.call(IsInGroup)==true and A.inInstance()==false and party then
+        for _,name in ipairs(party.members or {}) do
+            local who=I.key(name); local c=who and M.trustClaims[who]
+            if c and time>=c.at and time-c.at<N.Trust.EXPIRE and c.zone==M.store.zone
+                and A.guildMember(name)==true and c.key and c.key~=L.key(N.Trust.own(M.store,time))
+                and (not peer or who<peer) then peer,claim=who,c.key end
+        end
+    end
+    N.Trust.group(M.store,time,peer,claim,peer~=nil)
+end
 function M.poll()
     if not M.started then return end
     local time=now()
@@ -132,8 +162,8 @@ function M.poll()
     M.zoneCheck(zone)
     L.expire(M.npcs,time)
     if not M.npcs.current then M.store.zoneUID=nil end
-    if M.layerSource=="local NPC server id" and not L.server(M.npcs) then
-        M.store.bulo=nil; M.layerSource="unknown"
+    if M.layerSource=="local NPC server id" and not M.npcs.current then
+        N.Trust.read(M.store,time,nil,nil); M.layerSource="unknown"
     end
     local snap=A.bulo(M.store.epoch,time,M.store.localSeen)
     M.statusBulo=snap.status
@@ -145,11 +175,10 @@ function M.poll()
             M.queuePoll()
         end)
     end
-    local id=snap.current
-    if id==M.blockedBulo and (not M.npcs.current or M.npcs.raw~=id) then id=nil end
+    local id=N.Trust.bulo(snap,M.blockedBulo,M.npcs)
     if id then M.applyLayer(id,"Bulo server id")
     elseif M.layerSource=="Bulo server id" and M.layerReadAt and time-M.layerReadAt>=L.EXPIRE then
-        M.store.bulo=nil; M.layerSource="unknown"
+        N.Trust.read(M.store,time,nil,nil); M.layerSource="unknown"
     end
     for _,e in ipairs(snap.observations or {}) do
         if not M.staleGUIDs[e.key] then
@@ -167,6 +196,7 @@ function M.poll()
             end
         end
     end
+    M.trustGroup()
     T.prune(M.store,time); N.Reports.prune(M.receiver,time)
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
@@ -216,17 +246,22 @@ function M.observe(unit)
     M.zoneCheck(zone)
     local guid=S.str(S.call(UnitGUID,unit),160)
     if not guid or M.staleGUIDs[guid] then return end
-    local npc=L.npc(guid)
-    if npc and S.call(UnitPlayerControlled,unit)==false then
+    local npc,_,observedKey=L.npc(guid)
+    if (guid:match("^Creature%-") or guid:match("^Vehicle%-")) and S.call(UnitPlayerControlled,unit)==false then
+        N.Trust.creature(M.store,npc~=nil)
+        if not npc then return end
         local previous=lastConfirmedNPC or lastConfirmedKey
         local value,old,raw=L.observe(M.npcs,guid,time)
+        if M.layerSource=="local NPC server id" and M.npcs.current and observedKey==lastConfirmedKey then
+            N.Trust.read(M.store,time,lastConfirmedKey,M.npcs.current)
+        end
         if value then
-            if raw and M.store.bulo and M.layerSource~="local NPC server id" and previous and previous~=raw then
+            if raw and lastConfirmedKey and M.layerSource~="unknown" and M.layerSource~="local NPC server id" and previous and previous~=raw then
                 if M.keyChanged(time) then M.npcs.current=value; M.npcs.last=time end
             end
             if raw then lastConfirmedNPC=raw end
             M.store.zoneUID=value
-            if raw and (not M.store.bulo or M.layerSource=="local NPC server id") then M.applyLayer(raw,"local NPC server id") end
+            if raw and (M.layerSource=="unknown" or M.layerSource=="local NPC server id") then M.applyLayer(raw,"local NPC server id") end
         end
         return
     end
@@ -277,6 +312,7 @@ function M.validKill(record)
 end
 -- Preserve origin age and provenance before the zone-only store can reject a record.
 function M.findRecord(record)
+    record=N.Trust.record(M.store,record,now())
     if N.Record.isKill(record) then
         if not N.Relay.acceptKill(M.relay,record,now()) then return end
         local _,viaKey=I.name(record.via)
@@ -663,6 +699,7 @@ local function overlordReceive(text,kind,sender,account)
         g.zone,g.zoneName=overlordZone(g.map)
         if g.zone==false then return refuse() end
         if id and Ov.seen(M.overlord,p.origin,id) then return end
+        if N.Trust.state(M.store,time)=="blind" then g.layer=nil end
         Ov.rampage(M.overlord,g,time,wall)
     else
         local d=p.kind=="GD" and Ov.gd(p.payload) or p.kind=="EK" and Ov.ek(p.payload)
@@ -703,7 +740,7 @@ function M.overlordBn(prefix,text,channel,id)
 end
 function M.overlordText(g)
     return "guild "..g.guild..": "..g.kills.." kills by "..g.members.." in "..(g.zoneName or "place unknown")
-        ..", "..(g.layer and ("layer "..g.layer) or "layer unknown").." (Overlord claim)"
+        ..(N.Trust.own(M.store,now()) and (", "..(g.layer and ("layer "..g.layer) or "layer unknown")) or "").." (Overlord claim)"
 end
 -- 1.2.3 names in Reported, display only and computed on every call: nothing here is stored or saved.
 -- A guildmate's own LayerEnemies sighting (src "le") carries the real name: it is certain, and when that player is
@@ -970,7 +1007,7 @@ function M.offerRelay(record)
     end
 end
 function M.relayContext()
-    return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100),watch=M.watch}
+    return {inGuild=S.call(IsInGuild)==true,inInstance=A.inInstance(),guild=S.str((S.call(GetGuildInfo,"player")),100),watch=M.watch,hideLayer=not N.Trust.own(M.store,now())}
 end
 function M.relayTick()
     if not M.sharing() then N.Relay.clear(M.relay); return end
@@ -1006,6 +1043,7 @@ function M.relayIn(text,kind,sender)
     local record,why
     if own then record,why=N.Relay.decodeOwn(text,sender,time) else record,why=N.Relay.decode(text,sender,time) end
     if not record then M.lastDrop="relay "..tostring(why); return end
+    if own then M.trustClaim(sender,record.layer.value,record.zone,time) end
     if N.Record.isKill(record) and not M.validKill(record) then M.lastDrop="invalid killer"; return end
     if not own then N.Relay.heard(M.relay,record,time) end
     if M.isMe(record.origin) or A.ignored(record.origin) then M.lastDrop="relay origin"; return end
@@ -1051,7 +1089,10 @@ function M.layerswap(text,kind,sender)
     local time=now()
     local asked=M.hop.pending
     local shown,reply=N.Hop.receive(M.hop,text,sender,me,time,M.store.ambiguous(time))
-    if shown then M.say("LayerEnemies: "..shown) end
+    if shown then
+        if not N.Trust.own(M.store,time) then shown=asked.name.." answered your invite request." end
+        M.say("LayerEnemies: "..shown)
+    end
     -- the asked player's own "heard" answer: remembered 12 minutes as a host (or forgotten on "-"); nothing is sent
     if reply and reply.kind=="heard" and asked then N.Hosts.heard(M.heard,asked.name,reply,A.wall()) end
 end
@@ -1159,11 +1200,11 @@ end
 -- Our own state for GuildHost.decide; member is read only after the early checks pass.
 function M.hostOwn()
     local zone=A.location()
-    local id=S.str(M.store.bulo,32)
+    local id=S.str(N.Trust.own(M.store,now()),32)
     local party=A.party()
     local _,self=A.ownIdentity()
-    return {self=self,zone=zone and zone==M.store.zone and zone or nil,key=L.key(M.store.bulo),id=id,
-        ambiguous=M.store.ambiguous(now()),
+    return {self=self,zone=zone and zone==M.store.zone and zone or nil,key=L.key(N.Trust.own(M.store,now())),id=id,
+        ambiguous=M.store.ambiguous(now()),blind=N.Trust.state(M.store,now())=="blind",
         inInstance=A.inInstance(),inCombat=A.inCombat(),raid=party and party.raid,leader=party and party.leader,
         members=party and party.members or {},asking=M.asking()}
 end
@@ -1171,6 +1212,7 @@ end
 -- <key>-0); an F, while we host, gets one H 1 to 6 s later (Wire allows one H per 60 s).
 function M.hostControl(c,sender,time)
     if c.kind=="H" then
+        M.trustClaim(sender,c.key,c.zone,time)
         N.Hosts.heard(M.heard,sender,{kind="heard",layer=c.key.."-0",zone=c.zone,hosting=true},A.wall())
         if N.UI then N.UI.refresh() end
         return
@@ -1445,9 +1487,9 @@ end
 function M.findRows()
     local lists=A.friendLists(M.guildLines,M.heardBook())
     local rows=N.Find.rows(M.find,now(),M.store.zone,function(name,zone)
-        return zone==M.store.zone and I.sameSpotter(name,{zone=zone,wall=A.wall(),ownKey=L.key(M.store.bulo),
+        return zone==M.store.zone and I.sameSpotter(name,{zone=zone,wall=A.wall(),ownKey=L.key(N.Trust.own(M.store,now())),
             ambiguous=M.store.ambiguous(now()),bulo=lists.bulo,book=lists.book})
-    end,M.store.bulo)
+    end,N.Trust.own(M.store,now()))
     presenceSharedSweep(now())
     local _,me=A.ownIdentity()
     for _,r in pairs(M.presenceShared) do
@@ -1474,7 +1516,7 @@ local function knownLine(e)
     else text="Seen by "..(e.spotter or "unknown") end
     text=text.." in "..M.zoneName(e.zone)..", "..age.." ago"
     if e.kind=="claim" then text=text.." ("..e.source..", claim)"
-    elseif e.layer then text=text..", layer "..e.layer.." ("..(e.own and "your sighting" or "their claim")..")" end
+    elseif e.layer and N.Trust.own(M.store,now()) then text=text..", layer "..e.layer.." ("..(e.own and "your sighting" or "their claim")..")" end
     if e.own then text=text.." · "..e.status:gsub("^last known: ","")
     elseif e.realmUnknown then text=text.." · realm not confirmed" end
     if e.detail=="own (party target)" then text=text.." · "..e.detail end
@@ -1702,6 +1744,7 @@ local function ago(seconds)
 end
 -- Describe both namespaces explicitly; FLH freshness never replaces another source's age.
 function M.hostPlace(c)
+    if not N.Trust.own(M.store,now()) then return "" end
     local text=c.layer and ("layer "..c.layer) or "layer unknown - saw reported enemies"
     if c.flhKey then
         local key=#c.flhKey>20 and (c.flhKey:sub(1,20).."...") or c.flhKey
@@ -1717,8 +1760,12 @@ function M.candidates(listed)
     local time=now()
     local lists=A.friendLists(M.guildLines,not listed and M.heardBook() or nil)
     local _,short=A.ownIdentity()
-    return I.collect({now=time,wall=A.wall(),zone=M.store.zone,ownKey=L.key(M.store.bulo),ambiguous=M.store.ambiguous(time),self=short,
+    local rows,status=I.collect({now=time,wall=A.wall(),zone=M.store.zone,ownKey=L.key(N.Trust.own(M.store,now())),ambiguous=M.store.ambiguous(time),self=short,
         reporters=T.reporters(M.store,time),bulo=lists.bulo,book=lists.book,flh=not listed and M.heard.flhHosts or nil})
+    if N.Trust.state(M.store,time)=="blind" then
+        for _,r in ipairs(rows) do r.layer,r.flhKey,r.uid=nil,nil,nil end
+    end
+    return rows,status
 end
 -- Puts the line into the chat box one frame later: a slash command runs inside
 -- the box's own send, which empties the box afterwards. The user presses Enter.
@@ -1770,7 +1817,7 @@ function M.askInvite(name)
         return false
     end
     if found.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
-    local ok,line=I.ask(M.invite,found,now(),A.grouped(),L.key(M.store.bulo))
+    local ok,line=I.ask(M.invite,found,now(),A.grouped(),L.key(N.Trust.own(M.store,now())))
     if not ok then M.say("LayerEnemies: "..line); return false end
     if M.openWhisper(found.name,line) then
         M.say("LayerEnemies: a whisper to "..found.name.." is in your chat box - press Enter to send it.")
@@ -1846,6 +1893,7 @@ end
 function M.hopAnySafe()
     local r=M.hopAnyState and M.hopAnyState.round
     if not r then return false end
+    if not N.Trust.own(M.store,now()) then M.hopAnyStop("layer IDs became unreadable"); return false end
     if N.Net.consent()~="public" then M.hopAnyStop("guild-only mode"); return false end
     if N.Wire.hopBlocked(r.at) then M.hopAnyStop("LayerSwap whisper paused"); return false end
     if A.grouped() or A.inInstance()~=false or A.location()~=r.zone then
@@ -1989,7 +2037,7 @@ function M.hostPreview(c)
     local record=N.Hop.hostRecord(c,ctx.own.zone)
     if not record then return nil end
     local cand=N.Hop.hostCandidate(c)
-    if not L.key(M.store.bulo) or c.unknownOwn then
+    if not L.key(N.Trust.own(M.store,now())) or c.unknownOwn then
         return {label="Hop via "..c.name,enabled=false,reason=I.HINT,candidate=cand,record=record}
     end
     local ok,reason=N.Hop.check(record,cand,ctx)
@@ -2006,11 +2054,11 @@ end
 function M.hopHostTo(c,shown)
     if c.flhKey and not N.Hop.hostCandidate(c) then return N.FLHMember.hop(c,shown) end
     if M.hopAnyBusy() then return false end
-    if not L.key(M.store.bulo) or c.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
+    if not L.key(N.Trust.own(M.store,now())) or c.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
     local live
     for _,row in ipairs((M.candidates())) do if row.short==c.short then live=row; break end end
     if not live then
-        local why=c.layer and L.same(c.layer,M.store.bulo) and not M.store.ambiguous(now()) and "that host is on your layer already." or "hosts changed, check again."
+        local why=c.layer and L.same(c.layer,N.Trust.own(M.store,now())) and not M.store.ambiguous(now()) and "that host is on your layer already." or "hosts changed, check again."
         M.say("LayerEnemies: "..why); if N.UI then N.UI.refresh() end
         return false
     end
@@ -2038,7 +2086,7 @@ function M.hopHost(index)
     if not list or now()-list.at>120 then M.say("LayerEnemies: run /le hosts first, then /le hop host <number>."); return false end
     local row=index and list.rows and list.rows[index]
     if not row then M.say("LayerEnemies: no such number in the last /le hosts list."); return false end
-    if not L.key(M.store.bulo) or row.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
+    if not L.key(N.Trust.own(M.store,now())) or row.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
     if not row.flhKey and not N.Hop.hostRecord(row,M.store.zone) then
         M.say("LayerEnemies: no host addon is known for "..row.name.."; /le ask "..index.." puts a whisper in your chat box instead.")
         return false
@@ -2062,8 +2110,8 @@ function M.hosts()
     guarded(M.poll)
     local list,status=M.candidates()
     local names={}
-    M.say("LayerEnemies - friendly players on other layers, your zone only. Your layer: "..(L.key(M.store.bulo) or "Unknown"))
-    if not L.key(M.store.bulo) then M.say(I.HINT) end
+    M.say("LayerEnemies - friendly players on other layers, your zone only. Your layer: "..(L.key(N.Trust.own(M.store,now())) or "Unknown"))
+    if not L.key(N.Trust.own(M.store,now())) then M.say(I.HINT) end
     if #list==0 then M.say("No one to ask right now.") end
     for i,c in ipairs(list) do
         names[i]=c.name
@@ -2138,7 +2186,7 @@ function M.partyInvite(name)
     N.Wire.hideInvite()
     after(0,function() N.Wire.hideInvite() end)
     local shown=(inviter:match("^([^%-]+)%-")) or inviter
-    M.auto.group={host=shown,short=short,target=p.target,at=time,any=p.any,from=p.from,zone=p.zone}
+    M.auto.group={host=shown,short=short,target=p.target,at=time,any=p.any,from=p.from,zone=p.zone,trustBefore=N.Trust.own(M.store,time)}
     M.say("LayerEnemies: accepted "..shown.."'s invite")
 end
 local function hostLeads(g)
@@ -2168,29 +2216,31 @@ function M.autoTick()
             if time-g.at>M.AUTO_JOIN then M.auto.group=nil end
             return
         end
-        g.joinedAt=time; g.joinKey=L.key(M.store.bulo)
+        g.joinedAt=time; g.joinKey=L.key(N.Trust.own(M.store,now()))
         after(M.AUTO_FAIL+0.1,function() guarded(M.autoTick) end)
     end
     local party=A.party()
     if not grouped or not party or party.raid~=false or party.leader or not hostLeads(g) then M.auto.group=nil; return end
     -- Never inside an instance; combat does not delay leaving the hop group.
     if A.inInstance()~=false then M.auto.group=nil; return end
-    if g.any and (not L.key(M.store.bulo) or L.same(M.store.bulo,g.from)) then g.leaveAt=nil end
+    if g.any and (not L.key(N.Trust.own(M.store,now())) or L.same(N.Trust.own(M.store,now()),g.from)) then g.leaveAt=nil end
     if g.leaveAt then
         if time>=g.leaveAt then
             N.Wire.leave(time); M.auto.group=nil; M.hopDone()
         end
         return
     end
-    local key=L.key(M.store.bulo)
+    local key=L.key(N.Trust.own(M.store,now()))
     local moved=g.any and key and key~=g.from or (not g.any and key and key==L.key(g.target) and key~=g.joinKey)
     if moved then
+        N.Trust.hop(M.store,g.short,g.trustBefore,N.Trust.own(M.store,time),true)
         g.leaveAt=time+M.AUTO_LEAVE
         M.say("LayerEnemies: moved to layer "..key..", leaving the group")
         after(M.AUTO_LEAVE+0.05,function() guarded(M.autoTick) end)
         return
     end
     if time-g.joinedAt>=M.AUTO_FAIL then
+        N.Trust.hop(M.store,g.short,g.trustBefore,N.Trust.own(M.store,time),true)
         if g.any then N.HopAny.failed(M.hopAnyState,g.short,time) end
         N.Wire.leave(time); M.auto.group=nil; M.hopDone()
         M.say("LayerEnemies: hop failed: "..g.host.." could not move you")
@@ -2244,6 +2294,7 @@ function M.guildChanged()
     if same and M.host and M.host.want and not M.host.on then M.hostResume(false) end
 end
 function M.guildReset()
+    S.clear(M.trustClaims)
     if M.watch then N.Watch.reset(M.watch,now()) end
     if M.share then N.Share.cancel(M.share,M.store.localSeen,now()) end
     N.OwnDeath.cancel()
@@ -2270,8 +2321,8 @@ end
 local function shareLayer(rep, time)
     -- A report has one layer field: every own sighting must have been made under
     -- the current full key, including its zoneUID. Bulo refreshes cannot rebind it.
-    local key=not M.store.ambiguous(time) and L.key(M.store.bulo) or nil
-    for _,e in ipairs(rep.enemies) do if e.ownKey~=M.store.bulo then key=nil; break end end
+    local key=not M.store.ambiguous(time) and L.key(N.Trust.own(M.store,now())) or nil
+    for _,e in ipairs(rep.enemies) do if e.ownKey~=N.Trust.own(M.store,now()) then key=nil; break end end
     return key
 end
 function M.shareTick()
@@ -2359,7 +2410,7 @@ function M.weHello(reason)
     if not stamp then return false end
     local zone=A.location()
     local _,class=S.call(UnitClass,"player")
-    local t={map=zone or 0,layer=not M.store.ambiguous(time) and tonumber(L.key(M.store.bulo)) or nil,
+    local t={map=zone or 0,layer=not M.store.ambiguous(time) and tonumber(L.key(N.Trust.own(M.store,now()))) or nil,
         class=S.str(class,20),level=S.num(S.call(UnitLevel,"player")),public=N.Net.allowed("we","public")==true,
         ambiguous=M.store.ambiguous(time)==true}
     t.stamp=0; local said=N.WeOut.hello(t); t.stamp=stamp; local text=N.WeOut.hello(t)
@@ -2397,7 +2448,7 @@ function M.weTick()
         -- an attempt is a send the client was asked for (Wire's own pause or budget is no attempt)
         if called then st.queryTries=st.queryTries+1 end
     end
-    local who,text=N.WeNet.nextAnswer(st,time)
+    local who,text=N.WeNet.nextAnswer(st,time,not N.Trust.own(M.store,time))
     if who then N.Wire.send("WEFF1",text,"WHISPER",who,{net="we",prio="owed"}) end
 end
 function M.weAsked(msg,kind,sender,time)
@@ -2679,6 +2730,7 @@ function M.hopDone()
 end
 function M.groupCheck()
     groupTransition()
+    M.trustGroup()
     local grouped=A.grouped()
     if grouped then N.FLHMember.stop("joined a group") end
     if grouped and M.hopAnyState and M.hopAnyState.round then M.hopAnyStop("joined a group") end
@@ -2687,7 +2739,7 @@ function M.groupCheck()
     if grouped and not M.wasGrouped and M.auto and M.auto.group then
         -- our auto-accepted hop group: autoTick watches the move and leaves; the manual layer check stays quiet
         guarded(M.autoTick)
-    elseif grouped and not M.wasGrouped and I.joined(M.invite,now(),L.key(M.store.bulo),M.store.zone) then
+    elseif grouped and not M.wasGrouped and I.joined(M.invite,now(),L.key(N.Trust.own(M.store,now())),M.store.zone) then
         M.say("LayerEnemies: you joined a group after asking - checking your layer for 60 s.")
         after(I.WATCH+0.5,function() guarded(M.inviteTick) end)
     end
@@ -2695,7 +2747,7 @@ function M.groupCheck()
 end
 function M.inviteTick()
     if not M.invite.watch then return end
-    local message,note=I.tick(M.invite,now(),L.key(M.store.bulo),M.store.zone,M.store.ambiguous(now()))
+    local message,note=I.tick(M.invite,now(),L.key(N.Trust.own(M.store,now())),M.store.zone,M.store.ambiguous(now()))
     if message then M.say("LayerEnemies: "..message) end
     if note then M.say("LayerEnemies: "..note) end
 end
@@ -2810,7 +2862,7 @@ function M.net(command)
 end
 function M.text(command)
     guarded(M.poll)
-    local id=M.store.bulo or "Unknown"
+    local id=N.Trust.own(M.store,now()) or "Unknown"
     say("LayerEnemies - Your layer: "..id.." ("..(M.layerSource or "unknown")..")")
     say("Bulo: "..M.statusBulo); say("War Effort: "..M.statusWE)
     if M.emb then
@@ -2824,9 +2876,9 @@ function M.text(command)
     say("Sharing Battle.net friends and community members with the guild: "..(M.sharingFriends() and "on (/le share friends off)" or "off (/le share friends on)"))
     say("Hop bar: "..((S.tab(LayerEnemiesDB) and S.tab(LayerEnemiesDB.bar) and LayerEnemiesDB.bar.shown) and "on (/le bar off)" or "off (/le bar on)"))
     if M.error then say("Runtime status: "..M.error) end
-    say("Your server key: "..(L.key(M.store.bulo) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
+    say("Your server key: "..(L.key(N.Trust.own(M.store,now())) or "Unknown")..(M.store.ambiguous(now()) and " (ambiguous: another layer of this zone shares it)" or "")
         .." - zone-scoped; an equal key is not proof of the same layer")
-    if not L.key(M.store.bulo) then say(I.HINT) end
+    if not L.key(N.Trust.own(M.store,now())) then say(I.HINT) end
     local kind=command=="reports" and "reported" or command=="unclassified" and "unclassified" or "local"
     say(kind=="reported" and "Reported, not confirmed (War Effort; age as the reporter's clock gives it):" or kind=="unclassified" and "Unclassified / same-faction local observations (not confirmed enemies):" or "Opposite-faction players seen by you:")
     local rows
@@ -2967,7 +3019,18 @@ function M.start()
         if words=="warboard track on" or words=="warboard track off" then guarded(M.warboardTrack,words=="warboard track on"); return end
         if words=="warboard track" then M.say("/le warboard track on|off"); return end
         if command=="presence" then M.presenceStatus(); return end
-        if command=="layer" then guarded(N.ChehulNet.layer); return end
+        if command:match("^blind") then
+            if N.Trust.manual(M.store,command:match("^blind (%a+)$")) then
+                M.say("LayerEnemies: layer trust "..N.Trust.state(M.store,now()).." (session only).")
+                M.poll()
+            else M.say("LayerEnemies: /le blind on|off|auto") end
+            return
+        end
+        if command=="layer" then
+            if not N.Trust.own(M.store,now()) then M.say("layer IDs are not readable on this client")
+            else guarded(N.ChehulNet.layer) end
+            return
+        end
         if command=="find" then M.track(nil); return end
         if command:match("^find%s+") then M.track(raw:match("^%S+%s+(.+)$")); return end
         if command=="hop stop" then guarded(M.hopAnyStop); return end
@@ -3052,7 +3115,9 @@ local function dispatch(_,event,...)
     elseif event=="GUILD_ROSTER_UPDATE" then guarded(M.rosterUpdate)
     elseif event=="PARTY_INVITE_REQUEST" then guarded(M.partyInvite,(...))
     elseif event=="CHAT_MSG_WHISPER_INFORM" then local text,who=...; guarded(M.draftSent,"WHISPER",text,who)
-    elseif event=="CHAT_MSG_GUILD" then local text,who=...; guarded(M.draftSent,"GUILD",text,who)
+    elseif event=="CHAT_MSG_GUILD" then
+        local text,who=...; guarded(M.draftSent,"GUILD",text,who)
+        if N.Trust.state(M.store,now())=="blind" then guarded(M.hostRequest,text,who) end
     elseif event=="PLAYER_GUILD_UPDATE" then guarded(M.guildChanged)
     elseif event=="CHAT_MSG_CHANNEL_NOTICE" then local what,_,_,shown,_,_,_,_,base=...; guarded(N.Directory.notice,what,shown,base) end
 end

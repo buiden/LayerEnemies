@@ -4,7 +4,7 @@ PASS neither source: own observation works after local NPC confirmation
 PASS Bulo present subscribes and copies timestamps without position
 PASS Bulo shape changes and throwing fields cannot crash
 PASS Bulo unsafe/no event bus uses polling
-PASS Bulo layer and raw changes wipe all previous sightings
+PASS Bulo layer and raw changes retain previous sightings without a real boundary
 PASS transfer epoch rejects old Bulo and carried unit observations
 PASS zone and child-map handling reset only real zones
 PASS missing map API safely disables zone-dependent output
@@ -237,7 +237,7 @@ PASS 0.4 T5: no one known on the layer: Ask guild (chat) drafts the exact /g lin
 PASS 0.4 T5: a known host or another precondition means no guild ask
 PASS 0.4 T5: GUILD heard replies are read for 120 s after our own guild ask, naming us, and stored as hosts
 PASS 0.4 T5: the Reported row button drafts the guild line
-PASS 0.4 T7.1: parse accepts only the full want/not grammar
+PASS 0.4 T7.1: parse accepts full want/not and unconstrained grammar
 PASS 0.4 T7.1: decide order: hosting, name, 60 s per asker, zone, key, instance, combat, guild
 PASS 0.4 T7.1: want and not rules with their replies
 PASS 0.4 T7.1: group rule, own request, 10 s overall and 6 per 600 s give busy
@@ -512,7 +512,7 @@ PASS seen unknown 03c: a Bulo observation after learning may replace the kept un
 PASS seen unknown 04: kept rows expire 600 seconds after the original sighting
 PASS seen unknown 05: unreadable faction stays unclassified with no layer
 PASS seen unknown 01b: Find says layer unknown for an own sighting made before the layer is known
-PASS seen unknown 06: a real layer or raw-id change still wipes kept pre-layer rows
+PASS seen unknown 06: an unexplained layer or raw-id change retains kept pre-layer rows
 PASS seen unknown 07: shard transfer still wipes unknown and kept sightings
 PASS seen unknown 09: learning preserves the 60-second shared-enemy cooldown
 PASS previous zone 11: real crossings carry an own row for 120 seconds from its sighting
@@ -520,7 +520,7 @@ PASS previous zone 11b: learning the new zone layer keeps the carry until its or
 PASS previous zone 12: expired own sightings are not revived by a crossing or Bulo refresh
 PASS previous zone 13: only the newest eight sightings are carried as independent copies
 PASS previous zone 14: only opposite-faction own-source current-epoch rows are eligible
-PASS previous zone 15: non-zone boundaries clear carry-over even when the map also changes
+PASS previous zone 15: only real boundaries clear carry-over, zone crossings replace it
 PASS previous zone 16: reacquiring the same player replaces the carried display with one live row
 PASS previous zone 17: carried rows never become sends, Find locations, maps or actions
 PASS previous zone 18: a second crossing keeps only the zone just left after live rows
@@ -752,10 +752,10 @@ PASS Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves who and autoaccept
 PASS Hop fanout: unchanged ZONE_CHANGED_NEW_AREA preserves send and autoaccept
 PASS Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves who and autoaccept
 PASS Hop fanout: unchanged GROUP_ROSTER_UPDATE preserves send and autoaccept
-PASS Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves who and autoaccept
-PASS Hop fanout: unchanged PLAYER_ENTERING_WORLD preserves send and autoaccept
-PASS Hop fanout: unchanged SHARD_TRANSFER preserves who and autoaccept
-PASS Hop fanout: unchanged SHARD_TRANSFER preserves send and autoaccept
+PASS Hop fanout: boundary PLAYER_ENTERING_WORLD ends who without a readable key
+PASS Hop fanout: boundary PLAYER_ENTERING_WORLD ends send without a readable key
+PASS Hop fanout: boundary SHARD_TRANSFER ends who without a readable key
+PASS Hop fanout: boundary SHARD_TRANSFER ends send without a readable key
 PASS Hop fanout: session six-hour suppression and known-book bypass
 PASS Hop fanout: known offline skip is 600 seconds without changing other offline sends
 PASS Hop fanout: unknown same-zone host reasked once at plus three without exclusion
@@ -983,7 +983,7 @@ PASS Round2 relayed: guild O survives a newer claim beside own history
 PASS Round2 death: guild O survives a newer claim beside own history
 PASS Round2 claims: guild O survives relay and death without an own entry
 PASS Round2 retention: own guild and claim expire independently without refreshing O
-PASS Round2 own: layer change releases priority to guild O
+PASS Round2 own: real transfer releases priority to guild O
 PASS Round2 own: unknown layer never takes priority over guild O
 PASS Round2 own: current-layer 599-second sighting stays primary beside another zone
 PASS Round2 bounds: own storage participates in eviction and rollback indexing
@@ -1011,7 +1011,7 @@ PASS K: share off at death or toggled off-on before retries cancels held work
 PASS K: BG arena dungeon unknown instance never send; entering later cancels
 PASS K: resurrection guild-change or zone boundary invalidates already scheduled retries
 PASS K: delayed callbacks from a superseded death cannot send its snapshot
-PASS K: layer field has the same 15-digit grammar as O including zero
+PASS K: valid 15-digit layers round trip and zero or malformed layers become unknown
 PASS K: source flag type and hostile masks each independently required
 PASS K: death-event rate limits and cap apply after attribution, not only direct Wire callers
 PASS K: shared prefix pause and budgets drop events, never postpone or retry a send
@@ -1600,6 +1600,162 @@ PASS Hop combat: manual report request accepts only its asked host in combat
 PASS Hop combat: asked hop-any invite is accepted and a second hop works without combat ending
 PASS Hop combat: leave after a move does not wait for combat end
 PASS Hop combat: leave after failure does not wait for combat end
+PASS Layer A5: rotating NPC identifiers update confirmed key without wipes
+PASS Layer A5: rotating Bulo IDs and donor transfer notifications wipe nothing
+PASS Layer A5: real PLAYER_ENTERING_WORLD same zone
+PASS Layer A5: real PLAYER_ENTERING_WORLD with new zone
+PASS Layer A5: real SHARD_TRANSFER same zone
+PASS Layer A5: real SHARD_TRANSFER with new zone
+PASS Layer A5: real ZONE_CHANGED same zone
+PASS Layer A5: real ZONE_CHANGED with new zone
+PASS Layer A5: real ZONE_CHANGED_NEW_AREA same zone
+PASS Layer A5: real ZONE_CHANGED_NEW_AREA with new zone
+PASS Layer A5: join npc confirmed change at 10 seconds
+PASS Layer A5: join bulo confirmed change at 10 seconds
+PASS Layer A5: join npc confirmed change at 11 seconds
+PASS Layer A5: join bulo confirmed change at 11 seconds
+PASS Layer A5: leave npc confirmed change at 10 seconds
+PASS Layer A5: leave bulo confirmed change at 10 seconds
+PASS Layer A5: leave npc confirmed change at 11 seconds
+PASS Layer A5: leave bulo confirmed change at 11 seconds
+PASS Layer A5: unreadable group state and repeated roster are not new transitions
+PASS Layer A5: unreadable map is not a crossing and churn ages out
+PASS Layer A5: NPC changes are counted while Bulo supplies the server key
+PASS Layer A5: confirmed post-join NPC key keeps its expiry clock
+PASS Layer A5: post-join Bulo change discards the old NPC fingerprint
+PASS Layer A5: expiry and recovery are not a new crossing
+PASS Layer A5: pending own-death send survives an ID rotation
+PASS Layer A5: pending own-death send cancels on real transfer
+PASS Layer Bulo crossing: Find and actual O with Bulo-only history
+PASS Layer Bulo crossing: Find and actual O with expired NPC history
+PASS Layer churn counting: NPC change at boundary plus 2
+PASS Layer churn counting: NPC change at boundary plus 10
+PASS Layer churn counting: NPC change at boundary plus 11
+PASS Layer churn counting: Bulo change at boundary plus 2
+PASS Layer churn counting: Bulo change at boundary plus 10
+PASS Layer churn counting: Bulo change at boundary plus 11
+PASS Layer A3: O keeps name with unknown layer bad!layer
+PASS Layer A3: K keeps name with unknown layer bad!layer
+PASS Layer A3: R keeps name with unknown layer bad!layer
+PASS Layer A3: WE C/H retain other fields with unknown layer bad!layer
+PASS Layer A3: O keeps name with unknown layer 0
+PASS Layer A3: K keeps name with unknown layer 0
+PASS Layer A3: R keeps name with unknown layer 0
+PASS Layer A3: WE C/H retain other fields with unknown layer 0
+PASS Layer A3: O keeps name with unknown layer 0-0
+PASS Layer A3: K keeps name with unknown layer 0-0
+PASS Layer A3: R keeps name with unknown layer 0-0
+PASS Layer A3: WE C/H retain other fields with unknown layer 0-0
+PASS Layer A3: O keeps name with unknown layer 0-0-0
+PASS Layer A3: K keeps name with unknown layer 0-0-0
+PASS Layer A3: R keeps name with unknown layer 0-0-0
+PASS Layer A3: WE C/H retain other fields with unknown layer 0-0-0
+PASS Layer A3: O keeps name with unknown layer 9999999999999999999999999999999999999999
+PASS Layer A3: K keeps name with unknown layer 9999999999999999999999999999999999999999
+PASS Layer A3: R keeps name with unknown layer 9999999999999999999999999999999999999999
+PASS Layer A3: WE C/H retain other fields with unknown layer 9999999999999999999999999999999999999999
+PASS Layer A3: Overlord GW bad layer retains guild and counts, bad count drops
+PASS Layer A3: HH P bad layer retains names and coordinates
+PASS Layer A3: unknown-namespace R records ignore malformed layer values
+PASS Layer A3: malformed GW layer controls are separable but controls elsewhere drop
+PASS Layer A3: wrapped WE names and E fragments survive a bad C layer
+PASS Layer A3: permissive K receipt does not widen outgoing wire grammar
+PASS Layer A1: poll expires an unread own key at 300 seconds, not 299
+PASS Layer A1: a valid NPC read refreshes expiry, malformed reads do not
+PASS Layer A1: Bulo read loss expires on poll without wiping sightings
+PASS Layer A1: a late first NPC read cannot revive the expired confirmed key
+PASS Layer expiry crossing: NPC join changed
+PASS Layer expiry crossing: NPC join same
+PASS Layer expiry crossing: NPC join late
+PASS Layer expiry crossing: NPC leave changed
+PASS Layer expiry crossing: NPC leave same
+PASS Layer expiry crossing: NPC leave late
+PASS Layer expiry crossing: Bulo join changed
+PASS Layer expiry crossing: Bulo join same
+PASS Layer expiry crossing: Bulo join late
+PASS Layer expiry crossing: Bulo leave changed
+PASS Layer expiry crossing: Bulo leave same
+PASS Layer expiry crossing: Bulo leave late
+PASS Layer A4: ambiguous GuildHost decide is silent for every answer kind
+PASS Layer A4: live host snapshot passes ambiguity and sends no answer
+PASS Layer outer guards: GW direct valid
+PASS Layer outer guards: GW fragmented valid
+PASS Layer outer guards: Wanted valid
+PASS Layer outer guards: GW direct punctuation
+PASS Layer outer guards: GW fragmented punctuation
+PASS Layer outer guards: Wanted punctuation
+PASS Layer outer guards: GW direct pipe
+PASS Layer outer guards: GW fragmented pipe
+PASS Layer outer guards: Wanted pipe
+PASS Layer outer guards: GW direct byte 0
+PASS Layer outer guards: GW fragmented byte 0
+PASS Layer outer guards: Wanted byte 0
+PASS Layer outer guards: GW direct byte 1
+PASS Layer outer guards: GW fragmented byte 1
+PASS Layer outer guards: Wanted byte 1
+PASS Layer outer guards: GW direct byte 10
+PASS Layer outer guards: GW fragmented byte 10
+PASS Layer outer guards: Wanted byte 10
+PASS Layer outer guards: GW direct byte 13
+PASS Layer outer guards: GW fragmented byte 13
+PASS Layer outer guards: Wanted byte 13
+PASS Layer outer guards: GW direct byte 31
+PASS Layer outer guards: GW fragmented byte 31
+PASS Layer outer guards: Wanted byte 31
+PASS Layer outer guards: GW direct byte 127
+PASS Layer outer guards: GW fragmented byte 127
+PASS Layer outer guards: Wanted byte 127
+PASS Layer outer guards: GW direct rejects other malformed fields
+PASS Layer outer guards: GW fragmented rejects other malformed fields
+PASS Layer outer guards: Overlord envelopes and non-GW controls stay strict
+PASS Layer outer guards: Wanted retains checksum and non-layer guards
+PASS Layer outer guards: Wanted identity-layer bridge still drops control and pipe
+PASS Layer provenance: Find and actual O after unchanged
+PASS Layer provenance: Find and actual O after NPC server
+PASS Layer provenance: Find and actual O after NPC zoneUID
+PASS Layer provenance: Find and actual O after Bulo
+PASS Layer provenance: Find and actual O after Bulo zoneUID
+PASS Layer provenance: Find and actual O after join30
+PASS Layer provenance: Find and actual O after expiry
+PASS Layer provenance: Bulo refresh cannot rewrite an own sighting key
+PASS Layer provenance: five-minute Find history loses same-layer text on expiry
+PASS Layer provenance: reacquisition under the new key restores Find and wire
+PASS Layer provenance: actual War Effort cohort layer after unchanged
+PASS Layer provenance: actual War Effort cohort layer after rotation
+PASS Layer provenance: actual War Effort cohort layer after mixed
+PASS Layer provenance: actual War Effort cohort layer after expiry
+PASS Layer provenance: pending K preserves names and gates layer after rotation
+PASS Layer provenance: pending K preserves names and gates layer after expiry
+PASS Layer A3: WarBoard FBLP separable malformed layer boolean
+PASS Layer A3: WarBoard FBLP separable malformed layer table
+PASS Layer A3: WarBoard FBLP separable malformed layer string
+PASS Layer A3: WarBoard malformed non-layer fields and SHRD identity still drop
+PASS Layer A2: key and Bulo own/received zero number 0
+PASS Layer A2: FLH own/received zero number 0
+PASS Layer A2: ChehulNet own/received zero number 0
+PASS Layer A2: Wanted received zero retains named record number 0
+PASS Layer A2: Wanted bridge identity zero is dropped number 0
+PASS Layer A2: Overlord received zero is unknown number 0
+PASS Layer A2: key and Bulo own/received zero string 0
+PASS Layer A2: FLH own/received zero string 0
+PASS Layer A2: ChehulNet own/received zero string 0
+PASS Layer A2: Wanted received zero retains named record string 0
+PASS Layer A2: Wanted bridge identity zero is dropped string 0
+PASS Layer A2: Overlord received zero is unknown string 0
+PASS Layer A2: key and Bulo own/received zero string 0-0
+PASS Layer A2: FLH own/received zero string 0-0
+PASS Layer A2: ChehulNet own/received zero string 0-0
+PASS Layer A2: Wanted received zero retains named record string 0-0
+PASS Layer A2: Wanted bridge identity zero is dropped string 0-0
+PASS Layer A2: Overlord received zero is unknown string 0-0
+PASS Layer A2: key and Bulo own/received zero string 0-0-0
+PASS Layer A2: FLH own/received zero string 0-0-0
+PASS Layer A2: ChehulNet own/received zero string 0-0-0
+PASS Layer A2: Wanted received zero retains named record string 0-0-0
+PASS Layer A2: Wanted bridge identity zero is dropped string 0-0-0
+PASS Layer A2: Overlord received zero is unknown string 0-0-0
+PASS Layer A2: NPC zero server cannot establish an own key
+PASS Layer A3: Wanted bad layer preserves names and position, other bad fields still drop
 PASS Stack: source mutant evidence rerun is byte and mtime stable
 PASS Stack: presence mutant evidence rerun is byte and mtime stable
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
@@ -1928,6 +2084,42 @@ PASS Reported names: names stay in memory; nothing new is saved and nothing is s
 PASS Reported names: one namedRows call per window render
 PASS Reported names: name hashes are cached across renders with unchanged data
 PASS Reported names: a long reported name is clamped for display only
+PASS Trust: invalid keys, clock rollback and manual usage fail closed
+PASS Trust: Bulo boundary admission and immutable local masking
+PASS Trust: reader expiry and sticky manual state
+PASS Trust: parse thresholds 19/20 cold and 9/10 after success
+PASS Trust: churn 2/3 and 600-second window with ten-second excuses
+PASS Trust: three distinct accepted formed unchanged hops in a row
+PASS Trust: outdoor group mismatch at 59/60 and continuity
+PASS Trust boundary: late LayerSwap answers carry no layer display
+PASS Trust boundary: unknown Wanted bridge status hides keys keeps counts
+PASS Trust boundary: blind Wanted bridge status hides keys keeps counts
+PASS Trust boundary: unknown relays names but not a remote layer on R
+PASS Trust boundary: blind relays names but not a remote layer on R
+PASS Trust boundary: same confirmed key refresh on one later NPC read
+PASS Trust boundary: queued War Effort own sync cannot leak its cached layer
+PASS Trust boundary: active hop fanout stops before another layered send
+PASS Trust boundary: unknown hides existing source shard details
+PASS Trust boundary: blind hides existing source shard details
+PASS Trust boundary: blind new Wanted and WarBoard claims discard shard only
+PASS Trust live: real same-prefix suffix moves are not constant-ID hops
+PASS Trust live: manual hides own UI and sends layer-free O C H K
+PASS Trust live: zero hides own UI and sends layer-free O C H K
+PASS Trust live: unparseable hides own UI and sends layer-free O C H K
+PASS Trust live: churn hides own UI and sends layer-free O C H K
+PASS Trust live: constant hides own UI and sends layer-free O C H K
+PASS Trust live: private hides own UI and sends layer-free O C H K
+PASS Trust surfaces: blind host fallback parser rejects extra coordinates
+PASS Trust surfaces: blind guild host invites unconstrained asks without layer replies
+PASS Trust surfaces: unknown hides Friendly FLH ChehulNet and layer command
+PASS Trust surfaces: blind hides Friendly FLH ChehulNet and layer command
+PASS Trust surfaces: blind O receipt retains names/count/position, layer unknown
+PASS Trust surfaces: blind R receipt retains names/count/position, layer unknown
+PASS Trust surfaces: blind WE receipt retains names/count/position, layer unknown
+PASS Trust surfaces: blind HH receipt retains names/count/position, layer unknown
+PASS Trust surfaces: WeOut remote rebuild keeps the sender claim in blind
+PASS Trust surfaces: blind host and Overlord readers retain names not keys
+PASS Trust surfaces: Bulo source feeds Trust but never overrides blindness
 PASS Wanted: independent zlib record hash and decoder ceilings
 PASS Wanted: deterministic 5000-input decoder and dispatch fuzz has no errors
 PASS Wanted: record and sighting location fields do not alias each other
@@ -2311,4 +2503,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2233 tests passed, 0 failed, 649130 assertions
+RESULT: 2425 tests passed, 0 failed, 662888 assertions

@@ -120,7 +120,8 @@ function R.relation(record, own)
     if record.layer.ns ~= "server" then return "unknown" end
     -- only War Effort (first-hand) and our own records can carry a server key; HeadHunter never compares
     if record.src ~= "we" and record.src ~= "own" and not (record.src == "guild" and record.label == "we") then return "unknown" end
-    local server = N.Layer.key(own.server)
+    local server = N.Layer.key(own.store and N.Trust.own(own.store,own.now) or own.server)
+    if own.store and not N.Trust.own(own.store,own.now) then return "unknown" end
     if not server or own.zone == nil or record.zone ~= own.zone then return "unknown" end
     local value = N.Layer.key(record.layer.value)
     if not value then return "unknown" end

@@ -312,7 +312,11 @@ local function status()
     end
     local keys={}
     for k in pairs(values) do keys[#keys+1]=k end; table.sort(keys)
-    for _,k in ipairs(keys) do local v=values[k]; out[#out+1]="Wanted opposite-faction users: map "..v.m.." / layer "..v.l..": "..v.n end
+    local known=N.Trust.own(N.Main.store,now)
+    for _,k in ipairs(keys) do
+        local v=values[k]
+        out[#out+1]="Wanted opposite-faction users: map "..v.m..(known and (" / layer "..v.l) or "")..": "..v.n
+    end
     return out
 end
 Src.register{name="wanted",prefixes={"WNTD","WNTDB","WNTDP"},onAddon=addon,onBNet=bnet,tick=sweep,status=status,counters=W.stats}
