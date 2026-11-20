@@ -1641,7 +1641,7 @@ do
             local given,surname=v[2]:match("^([^ ]+) (.+)$")
             F.own(st,{name=given or v[2],displayName=given and v[2],realm=surname or "Test Realm",
                 faction="opposite",source="own target",class="MAGE",level=39,layer="7086-7"},100,50)
-            local row=F.rows(st,50,100)[1]
+            local row=F.rows(st,50,100,nil,"7086-7")[1]
             yes(row.own,"own sighting matched"); yes(row.same); no(row.possible); no(row.canAsk)
             eq(row.name,v[1],"keep typed spelling"); eq(row.zone,100); eq(row.at,50)
             eq(row.class,"MAGE"); eq(row.level,39); eq(#sent,0)
@@ -1783,8 +1783,8 @@ test("Find match, no match, collisions, expiry, own sighting and alerts",functio
     F.own(st,{name="Alice",faction="opposite",source="own target"},100,913)
     r=F.rows(st,913,100)[1]; yes(r.own); no(r.same); no(r.canAsk); eq(r.status,"seen by you, layer unknown")
     F.own(st,{name="Alice",faction="opposite",source="own target",layer="7086-7"},100,913)
-    r=F.rows(st,913,100)[1]; yes(r.own); yes(r.same); no(r.canAsk); eq(r.status,"is on YOUR layer")
-    F.boundary(st); yes(st.locations.Alice); no(F.rows(st,913,100)[1].same); eq(#st.names,2)
+    r=F.rows(st,913,100,nil,"7086-7")[1]; yes(r.own); yes(r.same); no(r.canAsk); eq(r.status,"is on YOUR layer")
+    F.boundary(st); yes(st.locations.Alice); no(F.rows(st,913,100,nil,"7086-7")[1].same); eq(#st.names,2)
     -- A genuine three-character collision must remain possible, never confirmed.
     local a,b="PFKMEclrzj","CuhFVPbgzA"
     eq(N.Hash.player(a,""),"Y8Y"); eq(N.Hash.player(b,""),"Y8Y")
@@ -6661,7 +6661,8 @@ test("seen unknown 03c: a Bulo observation after learning may replace the kept u
     N.UI.toggle(); eq(N.UI.pool[1].title.text,"Aster Vale")
     no(N.UI.pool[1].sub.text:find("layer unknown",1,true))
     N.Main.setShare(true); advance(3); N.Main.shareTick()
-    eq(#oLines(),1); yes(oLines()[1].text:find("|0.250|0.750|7086|",1,true),oLines()[1].text)
+    -- Bulo refreshed its row, not our earlier unknown-layer sighting.
+    eq(#oLines(),1); yes(oLines()[1].text:find("|0.250|0.750||",1,true),oLines()[1].text)
     no(N.Main.error)
 end)
 test("seen unknown 04: kept rows expire 600 seconds after the original sighting",function()
@@ -7187,7 +7188,7 @@ local function withoutPlace(row)
     local out={}; for k,v in pairs(row) do if k~="place" then out[k]=v end end; return snapshot(out)
 end
 test("OpenMap tiers 1 sighting only: frozen legacy row fields stay identical",function()
-    local N=omReady(); clock=100; sight(N,100,60,false)
+    local N=omReady(); establish(N); clock=100; sight(N,100,60,false)
     local expected={name="Cedar Vale",zone=100,at=60,spotter="Birch Scout",class="ROGUE",level=47,possible=true,relayed=false,
         age=40,same=false,probably=false,travel=false,status="possible match, seen by Birch Scout",canAsk=true}
     -- Section 4 adds named-evidence fields and a seen line; legacy action fields stay unchanged.

@@ -5,6 +5,8 @@ N.Main=M
 M.GROUP_CHANGE_WINDOW,M.CHURN_WINDOW,M.CHURN_CAP=10,600,3
 -- Bounded session-only evidence; PR 2 consumes it, no blind behavior here.
 M.keyChanges={}
+-- Change-detection history only; expiry must never expose this as current data.
+local lastConfirmedKey
 local function recent(at,time) return at and time>=at and time-at<=M.GROUP_CHANGE_WINDOW end
 local function groupTransition()
     local grouped=S.call(IsInGroup)
@@ -47,6 +49,7 @@ function M.releaseUnit(unit)
 end
 function M.boundary(zone,zoneChange)
     M.boundaryAt=now(); M.layerKnown=nil; M.layerReadAt=nil
+    lastConfirmedKey=nil
     local prev={}
     if zoneChange==true and zone~=nil and M.store.zone~=nil and zone~=M.store.zone then prev=T.carry(M.store,now()) end
     N.OwnDeath.cancel()
@@ -84,13 +87,13 @@ end
 function M.keyChanged(time)
     groupTransition()
     if recent(M.groupChangedAt,time) then M.boundary(M.store.zone); return true end
-    if not recent(M.boundaryAt,time) then
-        for i=#M.keyChanges,1,-1 do
-            if time<M.keyChanges[i] or time-M.keyChanges[i]>=M.CHURN_WINDOW then table.remove(M.keyChanges,i) end
-        end
-        if #M.keyChanges>=M.CHURN_CAP then table.remove(M.keyChanges,1) end
-        M.keyChanges[#M.keyChanges+1]=time
+    -- First learning after a boundary never calls this. Every later confirmed
+    -- change outside the group window counts, even just after that boundary.
+    for i=#M.keyChanges,1,-1 do
+        if time<M.keyChanges[i] or time-M.keyChanges[i]>=M.CHURN_WINDOW then table.remove(M.keyChanges,i) end
     end
+    if #M.keyChanges>=M.CHURN_CAP then table.remove(M.keyChanges,1) end
+    M.keyChanges[#M.keyChanges+1]=time
     return false
 end
 function M.applyLayer(id,source)
@@ -100,7 +103,7 @@ function M.applyLayer(id,source)
     M.layerReadAt=time
     if id==M.store.bulo then M.layerSource=source; return end
     local uid=M.npcs.current
-    if M.store.bulo~=nil then
+    if lastConfirmedKey~=nil and lastConfirmedKey~=id then
         if M.keyChanged(time) then
             if source=="local NPC server id" then
                 -- The confirming readings belong to the new side of this crossing.
@@ -112,6 +115,7 @@ function M.applyLayer(id,source)
         N.Reports.clearPending(M.receiver)
     end
     M.store.bulo=id; M.store.zoneUID=uid; M.layerSource=source
+    lastConfirmedKey=id
     M.layerKnown=true; M.layerReadAt=time
     if M.auto and M.auto.group then guarded(M.autoTick) end
 end
@@ -1442,7 +1446,7 @@ function M.findRows()
     local rows=N.Find.rows(M.find,now(),M.store.zone,function(name,zone)
         return zone==M.store.zone and I.sameSpotter(name,{zone=zone,wall=A.wall(),ownKey=L.key(M.store.bulo),
             ambiguous=M.store.ambiguous(now()),bulo=lists.bulo,book=lists.book})
-    end)
+    end,M.store.bulo)
     presenceSharedSweep(now())
     local _,me=A.ownIdentity()
     for _,r in pairs(M.presenceShared) do
@@ -2263,10 +2267,10 @@ function M.nextReportId()
     return id
 end
 local function shareLayer(rep, time)
-    -- A report has one layer field: never attach a learned key to any earlier,
-    -- unlayered sighting. Compute independently for the guild and public cohort.
+    -- A report has one layer field: every own sighting must have been made under
+    -- the current full key, including its zoneUID. Bulo refreshes cannot rebind it.
     local key=not M.store.ambiguous(time) and L.key(M.store.bulo) or nil
-    for _,e in ipairs(rep.enemies) do if e.layer==nil then key=nil; break end end
+    for _,e in ipairs(rep.enemies) do if e.ownKey~=M.store.bulo then key=nil; break end end
     return key
 end
 function M.shareTick()

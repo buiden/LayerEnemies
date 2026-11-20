@@ -3,8 +3,8 @@
 local _,N=...
 local Ov,S,F={},N.Safe,N.Find
 N.Overlord=Ov
-local function bytes(v,max)
-    if S.secret(v) or type(v)~="string" or #v>max or v:find("%c") then return nil end
+local function bytes(v,max,deferControls)
+    if S.secret(v) or type(v)~="string" or #v>max or (not deferControls and v:find("%c")) then return nil end
     return v
 end
 local function fields(text,sep,count)
@@ -17,6 +17,12 @@ local function fields(text,sep,count)
         start=at+1
     end
     if #out==count then return out end
+end
+local function gwFields(payload)
+    local f=bytes(payload,200,true) and fields(payload,":",8)
+    if not f then return nil end
+    for i,v in ipairs(f) do if i~=7 and v:find("%c") then return nil end end
+    return f
 end
 local function uint(v,max,min)
     v=S.str(v,20)
@@ -109,7 +115,8 @@ function Ov.seen(st,origin,id)
 end
 -- The second return carries the envelope id to packet(), never inferred from its contents.
 function Ov.fragment(st,text,sender,now,route)
-    if not bytes(text,255) or not identity(sender) or not S.num(now) then return false end
+    -- Chunks are opaque until assembled; packet/gw validate controls by field.
+    if not bytes(text,255,true) or not identity(sender) or not S.num(now) then return false end
     local id,part,count,chunk=text:match("^BF:([^:]*):([^:]*):([^:]*):(.*)$")
     part,count=uint(part,24,1),uint(count,24,1)
     if not validId(id) or not part or not count or part>count or #chunk>230 then return false end
@@ -143,7 +150,7 @@ function Ov.fragment(st,text,sender,now,route)
 end
 local peerKinds={NH=true,HR=true,HB=true,HA=true,SR=true,LK=true,SH=true,GE=true,GP=true,ZS=true,MN=true,K=true}
 function Ov.packet(wire,id,sender,serverNow,me)
-    if not bytes(wire,3600) or not validId(id) then return nil end
+    if not bytes(wire,3600,true) or not validId(id) then return nil end
     local f
     if me then
         local a,b,c,d,e,g,h=wire:match("^([^|]*)|([^|]*)|([^|]*)|([^|]*)|([^|]*)|([^|]*)|(.*)$")
@@ -151,6 +158,8 @@ function Ov.packet(wire,id,sender,serverNow,me)
     else f=fields(wire,"|",7) end
     if not f or f[2]~=id or (f[4]~="*" and (not me or not identity(f[4]) or F.fold(f[4])~=F.fold(me)))
         or (f[6]~="GW" and f[6]~="GD" and not (me and peerKinds[f[6]])) then return nil end
+    for i=1,6 do if f[i]:find("%c") then return nil end end
+    if f[7]:find("%c") and (f[6]~="GW" or not gwFields(f[7])) then return nil end
     local at=uint(f[3],9007199254740991)
     if not fresh(at,serverNow,120) then return nil end
     local path,used={},{}
@@ -169,10 +178,10 @@ function Ov.packet(wire,id,sender,serverNow,me)
     return {pool=f[1],kind=f[6],payload=f[7],origin=origin,at=at,target=f[4],hops=#path-1}
 end
 function Ov.direct(text)
-    text=bytes(text,255)
+    text=bytes(text,255,true)
     local kind,payload
     if text then kind,payload=text:match("^([A-Z]+):(.*)$") end
-    if kind=="GW" or kind=="GD" or kind=="EK" then return {kind=kind,payload=payload} end
+    if (kind=="GW" and gwFields(payload)) or ((kind=="GD" or kind=="EK") and bytes(payload,252)) then return {kind=kind,payload=payload} end
 end
 local function killer(name,class,ref,ts,epoch)
     name=identity(name)
@@ -200,10 +209,8 @@ function Ov.ek(payload)
     return killer(f[1],f[2],f[5],f[4],f[6])
 end
 function Ov.gw(payload,serverNow)
-    if S.secret(payload) or type(payload)~="string" or #payload>200 then return nil end
-    local f=fields(payload,":",8)
+    local f=gwFields(payload)
     if not f or f[1]~="1" or (f[3]~="H" and f[3]~="A") then return nil end
-    for i,v in ipairs(f) do if i~=7 and v:find("%c") then return nil end end
     local guild=S.str(f[2],24)
     if not guild or guild:match("^%s") or guild:match("%s$") or guild:find("%s%s") or guild:find("[,%%]") then return nil end
     local kills,members=uint(f[4],9999,50),uint(f[5],999,5)

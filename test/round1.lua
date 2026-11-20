@@ -74,7 +74,9 @@ end)
 test("Round1 own: a newer guild O keeps fresh own evidence primary and both lines visible",function()
     for _,trackAfter in ipairs({false,true}) do
         for _,ownFirst in ipairs({true,false}) do
-            local N=H.load({findShare=false}); H.advance(1); local M,F=N.Main,N.Find
+            local N=H.load({findShare=false}); H.establish(N); H.advance(1); local M,F=N.Main,N.Find
+            -- Keep live layer evidence through the 600-second precedence check.
+            BuloLayerForever={current="7086-7",Radar={seen={}}}
             local at=H.clock()
             if not trackAfter then yes(M.track("Cedar Vale")) end
             local function own()

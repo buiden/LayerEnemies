@@ -159,7 +159,10 @@ function W.record(r)
         if not S.str(k,64) or S.secret(v) then return nil end
         local typ=type(v)
         if typ=="number" then if not S.num(v) then return nil end
-        elseif typ=="string" then if v~="" and not S.str(v,512) then return nil end
+        elseif typ=="string" then
+            -- Keep original layer bytes for the checksum; place drops only that
+            -- separable field. All other strings retain their text guards.
+            if #v>512 or (k~="l" and v~="" and not S.str(v,512)) then return nil end
         elseif typ~="boolean" then return nil end
         if numeric[k] and not S.num(v) then return nil end
         keys[#keys+1]=k; if #keys>64 then return nil end

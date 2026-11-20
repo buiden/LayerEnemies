@@ -1872,6 +1872,12 @@ previous-zone copies above. Other Bulo/NPC ID changes update the key without
 wiping observations, pending sharing or pending own-death work. An unreadable
 map suspends zone-dependent output rather than proving a crossing; a donor
 ID-change notification alone is not a client transfer event.
+Each own sighting retains the full own key it was made under. If the current
+key differs or expires, Find says "seen by you", not "on your layer". Sharing
+keeps the names but omits the layer (empty O field, zero C field) if any own
+sighting in that report lacks the current full key. A later Bulo copy cannot
+rewrite that own-sighting key. Fresh own reacquisition can establish a new
+one. Pending K lines still keep the key captured at death, not the current key.
 Entries with timestamps at or before a new epoch are rejected. Captured
 carried-over units remain quarantined until their old unit token disappears
 or changes; this can miss sightings, but avoids attaching old observations
@@ -1893,12 +1899,23 @@ This includes numeric `0`, `"0"`, `"0-0"` and `"0-0-0"`. Each independent
 reader keeps its existing namespace; zero does not become a layer in another
 network. Without a valid read for 300 seconds, the poll tick expires your own
 key; a later NPC key needs fresh confirmation. Expiry alone is not a transfer.
+The last confirmed full key is kept internally for change detection only,
+never as current knowledge. Thus expiry between a group join/leave and a new
+confirmation cannot hide a crossing within the ten-second window. The first
+learning after a real boundary is not churn; every subsequent unexplained
+confirmed change counts, even within ten seconds of that boundary.
 
 Incoming O/K/R, War Effort C/H, HeadHunter P, Overlord GW, WarBoard FBLP and
 Wanted records retain their other valid fields when a separable layer value
 is malformed, treating just that layer as unknown. Malformed identity-layer
 records (WarBoard SHRD and Wanted bridge counts) still drop, as do records
 malformed elsewhere. Outgoing line shapes and routes are unchanged.
+This includes control bytes in Overlord GW's separable layer through its
+direct and wrapped ingress, and pipes/control bytes in Wanted's serialized
+layer; other fields, checksums, packet sizes and identity-layer guards stay
+strict. Preserving these records can also preserve existing unknown-layer
+forwarding (for example, HeadHunter P to guild R); unchanged formats and
+budgets do not mean an identical set of sends.
 
 Your own key comes only from a confirmed reading (Bulo's full ID or two
 agreeing NPC kinds). When NPC readings show a new full ID with the same server
