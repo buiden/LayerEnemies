@@ -6,18 +6,18 @@
 
 A small movable bar with your layer and the hop status, so a hop is one click away without
 opening the window. **No new send:** a left-click is the window's "Hop to another layer"
-button, with the same checks and limits (one click every 10 seconds, not in combat, not in an
-instance, not in guild-only mode, not in a group).
+button, with the same checks and limits (one click every 10 seconds, not in an
+instance, not in guild-only mode, not in a group). Hopping is allowed in combat.
 
 - Line 1: `Layer <key>` (the same key as YOUR LAYER in the window), `Detecting...` while the key
   is unknown, or the instance name inside an instance.
-- Line 2: `Hop ready`, `Hopping: asking N...`, `Wait Ns`, `In combat`, or a short reason when a
+- Line 2: `Hop ready`, `Hopping: asking N...`, `Wait Ns`, or a short reason when a
   hop is not possible.
 - Left-click hops (or stops an open hop); right-click opens the LayerEnemies window;
   Shift+right-click hides the bar; left-drag moves it (a drag is never a click). No tooltip.
 - `/le bar on|off|oneline` (on by default; `oneline` switches between one and two lines). Saved:
   shown or hidden, one-line mode and the position.
-- Plain frames only, never protected; it stays on screen in combat and shows `In combat`.
+- Plain frames only, never protected; it stays on screen and can hop in combat.
 - Modelled on LayerSwap's mini bar (behaviour and look); our own code and logo.
 
 ## 1.2.4
@@ -850,16 +850,16 @@ availability or transport delivery.
 | `WR`, host flag **0** | WHISPER back to a `WP` sender | Owed reply | WR + CA share 6 per rolling minute and 1 per sender per 60 s |
 | `CA`, host flag **0** | WHISPER back to a `CQ` sender | Owed reply | Same shared reply caps as WR |
 | `WP`, host flag **0** | WHISPER to a name from the read-only `ForeverLayerHopNet` directory | Friendly hop window open, no other hop pending | 4 per rolling minute; each name once per 600 s; at most 1 per tick; **none during a hop-any round** |
-| `LQ` | WHISPER to fresh, same-zone FLH host claims | Explicit row click / `/le hop host N`; `/le hop flh` selects a bounded batch | Named click: 1. Batch: at most 7; sends only available shared capacity minus one reserved LR token/rolling-minute slot, then paces unsent queries inside the original 90 s; existing hop click/name cooldowns and Wire hop caps apply |
+| `LQ` | WHISPER to fresh, same-zone FLH host claims | Explicit row click / `/le hop host N`; `/le hop flh` selects a bounded batch | Named click: 1. Batch: at most 7; sends only available shared capacity minus one reserved LR send/rolling-minute slot, then paces unsent queries inside the original 90 s; existing hop click/name cooldowns and Wire hop caps apply |
 | `LR` | WHISPER to the asked host whose matching `LO` was selected | Same click, first valid offer within 90 s | One selected host; only success spends the selection. A send-limit refusal waits for budget/pause clearance and retries at most twice within the original click window |
 
 The LR reservation is shared with ordinary LE traffic and FLH replies; it never increases any ceiling. It is released after a successful LR, cancellation/final refusal, or the original 90-second deadline. Once an offer is held, remaining discovery stops rather than contacting extra hosts. Duplicate offers do not redirect the host, renew the window or consume retries. If the LR cannot finally be sent, the row retains a send-limit note and chat prints exactly once: `LayerEnemies: hop request to <host> could not be sent (send limit); click again`.
 
-**Read-only directory join:** F2 joins `ForeverLayerHopNet` only for its member list, as explicitly approved in plan section 10.2. It never sends to that channel (or any channel), never joins at Guild only, never re-joins after a manual leave, and never leaves a channel the player joined. The existing channel-slot, combat, instance and Channels-window guards apply to joins and reads. Once joined, it stays joined through combat and instances; only sends/probes pause. Privacy/owner changes leave our channel when out of combat and instances.
+**Read-only directory join:** F2 joins `ForeverLayerHopNet` only for its member list, as explicitly approved in plan section 10.2. It never sends to that channel (or any channel), never joins at Guild only, never re-joins after a manual leave, and never leaves a channel the player joined. The existing channel-slot, combat, instance and Channels-window guards apply to joins and reads. Once joined, it stays joined through combat and instances; membership sends/probes pause. Privacy/owner changes leave our channel when out of combat and instances.
 
 All six kinds go through **Wire** and count toward its existing **8-at-once shared bucket (1 token per 1.5 s)** and **40 per rolling minute** ceiling. FLH whispers, including those to guildmates, also share the existing **20/minute public budget** and **4/minute per-person budget**. Probes leave six shared tokens, six shared minute slots and six public slots for owed replies, and rotate round-robin over eligible directory names. A probe refused by the local send gate does not spend its 600-second name cooldown; an actual client attempt does, even if the client refuses it. Separate reply/probe/presence ledgers only tighten those ceilings; they are not extra allowances. Membership does not spend hop-any tokens, so the existing hop-any fan-out keeps its separate 8-then-1/s cadence. Guest LQ/LR additionally use that unchanged hop ledger (8 burst, 1/s refill, 60/minute, 4/minute per target); no FLH sends are queued or automatically retried.
 
-`/le share off`, `/le net flh off`, combat, instances and unverifiable live state silence all FLH sends. **Guild only** retains guild presence but permits no group presence, whispers, probes, guest requests or directory join. `/le net flh on|off` is a **session-only** switch: reload restores on, without a new SavedVariables field.
+`/le share off`, `/le net flh off`, instances and unverifiable live state silence all FLH sends. Combat pauses membership presence, probes and owed replies, but permits click-owned guest LQ/LR and correlated replies. These guest sends cost two tokens in combat and all shared/hop minute caps are halved; the LR reservation holds two tokens, still only one minute slot. **Guild only** retains guild presence but permits no group presence, whispers, probes, guest requests or directory join. `/le net flh on|off` is a **session-only** switch: reload restores on, without a new SavedVariables field.
 
 **Donor loaded:** when the real `ForeverLayerHop` addon is loaded, LayerEnemies sends **nothing on FLHNET2** (no HI, WR/CA owed replies, WP probes or LQ/LR) and does not join `ForeverLayerHopNet`. Incoming FLH data are still received and read. The real addon alone owns this player's outgoing state, so two clients cannot overwrite each other's state at peers.
 
@@ -2291,11 +2291,11 @@ mostly guild-only; `/who` lets this action ask players outside that list.
 A disabled button explains the guard in its tooltip; during a round it says
 **Stop**. `/le hop stop` does the same thing.
 
-Guards: public mode, ungrouped, out of combat and instances, readable live
+Guards: public mode, ungrouped, outside instances, readable live
 zone/name/position and own identity, no ask or hop still open, working
 localized WHO APIs, and **10 seconds between hop-any clicks**, including
 stopped clicks; the cooldown restarts at the first accepted whisper, not at
-each later target. Unknown group, combat or instance state refuses. The shared
+each later target. Unknown group or instance state refuses. Combat does not refuse a hop. The shared
 10-second overall ask cooldown is reserved once; the shared 60-second
 per-name cooldown still applies to initial requests. Other asks/hops are
 refused until this round ends or you stop it.
@@ -2321,19 +2321,21 @@ rather than blocking the action.
 
 Nothing is whispered before WHO answers. The click owns up to **45 rounds**,
 **one second apart**, with **at most 8 attempts per round**. A fresh Wire
-bucket allows eight initially, then about one per second: all 49 names take
-about **41 seconds** in the offline harness without competing traffic.
+bucket outside combat allows eight initially, then about one per second: all 49 names take
+about **41 seconds** in the offline harness without competing traffic. In combat,
+sends still cost **two tokens** and minute caps are halved: four initial
+requests, then about one every two seconds; the existing round/window caps remain.
 A fan-out throttle/pause keeps the target at the head for the next round;
 an offline name is skipped. A client throttle on a named hop or reply on the
 LayerSwap prefix instead stops this click, even after the pause expires. A
 fan-out client throttle also gives named hops/replies their usual 30-second
 prefix pause, without stopping its own next-round retry. Other send errors
 stop the search. A host reply alone does not stop the queue. An invite from
-any not-known-failed host, Stop, joining a group, combat, entering an instance,
+any not-known-failed host, Stop, joining a group, entering an instance,
 a real zone-map/world change, or a guild-only switch cancels unsent work.
 Subzone events, roster updates while ungrouped, and loading events that return
 to the same zone do **not** cancel fan-out or its pending auto-accept. Existing
-unreadable-state guards still fail closed.
+unreadable-state guards still fail closed. Combat starting does not cancel the round.
 **Sent requests cannot be recalled; a late invite can still arrive.** An
 unasked invite is never auto-accepted or declined. Failed hop hosts are
 remembered for 600 seconds; their invites do not end the queue.
@@ -2467,8 +2469,8 @@ Accept: when an invite arrives, it is accepted only if your own hop asked for
 it (a Hop button, `/le hop`, `/le hop host`, `/le hop any` or "Ask guild (chat)"; not
 `/le ask`), within 120 seconds of that ask, from the player you asked (whole
 name, realm included; for the guild ask, a guild member online in your
-roster), while you are not grouped, not in an instance and not in combat
-(unreadable counts as in combat). One accept per ask. The client's invite
+roster), while you are not grouped and not in an instance. Combat is allowed.
+One accept per ask. The client's invite
 popup is hidden as accepted. Any other invite is left to you. Chat says
 "accepted <host>'s invite".
 
@@ -2481,9 +2483,18 @@ later. With no move within 30 seconds of joining, the group is left and chat
 says "hop failed: <host> could not move you".
 For hop-any there is no wanted key: success means a known key different from
 the key you left, in the same zone (including a key learned before the group
-update). The same lead/raid/instance/combat checks apply. An unknown or
+update). The same lead/raid/instance checks apply. An unknown or
 unchanged key is not success; returning to the old key cancels the pending
 success leave. A zone change cancels automatic tracking.
+
+The hopper may request, accept and leave in combat, then click again after the
+existing cooldown. Neither the 3-second success leave nor the 30-second failure
+leave waits for combat to end. Manual `/le hop`, host rows, the hop bar, hop-any
+and FLH guest requests follow this policy; no hopping is allowed in instances.
+Guild **hosts** still never invite while they are in combat. Wire budgets,
+invite identity checks, WHO's click-only call and all other safety gates remain.
+See [combat gate and pinned Forever API audit](notes/hop-combat.md).
+**Not tested in game** (alpha, owner's decision).
 
 ## Hosting for your guild
 

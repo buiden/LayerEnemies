@@ -222,7 +222,7 @@ test("FLH member: timed-out row is measured and late offers cannot send",functio
 end)
 
 for _,mode in ipairs({"share","guild","switch","combat","instance","zone","fingerprint","stop"}) do
-    test("FLH member: pending guest is revoked by "..mode,function()
+    test(mode=="combat" and "FLH member: pending guest survives combat" or ("FLH member: pending guest is revoked by "..mode),function()
         local N=member(); local row=host(N); yes(N.Main.hopHostTo(row))
         local id=N.FLH.decode(countCmd(N,"LQ")[1].text).id
         if mode=="share" then SlashCmdList.LAYERENEMIES("share off")
@@ -233,8 +233,8 @@ for _,mode in ipairs({"share","guild","switch","combat","instance","zone","finge
         elseif mode=="zone" then N.Main.boundary(200,true)
         elseif mode=="fingerprint" then N.Main.store.zoneUID=9
         else SlashCmdList.LAYERENEMIES("hop stop") end
-        offer(N,id); eq(#countCmd(N,"LR"),0)
-        H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),0)
+        offer(N,id); eq(#countCmd(N,"LR"),mode=="combat" and 1 or 0)
+        H.deliver("PARTY_INVITE_REQUEST","Cedar Vale"); eq(H.accepts(),mode=="combat" and 1 or 0)
         no(N.FLHMember.pending()); no(N.Main.error)
     end)
 end

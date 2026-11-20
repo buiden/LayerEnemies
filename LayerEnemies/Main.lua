@@ -1245,12 +1245,15 @@ function M.flhIn(text,kind,sender)
     if kind~="GUILD" and kind~="PARTY" and kind~="RAID" and kind~="WHISPER" then return end
     if not M.heard or not I.name(sender) then return end
     if not A.ownIdentity() or M.isMe(sender) or A.ignored(sender) then return end
-    if A.inCombat() or A.inInstance()~=false then return end
+    if A.inInstance()~=false then return end
+    local combat=A.inCombat()
+    -- In combat read only replies to a live guest click, never new presence.
+    if combat and not (kind=="WHISPER" and N.FLHMember.pending()) then return end
     if kind=="GUILD" and S.call(IsInGuild)~=true then return end
     local msg=N.FLH.decode(text)
     if not msg then return end
     N.FLHMember.received(msg,kind,sender)
-    if (msg.cmd~="HI" and msg.cmd~="WR" and msg.cmd~="CA") then return end
+    if combat or (msg.cmd~="HI" and msg.cmd~="WR" and msg.cmd~="CA") then return end
     local wall=A.wall()
     if not wall then return end
     local claim
@@ -1747,7 +1750,7 @@ function M.hopAnyContext(peek)
     c.zoneName=S.tab(info) and S.str(info.name,120) or nil
     c.self=select(2,A.ownIdentity())
     c.guildOnly=N.Net.consent()~="public"
-    c.instance,c.combat=A.inInstance(),A.inCombat()
+    c.instance=A.inInstance()
     c.asking=M.asking(peek) or (M.auto and M.auto.group~=nil)
     c.term=A.whoTerm(c.zoneName)
     c.line=N.Hop.lineNot(c.zone,c.own.server,c.x,c.y)
@@ -1792,8 +1795,8 @@ function M.hopAnySafe()
     if not r then return false end
     if N.Net.consent()~="public" then M.hopAnyStop("guild-only mode"); return false end
     if N.Wire.hopBlocked(r.at) then M.hopAnyStop("LayerSwap whisper paused"); return false end
-    if A.grouped() or A.inCombat() or A.inInstance()~=false or A.location()~=r.zone then
-        M.hopAnyStop("group, combat, instance or zone changed"); return false
+    if A.grouped() or A.inInstance()~=false or A.location()~=r.zone then
+        M.hopAnyStop("group, instance or zone changed"); return false
     end
     local _,self=A.ownIdentity()
     if not self then M.hopAnyStop("own name unreadable"); return false end
@@ -1855,7 +1858,7 @@ function M.hopContext()
     local zone,x,y=A.location()
     local own=T.own(M.store,time)
     if zone~=own.zone then x,y=nil,nil end
-    return {now=time,grouped=A.grouped(),own=own,zone=zone,invite=M.invite,x=x,y=y,zoneName=M.zoneName}
+    return {now=time,grouped=A.grouped(),instance=A.inInstance()~=false,own=own,zone=zone,invite=M.invite,x=x,y=y,zoneName=M.zoneName}
 end
 function M.hopPreview(record)
     local ctx=M.hopContext()
@@ -2047,7 +2050,7 @@ function M.setAutoHop(on)
     if N.UI then N.UI.refresh() end
 end
 -- PARTY_INVITE_REQUEST: accept only the host our own hop asked (whole name, as Hop.receive; for the guild ask an
--- online guild member), within 120 s of the ask, while not grouped, not in an instance and not in combat. Anything
+-- online guild member), within 120 s of the ask, while not grouped and not in an instance. Combat is allowed; anything
 -- else is left to the player.
 function M.partyInvite(name)
     N.FLHMember.checkGuest()
@@ -2073,7 +2076,7 @@ function M.partyInvite(name)
         local g=M.hop.guildAsk
         if not ((g and g.answered and g.answered[short]) or listedHost(short)) then return end
     elseif short~=p.short then return end
-    if A.grouped() or A.inInstance()~=false or A.inCombat() then return end
+    if A.grouped() or A.inInstance()~=false then return end
     local ok,why=N.Wire.accept(time)
     -- the client refused or threw: the ask is spent all the same (no second try on the next invite)
     if not ok then if p.any or why=="error" then M.invite.pending=nil end; return end
@@ -2117,13 +2120,11 @@ function M.autoTick()
     end
     local party=A.party()
     if not grouped or not party or party.raid~=false or party.leader or not hostLeads(g) then M.auto.group=nil; return end
-    -- never inside an instance: stop tracking; in combat the leave waits until combat ends
+    -- Never inside an instance; combat does not delay leaving the hop group.
     if A.inInstance()~=false then M.auto.group=nil; return end
-    local fighting=A.inCombat()
     if g.any and (not L.key(M.store.bulo) or L.same(M.store.bulo,g.from)) then g.leaveAt=nil end
     if g.leaveAt then
         if time>=g.leaveAt then
-            if fighting then after(1,function() guarded(M.autoTick) end); return end
             N.Wire.leave(time); M.auto.group=nil; M.hopDone()
         end
         return
@@ -2137,7 +2138,6 @@ function M.autoTick()
         return
     end
     if time-g.joinedAt>=M.AUTO_FAIL then
-        if fighting then after(1,function() guarded(M.autoTick) end); return end
         if g.any then N.HopAny.failed(M.hopAnyState,g.short,time) end
         N.Wire.leave(time); M.auto.group=nil; M.hopDone()
         M.say("LayerEnemies: hop failed: "..g.host.." could not move you")
@@ -2978,7 +2978,6 @@ local function dispatch(_,event,...)
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
     elseif event=="PLAYER_REGEN_DISABLED" then
         if N.WarBoardTrack then N.WarBoardTrack.stop() end
-        guarded(M.hopAnyStop,"combat started")
     elseif event=="PLAYER_DEAD" then N.OwnDeath.dead()
     elseif event=="PLAYER_ALIVE" or event=="PLAYER_UNGHOST" then N.OwnDeath.revived()
     elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,...)

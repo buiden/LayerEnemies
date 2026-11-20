@@ -32,7 +32,9 @@ end
 function F.allowed(kind,tag)
     local M=N.Main
     if not M or not M.sharing() or N.Net.SHIP.flh~=true or not N.Net.switch("flh") then return false end
-    if A.inCombat() or A.inInstance()~=false or not A.ownIdentity() then return false end
+    if A.inInstance()~=false or not A.ownIdentity() then return false end
+    -- Only click-owned guest requests continue in combat; membership stays paused.
+    if A.inCombat() and not (kind=="WHISPER" and (tag=="LQ" or tag=="LR")) then return false end
     if kind=="GUILD" then
         if S.call(IsInGuild)~=true then return false end
     elseif N.Net.consent()~="public" then return false end
@@ -57,7 +59,8 @@ local function sameKey(a,b)
     return a and b and a:gsub("^0+","")==b:gsub("^0+","")
 end
 function F.pending() return guest~=nil end
--- One real shared token/minute slot belongs to this click until LR or expiry.
+-- One real shared send/minute slot belongs to this click until LR or expiry.
+-- Wire reserves its live token cost (two in combat), not an extra allowance.
 -- This read is side-effect free: Wire can ask it without recursive guest checks.
 function F.reserved(now)
     local r=guest

@@ -389,7 +389,7 @@ local function room(prefix, kind, target, public, now, cost, low, catchup)
     buckets[prefix] = b
     refill(b, PREFIX_CAP, PREFIX_REFILL, now); refill(all, ALL_CAP, ALL_REFILL, now)
     local reserve = flhReserve(now)
-    if b.tokens < cost or all.tokens < cost + math.max(low and Wr.RESERVE_TOKENS or 0, reserve) then return false end
+    if b.tokens < cost or all.tokens < cost + math.max(low and Wr.RESERVE_TOKENS or 0, reserve * cost) then return false end
     -- in combat (cost 2) every minute cap is halved
     local function cap(n) return math.floor(n / cost) end
     allTimes = recent(allTimes, now)
@@ -443,16 +443,18 @@ local function flhBudget(tag,kind,key,now,checkOnly)
     -- Membership shares the ordinary global ceilings, not an extra allowance.
     -- Probes yield first: keep six shared tokens/minute slots for owed answers.
     refill(all,ALL_CAP,ALL_REFILL,now); allTimes=recent(allTimes,now)
+    local cost=inCombat() and 2 or 1
+    local function cap(n) return math.floor(n/cost) end
     local reserve=tag=="WP" and Wr.FLH_REPLIES or 0
     reserve=math.max(reserve,tag~="LR" and flhReserve(now) or 0)
-    if all.tokens<1+reserve or #allTimes>=ALL_MINUTE-reserve then return false end
+    if all.tokens<cost*(1+reserve) or #allTimes>=cap(ALL_MINUTE)-reserve then return false end
     flhReplies=recent(flhReplies,now); flhProbes=recent(flhProbes,now)
     for k,v in pairs(flhNames) do if now-v.at>=v.keep then flhNames[k]=nil end end
     publicTimes=recent(publicTimes,now); guildTimes=recent(guildTimes,now)
-    if kind=="WHISPER" and #publicTimes>=PUBLIC_MINUTE then return false end
+    if kind=="WHISPER" and #publicTimes>=cap(PUBLIC_MINUTE) then return false end
     for k,v in pairs(publicTo) do v=recent(v,now); publicTo[k]=v[1] and v or nil end
-    if kind=="WHISPER" and #(publicTo[key] or {})>=PUBLIC_ONE then return false end
-    if kind=="GUILD" and #guildTimes>=GUILD_MINUTE then return false end
+    if kind=="WHISPER" and #(publicTo[key] or {})>=cap(PUBLIC_ONE) then return false end
+    if kind=="GUILD" and #guildTimes>=cap(GUILD_MINUTE) then return false end
     if tag=="WP" and not Wr.flhProbeReady(key,now) then return false end
     local owed=tag=="WR" or tag=="CA"
     local bucket=owed and flhReplies or flhProbes
@@ -472,16 +474,16 @@ local function flhBudget(tag,kind,key,now,checkOnly)
         refill(hopBucket,Wr.HOP_CAP,Wr.HOP_REFILL,now)
         hopTimes=recent(hopTimes,now)
         for k,v in pairs(hopTo) do v=recent(v,now); hopTo[k]=v[1] and v or nil end
-        if hopBucket.tokens<1 or #hopTimes>=Wr.HOP_MINUTE or #(hopTo[key] or {})>=Wr.HOP_ONE then return false end
+        if hopBucket.tokens<cost or #hopTimes>=cap(Wr.HOP_MINUTE) or #(hopTo[key] or {})>=cap(Wr.HOP_ONE) then return false end
         if checkOnly then return true end -- click preflight never charges a ledger
-        hopBucket.tokens=hopBucket.tokens-1; hopTimes[#hopTimes+1]=now
+        hopBucket.tokens=hopBucket.tokens-cost; hopTimes[#hopTimes+1]=now
         local list=hopTo[key] or {}; list[#list+1]=now; hopTo[key]=list
     end
     if kind=="WHISPER" then
         publicTimes[#publicTimes+1]=now
         local list=publicTo[key] or {}; list[#list+1]=now; publicTo[key]=list
     end
-    all.tokens=all.tokens-1; allTimes[#allTimes+1]=now
+    all.tokens=all.tokens-cost; allTimes[#allTimes+1]=now
     if kind=="GUILD" then guildTimes[#guildTimes+1]=now end
     return true
 end
