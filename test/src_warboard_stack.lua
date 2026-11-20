@@ -13,7 +13,7 @@ for _,route in ipairs({"BN self","BN third","GUILD","PARTY","RAID","CHANNEL"}) d
         N.Net.SHIP.warboard=true
         _G.WOW_PROJECT_ID=42
         _G.GetRealmName=function() return "PvP 123" end
-        C_AddOns.GetAddOnMetadata=function() return "1.2.5" end
+        C_AddOns.GetAddOnMetadata=function() return "1.2.6" end
         C_BattleNet.GetGameAccountInfoByID=function(id)
             return {gameAccountID=id,characterName=route=="BN third" and "Relay Carrier" or "Enemy Player",
                 realmName="123",factionName="Horde",clientProgram="WoW",isOnline=true,

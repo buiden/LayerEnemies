@@ -1,23 +1,42 @@
 # LayerEnemies
 
+## 1.2.6
+
+### Hop in combat (escape a gank)
+
+You can now hop **while in combat**: `/le hop`, the hop bar, a hop-any round and a ForeverLayerHop
+(FLH) guest request all work in combat. You can accept the invite and leave the group in combat too.
+Combat starting no longer cancels a hop you clicked, and leaving the group no longer waits for combat
+to end. The hop bar no longer shows `In combat`.
+
+- **The host side is still guarded:** a guild host never invites while he is in combat.
+- **Still no hop in instances.** This release also adds the missing instance guard to named-host and
+  report hops (`/le hop N`, `/le hop host N`), so every hop path now refuses inside an instance.
+- In combat every send costs double and every per-minute cap is halved, so a hop-any round runs at
+  half pace. FLH presence and probes stay paused in combat; only your own clicked guest request and
+  its answer go out. No limit was raised and nothing is sent to chat.
+- Whether the game lets you accept a group invite in combat could not be checked offline.
+
+**Not tested in game** (alpha, owner's decision).
+
 ## 1.2.5
 
 ### Hop bar
 
 A small movable bar with your layer and the hop status, so a hop is one click away without
 opening the window. **No new send:** a left-click is the window's "Hop to another layer"
-button, with the same checks and limits (one click every 10 seconds, not in an
-instance, not in guild-only mode, not in a group). Hopping is allowed in combat.
+button, with the same checks and limits (one click every 10 seconds, not in combat, not in an
+instance, not in guild-only mode, not in a group).
 
 - Line 1: `Layer <key>` (the same key as YOUR LAYER in the window), `Detecting...` while the key
   is unknown, or the instance name inside an instance.
-- Line 2: `Hop ready`, `Hopping: asking N...`, `Wait Ns`, or a short reason when a
+- Line 2: `Hop ready`, `Hopping: asking N...`, `Wait Ns`, `In combat`, or a short reason when a
   hop is not possible.
 - Left-click hops (or stops an open hop); right-click opens the LayerEnemies window;
   Shift+right-click hides the bar; left-drag moves it (a drag is never a click). No tooltip.
 - `/le bar on|off|oneline` (on by default; `oneline` switches between one and two lines). Saved:
   shown or hidden, one-line mode and the position.
-- Plain frames only, never protected; it stays on screen and can hop in combat.
+- Plain frames only, never protected; it stays on screen in combat and shows `In combat`.
 - Modelled on LayerSwap's mini bar (behaviour and look); our own code and logo.
 
 ## 1.2.4

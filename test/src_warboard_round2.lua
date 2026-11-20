@@ -5,7 +5,7 @@ local function test(name,fn) h.test("WarBoard R2: "..name,fn) end
 local function setup()
     local N=h.load(); N.Net.SHIP.warboard=true
     WOW_PROJECT_ID=42; GetRealmName=function() return "PvP 123" end
-    C_AddOns.GetAddOnMetadata=function() return "1.2.5" end
+    C_AddOns.GetAddOnMetadata=function() return "1.2.6" end
     C_BattleNet.GetGameAccountInfoByID=function(id)
         return {gameAccountID=id,characterName="Enemy Player",realmName="123",factionName="Horde",clientProgram="WoW",
             isOnline=true,wowProjectID=42,isInCurrentRegion=true}

@@ -11,7 +11,7 @@ local function setup(names,saved)
     _G.UnitNameUnmodified=function() return "Hunter","Player" end
     _G.UnitGUID=function(unit) return unit=="player" and "Player-123-00000001" or nil end
     _G.GetServerTime=function() return h.wall() end
-    C_AddOns.GetAddOnMetadata=function() return "1.2.5" end
+    C_AddOns.GetAddOnMetadata=function() return "1.2.6" end
     local accounts={}
     for i,name in ipairs(names or {"Enemy Player"}) do
         accounts[70+i]={gameAccountID=70+i,characterName=name,realmName="123",factionName="Horde",clientProgram="WoW",
@@ -62,7 +62,7 @@ local function expected(kind,at,target)
     local d={targetGuid=target.playerGuid,hunterGuid="Player-123-00000001",hunterName="Hunter Player",
         hunterFaction="Alliance",faction="Alliance",sentAt=at}
     if kind=="FBAK" then d.targetName=target.characterName end
-    return {t=kind,v=5,rs="pvp",av="LayerEnemies/1.2.5",senderName="Hunter Player",d=d}
+    return {t=kind,v=5,rs="pvp",av="LayerEnemies/1.2.6",senderName="Hunter Player",d=d}
 end
 local function position(N,account,at,guid,absent)
     local d={targetGuid=guid or account.playerGuid,targetName=account.characterName,faction="Horde",rank=1,
@@ -97,7 +97,7 @@ test("exact FBAK and FBUN audit fields and codec round trip",function()
     eq(out.send.target,71); same(expected("FBAK",out.e.d.sentAt,a[71]),out.e)
     eq(out.e.d.sentAt%1,0); yes(math.abs(out.e.d.sentAt-GetServerTime())<=1)
     -- Audit 11 has no FBAK fixture; these independent Ace bytes pin audit 4/5.
-    local plain="^1^T^St^SFBAK^Sv^N5^Srs^Spvp^Sav^SLayerEnemies/1.2.5^SsenderName^SHunter~`Player^Sd^T"
+    local plain="^1^T^St^SFBAK^Sv^N5^Srs^Spvp^Sav^SLayerEnemies/1.2.6^SsenderName^SHunter~`Player^Sd^T"
         .."^StargetGuid^SPlayer-123-00000002^StargetName^SEnemy~`Player^ShunterGuid^SPlayer-123-00000001"
         .."^ShunterName^SHunter~`Player^ShunterFaction^SAlliance^Sfaction^SAlliance^SsentAt^N"..out.e.d.sentAt.."^t^t^^"
     same(N.Codec.aceRead(plain),out.e)
@@ -324,7 +324,7 @@ test("no generic owed bypass for H FBAK foreign net or invented FBUN",function()
     local N,a=start(); local ask=frames(N,"FBAK")[1].send.text
     stop(N,"share"); tick(N); yes(N.BNet.queued()>0)
     no(N.BNet.send("warboard",71,"WarBoard",ask,"owed"))
-    no(N.BNet.send("warboard",71,"WarBoard","WBF1|A|5|pvp|LayerEnemies/1.2.5|0","owed"))
+    no(N.BNet.send("warboard",71,"WarBoard","WBF1|A|5|pvp|LayerEnemies/1.2.6|0","owed"))
     local un=expected("FBUN",GetServerTime(),a[71]); un.d.targetGuid="Player-123-FFFFFFFF"
     local text="WBF1|D|"..N.Codec.addonEncode(N.Codec.deflateStored(N.Codec.aceWrite(un)))
     no(N.BNet.send("warboard",71,"WarBoard",text,"owed")); no(N.BNet.send("other",71,"WarBoard",text,"owed"))
