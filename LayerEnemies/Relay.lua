@@ -116,17 +116,20 @@ end
 -- decode(text, sender, now) -> record (src "guild", label = claimed src) | nil, reason
 function Rl.decode(text, sender, now)
     if S.secret(text) or type(text) ~= "string" or #text < 1 or #text > 255 then return nil, "invalid" end
-    if text:find("[^%w|%.:,%-?/]") then return nil, "invalid" end
     local f = {}
     for v in (text .. "|"):gmatch("([^|]*)|") do f[#f + 1] = v end
     if f[1] ~= "R" then return nil, "invalid" end
     if f[2] ~= Rl.VERSION then return nil, "version" end
     if #f ~= 14 then return nil, "invalid" end
+    -- The separable layer value may be unreadable; all other byte guards stay.
+    for i,v in ipairs(f) do
+        if i~=12 and v:find("[^%w%.:,%-?/]") then return nil, "invalid" end
+    end
     local src, kind, origin, rid = f[3], f[4], unhex(f[5]), f[6]
     if not SRC[src] or not KIND[kind] or not origin or not rid:match("^[%w:%-]+$") then return nil, "invalid" end
     if (src == "spy") ~= (kind == "seen") then return nil, "invalid" end
     local kill = kind == "kill" or kind == "killi"
-    if kill and (src ~= "hh" or f[10] ~= "" or f[11] ~= "u" or f[12] ~= "") then return nil, "invalid" end
+    if kill and (src ~= "hh" or f[10] ~= "" or f[11] ~= "u") then return nil, "invalid" end
     -- a copy naming its own sender as the origin is not a relay (as War Effort refuses its own wrapped origin)
     local function bare(n) return (n:match("^([^%-]+)") or n):lower() end
     if type(sender) == "string" and (origin:lower() == sender:lower()
@@ -139,12 +142,18 @@ function Rl.decode(text, sender, now)
     local count = f[10] ~= "" and int(f[10], 0, 80) or nil
     local ns = NSBACK[f[11]]
     if src == "hh" and ns ~= "unknown" then return nil, "invalid" end   -- HeadHunter never carries a usable layer
-    if src == "spy" and (ns ~= "unknown" or f[12] ~= "" or count ~= 1) then return nil, "invalid" end
+    if src == "spy" and (ns ~= "unknown" or count ~= 1) then return nil, "invalid" end
     local age = int(f[13], 0, 900)
     if age and age >= (Rl.TTL[src] or 0) then return nil, "too old" end
     if not (zone and okx and oky and (f[10] == "" or count) and ns and age) then return nil, "invalid" end
     local value = f[12] ~= "" and f[12] or nil
-    if ns == "zoneuid" then value = value and tonumber(value) end
+    if ns == "zoneuid" then
+        value = value and tonumber(value)
+        if not S.num(value) or value<1 or value%1~=0 then ns,value="unknown",nil end
+    elseif ns == "server" then
+        value=N.Layer.key(value)
+        if not value then ns="unknown" end
+    else value=nil end
     local enemies = {}
     if f[14] ~= "" then
         for item in (f[14] .. ","):gmatch("([^,]*),") do
@@ -431,7 +440,7 @@ function Rl.decodeOwn(text, sender, now)
     local layer
     if f[7] == "" then layer = { ns = "unknown" }
     elseif f[7]:match("^%d+$") and #f[7] <= 15 and N.Layer.key(f[7]) then layer = { ns = "server", value = f[7] }
-    else return nil, "invalid" end
+    else layer = { ns = "unknown" } end
     local enemies = {}
     if f[10] ~= "" then
         for item in (f[10] .. ","):gmatch("([^,]*),") do

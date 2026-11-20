@@ -106,11 +106,13 @@ test("Spy relay codec: no layer even on a poisoned input, exactly one full name 
     eq(N.Relay.encode(record(N,nil,{kind="fight"}),H.clock()),nil)
     local long=string.rep("a",36).." "..string.rep("b",36).."-"..string.rep("c",20)
     eq(N.Relay.encode(record(N,long,{origin=long}),H.clock()),nil,"never truncate the sole name into an empty line")
-    for _,bad in ipairs({wire():gsub("|1|u||","|1|s|7085|"),wire():gsub("|1|u||","|1|u|7085|"),
+    for _,bad in ipairs({wire():gsub("|1|u||","|1|s|7085|"),
         wire():gsub("|seen|","|fight|"),wire():gsub("|1|u|","|2|u|"),wire():gsub(hx("Cedar Vale"),"abc"),
         wire()..","..hx("Elm Vale")..":MAGE:40",wire():gsub(hx("Cedar Vale")..":MAGE:40","")}) do
         local decoded,why=N.Relay.decode(bad,"Guild Courier",H.clock()); eq(decoded,nil); eq(why,"invalid")
     end
+    local unknown=N.Relay.decode(wire():gsub("|1|u||","|1|u|7085|"),"Guild Courier",H.clock())
+    yes(unknown); eq(unknown.layer.ns,"unknown"); eq(unknown.layer.value,nil)
     local old,why=N.Relay.decode(wire(nil,600),"Guild Courier",H.clock()); eq(old,nil); eq(why,"too old")
     eq(N.Relay.decode(wire(),"Birch Scout",H.clock()),nil,"origin may not be its relayer")
 end)

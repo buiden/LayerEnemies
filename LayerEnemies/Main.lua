@@ -2,6 +2,19 @@ local _, N = ...
 local S,A,T,L,I=N.Safe,N.Adapters,N.Store,N.Layer,N.Invite
 local M={statusBulo="not installed",statusWE="not installed",pendingUnits={},staleGUIDs={},staleUnits={}}
 N.Main=M
+M.GROUP_CHANGE_WINDOW,M.CHURN_WINDOW,M.CHURN_CAP=10,600,3
+-- Bounded session-only evidence; PR 2 consumes it, no blind behavior here.
+M.keyChanges={}
+-- Change-detection history only; expiry must never expose this as current data.
+local lastConfirmedKey
+local function recent(at,time) return at and time>=at and time-at<=M.GROUP_CHANGE_WINDOW end
+local function groupTransition()
+    local grouped=S.call(IsInGroup)
+    if type(grouped)=="boolean" then
+        if M.groupState~=nil and grouped~=M.groupState then M.groupChangedAt=S.num(S.call(GetTime)) end
+        M.groupState=grouped
+    end
+end
 local function now() return S.num(S.call(GetTime)) or 0 end
 local function guarded(fn,...)
     local ok=pcall(fn,...)
@@ -35,6 +48,8 @@ function M.releaseUnit(unit)
     end
 end
 function M.boundary(zone,zoneChange)
+    M.boundaryAt=now(); M.layerKnown=nil; M.layerReadAt=nil
+    lastConfirmedKey=nil
     local prev={}
     if zoneChange==true and zone~=nil and M.store.zone~=nil and zone~=M.store.zone then prev=T.carry(M.store,now()) end
     N.OwnDeath.cancel()
@@ -68,36 +83,74 @@ function M.boundary(zone,zoneChange)
     M.layerSource="unknown"
     if M.find then N.Find.boundary(M.find) end
 end
+-- Both own namespaces can change, even when Bulo currently supplies the server key.
+function M.keyChanged(time)
+    groupTransition()
+    if recent(M.groupChangedAt,time) then M.boundary(M.store.zone); return true end
+    -- First learning after a boundary never calls this. Every later confirmed
+    -- change outside the group window counts, even just after that boundary.
+    for i=#M.keyChanges,1,-1 do
+        if time<M.keyChanges[i] or time-M.keyChanges[i]>=M.CHURN_WINDOW then table.remove(M.keyChanges,i) end
+    end
+    if #M.keyChanges>=M.CHURN_CAP then table.remove(M.keyChanges,1) end
+    M.keyChanges[#M.keyChanges+1]=time
+    return false
+end
 function M.applyLayer(id,source)
+    if not L.key(id) then return end
+    local time=now()
+    groupTransition()
+    M.layerReadAt=time
     if id==M.store.bulo then M.layerSource=source; return end
-    if M.store.bulo~=nil then
-        M.boundary(M.store.zone)
-    else
-        T.learn(M.store,now(),id,M.npcs.current)
+    local uid=M.npcs.current
+    if lastConfirmedKey~=nil and lastConfirmedKey~=id then
+        if M.keyChanged(time) then
+            if source=="local NPC server id" then
+                -- The confirming readings belong to the new side of this crossing.
+                M.npcs.current=uid; M.npcs.last=time
+            else uid=nil end
+        end
+    elseif not M.layerKnown then
+        T.learn(M.store,time,id,uid)
         N.Reports.clearPending(M.receiver)
     end
-    M.store.bulo=id; M.store.zoneUID=M.npcs.current; M.layerSource=source
+    M.store.bulo=id; M.store.zoneUID=uid; M.layerSource=source
+    lastConfirmedKey=id
+    M.layerKnown=true; M.layerReadAt=time
     if M.auto and M.auto.group then guarded(M.autoTick) end
+end
+-- An unreadable map is not proof of a crossing. Suspend zone-dependent output
+-- while keeping observations; compare the next readable map with the last one.
+function M.zoneCheck(zone)
+    if zone and zone~=M.zoneSeen then M.boundary(zone,true)
+    elseif zone~=M.store.zone then M.store.zone=zone end
 end
 function M.poll()
     if not M.started then return end
     local time=now()
     local zone=A.location()
-    if zone~=M.store.zone then M.boundary(zone,true) end
+    M.zoneCheck(zone)
+    L.expire(M.npcs,time)
+    if not M.npcs.current then M.store.zoneUID=nil end
+    if M.layerSource=="local NPC server id" and not L.server(M.npcs) then
+        M.store.bulo=nil; M.layerSource="unknown"
+    end
     local snap=A.bulo(M.store.epoch,time,M.store.localSeen)
     M.statusBulo=snap.status
     if snap.ns and M.attemptedNS~=snap.ns then
         M.attemptedNS=snap.ns
         M.bus=A.buloSubscribe(snap.ns,function(event)
             if M.attemptedNS~=snap.ns then return end
-            if event=="LFS_TRANSFER" then M.boundary(A.location()) end
+            -- Donor raw-id notifications alone are not client transfer events.
             M.queuePoll()
         end)
     end
     local id=snap.current
-    if id==M.blockedBulo and not M.npcs.current then id=nil end
+    if id==M.blockedBulo and (not M.npcs.current or M.npcs.raw~=id) then id=nil end
     if id then M.applyLayer(id,"Bulo server id")
-    elseif M.layerSource=="Bulo server id" and M.store.bulo then M.boundary(zone) end
+    elseif M.layerSource=="Bulo server id" and M.layerReadAt and time-M.layerReadAt>=L.EXPIRE then
+        M.store.bulo=nil; M.layerSource="unknown"
+    end
     for _,e in ipairs(snap.observations or {}) do
         if not M.staleGUIDs[e.key] then
             local old=M.store.localSeen[e.key]
@@ -160,18 +213,16 @@ function M.observe(unit)
     if member and not groupReadable(member) then return end
     local time=now()
     local zone,x,y=A.location()
-    if zone~=M.store.zone then M.boundary(zone,true) end
+    M.zoneCheck(zone)
     local guid=S.str(S.call(UnitGUID,unit),160)
     if not guid or M.staleGUIDs[guid] then return end
     local npc=L.npc(guid)
     if npc and S.call(UnitPlayerControlled,unit)==false then
+        local previous=M.npcs.raw
         local value,old,raw=L.observe(M.npcs,guid,time)
         if value then
-            if old and old~=value then
-                -- An NPC zoneUID transition is a conservative epoch boundary,
-                -- NOT proof that the Bulo server-layer changed.
-                M.boundary(zone)
-                return
+            if raw and M.store.bulo and M.layerSource~="local NPC server id" and previous and previous~=raw then
+                if M.keyChanged(time) then M.npcs.current=value; M.npcs.last=time end
             end
             M.store.zoneUID=value
             if raw and (not M.store.bulo or M.layerSource=="local NPC server id") then M.applyLayer(raw,"local NPC server id") end
@@ -1111,6 +1162,7 @@ function M.hostOwn()
     local party=A.party()
     local _,self=A.ownIdentity()
     return {self=self,zone=zone and zone==M.store.zone and zone or nil,key=L.key(M.store.bulo),id=id,
+        ambiguous=M.store.ambiguous(now()),
         inInstance=A.inInstance(),inCombat=A.inCombat(),raid=party and party.raid,leader=party and party.leader,
         members=party and party.members or {},asking=M.asking()}
 end
@@ -1394,7 +1446,7 @@ function M.findRows()
     local rows=N.Find.rows(M.find,now(),M.store.zone,function(name,zone)
         return zone==M.store.zone and I.sameSpotter(name,{zone=zone,wall=A.wall(),ownKey=L.key(M.store.bulo),
             ambiguous=M.store.ambiguous(now()),bulo=lists.bulo,book=lists.book})
-    end)
+    end,M.store.bulo)
     presenceSharedSweep(now())
     local _,me=A.ownIdentity()
     for _,r in pairs(M.presenceShared) do
@@ -2215,10 +2267,10 @@ function M.nextReportId()
     return id
 end
 local function shareLayer(rep, time)
-    -- A report has one layer field: never attach a learned key to any earlier,
-    -- unlayered sighting. Compute independently for the guild and public cohort.
+    -- A report has one layer field: every own sighting must have been made under
+    -- the current full key, including its zoneUID. Bulo refreshes cannot rebind it.
     local key=not M.store.ambiguous(time) and L.key(M.store.bulo) or nil
-    for _,e in ipairs(rep.enemies) do if e.layer==nil then key=nil; break end end
+    for _,e in ipairs(rep.enemies) do if e.ownKey~=M.store.bulo then key=nil; break end end
     return key
 end
 function M.shareTick()
@@ -2625,6 +2677,7 @@ function M.hopDone()
     end
 end
 function M.groupCheck()
+    groupTransition()
     local grouped=A.grouped()
     if grouped then N.FLHMember.stop("joined a group") end
     if grouped and M.hopAnyState and M.hopAnyState.round then M.hopAnyStop("joined a group") end
@@ -2833,6 +2886,7 @@ function M.start()
     M.hopAnyState=N.HopAny.new()
     M.hop=N.Hop.new(); M.heard=N.Hosts.new(); M.guildLines={}; M.lfswRate=N.HeadHunter.new(); M.relay=N.Relay.new()
     M.store.ambiguous=function(time) return L.ambiguous(M.npcs,time) end
+    groupTransition()
     M.invite=I.new(); M.wasGrouped=A.grouped(); M.share=N.Share.new(); M.weHeard={}; M.we=N.WeNet.new(now())
     M.emb=N.WeEmb.new(); M.weGuild={}; M.hhNet=N.HhNet.new(); M.hhNet.started=now()
     M.host=N.GuildHost.new()   -- guild-only hosting; the wish (want) is saved as LayerEnemiesDB.guildHost
@@ -2986,7 +3040,7 @@ local function dispatch(_,event,...)
         if N.WarBoardTrack and A.inInstance()~=false then N.WarBoardTrack.stop() end
         guarded(M.hopAnySafe); guarded(M.boundary,A.location()); M.queuePoll()
     elseif event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED" then
-        if A.location()~=M.store.zone then guarded(M.boundary,A.location(),true) end
+        guarded(M.zoneCheck,(A.location()))
         M.queuePoll()
     elseif event=="PLAYER_TARGET_CHANGED" then M.queueUnit("target")
     elseif event=="UNIT_TARGET" then M.queueGroupTarget(...)

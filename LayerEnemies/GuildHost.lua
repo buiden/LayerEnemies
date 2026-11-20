@@ -55,7 +55,7 @@ end
 
 -- decide(st, req, own, now) -> verdict, reply
 -- req = { name, zone, want | nots }; own = { self, zone, key, id, inInstance, inCombat, raid, leader, members,
--- asking, member }. Verdicts: "drop" (no reply), "same" (reply "same"), "busy" (reply heard ...|-),
+-- asking, member, ambiguous }. Verdicts: "drop" (no reply), "same" (reply "same"), "busy" (reply heard ...|-),
 -- "invite" (reply heard ...|h; the caller invites once). Every failure before the guild check is silent.
 -- early(st, req, own, now) -> name, key, our key | nil: every check before the guild check, nothing recorded.
 -- The caller asks for a new roster only for a request that passes these.
@@ -68,7 +68,7 @@ function G.early(st, req, own, now)
     if last and now - last < G.ASKER and now >= last then return nil end
     if not own.zone or req.zone ~= own.zone then return nil end
     local mine = N.Layer.key(own.key)
-    if not mine then return nil end
+    if not mine or own.ambiguous then return nil end
     if own.inInstance ~= false or own.inCombat ~= false then return nil end
     return name, key, mine
 end

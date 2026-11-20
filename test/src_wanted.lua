@@ -189,12 +189,13 @@ test("Wanted: forged origin hash malformed envelope and stale records store noth
         function(r) r.t=GetServerTime()-3600 end,
         function(r) r.t=GetServerTime()+1 end,
         function(r) r.data.x="50" end,
-        function(r) r.data.l="6" end,
         function(r) r.data.victimFaction="unknown" end,
         function(r) r.origin="Another Player"; r.id=r.origin..":"..r.seq end,
         function(r) r.test=true end,
     }
     for i,change in ipairs(cases) do local N=setup("Enemy One"); send(N,"R",{v="1.29.2",r={record("kill",change)}}); empty(N) end
+    local unknown=setup("Enemy One"); send(unknown,"R",{v="1.29.2",r={record("kill",function(r) r.data.l="6" end)}})
+    yes(known(unknown)); eq(known(unknown).shard,nil,"separable malformed layer")
     local N=setup("Enemy One"); local r=record("kill"); r.hash="00000000"; send(N,"R",{v="1.29.2",r={r}}); empty(N)
     N=setup("Enemy One"); r=record("kill"); r.data.nested={}; send(N,"R",{v="1.29.2",r={r}}); empty(N)
     N=setup(); send(N,"R",{v="1.29.2",r={record("kill")}}); empty(N)

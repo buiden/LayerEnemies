@@ -32,7 +32,7 @@ local function place(d,mapKey,layer)
         if map then x,y=x/100,y/100 else x,y=nil,nil end
     end
     local shard=layer and d.l or nil
-    if shard~=nil and (not S.str(shard,32) or not shard:match("^%d+%-%d+%-%d+$")) then return nil end
+    if not S.str(shard,32) or not shard:match("^%d+%-%d+%-%d+$") or shard:match("^0+%-0+%-0+$") then shard=nil end
     return {map=map,x=x,y=y,shard=shard}
 end
 local function array(t,cap)
@@ -159,7 +159,10 @@ function W.record(r)
         if not S.str(k,64) or S.secret(v) then return nil end
         local typ=type(v)
         if typ=="number" then if not S.num(v) then return nil end
-        elseif typ=="string" then if v~="" and not S.str(v,512) then return nil end
+        elseif typ=="string" then
+            -- Keep original layer bytes for the checksum; place drops only that
+            -- separable field. All other strings retain their text guards.
+            if #v>512 or (k~="l" and v~="" and not S.str(v,512)) then return nil end
         elseif typ~="boolean" then return nil end
         if numeric[k] and not S.num(v) then return nil end
         keys[#keys+1]=k; if #keys>64 then return nil end
@@ -286,7 +289,7 @@ local function bnet(prefix,text,id)
     local rows={}
     for i=1,n do
         local v=t.z[i]
-        if not plain(v) or not integer(v.m,1,999999) or not S.str(v.l,32) or not v.l:match("^%d+%-%d+%-%d+$")
+        if not plain(v) or not integer(v.m,1,999999) or not S.str(v.l,32) or not v.l:match("^%d+%-%d+%-%d+$") or v.l:match("^0+%-0+%-0+$")
             or not S.num(v.n) or v.n<1 then return end
         rows[i]={m=v.m,l=v.l,n=math.min(200,math.floor(v.n))}
     end

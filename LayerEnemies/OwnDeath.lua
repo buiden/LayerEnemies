@@ -38,10 +38,11 @@ local function utf8(s)
     end
     return true
 end
--- One shared whole-grammar validator, used by Wire as well as the receiver. Nothing is normalized on receive.
-function D.decode(text)
+-- Shared grammar. Reception keeps a malformed layer unknown; Wire and our builder
+-- request strict layer validation so the outgoing grammar stays unchanged.
+function D.decode(text,strictLayer)
     if S.secret(text) or type(text)~="string" or #text>255 then return nil end
-    local z,x,y,l,a,c,item=text:match("^K|1|(%d+)|([^|]*)|([^|]*)|(%d*)|(%d+)|([eh])|([^|]*)$")
+    local z,x,y,l,a,c,item=text:match("^K|1|(%d+)|([^|]*)|([^|]*)|([^|]*)|(%d+)|([eh])|([^|]*)$")
     if not z then return nil end
     z,a=number(z,1,999999),number(a,0,120)
     local function coord(v)
@@ -50,7 +51,10 @@ function D.decode(text)
     end
     if x=="" and y=="" then x,y=nil,nil
     else x,y=coord(x),coord(y); if not x or not y then return nil end end
-    if l~="" then if #l>15 or N.Layer.key(l)~=l then return nil end else l=nil end
+    if l~="" and (#l>15 or N.Layer.key(l)~=l) then
+        if strictLayer then return nil end
+        l=nil
+    elseif l=="" then l=nil end
     if not z or not a then return nil end
     local enemies={}
     if item~="" then
@@ -76,7 +80,7 @@ function D.line(rep)
         return table.concat({"K","1",tostring(rep.zone),coord(rep.x),coord(rep.y),rep.layer or "",
             tostring(rep.age),rep.conf,item},"|")
     end)
-    return ok and D.decode(line) and line or nil
+    return ok and D.decode(line,true) and line or nil
 end
 
 -- K1 is a guildmate's claim, not a sighting or an invitation source. No Store/Find/relay insertion.

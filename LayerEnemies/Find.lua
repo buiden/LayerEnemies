@@ -181,7 +181,7 @@ function F.own(st,e,zone,now,readNow)
     if e.faction~="opposite" or not e.name or not e.source or not e.source:match("^own ") then return end
     local cached=N.Known.put(st.known,{name=e.displayName or e.name,ownName=e.name,realm=e.realm,
         zone=zone,x=e.x,y=e.y,pos="observer",at=now,source="own",spotter="you",class=e.class,level=e.level,
-        layer=N.Layer.key(e.layer),ns=e.layer and "server" or "unknown",kind="seen",epoch=st.epoch,detail=e.source},readNow or now)
+        layer=N.Layer.key(e.layer),ownKey=e.layer,ns=e.layer and "server" or "unknown",kind="seen",epoch=st.epoch,detail=e.source},readNow or now)
     local base=parts(e.displayName or e.name)
     local label,key=F.fold(base),F.fold(e.name)
     for _,entry in ipairs(st.byName[label] or {}) do remember(st,entry,cached) end
@@ -237,14 +237,14 @@ function F.report(st,r,home)
 end
 -- Reads use Known base/own-name buckets, never the full cache per tracked name.
 -- Reusing memory on add does not hash incoming reports.
-local function project(st,loc,now,zone,sameSpotter)
+local function project(st,loc,now,zone,sameSpotter,ownKey)
     local row={}
     for k,v in pairs(loc) do row[k]=v end
     row.age=now-loc.at
     row.lastKnown=loc.cached and row.age>=F.TTL or nil
     row.travel=loc.zone~=zone
     local spot=not loc.own and loc.kind~="claim" and sameSpotter and sameSpotter(loc.spotter,loc.zone)
-    row.same=not row.travel and not row.lastKnown and ((loc.own and loc.layerKnown and loc.epoch==st.epoch) or spot==true)
+    row.same=not row.travel and not row.lastKnown and ((loc.own and ownKey~=nil and loc.ownKey==ownKey and loc.epoch==st.epoch) or spot==true)
     row.probably=not row.travel and not row.lastKnown and spot=="probably"
     row.status=loc.own and (row.same and "is on YOUR layer" or not loc.layerKnown and "seen by you, layer unknown" or "seen by you")
         or loc.kind=="claim" and loc.detail
@@ -257,12 +257,15 @@ local function project(st,loc,now,zone,sameSpotter)
         and loc.spotter~=nil and not loc.relayed and loc.kind~="claim"
     return row
 end
-function F.rows(st,now,zone,sameSpotter)
+function F.rows(st,now,zone,sameSpotter,ownKey)
     local out={}
+    -- Keep the full observation key: equal server prefixes are not enough after
+    -- a zoneUID rotation. Unknown current knowledge cannot promote old evidence.
+    ownKey=N.Layer.key(ownKey) and ownKey or nil
     N.Known.prune(st.known,now)
     N.Presence.sweep(st,now)
     local function ownEligible(e)
-        return e.source=="own" and now-e.at<F.TTL and e.zone==zone and e.layer~=nil and e.epoch==st.epoch
+        return e.source=="own" and now-e.at<F.TTL and e.zone==zone and ownKey~=nil and e.ownKey==ownKey and e.epoch==st.epoch
     end
     for _,entry in ipairs(st.entries) do
         local name=entry.name
@@ -301,15 +304,15 @@ function F.rows(st,now,zone,sameSpotter)
         local keep=loc and primary and primary.kind=="claim" and not loc.relayed and now-loc.at<F.TTL
         if primary and not keep and (not loc or primary.at>=loc.at or (primary.source=="own" and now-primary.at<F.TTL)) then loc=location(primary,name,primaryUnknown) end
         st.locations[name]=loc
-        local row=loc and project(st,loc,now,zone,sameSpotter) or {name=name,status="Not located — needs your sighting or a nearby War Effort user."}
-        if seen then row.seen=project(st,location(seen,name,seenUnknown),now,zone,sameSpotter) end
-        if loc and loc.source=="headhunter" and not loc.cached and (not seen or loc.at>seen.at) then row.seen=project(st,loc,now,zone,sameSpotter) end
-        if otherSeen then row.otherSeen=project(st,location(otherSeen,name,otherUnknown),now,zone,sameSpotter) end
-        if reported then row.reported=project(st,location(reported,name,reportedUnknown),now,zone,sameSpotter) end
+        local row=loc and project(st,loc,now,zone,sameSpotter,ownKey) or {name=name,status="Not located — needs your sighting or a nearby War Effort user."}
+        if seen then row.seen=project(st,location(seen,name,seenUnknown),now,zone,sameSpotter,ownKey) end
+        if loc and loc.source=="headhunter" and not loc.cached and (not seen or loc.at>seen.at) then row.seen=project(st,loc,now,zone,sameSpotter,ownKey) end
+        if otherSeen then row.otherSeen=project(st,location(otherSeen,name,otherUnknown),now,zone,sameSpotter,ownKey) end
+        if reported then row.reported=project(st,location(reported,name,reportedUnknown),now,zone,sameSpotter,ownKey) end
         -- Anonymous current evidence must remain visible beside older named lines,
         -- especially when its spotter is the row's Ask target.
         if loc and not loc.cached and loc.source~="headhunter" and (seen or reported) then
-            row.current=project(st,loc,now,zone,sameSpotter)
+            row.current=project(st,loc,now,zone,sameSpotter,ownKey)
         end
         local place=st.places[name]
         if place and (now-place.at>=N.OpenMap.TTL or now<place.at) then st.places[name]=nil; place=nil end

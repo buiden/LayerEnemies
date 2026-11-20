@@ -264,14 +264,15 @@ test("K: delayed callbacks from a superseded death cannot send its snapshot",fun
     H.advance(2); eq(#deaths(),1)
 end)
 
-test("K: layer field has the same 15-digit grammar as O including zero",function()
+test("K: valid 15-digit layers round trip and zero or malformed layers become unknown",function()
     local N=H.load()
     for _,layer in ipairs({"0","123456789012345"}) do
         local line="K|1|100|||"..layer.."|0|e|"
         yes(N.OwnDeath.decode(line)); yes(N.Relay.decodeOwn("O|1|1|100|||"..layer.."|0|1|","Birch Moss",H.clock()))
-        eq(N.OwnDeath.line(N.OwnDeath.decode(line)),line)
+        eq(N.OwnDeath.line(N.OwnDeath.decode(line)),layer=="0" and "K|1|100||||0|e|" or line)
     end
-    no(N.OwnDeath.decode("K|1|100|||1234567890123456|0|e|"))
+    eq(N.OwnDeath.decode("K|1|100|||1234567890123456|0|e|").layer,nil)
+    no(N.OwnDeath.decode("K|1|100|||1234567890123456|0|e|",true),"outgoing grammar remains strict")
 end)
 test("K: source flag type and hostile masks each independently required",function()
     for _,flags in ipairs({0x848,0x1048,0x418,0x428,0x408,0x458,-1,.5}) do

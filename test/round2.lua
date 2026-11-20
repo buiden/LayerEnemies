@@ -105,13 +105,14 @@ local function guildPrimary(N)
     eq(#H.sent(),0); no(N.Main.error)
 end
 
-test("Round2 own: layer change releases priority to guild O",function()
+test("Round2 own: real transfer releases priority to guild O",function()
     for _,trackAfter in ipairs({false,true}) do
         for _,guildFirst in ipairs({false,true}) do
             local N=H.load(); H.clock(1000); N.Main.applyLayer("7086-7","fixture")
             if not trackAfter then yes(N.Main.track(name)) end
             own(N,1000); H.clock(1001)
             if guildFirst then guild(N) end
+            H.deliver("SHARD_TRANSFER")
             N.Main.applyLayer("7087-8","fixture")
             if not guildFirst then guild(N) end
             if trackAfter then yes(N.Main.track(name)) end

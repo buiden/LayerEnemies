@@ -48,9 +48,9 @@ function T.observe(t,e,now)
     -- our own unit sighting keeps its own time and origin (ownAt, ownSource) when a Bulo copy refreshes
     -- the row (r040c 21e): Share reads only these, so a Bulo refresh neither makes a row ours nor starves the share
     if e.source and e.source:match("^own ") then
-        e.ownAt,e.ownSource=e.at,e.source
+        e.ownAt,e.ownSource,e.ownKey=e.at,e.source,t.bulo
     elseif old and old.ownAt and old.epoch==t.serial then
-        e.ownAt,e.ownSource=old.ownAt,old.ownSource
+        e.ownAt,e.ownSource,e.ownKey=old.ownAt,old.ownSource,old.ownKey
     end
     t.localSeen[e.key]=e
     if e.name and e.realm then

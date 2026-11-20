@@ -6,7 +6,7 @@ N.Known=K
 local sources={own=true,guild=true,relayed=true,spy=true,death=true,headhunter=true,overlord=true}
 local fields={"name","zone","x","y","pos","at","source","spotter","class","level","layer","ns","kind",
     -- Own-source identity and epoch preserve the existing Find matcher and layer-unknown rule.
-    "ownName","realm","epoch","detail",
+    "ownName","ownKey","realm","epoch","detail",
     "observedAt","got","evidenceKind","guid","faction","shard","map","expiresAt","evidenceTag"}
 local function expiry(e) return math.min(e.at+K.TTL,e.expiresAt or math.huge) end
 local function fresh(e,now) return e and now>=e.at and now<expiry(e) end
