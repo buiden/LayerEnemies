@@ -10,6 +10,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 LUA = os.environ.get('LAYERENEMIES_LUA') or shutil.which('lua5.1') or shutil.which('lua')
 MUTANTS = [
+    ('peer-unreadable-realm-as-absent', 'Adapters.lua', 'if realm~=nil and (S.secret(realm) or realm~="" and not explicit) then return nil end', '', 'Realm audit:'),
     ('realm-required-again', 'Adapters.lua', 'if not name then return nil end\n    local _,key,full=N.Invite.name(name)', 'if not name or not home then return nil end\n    local _,key,full=N.Invite.name(name)', 'Realm-less:'),
     ('secret-second-cleaned-to-alias', 'Adapters.lua', 'local ok,name,second=pcall(UnitName,"player")', 'local name,second=S.call(UnitName,"player"); local ok=true', 'Realm-less:'),
     ('foreign-realm-stripped', 'Invite.lua', 'if home and norm(realm)==norm(home) then', 'if true then', 'Realm-less:'),

@@ -537,6 +537,8 @@ function A.peerIdentity(name,realm)
         return v and N.Find.fold((v:gsub("[%s%-']",""))) or nil
     end
     local explicit=norm(realm)
+    -- Only a truly absent realm (nil or "") is realm-less; an unreadable one is not.
+    if realm~=nil and (S.secret(realm) or realm~="" and not explicit) then return nil end
     local qualified=norm(suffix)
     if suffix and (not qualified or explicit and explicit~=qualified) then return nil end
     local home=norm(S.call(GetRealmName))

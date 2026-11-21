@@ -37,10 +37,23 @@ for _,mode in ipairs({"empty","nil"}) do
         eq(A.peerIdentity("Birch Scout-8123"),"birch scout-8123")
         eq(A.peerIdentity("Birch Scout","8124"),"birch scout-8124")
         eq(A.peerIdentity("Birch Scout-8123","8124"),nil)
+        eq(A.peerIdentity("Birch Scout",""),"birch scout","an empty realm is realm-less")
+        eq(A.peerIdentity("Birch Scout",nil),"birch scout","a nil realm is realm-less")
+        for _,bad in ipairs({5,true,{},string.rep("x",61),"Bad\1Realm","Bad|Realm"}) do
+            eq(A.peerIdentity("Birch Scout",bad),nil,"unreadable realm "..tostring(type(bad)))
+        end
+        local secret=issecretvalue
+        local hidden={}
+        issecretvalue=function(v) return v==hidden end
+        eq(A.peerIdentity("Birch Scout",hidden),nil,"secret realm")
+        issecretvalue=secret
         H.roster({{"Birch Scout",true}}); H.deliver("GUILD_ROSTER_UPDATE")
         yes(A.guildNames(A.peerIdentity)["birch scout"])
         H.units().party1={name="Birch Scout",player=true,faction="Alliance"}; H.group(true)
-        yes(A.groupNames()["birch scout"]); no(N.Main.error)
+        yes(A.groupNames()["birch scout"])
+        H.units().party1.realm=""; yes(A.groupNames()["birch scout"],"empty unit realm is realm-less")
+        H.units().party1.realm="Bad\1Realm"; eq(A.groupNames(),nil,"unreadable unit realm stays unreadable")
+        H.units().party1.realm=nil; no(N.Main.error)
     end)
     test("Realm audit: "..mode.." channels and WarBoard use readable rules not a missing realm",function()
         local N=setup(mode)
