@@ -2177,6 +2177,108 @@ PASS QuietAll review M1: marker refresh, rollback and reload retain no invalid t
 PASS QuietAll review Note: on-mode typed protection Shared Person
 PASS QuietAll review Note: on-mode typed protection Invalid.Name
 PASS QuietAll review Note: on-mode typed protection élodie
+PASS Realm-less: empty Ash Example identity and blind Hop
+PASS Realm-less: empty Ash Example real LEGW1 ingress and echo
+PASS Realm-less: empty Ash Example real FLHNET2 ingress and echo
+PASS Realm-less: empty Ash Example real LFSw ingress and echo
+PASS Realm-less: empty Ash Example real WEFF1 ingress and echo
+PASS Realm-less: empty Ash Example real Spy ingress and echo
+PASS Realm-less: empty Ash Example real Call help ingress and echo
+PASS Realm-less: empty Solo identity and blind Hop
+PASS Realm-less: empty Solo real LEGW1 ingress and echo
+PASS Realm-less: empty Solo real FLHNET2 ingress and echo
+PASS Realm-less: empty Solo real LFSw ingress and echo
+PASS Realm-less: empty Solo real WEFF1 ingress and echo
+PASS Realm-less: empty Solo real Spy ingress and echo
+PASS Realm-less: empty Solo real Call help ingress and echo
+PASS Realm-less: nil Ash Example identity and blind Hop
+PASS Realm-less: nil Ash Example real LEGW1 ingress and echo
+PASS Realm-less: nil Ash Example real FLHNET2 ingress and echo
+PASS Realm-less: nil Ash Example real LFSw ingress and echo
+PASS Realm-less: nil Ash Example real WEFF1 ingress and echo
+PASS Realm-less: nil Ash Example real Spy ingress and echo
+PASS Realm-less: nil Ash Example real Call help ingress and echo
+PASS Realm-less: nil Solo identity and blind Hop
+PASS Realm-less: nil Solo real LEGW1 ingress and echo
+PASS Realm-less: nil Solo real FLHNET2 ingress and echo
+PASS Realm-less: nil Solo real LFSw ingress and echo
+PASS Realm-less: nil Solo real WEFF1 ingress and echo
+PASS Realm-less: nil Solo real Spy ingress and echo
+PASS Realm-less: nil Solo real Call help ingress and echo
+PASS Realm-less: secret Ash Example identity and blind Hop
+PASS Realm-less: secret Ash Example real LEGW1 ingress and echo
+PASS Realm-less: secret Ash Example real FLHNET2 ingress and echo
+PASS Realm-less: secret Ash Example real LFSw ingress and echo
+PASS Realm-less: secret Ash Example real WEFF1 ingress and echo
+PASS Realm-less: secret Ash Example real Spy ingress and echo
+PASS Realm-less: secret Ash Example real Call help ingress and echo
+PASS Realm-less: secret Solo identity and blind Hop
+PASS Realm-less: secret Solo real LEGW1 ingress and echo
+PASS Realm-less: secret Solo real FLHNET2 ingress and echo
+PASS Realm-less: secret Solo real LFSw ingress and echo
+PASS Realm-less: secret Solo real WEFF1 ingress and echo
+PASS Realm-less: secret Solo real Spy ingress and echo
+PASS Realm-less: secret Solo real Call help ingress and echo
+PASS Realm-less: throw Ash Example identity and blind Hop
+PASS Realm-less: throw Ash Example real LEGW1 ingress and echo
+PASS Realm-less: throw Ash Example real FLHNET2 ingress and echo
+PASS Realm-less: throw Ash Example real LFSw ingress and echo
+PASS Realm-less: throw Ash Example real WEFF1 ingress and echo
+PASS Realm-less: throw Ash Example real Spy ingress and echo
+PASS Realm-less: throw Ash Example real Call help ingress and echo
+PASS Realm-less: throw Solo identity and blind Hop
+PASS Realm-less: throw Solo real LEGW1 ingress and echo
+PASS Realm-less: throw Solo real FLHNET2 ingress and echo
+PASS Realm-less: throw Solo real LFSw ingress and echo
+PASS Realm-less: throw Solo real WEFF1 ingress and echo
+PASS Realm-less: throw Solo real Spy ingress and echo
+PASS Realm-less: throw Solo real Call help ingress and echo
+PASS Realm-less: malformed and secret names remain unavailable
+PASS Realm-less: split and already-combined surnames need no home realm
+PASS Realm audit: empty local sightings retain hash hints Find and Known
+PASS Realm audit: empty FLH owed reply uses existing unknown realm atom
+PASS Realm audit: empty peer membership stays realm-less without merging explicit worlds
+PASS Realm audit: empty channels and WarBoard use readable rules not a missing realm
+PASS Realm audit: empty Wanted BNet skips only unavailable local realm comparison
+PASS Realm audit: empty Directory and guild hosting keep self guards
+PASS Realm audit: nil local sightings retain hash hints Find and Known
+PASS Realm audit: nil FLH owed reply uses existing unknown realm atom
+PASS Realm audit: nil peer membership stays realm-less without merging explicit worlds
+PASS Realm audit: nil channels and WarBoard use readable rules not a missing realm
+PASS Realm audit: nil Wanted BNet skips only unavailable local realm comparison
+PASS Realm audit: nil Directory and guild hosting keep self guards
+PASS Realm routes: empty Ash Example HeadHunter
+PASS Realm routes: empty Ash Example OpenMap
+PASS Realm routes: empty Ash Example ChehulNet
+PASS Realm routes: empty Ash Example Overlord
+PASS Realm routes: empty Ash Example Wanted
+PASS Realm routes: empty Ash Example friend share
+PASS Realm routes: empty Ash Example guild death
+PASS Realm routes: empty Ash Example LayerSwap
+PASS Realm routes: empty Solo HeadHunter
+PASS Realm routes: empty Solo OpenMap
+PASS Realm routes: empty Solo ChehulNet
+PASS Realm routes: empty Solo Overlord
+PASS Realm routes: empty Solo Wanted
+PASS Realm routes: empty Solo friend share
+PASS Realm routes: empty Solo guild death
+PASS Realm routes: empty Solo LayerSwap
+PASS Realm routes: nil Ash Example HeadHunter
+PASS Realm routes: nil Ash Example OpenMap
+PASS Realm routes: nil Ash Example ChehulNet
+PASS Realm routes: nil Ash Example Overlord
+PASS Realm routes: nil Ash Example Wanted
+PASS Realm routes: nil Ash Example friend share
+PASS Realm routes: nil Ash Example guild death
+PASS Realm routes: nil Ash Example LayerSwap
+PASS Realm routes: nil Solo HeadHunter
+PASS Realm routes: nil Solo OpenMap
+PASS Realm routes: nil Solo ChehulNet
+PASS Realm routes: nil Solo Overlord
+PASS Realm routes: nil Solo Wanted
+PASS Realm routes: nil Solo friend share
+PASS Realm routes: nil Solo guild death
+PASS Realm routes: nil Solo LayerSwap
 PASS Sources: registry routes addon and Battle.net with unchanged arguments
 PASS Sources: every legacy prefix is refused atomically and counted
 PASS Sources: registration is once and callbacks cannot be replaced by mutating a descriptor
@@ -2216,6 +2318,17 @@ PASS Trust boundary: active hop fanout stops before another layered send
 PASS Trust boundary: unknown hides existing source shard details
 PASS Trust boundary: blind hides existing source shard details
 PASS Trust boundary: blind new Wanted and WarBoard claims discard shard only
+PASS Trust build: 71037 blind at startup and immutable through manual resets
+PASS Trust build: 71037 never derives NPC or Bulo own keys
+PASS Trust build: 71037 real Find Known and own O K WE stay layer-free
+PASS Trust build: 71038 blind at startup and immutable through manual resets
+PASS Trust build: 71038 never derives NPC or Bulo own keys
+PASS Trust build: 71038 real Find Known and own O K WE stay layer-free
+PASS Trust build: 72000 blind at startup and immutable through manual resets
+PASS Trust build: 72000 never derives NPC or Bulo own keys
+PASS Trust build: 72000 real Find Known and own O K WE stay layer-free
+PASS Trust build: 71036 retains exact NPC and Bulo behavior
+PASS Trust build: unreadable build keeps legacy behavior without inspecting secrets
 PASS Trust corroboration: Bulo plus NPC at 0
 PASS Trust corroboration: Bulo plus NPC at 10
 PASS Trust corroboration: Bulo plus NPC at 10.1
@@ -2691,4 +2804,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2605 tests passed, 0 failed, 672604 assertions
+RESULT: 2718 tests passed, 0 failed, 679943 assertions
