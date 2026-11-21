@@ -1983,9 +1983,9 @@ In unknown or blind, numeric own-layer headers, relation labels, Friendly
 layer details, ChehulNet relation/count text, FLH claimed keys, and raw
 Wanted/WarBoard/Overlord keys are hidden, not greyed. `/le layer` prints only
 `layer IDs are not readable on this client`. In blind the hop bar says
-`layer hidden`; the existing click handler still refuses an untrusted key.
-Blind guest hopping and its new result texts are a later change, not built here.
-An already-running layered hop fanout stops when trust becomes unreadable.
+`layer hidden`; in unknown it keeps `Detecting...`. The click runs the blind
+hop described below. An already-running layered hop fanout stops immediately
+with `layer IDs became unreadable; click Hop (blind)`.
 
 Names, zones, positions, counts, Find alerts and the found pop-up, death Calls,
 friend/community sharing, and own-death reporting still work. Incoming layer
@@ -2007,6 +2007,69 @@ The wire cannot distinguish LE users from other users of that same ask shape.
 Bulo authority also keeps separate confirmed NPC history: a group crossing
 cannot hide behind Bulo's still-readable old key after NPC evidence expires.
 Mocks assert the real Find text and emitted O line at that boundary.
+
+Not tested in game (alpha, owner's decision).
+
+## Blind hopping and Find
+
+When layer trust is unknown or blind, the window has one **Hop (blind)**
+button instead of per-layer Hop actions. Its tooltip says: "Layer IDs are
+unreadable. This asks a host for an invite; the addon cannot say which layer
+you land on." The hop bar uses the same action. One click is one ask; there
+is no WHO search, fanout, automatic retry, or public-channel send.
+
+The candidate union includes the existing LayerSwap and Bulo tables and
+replies, FLH hosts, LE guild hosts, and direct War Effort reporters. Relayed
+origins are never invite targets. Network labels are retained. Current-zone
+candidates come first, then fresher claims, under the existing row and source
+scan caps. Each click skips hosts already tried, the last host, and its
+network when another network has an untried candidate. Exhaustion prints
+`all N known hosts tried this session`; the next click restarts oldest-try
+first, still skipping the last host and respecting all cooldowns. The tried
+ledger holds at most 200 names, session-only; oldest entries are evicted at
+that cap. A single remaining host is never immediately repeated.
+
+LayerSwap-compatible hosts get the existing unconstrained whisper
+`inv layer <LS zone x,y>`. If no candidate is known, the same line is a `/g`
+draft for the player to send with Enter. FLH-only hosts and War Effort
+reporters get the existing manual whisper draft, "Hi! Could you invite me
+to your layer please?" Drafting sends nothing. Auto-accept remains tied to
+the correlated inviter, and drafts arm only after the matching outgoing
+chat event. Guild-only consent and the existing per-name, guild and overall
+ask limits remain in effect. `/le hop stop` cancels a pending blind hop.
+
+The pure `HopProbe.lua` compares snapshots before the ask and at 5, 15 and
+30 seconds after the group forms. It reads only visible nameplate, target
+and mouseover GUIDs; no group targets, new targeting, or hidden-ID recovery.
+A transfer event, at least 3 creatures with matching NPC IDs and no retained
+earlier spawn IDs, or at least 5 players with at most one fifth remaining
+while you moved less than 40 yards can count as changed. Movement requires
+readable world coordinates on the same map. Unparseable creature GUIDs
+leave only the event/player tests; too few observations give no judgement.
+All thresholds are named constants and guesses, not game measurements.
+
+Only these result texts appear (NAME is the inviter, never a GUID):
+
+- `Hopped (layer unknown): the creatures around you changed.`
+- `Hopped (layer unknown): the players around you changed.`
+- `Joined NAME. No change seen; you may be on the same layer.`
+- `Joined NAME. Too little around you to tell.`
+- `NAME did not invite.`
+
+The transfer-event proxy uses the first success text because the plan has
+no separate event text. None proves a layer number or a distinct layer.
+The bar stays blank below its layer label until a result is available; it
+does not substitute countdowns or layer-valued messages. With auto-leave on,
+a changed result leaves after the existing 3-second delay; otherwise the
+30-second check ends the attempt. The inviter must still lead the party,
+not a raid or instance. Auto mode off never leaves for you. A hop begun
+while known but losing trust has no pre-ask proxy and cannot invent one.
+
+For each tracked Find name, a changed blind-hop result increments a
+session-only counter. The row adds `not seen on N layers tried`; a later
+sighting or report resets it. Unchanged, inconclusive and unanswered hops
+do not increment it. This counts our own proxy results, not distinct layers,
+and does not change Find's alerts or tracked-name saves.
 
 Not tested in game (alpha, owner's decision).
 

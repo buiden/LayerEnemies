@@ -25,8 +25,8 @@ function P.snapshot(rows,position)
         end
     end
     if position then
-        local x,y,map=S.num(position.x),S.num(position.y),S.num(position.map)
-        if x and y and map then out.position={x=x,y=y,map=map} end
+        local x,y,z,map=S.num(position.x),S.num(position.y),S.num(position.z),S.num(position.map)
+        if x and y and z and map then out.position={x=x,y=y,z=z,map=map} end
     end
     return out
 end
@@ -45,7 +45,7 @@ function P.judge(before,after,transfer)
         local retained=0
         for guid in pairs(before.players) do if after.players[guid] then retained=retained+1 end end
         local a,b=before.position,after.position
-        if a and b and a.map==b.map and (a.x-b.x)^2+(a.y-b.y)^2<P.YARDS^2
+        if a and b and a.map==b.map and (a.x-b.x)^2+(a.y-b.y)^2+(a.z-b.z)^2<P.YARDS^2
             and retained*P.REMAINING_DENOMINATOR<=before.playerCount then return "players" end
     end
     if (before.unparsed or before.creatureCount<P.CREATURES) and before.playerCount<P.PLAYERS then return "sparse" end

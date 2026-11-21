@@ -11,7 +11,7 @@ local function rows(creatures,players,spawn)
     return out
 end
 local function snap(P,c,p,spawn,x,y,map)
-    return P.snapshot(rows(c,p,spawn),{x=x or 0,y=y or 0,map=map or 100})
+    return P.snapshot(rows(c,p,spawn),{x=x or 0,y=y or 0,z=0,map=map or 100})
 end
 
 test("HopProbe: creature proxy at three, not two, matching NPCs and no retained spawn",function()
@@ -39,7 +39,7 @@ end)
 test("HopProbe: unparseable creatures use only transfer or players, sparse is no judgement",function()
     local P=probe()
     local raw=rows(3,5); raw[#raw+1]={guid="Creature-hidden",player=false}
-    local before=P.snapshot(raw,{x=0,y=0,map=100})
+    local before=P.snapshot(raw,{x=0,y=0,z=0,map=100})
     eq(P.judge(before,snap(P,3,5,"DEF")),"unchanged")
     eq(P.judge(before,snap(P,3,1,"DEF")),"players")
     eq(P.judge(P.snapshot({raw[#raw]}),snap(P,3,0,"DEF")),"sparse")
@@ -56,6 +56,23 @@ test("HopProbe: snapshots dedupe and never infer players from unreadable flags",
     local s=P.snapshot(raw)
     eq(s.creatureCount,1); eq(s.playerCount,1)
     eq(P.judge(s,s),"sparse")
+end)
+
+test("HopProbe: unreadable after snapshot disables creatures even beside matching replacements",function()
+    local P=probe(); local after=rows(3,0,"DEF")
+    after[#after+1]={guid="Creature-hidden",player=false}
+    eq(P.judge(snap(P,3,0),P.snapshot(after)),"unchanged")
+end)
+
+test("HopProbe: equality uses NPC plus last spawn field, never a server field",function()
+    local P=probe(); local after=rows(3,0)
+    for _,r in ipairs(after) do r.guid=r.guid:gsub("987654","123456"):gsub("876543","234567") end
+    eq(P.judge(snap(P,3,0),P.snapshot(after)),"unchanged")
+end)
+
+test("HopProbe: bounded snapshot includes all forty two tokens, not a forty third",function()
+    local P=probe(); local s=P.snapshot(rows(21,22))
+    eq(s.creatureCount,21); eq(s.playerCount,21)
 end)
 
 test("HopProbe: exactly five result texts, no GUID digits in any result",function()

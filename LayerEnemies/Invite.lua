@@ -245,7 +245,7 @@ function I.blindCollect(env)
                 if S.tab(e) then
                     found[#found+1]={name=name,zone=e.zone,at=e.at,
                         label=S.str(e.network,30)=="LayerEnemies" and "LayerEnemies" or label,
-                        skip=S.secret(e.gone) or e.gone~=nil or S.clean(e.host)~=true}
+                        skip=S.secret(e.gone) or e.gone~=nil}
                 end
             end
         end)
@@ -262,7 +262,11 @@ function I.blindCollect(env)
         add(r.name,r.zone or env.zone,r.at,"War Effort",false,env.now,I.REPORT_FRESH,r.relayed)
     end
     local out={}; for _,c in pairs(by) do out[#out+1]=c end
-    table.sort(out,function(a,b) return a.age<b.age or (a.age==b.age and a.short<b.short) end)
+    table.sort(out,function(a,b)
+        if (a.zone==env.zone)~=(b.zone==env.zone) then return a.zone==env.zone end
+        return a.age<b.age or (a.age==b.age and a.short<b.short)
+    end)
+    for i=#out,I.MAX_ROWS+1,-1 do out[i]=nil end
     return out
 end
 -- The shared cooldowns of an ask or a hop: 60 s per name, 10 s overall. Reserves on success.

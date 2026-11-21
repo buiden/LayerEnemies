@@ -62,6 +62,19 @@ test("Blind rotation: host union keeps networks, unknown keys, other zones and n
     eq(by["Scout Elm"].source,"War Effort"); no(by["Scout Elm"].addon)
 end)
 
+test("Blind rotation: existing table nonhosts remain candidates and row cap favors current zone",function()
+    local N=H.load(); local book={}
+    for i=1,60 do book["Host "..H.abc(i)]={zone=i<=20 and 100 or 200,at=999,host=i%2==0} end
+    local rows=N.Invite.blindCollect({self="me",now=100,wall=1000,zone=100,book=book})
+    eq(#rows,N.Invite.MAX_ROWS)
+    local localCount=0; local odd=false
+    for _,c in ipairs(rows) do
+        if c.zone==100 then localCount=localCount+1 end
+        if c.name=="Host a" then odd=true end
+    end
+    eq(localCount,20); yes(odd,"existing nonhost row is not silently filtered")
+end)
+
 test("Blind rotation: unconstrained builder has no layer, exact existing fallback shape",function()
     local N=H.load(); yes(N.Hop.lineBlind,"unconstrained builder exists")
     eq(N.Hop.lineBlind(100,.2,.3),"inv layer <LS 100 20.0,30.0>")
