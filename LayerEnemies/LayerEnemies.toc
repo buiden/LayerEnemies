@@ -23,6 +23,7 @@ Sources.lua
 Invite.lua
 Hop.lua
 HopAny.lua
+HopProbe.lua
 FLH.lua
 Hosts.lua
 GuildHost.lua

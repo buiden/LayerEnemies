@@ -27,6 +27,18 @@ function Hp.lineNot(zone,server,x,y)
     return line and (line:gsub(" want "," not ",1)) or nil
 end
 
+-- Existing fallback grammar; positions are required, never guessed.
+function Hp.lineBlind(zone,x,y)
+    zone,x,y=S.num(zone),S.num(x),S.num(y)
+    if not zone or zone<1 or zone>=1000000000 or zone%1~=0 or not x or not y
+        or x<0 or x>1 or y<0 or y>1 then return nil end
+    return string.format("inv layer <LS %d %.1f,%.1f>",zone,x*100,y*100)
+end
+function Hp.guildBlindLine(zone,x,y)
+    local line=Hp.lineBlind(zone,x,y)
+    return line and ("/g "..line) or nil
+end
+
 -- reply(text, sender, me) -> {kind="heard", layer?, zone?, hosting} | {kind="same"} | nil
 -- heard is used only when its first field is our own full name.
 function Hp.reply(text, sender, me)
