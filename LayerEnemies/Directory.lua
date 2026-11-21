@@ -36,6 +36,14 @@ function D.rulesetTag(realm)
     local tag = table.concat(words):sub(1, D.TAG_MAX)
     return tag ~= "" and tag or nil
 end
+-- A missing local realm is not a missing ruleset when the client exposes its
+-- rules directly. Preserve named/numeric realm behavior; never default to PvP.
+function D.ruleset()
+    local realm=S.str(S.call(GetRealmName),60)
+    if realm then return D.rulesetTag(realm) end
+    local pool=N.Main and N.Main.overlordPool()
+    return ({global="PvP",pve="PvE",rpg="RP",rpv="RPPvP",hc="hardcore"})[pool]
+end
 -- channel(key) -> the channel name for that network, or nil while it cannot be known
 function D.channel(key)
     if key=="overlord" then
@@ -50,7 +58,7 @@ function D.channel(key)
         return (faction=="Alliance" or faction=="Horde") and ("WantedNet"..faction) or nil
     end
     if key ~= "we" then return nil end
-    local tag = D.rulesetTag((S.call(GetRealmName)))
+    local tag = D.ruleset()
     local faction = S.call(UnitFactionGroup, "player")
     local letter = faction == "Alliance" and "A" or faction == "Horde" and "H" or nil
     return tag and letter and ("WarEffort" .. tag .. letter) or nil
@@ -86,8 +94,8 @@ local function index(name)
         if shown and (shown:match("^%d+%. (.+)$") or shown):lower() == name:lower() then return i end
     end
 end
--- ourselves by the one name rule (Invite.name keys); nil while our name or our home realm cannot be read (then our
--- own "-<realm>" entries cannot be told from peers)
+-- Ourselves by the one name rule; nil only while the name is unreadable.
+-- With no home realm, explicit realm suffixes remain distinct.
 local function me()
     local _, key = N.Adapters.ownIdentity()
     return key

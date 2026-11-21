@@ -14,7 +14,7 @@ function F.context()
     local M=N.Main
     if not M or not M.store or not A.ownIdentity() then return nil end
     local map=A.location()
-    local realm=S.str(S.call(GetRealmName),60)
+    local realm=S.str(S.call(GetRealmName),60) or "?" -- existing protocol unknown atom
     local info=S.tab(_G.C_AddOns) and _G.C_AddOns
     local version=info and S.str(S.call(info.GetAddOnMetadata,"LayerEnemies","Version"),40)
     local _,uid=N.Trust.own(M.store,S.call(GetTime))

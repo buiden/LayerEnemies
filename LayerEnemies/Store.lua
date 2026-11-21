@@ -53,12 +53,12 @@ function T.observe(t,e,now)
         e.ownAt,e.ownSource,e.ownKey=old.ownAt,old.ownSource,old.ownKey
     end
     t.localSeen[e.key]=e
-    if e.name and e.realm then
+    if e.name then
         local hash=N.Hash.player(e.name,e.realm)
         if hash then
             local set=t.identities[hash]
             if not set and S.count(t.identities)<256 then set={}; t.identities[hash]=set end
-            local label=e.name.."-"..e.realm
+            local label=e.name..(e.realm and e.realm~="" and ("-"..e.realm) or "")
             if set and room(set,label,8) then set[label]=e.at end
         end
     end

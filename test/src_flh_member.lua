@@ -77,6 +77,8 @@ for _,mode in ipairs({"share","guild","switch","combat","instance","identity","r
         elseif mode=="identity" then UnitName=function() return nil end
         elseif mode=="realm" then GetRealmName=function() return nil end
         elseif mode=="ignored" then C_FriendList.IsIgnored=function() return true end end
+        -- With the realm unreadable, the mock's second name return "Test Realm"
+        -- is not a valid surname. A readable realm-less name is covered separately.
         receive(wp); receive(cq); eq(#lines(),0); no(N.Main.error)
     end)
 end

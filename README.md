@@ -1868,6 +1868,14 @@ is kept for one hour in session memory; neither is saved.
 
 ## Local observations
 
+Forever can return an empty or unreadable home realm. A valid realm-less
+single name or two-word name (for example, `Solo` or `Ash Example`) is enough
+for own identity, networking and blind hops. No realm is guessed or stripped
+when home is unavailable; explicit foreign suffixes stay distinct. Secret or
+malformed character names are still refused. FLH uses its existing `?` realm
+atom; realm-based channel/ruleset selection uses readable game rules when the
+realm is absent, never a guessed ruleset.
+
 Target, mouseover and nameplate events supply directly readable player data.
 Opposite faction requires readable UnitFactionGroup tags for both units.
 Hostility is not sufficient: duels and free-for-all areas can make a friendly
@@ -1997,6 +2005,15 @@ report's layer is unknown.
 
 ## Layer trust and hidden IDs
 
+On Forever build 71037 and newer, trust starts and stays blind with the reason
+`this game build hides layer IDs`. Creature GUIDs are not read for layer keys,
+and Bulo's current ID is not admitted as our own key: it may also be
+creature-derived. Radar sightings still work. Find, Known and our own O/K/WE
+messages carry no creature-derived layer. Manual blind off/auto cannot
+re-enable these hidden IDs. The safely read GetBuildInfo build number (second
+return, not interface number) controls this gate; older or unreadable builds
+keep the existing detection behavior below.
+
 Layer trust is session-only, never saved. `Trust.own(store, now)` is the
 single current-own-key reader. `known` means a valid confirmed reading less
 than 300 seconds old; `unknown` means no current reading. A matching NPC read
@@ -2022,7 +2039,7 @@ in-game measurements:
   join. Claims use existing guild O/K/H messages, not a new request. Peer
   claims can be wrong.
 
-`/le blind on` hides IDs immediately. `/le blind off` clears blindness and
+On builds below the gate, `/le blind on` hides IDs immediately. `/le blind off` clears blindness and
 starts detection again; `/le blind auto` also returns to automatic detection.
 These commands change no SavedVariables. A plausible constant or private ID
 cannot be distinguished from a real layer by a solo client that never meets
