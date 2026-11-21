@@ -61,6 +61,30 @@ def check_call_text(addon=None):
 
 
 
+def check_trust_reader(filename, source):
+    """Section-4 reader grep over tokens: ignore strings, comments and writes."""
+    if filename in ('Trust.lua', 'Layer.lua'):
+        return
+    tokens = lua_tokens(source)
+    # These are source functions or host-list tables, not the own-key store.
+    other_bulo = {'env', 'lists', 'out', 'status', 'A', 'L', 'Layer', 'Trust'}
+    for i, word in lua_references(tokens):
+        if word not in ('bulo', 'zoneUID', 'server'):
+            continue
+        bracket = tokens[i:i + 1] == [('symbol', '[')]
+        if not bracket and tokens[i - 1:i] != [('symbol', '.')]:
+            continue
+        owner = tokens[i - (1 if bracket else 2)][1]
+        end = i + 1
+        if bracket:
+            _, end = constant_key(tokens, i + 1)
+            end += 1
+        write = tokens[end:end + 1] == [('symbol', '=')] and tokens[end + 1:end + 2] != [('symbol', '=')]
+        forbidden = word == 'zoneUID' or (word == 'bulo' and owner not in other_bulo)
+        forbidden |= word == 'server' and owner in ('L', 'Layer')
+        assert not forbidden or write, 'direct own-key read outside Trust.lua: ' + filename
+
+
 def lua_references(tokens):
     """Identifier/member references, with constant index expressions folded.
 
@@ -646,6 +670,7 @@ def main(argv=()):
     assert re.search(r'text:sub\(1, 2\) == "G\|" then return N\.Coming\.decode\(text\) and "G"', wire), 'Wire must check the whole G grammar'
 
     for file in (ROOT / 'LayerEnemies').glob('*.lua'):
+        check_trust_reader(file.name, file.read_text())
         if file.name not in ('UI.lua', 'CallUI.lua'):
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
     assert '## Version: 1.2.6' in toc

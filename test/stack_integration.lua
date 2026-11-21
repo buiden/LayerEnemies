@@ -146,7 +146,7 @@ for _,presenceFirst in ipairs({true,false}) do
         local reports=M.reportedRows(); eq(#reports,1); eq(reports[1].guild,"Enemy Guild"); eq(reports[1].record,nil)
         N.UI.toggle(); N.UI.select("find"); yes(N.UI.pool[1].presence:IsShown()); no(N.UI.pool[1].ask:IsShown())
         N.UI.select("reported"); eq(N.UI.pool[1].title:GetText(),"guild Enemy Guild"); no(N.UI.pool[1].ask:IsShown())
-        N.UI.select("friendly"); yes(N.UI.pool[1].sub:GetText():find("FLH key 008",1,true)); yes(N.UI.pool[1].ask.disabled)
+        N.UI.select("friendly"); no(N.UI.pool[1].sub:GetText():find("FLH key 008",1,true)); yes(N.UI.pool[1].ask.disabled)
         eq(snapshot(LayerEnemiesDB),saved,"all received data stays session-only")
         yes(H.registered().FLHNET2); yes(H.registered().OverlordF)
         eq(attempted,0); eq(#H.sent(),0); no(M.error)

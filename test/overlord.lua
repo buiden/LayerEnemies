@@ -308,7 +308,8 @@ test("GW bounds faction timestamp and unknown places",function()
     yes(Ov.gw(gw({kills=9999,members=999,layer=99999999,ts=wall-300}),wall))
     hear(bf(packet({payload=gw({faction="A"})}))); eq(#N.Main.reportedRows(),0,"own faction")
     for _,ref in ipairs({"@front7","capture-zone","#9999",""}) do
-        N=setup(); hear(bf(packet({payload=gw({zone=ref,layer=""})})))
+        N=setup(); N.Trust.read(N.Main.store,H.clock(),"7086-7",7)
+        hear(bf(packet({payload=gw({zone=ref,layer=""})})))
         eq(#N.Main.reportedRows(),1); local r=N.Main.reportedRows()[1]
         eq(r.zone,nil); eq(r.layer,nil); yes(N.Main.overlordText(r):find("place unknown, layer unknown",1,true))
     end
@@ -471,7 +472,8 @@ test("map lookup failures cannot consume packet identity and secret names refuse
 end)
 
 test("slash Reported shows guild claim but no hop record",function()
-    local N=setup(); maps(); hear(bf(packet()))
+    local N=setup(); N.Trust.read(N.Main.store,H.clock(),"7086-7",7)
+    maps(); hear(bf(packet()))
     SlashCmdList.LAYERENEMIES("reports")
     yes(table.concat(H.log(),"\n"):find("guild Enemy Guild: 77 kills by 6 in Stranglethorn Vale, layer 12345 (Overlord claim)",1,true))
     eq(#N.Main.hopList.records,0)
@@ -520,7 +522,8 @@ test("32 rampages use normal measured Reported rows with several per page and no
 end)
 
 test("single guild rampage reaches Reported without a hop",function()
-    local N=setup(); maps(); hear(bf(packet()))
+    local N=setup(); N.Trust.read(N.Main.store,H.clock(),"7086-7",7)
+    maps(); hear(bf(packet()))
     yes(N.Main.overlord,"receive-only state exists")
     local rows=N.Main.reportedRows(); eq(#rows,1)
     local r=rows[1]; eq(r.guild,"Enemy Guild"); eq(r.kills,77); eq(r.members,6)

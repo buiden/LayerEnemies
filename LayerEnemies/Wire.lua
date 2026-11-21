@@ -677,11 +677,12 @@ pump = function()
     while queue[1] do
         local q = queue[1]
         local ok, why
-        -- a queued line whose caller says it no longer holds (opts.still) is dropped unsent
-        local stillOk, still = true, true
-        if type(q.opts.still) == "function" then stillOk, still = pcall(q.opts.still) end
+        -- The caller may also refresh the payload. It goes through the same route/text
+        -- validation and budgets as the original; no queue or send allowance changes.
+        local stillOk, still, text = true, true, nil
+        if type(q.opts.still) == "function" then stillOk, still, text = pcall(q.opts.still) end
         if not stillOk or not still then ok, why = false, "stale" else
-            ok, why = sendNow(q.prefix, q.text, q.kind, q.target, q.opts, true)
+            ok, why = sendNow(q.prefix, text or q.text, q.kind, q.target, q.opts, true)
         end
         if not ok and why == "throttled" and not paused[q.prefix] then break end   -- no room yet: wait
         table.remove(queue, 1)                                                     -- sent, or refused for good

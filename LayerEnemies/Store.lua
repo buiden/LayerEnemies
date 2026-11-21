@@ -5,7 +5,7 @@ function T.new(now)
     return { epoch=now, serial=1, zone=nil, bulo=nil, zoneUID=nil, localSeen={}, reports={}, identities={}, prev={} }
 end
 function T.reset(t,now,zone,bulo,zoneUID)
-    t.epoch=now; t.serial=t.serial+1; t.zone=zone; t.bulo=bulo; t.zoneUID=zoneUID
+    t.epoch=now; t.serial=t.serial+1; t.zone=zone; N.Trust.read(t,now,bulo,zoneUID)
     S.clear(t.localSeen); S.clear(t.reports); S.clear(t.identities); S.clear(t.prev)
 end
 -- Learning our first layer must not erase sightings made before it was known, or guess their layer.
@@ -44,11 +44,11 @@ function T.observe(t,e,now)
         local own=e.source and e.source:match("^own ")
         if not own or (old.source and old.source:match("^own ")) then return false end
     end
-    e.zone=t.zone; e.epoch=t.serial; e.layer=t.bulo; e.namespace="bulo-server"; e.confidence="seen by you"
+    e.zone=t.zone; e.epoch=t.serial; e.layer=N.Trust.own(t,now); e.namespace="bulo-server"; e.confidence="seen by you"
     -- our own unit sighting keeps its own time and origin (ownAt, ownSource) when a Bulo copy refreshes
     -- the row (r040c 21e): Share reads only these, so a Bulo refresh neither makes a row ours nor starves the share
     if e.source and e.source:match("^own ") then
-        e.ownAt,e.ownSource,e.ownKey=e.at,e.source,t.bulo
+        e.ownAt,e.ownSource,e.ownKey=e.at,e.source,N.Trust.own(t,now)
     elseif old and old.ownAt and old.epoch==t.serial then
         e.ownAt,e.ownSource,e.ownKey=old.ownAt,old.ownSource,old.ownKey
     end
@@ -73,7 +73,7 @@ end
 -- Our side of a layer comparison: zone, own server key, and whether that key is ambiguous right now.
 function T.own(t,now)
     local amb=type(t.ambiguous)=="function" and t.ambiguous(now) or false
-    return {zone=t.zone,server=N.Layer.key(t.bulo),ambiguous=amb}
+    return {zone=t.zone,server=N.Layer.key(N.Trust.own(t,now)),ambiguous=amb,store=t,now=now}
 end
 -- record: from N.Record.new. Any record of our zone is kept, whatever its layer relation: the wire has no absolute
 -- time, so every report is "reported, not confirmed", and other-layer reports are the ones a hop needs.
@@ -87,6 +87,7 @@ local function network(r) return r.src=="guild" and (r.label or "guild") or r.sr
 local function named(r) local n=0; for _,e in ipairs(r.enemies or {}) do if e.name then n=n+1 end end; return n end
 -- Each source has its own 64 rows, so one cannot crowd out the other.
 function T.report(t,record,now)
+    if S.tab(record) then record=N.Trust.record(t,record,now) end
     if not S.tab(record) or type(record.id)~="string" or not S.tab(record.layer) or not S.num(record.heard) then return false,"unreadable" end
     if not t.zone or record.zone~=t.zone then return false,"another zone" end
     -- heard at the boundary instant: it may have been sent before it, like a unit carried across
@@ -196,7 +197,7 @@ function T.rows(t,now,kind)
     else
         for _,e in pairs(t.localSeen) do
             local factionOK=e.faction=="opposite"
-            if e.epoch==t.serial and e.zone==t.zone and (e.layer==nil or e.layer==t.bulo) and ((kind=="unclassified" and not factionOK) or (kind~="unclassified" and factionOK)) then out[#out+1]=e end
+            if e.epoch==t.serial and e.zone==t.zone and (not N.Trust.own(t,now) or e.layer==nil or e.layer==N.Trust.own(t,now)) and ((kind=="unclassified" and not factionOK) or (kind~="unclassified" and factionOK)) then out[#out+1]=e end
         end
     end
     table.sort(out,newest); return out

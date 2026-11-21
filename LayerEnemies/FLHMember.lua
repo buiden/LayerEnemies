@@ -17,7 +17,7 @@ function F.context()
     local realm=S.str(S.call(GetRealmName),60)
     local info=S.tab(_G.C_AddOns) and _G.C_AddOns
     local version=info and S.str(S.call(info.GetAddOnMetadata,"LayerEnemies","Version"),40)
-    local uid=S.num(M.store.zoneUID)
+    local _,uid=N.Trust.own(M.store,S.call(GetTime))
     if not map or map~=M.store.zone or not uid or uid<=0 or uid%1~=0 or M.store.ambiguous(S.call(GetTime)) or not realm or not version then return nil end
     return {map=map,key=string.format("%.0f",uid),realm=realm,version="LayerEnemies "..version}
 end
@@ -111,7 +111,7 @@ end
 function F.preview(row)
     local c=F.context(); local M=N.Main; local time=S.num(S.call(GetTime))
     local ok=c and time and F.allowed("WHISPER","LQ") and not A.grouped() and not M.asking()
-        and not M.auto.group and N.Layer.key(M.store.bulo) and eligible(row,c)
+        and not M.auto.group and N.Layer.key(N.Trust.own(M.store,S.call(GetTime))) and eligible(row,c)
     local last=M.invite.asked[row.short]
     if last and time and time-last<I.NAME_COOLDOWN then ok=false end
     if M.invite.lastAsk and time and time-M.invite.lastAsk<I.GLOBAL_COOLDOWN then ok=false end
@@ -147,7 +147,7 @@ local function queries(r)
 end
 function F.hop(row,shown)
     local M=N.Main; local c=F.context(); local now=S.num(S.call(GetTime))
-    if not c or not now or not F.allowed("WHISPER","LQ") or A.grouped() or M.asking() or M.auto.group or not N.Layer.key(M.store.bulo) then return false end
+    if not c or not now or not F.allowed("WHISPER","LQ") or A.grouped() or M.asking() or M.auto.group or not N.Layer.key(N.Trust.own(M.store,S.call(GetTime))) then return false end
     local targets={}
     for _,live in ipairs(M.candidates()) do
         if (not row or live.short==row.short) and eligible(live,c) then
@@ -166,7 +166,7 @@ function F.hop(row,shown)
     local ok=I.reserve(M.invite,targets[1],now)
     if not ok then return false end
     sequence=sequence%2147483646+1
-    local r={id=sequence,at=now,map=c.map,own=c.key,from=N.Layer.key(M.store.bulo),targets=targets,asked={},next=1}
+    local r={id=sequence,at=now,map=c.map,own=c.key,from=N.Layer.key(N.Trust.own(M.store,S.call(GetTime))),targets=targets,asked={},next=1}
     guest=r
     queries(r)
     if guest~=r then return false end

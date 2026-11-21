@@ -19,6 +19,11 @@ function G.parse(text)
     local out = { zone = tonumber(zone) }
     local rest, x, y = body:match("^(.-) (%d+%.?%d*),(%d+%.?%d*)$")
     if rest then body, out.x, out.y = rest, tonumber(x), tonumber(y) end
+    if not rest and body:match("^%d+%.%d,%d+%.%d$") then
+        local x,y=body:match("^(%d+%.%d),(%d+%.%d)$")
+        if out.zone>0 and tonumber(x)<=100 and tonumber(y)<=100 then out.blind=true; return out end
+        return nil
+    end
     local want = body:match("^want (%d+%-%d+)$")
     if want then out.want = want; return out end
     local nots = {}
@@ -40,6 +45,7 @@ local function short(name) local _, key = N.Invite.name(name); return key end
 -- The asker as our reply names them: without a realm suffix, as their own UnitName reads.
 local function replyName(name) return (name:match("^([^%-]+)%-") or name) end
 local function heard(name, own, flag)
+    if own.blind then return nil end
     local id = S.str(own.id, 32)
     if not (id and id:match("^%d+%-%d+$")) then id = own.key .. "-0" end
     return "heard " .. replyName(name) .. "|" .. id .. "|" .. string.format("%d", own.zone) .. "|" .. flag
@@ -68,7 +74,9 @@ function G.early(st, req, own, now)
     if last and now - last < G.ASKER and now >= last then return nil end
     if not own.zone or req.zone ~= own.zone then return nil end
     local mine = N.Layer.key(own.key)
-    if not mine or own.ambiguous then return nil end
+    if own.blind then
+        if not req.blind then return nil end
+    elseif req.blind or not mine or own.ambiguous then return nil end
     if own.inInstance ~= false or own.inCombat ~= false then return nil end
     return name, key, mine
 end
@@ -79,7 +87,9 @@ function G.decide(st, req, own, now)
     remember(st, key, now)
     if own.member ~= true then return "drop" end
     own.key = mine
-    if req.want then
+    if own.blind then
+        -- The invite itself is the answer; no new or layer-valued reply shape.
+    elseif req.want then
         if N.Layer.key(req.want) ~= mine then return "busy", heard(name, own, "-") end
     else
         if not req.nots or N.Layer.key(req.nots[1]) == mine then return "same", "same" end
@@ -92,7 +102,10 @@ function G.decide(st, req, own, now)
     for _, m in ipairs(members) do
         local mk = short(m)
         if mk then st.pending[mk] = nil end
-        if mk == key then return "same", "same" end
+        if mk == key then
+            if own.blind then return "drop" end
+            return "same", "same"
+        end
     end
     if #members > 0 then
         if own.leader ~= true then return "busy", heard(name, own, "-") end

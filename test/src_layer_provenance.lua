@@ -116,7 +116,7 @@ for _,case in ipairs({"unchanged","rotation","mixed","expiry"}) do
 end
 
 for _,case in ipairs({"rotation","expiry"}) do
-    test("Layer provenance: pending K retains death-time layer after "..case,function()
+    test("Layer provenance: pending K preserves names and gates layer after "..case,function()
         local N=setup(); local at=N.Main.npcs.last
         if case=="expiry" then H.clock(at+299.9); H.drain() end
         sight(N)
@@ -131,7 +131,7 @@ for _,case in ipairs({"rotation","expiry"}) do
         for i=first+1,#H.sent() do
             local s=H.sent()[i]
             if s.prefix=="LEGW1" and s.text:sub(1,2)=="K|" then
-                n=n+1; local decoded=N.OwnDeath.decode(s.text); yes(decoded); eq(decoded.layer,"7086")
+                n=n+1; local decoded=N.OwnDeath.decode(s.text); yes(decoded); eq(decoded.layer,case=="rotation" and "7086" or nil)
             end
         end
         eq(n,1); no(N.Main.error)

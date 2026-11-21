@@ -19,6 +19,8 @@ local function claim(N,source)
     end
 end
 local function direct(N,ownAt,ownPrimary)
+    -- Ongoing identity reads do not refresh the stored sightings.
+    N.Trust.read(N.Main.store,H.clock(),"7086-7",7)
     local r=N.Main.findRows()[1]
     eq(r.source,ownPrimary and "own" or "guild"); eq(r.spotter,ownPrimary and "you" or "DirectScout")
     eq(r.canAsk,not ownPrimary); eq(not not r.same,ownPrimary)
@@ -130,7 +132,7 @@ end)
 
 test("Round2 own: current-layer 599-second sighting stays primary beside another zone",function()
     local N=H.load(); H.clock(1000); yes(N.Main.track(name)); N.Main.applyLayer("7086-7","fixture"); own(N,1000)
-    H.clock(1599); guild(N,200)
+    H.clock(1599); N.Trust.read(N.Main.store,H.clock(),"7086-7",7); guild(N,200)
     local r=N.Main.findRows()[1]; yes(r.own); yes(r.same); no(r.canAsk); eq(r.age,599)
     local text=N.Main.findText(r)
     yes(text:find("is on YOUR layer",1,true)); yes(text:find("Seen by DirectScout in Durotar, 0 s ago",1,true))
@@ -151,7 +153,7 @@ end)
 test("Round2 UI: own guild claim current hash and OpenMap all fit",function()
     local N=H.load(); H.clock(1000); yes(N.Main.track(name)); own(N,1000)
     H.clock(1500); guild(N); H.clock(1601); claim(N,"relayed")
-    H.clock(2201)
+    H.clock(2201); N.Trust.read(N.Main.store,H.clock(),"7086-7",7)
     N.Find.report(N.Main.find,{sender="HashScout",zone=100,at=H.clock(),enemies={{hash=N.Hash.player("Cedar","Vale")}}},"Test Realm")
     H.deliver("CHAT_MSG_ADDON","OpenMapLoc","L1\t100\t0.4200\t0.5700\tMAGE\t60","GUILD",name)
     local r=N.Main.findRows()[1]; yes(r.canAsk); eq(r.spotter,"HashScout"); yes(r.place)

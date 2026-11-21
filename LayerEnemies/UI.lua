@@ -145,9 +145,9 @@ function U.render()
         b.bg:SetColorTexture(unpack(key==U.tab and colors.bg or {.055,.071,.086}))
         b.line:SetShown(key==U.tab)
     end
-    local known=N.Layer.key(M.store.bulo)
-    U.layer:SetText(known or "?")
-    U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or "layer unknown: mouse over or target two different kinds of NPC within 15 s"))
+    local known=N.Layer.key(N.Trust.own(M.store,time))
+    U.layer:SetText(known or ""); U.layer:SetShown(known~=nil)
+    U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or N.Trust.state(M.store,time)=="blind" and "layer IDs unreadable" or "layer unknown: mouse over or target two different kinds of NPC within 15 s"))
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
     U.hopAny:SetShown(U.tab=="friendly")
     local hop=N.Main.hopAnyPreview()
@@ -217,7 +217,7 @@ function U.render()
             text="reported by "..e.reporter..(e.via and " via "..e.via or "")..(e.hand~="first" and " · relayed" or "")
             if e.probablyNote then text=text.."\n"..e.probablyNote end
         elseif U.tab=="friendly" then
-            text=e.chehulHint and e.chehulText or table.concat(e.sources," + ")..(e.host and " · host" or "").." · "..(e.flhKey and M.hostPlace(e) or (e.layer and "layer "..e.layer or "layer not known"))
+            text=e.chehulHint and e.chehulText or table.concat(e.sources," + ")..(e.host and " · host" or "")..(known and (" · "..M.hostPlace(e)) or "")
             if e.chehulText and not e.chehulHint then text=text.."\n"..e.chehulText end
         else
             text=M.findDetails(e) or (e.at and (e.status.." · "..M.zoneName(e.zone).."\n"..className(e.class).." "..tostring(e.level or "?")..(e.same and " · already on your layer" or e.travel and (" · travel to "..M.zoneName(e.zone).." first") or "")) or ((e.place or e.presence) and "" or "Not located"))
@@ -486,7 +486,8 @@ do
             local name=S.str((S.call(_G.GetInstanceInfo)),80)
             return name or "Instance"
         end
-        local key=M.store and N.Layer.key(M.store.bulo)
+        if N.Trust.state(M.store,S.call(GetTime))=="blind" then return "layer hidden" end
+        local key=M.store and N.Layer.key(N.Trust.own(M.store,S.call(GetTime)))
         return key and ("Layer "..key) or "Detecting..."
     end
     local SHORT={

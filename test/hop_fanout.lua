@@ -191,18 +191,30 @@ for _,event in ipairs({"stop","GROUP_ROSTER_UPDATE","PLAYER_ENTERING_WORLD","ZON
 end
 for _,event in ipairs({"ZONE_CHANGED","ZONE_CHANGED_NEW_AREA","GROUP_ROSTER_UPDATE","PLAYER_ENTERING_WORLD","SHARD_TRANSFER"}) do
     for _,phase in ipairs({"who","send"}) do
-        test("Hop fanout: unchanged "..event.." preserves "..phase.." and autoaccept",function()
+        local boundary=event=="PLAYER_ENTERING_WORLD" or event=="SHARD_TRANSFER"
+        local name=boundary and ("boundary "..event.." ends "..phase.." without a readable key")
+            or ("unchanged "..event.." preserves "..phase.." and autoaccept")
+        test("Hop fanout: "..name,function()
             local N=T.load(); T.click(N)
             if phase=="send" then T.deliver("WHO_LIST_UPDATE"); ticks(2) end
             local round,pending=N.Main.hopAnyState.round,N.Main.invite.pending
-            -- A child/subzone map still resolves to the same zone id. A loading
-            -- event with the same live zone is not proof of a world change.
+            local before=#T.sent()
+            -- Child/subzone events alone preserve the click. Real world/transfer
+            -- events clear identity even in that same zone: no stale layered ask.
             T.map(101); T.deliver(event)
-            eq(N.Main.hopAnyState.round,round,"unchanged event must not cancel the click")
-            eq(N.Main.invite.pending,pending,"unchanged event must not clear autoaccept")
-            if phase=="who" then T.deliver("WHO_LIST_UPDATE") end
-            local before=#T.sent(); ticks(5); yes(#T.sent()>before,"fanout continues")
-            T.deliver("PARTY_INVITE_REQUEST","Seeker a"); eq(#T.accepts(),1)
+            if boundary then
+                eq(N.Trust.own(N.Main.store,T.time()),nil)
+                if phase=="who" then T.deliver("WHO_LIST_UPDATE") end
+                ticks(5); eq(#T.sent(),before,"no layered sends after identity clears")
+                no(N.Main.hopAnyState.round); no(N.Main.invite.pending)
+                T.deliver("PARTY_INVITE_REQUEST","Seeker a"); eq(#T.accepts(),0)
+            else
+                eq(N.Main.hopAnyState.round,round,"unchanged event must not cancel the click")
+                eq(N.Main.invite.pending,pending,"unchanged event must not clear autoaccept")
+                if phase=="who" then T.deliver("WHO_LIST_UPDATE") end
+                before=#T.sent(); ticks(5); yes(#T.sent()>before,"fanout continues")
+                T.deliver("PARTY_INVITE_REQUEST","Seeker a"); eq(#T.accepts(),1)
+            end
             no(N.Main.error)
         end)
     end
@@ -222,8 +234,8 @@ test("Hop fanout: known offline skip is 600 seconds without changing other offli
     _G.ERR_CHAT_PLAYER_NOT_FOUND_S="No player named '%s' is currently playing."
     start(N); local first=T.time()
     T.deliver("CHAT_MSG_SYSTEM","No player named 'Seeker a' is currently playing.")
-    N.Main.hopAnyStop(); T.time(first+599); T.click(N); T.deliver("WHO_LIST_UPDATE"); eq(#T.sent(),1)
-    T.time(first+609); T.click(N); T.deliver("WHO_LIST_UPDATE"); eq(#T.sent(),2)
+    N.Main.hopAnyStop(); T.time(first+599); N.Trust.read(N.Main.store,T.time(),"7086-7",7); T.click(N); T.deliver("WHO_LIST_UPDATE"); eq(#T.sent(),1)
+    T.time(first+609); N.Trust.read(N.Main.store,T.time(),"7086-7",7); T.click(N); T.deliver("WHO_LIST_UPDATE"); eq(#T.sent(),2)
     yes(N.Wire.offlineUntil("Seeker a",T.time()),"ordinary sends still skip for one hour")
 end)
 test("Hop fanout: unknown same-zone host reasked once at plus three without exclusion",function()
