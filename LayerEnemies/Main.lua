@@ -2294,7 +2294,8 @@ M.BLIND_PARTNERS=1
 function M.autoHop() return M.auto~=nil and M.auto.on==true end
 function M.clearAutoGroup()
     local g=M.auto.group
-    if M.blindPending or g and g.blind then M.hopDone() end
+    -- Only an auto-owned round ends with its group; a player's ask survives auto toggles.
+    if g and g.blind and not g.manual then M.hopDone() end
     M.auto.group=nil
 end
 function M.setAutoHop(on)

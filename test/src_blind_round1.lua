@@ -50,9 +50,8 @@ end
 -- Adapted from the reviewer's observed-invite/no-group repro, with approved exact texts.
 for _,mode in ipairs({"accepted","manual","refused","off-after-accept"}) do
     test("Blind R1 invite: observed without group "..mode.." never becomes missed",function()
-        local N,M=setup()
+        local N,M=setup(); ask(N,M)
         if mode=="manual" then M.setAutoHop(false) end
-        ask(N,M)
         if mode=="refused" then N.Wire.accept=function() return false,"error" end end
         H.deliver("PARTY_INVITE_REQUEST",HOST)
         local accepted=mode=="accepted" or mode=="off-after-accept"

@@ -283,3 +283,11 @@ TOC/version, wire, budgets and SavedVariables accesses unchanged. Send, accept
 and leave call sites unchanged. ASCII additions, no private paths, no donor
 implementation and no public-send changes. Self-review only; native client
 not run (alpha, owner's decision). No open implementation questions.
+
+Ownership clarification (lead): only AUTO-owned rounds (an auto-accepted group)
+are cancelled when the auto group is cleared, including by /le hop auto off. A
+player's ask (draft, sent, or invited with auto off) survives auto toggles and
+finishes normally. clearAutoGroup now cancels only `g.blind and not g.manual`.
+The reviewer's ZZ2 repro, unchanged, passes 63/0; the round-1 manual control is
+restored to its original order; the draft/asked cancel cases became survival
+tests (both RED on 9948ad1). BlindHop mutants 23/23 (group-clear-player-ask added).

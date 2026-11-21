@@ -16,10 +16,26 @@ local function join(M)
     H.group(true); H.units().party1={name=HOST,leader=true,player=true}
     H.deliver("GROUP_ROSTER_UPDATE"); yes(M.auto.group.joinedAt)
 end
-for _,stage in ipairs({"draft","asked","accepted","joined","shown"}) do
-    test("Blind final cancel: auto off at "..stage.." consumes pending and stale timers",function()
+-- A player's ask (draft or sent, no invite accepted yet) survives an auto toggle and
+-- finishes normally; only auto-owned rounds are cancelled with their group.
+for _,stage in ipairs({"draft","asked"}) do
+    test("Blind final survive: auto toggle at "..stage.." keeps the player's round",function()
         local N,M=setup(); sample("ABC")
         if stage=="draft" then LayerSwapDB=nil; M.openChat=function() return true end end
+        yes(M.hopAny()); local pending=M.blindPending; yes(pending)
+        SlashCmdList.LAYERENEMIES("hop auto off"); SlashCmdList.LAYERENEMIES("hop auto on")
+        SlashCmdList.LAYERENEMIES("hop auto off")
+        eq(M.blindPending,pending,"auto toggles keep the player's round")
+        if stage=="asked" then H.deliver("PARTY_INVITE_REQUEST",HOST) end
+        H.advance(121); M.autoTick()
+        eq(N.HopBar.statusText(),stage=="asked" and "Host Cedar invited; not accepted." or "",
+            "the round finishes normally")
+        eq(M.blindPending,nil); eq(H.accepts(),0); eq(H.leaves(),0); no(M.error)
+    end)
+end
+for _,stage in ipairs({"accepted","joined","shown"}) do
+    test("Blind final cancel: auto off at "..stage.." consumes pending and stale timers",function()
+        local N,M=setup(); sample("ABC")
         yes(M.hopAny()); yes(M.blindPending)
         if stage=="accepted" then H.deliver("PARTY_INVITE_REQUEST",HOST)
         elseif stage=="joined" or stage=="shown" then join(M) end

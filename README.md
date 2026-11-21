@@ -2077,7 +2077,9 @@ a changed result leaves after the existing 3-second delay; otherwise the
 30-second check ends the observation. The inviter must still lead the party,
 not a raid or instance. Blind auto-leave waits for readable combat end; a
 third member cancels it for that attempt, even if the extra member later
-leaves. Auto mode off never leaves for you. A hop begun while known but
+leaves. Auto mode off never leaves for you. Turning auto off ends an
+auto-accepted hop; an ask you made that no one has auto-accepted yet keeps
+running and finishes with its normal result. A hop begun while known but
 losing trust has no pre-ask proxy and cannot invent one.
 
 For each tracked Find name, a changed blind-hop result increments a
