@@ -17,7 +17,9 @@
       "FAIL Trust boundary: blind new Wanted and WarBoard claims discard shard only: test/src_trust_boundary.lua:98: not equal: expected nil, got 998877",
       "FAIL Trust corroboration: Bulo plus NPC at 0: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
       "FAIL Trust corroboration: Bulo plus NPC at 10: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
-      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:20: not equal: expected blind, got known",
+      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
+      "FAIL Trust corroboration: Bulo plus NPC at 30: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
+      "FAIL Trust corroboration: intervening NPC key separates confirmations: test/src_trust_corroboration.lua:43: not equal: expected blind, got known",
       "FAIL Trust fresh group: O claim age 1: test/src_trust_fresh.lua:15: receipt cannot renew a pre-join claim: expected blind, got known",
       "FAIL Trust fresh group: K claim age 1: test/src_trust_fresh.lua:15: receipt cannot renew a pre-join claim: expected blind, got known",
       "FAIL Trust fresh hop: fresh: test/src_trust_fresh.lua:36: not equal: expected blind, got known",
@@ -28,9 +30,13 @@
       "FAIL Trust live: churn hides own UI and sends layer-free O C H K: test/src_trust_live.lua:58: not equal: expected blind, got known",
       "FAIL Trust live: constant hides own UI and sends layer-free O C H K: test/src_trust_live.lua:35: not equal: expected blind, got known",
       "FAIL Trust live: private hides own UI and sends layer-free O C H K: test/src_trust_live.lua:20: not equal: expected blind, got known",
+      "FAIL Trust member join: fresh: test/src_trust_members.lua:23: only a claim after both members joined contradicts: expected blind, got known",
+      "FAIL Trust member join: already present: test/src_trust_members.lua:23: only a claim after both members joined contradicts: expected blind, got known",
       "FAIL Trust notice: automatic blind prints locally once with reason: test/src_trust_notice.lua:16: not equal: expected blind, got known",
-      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:37: pending transition eventually reported: expected 1, got 0",
-      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:45: not equal: expected blind, got known",
+      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:44: automatic blind ON was actually printed: expected 1, got 0",
+      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:44: automatic blind ON was actually printed: expected 1, got 0",
+      "FAIL Trust notice: same-state manual off cancels pending recovery: test/src_trust_notice.lua:44: automatic blind ON was actually printed: expected 1, got 0",
+      "FAIL Trust notice: automatic pair is consumed once: test/src_trust_notice.lua:94: not equal: expected LayerEnemies: layer IDs look unreliable (parse failures); layers hidden for this session. /le blind off to override., got nil",
       "FAIL Trust held popup: blind: test/harness.lua:8: 16: expected false, got true",
       "FAIL Trust held popup: automatic: test/harness.lua:8: 16: expected false, got true",
       "FAIL Trust held popup: group event: test/src_trust_popup.lua:24: not equal: expected blind, got known",
@@ -175,8 +181,9 @@
     "assertions": [
       "FAIL Trust: parse thresholds 19/20 cold and 9/10 after success: test/src_trust.lua:43: not equal: expected blind, got known",
       "FAIL Trust notice: automatic blind prints locally once with reason: test/src_trust_notice.lua:16: not equal: expected blind, got known",
-      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:37: pending transition eventually reported: expected 1, got 0",
-      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:45: not equal: expected blind, got known",
+      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:44: automatic blind ON was actually printed: expected 1, got 0",
+      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:44: automatic blind ON was actually printed: expected 1, got 0",
+      "FAIL Trust notice: same-state manual off cancels pending recovery: test/src_trust_notice.lua:44: automatic blind ON was actually printed: expected 1, got 0",
       "FAIL Trust held popup: automatic: test/harness.lua:8: 16: expected false, got true"
     ]
   },
@@ -184,7 +191,8 @@
     "rule": "success-reset",
     "caught": true,
     "assertions": [
-      "FAIL Trust: parse thresholds 19/20 cold and 9/10 after success: test/src_trust.lua:42: not equal: expected known, got blind"
+      "FAIL Trust: parse thresholds 19/20 cold and 9/10 after success: test/src_trust.lua:42: not equal: expected known, got blind",
+      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:53: pending pair eventually reported: expected 1, got 0"
     ]
   },
   {
@@ -193,7 +201,10 @@
     "assertions": [
       "FAIL Trust: churn 2/3 and 600-second window with ten-second excuses: test/src_trust.lua:47: not equal: expected unknown, got blind",
       "FAIL Trust corroboration: Bulo plus NPC at 0: test/src_trust_corroboration.lua:20: not equal: expected known, got blind",
-      "FAIL Trust corroboration: Bulo plus NPC at 10: test/src_trust_corroboration.lua:20: not equal: expected known, got blind"
+      "FAIL Trust corroboration: Bulo plus NPC at 10: test/src_trust_corroboration.lua:20: not equal: expected known, got blind",
+      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:20: not equal: expected known, got blind",
+      "FAIL Trust corroboration: Bulo plus NPC at 30: test/src_trust_corroboration.lua:20: not equal: expected known, got blind",
+      "FAIL Trust corroboration: intervening NPC key separates confirmations: test/src_trust_corroboration.lua:40: intervening key is a distinct transition: expected 3, got 2"
     ]
   },
   {
@@ -203,7 +214,9 @@
       "FAIL Trust: churn 2/3 and 600-second window with ten-second excuses: test/src_trust.lua:48: not equal: expected blind, got unknown",
       "FAIL Trust corroboration: Bulo plus NPC at 0: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
       "FAIL Trust corroboration: Bulo plus NPC at 10: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
-      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:20: not equal: expected blind, got known",
+      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
+      "FAIL Trust corroboration: Bulo plus NPC at 30: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
+      "FAIL Trust corroboration: intervening NPC key separates confirmations: test/src_trust_corroboration.lua:43: not equal: expected blind, got known",
       "FAIL Trust live: churn hides own UI and sends layer-free O C H K: test/src_trust_live.lua:58: not equal: expected blind, got known"
     ]
   },
@@ -297,6 +310,7 @@
       "FAIL Trust fresh group: K claim age 1: test/src_trust_fresh.lua:15: receipt cannot renew a pre-join claim: expected blind, got known",
       "FAIL Trust fresh group: fresh: test/src_trust_fresh.lua:63: only post-join peer and NPC evidence contradict: expected blind, got known",
       "FAIL Trust live: private hides own UI and sends layer-free O C H K: test/src_trust_live.lua:20: not equal: expected blind, got known",
+      "FAIL Trust member join: fresh: test/src_trust_members.lua:23: only a claim after both members joined contradicts: expected blind, got known",
       "FAIL Trust held popup: group event: test/src_trust_popup.lua:24: not equal: expected blind, got known"
     ]
   },
@@ -326,8 +340,9 @@
     "caught": true,
     "assertions": [
       "FAIL Trust guards: outgoing WE projection preserves all nonlayer bytes: test/src_trust_guards.lua:45: remote claim never masked: expected C|42|100|0.200|0.300|9000|2|100||1:2, got C|42|100|0.200|0.300|0|2|100||1:2",
-      "FAIL Trust round2: negotiated embassy queued remote C unknown: test/src_trust_queue.lua:44: own masked; remote claim preserved: expected 0, got 1",
-      "FAIL Trust round2: negotiated embassy queued remote C blind: test/src_trust_queue.lua:44: own masked; remote claim preserved: expected 0, got 1"
+      "FAIL Trust round2: negotiated embassy queued remote C known: test/src_trust_queue.lua:55: own masked; remote claim preserved: expected 0, got 1",
+      "FAIL Trust round2: negotiated embassy queued remote C unknown: test/src_trust_queue.lua:55: own masked; remote claim preserved: expected 0, got 1",
+      "FAIL Trust round2: negotiated embassy queued remote C blind: test/src_trust_queue.lua:55: own masked; remote claim preserved: expected 0, got 1"
     ]
   },
   {
@@ -335,7 +350,7 @@
     "caught": true,
     "assertions": [
       "FAIL Trust guards: outgoing WE projection preserves all nonlayer bytes: test/src_trust_guards.lua:48: not equal: expected C|42|100|0.200|0.300|9000|2|100||1:2, got C|42|100|0.200|0.300|0|2|100||1:2",
-      "FAIL Trust round2: queued own embassy H known: test/src_trust_queue.lua:84: not equal: expected 1, got 0"
+      "FAIL Trust round2: queued own embassy H known: test/src_trust_queue.lua:96: not equal: expected 1, got 0"
     ]
   },
   {
@@ -343,8 +358,9 @@
     "caught": true,
     "assertions": [
       "FAIL Trust guards: outgoing WE projection preserves all nonlayer bytes: test/src_trust_guards.lua:47: not equal: expected C|42|100|0.200|0.300|0|2|100||1:2, got C|42|100|0.200|0.300|9000|2|100||1:2",
-      "FAIL Trust round2: negotiated embassy queued own C unknown: test/src_trust_queue.lua:44: own masked; remote claim preserved: expected 0, got 1",
-      "FAIL Trust round2: negotiated embassy queued own C blind: test/src_trust_queue.lua:44: own masked; remote claim preserved: expected 0, got 1"
+      "FAIL Trust round2: negotiated embassy queued own C unknown: test/src_trust_queue.lua:55: own masked; remote claim preserved: expected 0, got 1",
+      "FAIL Trust round2: negotiated embassy queued own C blind: test/src_trust_queue.lua:55: own masked; remote claim preserved: expected 0, got 1",
+      "FAIL Trust round2: negotiated embassy queued own C moved: test/src_trust_queue.lua:55: own masked; remote claim preserved: expected 0, got 1"
     ]
   },
   {
@@ -352,8 +368,9 @@
     "caught": true,
     "assertions": [
       "FAIL Trust guards: outgoing WE projection preserves all nonlayer bytes: test/src_trust_guards.lua:47: not equal: expected H|1.0.0|100|0|1|19|0|0|100||M|60|1|0|1, got H|1.0.0|100|9000|1|19|0|0|100||M|60|1|0|1",
-      "FAIL Trust round2: queued own embassy H unknown: test/src_trust_queue.lua:85: no queued own layer after loss of trust: expected 0, got 1",
-      "FAIL Trust round2: queued own embassy H blind: test/src_trust_queue.lua:85: no queued own layer after loss of trust: expected 0, got 1"
+      "FAIL Trust round2: queued own embassy H unknown: test/src_trust_queue.lua:97: no queued own layer after loss of trust: expected 0, got 1",
+      "FAIL Trust round2: queued own embassy H blind: test/src_trust_queue.lua:97: no queued own layer after loss of trust: expected 0, got 1",
+      "FAIL Trust round2: queued own embassy H moved: test/src_trust_queue.lua:97: no queued own layer after loss of trust: expected 0, got 1"
     ]
   },
   {
@@ -436,43 +453,50 @@
     "rule": "coalesce-key",
     "caught": true,
     "assertions": [
-      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:20: not equal: expected blind, got known",
-      "FAIL Trust guards: coalescing never merges separate changes or clock rollback: test/harness.lua:7: different key is not corroboration: expected true, got false"
+      "FAIL Trust corroboration: Bulo plus NPC at 0: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
+      "FAIL Trust corroboration: Bulo plus NPC at 10: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
+      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
+      "FAIL Trust corroboration: Bulo plus NPC at 30: test/src_trust_corroboration.lua:22: three distinct transitions still trigger: expected blind, got known",
+      "FAIL Trust corroboration: intervening NPC key separates confirmations: test/src_trust_corroboration.lua:40: intervening key is a distinct transition: expected 2, got 1",
+      "FAIL Trust guards: coalescing never merges separate changes or clock rollback: test/src_trust_guards.lua:36: different key transition identity: expected true, got false",
+      "FAIL Trust live: churn hides own UI and sends layer-free O C H K: test/src_trust_live.lua:58: not equal: expected blind, got known"
     ]
   },
   {
     "rule": "coalesce-source",
     "caught": true,
     "assertions": [
-      "FAIL Trust guards: coalescing never merges separate changes or clock rollback: test/harness.lua:7: same source is not corroboration: expected true, got false"
+      "FAIL Trust guards: coalescing never merges separate changes or clock rollback: test/src_trust_guards.lua:36: same source transition identity: expected false, got true"
     ]
   },
   {
     "rule": "coalesce-window-edge",
     "caught": true,
     "assertions": [
-      "FAIL Trust corroboration: Bulo plus NPC at 10: test/src_trust_corroboration.lua:17: one confirmed transition inside window: expected 1, got 2"
+      "FAIL Trust corroboration: Bulo plus NPC at 10: test/src_trust_corroboration.lua:17: one confirmed transition regardless of delay: expected 1, got 2",
+      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:17: one confirmed transition regardless of delay: expected 1, got 2",
+      "FAIL Trust corroboration: Bulo plus NPC at 30: test/src_trust_corroboration.lua:17: one confirmed transition regardless of delay: expected 1, got 2"
     ]
   },
   {
     "rule": "coalesce-window-late",
     "caught": true,
     "assertions": [
-      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:17: one confirmed transition inside window: expected 2, got 1"
+      "FAIL Trust corroboration: Bulo plus NPC at 30: test/src_trust_corroboration.lua:17: one confirmed transition regardless of delay: expected 1, got 2"
     ]
   },
   {
     "rule": "coalesce-clock",
     "caught": true,
     "assertions": [
-      "FAIL Trust guards: coalescing never merges separate changes or clock rollback: test/harness.lua:7: rollback is not corroboration: expected true, got false"
+      "FAIL Trust guards: coalescing never merges separate changes or clock rollback: test/src_trust_guards.lua:36: rollback transition identity: expected true, got false"
     ]
   },
   {
     "rule": "notice-manual",
     "caught": true,
     "assertions": [
-      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:48: manual transition cancels queued automatic feedback: expected 0, got 1"
+      "FAIL Trust notice: same-state manual off cancels pending recovery: test/src_trust_notice.lua:72: same-state manual command cancels the pending automatic pair: expected 0, got 1"
     ]
   },
   {
@@ -487,31 +511,102 @@
     "caught": true,
     "assertions": [
       "FAIL Trust notice: automatic blind prints locally once with reason: test/src_trust_notice.lua:16: not equal: expected 1, got 0",
-      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:37: pending transition eventually reported: expected 1, got 0"
+      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:44: automatic blind ON was actually printed: expected 1, got 0",
+      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:44: automatic blind ON was actually printed: expected 1, got 0",
+      "FAIL Trust notice: same-state manual off cancels pending recovery: test/src_trust_notice.lua:44: automatic blind ON was actually printed: expected 1, got 0",
+      "FAIL Trust notice: automatic pair is consumed once: test/src_trust_notice.lua:94: not equal: expected LayerEnemies: layer IDs look unreliable (parse failures); layers hidden for this session. /le blind off to override., got nil"
     ]
   },
   {
     "rule": "notice-recovery",
     "caught": true,
     "assertions": [
-      "FAIL Trust notice: automatic expiry recovery prints once: test/src_trust_notice.lua:28: not equal: expected 1, got 0",
-      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:35: do not flood immediately after recovery: expected 0, got 1",
-      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:46: automatic warning still rate-limited: expected 0, got 1"
+      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:53: pending pair eventually reported: expected 1, got 0",
+      "FAIL Trust notice: automatic pair is consumed once: test/src_trust_notice.lua:95: not equal: expected LayerEnemies: layer IDs readable again; layers shown., got nil"
     ]
   },
   {
     "rule": "notice-rate",
     "caught": true,
     "assertions": [
-      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:35: do not flood immediately after recovery: expected 0, got 1",
-      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:46: automatic warning still rate-limited: expected 0, got 1"
+      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:51: recovery cannot flood immediately after blind ON: expected 0, got 1",
+      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:59: automatic recovery still rate-limited: expected 0, got 1",
+      "FAIL Trust notice: same-state manual off cancels pending recovery: test/src_trust_notice.lua:72: same-state manual command cancels the pending automatic pair: expected 0, got 1",
+      "FAIL Trust notice: unprinted blind ON cannot have a recovery pair: test/src_trust_notice.lua:87: not equal: expected nil, got LayerEnemies: layer IDs look unreliable (parse failures); layers hidden for this session. /le blind off to override."
     ]
   },
   {
     "rule": "notice-rate-edge",
     "caught": true,
     "assertions": [
-      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:37: pending transition eventually reported: expected 1, got 0"
+      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:53: pending pair eventually reported: expected 1, got 0",
+      "FAIL Trust notice: automatic pair is consumed once: test/src_trust_notice.lua:95: not equal: expected LayerEnemies: layer IDs readable again; layers shown., got nil"
+    ]
+  },
+  {
+    "rule": "group-peer-admission",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust member join: pure peer admission bounds: test/src_trust_members.lua:33: claim must follow peer admission strictly: expected false, got true"
+    ]
+  },
+  {
+    "rule": "group-peer-admission-edge",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust member join: pure peer admission bounds: test/src_trust_members.lua:33: claim must follow peer admission strictly: expected false, got true"
+    ]
+  },
+  {
+    "rule": "we-current-key",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust guards: outgoing WE projection preserves all nonlayer bytes: test/src_trust_guards.lua:49: known but different key is masked: expected C|42|100|0.200|0.300|0|2|100||1:2, got C|42|100|0.200|0.300|9000|2|100||1:2",
+      "FAIL Trust round2: negotiated embassy queued own C moved: test/src_trust_queue.lua:55: own masked; remote claim preserved: expected 0, got 1",
+      "FAIL Trust round2: queued own embassy H moved: test/src_trust_queue.lua:97: no queued own layer after loss of trust: expected 0, got 1"
+    ]
+  },
+  {
+    "rule": "coalesce-delay-cap",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust corroboration: Bulo plus NPC at 10.1: test/src_trust_corroboration.lua:17: one confirmed transition regardless of delay: expected 1, got 2",
+      "FAIL Trust corroboration: Bulo plus NPC at 30: test/src_trust_corroboration.lua:17: one confirmed transition regardless of delay: expected 1, got 2"
+    ]
+  },
+  {
+    "rule": "notice-pair-required",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust notice: ordinary expiry recovery is silent: test/src_trust_notice.lua:37: not equal: expected 0, got 1",
+      "FAIL Trust notice: ordinary zone recovery is silent: test/src_trust_notice.lua:37: not equal: expected 0, got 1",
+      "FAIL Trust notice: ordinary Bulo recovery is silent: test/src_trust_notice.lua:37: not equal: expected 0, got 1",
+      "FAIL Trust notice: rapid automatic transitions defer one local line: test/src_trust_notice.lua:51: recovery cannot flood immediately after blind ON: expected 0, got 1",
+      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:59: automatic recovery still rate-limited: expected 0, got 1",
+      "FAIL Trust notice: same-state manual off cancels pending recovery: test/src_trust_notice.lua:72: same-state manual command cancels the pending automatic pair: expected 0, got 1",
+      "FAIL Trust notice: unprinted blind ON cannot have a recovery pair: test/src_trust_notice.lua:85: not equal: expected nil, got LayerEnemies: layer IDs readable again; layers shown.",
+      "FAIL Trust notice: automatic pair is consumed once: test/src_trust_notice.lua:93: not equal: expected nil, got LayerEnemies: layer IDs readable again; layers shown."
+    ]
+  },
+  {
+    "rule": "notice-pair-consumed",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust notice: automatic pair is consumed once: test/src_trust_notice.lua:97: ordinary recovery cannot reuse the old pair: expected nil, got LayerEnemies: layer IDs readable again; layers shown."
+    ]
+  },
+  {
+    "rule": "notice-pair-emitted",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust notice: unprinted blind ON cannot have a recovery pair: test/src_trust_notice.lua:89: no automatic blind ON was printed: expected nil, got LayerEnemies: layer IDs readable again; layers shown."
+    ]
+  },
+  {
+    "rule": "notice-pair-manual-clear",
+    "caught": true,
+    "assertions": [
+      "FAIL Trust notice: manual override cancels a pending automatic notice: test/src_trust_notice.lua:64: manual feedback consumes any automatic pair: expected 0, got 1"
     ]
   }
 ]

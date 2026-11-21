@@ -20,16 +20,15 @@ end
 function T.notice(s,now,manual)
     s.trustNotice=s.trustNotice or {}; local n=s.trustNotice
     local current,old=T.state(s,now),n.state; n.state=current
-    if manual then n.pending=nil; n.hidden=current~="known"; return end
+    if manual then n.pending=nil; n.autoBlind=nil; return end
     if current~=old then
         n.pending=nil
         if current=="blind" and state(s).blind~="manual" then
             n.pending="LayerEnemies: layer IDs look unreliable ("..state(s).blind.."); layers hidden for this session. /le blind off to override."
-        elseif current=="known" and n.hidden then n.pending="LayerEnemies: layer IDs readable again; layers shown." end
-        n.hidden=current=="blind" or (current=="unknown" and (old=="known" or n.hidden))
+        elseif current=="known" and n.autoBlind then n.pending="LayerEnemies: layer IDs readable again; layers shown." end
     end
     if n.pending and (not n.at or (now>=n.at and now-n.at>=T.NOTICE_EVERY)) then
-        local text=n.pending; n.pending=nil; n.at=now; return text
+        local text=n.pending; n.pending=nil; n.at=now; n.autoBlind=current=="blind"; return text
     end
 end
 -- The only current-own-key reader. Second result is the confirmed NPC zoneUID.
@@ -61,9 +60,12 @@ function T.bulo(snap,blocked,npcs)
 end
 -- Dispatch-time projection of our own WE bytes; preserve every other field.
 function T.we(s,text,now,own)
-    if not own or T.own(s,now) then return text end
+    if not own then return text end
     local prefix,inner=text:match("^(W|[^|]*|[^|]*|)(.*)$")
     inner=inner or text
+    local key=L.key(T.own(s,now))
+    local queued=inner:match("^C|[^|]*|[^|]*|[^|]*|[^|]*|([^|]*)") or inner:match("^H|[^|]*|[^|]*|([^|]*)")
+    if key and key==L.key(queued) then return text end
     inner=inner:gsub("^(C|[^|]*|[^|]*|[^|]*|[^|]*|)[^|]*", "%10")
     inner=inner:gsub("^(H|[^|]*|[^|]*|)[^|]*", "%10")
     return (prefix or "")..inner
@@ -91,8 +93,7 @@ end
 function T.excuse(s,now) state(s).excusedAt=now end
 function T.change(s,now,key,source)
     local t=state(s)
-    if key and key==t.changeKey and source~=t.changeSource and t.changeAt and now>=t.changeAt
-        and now-t.changeAt<=T.EXCUSE_WINDOW then return false end
+    if key and key==t.changeKey and t.changeAt and now>=t.changeAt then return false end
     t.changeKey,t.changeSource,t.changeAt=key,source,now
     if t.excusedAt and now>=t.excusedAt and now-t.excusedAt<=T.EXCUSE_WINDOW then return true end
     for i=#t.changes,1,-1 do
@@ -113,11 +114,11 @@ function T.hop(s,host,before,after,formed,now,joinedAt)
     local names={}; for _,name in ipairs(t.hops) do if names[name] then return end; names[name]=true end
     if #t.hops>=T.HOPS then t.blind="hop contradiction" end
 end
-function T.group(s,now,peer,claim,outdoors,joinedAt,claimAt)
+function T.group(s,now,peer,claim,outdoors,joinedAt,claimAt,peerJoinedAt)
     local t=state(s)
     local own=L.key(T.own(s,now)); claim=L.key(claim)
     if not T.fresh(s,now,joinedAt) or not claimAt or claimAt<=joinedAt or claimAt>now
-        or now-claimAt>=T.EXPIRE then t.group=nil; return end
+        or now-claimAt>=T.EXPIRE or not peerJoinedAt or claimAt<=peerJoinedAt then t.group=nil; return end
     if not outdoors or not peer or not own or not claim or own==claim then t.group=nil; return end
     local g=t.group
     if not g or g.peer~=peer or g.own~=own or g.claim~=claim or now<g.at then

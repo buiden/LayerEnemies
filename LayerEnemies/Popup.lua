@@ -12,9 +12,9 @@ P.TYPES={
     found={
         title="Tracked enemy found",
         life=30,
-        rows=function(d)
+        rows=function(d,foundRows)
             local who=tostring(d.name)..((d.level~=nil and " "..tostring(d.level) or "")..(d.class~=nil and " "..tostring(d.class) or ""))
-            return {who,N.Main.zoneName(d.zone),ago(d.age),d.status and d.status() or d.source or ""}
+            return {who,N.Main.zoneName(d.zone),ago(d.age),d.status and d.status(foundRows) or d.source or ""}
         end,
         buttons={
             {label="Show on map",run=function(d) N.Main.showOnMap(d.zone,d.x,d.y) end},
@@ -44,9 +44,9 @@ local function later(delay,fn)
     return S.tab(C_Timer) and type(C_Timer.After)=="function" and pcall(C_Timer.After,delay,fn)
 end
 -- Repaint only; retain the original buttons, generation and close deadline.
-function P.refresh()
+function P.refresh(foundRows)
     if not P.data or not P.frame or not P.frame:IsShown() then return end
-    local rows=P.TYPES[P.kind].rows(P.data)
+    local rows=P.TYPES[P.kind].rows(P.data,foundRows)
     for i=1,P.ROWS do N.CallUI.set(P.rows[i],rows[i] or "") end
 end
 -- show(kind,data) -> true when shown. Callers decide eligibility; instances never show.

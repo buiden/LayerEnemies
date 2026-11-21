@@ -1951,15 +1951,17 @@ in-game measurements:
   after a success (zero counts as a failure).
 - 3 confirmed key changes within 600 seconds, excluding changes within 10
   seconds after world entry, shard transfer, a zone change, or joining/leaving
-  a group. A Bulo change and NPC corroboration of the same full key within
-  10 seconds count once. Diagnostic change counts are separate from the
-  event exclusion.
+  a group. A Bulo change and NPC corroboration of the same full key count
+  once regardless of delay, unless a different key was seen in between.
+  Diagnostic change counts are separate from the event exclusion.
 - 3 consecutive accepted, formed hops to 3 distinct hosts without a changed
   own key, each confirmed by a new NPC read after that group formed.
 - 60 continuous seconds outdoors in a group with a verified LE guildmate
-  whose fresh, same-zone claim differs from ours. Both the peer claim and
-  our own NPC confirmation must be newer than the group join. Claims use
-  existing guild O/K/H messages, not a new request. Peer claims can be wrong.
+  whose fresh, same-zone claim differs from ours. The peer claim must be
+  newer than both our join and that member's join; members already present
+  when we join share our join time. Our NPC confirmation must postdate our
+  join. Claims use existing guild O/K/H messages, not a new request. Peer
+  claims can be wrong.
 
 `/le blind on` hides IDs immediately. `/le blind off` clears blindness and
 starts detection again; `/le blind auto` also returns to automatic detection.
@@ -1967,12 +1969,15 @@ These commands change no SavedVariables. A plausible constant or private ID
 cannot be distinguished from a real layer by a solo client that never meets
 one of the contradiction triggers. Use `/le blind on` in that case.
 Automatic blindness prints one local chat line with its reason and the
-`/le blind off` override. A return from unknown to readable prints one local
-recovery line; blind itself remains sticky as described above. Notifications
+`/le blind off` override. A readable-again line can only pair with an automatic
+blindness line already printed this session, never an ordinary unknown-to-known
+transition (zone change, expiry or Bulo). Blind itself remains sticky; manual
+controls give their own feedback and cancel any pending automatic pair. Notifications
 are once per transition, at most one per 10 seconds, never sent to others.
 Manual on/off/auto retain their existing feedback without a second notice.
 An open found pop-up reprojects its status when trust changes, without
-resetting its close timer or map button.
+resetting its close timer or map button. On a poll it reuses that poll's Find
+results; event-time trust changes still repaint immediately.
 
 In unknown or blind, numeric own-layer headers, relation labels, Friendly
 layer details, ChehulNet relation/count text, FLH claimed keys, and raw
@@ -1986,7 +1991,9 @@ Names, zones, positions, counts, Find alerts and the found pop-up, death Calls,
 friend/community sharing, and own-death reporting still work. Incoming layer
 claims are treated as unknown locally in blind. Own O/K use the existing empty
 layer field; own WE C/H and queued own sync replies use zero. Queued own
-embassy C/H are checked again when sent. Rebuilt remote reports, including
+embassy C/H are checked again when sent: a queued layer that does not match
+our current trusted server key becomes zero, not a replacement claim about
+another layer. Rebuilt remote reports, including
 Guild R relays, retain the sender's layer claim, not our own layer. FLH
 presence/probes and LE host H advertisements stop. No wire fields, routes,
 budgets, SavedVariables or version numbers are added or changed.

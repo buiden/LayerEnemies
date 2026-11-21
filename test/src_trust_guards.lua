@@ -18,13 +18,13 @@ H.test("Trust guards: peer claim must follow join and precede current time",func
     local N=H.load(); local T=N.Trust
     for _,at in ipairs({99,100,103}) do
         local s=N.Store.new(0); T.read(s,101,"7086-7",7); T.npc(s,101,"7086-7")
-        T.group(s,102,"peer","9000",true,100,at); H.eq(s.trust.group,nil,"stale/equal/future claim")
+        T.group(s,102,"peer","9000",true,100,at,98); H.eq(s.trust.group,nil,"stale/equal/future claim")
     end
     local s=N.Store.new(0); T.read(s,101,"7086-7",7); T.npc(s,101,"7086-7")
-    T.group(s,341,"peer","9000",true,100,101); H.yes(s.trust.group)
+    T.group(s,341,"peer","9000",true,100,101,98); H.yes(s.trust.group)
     T.read(s,400,"7086-7",7); T.npc(s,400,"7086-7")
-    T.group(s,400,"peer","9000",true,100,101); H.eq(T.state(s,400),"known")
-    T.group(s,401,"peer","9000",true,100,101); H.eq(T.state(s,401),"known","expired peer cannot complete contradiction")
+    T.group(s,400,"peer","9000",true,100,101,98); H.eq(T.state(s,400),"known")
+    T.group(s,401,"peer","9000",true,100,101,98); H.eq(T.state(s,401),"known","expired peer cannot complete contradiction")
 end)
 H.test("Trust guards: coalescing never merges separate changes or clock rollback",function()
     local N=H.load(); local T=N.Trust
@@ -33,8 +33,8 @@ H.test("Trust guards: coalescing never merges separate changes or clock rollback
         H.yes(T.change(s,120,"9000-9","Bulo server id"))
         local key=case=="different key" and "10000-10" or "9000-9"
         local source=case=="same source" and "Bulo server id" or "local NPC server id"
-        H.yes(T.change(s,case=="rollback" and 119 or 121,key,source),case.." is not corroboration")
-        H.eq(#s.trust.changes,case=="rollback" and 1 or 2)
+        H.eq(T.change(s,case=="rollback" and 119 or 121,key,source),case~="same source",case.." transition identity")
+        H.eq(#s.trust.changes,case=="different key" and 2 or 1)
     end
 end)
 H.test("Trust guards: outgoing WE projection preserves all nonlayer bytes",function()
@@ -45,7 +45,8 @@ H.test("Trust guards: outgoing WE projection preserves all nonlayer bytes",funct
         H.eq(T.we(s,text,100,false),text,"remote claim never masked")
         local expected=text:gsub("|9000|","|0|")
         H.eq(T.we(s,text,100,true),expected)
-        T.read(s,100,"7086-7",7); H.eq(T.we(s,text,100,true),text)
+        T.read(s,100,"9000-9",9); H.eq(T.we(s,text,100,true),text)
+        T.read(s,100,"7086-7",7); H.eq(T.we(s,text,100,true),expected,"known but different key is masked")
         T.read(s,100,nil,nil)
     end end
 end)

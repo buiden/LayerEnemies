@@ -1,6 +1,7 @@
 # Layer trust implementation evidence
 
-Round-2 corrections and final evidence: [layer-trust-round2.md](layer-trust-round2.md).
+Latest corrections and evidence: [layer-trust-round3.md](layer-trust-round3.md).
+Round-2 history: [layer-trust-round2.md](layer-trust-round2.md).
 
 Scope: layer plan PR 2, on PR 1. No version or SavedVariables migration. All
 client behavior below is mock-tested, not native certification.

@@ -2105,6 +2105,8 @@ PASS Trust boundary: blind new Wanted and WarBoard claims discard shard only
 PASS Trust corroboration: Bulo plus NPC at 0
 PASS Trust corroboration: Bulo plus NPC at 10
 PASS Trust corroboration: Bulo plus NPC at 10.1
+PASS Trust corroboration: Bulo plus NPC at 30
+PASS Trust corroboration: intervening NPC key separates confirmations
 PASS Trust fresh group: O claim age 1
 PASS Trust fresh group: O claim age 2
 PASS Trust fresh group: O claim age 22
@@ -2132,11 +2134,22 @@ PASS Trust live: unparseable hides own UI and sends layer-free O C H K
 PASS Trust live: churn hides own UI and sends layer-free O C H K
 PASS Trust live: constant hides own UI and sends layer-free O C H K
 PASS Trust live: private hides own UI and sends layer-free O C H K
+PASS Trust member join: old
+PASS Trust member join: equal
+PASS Trust member join: fresh
+PASS Trust member join: rejoin
+PASS Trust member join: already present
+PASS Trust member join: pure peer admission bounds
 PASS Trust notice: automatic blind prints locally once with reason
-PASS Trust notice: automatic expiry recovery prints once
+PASS Trust notice: ordinary expiry recovery is silent
+PASS Trust notice: ordinary zone recovery is silent
+PASS Trust notice: ordinary Bulo recovery is silent
 PASS Trust notice: rapid automatic transitions defer one local line
 PASS Trust notice: manual override cancels a pending automatic notice
+PASS Trust notice: same-state manual off cancels pending recovery
 PASS Trust notice: manual controls keep only their existing feedback
+PASS Trust notice: unprinted blind ON cannot have a recovery pair
+PASS Trust notice: automatic pair is consumed once
 PASS Trust held popup: known
 PASS Trust held popup: unknown
 PASS Trust held popup: blind
@@ -2145,12 +2158,31 @@ PASS Trust held popup: group event
 PASS Trust round2: negotiated embassy queued own C known
 PASS Trust round2: negotiated embassy queued own C unknown
 PASS Trust round2: negotiated embassy queued own C blind
+PASS Trust round2: negotiated embassy queued own C moved
 PASS Trust round2: negotiated embassy queued remote C known
 PASS Trust round2: negotiated embassy queued remote C unknown
 PASS Trust round2: negotiated embassy queued remote C blind
+PASS Trust round2: negotiated embassy queued remote C moved
 PASS Trust round2: queued own embassy H known
 PASS Trust round2: queued own embassy H unknown
 PASS Trust round2: queued own embassy H blind
+PASS Trust round2: queued own embassy H moved
+SECOND existing-group localJoin=100 peerJoin=120 claimAt=110 state=known reason=nil
+PASS Second opinion: peer joins an existing group with old claim
+SECOND corroboration delay=1 afterSameKey=1 afterSecondChange=2 state=known reason=nil
+PASS Second opinion: delayed same-key confirmation 1
+SECOND corroboration delay=11 afterSameKey=1 afterSecondChange=2 state=known reason=nil
+PASS Second opinion: delayed same-key confirmation 11
+SECOND corroboration delay=30 afterSameKey=1 afterSecondChange=2 state=known reason=nil
+PASS Second opinion: delayed same-key confirmation 30
+SECOND queued-H regained=7086 ownAtDispatch=7086-7 wireLayer=7086 sentAt=360 text=W|4d65||H|1.0.0|100|7086|1|19|0|0|100||-|0|1
+PASS Second opinion: queued H expiry recovery 7086
+SECOND queued-H regained=9000 ownAtDispatch=9000-9 wireLayer=0 sentAt=360 text=W|4d65||H|1.0.0|100|0|1|19|0|0|100||-|0|1
+PASS Second opinion: queued H expiry recovery 9000
+SECOND find mode=stable calls=1 visits=5 lookups=20 sends=0 popupShown=true state=known
+PASS Second opinion: Find polling cap with held popup stable
+SECOND find mode=expiry calls=1 visits=5 lookups=20 sends=1 popupShown=true state=unknown
+PASS Second opinion: Find polling cap with held popup expiry
 PASS Trust surfaces: blind host fallback parser rejects extra coordinates
 PASS Trust surfaces: blind guild host invites unconstrained asks without layer replies
 PASS Trust surfaces: unknown hides Friendly FLH ChehulNet and layer command
@@ -2545,4 +2577,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2467 tests passed, 0 failed, 665279 assertions
+RESULT: 2491 tests passed, 0 failed, 666543 assertions

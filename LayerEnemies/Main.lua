@@ -9,15 +9,26 @@ M.keyChanges={}
 local lastConfirmedKey,lastConfirmedNPC
 local function recent(at,time) return at and time>=at and time-at<=M.GROUP_CHANGE_WINDOW end
 local function groupTransition()
-    local grouped=S.call(IsInGroup)
+    local grouped,time=S.call(IsInGroup),S.num(S.call(GetTime))
     if type(grouped)=="boolean" then
         if M.groupState~=nil and grouped~=M.groupState then
-            M.groupChangedAt=S.num(S.call(GetTime)); N.Trust.excuse(M.store,M.groupChangedAt)
+            M.groupChangedAt=time; N.Trust.excuse(M.store,M.groupChangedAt)
         end
-        if grouped and M.groupState~=true then M.groupJoinedAt=S.num(S.call(GetTime))
-        elseif not grouped then M.groupJoinedAt=nil end
+        if grouped and M.groupState~=true then
+            M.groupJoinedAt=time; M.groupMembers={}
+        elseif not grouped then M.groupJoinedAt=nil; M.groupMembers={} end
         M.groupState=grouped
     end
+    local party=A.party()
+    local members={}
+    if grouped==true and party then
+        for _,name in ipairs(party.members or {}) do
+            local who=I.key(name)
+            if who then members[who]=(M.groupMembers or {})[who] or time end
+        end
+    end
+    M.groupMembers=members
+    return party
 end
 local function now() return S.num(S.call(GetTime)) or 0 end
 local function guarded(fn,...)
@@ -143,26 +154,27 @@ function M.trustClaim(name,key,zone,time)
     M.trustClaims[who]={key=L.key(key),zone=zone,at=time}
     M.trustGroup()
 end
-function M.trustRefresh()
+function M.trustRefresh(rows)
     local notice=N.Trust.notice(M.store,now())
     if notice then M.say(notice) end
-    N.Popup.refresh()
+    N.Popup.refresh(rows)
 end
-function M.trustGroup()
-    groupTransition()
+function M.trustGroup(deferPopup)
+    local party=groupTransition()
     local time=now()
-    local party=A.party()
-    local peer,claim,claimAt
+    local peer,claim,claimAt,peerJoinedAt
     if S.call(IsInGroup)==true and A.inInstance()==false and party then
         for _,name in ipairs(party.members or {}) do
             local who=I.key(name); local c=who and M.trustClaims[who]
-            if c and M.groupJoinedAt and c.at>M.groupJoinedAt and time>=c.at and time-c.at<N.Trust.EXPIRE and c.zone==M.store.zone
+            local joined=who and M.groupMembers[who]
+            if c and M.groupJoinedAt and c.at>M.groupJoinedAt and joined and c.at>joined
+                and time>=c.at and time-c.at<N.Trust.EXPIRE and c.zone==M.store.zone
                 and A.guildMember(name)==true and c.key and c.key~=L.key(N.Trust.own(M.store,time))
-                and (not peer or who<peer) then peer,claim,claimAt=who,c.key,c.at end
+                and (not peer or who<peer) then peer,claim,claimAt,peerJoinedAt=who,c.key,c.at,joined end
         end
     end
-    N.Trust.group(M.store,time,peer,claim,peer~=nil,M.groupJoinedAt,claimAt)
-    M.trustRefresh()
+    N.Trust.group(M.store,time,peer,claim,peer~=nil,M.groupJoinedAt,claimAt,peerJoinedAt)
+    if not deferPopup then M.trustRefresh() end
 end
 function M.poll()
     if not M.started then return end
@@ -205,12 +217,12 @@ function M.poll()
             end
         end
     end
-    M.trustGroup()
+    M.trustGroup(true)
     T.prune(M.store,time); N.Reports.prune(M.receiver,time)
     -- War Effort itself is not needed: its guild and group traffic is read either way.
     M.statusWE=(A.loaded("WarEffortScout") and "installed" or "not installed").." / listening on guild, party and raid (reported, not confirmed)"
     if M.lastHeard then M.statusWE=M.statusWE.." / last heard "..math.floor(time-M.lastHeard).." s ago" end
-    M.groupCheck(); M.inviteTick(); M.watchTick(); M.friendShareTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
+    M.groupCheck(true); M.inviteTick(); M.watchTick(); M.friendShareTick(); M.relayTick(); M.autoTick(); M.shareTick(); M.weTick(); M.embassyTick(); M.hhTick()
     N.Directory.sync()
     N.Find.home(M.find,M.homeRealm())
     N.Known.prune(M.find.known,time)
@@ -218,8 +230,8 @@ function M.poll()
     N.Overlord.sweep(M.overlord,time)
     N.Overlord.rows(M.overlord,time)
     N.Sources.tick(time)
-    M.findAlerts()
-    M.trustRefresh()
+    local rows=M.findAlerts()
+    M.trustRefresh(rows)
     N.CallUI.check()
     if N.UI then N.UI.refresh() end
 end
@@ -1697,11 +1709,11 @@ function M.foundPopup(row)
     -- Reuse the already projected row until own trust changes; opening alerts must not rescan Find.
     local shownKey,status=N.Trust.own(M.store,time),row.status
     local shown=N.Popup.show("found",{name=row.name,level=row.level,class=row.class,zone=row.zone,
-        x=row.x,y=row.y,age=row.age,source=row.status,status=function()
+        x=row.x,y=row.y,age=row.age,source=row.status,status=function(rows)
             local key=N.Trust.own(M.store,now())
             if key~=shownKey then
                 shownKey,status=key,""
-                for _,live in ipairs(M.findRows()) do if live.name==row.name then status=live.status; break end end
+                for _,live in ipairs(rows or M.findRows()) do if live.name==row.name then status=live.status; break end end
             end
             return status
         end})
@@ -1719,7 +1731,8 @@ function M.findAlerts(quiet,printed)
     local window=st.alertWindow
     if window and time-window.at>=10 then findSummary(st,window); window=nil end
     if #st.names==0 then return end
-    for _,row in ipairs(M.findRows()) do
+    local rows=M.findRows()
+    for _,row in ipairs(rows) do
         if N.Find.alert(st,row,time) then
             if row.name~=printed then
                 M.findNotice(M.findText(row,true))
@@ -1730,6 +1743,7 @@ function M.findAlerts(quiet,printed)
             end
         end
     end
+    return rows
 end
 function M.track(name,remove)
     if remove then N.Find.remove(M.find,name)
@@ -2750,9 +2764,9 @@ function M.hopDone()
         if N.UI then N.UI.refresh(true) end
     end
 end
-function M.groupCheck()
+function M.groupCheck(deferPopup)
     groupTransition()
-    M.trustGroup()
+    M.trustGroup(deferPopup)
     local grouped=A.grouped()
     if grouped then N.FLHMember.stop("joined a group") end
     if grouped and M.hopAnyState and M.hopAnyState.round then M.hopAnyStop("joined a group") end

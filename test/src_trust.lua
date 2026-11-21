@@ -75,15 +75,15 @@ end)
 H.test("Trust: outdoor group mismatch at 59/60 and continuity",function()
     local N,s=fresh(); local T=N.Trust
     T.read(s,0,"7086-7",7); T.npc(s,0,"7086-7")
-    T.group(s,0,"peer","9000",true,-1,0); T.group(s,59,"peer","9000",true,-1,0); H.eq(T.state(s,59),"known")
-    T.group(s,60,"peer","9000",true,-1,0); H.eq(T.state(s,60),"blind")
+    T.group(s,0,"peer","9000",true,-1,0,-1); T.group(s,59,"peer","9000",true,-1,0,-1); H.eq(T.state(s,59),"known")
+    T.group(s,60,"peer","9000",true,-1,0,-1); H.eq(T.state(s,60),"blind")
     s=N.Store.new(0); T.read(s,0,"7086-7",7); T.npc(s,0,"7086-7")
-    T.group(s,0,"peer","7086",true,-1,0); T.group(s,60,"peer","7086",true,-1,0)
+    T.group(s,0,"peer","7086",true,-1,0,-1); T.group(s,60,"peer","7086",true,-1,0,-1)
     H.eq(T.state(s,60),"known","matching peer never contradicts")
     for _,case in ipairs({"indoor","same","peer changed","unknown"}) do
-        s=N.Store.new(0); T.read(s,0,"7086-7",7); T.npc(s,0,"7086-7"); T.group(s,0,"peer","9000",true,-1,0)
+        s=N.Store.new(0); T.read(s,0,"7086-7",7); T.npc(s,0,"7086-7"); T.group(s,0,"peer","9000",true,-1,0,-1)
         local claim=case~="unknown" and (case=="same" and "7086" or "9000") or nil
-        T.group(s,59,case=="peer changed" and "other" or "peer",claim,case~="indoor",-1,0)
-        T.group(s,60,"peer","9000",true,-1,0); H.eq(T.state(s,60),"known",case)
+        T.group(s,59,case=="peer changed" and "other" or "peer",claim,case~="indoor",-1,0,-1)
+        T.group(s,60,"peer","9000",true,-1,0,-1); H.eq(T.state(s,60),"known",case)
     end
 end)

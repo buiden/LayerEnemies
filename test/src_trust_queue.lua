@@ -1,8 +1,18 @@
 -- Replayed from the independent round-1 queue probes; synthetic names only.
 local H=...
 local function step(n) for _=1,n do H.advance(1) end end
+local function move(N)
+    H.clock(305)
+    H.eq(N.Trust.state(N.Main.store,H.clock()),"known","no expiry before move")
+    for _,npc in ipairs({31,32}) do
+        H.units().target={guid="Creature-0-9000-0-9-"..npc.."-ABC",player=false}
+        H.deliver("PLAYER_TARGET_CHANGED"); H.drain()
+    end
+    H.units().target=nil
+    H.eq(N.Trust.state(N.Main.store,H.clock()),"known"); H.eq(N.Trust.own(N.Main.store,H.clock()),"9000-9")
+end
 local function state(N) return N.Trust and N.Trust.state(N.Main.store,H.clock()) or (N.Main.store.bulo and "known-base" or "unknown-base") end
-for _,origin in ipairs({"own","remote"}) do for _,mode in ipairs({"known","unknown","blind"}) do
+for _,origin in ipairs({"own","remote"}) do for _,mode in ipairs({"known","unknown","blind","moved"}) do
  H.test("Trust round2: negotiated embassy queued "..origin.." C "..mode,function()
     local N=H.load(); N.Net.SHIP.we=true; N.Net.setConsent("public")
     C_Club={GetGuildClubId=function() return 789 end}
@@ -29,7 +39,8 @@ for _,origin in ipairs({"own","remote"}) do for _,mode in ipairs({"known","unkno
       local d=N.Protocol.decode(s.text); if d and d.origin==expectedOrigin and d.inner.type=="C" then nBefore=nBefore+1 end
     end end
     H.eq(nBefore,0,"C is still unsent"); H.yes(N.Wire.queued()>0,"owed queue exists")
-    if mode=="blind" and N.Trust then SlashCmdList.LAYERENEMIES("blind on")
+    if mode=="moved" then move(N)
+    elseif mode=="blind" and N.Trust then SlashCmdList.LAYERENEMIES("blind on")
     elseif mode=="unknown" or mode=="blind" then H.clock(311); N.Main.poll()
     else H.readLayer(N,7); H.units().target=nil end
     step(90)
@@ -50,10 +61,11 @@ local H=...
 local function state(N) return N.Trust and N.Trust.state(N.Main.store,H.clock()) or (N.Main.store.bulo and "known-base" or "unknown-base") end
 local function untrust(N,mode)
     if mode=="known" then return end
+    if mode=="moved" then move(N); return end
     if N.Trust and mode=="blind" then SlashCmdList.LAYERENEMIES("blind on")
     else H.clock(311); N.Main.poll() end
 end
-for _,mode in ipairs({"known","unknown","blind"}) do
+for _,mode in ipairs({"known","unknown","blind","moved"}) do
  H.test("Trust round2: queued own embassy H "..mode,function()
     local N=H.load(); H.establish(N); H.clock(300)
     H.units().target=nil; H.units().mouseover=nil
