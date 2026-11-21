@@ -55,8 +55,8 @@ archive under the evidence directory:
 - Blind: 2 passed, 32 failed, 1537 assertions. The inherited B9 behavior and
   the existing painted-target refusal are positive controls, not feature RED.
 - HopProbe: 0 passed, 9 failed, 395 assertions (module absent on base).
-- Focused feature suites passed before the full gate. Final full verification
-  and fresh mutation runs are in progress; the final results are recorded below.
+- Focused final feature suites pass. The complete background gate and fresh
+  mutation runs also pass; exact results are recorded below.
 - Initial HopProbe mutants: 22/25 killed. Added baseline-green controls for
   after-unparsed, spawn-identity and snapshot-cap; then 25/25 killed. These
   three added controls are not claimed as newly failing production behavior.
@@ -97,6 +97,30 @@ changed unknown-state behavior:
 - A direct whole-harness run and a fresh background full gate follow these
   corrections. The strict guards and all existing mutant definitions remain.
 
-Full verification: pending.
+The corrected whole harness and gate then found one remaining historical
+300-pixel unknown-page assertion in the Round1 retained-evidence test. It now
+includes the same blind control as the other layout checks; its focused replay
+passed. No production source changed in that last test-only correction.
+
+## Final verification
+
+- `heavy.sh python3 -I test/verify.py`: background run, polled to exit 0.
+  `RESULT: 2534 tests passed, 0 failed, 668976 assertions`
+- Syntax: 446 files, PASS. TOC/static checks and archive integrity/source parity:
+  PASS. Generated evidence is in `notes/test-results.txt` and
+  `notes/verification.json`.
+- `python3 -I test/trust_mutants.py`: exit 0;
+  `RESULT: 64/64 Trust mutants killed`. Existing rules and anchors unchanged.
+- `python3 -I test/hopprobe_mutants.py`: exit 0;
+  `RESULT: 25/25 HopProbe mutants killed`. Evidence is in
+  `notes/hopprobe-mutants.json`. Re-anchors: none.
+- README heading check: `hunks=2 version_section_hunks=0`. Only the feature
+  sections Layer trust and hidden IDs, and Blind hopping and Find changed.
+- ASCII additions, no private paths in added source text, no new public chat
+  send, unchanged Trust/Wire/budget source and unchanged mutant runner checked.
+
+Deferred minor: the verifier's inherited descriptive prose still describes the
+known-layer hop-any route; the new mode's contract is documented in the README
+feature section and this ledger. Its measured results and archive checks are fresh.
 
 Not tested in game (alpha, owner's decision)
