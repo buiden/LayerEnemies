@@ -1,5 +1,20 @@
 # LayerEnemies
 
+## 1.3.1
+
+### Hotfix: realm-less names and hidden layer IDs
+
+- **Your name without a realm now works.** Forever can return an empty realm name. LayerEnemies
+  treated your own name as unreadable, which disabled **Hop (blind)** and dropped incoming reports.
+  A name without a realm is now accepted for your own identity, networking and blind hops. No realm
+  is guessed; malformed names are still refused.
+- **Game build 71037 and newer: blind from login.** On that build every creature has its own ID
+  number, so layers can no longer be read from creatures. LayerEnemies starts in blind mode with the
+  reason "this game build hides layer IDs" and stays there; `/le blind off` cannot turn layer IDs back
+  on for that build. Sightings, Find, Hop (blind) and reports still work, without layer numbers.
+
+**Not tested in game** (alpha, owner's decision).
+
 ## 1.3.0
 
 ### Layer IDs you can trust, and hopping when they are hidden
