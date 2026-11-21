@@ -1317,8 +1317,8 @@ PASS Stack: six mixed Wanted presence and Overlord cards use measured heights an
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
-PASS Blind final cancel: auto off at draft consumes pending and stale timers
-PASS Blind final cancel: auto off at asked consumes pending and stale timers
+PASS Blind final survive: auto toggle at draft keeps the player's round
+PASS Blind final survive: auto toggle at asked keeps the player's round
 PASS Blind final cancel: auto off at accepted consumes pending and stale timers
 PASS Blind final cancel: auto off at joined consumes pending and stale timers
 PASS Blind final cancel: auto off at shown consumes pending and stale timers
@@ -2691,4 +2691,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2605 tests passed, 0 failed, 672608 assertions
+RESULT: 2605 tests passed, 0 failed, 672604 assertions
