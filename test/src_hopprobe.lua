@@ -33,7 +33,7 @@ test("HopProbe: players at five and one fifth, movement strictly below forty yar
     eq(P.judge(snap(P,0,5),snap(P,0,1,nil,40)),"unchanged")
     eq(P.judge(snap(P,0,5),snap(P,0,1,nil,24,32)),"unchanged")
     eq(P.judge(snap(P,0,5),snap(P,0,1,nil,0,0,101)),"unchanged")
-    eq(P.judge(snap(P,0,5),P.snapshot(rows(0,0))),"unchanged")
+    eq(P.judge(snap(P,0,5),P.snapshot(rows(0,0))),"sparse")
 end)
 
 test("HopProbe: unparseable creatures use only transfer or players, sparse is no judgement",function()
@@ -43,9 +43,9 @@ test("HopProbe: unparseable creatures use only transfer or players, sparse is no
     eq(P.judge(before,snap(P,3,5,"DEF")),"unchanged")
     eq(P.judge(before,snap(P,3,1,"DEF")),"players")
     eq(P.judge(P.snapshot({raw[#raw]}),snap(P,3,0,"DEF")),"sparse")
-    eq(P.judge(snap(P,0,0),snap(P,0,0),true),"creatures","transfer is independent evidence")
+    eq(P.judge(snap(P,0,0),snap(P,0,0),true),"transfer","transfer is independent evidence")
     eq(P.judge(snap(P,0,0),snap(P,0,0),false),"sparse")
-    eq(P.judge(snap(P,3,0),P.snapshot({{guid="Creature-hidden",player=false}})),"unchanged")
+    eq(P.judge(snap(P,3,0),P.snapshot({{guid="Creature-hidden",player=false}})),"sparse")
 end)
 
 test("HopProbe: snapshots dedupe and never infer players from unreadable flags",function()
@@ -61,7 +61,7 @@ end)
 test("HopProbe: unreadable after snapshot disables creatures even beside matching replacements",function()
     local P=probe(); local after=rows(3,0,"DEF")
     after[#after+1]={guid="Creature-hidden",player=false}
-    eq(P.judge(snap(P,3,0),P.snapshot(after)),"unchanged")
+    eq(P.judge(snap(P,3,0),P.snapshot(after)),"sparse")
 end)
 
 test("HopProbe: equality uses NPC plus last spawn field, never a server field",function()
@@ -75,18 +75,31 @@ test("HopProbe: bounded snapshot includes all forty two tokens, not a forty thir
     eq(s.creatureCount,21); eq(s.playerCount,21)
 end)
 
-test("HopProbe: exactly five result texts, no GUID digits in any result",function()
+test("HopProbe: empty after snapshots are sparse unless players or an event prove change",function()
+    local P=probe()
+    local empty=P.snapshot({})
+    eq(P.judge(snap(P,3,0),empty),"sparse")
+    eq(P.judge(snap(P,0,5),empty),"sparse")
+    eq(P.judge(snap(P,0,5),snap(P,0,0)),"players","readable stationary position supports vanished players")
+    eq(P.judge(snap(P,3,0),empty,true),"transfer")
+    eq(P.judge(snap(P,3,0),P.snapshot({{guid=H.secret,player=false}})),"sparse")
+end)
+
+test("HopProbe: exact result texts, no GUID digits in any result",function()
     local P=probe()
     local cases={
         {P.judge(snap(P,3,0),snap(P,3,0,"DEF")),"Hopped (layer unknown): the creatures around you changed."},
         {P.judge(snap(P,0,5),snap(P,0,1)),"Hopped (layer unknown): the players around you changed."},
-        {P.judge(snap(P,3,0),snap(P,3,0)),"Joined Host Cedar. No change seen; you may be on the same layer."},
+        {P.judge(snap(P,3,0),snap(P,3,0)),"Joined Host Cedar. No change seen; the hop may not have worked."},
         {P.judge(snap(P,2,4),snap(P,2,4)),"Joined Host Cedar. Too little around you to tell."},
         {"missed","Host Cedar did not invite."},
+        {"transfer","Joined Host Cedar. The game reported a layer transfer."},
+        {"unformed","Accepted Host Cedar's invite, but no group formed."},
+        {"unaccepted","Host Cedar invited; not accepted."},
     }
     for _,c in ipairs(cases) do
         local text=P.text(c[1],"Host Cedar")
-        eq(text,c[2]); no(text:find("%d+")); no(text:find("other layer",1,true))
+        eq(text,c[2]); no(text:find("%d+")); no(text:find("other layer",1,true)); no(text:find("same layer",1,true))
     end
     eq(P.text("missing","Host Cedar"),nil)
 end)

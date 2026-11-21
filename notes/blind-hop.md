@@ -19,13 +19,9 @@ budgets are frozen. All tests use mocks; no donor source is copied.
   click-again wording and event-time cancellation.
 - Other cited hop routes, invite correlation and leave guards still match
   their cited behavior after line movement. No unsupported citation used.
-- Literal B7 text includes `you may be on the same layer`, despite the next
-  sentence's blanket ban on that phrase. Preserve the required literal; do
-  not introduce same/other-layer assertions elsewhere.
-- Ruling: a transfer event uses B7's creatures-changed success text (there is
-  no sixth event-specific text). It proves only the configured proxy; it
-  does not certify that observed creatures changed. Owner can choose a
-  different literal in a later wording change.
+- The initial B7 unchanged and transfer literals recorded below are historical.
+  The round-1 lead rulings supersede both: no result asserts the same layer,
+  and a transfer event has its own game-reported-transfer text.
 
 ## Implementation and evidence
 
@@ -124,3 +120,96 @@ known-layer hop-any route; the new mode's contract is documented in the README
 feature section and this ledger. Its measured results and archive checks are fresh.
 
 Not tested in game (alpha, owner's decision)
+
+## Round-1 corrections
+
+Scope: the lead's T1/T2 rulings, reviewer items 1-4 and accompanying notes.
+All runtime changes followed observed assertion failures. Evidence logs are
+local under `.git/blind-r1/`; the reviewer directories were read-only.
+
+- T1/T2: unchanged says exactly `Joined NAME. No change seen; the hop may not
+  have worked.` Transfer success says exactly `Joined NAME. The game reported
+  a layer transfer.` The event result is a changed hop, not creature evidence.
+  Unknown still says `Detecting...`. Pure text/proxy RED: 2 failures; live RED:
+  2 failures. GREEN: 9 pure and 15 live tests, no failures.
+- Item 1: a lone host may be picked on the click after exhaustion, while the
+  last host remains excluded when another candidate exists. Preview calls
+  cannot consume the exhaustion step. RED: 1 rotation failure; GREEN: 6 tests.
+- Item 2: retain admitted sighting times even before the first changed result;
+  compare them with the join time, not judgement time. Own, direct report and
+  HeadHunter paths cover exact-join, intermediate, pre-join and delayed replay
+  sightings without relying on rendering. RED: 12 failures; GREEN: 12 tests.
+- Item 3: only a successfully sent whisper or an observed matching draft-send
+  event arms a missed-invite result. Unsent whisper and guild drafts expire
+  quietly. RED: 2 failures plus 2 sent controls; GREEN: all 4 tests.
+- Item 4: keep observed invite and accepted evidence independently of the
+  join watchdog. Exact results are `Accepted NAME's invite, but no group
+  formed.` and `NAME invited; not accepted.` Include accept failure, auto off,
+  and known acceptance converted before group formation. RED: 4 failures plus
+  1 converted-acceptance failure; GREEN: all 5 tests.
+- After-snapshot note: empty/unreadable evidence gives too-little, unless an
+  independent transfer or stationary-player disappearance proves change.
+  RED: 4 pure and 3 live failures; GREEN: 10 pure and 3 live tests.
+- Tooltip note: disabled button shows its actual refusal reason. RED: 4
+  failures (group, instance, pending ask, cooldown); GREEN: all 4 tests.
+- Stop note: cancellation consumes converted `auto.group.blind` ownership,
+  not only `blindPending`; stale timers/invites cannot resume it. RED: 1
+  failure; GREEN: 1 correction test and 5 inherited lifecycle tests.
+- Leave notes: blind result deadlines still run in combat, but leave waits
+  for readable combat end. A third member permanently disarms that attempt,
+  including a member arriving while leave is owed. RED: 8 failures; GREEN:
+  all 8 tests. The existing known-mode combat policy is unchanged (16/16
+  Hop combat controls). The second opinion's inherited known-mode and
+  case-sensitive identity proposals are outside this fix brief.
+- Creature movement note: no new creature movement or same-map gate. The
+  README feature limits now explicitly distinguish this from the player's
+  40-yard/same-map guard. The missing-doc assertion was RED, then GREEN.
+
+A fresh archive of the unchanged reviewed runtime received only the augmented
+Lua tests: Blind 33 passed / 38 failed; HopProbe 5 passed / 5 failed. These are
+actual runs, not estimated failures. The reviewer's unmodified combat,
+extra-member, converted-stop and observed-invite probes were also replayed in
+private copies: 5 failures on the reviewed runtime, 5 passes on the candidate.
+Unrelated exploratory expectations were not adopted as requirements.
+
+Self-review only (no subagent review tool). The runtime diff is limited to
+Find, HopAny, HopProbe, Main and UI. Frozen wire/budget/save-owner files and
+TOC/version are byte-identical to the reviewed head. Existing SavedVariables
+access lines are unchanged. No new public send or donor implementation.
+
+Mutation checks:
+
+- `RESULT: 64/64 Trust mutants killed` (exit 0).
+- `RESULT: 31/31 HopProbe mutants killed` (exit 0): the original 25 are
+  unchanged and still killed; six new event/text/after-snapshot rules added.
+- BlindHop initially killed 16/17. The exact-join comparison mutant survived
+  because later row projection could repair the count. Added a candidate-green
+  primitive assertion before any projection; the rerun reports
+  `RESULT: 17/17 BlindHop mutants killed` (exit 0).
+- No mutant removals. Re-anchors: none; all 64 Trust and original 25 HopProbe
+  definitions are byte-for-byte identical to their reviewed definitions.
+
+The first full gate completed with `RESULT: 2572 tests passed, 0 failed,
+670997 assertions`, but its collected harness lacked the final exact-join
+mutant control. Its log is retained; a fresh background full gate is required
+for the final augmented corpus. No runtime source changed between these gates.
+The final mutation baseline is `RESULT: 72 tests passed, 0 failed, 3959
+assertions` for Blind, and the pure HopProbe suite is 10/0 with 504 assertions.
+
+README heading check on the staged candidate README:
+
+    ok @@ -1986,3 +1986,3 @@ in: ## Layer trust and hidden IDs
+    ok @@ -2012,0 +2013,81 @@ in: ## Blind hopping and Find
+    hunks=2 version_section_hunks=0
+
+Round-1 final verification (fresh background run, polled to exit 0):
+
+- `heavy.sh python3 -I test/verify.py`
+- `RESULT: 2573 tests passed, 0 failed, 671041 assertions`
+- Confirmed the final exact-join mutant control appears in the full test output.
+- Syntax: 298 files, PASS. TOC/static checks and archive integrity/source parity:
+  PASS. Refreshed `notes/test-results.txt` and `notes/verification.json`.
+- Archive SHA-256: `12ca7f2aacf4f4bb5e1790fd852a6d663e053fc111c6a7e955c321f2f8f72c03`.
+- ASCII additions, no private paths, unchanged send sites and `git diff --check`:
+  PASS. No version, wire, budget or SavedVariables changes.
+- No open implementation questions. Not tested in game (alpha, owner's decision).

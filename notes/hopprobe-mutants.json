@@ -4,7 +4,7 @@
     "caught": true,
     "assertions": [
       "FAIL HopProbe: creature proxy at three, not two, matching NPCs and no retained spawn: test/src_hopprobe.lua:20: not equal: expected sparse, got creatures",
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Joined Host Cedar. Too little around you to tell., got Joined Host Cedar. No change seen; you may be on the same layer."
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Joined Host Cedar. Too little around you to tell., got Joined Host Cedar. No change seen; the hop may not have worked."
     ]
   },
   {
@@ -12,10 +12,8 @@
     "caught": true,
     "assertions": [
       "FAIL HopProbe: creature proxy at three, not two, matching NPCs and no retained spawn: test/src_hopprobe.lua:19: not equal: expected creatures, got sparse",
-      "FAIL HopProbe: unparseable creatures use only transfer or players, sparse is no judgement: test/src_hopprobe.lua:48: not equal: expected unchanged, got sparse",
-      "FAIL HopProbe: unreadable after snapshot disables creatures even beside matching replacements: test/src_hopprobe.lua:64: not equal: expected unchanged, got sparse",
       "FAIL HopProbe: equality uses NPC plus last spawn field, never a server field: test/src_hopprobe.lua:70: not equal: expected unchanged, got sparse",
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Hopped (layer unknown): the creatures around you changed., got Joined Host Cedar. Too little around you to tell."
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Hopped (layer unknown): the creatures around you changed., got Joined Host Cedar. Too little around you to tell."
     ]
   },
   {
@@ -23,7 +21,7 @@
     "caught": true,
     "assertions": [
       "FAIL HopProbe: players at five and one fifth, movement strictly below forty yards: test/src_hopprobe.lua:32: not equal: expected sparse, got players",
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Joined Host Cedar. Too little around you to tell., got Joined Host Cedar. No change seen; you may be on the same layer."
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Joined Host Cedar. Too little around you to tell., got Joined Host Cedar. No change seen; the hop may not have worked."
     ]
   },
   {
@@ -33,7 +31,8 @@
       "FAIL HopProbe: vertical motion also counts toward forty yards: test/src_blind_lifecycle.lua:65: not equal: expected unchanged, got sparse",
       "FAIL HopProbe: players at five and one fifth, movement strictly below forty yards: test/src_hopprobe.lua:30: not equal: expected players, got sparse",
       "FAIL HopProbe: unparseable creatures use only transfer or players, sparse is no judgement: test/src_hopprobe.lua:43: not equal: expected unchanged, got sparse",
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Hopped (layer unknown): the players around you changed., got Joined Host Cedar. Too little around you to tell."
+      "FAIL HopProbe: empty after snapshots are sparse unless players or an event prove change: test/src_hopprobe.lua:83: readable stationary position supports vanished players: expected players, got sparse",
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Hopped (layer unknown): the players around you changed., got Joined Host Cedar. Too little around you to tell."
     ]
   },
   {
@@ -43,7 +42,7 @@
       "FAIL HopProbe: vertical motion also counts toward forty yards: test/src_blind_lifecycle.lua:66: not equal: expected players, got unchanged",
       "FAIL HopProbe: players at five and one fifth, movement strictly below forty yards: test/src_hopprobe.lua:30: not equal: expected players, got unchanged",
       "FAIL HopProbe: unparseable creatures use only transfer or players, sparse is no judgement: test/src_hopprobe.lua:44: not equal: expected players, got unchanged",
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Hopped (layer unknown): the players around you changed., got Joined Host Cedar. No change seen; you may be on the same layer."
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Hopped (layer unknown): the players around you changed., got Joined Host Cedar. No change seen; the hop may not have worked."
     ]
   },
   {
@@ -80,7 +79,8 @@
     "rule": "event-removed",
     "caught": true,
     "assertions": [
-      "FAIL HopProbe: unparseable creatures use only transfer or players, sparse is no judgement: test/src_hopprobe.lua:46: transfer is independent evidence: expected creatures, got sparse"
+      "FAIL HopProbe: unparseable creatures use only transfer or players, sparse is no judgement: test/src_hopprobe.lua:46: transfer is independent evidence: expected transfer, got sparse",
+      "FAIL HopProbe: empty after snapshots are sparse unless players or an event prove change: test/src_hopprobe.lua:84: not equal: expected transfer, got sparse"
     ]
   },
   {
@@ -94,7 +94,7 @@
     "rule": "after-unparsed",
     "caught": true,
     "assertions": [
-      "FAIL HopProbe: unreadable after snapshot disables creatures even beside matching replacements: test/src_hopprobe.lua:64: not equal: expected unchanged, got creatures"
+      "FAIL HopProbe: unreadable after snapshot disables creatures even beside matching replacements: test/src_hopprobe.lua:64: not equal: expected sparse, got creatures"
     ]
   },
   {
@@ -103,14 +103,15 @@
     "assertions": [
       "FAIL HopProbe: creature proxy at three, not two, matching NPCs and no retained spawn: test/src_hopprobe.lua:21: not equal: expected unchanged, got creatures",
       "FAIL HopProbe: equality uses NPC plus last spawn field, never a server field: test/src_hopprobe.lua:70: not equal: expected unchanged, got creatures",
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Joined Host Cedar. No change seen; you may be on the same layer., got Hopped (layer unknown): the creatures around you changed."
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Joined Host Cedar. No change seen; the hop may not have worked., got Hopped (layer unknown): the creatures around you changed."
     ]
   },
   {
     "rule": "matching-npc",
     "caught": true,
     "assertions": [
-      "FAIL HopProbe: creature proxy at three, not two, matching NPCs and no retained spawn: test/src_hopprobe.lua:25: not equal: expected unchanged, got creatures"
+      "FAIL HopProbe: creature proxy at three, not two, matching NPCs and no retained spawn: test/src_hopprobe.lua:25: not equal: expected unchanged, got creatures",
+      "FAIL HopProbe: empty after snapshots are sparse unless players or an event prove change: test/src_hopprobe.lua:81: not equal: expected sparse, got creatures"
     ]
   },
   {
@@ -139,12 +140,10 @@
     "caught": true,
     "assertions": [
       "FAIL HopProbe: creature proxy at three, not two, matching NPCs and no retained spawn: test/src_hopprobe.lua:19: not equal: expected creatures, got sparse",
-      "FAIL HopProbe: unparseable creatures use only transfer or players, sparse is no judgement: test/src_hopprobe.lua:48: not equal: expected unchanged, got sparse",
       "FAIL HopProbe: snapshots dedupe and never infer players from unreadable flags: test/src_hopprobe.lua:57: not equal: expected 1, got 0",
-      "FAIL HopProbe: unreadable after snapshot disables creatures even beside matching replacements: test/src_hopprobe.lua:64: not equal: expected unchanged, got sparse",
       "FAIL HopProbe: equality uses NPC plus last spawn field, never a server field: test/src_hopprobe.lua:70: not equal: expected unchanged, got sparse",
       "FAIL HopProbe: bounded snapshot includes all forty two tokens, not a forty third: test/src_hopprobe.lua:75: not equal: expected 21, got 0",
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Hopped (layer unknown): the creatures around you changed., got Joined Host Cedar. Too little around you to tell."
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Hopped (layer unknown): the creatures around you changed., got Joined Host Cedar. Too little around you to tell."
     ]
   },
   {
@@ -162,44 +161,87 @@
       "FAIL HopProbe: creature proxy at three, not two, matching NPCs and no retained spawn: test/src_hopprobe.lua:21: not equal: expected unchanged, got sparse",
       "FAIL HopProbe: players at five and one fifth, movement strictly below forty yards: test/src_hopprobe.lua:31: not equal: expected unchanged, got sparse",
       "FAIL HopProbe: unparseable creatures use only transfer or players, sparse is no judgement: test/src_hopprobe.lua:43: not equal: expected unchanged, got sparse",
-      "FAIL HopProbe: unreadable after snapshot disables creatures even beside matching replacements: test/src_hopprobe.lua:64: not equal: expected unchanged, got sparse",
       "FAIL HopProbe: equality uses NPC plus last spawn field, never a server field: test/src_hopprobe.lua:70: not equal: expected unchanged, got sparse",
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Joined Host Cedar. No change seen; you may be on the same layer., got Joined Host Cedar. Too little around you to tell."
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Joined Host Cedar. No change seen; the hop may not have worked., got Joined Host Cedar. Too little around you to tell."
     ]
   },
   {
     "rule": "result-creatures",
     "caught": true,
     "assertions": [
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Hopped (layer unknown): the creatures around you changed., got Hopped (layer unknown): the creatures around you changed!"
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Hopped (layer unknown): the creatures around you changed., got Hopped (layer unknown): the creatures around you changed!"
     ]
   },
   {
     "rule": "result-players",
     "caught": true,
     "assertions": [
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Hopped (layer unknown): the players around you changed., got Hopped (layer unknown): the players around you changed!"
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Hopped (layer unknown): the players around you changed., got Hopped (layer unknown): the players around you changed!"
     ]
   },
   {
     "rule": "result-unchanged",
     "caught": true,
     "assertions": [
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Joined Host Cedar. No change seen; you may be on the same layer., got Joined Host Cedar. No change found; you may be on the same layer."
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Joined Host Cedar. No change seen; the hop may not have worked., got Joined Host Cedar. No change found; the hop may not have worked."
     ]
   },
   {
     "rule": "result-sparse",
     "caught": true,
     "assertions": [
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Joined Host Cedar. Too little around you to tell., got Joined Host Cedar. Too little around you to tell!"
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Joined Host Cedar. Too little around you to tell., got Joined Host Cedar. Too little around you to tell!"
     ]
   },
   {
     "rule": "result-missed",
     "caught": true,
     "assertions": [
-      "FAIL HopProbe: exactly five result texts, no GUID digits in any result: test/src_hopprobe.lua:89: not equal: expected Host Cedar did not invite., got Host Cedar did not invite!"
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Host Cedar did not invite., got Host Cedar did not invite!"
+    ]
+  },
+  {
+    "rule": "event-outcome",
+    "caught": true,
+    "assertions": [
+      "FAIL HopProbe: unparseable creatures use only transfer or players, sparse is no judgement: test/src_hopprobe.lua:46: transfer is independent evidence: expected transfer, got creatures",
+      "FAIL HopProbe: empty after snapshots are sparse unless players or an event prove change: test/src_hopprobe.lua:84: not equal: expected transfer, got creatures"
+    ]
+  },
+  {
+    "rule": "result-transfer",
+    "caught": true,
+    "assertions": [
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Joined Host Cedar. The game reported a layer transfer., got Joined Host Cedar. The game reported a layer transfer!"
+    ]
+  },
+  {
+    "rule": "after-empty",
+    "caught": true,
+    "assertions": [
+      "FAIL HopProbe: players at five and one fifth, movement strictly below forty yards: test/src_hopprobe.lua:36: not equal: expected sparse, got unchanged",
+      "FAIL HopProbe: empty after snapshots are sparse unless players or an event prove change: test/src_hopprobe.lua:81: not equal: expected sparse, got unchanged"
+    ]
+  },
+  {
+    "rule": "after-unreadable-sparse",
+    "caught": true,
+    "assertions": [
+      "FAIL HopProbe: unreadable after snapshot disables creatures even beside matching replacements: test/src_hopprobe.lua:64: not equal: expected sparse, got unchanged"
+    ]
+  },
+  {
+    "rule": "result-unformed",
+    "caught": true,
+    "assertions": [
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Accepted Host Cedar's invite, but no group formed., got Accepted Host Cedar's invite, but no group formed!"
+    ]
+  },
+  {
+    "rule": "result-unaccepted",
+    "caught": true,
+    "assertions": [
+      "FAIL HopProbe: exact result texts, no GUID digits in any result: test/src_hopprobe.lua:102: not equal: expected Host Cedar invited; not accepted., got Host Cedar invited; not accepted!"
     ]
   }
 ]

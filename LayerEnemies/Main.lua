@@ -1929,6 +1929,11 @@ function M.blindResult(kind,name)
     if M.blindStatus then M.say("LayerEnemies: "..M.blindStatus) end
     if N.HopBar then N.HopBar.refresh() end
 end
+function M.blindExpired(p)
+    local kind=p.accepted and "unformed" or p.invited and "unaccepted" or p.auto and "missed"
+    if kind then M.blindResult(kind,p.invited or p.name) end
+    M.hopDone()
+end
 function M.blindHop(shown)
     local p=M.blindPreview()
     if not p.enabled then M.say("LayerEnemies: "..p.reason); return false end
@@ -2014,7 +2019,7 @@ function M.hopAnySchedule(r)
 end
 function M.hopAnyStop(reason)
     local flh=N.FLHMember.stop(reason)
-    if M.blindPending then
+    if M.blindPending or (M.auto and M.auto.group and M.auto.group.blind) then
         M.auto.group=nil; M.hopDone(); M.say("LayerEnemies: blind hop stopped."); flh=true
     end
     local st=M.hopAnyState
@@ -2284,6 +2289,7 @@ end
 -- Only notices a join; invites are accepted and groups are left by the user.
 -- Auto accept and leave (0.4.0): on by default, saved as LayerEnemiesDB.autoHop.
 M.AUTO_WINDOW,M.AUTO_LEAVE,M.AUTO_FAIL,M.AUTO_JOIN=120,3,30,60
+M.BLIND_PARTNERS=1
 function M.autoHop() return M.auto~=nil and M.auto.on==true end
 function M.setAutoHop(on)
     M.auto.on=on==true; if S.tab(LayerEnemiesDB) then LayerEnemiesDB.autoHop=M.auto.on end
@@ -2319,6 +2325,7 @@ function M.partyInvite(name)
         local g=M.hop.guildAsk
         if not ((g and g.answered and g.answered[short]) or listedHost(short)) then return end
     elseif short~=p.short then return end
+    if p.blind then p.invited=inviter end
     if A.grouped() or A.inInstance()~=false then return end
     if not M.autoHop() then
         if p.blind then
@@ -2330,6 +2337,7 @@ function M.partyInvite(name)
     -- the client refused or threw: the ask is spent all the same (no second try on the next invite)
     if not ok then if p.any or why=="error" then M.invite.pending=nil end; return end
     if p.flh then N.FLHMember.stop() end
+    if p.blind then p.accepted=true end
     M.invite.pending=nil   -- one accept per ask: a later invite from the same host is left to the player
     N.Wire.hideInvite()
     after(0,function() N.Wire.hideInvite() end)
@@ -2352,12 +2360,18 @@ local function hostLeads(g)
 end
 -- Leaves only the group joined through that accepted invite: led by the host, not a raid, not led by us. Leaves 3 s
 -- after our server key changes to the target (a key learned after joining), or 30 s after joining without a move.
+function M.blindLeave(g,time)
+    if A.inCombat() then return end
+    if M.autoHop() and not g.manual then N.Wire.leave(time) end
+    M.auto.group=nil; M.hopDone()
+end
 function M.autoTick()
     local g=M.auto and M.auto.group
     local pending=M.blindPending
     if not g then
         if pending and (now()<pending.at or now()-pending.at>M.AUTO_WINDOW) then
-            M.blindResult("missed",pending.name); M.hopDone()
+            -- Drafts arm only at the observed send event; silence is not a missed invite.
+            M.blindExpired(pending)
         end
         return
     end
@@ -2365,7 +2379,7 @@ function M.autoTick()
     local time=now()
     if not g.blind and not N.Trust.own(M.store,time) then
         -- No pre-ask proxy was taken for a known hop. Never invent one.
-        g.blind={before=N.HopProbe.snapshot({})}; g.check=1; g.leaveAt=nil
+        g.blind={before=N.HopProbe.snapshot({}),invited=g.host,accepted=true}; g.check=1; g.leaveAt=nil
         if g.joinedAt then
             for _,delay in ipairs(N.HopProbe.CHECKS) do
                 after(math.max(0,g.joinedAt+delay-time),function() if M.auto.group==g then guarded(M.autoTick) end end)
@@ -2376,7 +2390,10 @@ function M.autoTick()
     local grouped=S.call(IsInGroup)==true
     if not g.joinedAt then
         if not grouped then
-            if time-g.at>M.AUTO_JOIN then M.auto.group=nil end
+            if time-g.at>M.AUTO_JOIN then
+                M.auto.group=nil
+                if g.blind then M.blindExpired(g.blind) end
+            end
             return
         end
         g.joinedAt=time; g.joinKey=L.key(N.Trust.own(M.store,now()))
@@ -2391,30 +2408,25 @@ function M.autoTick()
     if not grouped or not party or party.raid~=false or party.leader or not hostLeads(g) then
         M.auto.group=nil; if g.blind then M.hopDone() end; return
     end
-    -- Never inside an instance; combat does not delay leaving the hop group.
+    -- Never inside an instance. Blind hops additionally require a hop-only party.
     if A.inInstance()~=false then M.auto.group=nil; if g.blind then M.hopDone() end; return end
     if g.blind then
+        if #party.members~=M.BLIND_PARTNERS then M.auto.group=nil; M.hopDone(); return end
         if g.leaveAt then
-            if time>=g.leaveAt then
-                if M.autoHop() and not g.manual then N.Wire.leave(time) end
-                M.auto.group=nil; M.hopDone()
-            end
+            if time>=g.leaveAt then M.blindLeave(g,time) end
             return
         end
         local due=N.HopProbe.CHECKS[g.check]
         if not due or time-g.joinedAt<due then return end
         local result=N.HopProbe.judge(g.blind.before,M.blindSnapshot(),g.transfer)
         g.check=g.check+1
-        local changed=result=="creatures" or result=="players"
+        local changed=result=="creatures" or result=="players" or result=="transfer"
         if changed or not N.HopProbe.CHECKS[g.check] then
-            if changed then N.Find.changed(M.find,time) end
+            if changed then N.Find.changed(M.find,g.joinedAt) end
             M.blindResult(result,g.host)
             g.leaveAt=changed and time+M.AUTO_LEAVE or time
             after(changed and M.AUTO_LEAVE or 0,function() if M.auto.group==g then guarded(M.autoTick) end end)
-            if not changed then
-                if M.autoHop() and not g.manual then N.Wire.leave(time) end
-                M.auto.group=nil; M.hopDone()
-            end
+            if not changed then M.blindLeave(g,time) end
         end
         return
     end
@@ -3270,7 +3282,7 @@ end
 local frame=CreateFrame("Frame")
 M.frame=frame
 frame:Hide()
-for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_LOGOUT","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","BN_FRIEND_LIST_SIZE_CHANGED","BN_FRIEND_INFO_CHANGED","BN_FRIEND_ACCOUNT_ONLINE","BN_FRIEND_ACCOUNT_OFFLINE","CLUB_MEMBER_PRESENCE_UPDATED","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
+for _,event in ipairs({"ADDON_LOADED","PLAYER_LOGIN","PLAYER_LOGOUT","PLAYER_ENTERING_WORLD","ZONE_CHANGED_NEW_AREA","ZONE_CHANGED","SHARD_TRANSFER","PLAYER_TARGET_CHANGED","UNIT_TARGET","UPDATE_MOUSEOVER_UNIT","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","CHAT_MSG_ADDON","BN_CHAT_MSG_ADDON","BN_FRIEND_LIST_SIZE_CHANGED","BN_FRIEND_INFO_CHANGED","BN_FRIEND_ACCOUNT_ONLINE","BN_FRIEND_ACCOUNT_OFFLINE","CLUB_MEMBER_PRESENCE_UPDATED","WHO_LIST_UPDATE","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","GROUP_ROSTER_UPDATE","GUILD_ROSTER_UPDATE","PARTY_INVITE_REQUEST","CHAT_MSG_WHISPER_INFORM","CHAT_MSG_GUILD","PLAYER_GUILD_UPDATE","CHAT_MSG_CHANNEL_NOTICE","CHAT_MSG_SYSTEM","PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST"}) do
     pcall(frame.RegisterEvent,frame,event)
 end
 local function dispatch(_,event,...)
@@ -3298,6 +3310,8 @@ local function dispatch(_,event,...)
     elseif event=="WHO_LIST_UPDATE" then guarded(M.hopAnyWho)
     elseif event=="PLAYER_REGEN_DISABLED" then
         if N.WarBoardTrack then N.WarBoardTrack.stop() end
+    elseif event=="PLAYER_REGEN_ENABLED" then
+        if M.auto and M.auto.group and M.auto.group.blind then guarded(M.autoTick) end
     elseif event=="PLAYER_DEAD" then N.OwnDeath.dead()
     elseif event=="PLAYER_ALIVE" or event=="PLAYER_UNGHOST" then N.OwnDeath.revived()
     elseif event=="CHAT_MSG_SYSTEM" then guarded(M.whisperSystem,...)

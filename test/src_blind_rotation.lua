@@ -23,11 +23,14 @@ test("Blind rotation: zone then freshness, alternate network, skip last and all 
     pick=B.blindPick(st,rows,100,true); eq(pick.name,"Host Pine")
 end)
 
-test("Blind rotation: no last-host repeat even with only one known host",function()
+test("Blind rotation: one host restarts only after the exhaustion click",function()
     local N,st=setup(); local rows={candidate("Host Fir",100,0,"LayerSwap")}
     yes(N.HopAny.blindPick(st,rows,100,true))
+    for _=1,3 do no(N.HopAny.blindPick(st,rows,100,false)) end
     local p,why=N.HopAny.blindPick(st,rows,100,true); no(p); eq(why,"all 1 known hosts tried this session")
-    no(N.HopAny.blindPick(st,rows,100,true),"last host stays skipped")
+    for _=1,3 do p=N.HopAny.blindPick(st,rows,100,false); yes(p,"restart has a candidate"); eq(p.name,"Host Fir") end
+    p=N.HopAny.blindPick(st,rows,100,true); yes(p,"only host may repeat on restart"); eq(p.name,"Host Fir")
+    p,why=N.HopAny.blindPick(st,rows,100,true); no(p); eq(why,"all 1 known hosts tried this session")
 end)
 
 test("Blind rotation: bounded session ledger, deduped names, stable tie break and preview",function()

@@ -31,7 +31,7 @@ function P.snapshot(rows,position)
     return out
 end
 function P.judge(before,after,transfer)
-    if transfer then return "creatures" end
+    if transfer then return "transfer" end
     local usable=not before.unparsed and not after.unparsed
     if usable and before.creatureCount>=P.CREATURES then
         local shared,retained=0,false
@@ -49,12 +49,16 @@ function P.judge(before,after,transfer)
             and retained*P.REMAINING_DENOMINATOR<=before.playerCount then return "players" end
     end
     if (before.unparsed or before.creatureCount<P.CREATURES) and before.playerCount<P.PLAYERS then return "sparse" end
+    if (after.unparsed or after.creatureCount==0) and after.playerCount==0 then return "sparse" end
     return "unchanged"
 end
 function P.text(result,name)
     if result=="creatures" then return "Hopped (layer unknown): the creatures around you changed." end
     if result=="players" then return "Hopped (layer unknown): the players around you changed." end
-    if result=="unchanged" then return "Joined "..name..". No change seen; you may be on the same layer." end
+    if result=="transfer" then return "Joined "..name..". The game reported a layer transfer." end
+    if result=="unchanged" then return "Joined "..name..". No change seen; the hop may not have worked." end
     if result=="sparse" then return "Joined "..name..". Too little around you to tell." end
     if result=="missed" then return name.." did not invite." end
+    if result=="unformed" then return "Accepted "..name.."'s invite, but no group formed." end
+    if result=="unaccepted" then return name.." invited; not accepted." end
 end

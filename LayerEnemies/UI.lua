@@ -151,7 +151,7 @@ function U.render()
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
     U.hopAny:SetShown(U.tab=="friendly" or not known)
     local hop=N.Main.hopAnyPreview()
-    U.hopAny.label:SetText(hop.label); U.hopAny.reason=(not known and hop.detail or hop.reason) or false; U.hopAny.round=hop.round or false; U.hopAny.preview=hop
+    U.hopAny.label:SetText(hop.label); U.hopAny.reason=(hop.enabled and hop.detail or hop.reason) or false; U.hopAny.round=hop.round or false; U.hopAny.preview=hop
     if hop.enabled then U.hopAny:Enable() else U.hopAny:Disable() end
     U.findHosts:SetShown(U.tab=="friendly")
     local wait=N.Hosts.askWait(M.heard,time)

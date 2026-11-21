@@ -20,7 +20,7 @@ function H.blindPick(st,rows,zone,commit)
     local alternate=false
     for _,c in ipairs(all) do
         local old=b.tried[c.short]
-        if c.short~=b.last and (not old or old.cycle~=cycle) then
+        if (c.short~=b.last or #all==1) and (not old or old.cycle~=cycle) then
             eligible[#eligible+1]=c
             if c.source~=b.network then alternate=true end
         end

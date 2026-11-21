@@ -35,6 +35,12 @@ MUTANTS = [
     ('result-unchanged', 'No change seen;', 'No change found;'),
     ('result-sparse', 'Too little around you to tell.', 'Too little around you to tell!'),
     ('result-missed', ' did not invite.', ' did not invite!'),
+    ('event-outcome', 'if transfer then return "transfer" end', 'if transfer then return "creatures" end'),
+    ('result-transfer', 'The game reported a layer transfer.', 'The game reported a layer transfer!'),
+    ('after-empty', 'after.creatureCount==0', 'false'),
+    ('after-unreadable-sparse', '(after.unparsed or after.creatureCount==0)', '(after.creatureCount==0)'),
+    ('result-unformed', 'invite, but no group formed.', 'invite, but no group formed!'),
+    ('result-unaccepted', ' invited; not accepted.', ' invited; not accepted!'),
 ]
 
 

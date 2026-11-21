@@ -80,7 +80,7 @@ test("Blind live: snapshot before ask, only allowed units, checks at five fiftee
     H.advance(9.99); eq(takes,2); H.advance(.01); eq(takes,3)
     H.advance(14.99); eq(takes,3); H.advance(.01); eq(takes,4)
     eq(H.leaves(),1)
-    eq(N.HopBar.statusText(),"Joined Host Cedar. No change seen; you may be on the same layer.")
+    eq(N.HopBar.statusText(),"Joined Host Cedar. No change seen; the hop may not have worked.")
     no(M.error)
 end)
 
@@ -97,7 +97,7 @@ for _,case in ipairs({{"creatures",3,0},{"players",0,5},{"sparse",2,0},{"transfe
         if changed then H.advance(2.99); eq(H.leaves(),0); H.advance(.06)
         else H.advance(10); eq(H.leaves(),0); H.advance(15) end
         eq(H.leaves(),1)
-        local result=case[1]=="transfer" and "creatures" or case[1]
+        local result=case[1]
         eq(N.HopBar.statusText(),N.HopProbe.text(result,"Host Cedar"))
         for i=mark+1,#H.log() do no(H.log()[i]:find("987654",1,true)); no(H.log()[i]:find("876543",1,true)) end
         no(M.error)

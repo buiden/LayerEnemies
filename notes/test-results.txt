@@ -1340,11 +1340,49 @@ PASS Blind live: leave guard manual is preserved
 PASS Blind live: B10 ends an existing layered round at trust transition with exact message
 PASS Blind live: B9 unconstrained host asks invite; named layers and same never answered
 PASS Blind rotation: zone then freshness, alternate network, skip last and all tried
-PASS Blind rotation: no last-host repeat even with only one known host
+PASS Blind rotation: one host restarts only after the exhaustion click
 PASS Blind rotation: bounded session ledger, deduped names, stable tie break and preview
 PASS Blind rotation: host union keeps networks, unknown keys, other zones and no relays
 PASS Blind rotation: existing table nonhosts remain candidates and row cap favors current zone
 PASS Blind rotation: unconstrained builder has no layer, exact existing fallback shape
+PASS Blind R1 draft: whisper sent=false expires honestly
+PASS Blind R1 draft: whisper sent=true expires honestly
+PASS Blind R1 draft: guild sent=false expires honestly
+PASS Blind R1 draft: guild sent=true expires honestly
+PASS Blind R1 invite: observed without group accepted never becomes missed
+PASS Blind R1 invite: observed without group manual never becomes missed
+PASS Blind R1 invite: observed without group refused never becomes missed
+PASS Blind R1 invite: observed without group off-after-accept never becomes missed
+PASS Blind R1 invite: known acceptance converted before group keeps invite evidence
+PASS Blind R1 snapshot: empty after join reports too little
+PASS Blind R1 snapshot: hidden after join reports too little
+PASS Blind R1 snapshot: throwing after join reports too little
+PASS Blind R1 tooltip: disabled button explains group
+PASS Blind R1 tooltip: disabled button explains instance
+PASS Blind R1 tooltip: disabled button explains pending
+PASS Blind R1 tooltip: disabled button explains cooldown
+PASS Blind R1 stop: accepted known hop converted to blind is cancelled
+PASS Blind R1 leave: changed=false guard=combat
+PASS Blind R1 leave: changed=false guard=unknown-combat
+PASS Blind R1 leave: changed=false guard=extra-member
+PASS Blind R1 leave: changed=false guard=extra-while-waiting
+PASS Blind R1 leave: changed=true guard=combat
+PASS Blind R1 leave: changed=true guard=unknown-combat
+PASS Blind R1 leave: changed=true guard=extra-member
+PASS Blind R1 leave: changed=true guard=extra-while-waiting
+PASS Blind R1 Find: exact-join sighting suppresses the count before any projection
+PASS Blind R1 Find: own sighting after join at 0 is not a missed hop
+PASS Blind R1 Find: own sighting after join at 2 is not a missed hop
+PASS Blind R1 Find: own sighting after join at 6 is not a missed hop
+PASS Blind R1 Find: own sighting before join still counts and late post-join replay resets
+PASS Blind R1 Find: report sighting after join at 0 is not a missed hop
+PASS Blind R1 Find: report sighting after join at 2 is not a missed hop
+PASS Blind R1 Find: report sighting after join at 6 is not a missed hop
+PASS Blind R1 Find: report sighting before join still counts and late post-join replay resets
+PASS Blind R1 Find: hash sighting after join at 0 is not a missed hop
+PASS Blind R1 Find: hash sighting after join at 2 is not a missed hop
+PASS Blind R1 Find: hash sighting after join at 6 is not a missed hop
+PASS Blind R1 Find: hash sighting before join still counts and late post-join replay resets
 PASS Blind UI: one Hop button on all tabs, exact tooltip, no row hop buttons
 PASS Blind UI: painted candidate cannot silently change before bar or button click
 PASS Blind UI: existing layered report and host entrypoints become blind, never layered requests
@@ -1642,7 +1680,8 @@ PASS HopProbe: snapshots dedupe and never infer players from unreadable flags
 PASS HopProbe: unreadable after snapshot disables creatures even beside matching replacements
 PASS HopProbe: equality uses NPC plus last spawn field, never a server field
 PASS HopProbe: bounded snapshot includes all forty two tokens, not a forty third
-PASS HopProbe: exactly five result texts, no GUID digits in any result
+PASS HopProbe: empty after snapshots are sparse unless players or an event prove change
+PASS HopProbe: exact result texts, no GUID digits in any result
 PASS Layer A5: rotating NPC identifiers update confirmed key without wipes
 PASS Layer A5: rotating Bulo IDs and donor transfer notifications wipe nothing
 PASS Layer A5: real PLAYER_ENTERING_WORLD same zone
@@ -2620,4 +2659,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2534 tests passed, 0 failed, 668976 assertions
+RESULT: 2573 tests passed, 0 failed, 671041 assertions

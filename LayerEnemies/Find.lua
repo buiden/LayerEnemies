@@ -167,8 +167,11 @@ local function location(e,name,realmUnknown)
     return loc
 end
 local function searchSeen(st,name,at)
-    local h=st.search[name]
-    if h and at and at>=h.at then h.count=0 end
+    if not at then return end
+    local h=st.search[name] or {count=0}
+    h.seenAt=math.max(h.seenAt or at,at)
+    if h.at and at>=h.at then h.count=0 end
+    st.search[name]=h
 end
 local function remember(st,entry,e)
     if not e then return end
@@ -269,10 +272,11 @@ local function project(st,loc,now,zone,sameSpotter,ownKey)
     return row
 end
 -- Counts our successful proxy observations, not distinct or identified layers.
-function F.changed(st,now)
+function F.changed(st,joinedAt)
     for _,name in ipairs(st.names) do
         local h=st.search[name] or {count=0}
-        h.count=h.count+1; h.at=now; st.search[name]=h
+        h.count=h.seenAt and h.seenAt>=joinedAt and 0 or h.count+1
+        h.at=joinedAt; st.search[name]=h
     end
 end
 function F.rows(st,now,zone,sameSpotter,ownKey)
@@ -351,7 +355,7 @@ function F.rows(st,now,zone,sameSpotter,ownKey)
             local at=seen and seen.at
             if otherSeen and (not at or otherSeen.at>at) then at=otherSeen.at end
             if loc and loc.kind~="claim" and (not at or loc.at>at) then at=loc.at end
-            if at and at>=h.at then h.count=0 end
+            if at and h.at and at>=h.at then h.count=0 end
             if h.count>0 then row.search="not seen on "..h.count.." layers tried" end
         end
         out[#out+1]=row
