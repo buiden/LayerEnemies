@@ -1,5 +1,61 @@
 # LayerEnemies
 
+## 1.3.0
+
+### Layer IDs you can trust, and hopping when they are hidden
+
+If Blizzard hides or scrambles layer IDs, LayerEnemies now notices, stops showing layer numbers it
+cannot trust, and still lets you hop.
+
+**Layer fixes**
+
+- Your own layer is forgotten after 5 minutes without a fresh reading, instead of being shown stale.
+- A layer of `0` now means "unknown" everywhere.
+- A report with a broken layer field keeps its other details (name, zone, position) instead of
+  being dropped.
+- A guild host no longer answers when your layer is ambiguous.
+- Enemy lists are cleared only on a real move: entering the world, a shard transfer, a zone
+  change, or a confirmed layer change within 10 seconds of joining or leaving a group. Other
+  layer changes no longer wipe what you have seen.
+- A sighting is tied to the exact layer it was made on; after a layer change Find shows "seen by
+  you" and sends no layer.
+
+**Blind mode**
+
+- When layer IDs look unreliable (stale or failing reads, three unexplained layer changes in 10
+  minutes, or a fresh group or hop contradiction), LayerEnemies switches to **blind mode** and
+  prints one chat line saying why.
+- In blind mode layer numbers are hidden, not greyed; layers others report are treated as unknown;
+  your own messages carry no layer; FLH presence and guild host adverts stop. Guild hosts keep
+  inviting.
+- `/le blind on` hides layer IDs now, `/le blind off` clears blind mode, `/le blind auto` returns
+  to automatic detection. Blind mode lasts for the session only; nothing is saved.
+
+**Blind hop**
+
+- With layer IDs hidden, the window shows one **Hop (blind)** button and the hop bar shows
+  `layer hidden`; a click asks one host (LayerSwap, FLH, Bulo or a guild host) for an invite.
+- One ask per click: no WHO search, no fan-out, no retry, nothing sent to public channels. Hosts
+  are rotated so the same one is not asked twice in a row; when all have been tried, it says so and
+  starts over.
+- Auto-accept takes only the invite from the host you asked.
+- After joining, it compares the creatures and players around you before and after (at 5, 15 and
+  30 seconds) and tells you what it saw, for example "Hopped (layer unknown): the creatures around
+  you changed." or "No change seen; the hop may not have worked." It never claims a layer number.
+- **Find** rows show "not seen on N layers tried" after hops that changed your surroundings
+  without the tracked player turning up.
+
+**Known limits**
+
+- The "changed" check is a guess from what is visible around you, not proof of a new layer;
+  walking far away can look like a change.
+- The blind-mode thresholds are estimates, not in-game measurements. On a client where IDs look
+  plausible but are wrong, use `/le blind on`.
+- In one rare order (auto off, invite, auto on or off, manual accept) the hop bar can show
+  "invited; not accepted" even though you joined.
+
+**Not tested in game (alpha, owner's decision).**
+
 ## 1.2.6
 
 ### Hop in combat (escape a gank)

@@ -10,7 +10,7 @@ local function requests(prefix,tag)
 end
 local function flhHosts(N)
     N.Net.SHIP.flh=true -- the common loader silences source sends for unrelated tests
-    C_AddOns.GetAddOnMetadata=function() return "1.2.6" end
+    C_AddOns.GetAddOnMetadata=function() return "1.3.0" end
     for i=1,10 do
         H.deliver("CHAT_MSG_ADDON","FLHNET2","HI|100|"..(10+i).."|1|0.1.3|1234","WHISPER","Host "..H.abc(i))
     end

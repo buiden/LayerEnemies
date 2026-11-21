@@ -14,7 +14,7 @@ local function setup(testEngine)
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
     UnitName=function() return "Alice Vale",GetRealmName() end
-    C_AddOns.GetAddOnMetadata=function() return "1.2.6" end
+    C_AddOns.GetAddOnMetadata=function() return "1.3.0" end
     return N
 end
 local serial=0
@@ -78,7 +78,7 @@ test("honest advert omits unsupported ranking page capabilities",function()
     local N=setup(false);N.Adapters.groupNames=function() return {} end;hear("NH","2.5.4~ld~lr~lp6",nil,"WHISPER")
     local hello=H.sent()[1];yes(hello)
     local payload=hello.text:match("|NH|(.*)$")
-    eq(payload,"LayerEnemies 1.2.6","no unsupported paged ranking claim")
+    eq(payload,"LayerEnemies 1.3.0","no unsupported paged ranking claim")
     eq(donorCapability(payload),5,"known client would be refused; feed sources hear no NH")
 end)
 
@@ -95,7 +95,7 @@ end)
 
 test("empty comparison never claims equality to nonempty requester",function()
     local N=setup(false);local P=N.OverlordPeer;local st=P.new()
-    local c={now=100,wall=1700000000,pool="global",me="Alice Vale",version="1.2.6",faction="A",allowed=true,own=true,out={}}
+    local c={now=100,wall=1700000000,pool="global",me="Alice Vale",version="1.3.0",faction="A",allowed=true,own=true,out={}}
     c.send=function(_,text) c.out[#c.out+1]={text=text};return true end
     local p={origin="Birch Scout",hops=0,target=c.me,kind="HR",payload="8:V:1699488000:123n4n5f:1:LK:9:7:H"}
     P.receive(st,p,"WHISPER",p.origin,nil,c);eq(#c.out,1)
@@ -139,7 +139,7 @@ end)
 
 local function model(N,count,route)
     local P,Q=N.OverlordPeer,N.OverlordFeed;local peer,st=P.new(),Q.new();peer.feed=st
-    local c={now=100,wall=1700000000,pool="global",me="Alice Vale",version="1.2.6",faction="A",
+    local c={now=100,wall=1700000000,pool="global",me="Alice Vale",version="1.3.0",faction="A",
         allowed=true,own=true,stopAllowed=true,groups={},guildNames={},friends={},out={},offers={},tracked=function() return true end}
     c.offer=function(v) c.offers[#c.offers+1]=v;return true end
     c.online=function(id) for _,f in ipairs(c.friends) do if f.id==id then return f end end end
