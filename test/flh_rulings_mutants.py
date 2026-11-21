@@ -13,9 +13,9 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 HELPERS = runpy.run_path(str(ROOT / 'test/flh_member_mutants.py'))
 MUTANTS = [
-    ('S1-shared-burst', 'lua', [('LayerEnemies/Wire.lua', 'all.tokens<1+reserve or #allTimes', 'false or #allTimes')]),
-    ('S1-shared-minute', 'lua', [('LayerEnemies/Wire.lua', 'or #allTimes>=ALL_MINUTE-reserve', 'or false')]),
-    ('S1-shared-accounting', 'lua', [('LayerEnemies/Wire.lua', 'all.tokens=all.tokens-1; allTimes[#allTimes+1]=now', '-- no global accounting')]),
+    ('S1-shared-burst', 'lua', [('LayerEnemies/Wire.lua', 'all.tokens<cost*(1+reserve) or #allTimes', 'false or #allTimes')]),
+    ('S1-shared-minute', 'lua', [('LayerEnemies/Wire.lua', 'or #allTimes>=cap(ALL_MINUTE)-reserve', 'or false')]),
+    ('S1-shared-accounting', 'lua', [('LayerEnemies/Wire.lua', 'all.tokens=all.tokens-cost; allTimes[#allTimes+1]=now', '-- no global accounting')]),
     ('S1-owed-priority', 'lua', [('LayerEnemies/Wire.lua', 'local reserve=tag=="WP" and Wr.FLH_REPLIES or 0', 'local reserve=0')]),
     ('S2-stay-joined', 'lua', [
         ('LayerEnemies/Directory.lua', 'N.Main.sharing() and (joined[key] or N.FLHMember.allowed("WHISPER","WP"))', 'N.FLHMember.allowed("WHISPER","WP")'),

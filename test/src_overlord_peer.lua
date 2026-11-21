@@ -16,7 +16,7 @@ local function hear(id,kind,body,route,name,target,path)
     H.deliver("CHAT_MSG_ADDON","OverlordF","BF:"..id..":1:1:"..w,route or "WHISPER",name or "Birch Scout")
 end
 local function ctx(N)
-    return {now=100,wall=1700000000,pool="global",me="Alice Vale",version="1.3.0",faction="A",
+    return {now=100,wall=1700000000,pool="global",me="Alice Vale",version="1.3.1",faction="A",
         allowed=true,own=true,guild=true,group="PARTY",friends={},directory={},out={},
         send=function(c,text,route,target,prio) c.out[#c.out+1]={text=text,route=route,target=target,prio=prio,at=c.now}; return true end}
 end
@@ -25,7 +25,7 @@ H.overlordPeer={setup=setup,packet=packet,hear=hear,ctx=ctx}
 local function enable(N)
     N.Net.SHIP.overlord=true
     UnitName=function() return "Alice Vale",GetRealmName() end
-    C_AddOns.GetAddOnMetadata=function() return "1.3.0" end
+    C_AddOns.GetAddOnMetadata=function() return "1.3.1" end
     N.Main.overlordPeer=N.OverlordPeer.new()
 end
 H.overlordPeer.enable=enable
@@ -50,7 +50,7 @@ test("real whisper owes one truthful reply; no forwarding or bypass",function()
     local N=setup();enable(N)
     hear("hi","NH","2.5.4",nil,nil,"Alice Vale")
     local out=onlySent();eq(#out,1);eq(out[1].kind,"WHISPER");eq(out[1].target,"Birch Scout")
-    yes(out[1].text:find("|Alice Vale|NH|LayerEnemies 1.3.0",1,true))
+    yes(out[1].text:find("|Alice Vale|NH|LayerEnemies 1.3.1",1,true))
     hear("hi","NH","2.5.4",nil,nil,"Alice Vale");eq(#onlySent(),1)
     hear("relay","NH","2.5.4",nil,nil,"Alice Vale","Origin Scout,Birch Scout");eq(#onlySent(),1)
     hear("unaddressed","NH","2.5.4");eq(#onlySent(),1)
@@ -385,7 +385,7 @@ end)
 test("pure peer announces own truthful identity and answers targeted NH",function()
     local N=setup();yes(N.OverlordPeer,"peer exists")
     local P=N.OverlordPeer;local s=P.new();local c=ctx(N)
-    P.tick(s,c);eq(#c.out,2);yes(c.out[1].text:find("LayerEnemies 1.3.0",1,true))
+    P.tick(s,c);eq(#c.out,2);yes(c.out[1].text:find("LayerEnemies 1.3.1",1,true))
     P.receive(s,{origin="Birch Scout",target=c.me,hops=0,kind="NH",payload="2.5.4"},"WHISPER","Birch Scout",nil,c)
     eq(#c.out,3);eq(c.out[3].route,"WHISPER");eq(c.out[3].target,"Birch Scout");eq(c.out[3].prio,"owed")
     no(c.out[3].text:find("2.5.4",1,true));eq(c.out[3].text:match("~.*$"),nil)

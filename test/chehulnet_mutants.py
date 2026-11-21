@@ -40,8 +40,10 @@ MUTANTS = [
     ('same-map comparison', CORE, 'r.map==myMap and r.zone', 'r.zone'),
     ('own UID required', CORE, 'myMap and myZone and', 'myMap and'),
     ('ambiguity withholds relation', CORE, 'if comparable and myMap', 'if true and myMap'),
-    ('live-map safety', CORE, 'map==M.store.zone and number(M.store.zoneUID,99999999)', 'number(M.store.zoneUID,99999999)'),
-    ('clock required for comparison', CORE, 'local amb=true', 'local amb=false'),
+    ('live-map safety', CORE, 'map==M.store.zone and number(uid,99999999)', 'number(uid,99999999)'),
+    # Trust.own also withholds UID without a clock; restore a stale-clock
+    # fallback to exercise the original no-clock comparison defect.
+    ('clock required for comparison', CORE, 'local now=S.num(S.call(GetTime))', 'local now=S.num(S.call(GetTime)) or (M.store.trust and M.store.trust.at)'),
     ('combat gate', CORE, 'not N.Adapters.inCombat() and ', ''),
     ('instance gate', CORE, 'N.Adapters.inInstance()==false', 'true'),
     ('ignore gate', CORE, 'or A.ignored(sender)', ''),
@@ -56,7 +58,7 @@ MUTANTS = [
     ('other-layer hints only', CORE, 'if ally.rel=="other" then', 'if true then'),
     ('HELLO wording is a claim', CORE, 'other layer (ChehulNet claim)', 'layer differs, confirmed'),
     ('preserve host capabilities', CORE, 'row.chehulText=', 'row.layer=tostring(ally.zone); row.chehulText='),
-    ('no hint Ask', 'UI.lua', 'if e.chehulHint then askState(r,nil)', 'if e.chehulHint then askState(r,e.name,"Ask for invite")'),
+    ('no hint Ask', 'UI.lua', 'if not known or e.chehulHint then askState(r,nil)', 'if not known then askState(r,nil) elseif e.chehulHint then askState(r,e.name,"Ask for invite")'),
     ('measure annotation before paging', 'UI.lua', 'if e.chehulText and not e.chehulHint then text=text.."\\n"..e.chehulText end', '-- annotation measured too late'),
     ('measure real text height', 'UI.lua', 'U.measure:SetText(text)\n        local layout=', 'U.measure:SetText(e.chehulText and "short" or text)\n        local layout='),
     ('layer command distinct count', CORE, 'S.count(layers).." distinct layers', '#rows.." distinct layers'),

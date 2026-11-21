@@ -6300,16 +6300,22 @@ test("own identity: unreadable or ambiguous own data fails closed and recovers w
         {"Fable Reed-8124",nil,"8123"},{"Fable","Reed-8123","8123"},{"Fable","Reed-8124","8123"}}
     for _,shape in ipairs(cases) do
         local N=loadAddon(); ownShape(shape[1],shape[2],shape[3])
-        eq(N.Main.weName(),nil,"unavailable identity")
-        no(N.Main.isMe("Fable")); no(N.Main.isMe("Fable Reed"))
-        local ok,why=N.Adapters.policy("WEFF1","GUILD","Other Scout"); no(ok); eq(why,"own identity unavailable")
+        local ok,why=N.Adapters.policy("WEFF1","GUILD","Other Scout")
+        if shape[3]==nil or rawequal(shape[3],secret) then
+            eq(N.Main.weName(),"Fable Reed","realm is optional, name is readable")
+            no(N.Main.isMe("Fable")); yes(N.Main.isMe("Fable Reed")); yes(ok)
+        else
+            eq(N.Main.weName(),nil,"unavailable identity")
+            no(N.Main.isMe("Fable")); no(N.Main.isMe("Fable Reed"))
+            no(ok); eq(why,"own identity unavailable")
+        end
         ownShape("Fable","Reed","8123"); yes(N.Main.isMe("Fable Reed")); no(N.Main.isMe("Fable"))
     end
     local N=loadAddon(); ownShape("Fable","Reed","8123")
     UnitName=function() error("unavailable") end
     eq(N.Main.weName(),nil); no(N.Adapters.policy("WEFF1","GUILD","Other Scout"))
     ownShape("Fable","Reed","8123"); GetRealmName=function() error("unavailable") end
-    eq(N.Main.weName(),nil); no(N.Adapters.policy("WEFF1","GUILD","Other Scout"))
+    eq(N.Main.weName(),"Fable Reed"); yes(N.Adapters.policy("WEFF1","GUILD","Other Scout"))
     ownShape("Fable Reed","Reed","Reed"); eq(N.Main.weName(),"Fable Reed","complete name removes surname/realm ambiguity")
 end)
 for _,wrapper in ipairs({{kind="G",route="GUILD"},{kind="X",route="PARTY"},{kind="X",route="RAID"},{kind="W",route="WHISPER"}}) do
@@ -6363,10 +6369,12 @@ test("own identity: unknown identity refuses LEGW1 reports, control and LFSw cla
         deliver("CHAT_MSG_ADDON","LEGW1",line,"GUILD","Other Scout")
         local own=N.Relay.ownLine({rid=1,zone=100,layer="7086",count=1,enemies={{name="Cedar Vale"}}}); yes(own)
         deliver("CHAT_MSG_ADDON","LEGW1",own,"GUILD","Other Scout")
-        eq(#N.Store.rows(N.Main.store,clock,"reported"),0,"unknown is not a different player")
+        eq(#N.Store.rows(N.Main.store,clock,"reported"),shape[3]==nil and 1 or 0,"only unavailable names refuse others")
         deliver("CHAT_MSG_ADDON","LEGW1","H|1|9000|100","GUILD","Other Scout")
         deliver("CHAT_MSG_ADDON","LFSw","L 9000|100|h","GUILD","Other Scout")
-        eq(next(N.Main.heard.heard),nil); eq(next(N.Main.guildLines),nil); eq(#sent,0); no(N.Main.error)
+        if shape[3]==nil then yes(next(N.Main.heard.heard)); yes(next(N.Main.guildLines))
+        else eq(next(N.Main.heard.heard),nil); eq(next(N.Main.guildLines),nil) end
+        eq(#sent,0); no(N.Main.error)
     end
 end)
 test("own identity: HeadHunter and Spy receive gates use the same split full name",function()
@@ -7054,7 +7062,9 @@ test("OpenMap own identity and ignores fail closed then recover",function()
     for _,who in ipairs({"Fable Reed","Fable Reed-8123"}) do noEffect(N,function() om(nil,"GUILD",who) end) end
     N.Main.track("Cedar Vale")
     for _,shape in ipairs({{nil,"Reed","8123"},{"Fable",secret,"8123"},{"Fable","Reed","Reed"},{"Fable","Reed",nil}}) do
-        ownShape(shape[1],shape[2],shape[3]); noEffect(N,function() om() end)
+        ownShape(shape[1],shape[2],shape[3])
+        if shape[3]==nil then om(); yes(N.Main.find.places["Cedar Vale"]); N.Main.find.places={}
+        else noEffect(N,function() om() end) end
     end
     ownShape("Fable","Reed","8123")
     clientIgnored=true; noEffect(N,function() om() end); clientIgnored=false

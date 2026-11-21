@@ -7,7 +7,7 @@ local function fixture(mode)
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
     UnitName=function() return "Alice Vale",GetRealmName() end
-    C_AddOns.GetAddOnMetadata=function() return "1.3.0" end
+    C_AddOns.GetAddOnMetadata=function() return "1.3.1" end
     -- Keep automatic channel discovery out of this directory scheduling probe.
     GetNumDisplayChannels=function() return 0 end
     IsInGuild=function() return true end

@@ -418,16 +418,26 @@ function A.bulo(epoch,now,known)
 end
 -- Wall clock, the base of both foreign lists' "at" fields.
 function A.wall() return S.num(S.call(_G.time)) end
+-- Build number is the second GetBuildInfo return. Missing/secret/error keeps
+-- legacy detection; never inspect a hidden value or confuse the TOC with build.
+function A.build()
+    local _,build=S.call(GetBuildInfo)
+    local value=S.num(build)
+    if not value then
+        local text=S.str(build,16)
+        if text and text:match("^%d+$") then value=tonumber(text) end
+    end
+    if value and value>0 and value%1==0 then return value end
+end
 -- WarBoard's pure protocol driver consumes only this guarded client snapshot.
 -- Ruleset spellings are protocol facts; unknown/numeric realm tags stay unknown.
 function A.warboardContext(receiveOnly)
     return presenceRead(function(v)
         if not receiveOnly and (A.inCombat() or A.inInstance()~=false) then return nil end
         local now,wall=S.num(v(S.call(GetTime))),S.num(v(A.wall()))
-        local realm=S.str(v(S.call(GetRealmName)),60)
         local faction=S.str(v(S.call(UnitFactionGroup,"player")),16)
         local tags={PvP="pvp",PvE="normal",RP="rp",RPPvP="rppvp",hardcore="hardcore"}
-        local rs=realm and tags[N.Directory.rulesetTag(realm)]
+        local rs=tags[N.Directory.ruleset()]
         if not now or not wall or not rs or (faction~="Alliance" and faction~="Horde") then return nil end
         local api=v(_G.C_AddOns)
         local version=S.tab(api) and S.str(v(S.call(v(api.GetAddOnMetadata),"LayerEnemies","Version")),40) or nil
@@ -527,12 +537,15 @@ function A.peerIdentity(name,realm)
         return v and N.Find.fold((v:gsub("[%s%-']",""))) or nil
     end
     local explicit=norm(realm)
+    -- Only a truly absent realm (nil or "") is realm-less; an unreadable one is not.
+    if realm~=nil and (S.secret(realm) or realm~="" and not explicit) then return nil end
     local qualified=norm(suffix)
     if suffix and (not qualified or explicit and explicit~=qualified) then return nil end
     local home=norm(S.call(GetRealmName))
     local world=qualified or explicit or home
-    if not world or not N.Invite.name(base.."-"..world) then return nil end
-    return N.Find.fold(base).."-"..world
+    local identity=base..(world and ("-"..world) or "")
+    if not N.Invite.name(identity) then return nil end
+    return N.Find.fold(identity)
 end
 function A.guildNames(canonical)
     if S.call(IsInGuild)~=true then return nil end
@@ -688,7 +701,8 @@ function A.ownIdentity()
     if not ok or S.secret(name) or S.secret(second) then return nil end
     name=S.str(name,100)
     local home=S.str(S.call(N.Invite.home),60)
-    if not name or not home then return nil end
+    -- Realm-less Forever characters still have a complete, usable name.
+    if not name then return nil end
     local _,key,full=N.Invite.name(name)
     if not key or key:find("-",1,true) then return nil end
     if second~=nil and second~="" then
@@ -696,7 +710,7 @@ function A.ownIdentity()
         if not second then return nil end
         local function norm(v) return (v:lower():gsub("[%s%-']","")) end
         local realm=S.str(S.call(GetRealmName),60)
-        local isRealm=norm(second)==norm(home) or (realm and norm(second)==norm(realm))
+        local isRealm=home and (norm(second)==norm(home) or (realm and norm(second)==norm(realm)))
         local surname=full:match("^%S+ (%S+)$")
         if isRealm then
             -- A single word plus a surname-shaped realm could be either representation: do not guess.

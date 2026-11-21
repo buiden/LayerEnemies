@@ -276,9 +276,10 @@ local function bnet(prefix,text,id)
     if prefix=="WNTDP" and not frame(text,true) then return end
     if not budget("bnet","bn:"..id,now,30) then Src.count("wanted","refused"); return end
     local peer=N.BNet.who(id)
+    local home=realm(N.Main.homeRealm())
     if not plain(peer) or not N.Invite.name(peer.name) or not S.str(peer.faction,16)
         or peer.faction==faction or (peer.faction~="Alliance" and peer.faction~="Horde")
-        or not realm(peer.realm) or realm(peer.realm)~=realm(N.Main.homeRealm()) then return end
+        or not realm(peer.realm) or (home and realm(peer.realm)~=home) then return end
     local b=text
     if prefix=="WNTDP" then b=W.join(state,"bn:"..id,text,true,now) end
     if not b then return end

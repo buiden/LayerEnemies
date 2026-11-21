@@ -115,7 +115,7 @@ function M.keyChanged(time,key,source)
     return false
 end
 function M.applyLayer(id,source)
-    if not L.key(id) then return end
+    if N.Trust.hidden(M.store) or not L.key(id) then return end
     local time=now()
     groupTransition()
     M.layerReadAt=time
@@ -197,7 +197,7 @@ function M.poll()
             M.queuePoll()
         end)
     end
-    local id=N.Trust.bulo(snap,M.blockedBulo,M.npcs)
+    local id=N.Trust.bulo(snap,M.blockedBulo,M.npcs,M.store)
     if id then M.applyLayer(id,"Bulo server id")
     elseif M.layerSource=="Bulo server id" and M.layerReadAt and time-M.layerReadAt>=L.EXPIRE then
         N.Trust.read(M.store,time,nil,nil); M.layerSource="unknown"
@@ -269,8 +269,9 @@ function M.observe(unit)
     M.zoneCheck(zone)
     local guid=S.str(S.call(UnitGUID,unit),160)
     if not guid or M.staleGUIDs[guid] then return end
-    local npc,_,observedKey=L.npc(guid)
     if (guid:match("^Creature%-") or guid:match("^Vehicle%-")) and S.call(UnitPlayerControlled,unit)==false then
+        if N.Trust.hidden(M.store) then return end
+        local npc,_,observedKey=L.npc(guid)
         N.Trust.creature(M.store,npc~=nil)
         if not npc then return end
         local previous=lastConfirmedNPC or lastConfirmedKey
@@ -3155,6 +3156,7 @@ function M.start()
     if M.started then return end
     M.started=true
     M.npcs=L.new(); M.store=T.new(now()); M.receiver=N.Reports.new(); M.peers=N.Peers.new(); M.hh=N.HeadHunter.new()
+    M.store.trust=N.Trust.new(A.build())
     M.overlord=N.Overlord.new()
     M.overlordPeer=N.OverlordPeer.new()
     M.hopAnyState=N.HopAny.new()

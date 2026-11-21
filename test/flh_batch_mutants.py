@@ -19,7 +19,7 @@ READ = 'local route = type(prefix) == "string" and ROUTES[prefix]'
 MUTANTS = [
     ('reserve-query-token', 'lua', [(WIRE, 'reserve=math.max(reserve,tag~="LR" and flhReserve(now) or 0)', 'reserve=reserve')]),
     ('reserve-ordinary-token', 'lua', [(WIRE, 'local reserve = flhReserve(now)', 'local reserve = 0')]),
-    ('reserve-minute-slot', 'lua', [(WIRE, '#allTimes>=ALL_MINUTE-reserve', '#allTimes>=ALL_MINUTE')]),
+    ('reserve-minute-slot', 'lua', [(WIRE, '#allTimes>=cap(ALL_MINUTE)-reserve', '#allTimes>=cap(ALL_MINUTE)')]),
     ('pace-unsent-queries', 'lua', [(MEMBER, '        else queries(r) end', '        else end')]),
     ('release-after-LR', 'lua', [(MEMBER, 'r and not r.selected and now>=r.at', 'r and now>=r.at')]),
     ('release-at-expiry', 'lua', [(MEMBER, ' and now-r.at<F.WAIT and 1 or 0', ' and 1 or 0')]),

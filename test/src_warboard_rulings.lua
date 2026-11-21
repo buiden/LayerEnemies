@@ -19,7 +19,7 @@ local function setup(saved,remote)
     UnitNameUnmodified=function() return "Hunter","Player" end
     UnitGUID=function(u) return u=="player" and ME end
     GetServerTime=function() return h.wall() end
-    C_AddOns.GetAddOnMetadata=function() return "1.3.0" end
+    C_AddOns.GetAddOnMetadata=function() return "1.3.1" end
     local accounts={}
     for id=71,72 do accounts[id]={gameAccountID=id,characterName=id==71 and "Enemy Player" or "Other Player",
         realmName="123",factionName="Horde",clientProgram="WoW",isOnline=true,wowProjectID=42,

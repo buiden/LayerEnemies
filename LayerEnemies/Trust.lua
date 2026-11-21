@@ -7,8 +7,15 @@ T.EXPIRE,T.COLD_FAILURES,T.FAILURE_STREAK=300,20,10
 T.CHANGES,T.CHANGE_WINDOW,T.EXCUSE_WINDOW=3,600,10
 T.HOPS,T.GROUP_SECONDS=3,60
 T.NOTICE_EVERY=10
-function T.new() return {seen=0,success=false,failures=0,changes={},hops={}} end
+T.HIDDEN_ID_BUILD=71037
+T.HIDDEN_ID_REASON="this game build hides layer IDs"
+function T.new(build)
+    local hidden=N.Safe.num(build) and build>=T.HIDDEN_ID_BUILD or false
+    return {seen=0,success=false,failures=0,changes={},hops={},hiddenIDs=hidden,
+        blind=hidden and T.HIDDEN_ID_REASON or nil}
+end
 local function state(s) s.trust=s.trust or T.new(); return s.trust end
+function T.hidden(s) return s and state(s).hiddenIDs==true or false end
 function T.state(s,now)
     if not s then return "unknown" end
     local t=state(s)
@@ -25,6 +32,7 @@ function T.notice(s,now,manual)
         n.pending=nil
         if current=="blind" and state(s).blind~="manual" then
             n.pending="LayerEnemies: layer IDs look unreliable ("..state(s).blind.."); layers hidden for this session. /le blind off to override."
+            if T.hidden(s) then n.pending="LayerEnemies: "..T.HIDDEN_ID_REASON.."; layers hidden for this session." end
         elseif current=="known" and n.autoBlind then n.pending="LayerEnemies: layer IDs readable again; layers shown." end
     end
     if n.pending and (not n.at or (now>=n.at and now-n.at>=T.NOTICE_EVERY)) then
@@ -40,6 +48,7 @@ function T.own(s,now)
 end
 function T.read(s,now,id,uid)
     local t=state(s)
+    if T.hidden(s) then id,uid=nil,nil end
     s.bulo=L.key(id) and id or nil; s.zoneUID=uid
     t.at=s.bulo and now or nil
 end
@@ -53,7 +62,8 @@ function T.fresh(s,now,joinedAt)
         and now-t.npcAt<T.EXPIRE and t.npcKey==T.own(s,now)
 end
 -- Bulo's source value is admitted here, never by a display or comparison reader.
-function T.bulo(snap,blocked,npcs)
+function T.bulo(snap,blocked,npcs,s)
+    if T.hidden(s) then return nil end
     local id=snap.current
     if id==blocked and (not npcs.current or npcs.raw~=id) then return nil end
     return L.bulo(id) and id or nil
@@ -77,6 +87,7 @@ function T.record(s,record,now,hide)
     out.layer={ns="unknown"}; return out
 end
 function T.manual(s,mode)
+    if T.hidden(s) then return mode=="on" or mode=="off" or mode=="auto" end
     if mode=="on" then state(s).blind="manual"
     elseif mode=="off" or mode=="auto" then
         local at=state(s).at; s.trust=T.new(); s.trust.at=at
@@ -84,6 +95,7 @@ function T.manual(s,mode)
     return true
 end
 function T.creature(s,parsed)
+    if T.hidden(s) then return end
     local t=state(s)
     t.seen=math.min(t.seen+1,T.COLD_FAILURES)
     if parsed then t.success=true; t.failures=0
@@ -92,6 +104,7 @@ function T.creature(s,parsed)
 end
 function T.excuse(s,now) state(s).excusedAt=now end
 function T.change(s,now,key,source)
+    if T.hidden(s) then return false end
     local t=state(s)
     if key and key==t.changeKey and t.changeAt and now>=t.changeAt then return false end
     t.changeKey,t.changeSource,t.changeAt=key,source,now
