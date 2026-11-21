@@ -68,9 +68,11 @@ MUTANTS = [
     ('who-result-error-event-order', 'Adapters.lua', 'if reason=="result" or q.event then', 'if reason=="result" then'),
     ('no-saved-names', 'HopAny.lua', '    st.lastClick=c.now', '    _G.LayerEnemiesDB.hopNames=st.quiet\n    st.lastClick=c.now'),
     # Round-1 owner rulings: each cancellation boundary and both throttle directions.
-    ('same-zone-event-keeps-click', 'Main.lua', '        if A.location()~=M.store.zone then guarded(M.boundary', '        guarded(M.hopAnyStop,"zone changed")\n        if A.location()~=M.store.zone then guarded(M.boundary'),
+    ('same-zone-event-keeps-click', 'Main.lua', '        guarded(M.zoneCheck,(A.location()))', '        guarded(M.hopAnyStop,"zone changed")\n        guarded(M.zoneCheck,(A.location()))'),
     ('ungrouped-roster-keeps-click', 'Main.lua', 'then guarded(M.groupCheck); guarded(M.inviteTick)', 'then guarded(M.hopAnyStop,"group changed"); guarded(M.groupCheck); guarded(M.inviteTick)'),
-    ('same-zone-loading-keeps-click', 'Main.lua', 'guarded(M.hopAnySafe); guarded(M.boundary', 'guarded(M.hopAnyStop,"world changed"); guarded(M.boundary'),
+    # World boundaries now clear layered clicks even in the same zone. Retain
+    # the historical ID by restoring the obsolete same-zone boundary bypass.
+    ('same-zone-loading-keeps-click', 'Main.lua', 'guarded(M.hopAnySafe); guarded(M.boundary,A.location()); M.queuePoll()', 'guarded(M.hopAnySafe); if A.location()~=M.store.zone then guarded(M.boundary,A.location()) end; M.queuePoll()'),
     ('non-hop-throttle-stops-click', 'Wire.lua', 'elseif prefix == "LayerSwap" then hopStop = now + Wr.PAUSE end', 'end'),
     ('hop-throttle-pauses-ordinary', 'Wire.lua', '            paused[prefix] = now + Wr.PAUSE', '            if not hop then paused[prefix] = now + Wr.PAUSE end'),
     ('non-hop-throttle-survives-delayed-pump', 'Main.lua', 'N.Wire.hopBlocked(r.at)', 'N.Wire.hopBlocked(now())'),

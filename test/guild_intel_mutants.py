@@ -23,7 +23,7 @@ MUTANTS = [
      'local slot=firsthand and (e.source=="own" and "own" or "seen") or "reported"\n'
      '    if firsthand and e.source~="own" and p and p.own then slot="reported" end'),
     ('own-priority-ignores-layer', 'LayerEnemies/Find.lua',
-     'and e.zone==zone and e.layer~=nil and e.epoch==st.epoch', 'and e.zone==zone'),
+     'and e.zone==zone and ownKey~=nil and e.ownKey==ownKey and e.epoch==st.epoch', 'and e.zone==zone'),
     ('current-hash-line-hidden', 'LayerEnemies/Main.lua',
      'if row.current then lines[#lines+1]=currentLine(row.current) end', '-- current evidence hidden'),
     ('long-own-display-dropped', 'LayerEnemies/Known.lua',
