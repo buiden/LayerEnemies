@@ -13,6 +13,13 @@
   reason "this game build hides layer IDs" and stays there; `/le blind off` cannot turn layer IDs back
   on for that build. Sightings, Find, Hop (blind) and reports still work, without layer numbers.
 
+**Known limits**
+
+- A Battle.net friend who is already in your group or guild may be counted as an outside source for
+  Overlord feeds.
+- If your realm can't be read but a message of yours arrives with a realm attached, it may be listed
+  as someone else's report.
+
 **Not tested in game** (alpha, owner's decision).
 
 ## 1.3.0
