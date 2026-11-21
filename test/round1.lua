@@ -227,7 +227,7 @@ test("Round1 hash: all evidence plus an independent place fits on a Find page",f
     yes(ui.sub:GetText():find("HashScout",1,true)); yes(ui.sub:GetText():find("Seen by you",1,true))
     yes(ui.sub:GetText():find("Reported:",1,true)); yes(ui.place:IsShown()); yes(ui.ask:IsShown())
     yes(N.UI.body.height>=70+ui.height,"the complete card fits above the footer")
-    N.UI.select("local"); eq(N.UI.body.height,300); eq(N.UI.frame.height,normalHeight,"restore height including wrapped header/footer")
+    N.UI.select("local"); eq(N.UI.body.height,326); eq(N.UI.frame.height,normalHeight,"restore height including blind control and wrapped header/footer")
 end)
 
 test("Round1 realm: own realm equality normalizes and folds full strings",function()

@@ -7,6 +7,52 @@ H.CAP,H.PACE,H.CLICK,H.WHO,H.REPLY=8,1,10,5,120
 H.ROWS,H.ROUNDS=49,45
 H.SKIP,H.MAX_SKIP,H.FAILED=21600,300,600
 H.FALLBACK,H.FALLBACK_LATE=3,10
+H.TRIED_CAP=200
+-- Blind clicks use only the already-known union, never WHO or a deferred send.
+-- A cycle tag retains oldest-try order without an unbounded second name list.
+function H.blindPick(st,rows,zone,commit)
+    local b=st.blind or {tried={},cycle=1,serial=0}
+    local cycle=b.cycle+(b.restart and 1 or 0)
+    local seen,all,eligible={},{},{}
+    for _,c in ipairs(rows or {}) do
+        if not seen[c.short] then seen[c.short]=true; all[#all+1]=c end
+    end
+    local alternate=false
+    for _,c in ipairs(all) do
+        local old=b.tried[c.short]
+        if (c.short~=b.last or #all==1) and (not old or old.cycle~=cycle) then
+            eligible[#eligible+1]=c
+            if c.source~=b.network then alternate=true end
+        end
+    end
+    table.sort(eligible,function(a,c)
+        if alternate and (a.source~=b.network)~=(c.source~=b.network) then return a.source~=b.network end
+        if b.restart or b.recycled then
+            local aa,cc=b.tried[a.short],b.tried[c.short]
+            local ai,ci=aa and aa.order or 0,cc and cc.order or 0
+            if ai~=ci then return ai<ci end
+        end
+        if (a.zone==zone)~=(c.zone==zone) then return a.zone==zone end
+        if a.age~=c.age then return a.age<c.age end
+        return a.short<c.short
+    end)
+    local c=eligible[1]
+    if not c then
+        if commit and #all>0 then b.restart=true; st.blind=b end
+        return nil,#all>0 and ("all "..#all.." known hosts tried this session") or "no known hosts; ask your guild."
+    end
+    if commit then
+        b.cycle=cycle; b.recycled=b.recycled or b.restart; b.restart=nil
+        if not b.tried[c.short] and S.count(b.tried)>=H.TRIED_CAP then
+            local oldest
+            for key,v in pairs(b.tried) do if not oldest or v.order<b.tried[oldest].order then oldest=key end end
+            b.tried[oldest]=nil
+        end
+        b.serial=b.serial+1; b.tried[c.short]={order=b.serial,cycle=cycle}
+        b.last,b.network=c.short,c.source; st.blind=b
+    end
+    return c
+end
 function H.new() return {quiet={},failures={},book={},round=nil,lastClick=nil} end
 function H.check(st,c)
     if c.guildOnly then return false,"guild-only mode: this asks players outside your guild." end

@@ -2306,12 +2306,13 @@ test("hop: own layer is the confirmed one, never a stale server key (مانع T2
     deliver("SHARD_TRANSFER"); drain()
     eq(N.Main.store.bulo,nil); eq(N.Layer.server(N.Main.npcs),"7086")      -- the raw id is kept for the ambiguity window
     eq(N.Store.own(N.Main.store,clock).server,nil)
-    -- a report on 7086 is not "on your layer": our layer is not known after the transfer. (Bulo/LayerSwap lists
-    -- need our own key, so the War Effort reporter is the one asked, by chat whisper.) The 0.3.1 S1 refusal covers
-    -- only a reporter that is a Bulo/LayerSwap row seen while our layer is unknown; Scout is none.
+    -- A report on 7086 is not "on your layer": trust is unknown after transfer.
+    -- PR3 replaces the old reporter fallback with one unconstrained blind ask.
+    -- The stale own key must never become a wanted layer.
     chatBox()
     local r=rec(N,{layer={ns="server",value="7086"}}); eq(N.Record.relation(r,N.Store.own(N.Main.store,clock)),"unknown")
-    yes(hopNow(N,r)); drain(); eq(#sent,0); eq(#opened,1); eq(opened[1].text,"/w Scout "..ASK); eq(lines("on your layer already"),0)
+    yes(hopNow(N,r)); drain(); eq(#sent,1); eq(#opened,0); eq(sent[1].target,"Bob")
+    eq(sent[1].text,"inv layer <LS 100 25.0,75.0>"); eq(lines("on your layer already"),0)
     SlashCmdList.LAYERENEMIES("list"); yes(logged("Your server key: Unknown")); yes(logged("Your layer: Unknown"))
 end)
 test("hop: an ambiguous own key is never a certain same layer (مانع T2 S3)",function()
@@ -2941,25 +2942,26 @@ end)
 local HINT="Your layer is not known yet: target or mouse over two different kinds of NPC within 15 seconds."
 local function guildLine(text,from) deliver("CHAT_MSG_ADDON","LFSw",text,"GUILD",from) end
 local function slash(text) SlashCmdList.LAYERENEMIES(text); drain() end
-test("0.3.1 T3: hosts are listed while our own layer is unknown; nothing is sent or drafted",function()
+test("0.3.1 T3 / PR3: unknown hosts are listed and Hop makes one unconstrained ask",function()
     local N=loadAddon(); chatBox(); guildLine("L 8000|100|h","Bob")
     eq(N.Main.store.bulo,nil,"own layer unknown")
     slash("hosts")
     yes(logged("1. Bob |  | Bulo | host"),"host listed without layer"); yes(logged(HINT),"hint in /le hosts")
     eq(#log>0 and log[#log]:find("mouse over",1,true),nil)
-    local before=#log
-    slash("hop host 1"); eq(#sent,0); eq(#opened,0); yes(log[#log]:find(HINT,1,true),"hop host refuses with the hint"); yes(#log>before)
-    slash("ask 1"); eq(#sent,0); eq(#opened,0); yes(log[#log]:find(HINT,1,true),"ask refuses with the hint")
-    -- the shared path (window button and /le hop host) refuses on its own too
-    local row=N.Main.candidates()[1]; no(N.Main.hopHostTo(row,nil)); eq(#sent,0); yes(log[#log]:find(HINT,1,true))
-    row.unknownOwn=nil; no(N.Main.hopHostTo(row,nil)); eq(#sent,0); yes(log[#log]:find(HINT,1,true),"own key unknown alone refuses")
-    -- /le list shows the hint too
+    eq(#sent,0); eq(#opened,0,"listing still does nothing")
+    slash("hop host 1"); eq(#sent,1); eq(#opened,0)
+    eq(sent[1].text,"inv layer <LS 100 25.0,75.0>"); eq(sent[1].target,"Bob")
+    slash("ask 1"); eq(#sent,1); eq(#opened,0); yes(log[#log]:find(HINT,1,true),"legacy named ask still refuses")
+    -- The pending one-click request prevents a second ask, with either row flag.
+    local row=N.Main.candidates()[1]; no(N.Main.hopHostTo(row,nil)); eq(#sent,1)
+    row.unknownOwn=nil; no(N.Main.hopHostTo(row,nil)); eq(#sent,1)
     log={}; slash("list"); yes(logged(HINT),"hint in /le list")
-    -- two NPC readings: the same row becomes hoppable, the hint goes
+    N.Main.hopDone(); advance(61)
+    -- Two NPC readings restore the unchanged layer-constrained path.
     establish(N); log={}; slash("list"); no(logged(HINT),"no hint once known")
     log={}; slash("hosts"); no(logged(HINT)); yes(logged("1. Bob | layer 8000 | Bulo | host"))
-    slash("hop host 1"); eq(#sent,1); eq(sent[1].prefix,"LayerSwap"); eq(sent[1].kind,"WHISPER"); eq(sent[1].target,"Bob")
-    eq(sent[1].text,"inv layer <LS 100 want 8000-0 25.0,75.0>"); eq(forbidden,0)
+    slash("hop host 1"); eq(#sent,2); eq(sent[2].prefix,"LayerSwap"); eq(sent[2].kind,"WHISPER"); eq(sent[2].target,"Bob")
+    eq(sent[2].text,"inv layer <LS 100 want 8000-0 25.0,75.0>"); eq(forbidden,0)
 end)
 test("0.3.1 T3: Invite.collect marks rows while unknown; a report hop never picks them",function()
     local N=loadAddon(); guildLine("L 8000|100|h","Bob")
@@ -2972,10 +2974,11 @@ test("0.3.1 T3: Invite.collect marks rows while unknown; a report hop never pick
     local c=N.Hop.candidate(rec(N),(N.Main.candidates())); yes(c); eq(c.name,"Scout"); no(c.addon)
     establish(N); list=N.Main.candidates(); no(list[1].unknownOwn)
 end)
-test("0.3.1 T3: the window shows the hint and disables the row button while unknown",function()
+test("0.3.1 T3 / PR3: unknown window replaces row Hop with one blind button",function()
     local N=loadAddon(); chatBox(); guildLine("L 8000|100|h","Bob")
     local U=N.UI; U.toggle(); U.select("friendly")
-    eq(U.pool[1].title.text,"Bob"); yes(U.pool[1].ask.disabled,"disabled"); eq(U.pool[1].ask.reason,HINT)
+    eq(U.pool[1].title.text,"Bob"); no(U.pool[1].ask:IsShown())
+    yes(U.hopAny:IsShown()); eq(U.hopAny.label:GetText(),"Hop (blind)"); no(U.hopAny.disabled)
     eq(U.banner.text,HINT); yes(U.meta.text:find("mouse over or target two different kinds of NPC within 15 s",1,true),U.meta.text)
     U.pool[1].ask:Click(); drain(); eq(#sent,0); eq(#opened,0)
     establish(N); U.render(); no(U.pool[1].ask.disabled); eq(U.banner.text,"")
@@ -3124,19 +3127,20 @@ test("0.4 T1: the Find hosts button on the Friendly tab, one Q per click",functi
 end)
 
 -- 0.3.1 review fixes (S1-S3)
-test("0.3.1 fix S1: own layer unknown, a report hop refuses with the hint, no draft even via the reporter",function()
+test("0.3.1 fix S1 / PR3: unknown report hops are unconstrained; layered helpers still refuse",function()
     local N=loadAddon(); chatBox(); advance(1)
     guildLine("L 8000|100|h","Alpha"); hopReport(301,8000,"Alpha")
     local list=N.Main.candidates(); eq(#list,1); yes(list[1].unknownOwn)
     slash("reports"); eq(#N.Main.hopList.records,1)
     local r=N.Main.hopList.records[1]; local p=N.Main.hopPreview(r)
-    no(p.enabled); eq(p.reason,N.Invite.HINT)
-    slash("hop 1"); eq(#opened,0); eq(#sent,0); yes(logged(N.Invite.HINT))
-    no(N.Main.hopTo(r,p)); eq(#opened,0); eq(#sent,0)
-    -- the Reported row button is disabled with the hint
+    yes(p.enabled); eq(p.label,"Hop (blind)")
+    slash("hop 1"); eq(#opened,0); eq(#sent,1); eq(sent[1].target,"Alpha")
+    eq(sent[1].text,"inv layer <LS 100 25.0,75.0>")
+    no(N.Main.hopTo(r,p)); eq(#opened,0); eq(#sent,1,"pending ask prevents a repeat")
+    -- PR3 replaces all Reported row hop actions with one blind control.
     local U=N.UI; U.toggle(); U.select("reported")
-    local row; for _,x in ipairs(U.pool) do if x:IsShown() and x.hopRecord then row=x end end
-    yes(row); yes(row.ask.disabled); eq(row.ask.reason,N.Invite.HINT)
+    for _,row in ipairs(U.pool) do if row:IsShown() then no(row.hopRecord); no(row.ask:IsShown()) end end
+    yes(U.hopAny:IsShown()); eq(U.hopAny.label:GetText(),"Hop (blind)")
     -- Hop.check refuses a candidate that is such a row; a plain reporter candidate passes (0.3.0)
     local ctx={grouped=false,zone=100,own={zone=100,server=nil}}
     local ok,why=N.Hop.check(r,{name="Alpha",short="alpha",addon=true,unknownOwn=true},ctx); no(ok); eq(why,N.Invite.HINT)
@@ -3999,20 +4003,21 @@ test("1.0 T3: nothing is ever sent to a channel; channel calls only from Directo
 end)
 
 -- 0.3.1 S1 narrowed and three of Astra's extras (hermes)
-test("0.3.1 S1 narrowed: only a reporter who is himself a Bulo/LayerSwap row seen while unknown is refused",function()
-    -- the reporter is a Bulo row listed on another layer: still refused (the row says nothing reliable while unknown)
+test("0.3.1 S1 narrowed / PR3: blind union ignores all three former layer-specific reporter cases",function()
+    -- A Bulo row's claimed layer cannot constrain the blind request.
     local N=loadAddon(); chatBox(); advance(1)
     guildLine("L 9000|100|h","Alpha"); hopReport(301,8000,"Alpha")
     slash("reports"); local r=N.Main.hopList.records[1]; yes(r)
-    local p=N.Main.hopPreview(r); no(p.enabled); eq(p.reason,N.Invite.HINT)
-    slash("hop 1"); eq(#opened,0); eq(#sent,0)
-    -- a LayerSwap book row as the reporter: refused too
+    local p=N.Main.hopPreview(r); yes(p.enabled); eq(p.label,"Hop (blind)")
+    slash("hop 1"); eq(#opened,0); eq(#sent,1); eq(sent[1].text,"inv layer <LS 100 25.0,75.0>")
+    -- The same existing unconstrained shape reaches a LayerSwap table host.
     N=loadAddon(); chatBox(); advance(1); LayerSwapDB={book={Alpha=page({layer="8000-3"})}}; hopReport(301,8000,"Alpha")
-    slash("reports"); r=N.Main.hopList.records[1]; p=N.Main.hopPreview(r); no(p.enabled); eq(p.reason,N.Invite.HINT); LayerSwapDB=nil
-    -- another Bulo row on that layer and a plain reporter: the reporter draft of 0.3.0
+    slash("reports"); r=N.Main.hopList.records[1]; p=N.Main.hopPreview(r); yes(p.enabled); eq(p.label,"Hop (blind)")
+    slash("hop 1"); eq(#opened,0); eq(#sent,1); eq(sent[1].text,"inv layer <LS 100 25.0,75.0>"); LayerSwapDB=nil
+    -- A plain reporter no longer forces a layer-specific preference over the union.
     N=loadAddon(); chatBox(); advance(1); guildLine("L 8000|100|h","Alpha"); hopReport(301,8000,"Scout")
-    slash("reports"); r=N.Main.hopList.records[1]; p=N.Main.hopPreview(r); yes(p.enabled); eq(p.label,"Ask Scout (chat)")
-    slash("hop 1"); eq(#opened,1); eq(opened[1].text,"/w Scout "..ASK); eq(#sent,0)
+    slash("reports"); r=N.Main.hopList.records[1]; p=N.Main.hopPreview(r); yes(p.enabled); eq(p.label,"Hop (blind)")
+    slash("hop 1"); eq(#opened,0); eq(#sent,1); eq(sent[1].target,"Alpha"); eq(sent[1].text,"inv layer <LS 100 25.0,75.0>")
 end)
 test("0.3.1 extra: a readable zone change clears the /le hosts numbers",function()
     local N=loadAddon(); establish(N); chatBox(); guildLine("L 8000|100|h","Alpha"); slash("hosts"); yes(N.Main.hostList)
@@ -7422,7 +7427,8 @@ test("OpenMap last-place expiry restores compact rows and clamps five-name scrol
     eq(U.offset,2,"three compact missing rows fit after the last place expires")
     for i=1,3 do yes(U.pool[i]:IsShown()); eq(U.pool[i].height,72); eq(U.pool[i].sub.height,14); no(U.pool[i].place:IsShown()) end
     eq(U.pool[1].tracked,"Cedar Vale"); eq(U.pool[2].tracked,"Dawn Vale"); eq(U.pool[3].tracked,"Elm Frost")
-    eq(U.pool[1].point[5],-70); eq(U.pool[2].point[5],-146); eq(U.pool[3].point[5],-222)
+    -- The blind button adds 26 pixels above the unchanged three-card page.
+    eq(U.pool[1].point[5],-70-26); eq(U.pool[2].point[5],-146-26); eq(U.pool[3].point[5],-222-26)
     eq(U.hint:GetText(),"Mouse wheel: 3–5 of 5")
 end)
 
@@ -7620,7 +7626,8 @@ test("hop-any same key never succeeds and fails at thirty seconds",function()
 end)
 test("hop-any unknown key never succeeds",function()
     local N=anyJoined(); N.Main.store.bulo=nil; N.Main.autoTick(); advance(3.1); eq(#leaves,0)
-    advance(27); eq(#leaves,1); yes(table.concat(log,"\n"):find("hop failed",1,true))
+    advance(27); eq(#leaves,1); yes(logged("Joined Seeker a. Too little around you to tell."))
+    no(table.concat(log,"\n"):find("hop failed",1,true))
 end)
 for _,change in ipairs({"zone","instance","raid","leader","otherLeader","combat"}) do
     test("hop-any auto-leave respects "..change,function()

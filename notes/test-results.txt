@@ -216,9 +216,9 @@ PASS wire sends only on the allowed routes
 PASS wire rejects oversize and secret text
 PASS wire maps client results
 PASS wire guild bucket
-PASS 0.3.1 T3: hosts are listed while our own layer is unknown; nothing is sent or drafted
+PASS 0.3.1 T3 / PR3: unknown hosts are listed and Hop makes one unconstrained ask
 PASS 0.3.1 T3: Invite.collect marks rows while unknown; a report hop never picks them
-PASS 0.3.1 T3: the window shows the hint and disables the row button while unknown
+PASS 0.3.1 T3 / PR3: unknown window replaces row Hop with one blind button
 PASS 0.3.1 T2: /le hop host sends one LayerSwap whisper through Hop.request, with its cooldowns
 PASS 0.3.1 T2: hop host refuses stale lists, bad numbers, changed rows, reporters and our own layer
 PASS 0.3.1 T2: the Friendly button hops via the host, one message per click
@@ -230,7 +230,7 @@ PASS 0.4 T1: /le hosts find sends exactly one LFSw Q on GUILD, then waits 60 s
 PASS 0.4 T1: the 60 s limit is in Wire itself, and Wire takes only the literal Q
 PASS 0.4 T1: not in a guild, nothing is sent; an incoming Q is never answered
 PASS 0.4 T1: the Find hosts button on the Friendly tab, one Q per click
-PASS 0.3.1 fix S1: own layer unknown, a report hop refuses with the hint, no draft even via the reporter
+PASS 0.3.1 fix S1 / PR3: unknown report hops are unconstrained; layered helpers still refuse
 PASS 0.3.1 fix S2: hop host refuses when the host flag or the LayerSwap uid changed since the preview
 PASS 0.3.1 fix S3 and note: the hint names two different kinds of NPC; a non-host Bulo row says it may not answer
 PASS 0.4 T5: no one known on the layer: Ask guild (chat) drafts the exact /g line and sends nothing
@@ -288,7 +288,7 @@ PASS 1.0 T3: the War Effort channel name follows the realm's ruleset; HeadHunter
 PASS 1.0 T3: no join at consent guild; joins at public; leaves on switch-off or consent guild
 PASS 1.0 T3: the member list is read after selecting the channel, never with the Channels window open, in combat or an instance
 PASS 1.0 T3: nothing is ever sent to a channel; channel calls only from Directory.lua
-PASS 0.3.1 S1 narrowed: only a reporter who is himself a Bulo/LayerSwap row seen while unknown is refused
+PASS 0.3.1 S1 narrowed / PR3: blind union ignores all three former layer-specific reporter cases
 PASS 0.3.1 extra: a readable zone change clears the /le hosts numbers
 PASS 0.3.1 extra: /le ask from a list taken while our layer was unknown re-checks before drafting
 PASS 0.3.1 extra: with LayerSwap loaded our remembered replies are never used, even while its saved table is missing
@@ -1317,6 +1317,99 @@ PASS Stack: six mixed Wanted presence and Overlord cards use measured heights an
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
+PASS Blind final cancel: auto off at draft consumes pending and stale timers
+PASS Blind final cancel: auto off at asked consumes pending and stale timers
+PASS Blind final cancel: auto off at accepted consumes pending and stale timers
+PASS Blind final cancel: auto off at joined consumes pending and stale timers
+PASS Blind final cancel: auto off at shown consumes pending and stale timers
+PASS Blind final expiry: observed join survives lost group ownership shown=false
+PASS Blind final expiry: observed join survives lost group ownership shown=true
+PASS Blind final roster: fleeting third member before-result changed=false
+PASS Blind final roster: fleeting third member armed changed=false
+PASS Blind final roster: fleeting third member combat-wait changed=false
+PASS Blind final roster: fleeting third member before-result changed=true
+PASS Blind final roster: fleeting third member armed changed=true
+PASS Blind final roster: fleeting third member combat-wait changed=true
+PASS Blind final snapshot: unreadable creatures plus a visible player give too little
+PASS Blind final cancel: stop clears group and pending together
+PASS Blind final cancel: manual-leave clears group and pending together
+PASS Blind final cancel: raid clears group and pending together
+PASS Blind final cancel: leader clears group and pending together
+PASS Blind final cancel: instance clears group and pending together
+PASS Blind final cancel: zone clears group and pending together
+PASS Blind lifecycle: stopping cancels pending acceptance and stale timers
+PASS Blind lifecycle: a blind-painted click cannot turn into known fanout
+PASS Blind lifecycle: blind reply is remembered silently, not a sixth result text
+PASS Blind lifecycle: accepted known hop losing trust ends with sparse proxy, not failed-layer claim
+PASS Blind lifecycle: trust loss after a known join keeps the original probe deadlines
+PASS Blind Find: new sightings reset between hops without needing a UI projection
+PASS HopProbe: vertical motion also counts toward forty yards
+PASS Blind live: unknown bar click asks once without WHO and only correlated inviter accepted
+PASS Blind live: blind bar click asks once without WHO and only correlated inviter accepted
+PASS Blind live: manual whisper draft arms only after matching sent event
+PASS Blind live: guild fallback is only a draft; correlation starts at actual send
+PASS Blind live: snapshot before ask, only allowed units, checks at five fifteen thirty
+PASS Blind live: result creatures never shows GUID digits and leaves with preserved guard
+PASS Blind live: result players never shows GUID digits and leaves with preserved guard
+PASS Blind live: result sparse never shows GUID digits and leaves with preserved guard
+PASS Blind live: result transfer never shows GUID digits and leaves with preserved guard
+PASS Blind live: no invite expires to exact missed text; never repeats
+PASS Blind live: leave guard instance is preserved
+PASS Blind live: leave guard leader is preserved
+PASS Blind live: leave guard manual is preserved
+PASS Blind live: B10 ends an existing layered round at trust transition with exact message
+PASS Blind live: B9 unconstrained host asks invite; named layers and same never answered
+PASS Blind rotation: zone then freshness, alternate network, skip last and all tried
+PASS Blind rotation: one host restarts only after the exhaustion click
+PASS Blind rotation: bounded session ledger, deduped names, stable tie break and preview
+PASS Blind rotation: host union keeps networks, unknown keys, other zones and no relays
+PASS Blind rotation: existing table nonhosts remain candidates and row cap favors current zone
+PASS Blind rotation: unconstrained builder has no layer, exact existing fallback shape
+PASS Blind R1 draft: whisper sent=false expires honestly
+PASS Blind R1 draft: whisper sent=true expires honestly
+PASS Blind R1 draft: guild sent=false expires honestly
+PASS Blind R1 draft: guild sent=true expires honestly
+PASS Blind R1 invite: observed without group accepted never becomes missed
+PASS Blind R1 invite: observed without group manual never becomes missed
+PASS Blind R1 invite: observed without group refused never becomes missed
+PASS Blind R1 invite: observed without group off-after-accept never becomes missed
+PASS Blind R1 invite: known acceptance converted before group keeps invite evidence
+PASS Blind R1 snapshot: empty after join reports too little
+PASS Blind R1 snapshot: hidden after join reports too little
+PASS Blind R1 snapshot: throwing after join reports too little
+PASS Blind R1 tooltip: disabled button explains group
+PASS Blind R1 tooltip: disabled button explains instance
+PASS Blind R1 tooltip: disabled button explains pending
+PASS Blind R1 tooltip: disabled button explains cooldown
+PASS Blind R1 stop: accepted known hop converted to blind is cancelled
+PASS Blind R1 leave: changed=false guard=combat
+PASS Blind R1 leave: changed=false guard=unknown-combat
+PASS Blind R1 leave: changed=false guard=extra-member
+PASS Blind R1 leave: changed=false guard=extra-while-waiting
+PASS Blind R1 leave: changed=true guard=combat
+PASS Blind R1 leave: changed=true guard=unknown-combat
+PASS Blind R1 leave: changed=true guard=extra-member
+PASS Blind R1 leave: changed=true guard=extra-while-waiting
+PASS Blind R1 Find: exact-join sighting suppresses the count before any projection
+PASS Blind R1 Find: own sighting after join at 0 is not a missed hop
+PASS Blind R1 Find: own sighting after join at 2 is not a missed hop
+PASS Blind R1 Find: own sighting after join at 6 is not a missed hop
+PASS Blind R1 Find: own sighting before join still counts and late post-join replay resets
+PASS Blind R1 Find: report sighting after join at 0 is not a missed hop
+PASS Blind R1 Find: report sighting after join at 2 is not a missed hop
+PASS Blind R1 Find: report sighting after join at 6 is not a missed hop
+PASS Blind R1 Find: report sighting before join still counts and late post-join replay resets
+PASS Blind R1 Find: hash sighting after join at 0 is not a missed hop
+PASS Blind R1 Find: hash sighting after join at 2 is not a missed hop
+PASS Blind R1 Find: hash sighting after join at 6 is not a missed hop
+PASS Blind R1 Find: hash sighting before join still counts and late post-join replay resets
+PASS Blind UI: one Hop button on all tabs, exact tooltip, no row hop buttons
+PASS Blind UI: painted candidate cannot silently change before bar or button click
+PASS Blind UI: existing layered report and host entrypoints become blind, never layered requests
+PASS Blind UI: LE hosts retain their network in the union without layer data
+PASS Blind Find: only changed hops increment, later own and report sightings reset, boundaries retain
+PASS Blind Find: real hop true drives measured row text without layer claim
+PASS Blind Find: real hop false drives measured row text without layer claim
 PASS BNet: independent peer readers need no presence zone and read no account names
 PASS BNet: peers are friends first deduplicated and cached thirty seconds
 PASS BNet: live identity rejects offline wrong client project region and conflicting realms
@@ -1600,6 +1693,27 @@ PASS Hop combat: manual report request accepts only its asked host in combat
 PASS Hop combat: asked hop-any invite is accepted and a second hop works without combat ending
 PASS Hop combat: leave after a move does not wait for combat end
 PASS Hop combat: leave after failure does not wait for combat end
+PASS HopProbe: creature proxy at three, not two, matching NPCs and no retained spawn
+PASS HopProbe: players at five and one fifth, movement strictly below forty yards
+PASS HopProbe: unparseable creatures use only transfer or players, sparse is no judgement
+PASS HopProbe: snapshots dedupe and never infer players from unreadable flags
+PASS HopProbe: unreadable after snapshot disables creatures even beside matching replacements
+PASS HopProbe: equality uses NPC plus last spawn field, never a server field
+PASS HopProbe: bounded snapshot includes all forty two tokens, not a forty third
+PASS HopProbe: empty after snapshots are sparse unless players or an event prove change
+PASS HopProbe final: unreadable before players=0 after=1
+PASS HopProbe final: unreadable before players=0 after=4
+PASS HopProbe final: unreadable before players=4 after=1
+PASS HopProbe final: unreadable before players=4 after=4
+PASS HopProbe final: unreadable after players=0 after=1
+PASS HopProbe final: unreadable after players=0 after=4
+PASS HopProbe final: unreadable after players=4 after=1
+PASS HopProbe final: unreadable after players=4 after=4
+PASS HopProbe final: unreadable after keeps usable player baseline remaining=1
+PASS HopProbe final: unreadable after keeps usable player baseline remaining=2
+PASS HopProbe final: unreadable after keeps usable player baseline remaining=5
+PASS HopProbe final: unreadable after with no position cannot prove vanished players
+PASS HopProbe: exact result texts, no GUID digits in any result
 PASS Layer A5: rotating NPC identifiers update confirmed key without wipes
 PASS Layer A5: rotating Bulo IDs and donor transfer notifications wipe nothing
 PASS Layer A5: real PLAYER_ENTERING_WORLD same zone
@@ -2577,4 +2691,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2491 tests passed, 0 failed, 666543 assertions
+RESULT: 2605 tests passed, 0 failed, 672608 assertions

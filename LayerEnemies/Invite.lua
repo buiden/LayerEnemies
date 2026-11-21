@@ -220,6 +220,55 @@ function I.collect(env)
     for i=#out,I.MAX_ROWS+1,-1 do out[i]=nil end
     return out,status
 end
+-- Blind-only projection: identity, freshness and provenance, no layer reads.
+-- All source tables are read-only. Their existing scan/freshness caps still apply.
+function I.blindCollect(env)
+    local by={}
+    local function add(raw,zone,at,label,addon,clock,maxAge,skip)
+        local name,key,target=I.name(raw)
+        zone=tonumber(zoneText(zone) or "")
+        at=S.num(at); clock=S.num(clock)
+        local age=at and clock and clock-at
+        if not env.self or not name or key==env.self or skip or not zone or zone<1 or zone%1~=0
+            or not age or age<0 or age>=maxAge then return end
+        local c={name=target,short=key,zone=zone,age=age,source=label,addon=addon}
+        local old=by[key]
+        if not old or c.age<old.age or (c.age==old.age and c.source<old.source) then by[key]=c end
+    end
+    local function scanBlind(raw,label,maxAge,bulo)
+        if not S.tab(raw) then return end
+        local found={}
+        local ok=pcall(function()
+            local n=0
+            for name,e in pairs(raw) do
+                n=n+1; if n>I.MAX_SCAN then break end
+                if S.tab(e) then
+                    found[#found+1]={name=name,zone=e.zone,at=e.at,
+                        label=S.str(e.network,30)=="LayerEnemies" and "LayerEnemies" or label,
+                        skip=S.secret(e.gone) or e.gone~=nil}
+                end
+            end
+        end)
+        if ok then for _,e in ipairs(found) do add(e.name,e.zone,e.at,e.label,true,env.wall,maxAge,e.skip) end end
+    end
+    scanBlind(env.bulo,"Bulo",I.BULO_STALE)
+    scanBlind(env.guildLines,"Bulo",I.BULO_STALE)
+    scanBlind(env.book,"LayerSwap",I.BOOK_FRESH)
+    scanBlind(env.heard,"LayerSwap",N.Hosts.KEEP)
+    if S.tab(env.flh) then
+        for _,e in pairs(env.flh) do add(e.name,e.map,e.at,"Forever Layer Hop",false,env.wall,N.Hosts.FLH_KEEP) end
+    end
+    for _,r in ipairs(env.reporters or {}) do
+        add(r.name,r.zone or env.zone,r.at,"War Effort",false,env.now,I.REPORT_FRESH,r.relayed)
+    end
+    local out={}; for _,c in pairs(by) do out[#out+1]=c end
+    table.sort(out,function(a,b)
+        if (a.zone==env.zone)~=(b.zone==env.zone) then return a.zone==env.zone end
+        return a.age<b.age or (a.age==b.age and a.short<b.short)
+    end)
+    for i=#out,I.MAX_ROWS+1,-1 do out[i]=nil end
+    return out
+end
 -- The shared cooldowns of an ask or a hop: 60 s per name, 10 s overall. Reserves on success.
 function I.reserve(st,c,now)
     for short,at in pairs(st.asked) do if now-at>=I.NAME_COOLDOWN then st.asked[short]=nil end end

@@ -149,9 +149,9 @@ function U.render()
     U.layer:SetText(known or ""); U.layer:SetShown(known~=nil)
     U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or N.Trust.state(M.store,time)=="blind" and "layer IDs unreadable" or "layer unknown: mouse over or target two different kinds of NPC within 15 s"))
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
-    U.hopAny:SetShown(U.tab=="friendly")
+    U.hopAny:SetShown(U.tab=="friendly" or not known)
     local hop=N.Main.hopAnyPreview()
-    U.hopAny.label:SetText(hop.label); U.hopAny.reason=hop.reason or false; U.hopAny.round=hop.round or false
+    U.hopAny.label:SetText(hop.label); U.hopAny.reason=(hop.enabled and hop.detail or hop.reason) or false; U.hopAny.round=hop.round or false; U.hopAny.preview=hop
     if hop.enabled then U.hopAny:Enable() else U.hopAny:Disable() end
     U.findHosts:SetShown(U.tab=="friendly")
     local wait=N.Hosts.askWait(M.heard,time)
@@ -245,9 +245,14 @@ function U.render()
     end
     local function rowHeight(e) return layouts[e].height end
     local top=U.tab=="find" and math.max(70,inputTop+38) or U.tab=="friendly" and friendlyTop+48 or U.tab=="reported" and math.max(23,bannerHeight+6) or 0
+    local blindExtra=not known and U.tab~="friendly" and 26 or 0
+    if blindExtra>0 then
+        U.hopAny:SetPoint("TOPLEFT",4,-top); top=top+blindExtra
+    end
+    -- Preserve the existing page's row space below the blind control.
     -- A hash line beside both cached slots and an OpenMap place can exceed
     -- the usual page. Grow only enough for one whole card; never hide it.
-    local bodyHeight=300
+    local bodyHeight=300+blindExtra
     for _,row in ipairs(rows) do
         bodyHeight=math.max(bodyHeight,top+rowHeight(row)+(row.chehulHint and chehulHeadingHeight or 0))
     end
@@ -304,10 +309,10 @@ function U.render()
         elseif U.tab=="reported" then
             r.title:SetText(e.title or ("Unknown "..className(e.class)))
             -- never offer a hop to a report on our own layer
-            if e.relation=="same" then askState(r,nil) else hopState(r,e.record) end
+            if not known or e.relation=="same" then askState(r,nil) else hopState(r,e.record) end
         elseif U.tab=="friendly" then
             local p=not e.chehulHint and not e.unknownOwn and M.hostPreview(e)
-            if e.chehulHint then askState(r,nil)
+            if not known or e.chehulHint then askState(r,nil)
             elseif e.unknownOwn then unknownState(r)
             elseif p then hostState(r,e,p)
             else askState(r,e.name,"Ask for invite") end
@@ -417,7 +422,7 @@ function U.create()
         local shown=U.hopAny.round
         if shown then
             if M.hopAnyState.round==shown then M.hopAnyStop() end
-        elseif not M.hopAnyState.round then M.hopAny() end
+        elseif not M.hopAnyState.round then M.hopAny(U.hopAny.preview) end
         U.render()
     end)
     U.hopAny.reason=false; U.hopAny.round=false; U.hopAny:SetPoint("TOPLEFT",4,-23); U.hopAny:Hide()
@@ -498,6 +503,7 @@ do
     function B.statusText()
         local M=N.Main
         local st=M.hopAnyState
+        if not N.Trust.own(M.store,S.call(GetTime)) or M.blindPending or M.blindStatus then return M.blindStatus or "" end
         if not st then return "Hop not ready" end
         local r=st.round
         if r then
@@ -523,7 +529,7 @@ do
         local shown=B.frame and B.frame.round
         if shown then
             if M.hopAnyState.round==shown then M.hopAnyStop() end
-        elseif not M.hopAnyState.round then M.hopAny() end
+        elseif not M.hopAnyState.round then M.hopAny(B.frame.preview) end
         B.refresh()
     end
 
@@ -533,6 +539,7 @@ do
         local layer=B.layerText()
         local status,round=B.statusText()
         f.round=round or false
+        f.preview=not N.Trust.own(N.Main.store,S.call(GetTime)) and N.Main.blindPreview() or false
         local one=saved().oneline
         f.text:SetText(one and (layer.."   "..status) or layer)
         f.status:SetText(one and "" or status)

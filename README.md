@@ -1983,9 +1983,9 @@ In unknown or blind, numeric own-layer headers, relation labels, Friendly
 layer details, ChehulNet relation/count text, FLH claimed keys, and raw
 Wanted/WarBoard/Overlord keys are hidden, not greyed. `/le layer` prints only
 `layer IDs are not readable on this client`. In blind the hop bar says
-`layer hidden`; the existing click handler still refuses an untrusted key.
-Blind guest hopping and its new result texts are a later change, not built here.
-An already-running layered hop fanout stops when trust becomes unreadable.
+`layer hidden`; in unknown it keeps `Detecting...`. The click runs the blind
+hop described below. An already-running layered hop fanout stops immediately
+with `layer IDs became unreadable; click Hop (blind)`.
 
 Names, zones, positions, counts, Find alerts and the found pop-up, death Calls,
 friend/community sharing, and own-death reporting still work. Incoming layer
@@ -2007,6 +2007,89 @@ The wire cannot distinguish LE users from other users of that same ask shape.
 Bulo authority also keeps separate confirmed NPC history: a group crossing
 cannot hide behind Bulo's still-readable old key after NPC evidence expires.
 Mocks assert the real Find text and emitted O line at that boundary.
+
+Not tested in game (alpha, owner's decision).
+
+## Blind hopping and Find
+
+When layer trust is unknown or blind, the window has one **Hop (blind)**
+button instead of per-layer Hop actions. Its enabled tooltip says: "Layer IDs
+are unreadable. This asks a host for an invite; the addon cannot say which
+layer you land on." A disabled button's tooltip gives the refusal reason.
+The hop bar uses the same action; unknown still shows `Detecting...`.
+One click is one ask; there is no WHO search, fanout, automatic retry, or
+public-channel send.
+
+The candidate union includes the existing LayerSwap and Bulo tables and
+replies, FLH hosts, LE guild hosts, and direct War Effort reporters. Relayed
+origins are never invite targets. Network labels are retained. Current-zone
+candidates come first, then fresher claims, under the existing row and source
+scan caps. Each click skips hosts already tried, the last host when another
+candidate exists, and its network when another network has an untried host.
+Exhaustion prints `all N known hosts tried this session`; the next click
+restarts oldest-try first, respecting all cooldowns. With only one known
+host, that restart may ask the same host again. The tried ledger holds at
+most 200 names, session-only; oldest entries are evicted at that cap.
+
+LayerSwap-compatible hosts get the existing unconstrained whisper
+`inv layer <LS zone x,y>`. If no candidate is known, the same line is a `/g`
+draft for the player to send with Enter. FLH-only hosts and War Effort
+reporters get the existing manual whisper draft, "Hi! Could you invite me
+to your layer please?" Drafting sends nothing. Auto-accept remains tied to
+the correlated inviter, and drafts arm only after the matching outgoing
+chat event. Unsent drafts expire quietly, never as a missed invitation.
+Guild-only consent and the existing per-name, guild and overall ask limits
+remain in effect. `/le hop stop` also cancels an accepted known hop that
+has turned blind, disarming its later probe and leave callbacks.
+
+The pure `HopProbe.lua` compares snapshots before the ask and at 5, 15 and
+30 seconds after the group forms. It reads only visible nameplate, target
+and mouseover GUIDs; no group targets, new targeting, or hidden-ID recovery.
+A transfer event, at least 3 creatures with matching NPC IDs and no retained
+earlier spawn IDs, or at least 5 players with at most one fifth remaining
+while you moved less than 40 yards can count as changed. The player test
+requires readable world coordinates on the same map. Unparseable creature
+GUIDs leave only the event/player tests. Empty or unreadable after-snapshots
+without independent event/player evidence give "Too little", not "No change".
+
+Limits: these are proxies, not proof of a layer number or a distinct layer.
+The creature proxy has no movement or same-map guard; walking or loading
+elsewhere can replace the visible creatures without a hop. The 40-yard
+movement guard applies only to the player proxy. All thresholds are named
+constants and guesses, not game measurements.
+
+Only these result texts appear (NAME is the inviter, never a GUID):
+
+- `Hopped (layer unknown): the creatures around you changed.`
+- `Hopped (layer unknown): the players around you changed.`
+- `Joined NAME. No change seen; the hop may not have worked.`
+- `Joined NAME. Too little around you to tell.`
+- `NAME did not invite.`
+- `Joined NAME. The game reported a layer transfer.`
+- `Accepted NAME's invite, but no group formed.`
+- `NAME invited; not accepted.`
+
+A transfer event uses its own text, not the creatures-changed text. A missed
+invitation is reported only after an actual ask with no correlated invite.
+The bar stays blank below its layer label until a result is available; it
+does not substitute countdowns or layer-valued messages. With auto-leave on,
+a changed result leaves after the existing 3-second delay; otherwise the
+30-second check ends the observation. The inviter must still lead the party,
+not a raid or instance. Blind auto-leave waits for readable combat end; a
+third member cancels it for that attempt, even if the extra member later
+leaves. Auto mode off never leaves for you. Turning auto off ends an
+auto-accepted hop; an ask you made that no one has auto-accepted yet keeps
+running and finishes with its normal result. A hop begun while known but
+losing trust has no pre-ask proxy and cannot invent one.
+
+For each tracked Find name, a changed blind-hop result increments a
+session-only counter only if no sighting was admitted since that hop's
+join time (not its judgement time). The row adds `not seen on N layers tried`;
+a sighting or report since the join resets it, including one received before
+the proxy judgement. Older replays do not reset the count. Unchanged,
+inconclusive and unanswered hops do not increment it. This counts our own
+proxy results, not distinct layers, and does not change Find's alerts or
+tracked-name saves.
 
 Not tested in game (alpha, owner's decision).
 

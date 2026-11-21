@@ -66,7 +66,7 @@ function F.home(st,home)
     if not st.home and home then st.home=home; F.rebuild(st) end
 end
 function F.new(saved,home)
-    local st={names={},locations={},alerts={},places={},presence={},presenceAlerts={},home=S.str(home),known=N.Known.new(),epoch=0}
+    local st={names={},locations={},alerts={},places={},presence={},presenceAlerts={},home=S.str(home),known=N.Known.new(),epoch=0,search={}}
     local seen={}
     if S.tab(saved) then
         for i=1,F.MAX do
@@ -87,7 +87,7 @@ end
 function F.remove(st,raw)
     if raw==nil then
         local changed=#st.names>0
-        st.names={}; st.locations={}; st.alerts={}; st.places={}; st.presence={}; st.presenceAlerts={}
+        st.names={}; st.search={}; st.locations={}; st.alerts={}; st.places={}; st.presence={}; st.presenceAlerts={}
         if changed then F.rebuild(st) end
         if N.WarBoardTrack then N.WarBoardTrack.changed(st) end
         return
@@ -98,7 +98,7 @@ function F.remove(st,raw)
     for i=#st.names,1,-1 do
         local name=st.names[i]
         if F.fold(name)==key then
-            table.remove(st.names,i); st.locations[name]=nil; st.alerts[name]=nil; st.places[name]=nil
+            table.remove(st.names,i); st.search[name]=nil; st.locations[name]=nil; st.alerts[name]=nil; st.places[name]=nil
             st.presence[name]=nil; st.presenceAlerts[name]=nil
             changed=true
         end
@@ -166,11 +166,19 @@ local function location(e,name,realmUnknown)
     else loc.possible=true; loc.relayed=e.source=="relayed" end
     return loc
 end
+local function searchSeen(st,name,at)
+    if not at then return end
+    local h=st.search[name] or {count=0}
+    h.seenAt=math.max(h.seenAt or at,at)
+    if h.at and at>=h.at then h.count=0 end
+    st.search[name]=h
+end
 local function remember(st,entry,e)
     if not e then return end
     local match,realmUnknown=matches(entry,e,st.homeKey)
     if not match then return end
     local name=entry.name
+    if e.kind=="seen" then searchSeen(st,name,e.at) end
     local old=st.locations[name]
     if not old or (e.kind=="seen" and (old.kind=="claim" or e.at>=old.at))
         or (e.kind=="claim" and (old.kind=="claim" or e.at-old.at>=F.TTL) and e.at>=old.at) then
@@ -197,6 +205,7 @@ function F.report(st,r,home)
     F.home(st,home)
     local function hashPut(entry,e,realmUnknown,evidenceName)
         local name=entry.name
+        if r.kind~="claim" then searchSeen(st,name,r.at) end
         local old=st.locations[name]
         -- Hash-only and deferred HeadHunter evidence keep their existing lifetime.
         local keep=old and r.relayed and not old.relayed and r.at-old.at<F.TTL
@@ -261,6 +270,14 @@ local function project(st,loc,now,zone,sameSpotter,ownKey)
     row.canAsk=not row.same and not row.travel and not row.lastKnown and not loc.own
         and loc.spotter~=nil and not loc.relayed and loc.kind~="claim"
     return row
+end
+-- Counts our successful proxy observations, not distinct or identified layers.
+function F.changed(st,joinedAt)
+    for _,name in ipairs(st.names) do
+        local h=st.search[name] or {count=0}
+        h.count=h.seenAt and h.seenAt>=joinedAt and 0 or h.count+1
+        h.at=joinedAt; st.search[name]=h
+    end
 end
 function F.rows(st,now,zone,sameSpotter,ownKey)
     local out={}
@@ -331,6 +348,15 @@ function F.rows(st,now,zone,sameSpotter,ownKey)
         if presence then
             row.presence={zone=presence.zone,route=presence.route,age=now-presence.at}
             if not loc and not place then row.status="online ("..presence.route..")"; row.canAsk=false end
+        end
+        local h=st.search[name]
+        if h then
+            -- A replay older than the last hop is not a sighting after that hop.
+            local at=seen and seen.at
+            if otherSeen and (not at or otherSeen.at>at) then at=otherSeen.at end
+            if loc and loc.kind~="claim" and (not at or loc.at>at) then at=loc.at end
+            if at and h.at and at>=h.at then h.count=0 end
+            if h.count>0 then row.search="not seen on "..h.count.." layers tried" end
         end
         out[#out+1]=row
     end

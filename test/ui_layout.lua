@@ -146,7 +146,7 @@ test("UI layout: Find measures every retained line and OpenMap place before pagi
     for _,r in ipairs(U.pool) do if r:IsShown() then rowFits(r,U); last=r.tracked end end
     eq(last,"Elm Grove","last row reachable")
     rows={{name="Birch Moss"}}; U.render(); rowFits(U.pool[1],U)
-    eq(U.body.height,300); eq(U.offset,0); eq(U.pool[1].sub.height,14); no(U.pool[1].place:IsShown())
+    eq(U.body.height,326); eq(U.offset,0); eq(U.pool[1].sub.height,14); no(U.pool[1].place:IsShown())
 end)
 test("UI layout: local, Reported and Friendly cards also fit long wrapped details",function()
     local N=H.load(); local U,M=N.UI,N.Main; U.toggle()
@@ -178,7 +178,7 @@ test("UI layout: presence follows measured sighting and OpenMap lines and shrink
     U.render(); rowFits(U.pool[1],U); eq(U.pool[1].sub:GetText(),"","presence alone is located")
     row.guildTracked=true; U.render(); no(U.pool[1].clear:IsShown(),"shared watch has no personal Clear action")
     rows={{name="Cedar Vale"}}; U.render(); rowFits(U.pool[1],U)
-    no(U.pool[1].presence:IsShown()); eq(U.body.height,300); yes(U.pool[1].clear:IsShown())
+    no(U.pool[1].presence:IsShown()); eq(U.body.height,326); yes(U.pool[1].clear:IsShown())
 end)
 
 test("UI layout: FLH and LayerSwap provenance is measured before Friendly paging",function()
@@ -196,7 +196,7 @@ test("UI layout: FLH and LayerSwap provenance is measured before Friendly paging
 end)
 
 test("UI layout: Overlord guild claims measure complete text and never inherit report actions",function()
-    local N=H.load(); local U,M=N.UI,N.Main
+    local N=H.load(); H.establish(N); local U,M=N.UI,N.Main
     local guild={guild="Enemy Guild",kills=9999,members=999,layer=99999999,zoneName=string.rep(longZone.." ",16),at=H.clock()}
     local report={reporter="Birch Moss",class="MAGE",hand="first",record={}}
     -- the window takes its reported rows from the single namedRows call per render (1.2.3)

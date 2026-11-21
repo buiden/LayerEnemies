@@ -79,6 +79,6 @@ function Hs.heard(st, name, reply, wall)
         for k, e in pairs(st.heard) do n = n + 1; if not oldest or e.at < oldest then oldest, key = e.at, k end end
         if n >= Hs.MAX then st.heard[key] = nil end
     end
-    st.heard[name] = { layer = reply.layer, zone = reply.zone, at = wall, host = true }
+    st.heard[name] = { layer = reply.layer, zone = reply.zone, at = wall, host = true, network = reply.network }
     return true
 end
