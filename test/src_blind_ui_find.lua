@@ -16,7 +16,12 @@ test("Blind UI: one Hop button on all tabs, exact tooltip, no row hop buttons",f
         local text; _G.GameTooltip={SetOwner=function() end,SetText=function(_,v) text=v end,Show=function() end}
         N.UI.hopAny.scripts.OnEnter(); eq(text,M.BLIND_TIP)
         for _,r in ipairs(N.UI.pool) do
-            if r:IsShown() then no(r.hopRecord); no(r.hostRow); no(r.ask:IsShown(),tab.." no secondary hop") end
+            if r:IsShown() then
+                no(r.hopRecord); no(r.hostRow); no(r.ask:IsShown(),tab.." no secondary hop")
+                if tab~="friendly" then
+                    yes(-r.point[5]>=-N.UI.hopAny.point[3]+N.UI.hopAny:GetHeight(),"blind control above rows")
+                end
+            end
         end
     end
 end)

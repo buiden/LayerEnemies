@@ -2162,7 +2162,6 @@ function M.guildAsk(record,ctx)
     return true
 end
 function M.hopIndex(index)
-    if not N.Trust.own(M.store,now()) then return M.blindHop() end
     local list=M.hopList
     if not list or now()-list.at>120 then M.say("LayerEnemies: run /le reports first, then /le hop <number>."); return false end
     local record=index and list.records[index]
@@ -2224,11 +2223,11 @@ function M.hopHostTo(c,shown)
     return true
 end
 function M.hopHost(index)
-    if not N.Trust.own(M.store,now()) then return M.blindHop() end
     local list=M.hostList
     if not list or now()-list.at>120 then M.say("LayerEnemies: run /le hosts first, then /le hop host <number>."); return false end
     local row=index and list.rows and list.rows[index]
     if not row then M.say("LayerEnemies: no such number in the last /le hosts list."); return false end
+    if not N.Trust.own(M.store,now()) then return M.blindHop() end
     if not L.key(N.Trust.own(M.store,now())) or row.unknownOwn then M.say("LayerEnemies: "..I.HINT); return false end
     if not row.flhKey and not N.Hop.hostRecord(row,M.store.zone) then
         M.say("LayerEnemies: no host addon is known for "..row.name.."; /le ask "..index.." puts a whisper in your chat box instead.")
@@ -2367,6 +2366,11 @@ function M.autoTick()
     if not g.blind and not N.Trust.own(M.store,time) then
         -- No pre-ask proxy was taken for a known hop. Never invent one.
         g.blind={before=N.HopProbe.snapshot({})}; g.check=1; g.leaveAt=nil
+        if g.joinedAt then
+            for _,delay in ipairs(N.HopProbe.CHECKS) do
+                after(math.max(0,g.joinedAt+delay-time),function() if M.auto.group==g then guarded(M.autoTick) end end)
+            end
+        end
     end
     if g.any and (A.location()~=g.zone or M.store.zone~=g.zone) then M.auto.group=nil; return end
     local grouped=S.call(IsInGroup)==true
@@ -3327,5 +3331,8 @@ function N.AskInvite(name)
     local ok,asked=pcall(M.askInvite,name)
     return ok and asked==true
 end
-if _G.LE==nil then _G.LE=N end
+-- Keep the owned export's literal key in its own compiler constant table.
+-- The bytecode ownership gate deliberately refuses register-indexed global writes.
+local function publishNamespace() if _G.LE==nil then _G.LE=N end end
+publishNamespace()
 frame:SetScript("OnEvent",function(...) guarded(dispatch,...) end)

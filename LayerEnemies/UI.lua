@@ -245,12 +245,14 @@ function U.render()
     end
     local function rowHeight(e) return layouts[e].height end
     local top=U.tab=="find" and math.max(70,inputTop+38) or U.tab=="friendly" and friendlyTop+48 or U.tab=="reported" and math.max(23,bannerHeight+6) or 0
-    if not known and U.tab~="friendly" then
-        U.hopAny:SetPoint("TOPLEFT",4,-top); top=top+26
+    local blindExtra=not known and U.tab~="friendly" and 26 or 0
+    if blindExtra>0 then
+        U.hopAny:SetPoint("TOPLEFT",4,-top); top=top+blindExtra
     end
+    -- Preserve the existing page's row space below the blind control.
     -- A hash line beside both cached slots and an OpenMap place can exceed
     -- the usual page. Grow only enough for one whole card; never hide it.
-    local bodyHeight=300
+    local bodyHeight=300+blindExtra
     for _,row in ipairs(rows) do
         bodyHeight=math.max(bodyHeight,top+rowHeight(row)+(row.chehulHint and chehulHeadingHeight or 0))
     end
@@ -537,7 +539,7 @@ do
         local layer=B.layerText()
         local status,round=B.statusText()
         f.round=round or false
-        f.preview=not N.Trust.own(N.Main.store,S.call(GetTime)) and N.Main.blindPreview() or nil
+        f.preview=not N.Trust.own(N.Main.store,S.call(GetTime)) and N.Main.blindPreview() or false
         local one=saved().oneline
         f.text:SetText(one and (layer.."   "..status) or layer)
         f.status:SetText(one and "" or status)

@@ -40,6 +40,16 @@ test("Blind lifecycle: accepted known hop losing trust ends with sparse proxy, n
     for _,text in ipairs(H.log()) do no(text:find("could not move",1,true)) end
 end)
 
+test("Blind lifecycle: trust loss after a known join keeps the original probe deadlines",function()
+    local N=H.hopLoad(); local M=N.Main
+    H.hopClick(N); H.deliver("WHO_LIST_UPDATE"); H.deliver("PARTY_INVITE_REQUEST","Seeker a")
+    eq(H.accepts(),1); H.group(true); H.units().party1={name="Seeker a",leader=true}
+    H.deliver("GROUP_ROSTER_UPDATE"); yes(M.auto.group.joinedAt)
+    M.store.bulo=nil; M.autoTick(); H.advance(3.1); eq(H.leaves(),0)
+    H.advance(27); eq(H.leaves(),1)
+    eq(N.HopBar.statusText(),"Joined Seeker a. Too little around you to tell.")
+end)
+
 test("Blind Find: new sightings reset between hops without needing a UI projection",function()
     local N,M=setup(); M.track("Enemy Oak"); N.Find.changed(M.find,120)
     H.clock(121); N.Find.report(M.find,{enemies={{name="Enemy Oak"}},zone=100,at=121,sender="Scout Birch"})
