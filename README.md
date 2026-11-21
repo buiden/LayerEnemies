@@ -13,17 +13,17 @@ cannot trust, and still lets you hop.
 - A layer of `0` now means "unknown" everywhere.
 - A report with a broken layer field keeps its other details (name, zone, position) instead of
   being dropped.
-- A guild host no longer answers when your layer is ambiguous.
-- Enemy lists are cleared only on a real move: entering the world, a shard transfer, a zone
-  change, or a confirmed layer change within 10 seconds of joining or leaving a group. Other
-  layer changes no longer wipe what you have seen.
+- A guild host stays silent when its own layer is ambiguous.
+- Enemy lists are cleared only on a real move (entering the world, a shard transfer, a zone
+  change, or a confirmed layer change within 10 seconds of joining or leaving a group) or when
+  your layer is first learned. Other layer changes no longer wipe what you have seen.
 - A sighting is tied to the exact layer it was made on; after a layer change Find shows "seen by
   you" and sends no layer.
 
 **Blind mode**
 
-- When layer IDs look unreliable (stale or failing reads, three unexplained layer changes in 10
-  minutes, or a fresh group or hop contradiction), LayerEnemies switches to **blind mode** and
+- When layer IDs look unreliable (repeated unreadable creature IDs, three unexplained layer changes
+  in 10 minutes, or a fresh group or hop contradiction), LayerEnemies switches to **blind mode** and
   prints one chat line saying why.
 - In blind mode layer numbers are hidden, not greyed; layers others report are treated as unknown;
   your own messages carry no layer; FLH presence and guild host adverts stop. Guild hosts keep
@@ -33,15 +33,18 @@ cannot trust, and still lets you hop.
 
 **Blind hop**
 
-- With layer IDs hidden, the window shows one **Hop (blind)** button and the hop bar shows
-  `layer hidden`; a click asks one host (LayerSwap, FLH, Bulo or a guild host) for an invite.
+- While your layer is unknown or hidden, the window shows one **Hop (blind)** button (the hop bar
+  shows `layer hidden` in blind mode, `Detecting...` while still unknown). A click asks one
+  LayerSwap, Bulo or guild host for an invite by whisper; for an FLH-only host, or when no host is
+  known, it prepares a whisper or guild-chat line that you send with Enter.
 - One ask per click: no WHO search, no fan-out, no retry, nothing sent to public channels. Hosts
-  are rotated so the same one is not asked twice in a row; when all have been tried, it says so and
-  starts over.
+  are rotated so the same one is not asked twice in a row when there is another; when all have
+  been tried, it says so and starts over (with only one known host, that host is asked again).
 - Auto-accept takes only the invite from the host you asked.
-- After joining, it compares the creatures and players around you before and after (at 5, 15 and
-  30 seconds) and tells you what it saw, for example "Hopped (layer unknown): the creatures around
-  you changed." or "No change seen; the hop may not have worked." It never claims a layer number.
+- After joining, it compares the creatures and players around you before and after (at up to 5, 15
+  and 30 seconds, stopping at the first change) and tells you what it saw, for example "Hopped
+  (layer unknown): the creatures around you changed." or "Joined NAME. No change seen; the hop may
+  not have worked." It never claims a layer number.
 - **Find** rows show "not seen on N layers tried" after hops that changed your surroundings
   without the tracked player turning up.
 
