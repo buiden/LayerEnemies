@@ -27,6 +27,11 @@ MUTANTS = [
     ('leave-combat-recovery', 'Main.lua', 'if M.auto and M.auto.group and M.auto.group.blind then guarded(M.autoTick) end', ''),
     ('transfer-changed', 'Main.lua', ' or result=="transfer"', ''),
     ('tooltip-disabled', 'UI.lua', '(hop.enabled and hop.detail or hop.reason)', '(hop.detail or hop.reason)'),
+    ('auto-off-pending', 'Main.lua', 'if not M.auto.on then M.clearAutoGroup() end', 'if not M.auto.on then M.auto.group=nil end'),
+    ('group-clear-pending', 'Main.lua', 'if M.blindPending or g and g.blind then M.hopDone() end', ''),
+    ('expiry-observed-join', 'Main.lua', 'if p.joinedAt then M.hopDone(); return end', ''),
+    ('retain-observed-join', 'Main.lua', 'if g.blind then g.blind.joinedAt=g.joinedAt end', ''),
+    ('roster-third-member', 'Main.lua', '(not M.wasGrouped or M.auto.group.blind)', '(not M.wasGrouped)'),
 ]
 
 

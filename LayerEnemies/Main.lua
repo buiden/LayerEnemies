@@ -78,7 +78,7 @@ function M.boundary(zone,zoneChange)
     -- Nothing of this is saved: /reload starts without the raw id and without the ambiguity window.
     if zone~=nil and M.zoneSeen~=nil and zone~=M.zoneSeen then
         if M.hopAnyState then M.hopAnyStop("zone changed") end
-        if M.auto and M.auto.group and M.auto.group.any then M.auto.group=nil end
+        if M.auto and M.auto.group and M.auto.group.any then M.clearAutoGroup() end
         L.forget(M.npcs)
         -- a new zone also drops a pending hop or ask (the layer watch ends itself on the zone change, with a note)
         if M.hop then N.Hop.clear(M.hop) end
@@ -1930,6 +1930,7 @@ function M.blindResult(kind,name)
     if N.HopBar then N.HopBar.refresh() end
 end
 function M.blindExpired(p)
+    if p.joinedAt then M.hopDone(); return end
     local kind=p.accepted and "unformed" or p.invited and "unaccepted" or p.auto and "missed"
     if kind then M.blindResult(kind,p.invited or p.name) end
     M.hopDone()
@@ -2020,7 +2021,7 @@ end
 function M.hopAnyStop(reason)
     local flh=N.FLHMember.stop(reason)
     if M.blindPending or (M.auto and M.auto.group and M.auto.group.blind) then
-        M.auto.group=nil; M.hopDone(); M.say("LayerEnemies: blind hop stopped."); flh=true
+        M.clearAutoGroup(); M.hopDone(); M.say("LayerEnemies: blind hop stopped."); flh=true
     end
     local st=M.hopAnyState
     A.whoEnd("stop")
@@ -2291,9 +2292,14 @@ end
 M.AUTO_WINDOW,M.AUTO_LEAVE,M.AUTO_FAIL,M.AUTO_JOIN=120,3,30,60
 M.BLIND_PARTNERS=1
 function M.autoHop() return M.auto~=nil and M.auto.on==true end
+function M.clearAutoGroup()
+    local g=M.auto.group
+    if M.blindPending or g and g.blind then M.hopDone() end
+    M.auto.group=nil
+end
 function M.setAutoHop(on)
     M.auto.on=on==true; if S.tab(LayerEnemiesDB) then LayerEnemiesDB.autoHop=M.auto.on end
-    if not M.auto.on then M.auto.group=nil end
+    if not M.auto.on then M.clearAutoGroup() end
     M.say(M.auto.on and "LayerEnemies: Auto accept and leave is on: the invite of the host you asked by Hop is accepted, and that group is left once you moved (or after 30 s without a move)."
         or "LayerEnemies: Auto accept and leave is off: invites and groups are left to you.")
     if N.UI then N.UI.refresh() end
@@ -2363,7 +2369,7 @@ end
 function M.blindLeave(g,time)
     if A.inCombat() then return end
     if M.autoHop() and not g.manual then N.Wire.leave(time) end
-    M.auto.group=nil; M.hopDone()
+    M.clearAutoGroup(); M.hopDone()
 end
 function M.autoTick()
     local g=M.auto and M.auto.group
@@ -2375,7 +2381,7 @@ function M.autoTick()
         end
         return
     end
-    if not M.autoHop() and not g.blind then M.auto.group=nil; return end
+    if not M.autoHop() and not g.blind then M.clearAutoGroup(); return end
     local time=now()
     if not g.blind and not N.Trust.own(M.store,time) then
         -- No pre-ask proxy was taken for a known hop. Never invent one.
@@ -2386,12 +2392,12 @@ function M.autoTick()
             end
         end
     end
-    if g.any and (A.location()~=g.zone or M.store.zone~=g.zone) then M.auto.group=nil; return end
+    if g.any and (A.location()~=g.zone or M.store.zone~=g.zone) then M.clearAutoGroup(); return end
     local grouped=S.call(IsInGroup)==true
     if not g.joinedAt then
         if not grouped then
             if time-g.at>M.AUTO_JOIN then
-                M.auto.group=nil
+                M.clearAutoGroup()
                 if g.blind then M.blindExpired(g.blind) end
             end
             return
@@ -2404,14 +2410,15 @@ function M.autoTick()
             end
         else after(M.AUTO_FAIL+0.1,function() guarded(M.autoTick) end) end
     end
+    if g.blind then g.blind.joinedAt=g.joinedAt end
     local party=A.party()
     if not grouped or not party or party.raid~=false or party.leader or not hostLeads(g) then
-        M.auto.group=nil; if g.blind then M.hopDone() end; return
+        M.clearAutoGroup(); if g.blind then M.hopDone() end; return
     end
     -- Never inside an instance. Blind hops additionally require a hop-only party.
-    if A.inInstance()~=false then M.auto.group=nil; if g.blind then M.hopDone() end; return end
+    if A.inInstance()~=false then M.clearAutoGroup(); if g.blind then M.hopDone() end; return end
     if g.blind then
-        if #party.members~=M.BLIND_PARTNERS then M.auto.group=nil; M.hopDone(); return end
+        if #party.members~=M.BLIND_PARTNERS then M.clearAutoGroup(); M.hopDone(); return end
         if g.leaveAt then
             if time>=g.leaveAt then M.blindLeave(g,time) end
             return
@@ -2433,7 +2440,7 @@ function M.autoTick()
     if g.any and (not L.key(N.Trust.own(M.store,now())) or L.same(N.Trust.own(M.store,now()),g.from)) then g.leaveAt=nil end
     if g.leaveAt then
         if time>=g.leaveAt then
-            N.Wire.leave(time); M.auto.group=nil; M.hopDone()
+            N.Wire.leave(time); M.clearAutoGroup(); M.hopDone()
         end
         return
     end
@@ -2451,7 +2458,7 @@ function M.autoTick()
         N.Trust.hop(M.store,g.short,g.trustBefore,N.Trust.own(M.store,time),true,time,g.joinedAt)
         M.trustRefresh()
         if g.any then N.HopAny.failed(M.hopAnyState,g.short,time) end
-        N.Wire.leave(time); M.auto.group=nil; M.hopDone()
+        N.Wire.leave(time); M.clearAutoGroup(); M.hopDone()
         M.say("LayerEnemies: hop failed: "..g.host.." could not move you")
     end
 end
@@ -2947,10 +2954,10 @@ function M.groupCheck(deferPopup)
     -- the hop group ended (left by hand or otherwise): stop tracking at once
     if not grouped and M.wasGrouped and M.auto and M.auto.group and M.auto.group.joinedAt then
         if M.auto.group.blind then M.hopDone() end
-        M.auto.group=nil
+        M.clearAutoGroup()
     end
-    if grouped and not M.wasGrouped and M.auto and M.auto.group then
-        -- our auto-accepted hop group: autoTick watches the move and leaves; the manual layer check stays quiet
+    if grouped and M.auto and M.auto.group and (not M.wasGrouped or M.auto.group.blind) then
+        -- Blind leave guards latch on every roster event, before a third member can leave again.
         guarded(M.autoTick)
     elseif grouped and not M.wasGrouped and I.joined(M.invite,now(),L.key(N.Trust.own(M.store,now())),M.store.zone) then
         M.say("LayerEnemies: you joined a group after asking - checking your layer for 60 s.")

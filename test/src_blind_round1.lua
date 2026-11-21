@@ -50,8 +50,9 @@ end
 -- Adapted from the reviewer's observed-invite/no-group repro, with approved exact texts.
 for _,mode in ipairs({"accepted","manual","refused","off-after-accept"}) do
     test("Blind R1 invite: observed without group "..mode.." never becomes missed",function()
-        local N,M=setup(); ask(N,M)
+        local N,M=setup()
         if mode=="manual" then M.setAutoHop(false) end
+        ask(N,M)
         if mode=="refused" then N.Wire.accept=function() return false,"error" end end
         H.deliver("PARTY_INVITE_REQUEST",HOST)
         local accepted=mode=="accepted" or mode=="off-after-accept"
@@ -63,7 +64,7 @@ for _,mode in ipairs({"accepted","manual","refused","off-after-accept"}) do
             eq(N.HopBar.statusText(),accepted and "Accepted Host Cedar's invite, but no group formed." or "Host Cedar invited; not accepted.")
         end
         H.advance(60); M.autoTick()
-        eq(N.HopBar.statusText(),accepted and "Accepted Host Cedar's invite, but no group formed." or "Host Cedar invited; not accepted.")
+        eq(N.HopBar.statusText(),mode=="off-after-accept" and "" or accepted and "Accepted Host Cedar's invite, but no group formed." or "Host Cedar invited; not accepted.")
         for _,line in ipairs(H.log()) do no(line:find("did not invite",1,true)) end
         eq(M.blindPending,nil); eq(M.invite.pending,nil); eq(M.auto.group,nil); eq(H.leaves(),0)
         H.deliver("PARTY_INVITE_REQUEST",HOST); eq(H.accepts(),accepted and 1 or 0)

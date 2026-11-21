@@ -213,3 +213,73 @@ Round-1 final verification (fresh background run, polled to exit 0):
 - ASCII additions, no private paths, unchanged send sites and `git diff --check`:
   PASS. No version, wire, budget or SavedVariables changes.
 - No open implementation questions. Not tested in game (alpha, owner's decision).
+
+## Final lead corrections
+
+One follow-up fix, limited to the three final review items. The production
+changes are only in Main and HopProbe; README wording already states the
+intended behavior and is unchanged by this fix.
+
+- Item 1: every auto-group clear uses one helper that consumes blind pending
+  ownership. Auto-off also cancels the outstanding invite. The pending record
+  retains observed join time, so an orphaned expiry cannot report unformed or
+  overwrite a shown result. RED: 7 failures and 6 inherited-positive exit
+  controls; GREEN: all 13 cases. Auto-off covers draft, ask, accepted, joined
+  and shown stages. Manual-mode controls now turn auto off before asking;
+  turning it off mid-round is deliberately cancellation, not manual tracking.
+- Item 2: blind groups run the existing leave guards at every roster event,
+  not just the initial join. A fleeting third member permanently disarms the
+  attempt before the next timer. RED: 6 failures; GREEN: 6 passes, covering
+  before-result, armed and combat-wait timing for both outcomes.
+- Item 3: sparse fallback uses the readability of both creature snapshots
+  when the before-player count is below the existing threshold. Visible
+  after-players cannot supply a missing baseline. RED: 4 pure failures and
+  1 live failure; GREEN: 12 pure cases and 1 live case. Eight pure controls
+  already passed the baseline, including usable player comparisons.
+
+Unchanged reviewer repros were copied byte-for-byte into private baseline and
+candidate archives; their originals were read-only. ZZ3 went from 4 passed /
+7 failed to 11/0. ZZ2 went from 57/6 to 62/1: all six fleeting-member failures
+are fixed. Its remaining old manual-mode expectation asks before disabling
+this mode, contrary to the lead's new cancellation requirement. A separate
+copy moving only that manual disable before the ask passes 63/0. The matching
+repository control was migrated the same way, with no test removals. The
+unchanged ZZ5 observation probes now show zero transient-member leaves, no
+false unformed text, the preserved changed result, and the too-little text.
+Those print-only probes are observations, not newly failing assertions.
+
+Final augmented tests were replayed on an unchanged baseline runtime: Blind
+final 6 passed / 14 failed, HopProbe final 8 passed / 4 failed. These are real
+runs, separate from the already-green controls. The candidate's complete Blind
+suite passes 92/0 with 4986 assertions; HopProbe passes 22/0 with 1044.
+
+Verification, run through the heavy-job wrapper in the background and polled
+to exit 0:
+
+- `python3 -I test/verify.py`
+- `RESULT: 2605 tests passed, 0 failed, 672608 assertions`
+- Syntax: 299 files, PASS. TOC/static checks and archive integrity/source parity:
+  PASS. All 20 Blind final and 12 HopProbe final cases appear in the full log.
+- Archive SHA-256: `8ced1a74cc1e4e2302f72125aa88ba45977ed341f52e5756a0f3faebebd18df0`.
+- `RESULT: 64/64 Trust mutants killed`
+- `RESULT: 33/33 HopProbe mutants killed`
+- `RESULT: 22/22 BlindHop mutants killed`
+- Original 64 Trust, 31 HopProbe and 17 BlindHop definitions retained exactly;
+  no removals and no re-anchors. Added HopProbe unreadable-baseline and
+  unreadable-player-edge; BlindHop auto-off-pending, group-clear-pending,
+  expiry-observed-join, retain-observed-join and roster-third-member.
+- The first mutant invocation lacked a Lua executable on PATH and stopped
+  before testing. The successful background rerun set LAYERENEMIES_LUA to
+  the existing Lua 5.1 binary explicitly; no runner behavior was changed.
+
+README heading check against main:
+
+    ok @@ -1986,3 +1986,3 @@ in: ## Layer trust and hidden IDs
+    ok @@ -2012,0 +2013,81 @@ in: ## Blind hopping and Find
+    hunks=2 version_section_hunks=0
+
+Scope checks: only Main/HopProbe runtime changes; all other addon files,
+TOC/version, wire, budgets and SavedVariables accesses unchanged. Send, accept
+and leave call sites unchanged. ASCII additions, no private paths, no donor
+implementation and no public-send changes. Self-review only; native client
+not run (alpha, owner's decision). No open implementation questions.

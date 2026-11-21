@@ -48,7 +48,7 @@ function P.judge(before,after,transfer)
         if a and b and a.map==b.map and (a.x-b.x)^2+(a.y-b.y)^2+(a.z-b.z)^2<P.YARDS^2
             and retained*P.REMAINING_DENOMINATOR<=before.playerCount then return "players" end
     end
-    if (before.unparsed or before.creatureCount<P.CREATURES) and before.playerCount<P.PLAYERS then return "sparse" end
+    if (not usable or before.creatureCount<P.CREATURES) and before.playerCount<P.PLAYERS then return "sparse" end
     if (after.unparsed or after.creatureCount==0) and after.playerCount==0 then return "sparse" end
     return "unchanged"
 end

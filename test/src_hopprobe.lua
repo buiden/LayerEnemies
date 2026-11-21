@@ -85,6 +85,33 @@ test("HopProbe: empty after snapshots are sparse unless players or an event prov
     eq(P.judge(snap(P,3,0),P.snapshot({{guid=H.secret,player=false}})),"sparse")
 end)
 
+for _,side in ipairs({"before","after"}) do
+    for _,players in ipairs({0,4}) do
+        for _,remaining in ipairs({1,4}) do
+            test("HopProbe final: unreadable "..side.." players="..players.." after="..remaining,function()
+                local P=probe(); local a,b=rows(3,players),rows(3,remaining,"DEF")
+                local unreadable=side=="before" and a or b
+                unreadable[#unreadable+1]={guid="Creature-hidden",player=false}
+                local pos={x=0,y=0,z=0,map=100}
+                eq(P.judge(P.snapshot(a,pos),P.snapshot(b,pos)),"sparse","after players cannot supply a missing baseline")
+            end)
+        end
+    end
+end
+for _,remaining in ipairs({1,2,5}) do
+    test("HopProbe final: unreadable after keeps usable player baseline remaining="..remaining,function()
+        local P=probe(); local after=rows(3,remaining,"DEF")
+        after[#after+1]={guid="Creature-hidden",player=false}
+        local pos={x=0,y=0,z=0,map=100}
+        eq(P.judge(snap(P,3,5),P.snapshot(after,pos)),remaining==1 and "players" or "unchanged")
+    end)
+end
+test("HopProbe final: unreadable after with no position cannot prove vanished players",function()
+    local P=probe(); local after=rows(3,0,"DEF")
+    after[#after+1]={guid="Creature-hidden",player=false}
+    eq(P.judge(snap(P,3,5),P.snapshot(after)),"sparse")
+end)
+
 test("HopProbe: exact result texts, no GUID digits in any result",function()
     local P=probe()
     local cases={

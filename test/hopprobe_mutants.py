@@ -41,6 +41,8 @@ MUTANTS = [
     ('after-unreadable-sparse', '(after.unparsed or after.creatureCount==0)', '(after.creatureCount==0)'),
     ('result-unformed', 'invite, but no group formed.', 'invite, but no group formed!'),
     ('result-unaccepted', ' invited; not accepted.', ' invited; not accepted!'),
+    ('unreadable-baseline', '(not usable or before.creatureCount<P.CREATURES)', '(before.unparsed or before.creatureCount<P.CREATURES)'),
+    ('unreadable-player-edge', 'and before.playerCount<P.PLAYERS then', 'and before.playerCount<=P.PLAYERS then'),
 ]
 
 

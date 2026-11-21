@@ -18,45 +18,45 @@
     "rule": "find-join-time",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 Find: own sighting after join at 0 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: own sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: own sighting after join at 6 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: own sighting before join still counts and late post-join replay resets: test/src_blind_round1.lua:176: not equal: expected nil, got not seen on 1 layers tried",
-      "FAIL Blind R1 Find: report sighting after join at 0 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: report sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: report sighting after join at 6 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: report sighting before join still counts and late post-join replay resets: test/src_blind_round1.lua:176: not equal: expected nil, got not seen on 1 layers tried",
-      "FAIL Blind R1 Find: hash sighting after join at 0 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: hash sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: hash sighting after join at 6 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: hash sighting before join still counts and late post-join replay resets: test/src_blind_round1.lua:176: not equal: expected nil, got not seen on 1 layers tried"
+      "FAIL Blind R1 Find: own sighting after join at 0 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: own sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: own sighting after join at 6 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: own sighting before join still counts and late post-join replay resets: test/src_blind_round1.lua:177: not equal: expected nil, got not seen on 1 layers tried",
+      "FAIL Blind R1 Find: report sighting after join at 0 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: report sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: report sighting after join at 6 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: report sighting before join still counts and late post-join replay resets: test/src_blind_round1.lua:177: not equal: expected nil, got not seen on 1 layers tried",
+      "FAIL Blind R1 Find: hash sighting after join at 0 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: hash sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: hash sighting after join at 6 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: hash sighting before join still counts and late post-join replay resets: test/src_blind_round1.lua:177: not equal: expected nil, got not seen on 1 layers tried"
     ]
   },
   {
     "rule": "find-seen-admission",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 Find: exact-join sighting suppresses the count before any projection: test/src_blind_round1.lua:149: equal join timestamp is included without a UI read: expected 0, got 1",
-      "FAIL Blind R1 Find: own sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: report sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: hash sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1"
+      "FAIL Blind R1 Find: exact-join sighting suppresses the count before any projection: test/src_blind_round1.lua:150: equal join timestamp is included without a UI read: expected 0, got 1",
+      "FAIL Blind R1 Find: own sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: report sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: hash sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1"
     ]
   },
   {
     "rule": "find-seen-edge",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 Find: exact-join sighting suppresses the count before any projection: test/src_blind_round1.lua:149: equal join timestamp is included without a UI read: expected 0, got 1"
+      "FAIL Blind R1 Find: exact-join sighting suppresses the count before any projection: test/src_blind_round1.lua:150: equal join timestamp is included without a UI read: expected 0, got 1"
     ]
   },
   {
     "rule": "find-count-seen",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 Find: exact-join sighting suppresses the count before any projection: test/src_blind_round1.lua:149: equal join timestamp is included without a UI read: expected 0, got 1",
-      "FAIL Blind R1 Find: own sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: report sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1",
-      "FAIL Blind R1 Find: hash sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:165: ingress keeps the count honest without UI projection: expected 0, got 1"
+      "FAIL Blind R1 Find: exact-join sighting suppresses the count before any projection: test/src_blind_round1.lua:150: equal join timestamp is included without a UI read: expected 0, got 1",
+      "FAIL Blind R1 Find: own sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: report sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1",
+      "FAIL Blind R1 Find: hash sighting after join at 2 is not a missed hop: test/src_blind_round1.lua:166: ingress keeps the count honest without UI projection: expected 0, got 1"
     ]
   },
   {
@@ -71,73 +71,78 @@
     "rule": "invite-observed",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 invite: observed without group manual never becomes missed: test/src_blind_round1.lua:63: not equal: expected Host Cedar invited; not accepted., got Host Cedar did not invite.",
-      "FAIL Blind R1 invite: observed without group refused never becomes missed: test/src_blind_round1.lua:66: not equal: expected Host Cedar invited; not accepted., got Host Cedar did not invite."
+      "FAIL Blind R1 invite: observed without group manual never becomes missed: test/src_blind_round1.lua:64: not equal: expected Host Cedar invited; not accepted., got Host Cedar did not invite.",
+      "FAIL Blind R1 invite: observed without group refused never becomes missed: test/src_blind_round1.lua:67: not equal: expected Host Cedar invited; not accepted., got Host Cedar did not invite."
     ]
   },
   {
     "rule": "invite-accepted",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 invite: observed without group accepted never becomes missed: test/src_blind_round1.lua:63: not equal: expected Accepted Host Cedar's invite, but no group formed., got Host Cedar invited; not accepted.",
-      "FAIL Blind R1 invite: observed without group off-after-accept never becomes missed: test/src_blind_round1.lua:66: not equal: expected Accepted Host Cedar's invite, but no group formed., got Host Cedar invited; not accepted."
+      "FAIL Blind R1 invite: observed without group accepted never becomes missed: test/src_blind_round1.lua:64: not equal: expected Accepted Host Cedar's invite, but no group formed., got Host Cedar invited; not accepted."
     ]
   },
   {
     "rule": "invite-converted",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 invite: known acceptance converted before group keeps invite evidence: test/src_blind_round1.lua:78: not equal: expected Accepted Host Cedar's invite, but no group formed., got Host Cedar invited; not accepted."
+      "FAIL Blind R1 invite: known acceptance converted before group keeps invite evidence: test/src_blind_round1.lua:79: not equal: expected Accepted Host Cedar's invite, but no group formed., got Host Cedar invited; not accepted."
     ]
   },
   {
     "rule": "invite-watchdog",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 invite: observed without group accepted never becomes missed: test/src_blind_round1.lua:62: join watchdog consumes the attempt: expected nil, got table: 0xADDR",
-      "FAIL Blind R1 invite: observed without group manual never becomes missed: test/src_blind_round1.lua:62: join watchdog consumes the attempt: expected nil, got table: 0xADDR",
-      "FAIL Blind R1 invite: known acceptance converted before group keeps invite evidence: test/src_blind_round1.lua:78: not equal: expected Accepted Host Cedar's invite, but no group formed., got "
+      "FAIL Blind R1 invite: observed without group accepted never becomes missed: test/src_blind_round1.lua:64: not equal: expected Accepted Host Cedar's invite, but no group formed., got ",
+      "FAIL Blind R1 invite: observed without group manual never becomes missed: test/src_blind_round1.lua:64: not equal: expected Host Cedar invited; not accepted., got ",
+      "FAIL Blind R1 invite: known acceptance converted before group keeps invite evidence: test/src_blind_round1.lua:79: not equal: expected Accepted Host Cedar's invite, but no group formed., got "
     ]
   },
   {
     "rule": "stop-converted",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 stop: accepted known hop converted to blind is cancelled: test/src_blind_round1.lua:112: converted probe ownership cancelled: expected nil, got table: 0xADDR"
+      "FAIL Blind R1 stop: accepted known hop converted to blind is cancelled: test/src_blind_round1.lua:113: converted probe ownership cancelled: expected nil, got table: 0xADDR"
     ]
   },
   {
     "rule": "leave-combat",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 leave: changed=false guard=combat: test/src_blind_round1.lua:128: guard holds at result and leave deadline: expected 0, got 1",
-      "FAIL Blind R1 leave: changed=false guard=unknown-combat: test/src_blind_round1.lua:128: guard holds at result and leave deadline: expected 0, got 1",
-      "FAIL Blind R1 leave: changed=false guard=extra-while-waiting: test/src_blind_round1.lua:128: guard holds at result and leave deadline: expected 0, got 1",
-      "FAIL Blind R1 leave: changed=true guard=combat: test/src_blind_round1.lua:128: guard holds at result and leave deadline: expected 0, got 1",
-      "FAIL Blind R1 leave: changed=true guard=unknown-combat: test/src_blind_round1.lua:128: guard holds at result and leave deadline: expected 0, got 1",
-      "FAIL Blind R1 leave: changed=true guard=extra-while-waiting: test/src_blind_round1.lua:128: guard holds at result and leave deadline: expected 0, got 1"
+      "FAIL Blind final roster: fleeting third member combat-wait changed=false: test/src_blind_final.lua:64: returning to two players cannot rearm leave: expected 0, got 1",
+      "FAIL Blind final roster: fleeting third member combat-wait changed=true: test/src_blind_final.lua:64: returning to two players cannot rearm leave: expected 0, got 1",
+      "FAIL Blind R1 leave: changed=false guard=combat: test/src_blind_round1.lua:129: guard holds at result and leave deadline: expected 0, got 1",
+      "FAIL Blind R1 leave: changed=false guard=unknown-combat: test/src_blind_round1.lua:129: guard holds at result and leave deadline: expected 0, got 1",
+      "FAIL Blind R1 leave: changed=false guard=extra-while-waiting: test/src_blind_round1.lua:129: guard holds at result and leave deadline: expected 0, got 1",
+      "FAIL Blind R1 leave: changed=true guard=combat: test/src_blind_round1.lua:129: guard holds at result and leave deadline: expected 0, got 1",
+      "FAIL Blind R1 leave: changed=true guard=unknown-combat: test/src_blind_round1.lua:129: guard holds at result and leave deadline: expected 0, got 1",
+      "FAIL Blind R1 leave: changed=true guard=extra-while-waiting: test/src_blind_round1.lua:129: guard holds at result and leave deadline: expected 0, got 1"
     ]
   },
   {
     "rule": "leave-third-member",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 leave: changed=false guard=extra-member: test/src_blind_round1.lua:128: guard holds at result and leave deadline: expected 0, got 1",
-      "FAIL Blind R1 leave: changed=false guard=extra-while-waiting: test/src_blind_round1.lua:136: return to two players must not rearm leave: expected 0, got 1",
-      "FAIL Blind R1 leave: changed=true guard=extra-member: test/src_blind_round1.lua:128: guard holds at result and leave deadline: expected 0, got 1",
-      "FAIL Blind R1 leave: changed=true guard=extra-while-waiting: test/src_blind_round1.lua:136: return to two players must not rearm leave: expected 0, got 1"
+      "FAIL Blind final roster: fleeting third member before-result changed=false: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member armed changed=false: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member combat-wait changed=false: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member before-result changed=true: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member armed changed=true: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member combat-wait changed=true: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind R1 leave: changed=false guard=extra-member: test/src_blind_round1.lua:129: guard holds at result and leave deadline: expected 0, got 1",
+      "FAIL Blind R1 leave: changed=false guard=extra-while-waiting: test/src_blind_round1.lua:137: return to two players must not rearm leave: expected 0, got 1",
+      "FAIL Blind R1 leave: changed=true guard=extra-member: test/src_blind_round1.lua:129: guard holds at result and leave deadline: expected 0, got 1",
+      "FAIL Blind R1 leave: changed=true guard=extra-while-waiting: test/src_blind_round1.lua:137: return to two players must not rearm leave: expected 0, got 1"
     ]
   },
   {
     "rule": "leave-combat-recovery",
     "caught": true,
     "assertions": [
-      "FAIL Blind R1 leave: changed=false guard=combat: test/src_blind_round1.lua:138: combat end releases owed leave: expected 1, got 0",
-      "FAIL Blind R1 leave: changed=false guard=unknown-combat: test/src_blind_round1.lua:138: combat end releases owed leave: expected 1, got 0",
-      "FAIL Blind R1 leave: changed=false guard=extra-while-waiting: test/src_blind_round1.lua:134: additional member permanently disarms leave: expected nil, got table: 0xADDR",
-      "FAIL Blind R1 leave: changed=true guard=combat: test/src_blind_round1.lua:138: combat end releases owed leave: expected 1, got 0",
-      "FAIL Blind R1 leave: changed=true guard=unknown-combat: test/src_blind_round1.lua:138: combat end releases owed leave: expected 1, got 0",
-      "FAIL Blind R1 leave: changed=true guard=extra-while-waiting: test/src_blind_round1.lua:134: additional member permanently disarms leave: expected nil, got table: 0xADDR"
+      "FAIL Blind R1 leave: changed=false guard=combat: test/src_blind_round1.lua:139: combat end releases owed leave: expected 1, got 0",
+      "FAIL Blind R1 leave: changed=false guard=unknown-combat: test/src_blind_round1.lua:139: combat end releases owed leave: expected 1, got 0",
+      "FAIL Blind R1 leave: changed=true guard=combat: test/src_blind_round1.lua:139: combat end releases owed leave: expected 1, got 0",
+      "FAIL Blind R1 leave: changed=true guard=unknown-combat: test/src_blind_round1.lua:139: combat end releases owed leave: expected 1, got 0"
     ]
   },
   {
@@ -155,6 +160,58 @@
       "FAIL Blind R1 tooltip: disabled button explains instance: test/harness.lua:7: disabled tooltip includes refusal reason: expected true, got false",
       "FAIL Blind R1 tooltip: disabled button explains pending: test/harness.lua:7: disabled tooltip includes refusal reason: expected true, got false",
       "FAIL Blind R1 tooltip: disabled button explains cooldown: test/harness.lua:7: disabled tooltip includes refusal reason: expected true, got false"
+    ]
+  },
+  {
+    "rule": "auto-off-pending",
+    "caught": true,
+    "assertions": [
+      "FAIL Blind final cancel: auto off at draft consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind final cancel: auto off at asked consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind final cancel: auto off at accepted consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind final cancel: auto off at joined consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind final cancel: auto off at shown consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind R1 invite: observed without group off-after-accept never becomes missed: test/src_blind_round1.lua:67: not equal: expected , got Accepted Host Cedar's invite, but no group formed."
+    ]
+  },
+  {
+    "rule": "group-clear-pending",
+    "caught": true,
+    "assertions": [
+      "FAIL Blind final cancel: auto off at draft consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind final cancel: auto off at asked consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind final cancel: auto off at accepted consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind final cancel: auto off at joined consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind final cancel: auto off at shown consumes pending and stale timers: test/src_blind_final.lua:30: auto off consumes the pending round: expected nil, got table: 0xADDR",
+      "FAIL Blind R1 invite: observed without group off-after-accept never becomes missed: test/src_blind_round1.lua:67: not equal: expected , got Accepted Host Cedar's invite, but no group formed."
+    ]
+  },
+  {
+    "rule": "expiry-observed-join",
+    "caught": true,
+    "assertions": [
+      "FAIL Blind final expiry: observed join survives lost group ownership shown=false: test/src_blind_final.lua:46: observed group formation never becomes unformed: expected , got Accepted Host Cedar's invite, but no group formed.",
+      "FAIL Blind final expiry: observed join survives lost group ownership shown=true: test/src_blind_final.lua:46: observed group formation never becomes unformed: expected Hopped (layer unknown): the creatures around you changed., got Accepted Host Cedar's invite, but no group formed."
+    ]
+  },
+  {
+    "rule": "retain-observed-join",
+    "caught": true,
+    "assertions": [
+      "FAIL Blind final expiry: observed join survives lost group ownership shown=false: test/src_blind_final.lua:46: observed group formation never becomes unformed: expected , got Accepted Host Cedar's invite, but no group formed.",
+      "FAIL Blind final expiry: observed join survives lost group ownership shown=true: test/src_blind_final.lua:46: observed group formation never becomes unformed: expected Hopped (layer unknown): the creatures around you changed., got Accepted Host Cedar's invite, but no group formed."
+    ]
+  },
+  {
+    "rule": "roster-third-member",
+    "caught": true,
+    "assertions": [
+      "FAIL Blind final roster: fleeting third member before-result changed=false: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member armed changed=false: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member combat-wait changed=false: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member before-result changed=true: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member armed changed=true: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR",
+      "FAIL Blind final roster: fleeting third member combat-wait changed=true: test/src_blind_final.lua:58: third-member roster immediately disarms the attempt: expected nil, got table: 0xADDR"
     ]
   }
 ]

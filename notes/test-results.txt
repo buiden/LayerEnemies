@@ -1317,6 +1317,26 @@ PASS Stack: six mixed Wanted presence and Overlord cards use measured heights an
 PASS Stack: slash commands route independently without shadowing
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=true
 PASS Stack: presence FLH and Overlord coexist without sends or persistence presenceFirst=false
+PASS Blind final cancel: auto off at draft consumes pending and stale timers
+PASS Blind final cancel: auto off at asked consumes pending and stale timers
+PASS Blind final cancel: auto off at accepted consumes pending and stale timers
+PASS Blind final cancel: auto off at joined consumes pending and stale timers
+PASS Blind final cancel: auto off at shown consumes pending and stale timers
+PASS Blind final expiry: observed join survives lost group ownership shown=false
+PASS Blind final expiry: observed join survives lost group ownership shown=true
+PASS Blind final roster: fleeting third member before-result changed=false
+PASS Blind final roster: fleeting third member armed changed=false
+PASS Blind final roster: fleeting third member combat-wait changed=false
+PASS Blind final roster: fleeting third member before-result changed=true
+PASS Blind final roster: fleeting third member armed changed=true
+PASS Blind final roster: fleeting third member combat-wait changed=true
+PASS Blind final snapshot: unreadable creatures plus a visible player give too little
+PASS Blind final cancel: stop clears group and pending together
+PASS Blind final cancel: manual-leave clears group and pending together
+PASS Blind final cancel: raid clears group and pending together
+PASS Blind final cancel: leader clears group and pending together
+PASS Blind final cancel: instance clears group and pending together
+PASS Blind final cancel: zone clears group and pending together
 PASS Blind lifecycle: stopping cancels pending acceptance and stale timers
 PASS Blind lifecycle: a blind-painted click cannot turn into known fanout
 PASS Blind lifecycle: blind reply is remembered silently, not a sixth result text
@@ -1681,6 +1701,18 @@ PASS HopProbe: unreadable after snapshot disables creatures even beside matching
 PASS HopProbe: equality uses NPC plus last spawn field, never a server field
 PASS HopProbe: bounded snapshot includes all forty two tokens, not a forty third
 PASS HopProbe: empty after snapshots are sparse unless players or an event prove change
+PASS HopProbe final: unreadable before players=0 after=1
+PASS HopProbe final: unreadable before players=0 after=4
+PASS HopProbe final: unreadable before players=4 after=1
+PASS HopProbe final: unreadable before players=4 after=4
+PASS HopProbe final: unreadable after players=0 after=1
+PASS HopProbe final: unreadable after players=0 after=4
+PASS HopProbe final: unreadable after players=4 after=1
+PASS HopProbe final: unreadable after players=4 after=4
+PASS HopProbe final: unreadable after keeps usable player baseline remaining=1
+PASS HopProbe final: unreadable after keeps usable player baseline remaining=2
+PASS HopProbe final: unreadable after keeps usable player baseline remaining=5
+PASS HopProbe final: unreadable after with no position cannot prove vanished players
 PASS HopProbe: exact result texts, no GUID digits in any result
 PASS Layer A5: rotating NPC identifiers update confirmed key without wipes
 PASS Layer A5: rotating Bulo IDs and donor transfer notifications wipe nothing
@@ -2659,4 +2691,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2573 tests passed, 0 failed, 671041 assertions
+RESULT: 2605 tests passed, 0 failed, 672608 assertions
