@@ -21,7 +21,7 @@ end
 for _,stage in ipairs({"draft","asked"}) do
     test("Blind final survive: auto toggle at "..stage.." keeps the player's round",function()
         local N,M=setup(); sample("ABC")
-        if stage=="draft" then LayerSwapDB=nil; M.openChat=function() return true end end
+        if stage=="draft" then LayerSwapDB=nil; M.heard.flhHosts={{name=HOST,map=100,key="8",at=H.wall()}}; M.openWhisper=function() return true end end
         yes(M.hopAny()); local pending=M.blindPending; yes(pending)
         SlashCmdList.LAYERENEMIES("hop auto off"); SlashCmdList.LAYERENEMIES("hop auto on")
         SlashCmdList.LAYERENEMIES("hop auto off")

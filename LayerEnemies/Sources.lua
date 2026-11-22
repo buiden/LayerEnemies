@@ -166,7 +166,7 @@ local function offer(ev)
         Src.count(net,"accepted"); if N.UI then N.UI.refresh() end
         return true
     end
-    if N.Trust.state(M.store,now)=="blind" then shard=nil end
+    if N.Trust.masked(M.store,now) then shard=nil end
     local detail=net.." "..kind..": "..kinds[kind].." (claim)"
     if x and kind~="self" and ev.pos~="enemy" then detail=detail.." · seen near observer" end
     if zoneText then detail=detail.." · "..zoneText end

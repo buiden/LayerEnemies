@@ -1,5 +1,18 @@
 # Third-party provenance
 
+## Hidden-layer host parity
+
+LayerSwap 1.14.44 and BuloLayerForever 3.0.37 were inspected read-only for
+protocol and behavior facts: optional `r<digits>` request tags, full-ID
+`heard` replies, host-group transfer and phase verdicts, reload-only token
+lifetime, and estimated 10/3600/900 pacing. The independent implementation
+uses equality evidence only and never seeds it from private creature IDs.
+No donor code, assets or libraries were copied, translated, bundled or
+executed. Existing addon-message routes and budgets are retained; neither
+guild chat nor a layer-channel chat send is added. UnitPhaseReason's declared
+nil/phase-reason return is read through the protected adapter; native timing
+and interoperability are not tested (alpha, owner's decision).
+
 ## Overlord kill feed (C3)
 
 Same **2.5.4** immutable pin and **All Rights Reserved / protocol only** boundary

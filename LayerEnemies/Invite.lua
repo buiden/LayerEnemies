@@ -245,7 +245,7 @@ function I.blindCollect(env)
                 if S.tab(e) then
                     found[#found+1]={name=name,zone=e.zone,at=e.at,
                         label=S.str(e.network,30)=="LayerEnemies" and "LayerEnemies" or label,
-                        skip=S.secret(e.gone) or e.gone~=nil}
+                        skip=S.secret(e.gone) or e.gone~=nil or (env.token and S.str(e.layer,32)==env.token and e.zone==env.zone)}
                 end
             end
         end)

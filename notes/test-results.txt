@@ -233,10 +233,10 @@ PASS 0.4 T1: the Find hosts button on the Friendly tab, one Q per click
 PASS 0.3.1 fix S1 / PR3: unknown report hops are unconstrained; layered helpers still refuse
 PASS 0.3.1 fix S2: hop host refuses when the host flag or the LayerSwap uid changed since the preview
 PASS 0.3.1 fix S3 and note: the hint names two different kinds of NPC; a non-host Bulo row says it may not answer
-PASS 0.4 T5: no one known on the layer: Ask guild (chat) drafts the exact /g line and sends nothing
+PASS 0.4 T5: removed guild draft replaced with one WHO search
 PASS 0.4 T5: a known host or another precondition means no guild ask
-PASS 0.4 T5: GUILD heard replies are read for 120 s after our own guild ask, naming us, and stored as hosts
-PASS 0.4 T5: the Reported row button drafts the guild line
+PASS 0.4 T5: removed guild reply window cannot reopen from chat
+PASS 0.4 T5: Reported row offers WHO instead of guild draft
 PASS 0.4 T7.1: parse accepts full want/not and unconstrained grammar
 PASS 0.4 T7.1: decide order: hosting, name, 60 s per asker, zone, key, instance, combat, guild
 PASS 0.4 T7.1: want and not rules with their replies
@@ -267,7 +267,7 @@ PASS 0.4 T8: Wire keeps its own limits on accept and leave (10 s each)
 PASS 0.4 T8: no move within 30 s of joining: leave and say the hop failed
 PASS 0.4 T8: another inviter, a late invite, grouped or instance: nothing is accepted; combat is allowed
 PASS 0.4 T8: a group not joined through our hop is never left; leader changes, raid or our lead stop the leave
-PASS 0.4 T8: the guild ask accepts an online guild member's invite only
+PASS 0.4 T8: removed guild ask never accepts guild invitations
 PASS 0.4 T8: hostOwn carries our own name key (it was dropped by an and-expression in 7.3)
 PASS 0.4 T8: Auto accept and leave: on by default, saved, /le hop auto and the toggle; off means manual
 PASS 1.0 T1: each route's text check: WEFF1 and HeadHunter carry only their planned types
@@ -303,7 +303,7 @@ PASS 0.3.x name paths: a Bulo guild line from First Last-OtherRealm keeps the re
 PASS 0.4 host (review 6c): no H before this session's first guild roster; turning hosting on then announces once on it
 PASS 1.0 T2 names: every network's sender and origin pass the one name rule (First Last, numeric realms)
 PASS 0.4 T8 B1: a drafted whisper arms auto-accept only once we see it go out to that host
-PASS 0.4 T8 B1: the guild ask arms on our own /g line; then only an answerer or a listed host is accepted
+PASS 0.4 T8 B1: outgoing guild chat no longer arms a hop
 PASS 0.4 T8 B1: a request whose line cannot be built leaves nothing armed
 PASS 0.4 T8 B2: the hop group ends: tracking stops at once; a later group of the same host is never left
 PASS 0.4 T8: never auto-leave inside an instance; combat does not delay the leave
@@ -362,8 +362,8 @@ PASS e4 M1: an own-realm suffixed origin heard first-hand and through the guild 
 PASS e4 S1: the folded key everywhere a player is keyed (peers, report order, rates, relay ids, reporters)
 PASS e4 S3: decoders through CHAT_MSG_ADDON with spaced and suffixed names (War Effort, HeadHunter, guild relay)
 PASS e4 S1b: one key in the remembered hosts and the offline skip ('Gone' and 'Gone-TestRealm' are one player)
-PASS r040c G1: a listed Bulo or LayerSwap row counts as a host only with its host flag
-PASS r040c G2/G3: an answer before our guild line goes out does not count; the window runs from the send
+PASS r040c G1: guild host advertisements do not arm an unrequested invite
+PASS r040c G2/G3: removed guild reply window has no late-send authority
 PASS r040c: an AcceptGroup that throws spends the ask
 PASS r040c D1: no join while the channel display list is unreadable or empty
 PASS r040c D2: ours only by our own join notice; a hand leave and rejoin is the player's; a nil or empty return is no join
@@ -639,7 +639,7 @@ PASS hop-any click guard sendWho sends and searches nothing
 PASS hop-any click guard ask sends and searches nothing
 PASS hop-any click guard ownName sends and searches nothing
 PASS hop-any click guard instance sends and searches nothing
-PASS hop-any click guard layer sends and searches nothing
+PASS hop-any click guard layer permits searching
 PASS hop-any click guard cooldown sends and searches nothing
 PASS hop-any click guard readWho sends and searches nothing
 PASS hop-any click guard combat permits searching
@@ -1347,7 +1347,7 @@ PASS HopProbe: vertical motion also counts toward forty yards
 PASS Blind live: unknown bar click asks once without WHO and only correlated inviter accepted
 PASS Blind live: blind bar click asks once without WHO and only correlated inviter accepted
 PASS Blind live: manual whisper draft arms only after matching sent event
-PASS Blind live: guild fallback is only a draft; correlation starts at actual send
+PASS Blind live: guild fallback removed; outgoing guild text never arms
 PASS Blind live: snapshot before ask, only allowed units, checks at five fifteen thirty
 PASS Blind live: result creatures never shows GUID digits and leaves with preserved guard
 PASS Blind live: result players never shows GUID digits and leaves with preserved guard
@@ -1714,6 +1714,13 @@ PASS HopProbe final: unreadable after keeps usable player baseline remaining=2
 PASS HopProbe final: unreadable after keeps usable player baseline remaining=5
 PASS HopProbe final: unreadable after with no position cannot prove vanished players
 PASS HopProbe: exact result texts, no GUID digits in any result
+PASS Parity pace: corrupt saves cannot silently remove the estimate
+PASS Parity pace: ten moves, first-move hours, reload and per-character
+PASS Parity review pace: idle gap starts next hour at the first move
+PASS Parity pace: refusal hold 900 seconds, rollback fails closed and bounded loads
+PASS Parity pace: hidden click blocks combat and estimate hold, no r2 before admission
+PASS Parity review pace: wall rollback after expiry holds, forward expiry opens
+PASS Parity review pace: rollback hold sends nothing through the click
 PASS Layer A5: rotating NPC identifiers update confirmed key without wipes
 PASS Layer A5: rotating Bulo IDs and donor transfer notifications wipe nothing
 PASS Layer A5: real PLAYER_ENTERING_WORLD same zone
@@ -1872,6 +1879,10 @@ PASS Layer A2: NPC zero server cannot establish an own key
 PASS Layer A3: Wanted bad layer preserves names and position, other bad fields still drop
 PASS Stack: source mutant evidence rerun is byte and mtime stable
 PASS Stack: presence mutant evidence rerun is byte and mtime stable
+PASS Parity guild: draft functions removed and arbitrary guild draft refused
+PASS Parity guild: empty host list searches WHO without chat hidden=false
+PASS Parity guild: empty host list searches WHO without chat hidden=true
+PASS Parity guild: no-host targeted preview replaces guild ask with WHO
 PASS Sources: offer admits tracked evidence through Find without Ask layer or sound
 PASS Sources: offer drops untracked and contradictory realms before Known stores anything
 PASS Sources: offer uses only live guild Watch matches and never adds saved tracked names
@@ -2113,6 +2124,16 @@ PROBE self Ølaf Scout: self=0 other=1
 PASS Overlord peer: self silence Ølaf Scout
 PROBE self Борис Скаут: self=0 other=1
 PASS Overlord peer: self silence Борис Скаут
+PASS Parity parser: optional clauses rules and coordinates may all be absent
+PASS Parity parser: rules after want 7088-2
+PASS Parity parser: rules after want 7088-2 48.2,42.5
+PASS Parity parser: rules after not 7088-2
+PASS Parity parser: rules after not 7088-2 48.2,42.5
+PASS Parity parser: rules after not 7088-2 not 9000-3
+PASS Parity parser: rules after not 7088-2 not 9000-3 48.2,42.5
+PASS Parity parser: rules after (none)
+PASS Parity parser: rules after (none) 48.2,42.5
+PASS Parity parser: rejects misplaced duplicate incomplete rules; legacy intact
 PASS Quiet names: spaced home name is recorded and matched without compacting
 PASS Quiet names: foreign suffix is required and distinct namesakes stay ambiguous
 PASS Quiet names: pattern characters in a surname are invalid targets not wildcard matches
@@ -2300,6 +2321,43 @@ PASS Reported names: names stay in memory; nothing new is saved and nothing is s
 PASS Reported names: one namedRows call per window render
 PASS Reported names: name hashes are cached across renders with unchanged data
 PASS Reported names: a long reported name is clamped for display only
+PASS Parity token adopt: hidden only, live zone, full id, source and alias
+PASS Parity equality: numeric consumers and outgoing fields stay masked with token
+PASS Parity equality: UI and slash show shared host, never numbers or other-layer claims
+PASS Parity equality: exact equal host excluded, unequal token not proof; request leaves full token
+PASS Parity host: token answers full id, not token/alias same, no-tag invited
+PASS Parity lifetime: drop on SHARD_TRANSFER
+PASS Parity lifetime: drop on ZONE_CHANGED
+PASS Parity lifetime: drop on PLAYER_ENTERING_WORLD
+PASS Parity lifetime: save only at logout, restore only reload same identity zone and fresh clock
+PASS Parity review logout: unresolved host group cannot save a token
+PASS Parity review restore: grouped reload cannot restore or answer same
+PASS Parity lifetime: expiry does not expire token; missing live zone drops permanently
+PASS Parity review search: stoppable window token=false
+PASS Parity review search: stoppable window token=true
+PASS Parity review search: stoppable bar token=false
+PASS Parity review search: stoppable bar token=true
+PASS Parity search: WHO reply survives group boundary auto=true
+PASS Parity search: WHO reply survives group boundary auto=false
+PASS Parity review peer: only post-join reply may replace own token before
+PASS Parity review peer: only post-join reply may replace own token equal
+PASS Parity review peer: only post-join reply may replace own token after
+PASS Parity verdict: unusable transfer zone
+PASS Parity verdict: unusable transfer stale
+PASS Parity verdict: unusable transfer future
+PASS Parity verdict: unusable transfer same
+PASS Parity verdict: unusable transfer notjoined
+PASS Parity verdict: unusable transfer stray
+PASS Parity verdict: transfer reply
+PASS Parity verdict: transfer none
+PASS Parity verdict: transfer bad
+PASS Parity verdict: phase same
+PASS Parity verdict: phase refused
+PASS Parity verdict: phase missing
+PASS Parity verdict: phase secret
+PASS Parity verdict: phase throw
+PASS Parity verdict: phase otherzone
+PASS Parity verdict: wrong leader and repeated transfer cannot adopt
 PASS Trust: invalid keys, clock rollback and manual usage fail closed
 PASS Trust: Bulo boundary admission and immutable local masking
 PASS Trust: reader expiry and sticky manual state
@@ -2804,4 +2862,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2718 tests passed, 0 failed, 679943 assertions
+RESULT: 2776 tests passed, 0 failed, 683405 assertions

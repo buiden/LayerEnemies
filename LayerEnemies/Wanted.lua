@@ -313,7 +313,7 @@ local function status()
     end
     local keys={}
     for k in pairs(values) do keys[#keys+1]=k end; table.sort(keys)
-    local known=N.Trust.own(N.Main.store,now)
+    local known=N.Trust.numeric(N.Main.store,now)
     for _,k in ipairs(keys) do
         local v=values[k]
         out[#out+1]="Wanted opposite-faction users: map "..v.m..(known and (" / layer "..v.l) or "")..": "..v.n

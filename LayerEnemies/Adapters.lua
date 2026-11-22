@@ -1,6 +1,10 @@
 local _, N = ...
 local A,S = {},N.Safe
 N.Adapters=A
+function A.reloading(initial,reload)
+    return not S.secret(initial) and not S.secret(reload) and type(initial)=="boolean"
+        and type(reload)=="boolean" and not initial and reload
+end
 
 -- WHO UI ownership is temporary and session-only. No hiding windows or replacing SendWho.
 -- Hidden, registered frames are detached during our query and its late-result guard (max 30 s).
@@ -335,6 +339,18 @@ end
 function A.zone(map)
     local api=C_Map
     return S.tab(api) and N.Layer.zone(map,api.GetMapInfo) or nil
+end
+-- Readable nil is meaningful; missing/secret/throwing reads are not nil evidence.
+function A.phase(unit)
+    return S.call(function()
+        local reason=UnitPhaseReason(unit)
+        if S.secret(reason) then return end
+        if reason==nil then return "same" end
+        if S.num(reason)==1 then return "refused" end
+    end)
+end
+function A.unitZone(unit)
+    return S.call(function() return A.zone(S.num(S.call(C_Map.GetBestMapForUnit,unit))) end)
 end
 function A.location()
     local api=C_Map

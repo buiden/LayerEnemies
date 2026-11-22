@@ -110,6 +110,7 @@ LUA_TOKENS = re.compile(r'''(?P<space>\s+)|(?P<comment>--(?:\[(?P<ceq>=*)\[.*?\]
 API_OWNERS = {word: 'Adapters.lua' for word in ('C_FriendList', 'SendWho', 'GetNumWhoResults', 'GetWhoInfo', 'SetWhoToUi', 'FriendsFrame', 'LFGWhoListFrame', 'WhoFrame')}
 API_OWNERS.update({word: 'Wire.lua' for word in ('C_PartyInfo', 'InviteUnit', 'AcceptGroup', 'LeaveParty')})
 API_OWNERS['ChatFrame_AddMessageEventFilter'] = 'Wire.lua'
+API_OWNERS['UnitPhaseReason'] = 'Adapters.lua'
 
 
 def lua_tokens(source):
@@ -150,7 +151,26 @@ def constant_key(tokens, at):
     return value, at
 
 
+def check_guild_drafts(source, filename):
+    tokens = lua_tokens(source)
+    assert ('name', 'SLASH_GUILD') not in tokens, filename + ': guild draft alias'
+    for i, (kind, value) in enumerate(tokens):
+        if kind == 'string':
+            # Fold literal concatenation before checking the slash destination.
+            j = i + 1
+            while tokens[j:j+1] == [('concat', '..')] and len(tokens) > j+1 and tokens[j+1][0] == 'string':
+                value += tokens[j+1][1]
+                j += 2
+            assert not re.match(r'^/(?:g|guild)(?:\s|$)', value, re.I), filename + ': guild draft literal'
+        if (kind, value) == ('name', 'openChat') and tokens[i+1:i+2] == [('symbol', '(')]:
+            j = i+2
+            while j < len(tokens) and tokens[j] != ('symbol', ')'):
+                assert tokens[j] != ('string', 'GUILD'), filename + ': guild draft destination'
+                j += 1
+
+
 def check_api_policy(source, filename):
+    check_guild_drafts(source, filename)
     def owner(word):
         expected = API_OWNERS.get(word)
         assert expected is None or filename == expected, word + ' outside ' + str(expected) + ': ' + filename
@@ -673,7 +693,7 @@ def main(argv=()):
         check_trust_reader(file.name, file.read_text())
         if file.name not in ('UI.lua', 'CallUI.lua'):
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
-    assert '## Version: 1.3.1' in toc
+    assert '## Version: 1.3.2' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     if jobs == 1:
         subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
@@ -697,7 +717,7 @@ def main(argv=()):
     subprocess.run(['git', 'diff', '--check'], cwd=ROOT, check=True)
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    archive = dist / 'LayerEnemies-1.3.1.zip'
+    archive = dist / 'LayerEnemies-1.3.2.zip'
     # the archive is the TOC's files plus the exact MEDIA set and README; anything else
     # in the addon folder (a stray file, a test folder) fails here instead of shipping
     shipped = payload_files(listed)
@@ -740,8 +760,8 @@ def main(argv=()):
         'live_remote_reports': 'War Effort 1.6.x and HeadHunter as a member, the Spy family and three guild '
                                'incident addons read-only, LEGW1 own sightings and relays; shown as reported, '
                                'not confirmed',
-        'ask_for_invite': 'Single-host hops remain one request; hop-any clicks query WHO once with UI suppressed, consider 49 rows, use at most 8 attempts/round at 1 s for 45 rounds, 10 s between clicks; retry throttled heads and re-ask unknown same-zone hosts once at +3/+10 s; guild requests stay player-sent',
-        'auto_accept_leave': 'On by default, saved: accepts only the asked host invite (120 s, not grouped/instance; combat allowed), leaves only that group 3 s after the move or 30 s without one, including in combat',
+        'ask_for_invite': 'Single-host hops remain one request; hop-any clicks query WHO once with UI suppressed, consider 49 rows, use at most 8 attempts/round at 1 s for 45 rounds, 10 s between clicks; retry throttled heads and re-ask unknown same-zone hosts once at +3/+10 s; guild chat is never sent or drafted; no-host clicks use WHO; hidden-build r2 requests have estimated 10/hour and combat guards',
+        'auto_accept_leave': 'On by default, saved: only the asked inviter (120 s, not grouped/instance); hidden-build host transfer plus fresh same-zone reply adopts equality evidence, phase same/refused at 3 s or proxy fallback; hidden/blind leave waits for readable combat end; numeric-build behavior unchanged',
         'guild_host': 'Off until turned on, then saved (guildHost boolean, ON line at login); guild members only, guild name readable and unchanged; at most one InviteUnit per request, 10 s apart, 6 per 600 s; never in combat; refused beside LayerSwap or Bulo',
         'networks': 'Public by default (first-login line once); /le net guild|public, per-network switches, /le share on|off, window switches',
         'sends': 'LayerSwap/WHISPER, LEGW1/GUILD (including K1 own-death, share switch, 1/120s and 5/30min; 1.2.1 G on-my-way from the Call help click, 1/10s and 6/600s), LFSw/GUILD Q, WEFF1 (GUILD, PARTY, RAID, WHISPER) and '

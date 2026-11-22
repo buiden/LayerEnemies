@@ -252,6 +252,25 @@ class ApiPolicyTests(unittest.TestCase):
             with self.subTest(source=source), self.assertRaises(AssertionError):
                 self.check_source(source)
 
+    def test_phase_reader_is_adapter_only(self):
+        for source in ('local f=UnitPhaseReason', 'local f=_G["Unit".."PhaseReason"]'):
+            self.check_source(source, 'Adapters.lua')
+            with self.assertRaisesRegex(AssertionError, 'Adapters.lua'):
+                self.check_source(source, 'Main.lua')
+
+    def test_guild_drafts_are_forbidden(self):
+        gate_source = (Path(__file__).resolve().parent / 'verify.py').read_text()
+        self.assertNotIn('guild requests stay player-sent', gate_source)
+        self.assertIn('guild chat is never sent or drafted', gate_source)
+        root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
+        for path in root.glob('*.lua'):
+            VERIFY['check_guild_drafts'](path.read_text(), path.name)
+            VERIFY['check_send_policy'](path.read_text(), path.name)
+        for source in ('local line="/g inv layer"', 'local x=SLASH_GUILD',
+                       'M.openChat("hello", "GUILD")', 'M.openChat("/".."g hello")'):
+            with self.assertRaises(AssertionError):
+                VERIFY['check_guild_drafts'](source, 'Main.lua')
+
     def test_permitted_owners(self):
         self.check_source('local api=C_FriendList; local f=api["Send".."Who"]', 'Adapters.lua')
         self.check_source('local f=_G["Accept".."Group"]', 'Wire.lua')

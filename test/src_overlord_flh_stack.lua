@@ -6,7 +6,7 @@ local function setup()
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
     UnitName=function() return "Alice Vale",GetRealmName() end
-    C_AddOns.GetAddOnMetadata=function() return "1.3.1" end
+    C_AddOns.GetAddOnMetadata=function() return "1.3.2" end
     N.Net.SHIP.overlord=true; N.Net.SHIP.flh=true; N.Net.SHIP.we=true
     H.establish(N); H.clock(math.ceil(H.clock()))
     local serverTime=GetServerTime

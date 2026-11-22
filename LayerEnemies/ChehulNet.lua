@@ -96,7 +96,7 @@ local function receive(prefix,text,dist,sender)
     if prefix~="ChehulNet" or not N.Sources.enabled("chehulnet") or not safe() then return end
     local _,self=A.ownIdentity()
     local rec=Ch.parse(text)
-    if N.Trust.state(N.Main.store,S.call(GetTime))=="blind" and rec then rec.zone=nil end
+    if N.Trust.masked(N.Main.store,S.call(GetTime)) and rec then rec.zone=nil end
     session.self=self
     if not self or A.ignored(sender) or not rec or not Ch.note(session,sender,rec,dist,A.wall()) then
         N.Sources.count("chehulnet","refused"); return
@@ -111,12 +111,12 @@ local function rows()
     if not self or not M or not M.store then return {} end
     local map=number(A.location(),99999999)
     local now=S.num(S.call(GetTime))
-    local _,uid=N.Trust.own(M.store,now)
+    local _,uid=N.Trust.numeric(M.store,now)
     uid=map==M.store.zone and number(uid,99999999) or nil
     local amb=true
     if now then amb=S.call(M.store.ambiguous,now)~=false end
     local out=Ch.view(session,map,uid,A.wall(),amb)
-    if N.Trust.state(M.store,now)=="blind" then for _,r in ipairs(out) do r.zone=nil end end
+    if N.Trust.masked(M.store,now) then for _,r in ipairs(out) do r.zone=nil end end
     return out,map,uid~=nil and not amb
 end
 function Ch.rows()
@@ -148,7 +148,7 @@ function Ch.friendly(hosts)
     return out,hints
 end
 function Ch.layer()
-    if not N.Trust.own(N.Main.store,S.call(GetTime)) then return end
+    if not N.Trust.numeric(N.Main.store,S.call(GetTime)) then return end
     local rows,map,comparable=Ch.rows()
     local layers={}
     for _,row in ipairs(rows) do if row.map==map and row.zone then layers[row.zone]=true end end

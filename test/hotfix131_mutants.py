@@ -28,7 +28,7 @@ MUTANTS = [
     ('build-edge-exclusive', 'Trust.lua', 'build>=T.HIDDEN_ID_BUILD', 'build>T.HIDDEN_ID_BUILD', 'Trust build:'),
     ('build-startup-unbound', 'Main.lua', 'M.store.trust=N.Trust.new(A.build())', 'M.store.trust=N.Trust.new()', 'Trust build:'),
     ('build-manual-override', 'Trust.lua', 'if T.hidden(s) then return mode=="on" or mode=="off" or mode=="auto" end', 'if false then return true end', 'Trust build:'),
-    ('build-read-unguarded', 'Trust.lua', 'if T.hidden(s) then id,uid=nil,nil end', '', 'Trust build:'),
+    ('build-read-unguarded', 'Trust.lua', 'if T.hidden(s) then return end\n    s.bulo=L.key(id)', 's.bulo=L.key(id)', 'Trust build:'),
     ('build-bulo-unguarded', 'Trust.lua', 'if T.hidden(s) then return nil end\n    local id=snap.current', 'local id=snap.current', 'Trust build:'),
     ('build-apply-unguarded', 'Main.lua', 'if N.Trust.hidden(M.store) or not L.key(id) then return end', 'if not L.key(id) then return end', 'Trust build:'),
     ('build-npc-unguarded', 'Main.lua', 'if N.Trust.hidden(M.store) then return end', '', 'Trust build:'),

@@ -7,7 +7,7 @@ for _,name in ipairs({"Alice Vale","Élan Scout","Ølaf Scout","Борис Ск�
         Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
         C_GameRules={IsGameRuleActive=function(i) return i==3 end}
         UnitName=function() return name,GetRealmName() end
-        C_AddOns.GetAddOnMetadata=function() return "1.3.1" end
+        C_AddOns.GetAddOnMetadata=function() return "1.3.2" end
         GetNumDisplayChannels=function() return 0 end
         IsInGuild=function() return false end
         IsInGroup=function() return false end

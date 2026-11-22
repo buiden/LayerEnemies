@@ -22,7 +22,7 @@ for _,mode in ipairs({"empty","nil"}) do
     test("Realm audit: "..mode.." FLH owed reply uses existing unknown realm atom",function()
         local N=setup(mode); H.establish(N); H.clock(120); N.Net.SHIP.flh=true
         local meta=C_AddOns.GetAddOnMetadata
-        C_AddOns.GetAddOnMetadata=function(addon,key) if addon=="LayerEnemies" and key=="Version" then return "1.3.1" end; return meta(addon,key) end
+        C_AddOns.GetAddOnMetadata=function(addon,key) if addon=="LayerEnemies" and key=="Version" then return "1.3.2" end; return meta(addon,key) end
         H.deliver("CHAT_MSG_ADDON","FLHNET2","WP|42|1234|0.1.3|100|8|1","WHISPER","Birch Scout")
         local count=0
         for _,s in ipairs(H.sent()) do if s.prefix=="FLHNET2" then
