@@ -503,16 +503,16 @@ do
     -- Line 2: the hop status from the same state and gates as the window's button. round: the open round, if any.
     function B.statusText()
         local M=N.Main
-        local hold=M.hopHold()
-        if hold then return hold end
         local st=M.hopAnyState
-        if not N.Trust.numeric(M.store,S.call(GetTime)) or M.blindPending or M.blindStatus then return M.blindStatus or "" end
-        if not st then return "Hop not ready" end
-        local r=st.round
+        local r=st and st.round
         if r then
             if r.phase=="who" then return "Hopping: searching...",r end
             return "Hopping: asking "..(r.sent or 0).."...",r
         end
+        local hold=M.hopHold()
+        if hold then return hold end
+        if not N.Trust.numeric(M.store,S.call(GetTime)) or M.blindPending or M.blindStatus then return M.blindStatus or "" end
+        if not st then return "Hop not ready" end
         local c=M.hopAnyContext(true) -- read only: the 1 s refresh must not change any state
         if N.Wire.hopBlocked(c.now) then return "Whispers paused" end
         local ok,why=N.HopAny.check(st,c)

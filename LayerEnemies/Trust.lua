@@ -133,7 +133,7 @@ function T.paceWait(p,wall)
     if p.start and wall<p.start then return T.REFUSAL_HOLD end
     for _,at in ipairs(p.moves) do if wall<at then return T.REFUSAL_HOLD end end
     if p.start and wall-p.start>=T.HOUR then
-        p.start=p.start+math.floor((wall-p.start)/T.HOUR)*T.HOUR
+        p.start=nil
         p.moves={}
     end
     local wait=p.hold and math.max(0,p.hold-wall) or 0

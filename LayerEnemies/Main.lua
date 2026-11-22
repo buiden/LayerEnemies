@@ -1969,8 +1969,8 @@ function M.blindHop(shown)
     return true
 end
 function M.hopAnyPreview()
-    if not N.Trust.numeric(M.store,now()) then return M.blindPreview() end
     if M.hopAnyState and M.hopAnyState.round then return {label="Stop",enabled=true,round=M.hopAnyState.round} end
+    if not N.Trust.numeric(M.store,now()) then return M.blindPreview() end
     local ok,why=N.HopAny.check(M.hopAnyState,M.hopAnyContext())
     return {label="Hop to another layer",enabled=ok,reason=why}
 end
@@ -2433,7 +2433,7 @@ function M.autoTick()
             if zone and zone==M.store.zone and A.unitZone(unit)==zone and mark then
                 if mark=="same" then
                     local r=tokenReply(g)
-                    if r then N.Trust.adopt(M.store,time,r.layer,zone,"peer",g.host) end
+                    if r and r.at>g.joinedAt then N.Trust.adopt(M.store,time,r.layer,zone,"peer",g.host) end
                 else N.Trust.paceRefused(LayerEnemiesDB.hopLimit,A.wall()) end
                 M.blindResult(mark,g.host); g.leaveAt=time; M.blindLeave(g,time); return
             end
@@ -3321,7 +3321,8 @@ local function dispatch(_,event,...)
     if event=="PLAYER_LOGIN" then guarded(M.start); return end
     if not M.started then return end
     if event=="PLAYER_LOGOUT" then
-        LayerEnemiesDB.layerToken=N.Trust.save(M.store,A.wall(),A.ownIdentity())
+        -- Group state cannot prove that a pending host transfer has settled.
+        LayerEnemiesDB.layerToken=A.grouped()==false and N.Trust.save(M.store,A.wall(),A.ownIdentity()) or nil
         M.overlordClosing=true;guarded(M.overlordCancel);
         if N.WarBoardTrack then N.WarBoardTrack.stop(true) end
         N.BNet.pump(now());guarded(M.hopAnyStop,"reload or logout"); A.whoEnd("reload")
@@ -3349,7 +3350,7 @@ local function dispatch(_,event,...)
         if event=="PLAYER_ENTERING_WORLD" then
             N.OwnDeath.seed(...)
             M.store.zone=A.location()
-            N.Trust.restore(M.store,M.restoreToken,A.wall(),A.ownIdentity(),A.reloading(...))
+            N.Trust.restore(M.store,M.restoreToken,A.wall(),A.ownIdentity(),A.reloading(...) and A.grouped()==false)
             M.restoreToken=nil
         elseif not M.tokenTransfer(g) then N.Trust.drop(M.store,"transfer") end
         if N.WarBoardTrack and A.inInstance()~=false then N.WarBoardTrack.stop() end

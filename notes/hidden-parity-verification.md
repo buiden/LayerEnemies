@@ -5,7 +5,11 @@ removal of both guild chat draft paths. No version bump. No PR B, channel-send
 implementation, new wire route, message type, transport budget or host cap.
 Donor sources were read only; no donor code was copied or executed.
 
-## Changes and regression gates
+## Initial candidate changes and regression gates
+
+The table and full-gate receipt below describe the reviewed pre-correction
+candidate. The review follow-up receipt supersedes its save/restore, peer
+adoption, hour-window and active-search presentation rules.
 
 | Plan area | Implementation | Focused green result |
 | --- | --- | --- |
@@ -77,7 +81,9 @@ No existing mutant IDs were removed.
 - Blind `leave-third-member`: scoped to the auto-tick group guard.
 - Hotfix `build-read-unguarded`: re-anchored to the hidden reader's early return.
 
-The separate all-pack receipt records the completed pack inventory and results.
+The long sweep was stopped at the requested review boundary. Its completed
+results and partial Overlord coverage are preserved in the review follow-up
+receipt; they are not a claim that every full pack completed.
 
 ## Citation discrepancy requiring a ruling
 

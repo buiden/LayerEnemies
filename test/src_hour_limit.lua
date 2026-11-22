@@ -12,7 +12,7 @@ H.test("Parity pace: corrupt saves cannot silently remove the estimate",function
         yes(T.paceWait(p,1001)>0,"invalid saved pacing is not a fresh hour")
     end
 end)
-H.test("Parity pace: ten moves, back-to-back hours, reload and per-character",function()
+H.test("Parity pace: ten moves, first-move hours, reload and per-character",function()
     local N=H.load(); local T=N.Trust; yes(T.paceLoad,"pace exists")
     local p=T.paceLoad(nil,"Cedar Scout",1000)
     for i=0,8 do T.paceMove(p,1000+i); eq(T.paceWait(p,1000+i),0) end
@@ -20,11 +20,20 @@ H.test("Parity pace: ten moves, back-to-back hours, reload and per-character",fu
     local copy=T.paceLoad(p,"Cedar Scout",1010); eq(T.paceWait(copy,1010),3590)
     eq(T.paceWait(T.paceLoad(p,"Birch Scout",1010),1010),0)
     local late=T.paceLoad(copy,"Cedar Scout",1010)
-    T.paceMove(late,4700); eq(late.start,4600)
+    T.paceMove(late,4700); eq(late.start,4700)
     eq(T.paceWait(copy,4599),1); eq(T.paceWait(copy,4600),0)
-    T.paceMove(copy,4700); eq(copy.start,4600); eq(#copy.moves,1)
+    T.paceMove(copy,4700); eq(copy.start,4700); eq(#copy.moves,1)
     for i=1,9 do T.paceMove(copy,4700+i) end
-    eq(T.paceWait(copy,4709),3491); eq(T.paceWait(copy,8200),0)
+    eq(T.paceWait(copy,4709),3600-(4709-4700)); eq(T.paceWait(copy,8300),0)
+end)
+H.test("Parity review pace: idle gap starts next hour at the first move",function()
+    local N=H.load(); local T=N.Trust
+    local p=T.paceLoad({who="Cedar Scout",start=1000,moves={1000}},"Cedar Scout",1000)
+    eq(T.paceWait(p,5000),0)
+    for i=8000,8009 do yes(T.paceMove(p,i)) end
+    eq(T.paceWait(p,8010),3590,"review probe"); eq(p.start,8000)
+    local q=T.paceLoad(p,"Cedar Scout",8010); eq(T.paceWait(q,8010),3590)
+    eq(T.paceWait(q,20000),0); eq(q.start,nil,"waiting does not open a new window")
 end)
 H.test("Parity pace: refusal hold 900 seconds, rollback fails closed and bounded loads",function()
     local N=H.load(); local T=N.Trust; yes(T.paceLoad,"pace exists")

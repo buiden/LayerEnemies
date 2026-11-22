@@ -29,6 +29,38 @@ H.test("Parity lifetime: save only at logout, restore only reload same identity 
         no(LayerEnemiesDB.layerToken,"restore consumed"); no(X.Main.error)
     end
 end)
+H.test("Parity review logout: unresolved host group cannot save a token",function()
+    local N=load(); local M=N.Main; H.clock(120); H.wall(1000)
+    yes(N.Trust.adopt(M.store,H.clock(),"7000-7",100,"peer","Host Birch"))
+    LayerSwapDB={book={["Host Cedar"]={layer="8000-8",zone=100,at=1000,host=true}}}
+    yes(M.hopAny())
+    H.deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|8000-8|100|h","WHISPER","Host Cedar")
+    H.deliver("PARTY_INVITE_REQUEST","Host Cedar")
+    H.group(true); H.units().party1={name="Host Cedar",leader=true,player=true}
+    H.deliver("GROUP_ROSTER_UPDATE")
+    yes(M.auto.group and M.auto.group.joinedAt); no(M.auto.group.transfer)
+    H.deliver("PLAYER_LOGOUT")
+    eq(LayerEnemiesDB.layerToken,nil,"unresolved host group must not save old equality")
+    no(M.error)
+end)
+H.test("Parity review restore: grouped reload cannot restore or answer same",function()
+    local N=load(); H.wall(1000)
+    yes(N.Trust.adopt(N.Main.store,H.clock(),"7000-7",100,"peer","Host Birch"))
+    local save=N.Trust.save(N.Main.store,H.wall(),N.Adapters.ownIdentity())
+    for _,kind in ipairs({"grouped","unreadable"}) do
+        N=load({layerToken=save}); H.wall(1000)
+        H.group(true); H.units().party1={name="Host Cedar",leader=true,player=true}
+        if kind=="unreadable" then N.Adapters.grouped=function() return nil end end
+        H.deliver("PLAYER_ENTERING_WORLD",false,true); H.drain()
+        eq(N.Trust.state(N.Main.store,H.clock()),"blind",kind)
+        local own=N.Main.hostOwn(); own.member=true
+        local req=N.GuildHost.parse("inv layer <LS 100 not 7000-7 r2>"); req.name="Cedar Scout"
+        local st=N.GuildHost.new(); st.on=true
+        local verdict,reply=N.GuildHost.decide(st,req,own,H.clock())
+        no(verdict=="same" or reply=="same","reload cannot emit false same")
+        no(N.Main.error)
+    end
+end)
 H.test("Parity lifetime: expiry does not expire token; missing live zone drops permanently",function()
     local N=load(); local M=N.Main
     yes(N.Trust.adopt(M.store,0,"8000-8",100,"peer","Host Cedar"))

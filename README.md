@@ -2045,7 +2045,9 @@ A token survives beyond 300 seconds, but is dropped on a stray transfer,
 zone change, unreadable live zone, or a non-reload world entry. Logout saves
 only `{id, zone, who, at, alias}` in per-character `layerToken`; a reload can
 restore it only for the same character and zone, within 120 seconds and with
-no backwards clock. No host name is saved. Without usable evidence LE
+no backwards clock. Saving and restoring also require readable ungrouped
+state: reloading in a host group stays blind rather than preserving equality
+through an unresolved move. No host name is saved. Without usable evidence LE
 continues blind. Older-build trust remains session-only: `known` requires a
 confirmed reading less than 300 seconds old; `unknown` has no current reading.
 A matching NPC refreshes it, and automatic/manual blindness stays sticky.
@@ -2131,7 +2133,9 @@ numeric layer selector. Disabled buttons explain why. One known-host click
 asks that host; with no known host, **Find a host** runs the existing
 who-search (up to 49 players, at most 8 attempts per second), including
 same-zone guild members. There is no automatic new search or public chat
-send. Guild-only consent can refuse a public who-search.
+send. Guild-only consent can refuse a public who-search. During an active
+search, the window shows an enabled **Stop** and the bar shows the current
+round, including on hidden builds. Stopping remains available in combat.
 
 The candidate union includes the existing LayerSwap and Bulo tables and
 replies, FLH hosts, LE guild hosts, and direct War Effort reporters. Relayed
@@ -2161,8 +2165,9 @@ pending probes and leave callbacks as well as the search.
 
 Hidden-build requests are refused in combat or when combat is unreadable.
 `r2` is sent only with this guard and the estimated hourly limiter: ten
-adopted host-group transfers per 3600 seconds, back-to-back hours from the
-first move. Refusal with fewer than ten known moves holds requests for 900
+adopted host-group transfers per 3600 seconds. Each window begins with the
+first move after the previous window closed, not with an idle poll or a
+back-to-back boundary. Refusal with fewer than ten known moves holds requests for 900
 seconds. The disabled button shows an **estimate** and time left; these are
 donor measurements, not a game-certified limit. `hopLimit` stores only
 `{who, start, moves, hold}`, at most ten timestamps, per character across
@@ -2174,8 +2179,10 @@ fresh reply only when its zone is ours and its token differs from the one
 left. The result is `moved to <host>'s layer`, with no number; leave follows
 the existing delay. Without a usable reply it says `hopped (layer unknown)`.
 At three seconds without a transfer, readable same-zone `UnitPhaseReason`
-can say `that host is on your layer already` (adopt the peer token and retain
-the old alias) or `the game refused the move` (start the hold). Missing,
+can say `that host is on your layer already`: keep our own token unless the
+host reply arrived strictly after the join; only that fresh reply permits
+peer adoption and retaining the old alias. A pre-join reply cannot replace
+our token. `the game refused the move` starts the hold. Missing,
 secret, throwing or other-zone reads fall back to the existing proxy checks.
 These client timing/phase semantics are not tested in game.
 
