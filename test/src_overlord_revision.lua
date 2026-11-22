@@ -8,7 +8,7 @@ local function fixture(name,mode)
     local N=H.load();N.Net.SHIP.overlord=true
     Enum.GameRule={HardcoreRuleset=1,RPRuleset=2,PvPRuleset=3}
     C_GameRules={IsGameRuleActive=function(i) return i==3 end}
-    C_AddOns.GetAddOnMetadata=function() return "1.3.1" end
+    C_AddOns.GetAddOnMetadata=function() return "1.3.2" end
     GetNumDisplayChannels=function() return 0 end
     local member=mode=="group" or mode=="qualified" or mode=="dual" or mode=="unreadable"
     local guild=mode=="guild" or mode=="badguild"
@@ -195,7 +195,7 @@ end
 test("memory remembered friends do not bypass C2 route ceilings",function()
     local N=H.load();local P,Q=N.OverlordPeer,N.OverlordFeed
     local peer=P.new();peer.feed=Q.new()
-    local c={now=100,wall=1800000000,me="Alice Vale",version="1.3.1",pool="global",faction="A",allowed=true,own=true,
+    local c={now=100,wall=1800000000,me="Alice Vale",version="1.3.2",pool="global",faction="A",allowed=true,own=true,
         groups={},guildNames={},friends={},send=function() return true end}
     local function hear(i)
         local name="Peer"..H.abc(i).." Scout"
@@ -242,7 +242,7 @@ end)
 test("S3 only HR V gets a bounded busy HA",function()
     for _,op in ipairs({"V","F","K","X","T"}) do
         local N=H.load();local P=N.OverlordPeer;local peer=P.new();local out={}
-        local c={now=100,wall=1800000000,me="Alice Vale",version="1.3.1",pool="global",faction="A",allowed=true,own=true,
+        local c={now=100,wall=1800000000,me="Alice Vale",version="1.3.2",pool="global",faction="A",allowed=true,own=true,
             send=function(_,text) out[#out+1]=text;return true end}
         local body="8:"..op..":1799999900:123n4n5f:1:LK:0:0:H"
         if op=="K" or op=="X" then body="8:"..op..":1799999900" end

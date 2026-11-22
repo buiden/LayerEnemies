@@ -693,7 +693,7 @@ def main(argv=()):
         check_trust_reader(file.name, file.read_text())
         if file.name not in ('UI.lua', 'CallUI.lua'):
             assert 'SetText' not in file.read_text(), 'Only the UI may set text directly'
-    assert '## Version: 1.3.1' in toc
+    assert '## Version: 1.3.2' in toc
     assert 'OnUpdate' not in addon_text, 'Unexpected OnUpdate script'
     if jobs == 1:
         subprocess.run([sys.executable, '-I', '-B', 'test/test_verify.py'], cwd=ROOT, check=True)
@@ -717,7 +717,7 @@ def main(argv=()):
     subprocess.run(['git', 'diff', '--check'], cwd=ROOT, check=True)
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    archive = dist / 'LayerEnemies-1.3.1.zip'
+    archive = dist / 'LayerEnemies-1.3.2.zip'
     # the archive is the TOC's files plus the exact MEDIA set and README; anything else
     # in the addon folder (a stray file, a test folder) fails here instead of shipping
     shipped = payload_files(listed)

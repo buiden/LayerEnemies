@@ -6,7 +6,7 @@ local function receive(text,sender,kind)
 end
 local function member()
     local N=H.load(); H.establish(N); H.clock(math.ceil(H.clock()))
-    C_AddOns.GetAddOnMetadata=function() return "1.3.1" end
+    C_AddOns.GetAddOnMetadata=function() return "1.3.2" end
     N.Net.SHIP.flh=true; N.Net.SHIP.hh=true; N.Net.SHIP.we=true
     return N
 end

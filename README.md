@@ -1,5 +1,32 @@
 # LayerEnemies
 
+## 1.3.2
+
+### Works with new LayerSwap and Bulo, and "same layer" on hidden-ID builds
+
+- **LE hosts accept requests from LayerSwap 1.14.42+ and Bulo 3.0.37.** Their requests carry a new
+  rules tag that LE used to reject. Requests without the tag, and older ones, still work.
+- **"Same layer" on builds that hide layer IDs (71037 and newer).** LE learns it from the host you
+  hopped through or asked: the same host token means the same layer. The hop bar shows
+  `layer: shared with <host>` and the button becomes **Hop (shared)**. LE never says "other layer"
+  and never shows layer numbers; a different token proves nothing. Without a token it stays blind.
+  The token is dropped on a zone change, an unexpected transfer or a new login; a `/reload` within
+  two minutes on the same character and zone keeps it.
+- **Hop requests follow the hosts' hourly limit and don't go out in combat** (hidden-ID builds).
+  LE allows about ten host moves per hour; if a host refuses before that, requests pause for 15
+  minutes. The disabled button shows the estimate and the time left.
+- **No guild chat.** The **Ask guild (chat)** button and the guild drafts are removed. With no known
+  host, **Find a host** runs a `/who` search (up to 49 players) and asks what it finds; it never posts
+  in chat. **Stop** ends the search, also in combat.
+
+**Known limits**
+
+- The token logic, the timing of layer transfers and the "that host is on your layer already" check
+  are based on logs from other players' setups, not on our own in-game tests.
+- The hourly limit is an estimate from those logs, not a published game limit.
+
+**Not tested in game** (alpha, owner's decision).
+
 ## 1.3.1
 
 ### Hotfix: realm-less names and hidden layer IDs
