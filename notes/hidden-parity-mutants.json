@@ -1,0 +1,347 @@
+[
+  {
+    "rule": "rules-rejected",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity parser: rules after want 7088-2: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after want 7088-2 48.2,42.5: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after not 7088-2: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after not 7088-2 48.2,42.5: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after not 7088-2 not 9000-3: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after not 7088-2 not 9000-3 48.2,42.5: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity equality: exact equal host excluded, unequal token not proof; request leaves full token: test/harness.lua:7: not equal: expected true, got false",
+      "FAIL Parity host: token answers full id, not token/alias same, no-tag invited: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "unknown-rules-rejected",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity parser: rules after want 7088-2: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after want 7088-2 48.2,42.5: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after not 7088-2: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after not 7088-2 48.2,42.5: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after not 7088-2 not 9000-3: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity parser: rules after not 7088-2 not 9000-3 48.2,42.5: test/harness.lua:7: rules-tag request accepted: expected true, got false",
+      "FAIL Parity host: token answers full id, not token/alias same, no-tag invited: test/harness.lua:7: not equal: expected true, got false"
+    ]
+  },
+  {
+    "rule": "zone-only-rejected",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity parser: optional clauses rules and coordinates may all be absent: test/harness.lua:7: inv layer <LS 100>: expected true, got false"
+    ]
+  },
+  {
+    "rule": "adopt-on-numeric-build",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity token adopt: hidden only, live zone, full id, source and alias: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "adopt-wrong-zone",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity token adopt: hidden only, live zone, full id, source and alias: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "adopt-invalid-id",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity token adopt: hidden only, live zone, full id, source and alias: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "adopt-token-left",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity token adopt: hidden only, live zone, full id, source and alias: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "transfer-retains-old-alias",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity token adopt: hidden only, live zone, full id, source and alias: test/src_token_adopt.lua:19: a real transfer cannot alias the layer left: expected nil, got 9000-9"
+    ]
+  },
+  {
+    "rule": "alias-discarded",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity token adopt: hidden only, live zone, full id, source and alias: test/src_token_adopt.lua:15: not equal: expected 8000-8, got nil",
+      "FAIL Parity host: token answers full id, not token/alias same, no-tag invited: test/src_token_host.lua:14: not equal: expected same, got invite"
+    ]
+  },
+  {
+    "rule": "token-expires",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity token adopt: hidden only, live zone, full id, source and alias: test/src_token_adopt.lua:13: not equal: expected known, got blind",
+      "FAIL Parity lifetime: expiry does not expire token; missing live zone drops permanently: test/src_token_lifetime.lua:35: not equal: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "drop-keeps-token",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity lifetime: drop on SHARD_TRANSFER: test/src_token_lifetime.lua:12: not equal: expected blind, got known",
+      "FAIL Parity lifetime: drop on PLAYER_ENTERING_WORLD: test/src_token_lifetime.lua:12: not equal: expected blind, got known",
+      "FAIL Parity lifetime: expiry does not expire token; missing live zone drops permanently: test/src_token_lifetime.lua:37: not equal: expected blind, got known",
+      "FAIL Parity verdict: unusable transfer same: test/src_token_verdicts.lua:29: not equal: expected blind, got known",
+      "FAIL Parity verdict: wrong leader and repeated transfer cannot adopt: test/src_token_verdicts.lua:62: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "restore-on-login",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity lifetime: save only at logout, restore only reload same identity zone and fresh clock: test/src_token_lifetime.lua:28: login: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "restore-old",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity lifetime: save only at logout, restore only reload same identity zone and fresh clock: test/src_token_lifetime.lua:28: old: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "restore-rollback",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity lifetime: save only at logout, restore only reload same identity zone and fresh clock: test/src_token_lifetime.lua:28: future: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "restore-other-character",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity lifetime: save only at logout, restore only reload same identity zone and fresh clock: test/src_token_lifetime.lua:28: character: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "numeric-token-leak",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity equality: numeric consumers and outgoing fields stay masked with token: test/src_token_equality.lua:13: not equal: expected H|1.6.6|100|0|1|19, got H|1.6.6|100|987654|1|19",
+      "FAIL Parity equality: UI and slash show shared host, never numbers or other-layer claims: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Parity equality: exact equal host excluded, unequal token not proof; request leaves full token: test/src_token_equality.lua:41: not equal: expected Hop (shared), got Hop to another layer"
+    ]
+  },
+  {
+    "rule": "inequality-as-other-layer",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity equality: numeric consumers and outgoing fields stay masked with token: test/src_token_equality.lua:14: not equal: expected unknown, got other"
+    ]
+  },
+  {
+    "rule": "who-group-handoff",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity search: WHO reply survives group boundary auto=true: test/harness.lua:7: matched host keeps probe after WHO round closes: expected true, got false",
+      "FAIL Parity search: WHO reply survives group boundary auto=false: test/harness.lua:7: matched host keeps probe after WHO round closes: expected true, got false"
+    ]
+  },
+  {
+    "rule": "heard-not-retained",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: transfer reply: test/src_token_verdicts.lua:36: not equal: expected 8000-8, got nil",
+      "FAIL Parity verdict: phase same: test/src_token_verdicts.lua:52: not equal: expected 8000-8, got nil",
+      "FAIL Parity verdict: wrong leader and repeated transfer cannot adopt: test/src_token_verdicts.lua:61: not equal: expected known, got blind"
+    ]
+  },
+  {
+    "rule": "reply-wrong-zone",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: unusable transfer zone: test/src_token_verdicts.lua:29: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "reply-from-future",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: unusable transfer future: test/src_token_verdicts.lua:29: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "reply-stale",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: unusable transfer stale: test/src_token_verdicts.lua:29: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "adopt-before-join",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: unusable transfer notjoined: test/src_token_verdicts.lua:29: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "adopt-without-host-leader",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: wrong leader and repeated transfer cannot adopt: test/src_token_verdicts.lua:60: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "adopt-on-stray-transfer",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity lifetime: drop on SHARD_TRANSFER: test/src_token_lifetime.lua:12: not equal: expected blind, got known",
+      "FAIL Parity verdict: unusable transfer zone: test/src_token_verdicts.lua:29: not equal: expected blind, got known",
+      "FAIL Parity verdict: unusable transfer stale: test/src_token_verdicts.lua:29: not equal: expected blind, got known",
+      "FAIL Parity verdict: unusable transfer future: test/src_token_verdicts.lua:29: not equal: expected blind, got known",
+      "FAIL Parity verdict: unusable transfer same: test/src_token_verdicts.lua:29: not equal: expected blind, got known",
+      "FAIL Parity verdict: unusable transfer notjoined: test/src_token_verdicts.lua:29: not equal: expected blind, got known",
+      "FAIL Parity verdict: unusable transfer stray: test/src_token_verdicts.lua:29: not equal: expected blind, got known",
+      "FAIL Parity verdict: transfer none: test/src_token_verdicts.lua:39: not equal: expected blind, got known",
+      "FAIL Parity verdict: transfer bad: test/src_token_verdicts.lua:39: not equal: expected blind, got known",
+      "FAIL Parity verdict: wrong leader and repeated transfer cannot adopt: test/src_token_verdicts.lua:60: not equal: expected blind, got known"
+    ]
+  },
+  {
+    "rule": "phase-nil-ignored",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: phase same: test/src_token_verdicts.lua:52: not equal: expected that host is on your layer already, got nil"
+    ]
+  },
+  {
+    "rule": "phase-refusal-ignored",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: phase refused: test/src_token_verdicts.lua:53: not equal: expected the game refused the move, got nil"
+    ]
+  },
+  {
+    "rule": "phase-secret-is-same",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: phase secret: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "phase-other-zone",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity verdict: phase otherzone: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "host-alias-ignored",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity host: token answers full id, not token/alias same, no-tag invited: test/src_token_host.lua:14: not equal: expected same, got invite"
+    ]
+  },
+  {
+    "rule": "host-compares-server-only",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity host: token answers full id, not token/alias same, no-tag invited: test/src_token_host.lua:15: not equal: expected invite, got same"
+    ]
+  },
+  {
+    "rule": "host-tagless-refused",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity host: token answers full id, not token/alias same, no-tag invited: test/src_token_host.lua:15: not equal: expected invite, got drop"
+    ]
+  },
+  {
+    "rule": "eleventh-move",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity pace: ten moves, back-to-back hours, reload and per-character: test/src_hour_limit.lua:19: not equal: expected 3590, got 0",
+      "FAIL Parity pace: hidden click blocks combat and estimate hold, no r2 before admission: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "refusal-hold-short",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity pace: refusal hold 900 seconds, rollback fails closed and bounded loads: test/src_hour_limit.lua:32: not equal: expected 900, got 899",
+      "FAIL Parity verdict: phase refused: test/src_token_verdicts.lua:53: not equal: expected 900, got 899"
+    ]
+  },
+  {
+    "rule": "hour-is-sliding",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity pace: ten moves, back-to-back hours, reload and per-character: test/src_hour_limit.lua:23: not equal: expected 4600, got 4700"
+    ]
+  },
+  {
+    "rule": "pace-identity",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity pace: ten moves, back-to-back hours, reload and per-character: test/src_hour_limit.lua:21: not equal: expected 0, got 3590"
+    ]
+  },
+  {
+    "rule": "r2-without-limit",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity pace: hidden click blocks combat and estimate hold, no r2 before admission: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "r2-in-combat",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity pace: hidden click blocks combat and estimate hold, no r2 before admission: test/harness.lua:8: combat disables hidden ask: expected false, got true"
+    ]
+  },
+  {
+    "rule": "r2-without-token-exclusion",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity equality: exact equal host excluded, unequal token not proof; request leaves full token: test/src_token_equality.lua:43: not equal: expected inv layer <LS 100 not 987654-876543 r2 25.0,75.0>, got inv layer <LS 100 r2 25.0,75.0>"
+    ]
+  },
+  {
+    "rule": "hidden-numeric-ui",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity equality: UI and slash show shared host, never numbers or other-layer claims: test/src_token_equality.lua:30: not equal: expected layer: shared with Host Cedar, got layer: shared with 987654-876543"
+    ]
+  },
+  {
+    "rule": "guild-draft-restored",
+    "caught": true,
+    "assertions": [
+      "AssertionError: Main.lua: guild draft literal",
+      "AssertionError: Main.lua: guild draft literal"
+    ]
+  },
+  {
+    "rule": "guild-kind-restored",
+    "caught": true,
+    "assertions": [
+      "AssertionError: Main.lua: guild draft destination",
+      "AssertionError: Main.lua: guild draft destination"
+    ]
+  },
+  {
+    "rule": "chat-send-restored",
+    "caught": true,
+    "assertions": [
+      "AssertionError: Unexpected outgoing/forbidden API: SendChatMessage in Main.lua"
+    ]
+  },
+  {
+    "rule": "phase-outside-adapter",
+    "caught": true,
+    "assertions": [
+      "AssertionError: UnitPhaseReason outside Adapters.lua: Main.lua"
+    ]
+  }
+]

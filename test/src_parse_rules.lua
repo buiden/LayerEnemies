@@ -9,7 +9,7 @@ end)
 local test,eq,yes,no=H.test,H.eq,H.yes,H.no
 for _,body in ipairs({"want 7088-2", "not 7088-2", "not 7088-2 not 9000-3", ""}) do
     for _,pos in ipairs({"", " 48.2,42.5"}) do
-        test("Parity parser: rules after "..body..pos,function()
+        test("Parity parser: rules after "..(body~="" and body or "(none)")..pos,function()
             local N=H.load()
             for _,tag in ipairs({"r2","r99"}) do
                 local line="inv layer <LS 1429 "..(body~="" and body.." " or "")..tag..pos..">"

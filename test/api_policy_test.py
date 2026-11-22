@@ -259,9 +259,13 @@ class ApiPolicyTests(unittest.TestCase):
                 self.check_source(source, 'Main.lua')
 
     def test_guild_drafts_are_forbidden(self):
+        gate_source = (Path(__file__).resolve().parent / 'verify.py').read_text()
+        self.assertNotIn('guild requests stay player-sent', gate_source)
+        self.assertIn('guild chat is never sent or drafted', gate_source)
         root = Path(__file__).resolve().parents[1] / 'LayerEnemies'
         for path in root.glob('*.lua'):
             VERIFY['check_guild_drafts'](path.read_text(), path.name)
+            VERIFY['check_send_policy'](path.read_text(), path.name)
         for source in ('local line="/g inv layer"', 'local x=SLASH_GUILD',
                        'M.openChat("hello", "GUILD")', 'M.openChat("/".."g hello")'):
             with self.assertRaises(AssertionError):
