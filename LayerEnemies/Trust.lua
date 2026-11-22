@@ -111,8 +111,9 @@ function T.paceLoad(saved,who,wall)
         if S.str(saved.who,100)~=p.who then return true end
         if saved.start~=nil and not S.num(saved.start) then return false end
         if saved.hold~=nil and not S.num(saved.hold) then return false end
+        if saved.seen~=nil and not S.num(saved.seen) then return false end
         if not S.tab(saved.moves) then return false end
-        p.start=S.num(saved.start); p.hold=S.num(saved.hold)
+        p.start=S.num(saved.start); p.hold=S.num(saved.hold); p.seen=S.num(saved.seen)
         for i=1,T.MOVE_CAP do
             local value=saved.moves[i]
             if value==nil then break end
@@ -132,6 +133,10 @@ function T.paceWait(p,wall)
     if not p or not p.who or not N.Safe.num(wall) then return T.REFUSAL_HOLD end
     if p.start and wall<p.start then return T.REFUSAL_HOLD end
     for _,at in ipairs(p.moves) do if wall<at then return T.REFUSAL_HOLD end end
+    -- The latest wall time seen survives window expiry: a clock set back behind
+    -- it holds instead of reopening an hour.
+    if p.seen and wall<p.seen then return T.REFUSAL_HOLD end
+    if p.start or p.seen then p.seen=wall end
     if p.start and wall-p.start>=T.HOUR then
         p.start=nil
         p.moves={}
@@ -142,7 +147,7 @@ function T.paceWait(p,wall)
 end
 function T.paceMove(p,wall)
     if T.paceWait(p,wall)>0 then return false end
-    p.start=p.start or wall; p.moves[#p.moves+1]=wall
+    p.start=p.start or wall; p.moves[#p.moves+1]=wall; p.seen=wall
     return true
 end
 function T.paceRefused(p,wall)

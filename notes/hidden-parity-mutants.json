@@ -331,11 +331,43 @@
     ]
   },
   {
+    "rule": "hour-rollback-watermark",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity review pace: wall rollback after expiry holds, forward expiry opens: test/harness.lua:7: wall set back behind the watermark holds: expected true, got false",
+      "FAIL Parity review pace: rollback hold sends nothing through the click: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "hour-watermark-not-kept",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity review pace: wall rollback after expiry holds, forward expiry opens: test/harness.lua:7: wall set back behind the watermark holds: expected true, got false",
+      "FAIL Parity review pace: rollback hold sends nothing through the click: test/harness.lua:8: not equal: expected false, got true"
+    ]
+  },
+  {
+    "rule": "hour-watermark-not-saved",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity review pace: wall rollback after expiry holds, forward expiry opens: test/harness.lua:7: watermark survives reload: expected true, got false"
+    ]
+  },
+  {
+    "rule": "hour-watermark-unreadable",
+    "caught": true,
+    "assertions": [
+      "FAIL Parity review pace: wall rollback after expiry holds, forward expiry opens: test/harness.lua:7: an unreadable watermark is not a fresh hour: expected true, got false"
+    ]
+  },
+  {
     "rule": "hour-reset-on-move",
     "caught": true,
     "assertions": [
       "FAIL Parity pace: ten moves, first-move hours, reload and per-character: test/src_hour_limit.lua:19: not equal: expected 3590, got 3600",
-      "FAIL Parity review pace: idle gap starts next hour at the first move: test/src_hour_limit.lua:34: review probe: expected 3590, got 3599"
+      "FAIL Parity review pace: idle gap starts next hour at the first move: test/src_hour_limit.lua:34: review probe: expected 3590, got 3599",
+      "FAIL Parity review pace: wall rollback after expiry holds, forward expiry opens: test/src_hour_limit.lua:64: forward expiry opens the next hour: expected 0, got 9",
+      "FAIL Parity review pace: rollback hold sends nothing through the click: test/harness.lua:7: not equal: expected true, got false"
     ]
   },
   {
@@ -349,7 +381,8 @@
     "rule": "r2-without-limit",
     "caught": true,
     "assertions": [
-      "FAIL Parity pace: hidden click blocks combat and estimate hold, no r2 before admission: test/harness.lua:8: not equal: expected false, got true"
+      "FAIL Parity pace: hidden click blocks combat and estimate hold, no r2 before admission: test/harness.lua:8: not equal: expected false, got true",
+      "FAIL Parity review pace: rollback hold sends nothing through the click: test/harness.lua:8: not equal: expected false, got true"
     ]
   },
   {

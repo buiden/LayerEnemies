@@ -64,7 +64,7 @@ The full candidate gate ran in the background through the shared heavy-job
 wrapper, using Lua 5.1.5. It exited zero:
 
 ```
-RESULT: 2764 tests passed, 0 failed, 682683 assertions
+RESULT: 2776 tests passed, 0 failed, 683405 assertions
 ```
 
 The Python gate groups also completed successfully (46, 32, 4, 4 and 11 tests).

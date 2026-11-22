@@ -57,3 +57,25 @@ H.test("Parity pace: hidden click blocks combat and estimate hold, no r2 before 
     no(p.enabled); yes(p.reason:find("estimate",1,true)); no(N.Main.hopAny())
     yes(N.HopBar.statusText():find("estimate",1,true),"bar shows estimated wait")
 end)
+H.test("Parity review pace: wall rollback after expiry holds, forward expiry opens",function()
+    local N=H.load(); local T=N.Trust
+    local p=T.paceLoad(nil,"Cedar Scout",1000)
+    for i=1000,1009 do yes(T.paceMove(p,i)) end
+    eq(T.paceWait(p,4600),0,"forward expiry opens the next hour")
+    yes(T.paceWait(p,4500)>0,"wall set back behind the watermark holds")
+    no(T.paceMove(p,4500),"no ask while held")
+    local q=T.paceLoad(p,"Cedar Scout",4500); yes(T.paceWait(q,4500)>0,"watermark survives reload")
+    yes(T.paceWait(T.paceLoad({who="Cedar Scout",start=1000,moves={1000},seen=H.secret},"Cedar Scout",4600),4600)>0,
+        "an unreadable watermark is not a fresh hour")
+    eq(T.paceWait(p,4600),0); yes(T.paceMove(p,4600)); eq(p.start,4600)
+end)
+H.test("Parity review pace: rollback hold sends nothing through the click",function()
+    local N=H.load(nil,function() GetBuildInfo=function() return "x","71037","d",16001 end end)
+    H.clock(120); H.wall(1000)
+    LayerSwapDB={book={["Host Cedar"]={layer="8000-8",zone=100,at=1000,host=true}}}
+    for i=1000,1009 do N.Trust.paceMove(LayerEnemiesDB.hopLimit,i) end
+    H.wall(4600); H.clock(200); yes(N.Main.blindPreview().enabled)
+    H.wall(4500); H.clock(260); local mark=#H.sent()
+    no(N.Main.blindPreview().enabled); no(N.Main.hopAny())
+    for i=mark+1,#H.sent() do no(H.sent()[i].prefix=="LayerSwap","nothing sent while held") end
+end)
