@@ -16,7 +16,7 @@ MUTANTS = [
     ('clock-rollback', 'now>=t.at and ', ''),
     ('own-state-gate', 'if T.state(s,now)=="known" then', 'if s then'),
     ('bulo-boundary', 'if id==blocked and ', 'if false and '),
-    ('mask-in-blind', 'if not hide and T.state(s,now)~="blind" then return record end', 'if not hide then return record end'),
+    ('mask-in-blind', 'if not hide and not T.masked(s,now) then return record end', 'if not hide then return record end'),
     ('mask-copy', 'local out={}; for k,v in pairs(record) do out[k]=v end', 'local out=record'),
     ('manual-on', 'state(s).blind="manual"', 'state(s).blind=nil'),
     ('manual-off', 'local at=state(s).at; s.trust=T.new(); s.trust.at=at', 'local at=state(s).at; s.trust.at=at'),

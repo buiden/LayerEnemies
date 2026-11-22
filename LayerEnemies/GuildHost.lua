@@ -15,6 +15,7 @@ G.MAX_ASKED, G.MAX_NOTS = 128, 8
 function G.parse(text)
     if S.secret(text) or type(text) ~= "string" or #text > 255 then return nil end
     local zone, body = text:match("^inv layer <LS (%d+) ([^<>]+)>$")
+    if not zone then zone=text:match("^inv layer <LS (%d+)>$"); body="" end
     if not zone or #zone > 9 then return nil end
     local out = { zone = tonumber(zone) }
     local rest, x, y = body:match("^(.-) (%d+%.?%d*),(%d+%.?%d*)$")
@@ -24,6 +25,11 @@ function G.parse(text)
         if out.zone>0 and tonumber(x)<=100 and tonumber(y)<=100 then out.blind=true; return out end
         return nil
     end
+    -- Rules are advisory, exactly once, after the layer clauses and before position.
+    local clauses = body:match("^(.-) r%d+$")
+    if clauses then body=clauses
+    elseif body:match("^r%d+$") then body="" end
+    if body=="" and out.zone>0 then out.blind=true; return out end
     local want = body:match("^want (%d+%-%d+)$")
     if want then out.want = want; return out end
     local nots = {}
@@ -76,7 +82,7 @@ function G.early(st, req, own, now)
     local mine = N.Layer.key(own.key)
     if own.blind then
         if not req.blind then return nil end
-    elseif req.blind or not mine or own.ambiguous then return nil end
+    elseif (req.blind and not own.hidden) or not mine or own.ambiguous then return nil end
     if own.inInstance ~= false or own.inCombat ~= false then return nil end
     return name, key, mine
 end
@@ -89,6 +95,12 @@ function G.decide(st, req, own, now)
     own.key = mine
     if own.blind then
         -- The invite itself is the answer; no new or layer-valued reply shape.
+    elseif own.hidden then
+        -- Only full-token equality is evidence on hidden builds.
+        if req.want and req.want~=own.id then return "busy",heard(name,own,"-") end
+        for _,id in ipairs(req.nots or {}) do
+            if id==own.id or id==own.alias then return "same","same" end
+        end
     elseif req.want then
         if N.Layer.key(req.want) ~= mine then return "busy", heard(name, own, "-") end
     else

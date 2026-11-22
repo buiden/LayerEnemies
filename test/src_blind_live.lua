@@ -53,18 +53,12 @@ test("Blind live: manual whisper draft arms only after matching sent event",func
     H.deliver("PARTY_INVITE_REQUEST","Host Ash"); eq(H.accepts(),1); no(M.error)
 end)
 
-test("Blind live: guild fallback is only a draft; correlation starts at actual send",function()
-    local N,M=setup(); _G.LayerSwapDB=nil
-    local draft; M.openChat=function(line) draft=line; return true end
-    yes(M.hopAny()); eq(draft,"/g inv layer <LS 100 25.0,75.0>"); eq(#sent(),0)
-    H.roster({{"Host Cedar",true},{"Host Birch",true}}); H.deliver("GUILD_ROSTER_UPDATE")
+test("Blind live: guild fallback removed; outgoing guild text never arms",function()
+    local N,M=setup(); LayerSwapDB=nil
+    eq(N.Hop.guildBlindLine,nil); eq(M.guildAsk,nil)
+    H.deliver("CHAT_MSG_GUILD","inv layer <LS 100 25.0,75.0>",N.Adapters.ownIdentity())
     H.deliver("CHAT_MSG_ADDON","LayerSwap","claim "..N.Adapters.ownIdentity(),"GUILD","Host Cedar")
-    H.deliver("PARTY_INVITE_REQUEST","Host Cedar"); eq(H.accepts(),0)
-    H.deliver("CHAT_MSG_GUILD",draft:sub(4),N.Adapters.ownIdentity())
-    H.deliver("PARTY_INVITE_REQUEST","Host Cedar"); eq(H.accepts(),0,"pre-send answer cleared")
-    H.deliver("PARTY_INVITE_REQUEST","Host Birch"); eq(H.accepts(),0,"not every guildmate is correlated")
-    H.deliver("CHAT_MSG_ADDON","LayerSwap","claim "..N.Adapters.ownIdentity(),"GUILD","Host Cedar")
-    H.deliver("PARTY_INVITE_REQUEST","Host Cedar"); eq(H.accepts(),1); no(M.error)
+    H.deliver("PARTY_INVITE_REQUEST","Host Cedar"); eq(H.accepts(),0); no(M.invite.pending)
 end)
 
 test("Blind live: snapshot before ask, only allowed units, checks at five fifteen thirty",function()

@@ -44,11 +44,11 @@ function T.observe(t,e,now)
         local own=e.source and e.source:match("^own ")
         if not own or (old.source and old.source:match("^own ")) then return false end
     end
-    e.zone=t.zone; e.epoch=t.serial; e.layer=N.Trust.own(t,now); e.namespace="bulo-server"; e.confidence="seen by you"
+    e.zone=t.zone; e.epoch=t.serial; e.layer=N.Trust.numeric(t,now); e.namespace="bulo-server"; e.confidence="seen by you"
     -- our own unit sighting keeps its own time and origin (ownAt, ownSource) when a Bulo copy refreshes
     -- the row (r040c 21e): Share reads only these, so a Bulo refresh neither makes a row ours nor starves the share
     if e.source and e.source:match("^own ") then
-        e.ownAt,e.ownSource,e.ownKey=e.at,e.source,N.Trust.own(t,now)
+        e.ownAt,e.ownSource,e.ownKey=e.at,e.source,N.Trust.numeric(t,now)
     elseif old and old.ownAt and old.epoch==t.serial then
         e.ownAt,e.ownSource,e.ownKey=old.ownAt,old.ownSource,old.ownKey
     end
@@ -73,7 +73,7 @@ end
 -- Our side of a layer comparison: zone, own server key, and whether that key is ambiguous right now.
 function T.own(t,now)
     local amb=type(t.ambiguous)=="function" and t.ambiguous(now) or false
-    return {zone=t.zone,server=N.Layer.key(N.Trust.own(t,now)),ambiguous=amb,store=t,now=now}
+    return {zone=t.zone,server=N.Layer.key(N.Trust.numeric(t,now)),ambiguous=amb,store=t,now=now}
 end
 -- record: from N.Record.new. Any record of our zone is kept, whatever its layer relation: the wire has no absolute
 -- time, so every report is "reported, not confirmed", and other-layer reports are the ones a hop needs.
@@ -197,7 +197,7 @@ function T.rows(t,now,kind)
     else
         for _,e in pairs(t.localSeen) do
             local factionOK=e.faction=="opposite"
-            if e.epoch==t.serial and e.zone==t.zone and (not N.Trust.own(t,now) or e.layer==nil or e.layer==N.Trust.own(t,now)) and ((kind=="unclassified" and not factionOK) or (kind~="unclassified" and factionOK)) then out[#out+1]=e end
+            if e.epoch==t.serial and e.zone==t.zone and (not N.Trust.numeric(t,now) or e.layer==nil or e.layer==N.Trust.numeric(t,now)) and ((kind=="unclassified" and not factionOK) or (kind~="unclassified" and factionOK)) then out[#out+1]=e end
         end
     end
     table.sort(out,newest); return out

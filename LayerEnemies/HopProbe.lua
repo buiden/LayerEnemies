@@ -53,6 +53,10 @@ function P.judge(before,after,transfer)
     return "unchanged"
 end
 function P.text(result,name)
+    if result=="adopted" then return "moved to "..name.."'s layer" end
+    if result=="unknown" then return "Hopped (layer unknown)." end
+    if result=="same" then return "that host is on your layer already" end
+    if result=="refused" then return "the game refused the move" end
     if result=="creatures" then return "Hopped (layer unknown): the creatures around you changed." end
     if result=="players" then return "Hopped (layer unknown): the players around you changed." end
     if result=="transfer" then return "Joined "..name..". The game reported a layer transfer." end

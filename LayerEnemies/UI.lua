@@ -145,9 +145,9 @@ function U.render()
         b.bg:SetColorTexture(unpack(key==U.tab and colors.bg or {.055,.071,.086}))
         b.line:SetShown(key==U.tab)
     end
-    local known=N.Layer.key(N.Trust.own(M.store,time))
+    local known=N.Layer.key(N.Trust.numeric(M.store,time))
     U.layer:SetText(known or ""); U.layer:SetShown(known~=nil)
-    U.meta:SetText(M.zoneName(M.store.zone).." · "..(known and (M.layerSource or "unknown") or N.Trust.state(M.store,time)=="blind" and "layer IDs unreadable" or "layer unknown: mouse over or target two different kinds of NPC within 15 s"))
+    U.meta:SetText(M.zoneName(M.store.zone).." \194\183 "..(N.Trust.hidden(M.store) and N.Trust.label(M.store,time) or known and (M.layerSource or "unknown") or N.Trust.state(M.store,time)=="blind" and "layer IDs unreadable" or "layer unknown: mouse over or target two different kinds of NPC within 15 s"))
     U.input:SetShown(U.tab=="find"); U.add:SetShown(U.tab=="find")
     U.hopAny:SetShown(U.tab=="friendly" or not known)
     local hop=N.Main.hopAnyPreview()
@@ -491,8 +491,9 @@ do
             local name=S.str((S.call(_G.GetInstanceInfo)),80)
             return name or "Instance"
         end
+        if N.Trust.hidden(M.store) then return N.Trust.label(M.store,S.call(GetTime)) end
         if N.Trust.state(M.store,S.call(GetTime))=="blind" then return "layer hidden" end
-        local key=M.store and N.Layer.key(N.Trust.own(M.store,S.call(GetTime)))
+        local key=M.store and N.Layer.key(N.Trust.numeric(M.store,S.call(GetTime)))
         return key and ("Layer "..key) or "Detecting..."
     end
     local SHORT={
@@ -502,8 +503,10 @@ do
     -- Line 2: the hop status from the same state and gates as the window's button. round: the open round, if any.
     function B.statusText()
         local M=N.Main
+        local hold=M.hopHold()
+        if hold then return hold end
         local st=M.hopAnyState
-        if not N.Trust.own(M.store,S.call(GetTime)) or M.blindPending or M.blindStatus then return M.blindStatus or "" end
+        if not N.Trust.numeric(M.store,S.call(GetTime)) or M.blindPending or M.blindStatus then return M.blindStatus or "" end
         if not st then return "Hop not ready" end
         local r=st.round
         if r then
@@ -539,7 +542,7 @@ do
         local layer=B.layerText()
         local status,round=B.statusText()
         f.round=round or false
-        f.preview=not N.Trust.own(N.Main.store,S.call(GetTime)) and N.Main.blindPreview() or false
+        f.preview=not N.Trust.numeric(N.Main.store,S.call(GetTime)) and N.Main.blindPreview() or false
         local one=saved().oneline
         f.text:SetText(one and (layer.."   "..status) or layer)
         f.status:SetText(one and "" or status)

@@ -34,11 +34,18 @@ function Hp.lineBlind(zone,x,y)
         or x<0 or x>1 or y<0 or y>1 then return nil end
     return string.format("inv layer <LS %d %.1f,%.1f>",zone,x*100,y*100)
 end
-function Hp.guildBlindLine(zone,x,y)
+-- Hidden-build request; only Main's paced, out-of-combat click may emit r2.
+function Hp.lineToken(zone,id,x,y)
     local line=Hp.lineBlind(zone,x,y)
-    return line and ("/g "..line) or nil
+    if not line then return nil end
+    local clause="r2"
+    if id~=nil then
+        id=S.str(id,32)
+        if not id or not id:match("^%d+%-%d+$") or not N.Layer.key(id) then return nil end
+        clause="not "..id.." r2"
+    end
+    return (line:gsub("^(inv layer <LS %d+) ","%1 "..clause.." "))
 end
-
 -- reply(text, sender, me) -> {kind="heard", layer?, zone?, hosting} | {kind="same"} | nil
 -- heard is used only when its first field is our own full name.
 function Hp.reply(text, sender, me)
@@ -51,31 +58,8 @@ function Hp.reply(text, sender, me)
     return { kind = "heard", layer = layer ~= "-" and layer or nil, zone = zone ~= "-" and tonumber(zone) or nil, hosting = host == "h" }
 end
 
-function Hp.new() return { pending = nil, guildAsk = nil } end
+function Hp.new() return { pending = nil } end
 
--- The guild-chat request: LayerSwap's own guild ask, "/g " + line with uid 0, for the player to send with Enter. The
--- addon sends nothing. Hosts in the guild on that layer answer it (LayerSwap and Bulo read guild chat).
-Hp.GUILD = { name = "the guild", short = "#guild" }   -- a pseudo-name for Invite.reserve: 60 s per guild ask, 10 s overall
-function Hp.guildLine(record, x, y)
-    local line = S.tab(record) and S.tab(record.layer) and Hp.line(record.zone, record.layer.value, 0, x, y)
-    return line and ("/g " .. line) or nil
-end
--- request for the guild ask: the same preconditions as a hop, valid only while no one on that layer is known.
-function Hp.guildRequest(st, record, ctx)
-    -- the guild ask needs our own key (the auto hop compares it after the move)
-    if not S.tab(ctx.own) or not N.Layer.key(ctx.own.server) then return false, N.Invite.HINT end
-    local fine, reason = Hp.check(record, nil, ctx)
-    if fine or reason ~= Hp.NO_ONE then return false, fine and "a host is known; use Hop." or reason end
-    local line = Hp.guildLine(record, ctx.x, ctx.y)
-    if not line then return false, "the request could not be built." end
-    local ok, why = N.Invite.reserve(ctx.invite, Hp.GUILD, ctx.now)
-    if not ok then return false, why end
-    -- armed for auto-accept only when our own /g line is seen going out (Main.draftSent)
-    ctx.invite.pending = { name = Hp.GUILD.name, target = N.Layer.key(record.layer.value), from = ctx.own.server, at = ctx.now,
-        guild = true, arm = { kind = "GUILD", text = line:sub(4) } }
-    st.guildAsk = { at = ctx.now }
-    return true, line
-end
 function Hp.clear(st) st.pending = nil end
 
 -- The candidate for a record: one player known to stand on the record's server key, in this order: a Bulo guild
@@ -189,6 +173,7 @@ function Hp.receive(st, text, sender, me, now, ambiguous)
     if not key or key ~= p.short then return nil end
     local r = Hp.reply(text, sender, me)
     if not r then return nil end
+    if r.kind=="heard" then p.reply={layer=r.layer,zone=r.zone,at=now} end
     if r.kind == "same" then return p.name .. " says you're on their layer" .. (ambiguous and " (probably: your key is ambiguous)." or "."), r end
     return p.name .. " heard you (layer " .. (r.layer or "unknown") .. ", hosting: " .. (r.hosting and "yes" or "no") .. ").", r
 end

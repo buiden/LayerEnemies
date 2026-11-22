@@ -110,6 +110,7 @@ LUA_TOKENS = re.compile(r'''(?P<space>\s+)|(?P<comment>--(?:\[(?P<ceq>=*)\[.*?\]
 API_OWNERS = {word: 'Adapters.lua' for word in ('C_FriendList', 'SendWho', 'GetNumWhoResults', 'GetWhoInfo', 'SetWhoToUi', 'FriendsFrame', 'LFGWhoListFrame', 'WhoFrame')}
 API_OWNERS.update({word: 'Wire.lua' for word in ('C_PartyInfo', 'InviteUnit', 'AcceptGroup', 'LeaveParty')})
 API_OWNERS['ChatFrame_AddMessageEventFilter'] = 'Wire.lua'
+API_OWNERS['UnitPhaseReason'] = 'Adapters.lua'
 
 
 def lua_tokens(source):
@@ -150,7 +151,26 @@ def constant_key(tokens, at):
     return value, at
 
 
+def check_guild_drafts(source, filename):
+    tokens = lua_tokens(source)
+    assert ('name', 'SLASH_GUILD') not in tokens, filename + ': guild draft alias'
+    for i, (kind, value) in enumerate(tokens):
+        if kind == 'string':
+            # Fold literal concatenation before checking the slash destination.
+            j = i + 1
+            while tokens[j:j+1] == [('concat', '..')] and len(tokens) > j+1 and tokens[j+1][0] == 'string':
+                value += tokens[j+1][1]
+                j += 2
+            assert not re.match(r'^/(?:g|guild)(?:\s|$)', value, re.I), filename + ': guild draft literal'
+        if (kind, value) == ('name', 'openChat') and tokens[i+1:i+2] == [('symbol', '(')]:
+            j = i+2
+            while j < len(tokens) and tokens[j] != ('symbol', ')'):
+                assert tokens[j] != ('string', 'GUILD'), filename + ': guild draft destination'
+                j += 1
+
+
 def check_api_policy(source, filename):
+    check_guild_drafts(source, filename)
     def owner(word):
         expected = API_OWNERS.get(word)
         assert expected is None or filename == expected, word + ' outside ' + str(expected) + ': ' + filename

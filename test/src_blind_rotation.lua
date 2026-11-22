@@ -81,7 +81,7 @@ end)
 test("Blind rotation: unconstrained builder has no layer, exact existing fallback shape",function()
     local N=H.load(); yes(N.Hop.lineBlind,"unconstrained builder exists")
     eq(N.Hop.lineBlind(100,.2,.3),"inv layer <LS 100 20.0,30.0>")
-    eq(N.Hop.guildBlindLine(100,.2,.3),"/g inv layer <LS 100 20.0,30.0>")
+    eq(N.Hop.guildBlindLine,nil)
     for _,zone in ipairs({0,-1,1.5,1000000000}) do eq(N.Hop.lineBlind(zone,.2,.3),nil) end
     eq(N.Hop.lineBlind(100,nil,.3),nil); eq(N.Hop.lineBlind(100,-.1,.3),nil)
     eq(N.Hop.lineBlind(100,.2,1.1),nil)

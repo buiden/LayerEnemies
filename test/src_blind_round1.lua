@@ -29,6 +29,11 @@ for _,route in ipairs({"whisper","guild"}) do
     for _,sent in ipairs({false,true}) do
         test("Blind R1 draft: "..route.." sent="..tostring(sent).." expires honestly",function()
             local N,M=setup(); _G.LayerSwapDB=nil
+            if route=="guild" then
+                eq(N.Hop.guildBlindLine,nil)
+                if sent then H.deliver("CHAT_MSG_GUILD","inv layer <LS 100 25.0,75.0>",N.Adapters.ownIdentity()) end
+                H.advance(121); M.autoTick(); eq(M.blindPending,nil); eq(H.accepts(),0); return
+            end
             if route=="whisper" then M.heard.flhHosts={{name=HOST,map=100,key="8",at=H.wall()}} end
             M.openWhisper=function() return true end; M.openChat=function() return true end
             ask(N,M); H.deliver("PARTY_INVITE_REQUEST",HOST); eq(H.accepts(),0)

@@ -2027,20 +2027,28 @@ report's layer is unknown.
 
 ## Layer trust and hidden IDs
 
-On Forever build 71037 and newer, trust starts and stays blind with the reason
-`this game build hides layer IDs`. Creature GUIDs are not read for layer keys,
-and Bulo's current ID is not admitted as our own key: it may also be
-creature-derived. Radar sightings still work. Find, Known and our own O/K/WE
-messages carry no creature-derived layer. Manual blind off/auto cannot
-re-enable these hidden IDs. The safely read GetBuildInfo build number (second
-return, not interface number) controls this gate; older or unreadable builds
-keep the existing detection behavior below.
+On Forever build 71037 and newer, LE never shows layer numbers. It starts
+with `layer hidden`; after an observed host interaction it can show
+`layer: shared with <host>`. Creature GUIDs and Bulo's current ID never seed
+or confirm this evidence. Manual blind off/auto cannot re-enable numeric
+IDs. The safely read GetBuildInfo build number (second return, not interface
+number) controls the gate; older or unreadable builds retain detection below.
 
-Layer trust is session-only, never saved. `Trust.own(store, now)` is the
-single current-own-key reader. `known` means a valid confirmed reading less
-than 300 seconds old; `unknown` means no current reading. A matching NPC read
-refreshes an already confirmed key. `blind` means IDs are not trustworthy,
-and stays set across valid reads and transfers until logout or a manual reset.
+The host's complete `heard` ID is an equality token, not a public layer
+number. Equal tokens support a same-layer check; different tokens prove
+nothing. No other-layer claims, layer counts/lists, or layer-valued enemy
+sightings are enabled by it. `Trust.own` returns the full token and no NPC
+zoneUID; numeric consumers use `Trust.numeric`, which stays empty on hidden
+builds. The hop bar and Find header show the shared host, never the token.
+
+A token survives beyond 300 seconds, but is dropped on a stray transfer,
+zone change, unreadable live zone, or a non-reload world entry. Logout saves
+only `{id, zone, who, at, alias}` in per-character `layerToken`; a reload can
+restore it only for the same character and zone, within 120 seconds and with
+no backwards clock. No host name is saved. Without usable evidence LE
+continues blind. Older-build trust remains session-only: `known` requires a
+confirmed reading less than 300 seconds old; `unknown` has no current reading.
+A matching NPC refreshes it, and automatic/manual blindness stays sticky.
 
 The automatic thresholds in `Trust.lua` are architectural guesses, not
 in-game measurements:
@@ -2093,14 +2101,21 @@ embassy C/H are checked again when sent: a queued layer that does not match
 our current trusted server key becomes zero, not a replacement claim about
 another layer. Rebuilt remote reports, including
 Guild R relays, retain the sender's layer claim, not our own layer. FLH
-presence/probes and LE host H advertisements stop. No wire fields, routes,
-budgets, SavedVariables or version numbers are added or changed.
+presence/probes and LE host H advertisements stop. Hidden builds keep these
+masks even while a shared token is held. Wire fields, routes, byte budgets,
+and version numbers are unchanged; only the bounded saves above and the
+estimated hop pacing below are added.
 
-Blind LE hosts remain active for guildmates: they invite on the existing
-unconstrained `inv layer <LS zone x,y>` ask, including guild chat and LayerSwap
-whispers. Layer-constrained asks get no answer; no `same` or layer-valued reply
-is sent. Existing guild, consent, cooldown, combat and instance gates remain.
-The wire cannot distinguish LE users from other users of that same ask shape.
+LE hosts remain guild-only with their existing combat, instance, consent,
+10-second and 6-per-600-second invitation limits. With no token they still
+invite unconstrained requests without a layer reply. With a token they answer
+`heard <name>|<token>|<zone>|h` on the existing addon-whisper route; an exact
+`not` match on the token or its same-layer peer alias answers `same`. A real
+transfer clears the old alias rather than claiming the layer left. Tag-less
+requests also work. Requests accept one optional `r<digits>` after the
+want/not clauses and before coordinates; unknown rule numbers are ignored.
+Legacy lines still parse. Reading guild chat and hidden guild addon notes
+is retained; LE never sends or drafts guild chat.
 
 Bulo authority also keeps separate confirmed NPC history: a group crossing
 cannot hide behind Bulo's still-readable old key after NPC evidence expires.
@@ -2110,13 +2125,13 @@ Not tested in game (alpha, owner's decision).
 
 ## Blind hopping and Find
 
-When layer trust is unknown or blind, the window has one **Hop (blind)**
-button instead of per-layer Hop actions. Its enabled tooltip says: "Layer IDs
-are unreadable. This asks a host for an invite; the addon cannot say which
-layer you land on." A disabled button's tooltip gives the refusal reason.
-The hop bar uses the same action; unknown still shows `Detecting...`.
-One click is one ask; there is no WHO search, fanout, automatic retry, or
-public-channel send.
+When layer trust is unknown or blind, **Hop (blind)** replaces per-layer
+Hop actions. A held hidden-build token changes it to **Hop (shared)**, not a
+numeric layer selector. Disabled buttons explain why. One known-host click
+asks that host; with no known host, **Find a host** runs the existing
+who-search (up to 49 players, at most 8 attempts per second), including
+same-zone guild members. There is no automatic new search or public chat
+send. Guild-only consent can refuse a public who-search.
 
 The candidate union includes the existing LayerSwap and Bulo tables and
 replies, FLH hosts, LE guild hosts, and direct War Effort reporters. Relayed
@@ -2129,16 +2144,40 @@ restarts oldest-try first, respecting all cooldowns. With only one known
 host, that restart may ask the same host again. The tried ledger holds at
 most 200 names, session-only; oldest entries are evicted at that cap.
 
-LayerSwap-compatible hosts get the existing unconstrained whisper
-`inv layer <LS zone x,y>`. If no candidate is known, the same line is a `/g`
-draft for the player to send with Enter. FLH-only hosts and War Effort
-reporters get the existing manual whisper draft, "Hi! Could you invite me
-to your layer please?" Drafting sends nothing. Auto-accept remains tied to
-the correlated inviter, and drafts arm only after the matching outgoing
-chat event. Unsent drafts expire quietly, never as a missed invitation.
-Guild-only consent and the existing per-name, guild and overall ask limits
-remain in effect. `/le hop stop` also cancels an accepted known hop that
-has turned blind, disarming its later probe and leave callbacks.
+LayerSwap-compatible hosts get an addon whisper. On hidden builds it is
+`inv layer <LS zone r2 x,y>` without a token, or
+`inv layer <LS zone not token r2 x,y>` with one. The existing legacy shape
+remains on older builds. FLH-only hosts and War Effort reporters still get
+the manual whisper draft, "Hi! Could you invite me to your layer please?"
+Drafting sends nothing; only its matching outgoing whisper arms acceptance.
+Both former guild-chat options are removed from the rotation: no **Ask guild
+(chat)** button, no blind-guild draft, no guild-line reply window. The
+no-host replacement is who-search, never a guild draft or printed /g fallback.
+
+Auto-accept stays correlated to the asked inviter, including the actual
+asked set during who-search. Unsent drafts expire quietly. The existing
+per-name, overall ask limits and wire caps remain. `/le hop stop` cancels
+pending probes and leave callbacks as well as the search.
+
+Hidden-build requests are refused in combat or when combat is unreadable.
+`r2` is sent only with this guard and the estimated hourly limiter: ten
+adopted host-group transfers per 3600 seconds, back-to-back hours from the
+first move. Refusal with fewer than ten known moves holds requests for 900
+seconds. The disabled button shows an **estimate** and time left; these are
+donor measurements, not a game-certified limit. `hopLimit` stores only
+`{who, start, moves, hold}`, at most ten timestamps, per character across
+reloads. Backwards clocks and corrupt pacing data fail closed. Older builds
+retain their combat behavior and do not advertise these rules.
+
+A transfer while the matched host leads the hop-only group adopts its
+fresh reply only when its zone is ours and its token differs from the one
+left. The result is `moved to <host>'s layer`, with no number; leave follows
+the existing delay. Without a usable reply it says `hopped (layer unknown)`.
+At three seconds without a transfer, readable same-zone `UnitPhaseReason`
+can say `that host is on your layer already` (adopt the peer token and retain
+the old alias) or `the game refused the move` (start the hold). Missing,
+secret, throwing or other-zone reads fall back to the existing proxy checks.
+These client timing/phase semantics are not tested in game.
 
 The pure `HopProbe.lua` compares snapshots before the ask and at 5, 15 and
 30 seconds after the group forms. It reads only visible nameplate, target
@@ -2156,7 +2195,8 @@ elsewhere can replace the visible creatures without a hop. The 40-yard
 movement guard applies only to the player proxy. All thresholds are named
 constants and guesses, not game measurements.
 
-Only these result texts appear (NAME is the inviter, never a GUID):
+In addition to the shared-host, same-layer and refusal verdicts above,
+the fallback texts are (NAME is the inviter, never a GUID):
 
 - `Hopped (layer unknown): the creatures around you changed.`
 - `Hopped (layer unknown): the players around you changed.`
@@ -2739,17 +2779,11 @@ only when LayerSwap itself is not installed. A `-` answer (not hosting)
 removes them. Nothing is sent for this.
 
 When nobody on a report's layer is known and everything else allows a hop,
-the row offers "Ask guild (chat)": the click puts LayerSwap's own guild request
-into your chat box,
-
-    /g inv layer <LS <zone> want <server>-0 <x>,<y>>
-
-and you press Enter; the addon sends nothing itself. Every guild member sees
-the line, and any LayerSwap or Bulo host on that layer who reads guild chat may
-invite you, so more than one may answer. One guild ask per 60 seconds, within
-the 10-second overall limit below. For 120 seconds after your own guild ask, a
-LayerSwap `heard <you>|<layer>|<zone>|h` answer on GUILD is remembered like a
-whispered one.
+the row offers **Find a host**. The click starts the existing who-search;
+it does not promise a host on that report's layer. The former **Ask guild
+(chat)** action, its draft and its guild reply/claim acceptance window are
+removed. No guild chat is sent or drafted anywhere. Guild chat is still read
+for host discovery, and existing LEGW1/LFSw guild addon messages remain.
 
 `/le ask <number>` and `LE.AskInvite(name)` open the whisper above for you to
 send. The foreign tables are read inside protected calls and never written.
@@ -2774,10 +2808,11 @@ Auto toggle on the Friendly tab turns it off, and then invites and groups are
 left to you.
 
 Accept: when an invite arrives, it is accepted only if your own hop asked for
-it (a Hop button, `/le hop`, `/le hop host`, `/le hop any` or "Ask guild (chat)"; not
+it (a Hop button, `/le hop`, `/le hop host` or `/le hop any`; not
 `/le ask`), within 120 seconds of that ask, from the player you asked (whole
-name, realm included; for the guild ask, a guild member online in your
-roster), while you are not grouped and not in an instance. Combat is allowed.
+name, realm included; for who-search, a player actually asked in that round),
+while you are not grouped and not in an instance. Accepting remains allowed
+in combat; starting hidden-build requests does not.
 One accept per ask. The client's invite
 popup is hidden as accepted. Any other invite is left to you. Chat says
 "accepted <host>'s invite".
@@ -2859,7 +2894,11 @@ explicitly tracked names (typed or chosen with On my way), and window position.
 Target GUIDs are persisted **only in `warboardOwed`**, with bounded withdrawal
 attempt counts as described above. It never persists sightings, other unselected
 identities, hashes, locations, report payloads, asked names or alert history.
-Besides those three it holds
+Hidden builds additionally save `layerToken` only at logout (full ID, zone,
+character, wall time and one alias) for the strictly checked reload restore,
+and `hopLimit` (character, hour start, at most ten move timestamps and hold).
+These are equality/pacing state, not enemy locations or saved host names.
+Besides those fields it holds
 `guildHost` (hosting for your guild) and `autoHop` (Auto accept and leave),
 `consent` ("guild" after `/le net guild`, "public" after `/le net public`,
 absent until either: public), `nets` (one
@@ -3019,8 +3058,9 @@ after the list is the order to try them in):
     the server's limit on roster requests.
 11. 0.4.0: Find hosts: Bulo hosts answering `Q` within 6 seconds, and a
     LayerEnemies host answering `F|1` with `H`, both listed and hoppable.
-12. 0.4.0: "Ask guild (chat)": the `/g` line drafted correctly, and a
-    LayerSwap or Bulo host on that layer inviting from it.
+12. No-host WHO-search on hidden builds, the host-group transfer timing and
+    same-layer/refusal phase verdicts. Guild chat drafts are removed, not a
+    native-test requirement; static and behavioral gates enforce their absence.
 13. 0.4.0: two LayerEnemies guildmates, one hosting: the request, the
     `heard`/`same` reply, one invite, the 60-second and 10-second limits, and
     no invite in combat or in a raid.

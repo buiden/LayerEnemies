@@ -2089,7 +2089,7 @@ test("hop refuses when grouped, other zone, zoneuid layer, same layer, no candid
     refused(rec(N,{layer={ns="server",value="7086"}}),"on your layer already")
     -- no one known on that layer: since 0.4.0 the guild-chat request is drafted instead (no chat box here: the line
     -- is printed to type); no addon message either way
-    yes(hopNow(N,rec(N,{src="guild",layer={ns="server",value="9500"}}))); eq(#sent,0); yes(logged("/g inv layer <LS 100 want 9500-0"))
+    clickStack=true; yes(hopNow(N,rec(N,{src="guild",layer={ns="server",value="9500"}}))); clickStack=false; eq(#sent,0); eq(#opened,0); eq(#whoCalls,1); N.Main.hopAnyStop()
     -- unknown own zone
     N.Main.store.zone=nil; refused(rec(N),"your zone is not known"); eq(#opened,0); eq(forbidden,0)
 end)
@@ -3145,8 +3145,8 @@ test("0.3.1 fix S1 / PR3: unknown report hops are unconstrained; layered helpers
     local ctx={grouped=false,zone=100,own={zone=100,server=nil}}
     local ok,why=N.Hop.check(r,{name="Alpha",short="alpha",addon=true,unknownOwn=true},ctx); no(ok); eq(why,N.Invite.HINT)
     yes(N.Hop.check(r,{name="Scout",short="scout",addon=false},ctx))
-    -- the guild ask still needs our own key
-    ok,why=N.Hop.guildRequest(N.Main.hop,r,{grouped=false,zone=100,own={zone=100,server=nil},invite=N.Main.invite,now=clock}); no(ok); eq(why,N.Invite.HINT)
+    -- Guild chat drafts are removed on every build.
+    eq(N.Hop.guildRequest,nil)
 end)
 test("0.3.1 fix S2: hop host refuses when the host flag or the LayerSwap uid changed since the preview",function()
     local N=loadAddon(); establish(N); guildLine("L 8000|100|h","Alpha"); slash("hosts")
@@ -3182,19 +3182,14 @@ end)
 -- 0.4.0 Task 5: a prefilled guild-chat LayerSwap request; the player sends it with Enter, the addon sends nothing.
 local GLINE="/g inv layer <LS 100 want 9500-0 25.0,75.0>"
 local function guildRec(N,over) local o={src="guild",layer={ns="server",value="9500"}}; for k,v in pairs(over or {}) do o[k]=v end; return rec(N,o) end
-test("0.4 T5: no one known on the layer: Ask guild (chat) drafts the exact /g line and sends nothing",function()
+test("0.4 T5: removed guild draft replaced with one WHO search",function()
     local N=loadAddon(); establish(N); chatBox()
     local r=guildRec(N); local p=N.Main.hopPreview(r)
-    eq(p.label,"Ask guild (chat)"); yes(p.enabled); eq(p.mode,"guild")
-    yes(p.detail:find("you press Enter",1,true),p.detail)
-    yes(N.Main.hopTo(r,p)); drain()
-    eq(#sent,0,"the addon sends nothing"); eq(#opened,1); eq(opened[1].text,GLINE); eq(forbidden,0)
-    yes(log[#log]:find("press Enter",1,true),log[#log])
-    -- a second ask within 60 s drafts nothing; the 10 s overall limit applies to it as to any ask
-    advance(30); no(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(#opened,1); yes(log[#log]:find("wait 30 s",1,true),log[#log])
-    advance(30); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(#opened,2)
-    advance(61); guildLine("L 8000|100|h","Bob"); yes(hopNow(N,rec(N))); eq(#sent,1)
-    no(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(#opened,2); yes(log[#log]:find("one ask every 10 s",1,true),log[#log])
+    eq(p.label,"Find a host"); eq(p.mode,"search"); yes(p.enabled)
+    clickStack=true; yes(N.Main.hopTo(r,p)); clickStack=false; drain()
+    eq(#whoCalls,1); eq(#opened,0); eq(#sent,0); eq(N.Hop.guildRequest,nil)
+    no(N.Main.hopTo(r,N.Main.hopPreview(r))); eq(#whoCalls,1)
+
 end)
 test("0.4 T5: a known host or another precondition means no guild ask",function()
     local N=loadAddon(); establish(N); chatBox(); guildLine("L 9500|100|h","Bob")
@@ -3204,32 +3199,32 @@ test("0.4 T5: a known host or another precondition means no guild ask",function(
     p=N.Main.hopPreview(guildRec(N,{zone=200})); no(p.mode=="guild"); yes(p.reason:find("travel to",1,true))
     p=N.Main.hopPreview(guildRec(N,{layer={ns="server",value="7086"},src="own"})); no(p.mode=="guild")
     -- shown as a guild ask, but a host appears before the click: nothing drafted, nothing sent
-    local r=guildRec(N); p=N.Main.hopPreview(r); eq(p.mode,"guild")
+    local r=guildRec(N); p=N.Main.hopPreview(r); eq(p.mode,"search")
     guildLine("L 9500|100|h","Mallory"); no(N.Main.hopTo(r,p)); drain(); eq(#opened,0); eq(#sent,0); yes(logged("hosts changed, check again."))
     -- shown as a guild ask, then grouped or the map shows another zone before the click: nothing drafted
-    N=loadAddon(); establish(N); chatBox(); r=guildRec(N); p=N.Main.hopPreview(r); eq(p.mode,"guild")
+    N=loadAddon(); establish(N); chatBox(); r=guildRec(N); p=N.Main.hopPreview(r); eq(p.mode,"search")
     grouped=true; no(N.Main.hopTo(r,p)); drain(); eq(#opened,0); yes(log[#log]:find("leave your current group",1,true)); grouped=false
     map=200; no(N.Main.hopTo(r,p)); drain(); eq(#opened,0); yes(log[#log]:find("travel to",1,true)); map=100
 end)
-test("0.4 T5: GUILD heard replies are read for 120 s after our own guild ask, naming us, and stored as hosts",function()
+test("0.4 T5: removed guild reply window cannot reopen from chat",function()
     local N=loadAddon(); establish(N); chatBox()
-    local function gheard(text,from) deliver("CHAT_MSG_ADDON","LayerSwap",text,"GUILD",from); drain() end
-    gheard("heard Me|9500-4|100|h","Bob"); eq(next(N.Main.heard.heard),nil,"no guild ask yet")
-    local r=guildRec(N); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
-    gheard("heard Someone|9500-4|100|h","Bob"); gheard("claim Me","Bob"); gheard("heard Me|9500|100|h","Bob"); eq(next(N.Main.heard.heard),nil)
-    gheard("heard Me|9500-4|100|h","Bob"); yes(N.Main.heard.heard.Bob); eq(N.Main.heard.heard.Bob.layer,"9500-4")
-    local list=N.Main.candidates(); eq(list[1].name,"Bob"); eq(list[1].uid,4)
-    gheard("heard Me|9500-5|100|-","Cy"); eq(N.Main.heard.heard.Cy,nil)
-    advance(121); gheard("heard Me|9500-6|100|h","Dee"); eq(N.Main.heard.heard.Dee,nil,"after 120 s")
-    eq(#sent,0); eq(forbidden,0)
+    eq(N.Main.layerswapGuild,nil); eq(N.Main.hop.guildAsk,nil)
+    for _,text in ipairs({"heard Me|9500-4|100|h","claim Me"}) do
+        deliver("CHAT_MSG_ADDON","LayerSwap",text,"GUILD","Birch Scout")
+    end
+    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
+    eq(next(N.Main.heard.heard),nil); eq(N.Main.invite.pending,nil); eq(#opened,0)
+
 end)
-test("0.4 T5: the Reported row button drafts the guild line",function()
+test("0.4 T5: Reported row offers WHO instead of guild draft",function()
     local N=loadAddon(); establish(N); chatBox()
     local r=guildRec(N); N.Store.report(N.Main.store,r,clock)
     local U=N.UI; U.toggle(); U.select("reported")
     local row; for _,x in ipairs(U.pool) do if x:IsShown() then row=x end end
-    yes(row); eq(row.ask.label.text,"Ask guild (chat)"); no(row.ask.disabled)
-    row.ask:Click(); drain(); eq(#opened,1); eq(opened[1].text,GLINE); eq(#sent,0)
+    yes(row); eq(row.ask.label.text,"Find a host"); no(row.ask.disabled)
+    clickStack=true; row.ask:Click(); clickStack=false; drain()
+    eq(#opened,0); eq(#whoCalls,1); eq(#sent,0)
+
 end)
 
 local N_G
@@ -3248,7 +3243,7 @@ test("0.4 T7.1: parse accepts full want/not and unconstrained grammar",function(
     r=G.parse("inv layer <LS 100 not 7086-3>"); eq(r.want,nil); eq(#r.nots,1); eq(r.nots[1],"7086-3")
     r=G.parse("inv layer <LS 100 not 7086-3 not 8000-1 not 9000-2 48.2,42.5>"); eq(#r.nots,3); eq(r.nots[3],"9000-2"); eq(r.x,48.2)
     r=G.parse("inv layer <LS 100 25.0,75.0>"); yes(r.blind); eq(r.zone,100); eq(r.want,nil); eq(r.nots,nil)
-    for _,bad in ipairs({"inv layer <LS 100>","inv layer <LS 100 want 8000-12> extra","x inv layer <LS 100 want 8000-1>",
+    for _,bad in ipairs({"inv layer <LS >","inv layer <LS 100 want 8000-12> extra","x inv layer <LS 100 want 8000-1>",
         "inv layer <LS 100 want 8000>","inv layer <LS 100 want 8000-1 not 7000-1>","inv layer <LS 100 not 7000-1 want 8000-1>",
         "inv layer <LS abc want 8000-1>","inv layer <LS 100  want 8000-1>","inv layer <LS 100 want 8000-1 25.0>","inv layer <LS 100 want 8000-1 a,b>",
         "inv layer <LS 1234567890 want 8000-1>","inv layer <LS 100 want 8000-1>"..string.rep(" ",200),"",5,nil,secret,
@@ -3408,7 +3403,7 @@ test("0.4 T7.3: LayerSwap whispers carry only the request, same or heard; replie
     advance(6); yes(Wr.send("LayerSwap","heard Tam Reed|7086-7|100|-","WHISPER","Tam Reed"))
     advance(6)
     for _,bad in ipairs({"x","hello","heard Alice|7086|100|h","heard Alice|7086-7|100|x","heard |7086-7|100|h","heard x|7086-7|100|h","heard Bad1|7086-7|100|h","same ","claim Alice",
-        "inv layer <LS 1429>","inv layer <LS 1429 want 7086-0> x"}) do
+        "inv layer <LS >","inv layer <LS 1429 want 7086-0> x"}) do
         ok,why=Wr.send("LayerSwap",bad,"WHISPER","Alice"); no(ok,bad); eq(why,"bad text",bad)
     end
     yes(Wr.send("LayerSwap","heard Alice|7086-7|100|h","WHISPER","Alice"))
@@ -3683,17 +3678,19 @@ test("0.4 T8: a group not joined through our hop is never left; leader changes, 
     N=loadAddon(); BULO=nil; establish(N); askBob(N); inviteFrom("Bob"); joinParty("Bob"); grouped=false; units.party1=nil; deliver("GROUP_ROSTER_UPDATE"); drain()
     advance(40); drain(); eq(#leaves,0); eq(forbidden,0)
 end)
-test("0.4 T8: the guild ask accepts an online guild member's invite only",function()
-    local N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Bob-TestRealm",true},{"Off-TestRealm",false}}
-    local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(#opened,1)
-    -- (round 2: armed when our /g line goes out; Bob, Off and Zed answered, so only the guild check decides here)
+test("0.4 T8: removed guild ask never accepts guild invitations",function()
+    local N=loadAddon(); BULO=nil; establish(N); chatBox()
+    roster={{"Birch Scout",true},{"Cedar Scout",false}}
+    eq(N.Main.guildAsk,nil); eq(N.Hop.guildLine,nil)
     deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
-    for _,who in ipairs({"Bob","Off","Zed"}) do deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD",who) end; drain()
-    inviteFrom("Zed"); inviteFrom("Off"); eq(#accepts,0)
-    -- roster unreadable: no
-    local count=GetNumGuildMembers; GetNumGuildMembers=function() return secret end; inviteFrom("Bob"); eq(#accepts,0); GetNumGuildMembers=count
-    inviteFrom("Bob"); eq(#accepts,1); yes(logged("accepted Bob's invite"))
-    joinParty("Bob"); moveTo("9500"); advance(3.1); drain(); eq(#leaves,1)
+    for _,name in ipairs({"Birch Scout","Cedar Scout","Elm Scout"}) do
+        deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD",name)
+        deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD",name)
+        deliver("CHAT_MSG_ADDON","LFSw","L 9500|100|h","GUILD",name)
+        inviteFrom(name); eq(#accepts,0)
+    end
+    advance(130); eq(#accepts,0); eq(#opened,0); eq(N.Main.hop.guildAsk,nil)
+
 end)
 test("0.4 T8: hostOwn carries our own name key (it was dropped by an and-expression in 7.3)",function()
     local N=loadAddon(); establish(N); eq(N.Main.hostOwn().self,"me")
@@ -4210,31 +4207,19 @@ test("0.4 T8 B1: a drafted whisper arms auto-accept only once we see it go out t
     deliver("CHAT_MSG_WHISPER_INFORM",N.Invite.MESSAGE,"Scout-TestRealm"); drain()
     inviteFrom("Scout"); eq(#accepts,1,"sent: armed")
 end)
-test("0.4 T8 B1: the guild ask arms on our own /g line; then only an answerer or a listed host is accepted",function()
+test("0.4 T8 B1: outgoing guild chat no longer arms a hop",function()
     local N=loadAddon(); BULO=nil; establish(N); chatBox()
-    roster={{"Bob-TestRealm",true},{"Cy-TestRealm",true},{"Dee-TestRealm",true},{"Eve-TestRealm",true}}
-    local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(opened[1].text,GLINE)
-    deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD","Bob"); drain()
-    inviteFrom("Bob"); eq(#accepts,0,"our line has not gone out"); popup.shown=false
-    deliver("CHAT_MSG_GUILD",GLINE:sub(4).." x","Me"); deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Other"); drain()
-    inviteFrom("Bob"); eq(#accepts,0,"other text or another sender"); popup.shown=false
-    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me-TestRealm"); drain()
-    inviteFrom("Bob"); eq(#accepts,0,"answered before the line went out (r040c G2)"); popup.shown=false
-    deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD","Bob"); drain()
-    inviteFrom("Dee"); eq(#accepts,0,"a guildmate who neither answered nor is a listed host"); popup.shown=false
-    -- a claim for someone else, or a busy heard, is no answer
-    deliver("CHAT_MSG_ADDON","LayerSwap","claim Someone Else","GUILD","Cy"); deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|-","GUILD","Eve"); drain()
-    inviteFrom("Cy"); inviteFrom("Eve"); eq(#accepts,0,"claim for another, busy heard"); popup.shown=false
-    inviteFrom("Bob"); eq(#accepts,1,"answered heard|h")
-    -- a LayerSwap claim naming us, and a listed Bulo host on that layer
-    for _,who in ipairs({"Cy","Eve"}) do
-        N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{who.."-TestRealm",true}}
-        r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
-        deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
-        if who=="Cy" then deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD","Cy")
-        else deliver("CHAT_MSG_ADDON","LFSw","L 9500|100|h","GUILD","Eve") end; drain()
-        inviteFrom(who); eq(#accepts,1,who)
+    roster={{"Birch Scout",true},{"Cedar Scout",false}}
+    eq(N.Main.guildAsk,nil); eq(N.Hop.guildLine,nil)
+    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
+    for _,name in ipairs({"Birch Scout","Cedar Scout","Elm Scout"}) do
+        deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD",name)
+        deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD",name)
+        deliver("CHAT_MSG_ADDON","LFSw","L 9500|100|h","GUILD",name)
+        inviteFrom(name); eq(#accepts,0)
     end
+    advance(130); eq(#accepts,0); eq(#opened,0); eq(N.Main.hop.guildAsk,nil)
+
 end)
 test("0.4 T8 B1: a request whose line cannot be built leaves nothing armed",function()
     local N=loadAddon(); establish(N); local Hp=N.Hop; local inv=N.Invite.new()
@@ -4648,36 +4633,33 @@ test("e4 S1b: one key in the remembered hosts and the offline skip ('Gone' and '
 end)
 
 -- مانع's closing round for B and C (r040c)
-test("r040c G1: a listed Bulo or LayerSwap row counts as a host only with its host flag",function()
-    for _,c in ipairs({{"LFSw","L 9500|100|-"},{"LFSw","L 9500|100|h"}}) do
-        local N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Eve-TestRealm",true}}
-        local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
-        deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
-        deliver("CHAT_MSG_ADDON",c[1],c[2],"GUILD","Eve"); drain()
-        inviteFrom("Eve"); eq(#accepts,c[2]:sub(-1)=="h" and 1 or 0,c[2])
+test("r040c G1: guild host advertisements do not arm an unrequested invite",function()
+    local N=loadAddon(); BULO=nil; establish(N); chatBox()
+    roster={{"Birch Scout",true},{"Cedar Scout",false}}
+    eq(N.Main.guildAsk,nil); eq(N.Hop.guildLine,nil)
+    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
+    for _,name in ipairs({"Birch Scout","Cedar Scout","Elm Scout"}) do
+        deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD",name)
+        deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD",name)
+        deliver("CHAT_MSG_ADDON","LFSw","L 9500|100|h","GUILD",name)
+        inviteFrom(name); eq(#accepts,0)
     end
-    -- a LayerSwap book row with host=false
-    local N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Eve-TestRealm",true}}
-    -- (on another layer than the hop's, so the hop is the guild ask and not a direct request to Eve)
-    LayerSwapDB={book={Eve={layer="9600-1",zone=100,at=N.Adapters.wall(),host=false}}}; loaded.LayerSwap=true
-    local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain(); eq(opened[#opened].text,GLINE)
-    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain(); inviteFrom("Eve"); eq(#accepts,0,"LayerSwap host=false")
-    popup.shown=false; LayerSwapDB.book.Eve.host=true; advance(11); inviteFrom("Eve"); eq(#accepts,1,"LayerSwap host=true")
-    LayerSwapDB=nil; loaded.LayerSwap=nil
+    advance(130); eq(#accepts,0); eq(#opened,0); eq(N.Main.hop.guildAsk,nil)
+
 end)
-test("r040c G2/G3: an answer before our guild line goes out does not count; the window runs from the send",function()
-    local N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Cy-TestRealm",true},{"Bob-TestRealm",true}}
-    local r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
-    deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD","Cy"); deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD","Bob"); drain()
-    advance(100); deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
-    inviteFrom("Cy"); inviteFrom("Bob"); eq(#accepts,0,"answers seen before the send")
-    -- 100 s after the draft, 30 s after the send: still in the window
-    advance(30); deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD","Cy"); drain(); inviteFrom("Cy"); eq(#accepts,1,"30 s after a late send")
-    -- and an answer more than 120 s after the send is late
-    N=loadAddon(); BULO=nil; establish(N); chatBox(); roster={{"Cy-TestRealm",true}}
-    r=rec(N,{src="guild",layer={ns="server",value="9500"}}); yes(N.Main.hopTo(r,N.Main.hopPreview(r))); drain()
-    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain(); advance(121)
-    deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD","Cy"); drain(); inviteFrom("Cy"); eq(#accepts,0,"after the window")
+test("r040c G2/G3: removed guild reply window has no late-send authority",function()
+    local N=loadAddon(); BULO=nil; establish(N); chatBox()
+    roster={{"Birch Scout",true},{"Cedar Scout",false}}
+    eq(N.Main.guildAsk,nil); eq(N.Hop.guildLine,nil)
+    deliver("CHAT_MSG_GUILD",GLINE:sub(4),"Me"); drain()
+    for _,name in ipairs({"Birch Scout","Cedar Scout","Elm Scout"}) do
+        deliver("CHAT_MSG_ADDON","LayerSwap","heard Me|9500-3|100|h","GUILD",name)
+        deliver("CHAT_MSG_ADDON","LayerSwap","claim Me","GUILD",name)
+        deliver("CHAT_MSG_ADDON","LFSw","L 9500|100|h","GUILD",name)
+        inviteFrom(name); eq(#accepts,0)
+    end
+    advance(130); eq(#accepts,0); eq(#opened,0); eq(N.Main.hop.guildAsk,nil)
+
 end)
 test("r040c: an AcceptGroup that throws spends the ask",function()
     local N=loadAddon(); BULO=nil; establish(N); askBob(N)
@@ -6419,17 +6401,13 @@ test("own identity: LayerSwap heard and guild claim readers use our full name, n
     eq(next(N.Main.heard.heard),nil)
     deliver("CHAT_MSG_ADDON","LayerSwap","heard Fable Reed|9000-1|100|h","WHISPER","Other Scout")
     yes(N.Main.heard.heard["Other Scout"])
-    N.Main.hop.guildAsk={at=clock,sent=true}; N.Main.heard.heard={}
+    N.Main.heard.heard={}
     deliver("CHAT_MSG_ADDON","LayerSwap","claim Fable","GUILD","Other Scout")
-    eq(N.Main.hop.guildAsk.answered,nil)
     deliver("CHAT_MSG_ADDON","LayerSwap","heard Fable Reed|9000-1|100|h","GUILD","Other Scout")
-    yes(N.Main.heard.heard["Other Scout"]); yes(N.Main.hop.guildAsk.answered["other scout"])
-    deliver("CHAT_MSG_ADDON","LayerSwap","claim Fable Reed","GUILD","Another Scout")
-    yes(N.Main.hop.guildAsk.answered["another scout"])
-    ownShape("Fable",secret,"8123"); N.Main.hop.guildAsk.answered=nil; N.Main.heard.heard={}
-    deliver("CHAT_MSG_ADDON","LayerSwap","claim Fable","GUILD","Other Scout")
+    eq(N.Main.hop.guildAsk,nil); eq(next(N.Main.heard.heard),nil)
+    ownShape("Fable",secret,"8123")
     deliver("CHAT_MSG_ADDON","LayerSwap","heard Fable Reed|9000-1|100|h","WHISPER","Other Scout")
-    eq(N.Main.hop.guildAsk.answered,nil); eq(next(N.Main.heard.heard),nil); no(N.Main.error)
+    eq(next(N.Main.heard.heard),nil); no(N.Main.error)
 end)
 test("own identity: our split-name raid unit is not mistaken for an outside-guild peer",function()
     local N=loadAddon(); weReady(N); ownShape("Fable","Reed","8123")
@@ -7549,7 +7527,7 @@ local anyGuards={
     cooldown=function(N) N.Main.invite.lastAsk=clock end,
 }
 for label,setup in pairs(anyGuards) do
-    local allowed=label=="combat" or label=="combatUnknown"
+    local allowed=label=="combat" or label=="combatUnknown" or label=="layer"
     test("hop-any click guard "..label..(allowed and " permits searching" or " sends and searches nothing"),function()
         local N=anyFixture(); setup(N); local before=#log
         anyClick(N); eq(#whoCalls,allowed and 1 or 0); eq(#sent,0); yes(#log>before)

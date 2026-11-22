@@ -39,7 +39,7 @@ function H.blindPick(st,rows,zone,commit)
     local c=eligible[1]
     if not c then
         if commit and #all>0 then b.restart=true; st.blind=b end
-        return nil,#all>0 and ("all "..#all.." known hosts tried this session") or "no known hosts; ask your guild."
+        return nil,#all>0 and ("all "..#all.." known hosts tried this session") or "no known hosts; search this zone."
     end
     if commit then
         b.cycle=cycle; b.recycled=b.recycled or b.restart; b.restart=nil
@@ -55,11 +55,12 @@ function H.blindPick(st,rows,zone,commit)
 end
 function H.new() return {quiet={},failures={},book={},round=nil,lastClick=nil} end
 function H.check(st,c)
+    if c.hold then return false,c.hold end
     if c.guildOnly then return false,"guild-only mode: this asks players outside your guild." end
     if c.grouped then return false,"leave your current group first; group state must be readable." end
     if c.instance~=false then return false,"not available in an instance or with instance state unreadable." end
     if not c.zone or not c.zoneName or c.zone~=c.own.zone then return false,"your live zone is not known." end
-    if not L.key(c.own.server) or c.own.ambiguous then return false,I.HINT.." An ambiguous key cannot be used." end
+    if not c.blind and (not L.key(c.own.server) or c.own.ambiguous) then return false,I.HINT.." An ambiguous key cannot be used." end
     if not c.self then return false,"your own name is not readable." end
     if st.round and st.round.phase=="who" then return false,"a who search is still outstanding." end
     if st.round or c.asking then return false,"an ask or hop is still open; stop it or wait for it to end." end
@@ -77,7 +78,7 @@ function H.begin(st,c)
     if not ok then return false,why end
     c.invite.asked[mark.short]=nil
     st.lastClick=c.now
-    st.round={phase="who",at=c.now,zone=c.zone,zoneName=c.zoneName,from=L.key(c.own.server),line=c.line,asked={},answered={},replies={},anyTried={},offline={},negatives={},count=0,sent=0,negative=0}
+    st.round={blind=c.blind,token=c.token,phase="who",at=c.now,zone=c.zone,zoneName=c.zoneName,from=L.key(c.own.server),line=c.line,asked={},answered={},replies={},anyTried={},offline={},negatives={},count=0,sent=0,negative=0}
     return true
 end
 function H.prune(st,time)
@@ -184,7 +185,7 @@ end
 -- Two checks after the queue, at +3/+10. The second also catches late replies; each responder gets one try.
 function H.fallback(st,time)
     local r=st.round
-    if not r.doneAt or r.invited or time<r.doneAt then return nil end
+    if r.blind or not r.doneAt or r.invited or time<r.doneAt then return nil end
     local age=time-r.doneAt
     local stage=age>=H.FALLBACK_LATE and 2 or age>=H.FALLBACK and 1 or 0
     if stage==0 or (r.fallbackStage or 0)>=stage then return nil end
@@ -241,6 +242,7 @@ function H.receive(st,text,name,me,time)
     if not r.negatives[key] and (reply.kind=="same" or not reply.hosting) then
         r.negatives[key]=true; r.negative=r.negative+1
     end
+    reply.at=time
     r.answered[key]=true; r.replies[key]=reply; st.quiet[key]=nil
     if not st.book[key] and S.count(st.book)>=H.MAX_SKIP then
         local oldest,stamp

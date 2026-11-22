@@ -65,13 +65,11 @@ for _,mode in ipairs({"empty","nil"}) do
                     receive("LEGW1",line,name); eq(M.call.current,nil)
                     receive("LEGW1",line); yes(M.call.current)
                 else
-                    local draft; M.openChat=function(line) draft=line; return true end
-                    yes(M.hopAny()); yes(draft)
-                    H.deliver("CHAT_MSG_GUILD",draft:sub(4),name)
+                    eq(M.guildAsk,nil); eq(M.hop.guildAsk,nil)
                     receive("LayerSwap","claim "..name,"Host Cedar")
-                    yes(M.hop.guildAsk.answered["host cedar"])
                     receive("LayerSwap","claim "..name,name)
-                    no(M.hop.guildAsk.answered[name:lower()])
+                    H.deliver("CHAT_MSG_GUILD","inv layer <LS 100 25.0,75.0>",name)
+                    eq(M.invite.pending,nil); eq(next(M.heard.heard),nil)
                 end
                 no(M.error)
             end)
