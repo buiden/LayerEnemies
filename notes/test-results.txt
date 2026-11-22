@@ -1715,9 +1715,12 @@ PASS HopProbe final: unreadable after keeps usable player baseline remaining=5
 PASS HopProbe final: unreadable after with no position cannot prove vanished players
 PASS HopProbe: exact result texts, no GUID digits in any result
 PASS Parity pace: corrupt saves cannot silently remove the estimate
-PASS Parity pace: ten moves, back-to-back hours, reload and per-character
+PASS Parity pace: ten moves, first-move hours, reload and per-character
+PASS Parity review pace: idle gap starts next hour at the first move
 PASS Parity pace: refusal hold 900 seconds, rollback fails closed and bounded loads
 PASS Parity pace: hidden click blocks combat and estimate hold, no r2 before admission
+PASS Parity review pace: wall rollback after expiry holds, forward expiry opens
+PASS Parity review pace: rollback hold sends nothing through the click
 PASS Layer A5: rotating NPC identifiers update confirmed key without wipes
 PASS Layer A5: rotating Bulo IDs and donor transfer notifications wipe nothing
 PASS Layer A5: real PLAYER_ENTERING_WORLD same zone
@@ -2327,9 +2330,18 @@ PASS Parity lifetime: drop on SHARD_TRANSFER
 PASS Parity lifetime: drop on ZONE_CHANGED
 PASS Parity lifetime: drop on PLAYER_ENTERING_WORLD
 PASS Parity lifetime: save only at logout, restore only reload same identity zone and fresh clock
+PASS Parity review logout: unresolved host group cannot save a token
+PASS Parity review restore: grouped reload cannot restore or answer same
 PASS Parity lifetime: expiry does not expire token; missing live zone drops permanently
+PASS Parity review search: stoppable window token=false
+PASS Parity review search: stoppable window token=true
+PASS Parity review search: stoppable bar token=false
+PASS Parity review search: stoppable bar token=true
 PASS Parity search: WHO reply survives group boundary auto=true
 PASS Parity search: WHO reply survives group boundary auto=false
+PASS Parity review peer: only post-join reply may replace own token before
+PASS Parity review peer: only post-join reply may replace own token equal
+PASS Parity review peer: only post-join reply may replace own token after
 PASS Parity verdict: unusable transfer zone
 PASS Parity verdict: unusable transfer stale
 PASS Parity verdict: unusable transfer future
@@ -2850,4 +2862,4 @@ PASS WarBoard track: H cannot revive an expired A confirmation
 PASS WarBoard track: renewal exact forty-five second per target boundary
 PASS WarBoard track: twenty active targets even when corrupted Find holds twenty one
 PASS WarBoard track: handshake before stale give-up cannot bypass the subsequent idle pause
-RESULT: 2764 tests passed, 0 failed, 682683 assertions
+RESULT: 2776 tests passed, 0 failed, 683405 assertions
