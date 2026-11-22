@@ -8,15 +8,17 @@
   rules tag that LE used to reject. Requests without the tag, and older ones, still work.
 - **"Same layer" on builds that hide layer IDs (71037 and newer).** LE learns it from the host you
   hopped through or asked: the same host token means the same layer. The hop bar shows
-  `layer: shared with <host>` and the button becomes **Hop (shared)**. LE never says "other layer"
+  `layer: shared with <host>`, and with a known host the button becomes **Hop (shared)**. LE never says "other layer"
   and never shows layer numbers; a different token proves nothing. Without a token it stays blind.
   The token is dropped on a zone change, an unexpected transfer or a new login; a `/reload` within
-  two minutes on the same character and zone keeps it.
+  two minutes on the same character and zone keeps it, but only while you are not in a group (in a
+  group it is dropped).
 - **Hop requests follow the hosts' hourly limit and don't go out in combat** (hidden-ID builds).
-  LE allows about ten host moves per hour; if a host refuses before that, requests pause for 15
-  minutes. The disabled button shows the estimate and the time left.
+  LE allows about ten host moves per hour; if the game refuses a move after you joined a host before
+  ten moves are recorded, requests pause for 15 minutes. A host declining or answering "same" pauses
+  nothing. The button's tooltip and the hop bar show "move limit estimate: wait N s".
 - **No guild chat.** The **Ask guild (chat)** button and the guild drafts are removed. With no known
-  host, **Find a host** runs a `/who` search (up to 49 players) and asks what it finds; it never posts
+  host, **Find a host** runs a `/who` search and asks up to 49 of the players it finds; it never posts
   in chat. **Stop** ends the search, also in combat.
 
 **Known limits**
@@ -2195,9 +2197,9 @@ Hidden-build requests are refused in combat or when combat is unreadable.
 adopted host-group transfers per 3600 seconds. Each window begins with the
 first move after the previous window closed, not with an idle poll or a
 back-to-back boundary. Refusal with fewer than ten known moves holds requests for 900
-seconds. The disabled button shows an **estimate** and time left; these are
+seconds. The button tooltip and hop bar show the **estimate** and time left; these are
 donor measurements, not a game-certified limit. `hopLimit` stores only
-`{who, start, moves, hold}`, at most ten timestamps, per character across
+`{who, start, moves, hold, seen}` (`seen` is the wall-clock watermark), at most ten timestamps, per character across
 reloads. Backwards clocks and corrupt pacing data fail closed. Older builds
 retain their combat behavior and do not advertise these rules.
 
@@ -2930,7 +2932,7 @@ attempt counts as described above. It never persists sightings, other unselected
 identities, hashes, locations, report payloads, asked names or alert history.
 Hidden builds additionally save `layerToken` only at logout (full ID, zone,
 character, wall time and one alias) for the strictly checked reload restore,
-and `hopLimit` (character, hour start, at most ten move timestamps and hold).
+and `hopLimit` (character, hour start, at most ten move timestamps, hold and the clock watermark).
 These are equality/pacing state, not enemy locations or saved host names.
 Besides those fields it holds
 `guildHost` (hosting for your guild) and `autoHop` (Auto accept and leave),
